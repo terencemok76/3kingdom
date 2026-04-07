@@ -1,0 +1,74 @@
+﻿{
+  "year": 184,
+  "month": 1,
+  "randomSeed": 12345,
+  "factions": [
+    { "id": 1, "name": "Player", "isPlayer": true },
+    { "id": 2, "name": "Cao Clan", "isPlayer": false },
+    { "id": 3, "name": "Sun Clan", "isPlayer": false }
+  ],
+  "cities": [
+    {
+      "id": 1,
+      "name": "Luoyang",
+      "nameEn": "Luoyang",
+      "nameZhHant": "洛陽",
+      "ownerFactionId": 1,
+      "gold": 1200,
+      "food": 1800,
+      "troops": 2500,
+      "officerIds": [1, 2],
+      "connectedCityIds": [2, 3],
+      "mapX": 500,
+      "mapY": 260
+    },
+    {
+      "id": 2,
+      "name": "Xuchang",
+      "nameEn": "Xuchang",
+      "nameZhHant": "許昌",
+      "ownerFactionId": 2,
+      "gold": 900,
+      "food": 1600,
+      "troops": 2200,
+      "officerIds": [3],
+      "connectedCityIds": [1, 4],
+      "mapX": 760,
+      "mapY": 360
+    },
+    {
+      "id": 3,
+      "name": "Jianye",
+      "nameEn": "Jianye",
+      "nameZhHant": "建業",
+      "ownerFactionId": 3,
+      "gold": 850,
+      "food": 1700,
+      "troops": 2100,
+      "officerIds": [4],
+      "connectedCityIds": [1, 4],
+      "mapX": 620,
+      "mapY": 560
+    },
+    {
+      "id": 4,
+      "name": "Chengdu",
+      "nameEn": "Chengdu",
+      "nameZhHant": "成都",
+      "ownerFactionId": 0,
+      "gold": 700,
+      "food": 1400,
+      "troops": 1500,
+      "officerIds": [],
+      "connectedCityIds": [2, 3],
+      "mapX": 340,
+      "mapY": 500
+    }
+  ],
+  "officers": [
+    { "id": 1, "name": "Liu Bei", "war": 78, "intelligence": 73, "charm": 95, "loyalty": 95, "cityId": 1 },
+    { "id": 2, "name": "Guan Yu", "war": 97, "intelligence": 69, "charm": 82, "loyalty": 99, "cityId": 1 },
+    { "id": 3, "name": "Xiahou Dun", "war": 90, "intelligence": 62, "charm": 70, "loyalty": 92, "cityId": 2 },
+    { "id": 4, "name": "Zhou Yu", "war": 80, "intelligence": 95, "charm": 87, "loyalty": 90, "cityId": 3 }
+  ]
+}

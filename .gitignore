@@ -1,0 +1,7 @@
+.godot/
+.mono/
+.import/
+bin/
+obj/
+*.user
+*.tmp
