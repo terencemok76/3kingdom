@@ -22,10 +22,14 @@ public class LocalizationService
         ["ui.search"] = ("搜索", "Search"),
         ["ui.attack"] = ("攻擊", "Attack"),
         ["ui.city"] = ("城市", "City"),
+        ["ui.owner"] = ("勢力", "Owner"),
+        ["ui.player"] = ("玩家", "Player"),
         ["ui.gold"] = ("金", "Gold"),
         ["ui.food"] = ("糧", "Food"),
         ["ui.troops"] = ("兵力", "Troops"),
         ["ui.officers"] = ("武將", "Officers"),
+        ["ui.neutral"] = ("中立", "Neutral"),
+        ["ui.unknown"] = ("未知", "Unknown"),
         ["ui.lang_btn_zh"] = ("繁中", "繁中"),
         ["ui.lang_btn_en"] = ("English", "English"),
         ["log.boot"] = ("M1 初始化完成：核心服務已接線。", "M1 initialized: services wired."),
@@ -74,9 +78,19 @@ public class LocalizationService
         return $"{T("ui.city")}: {cityName}";
     }
 
+    public string FormatPlayerFaction(string factionName)
+    {
+        return $"{T("ui.player")}: {factionName}";
+    }
+
     public string FormatCityStats(int gold, int food, int troops, int officers)
     {
         return $"{T("ui.gold")}: {gold}\n{T("ui.food")}: {food}\n{T("ui.troops")}: {troops}\n{T("ui.officers")}: {officers}";
+    }
+
+    public string FormatOwnerLine(string ownerName)
+    {
+        return $"{T("ui.owner")}: {ownerName}";
     }
 
     public string FormatCitySelected(string cityName)
@@ -126,5 +140,46 @@ public class LocalizationService
         }
 
         return city.NameZhHant;
+    }
+
+    public string GetFactionName(WorldState world, int factionId)
+    {
+        if (factionId <= 0)
+        {
+            return T("ui.neutral");
+        }
+
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return T("ui.unknown");
+        }
+
+        if (IsTraditionalChinese)
+        {
+            if (!string.IsNullOrWhiteSpace(faction.NameZhHant))
+            {
+                return faction.NameZhHant;
+            }
+
+            if (!string.IsNullOrWhiteSpace(faction.Name))
+            {
+                return faction.Name;
+            }
+
+            return faction.NameEn;
+        }
+
+        if (!string.IsNullOrWhiteSpace(faction.NameEn))
+        {
+            return faction.NameEn;
+        }
+
+        if (!string.IsNullOrWhiteSpace(faction.Name))
+        {
+            return faction.Name;
+        }
+
+        return faction.NameZhHant;
     }
 }

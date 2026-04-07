@@ -8,13 +8,13 @@ public partial class RouteRenderer : Node2D
 {
     private readonly List<(Vector2 From, Vector2 To)> _segments = new();
 
-    public void Bind(WorldState world, Vector2 offset)
+    public void Bind(WorldState world)
     {
         _segments.Clear();
 
         foreach (var city in world.Cities)
         {
-            var from = new Vector2(city.MapX, city.MapY) + offset;
+            var from = new Vector2(city.MapX, city.MapY);
             foreach (var connectedCityId in city.ConnectedCityIds)
             {
                 var target = world.GetCity(connectedCityId);
@@ -23,7 +23,7 @@ public partial class RouteRenderer : Node2D
                     continue;
                 }
 
-                _segments.Add((from, new Vector2(target.MapX, target.MapY) + offset));
+                _segments.Add((from, new Vector2(target.MapX, target.MapY)));
             }
         }
 

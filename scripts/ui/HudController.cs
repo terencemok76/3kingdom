@@ -8,6 +8,7 @@ namespace ThreeKingdom.UI;
 public partial class HudController : CanvasLayer
 {
     private Label? _monthLabel;
+    private Label? _playerFactionLabel;
     private Label? _cityNameLabel;
     private Label? _cityStatsLabel;
     private Label? _commandsTitle;
@@ -33,6 +34,7 @@ public partial class HudController : CanvasLayer
     public override void _Ready()
     {
         _monthLabel = GetNodeOrNull<Label>("Root/TopBar/MonthLabel");
+        _playerFactionLabel = GetNodeOrNull<Label>("Root/TopBar/PlayerFactionLabel");
         _languageButton = GetNodeOrNull<Button>("Root/TopBar/LanguageButton");
         _endTurnButton = GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
 
@@ -170,7 +172,8 @@ public partial class HudController : CanvasLayer
 
                 var result = _aiController.RunSingleCityDecision(faction.Id, cityId);
                 var cityName = _localization.GetCityName(city);
-                AddLog(_localization.FormatAiCityAction(faction.Name, cityName, result.Message));
+                var factionName = _localization.GetFactionName(world, faction.Id);
+                AddLog(_localization.FormatAiCityAction(factionName, cityName, result.Message));
             }
         }
 
@@ -202,6 +205,7 @@ public partial class HudController : CanvasLayer
         }
 
         RefreshMonth();
+        RefreshPlayerFaction();
 
         if (_commandsTitle != null)
         {
@@ -248,9 +252,21 @@ public partial class HudController : CanvasLayer
         RefreshSelectedCity();
     }
 
+    private void RefreshPlayerFaction()
+    {
+        if (_playerFactionLabel == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        var factionName = _localization.GetFactionName(_turnManager.World, playerFactionId);
+        _playerFactionLabel.Text = _localization.FormatPlayerFaction(factionName);
+    }
+
     private void RefreshSelectedCity()
     {
-        if (_localization == null)
+        if (_localization == null || _turnManager?.World == null)
         {
             return;
         }
@@ -264,7 +280,10 @@ public partial class HudController : CanvasLayer
 
             if (_cityStatsLabel != null)
             {
-                _cityStatsLabel.Text = _localization.FormatCityStats(0, 0, 0, 0);
+                _cityStatsLabel.Text =
+                    _localization.FormatOwnerLine("-") +
+                    "\n" +
+                    _localization.FormatCityStats(0, 0, 0, 0);
             }
 
             return;
@@ -277,11 +296,15 @@ public partial class HudController : CanvasLayer
 
         if (_cityStatsLabel != null)
         {
-            _cityStatsLabel.Text = _localization.FormatCityStats(
-                _selectedCity.Gold,
-                _selectedCity.Food,
-                _selectedCity.Troops,
-                _selectedCity.OfficerIds.Count);
+            var ownerName = _localization.GetFactionName(_turnManager.World, _selectedCity.OwnerFactionId);
+            _cityStatsLabel.Text =
+                _localization.FormatOwnerLine(ownerName) +
+                "\n" +
+                _localization.FormatCityStats(
+                    _selectedCity.Gold,
+                    _selectedCity.Food,
+                    _selectedCity.Troops,
+                    _selectedCity.OfficerIds.Count);
         }
     }
 }

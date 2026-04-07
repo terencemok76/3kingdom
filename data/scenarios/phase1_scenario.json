@@ -3,9 +3,9 @@
   "month": 1,
   "randomSeed": 12345,
   "factions": [
-    { "id": 1, "name": "Player", "isPlayer": true },
-    { "id": 2, "name": "Cao Clan", "isPlayer": false },
-    { "id": 3, "name": "Sun Clan", "isPlayer": false }
+    { "id": 1, "name": "Liu Bei", "nameEn": "Liu Bei", "nameZhHant": "劉備", "isPlayer": true },
+    { "id": 2, "name": "Cao Cao", "nameEn": "Cao Cao", "nameZhHant": "曹操", "isPlayer": false },
+    { "id": 3, "name": "Sun Quan", "nameEn": "Sun Quan", "nameZhHant": "孫權", "isPlayer": false }
   ],
   "cities": [
     {
@@ -19,8 +19,8 @@
       "troops": 2500,
       "officerIds": [1, 2],
       "connectedCityIds": [2, 3],
-      "mapX": 500,
-      "mapY": 260
+      "mapX": 600,
+      "mapY": 400
     },
     {
       "id": 2,
@@ -33,8 +33,8 @@
       "troops": 2200,
       "officerIds": [3],
       "connectedCityIds": [1, 4],
-      "mapX": 760,
-      "mapY": 360
+      "mapX": 690,
+      "mapY": 600
     },
     {
       "id": 3,
@@ -47,8 +47,8 @@
       "troops": 2100,
       "officerIds": [4],
       "connectedCityIds": [1, 4],
-      "mapX": 620,
-      "mapY": 560
+      "mapX": 900,
+      "mapY": 760
     },
     {
       "id": 4,
@@ -61,8 +61,8 @@
       "troops": 1500,
       "officerIds": [],
       "connectedCityIds": [2, 3],
-      "mapX": 340,
-      "mapY": 500
+      "mapX": 160,
+      "mapY": 820
     }
   ],
   "officers": [

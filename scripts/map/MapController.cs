@@ -10,29 +10,126 @@ public partial class MapController : Node2D
 {
     private const float CityClickRadius = 22.0f;
 
+    private Node2D? _worldRoot;
     private Node2D? _citiesLayer;
     private Node2D? _routesLayer;
+    private Sprite2D? _backgroundSprite;
 
     private readonly List<(CityData City, CityNode Node)> _cityNodes = new();
     private LocalizationService? _localization;
+    private WorldState? _world;
     private int _selectedCityId = -1;
+
+    private bool _isDragging;
+    private Vector2 _lastMousePosition;
 
     public event Action<CityData>? CitySelected;
 
     public override void _Ready()
     {
-        _citiesLayer = GetNodeOrNull<Node2D>("CitiesLayer");
-        _routesLayer = GetNodeOrNull<Node2D>("RoutesLayer");
+        _worldRoot = GetNodeOrNull<Node2D>("WorldRoot");
+        _citiesLayer = GetNodeOrNull<Node2D>("WorldRoot/CitiesLayer");
+        _routesLayer = GetNodeOrNull<Node2D>("WorldRoot/RoutesLayer");
+        _backgroundSprite = GetNodeOrNull<Sprite2D>("WorldRoot/BackgroundSprite");
+
+        TryUseUserMapTexture();
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is not InputEventMouseButton mouseButton)
+        switch (@event)
+        {
+            case InputEventMouseButton mouseButton:
+                HandleMouseButton(mouseButton);
+                break;
+            case InputEventMouseMotion mouseMotion:
+                HandleMouseMotion(mouseMotion);
+                break;
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        if (_localization != null)
+        {
+            _localization.LanguageChanged -= OnLanguageChanged;
+        }
+    }
+
+    public void BindWorld(WorldState world, LocalizationService localization)
+    {
+        _world = world;
+        _localization = localization;
+        _localization.LanguageChanged -= OnLanguageChanged;
+        _localization.LanguageChanged += OnLanguageChanged;
+
+        if (_citiesLayer == null || _worldRoot == null)
         {
             return;
         }
 
-        if (!mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Left)
+        foreach (Node child in _citiesLayer.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        _cityNodes.Clear();
+
+        var centerOffset = CalculateCenterOffset(world);
+        _worldRoot.Position = centerOffset;
+
+        foreach (var city in world.Cities)
+        {
+            var cityNode = new CityNode
+            {
+                Name = $"City_{city.Id}",
+                Position = new Vector2(city.MapX, city.MapY)
+            };
+            cityNode.Bind(city, BuildCityLabel(city));
+            _citiesLayer.AddChild(cityNode);
+            _cityNodes.Add((city, cityNode));
+        }
+
+        if (_routesLayer != null)
+        {
+            foreach (Node child in _routesLayer.GetChildren())
+            {
+                child.QueueFree();
+            }
+
+            var routeRenderer = new RouteRenderer
+            {
+                Name = "RouteRenderer"
+            };
+            routeRenderer.Bind(world);
+            _routesLayer.AddChild(routeRenderer);
+        }
+
+        if (world.Cities.Count > 0)
+        {
+            SelectCity(world.Cities[0].Id);
+        }
+    }
+
+    private void HandleMouseButton(InputEventMouseButton mouseButton)
+    {
+        if (mouseButton.ButtonIndex == MouseButton.Right)
+        {
+            if (mouseButton.Pressed)
+            {
+                _isDragging = true;
+                _lastMousePosition = mouseButton.Position;
+                GetViewport().SetInputAsHandled();
+            }
+            else
+            {
+                _isDragging = false;
+            }
+
+            return;
+        }
+
+        if (!mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Left || _isDragging)
         {
             return;
         }
@@ -52,68 +149,21 @@ public partial class MapController : Node2D
         if (pickedCity != null)
         {
             SelectCity(pickedCity.Id);
+            GetViewport().SetInputAsHandled();
         }
     }
 
-    public override void _ExitTree()
+    private void HandleMouseMotion(InputEventMouseMotion mouseMotion)
     {
-        if (_localization != null)
-        {
-            _localization.LanguageChanged -= OnLanguageChanged;
-        }
-    }
-
-    public void BindWorld(WorldState world, LocalizationService localization)
-    {
-        _localization = localization;
-        _localization.LanguageChanged -= OnLanguageChanged;
-        _localization.LanguageChanged += OnLanguageChanged;
-
-        if (_citiesLayer == null)
+        if (!_isDragging || _worldRoot == null)
         {
             return;
         }
 
-        foreach (Node child in _citiesLayer.GetChildren())
-        {
-            child.QueueFree();
-        }
-
-        _cityNodes.Clear();
-
-        var offset = CalculateCenterOffset(world);
-
-        foreach (var city in world.Cities)
-        {
-            var cityNode = new CityNode
-            {
-                Name = $"City_{city.Id}",
-                Position = new Vector2(city.MapX, city.MapY) + offset
-            };
-            cityNode.Bind(city, localization.GetCityName(city));
-            _citiesLayer.AddChild(cityNode);
-            _cityNodes.Add((city, cityNode));
-        }
-
-        if (_routesLayer != null)
-        {
-            foreach (Node child in _routesLayer.GetChildren())
-            {
-                child.QueueFree();
-            }
-
-            var routeRenderer = new RouteRenderer
-            {
-                Name = "RouteRenderer"
-            };
-            routeRenderer.Bind(world, offset);
-            _routesLayer.AddChild(routeRenderer);
-        }
-
-        if (world.Cities.Count > 0)
-        {
-            SelectCity(world.Cities[0].Id);
-        }
+        var delta = mouseMotion.Position - _lastMousePosition;
+        _worldRoot.Position += delta;
+        _lastMousePosition = mouseMotion.Position;
+        GetViewport().SetInputAsHandled();
     }
 
     private void SelectCity(int cityId)
@@ -139,20 +189,27 @@ public partial class MapController : Node2D
 
     private void OnLanguageChanged()
     {
-        if (_localization == null)
-        {
-            return;
-        }
-
         foreach (var entry in _cityNodes)
         {
-            entry.Node.SetDisplayName(_localization.GetCityName(entry.City));
+            entry.Node.SetDisplayLabel(BuildCityLabel(entry.City));
         }
 
         if (_selectedCityId > 0)
         {
             SelectCity(_selectedCityId);
         }
+    }
+
+    private string BuildCityLabel(CityData city)
+    {
+        if (_localization == null || _world == null)
+        {
+            return city.Name;
+        }
+
+        var cityName = _localization.GetCityName(city);
+        var ownerName = _localization.GetFactionName(_world, city.OwnerFactionId);
+        return $"{cityName}\n{ownerName}";
     }
 
     private Vector2 CalculateCenterOffset(WorldState world)
@@ -200,4 +257,40 @@ public partial class MapController : Node2D
         var screenCenter = viewportSize * 0.5f;
         return screenCenter - mapCenter;
     }
+
+    private void TryUseUserMapTexture()
+    {
+        if (_backgroundSprite == null)
+        {
+            return;
+        }
+
+        var preferredPaths = new[]
+        {
+            "res://assets/map/san4_generated_v2.png",
+            "res://assets/map/san4_generated.png",
+            "res://assets/map/san4_map.png"
+        };
+
+        foreach (var path in preferredPaths)
+        {
+            if (!ResourceLoader.Exists(path))
+            {
+                continue;
+            }
+
+            var texture = ResourceLoader.Load<Texture2D>(path);
+            if (texture == null)
+            {
+                continue;
+            }
+
+            _backgroundSprite.Texture = texture;
+            _backgroundSprite.Position = Vector2.Zero;
+            _backgroundSprite.Scale = Vector2.One;
+            GD.Print($"Loaded map texture: {path}");
+            return;
+        }
+    }
 }
+

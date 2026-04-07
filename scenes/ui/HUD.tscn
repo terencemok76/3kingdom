@@ -30,11 +30,15 @@ offset_left = 12.0
 offset_top = 10.0
 offset_right = -12.0
 offset_bottom = 50.0
-theme_override_constants/separation = 8
+theme_override_constants/separation = 16
 
 [node name="MonthLabel" type="Label" parent="Root/TopBar"]
 layout_mode = 2
-text = "184年 1月"
+text = "Year 184 Month 1"
+
+[node name="PlayerFactionLabel" type="Label" parent="Root/TopBar"]
+layout_mode = 2
+text = "Player: -"
 
 [node name="Spacer" type="Control" parent="Root/TopBar"]
 layout_mode = 2
@@ -46,7 +50,7 @@ text = "English"
 
 [node name="EndTurnButton" type="Button" parent="Root/TopBar"]
 layout_mode = 2
-text = "回合結束"
+text = "End Turn"
 
 [node name="LeftPanelBg" type="ColorRect" parent="Root"]
 layout_mode = 1
@@ -66,16 +70,16 @@ theme_override_constants/separation = 8
 
 [node name="CityNameLabel" type="Label" parent="Root/LeftPanel"]
 layout_mode = 2
-text = "城市: -"
+text = "City: -"
 
 [node name="CityStatsLabel" type="Label" parent="Root/LeftPanel"]
 layout_mode = 2
 autowrap_mode = 3
-text = "金: 0\n糧: 0\n兵力: 0\n武將: 0"
+text = "Owner: -\nGold: 0\nFood: 0\nTroops: 0\nOfficers: 0"
 
 [node name="CommandsTitle" type="Label" parent="Root/LeftPanel"]
 layout_mode = 2
-text = "指令"
+text = "Commands"
 
 [node name="CommandButtons" type="HBoxContainer" parent="Root/LeftPanel"]
 layout_mode = 2
@@ -83,23 +87,23 @@ theme_override_constants/separation = 6
 
 [node name="DevelopButton" type="Button" parent="Root/LeftPanel/CommandButtons"]
 layout_mode = 2
-text = "開發"
+text = "Develop"
 
 [node name="RecruitButton" type="Button" parent="Root/LeftPanel/CommandButtons"]
 layout_mode = 2
-text = "徵兵"
+text = "Recruit"
 
 [node name="MoveButton" type="Button" parent="Root/LeftPanel/CommandButtons"]
 layout_mode = 2
-text = "移動"
+text = "Move"
 
 [node name="SearchButton" type="Button" parent="Root/LeftPanel/CommandButtons"]
 layout_mode = 2
-text = "搜索"
+text = "Search"
 
 [node name="AttackButton" type="Button" parent="Root/LeftPanel/CommandButtons"]
 layout_mode = 2
-text = "攻擊"
+text = "Attack"
 
 [node name="LogPanelBg" type="ColorRect" parent="Root"]
 layout_mode = 1
@@ -128,4 +132,4 @@ offset_bottom = -22.0
 grow_horizontal = 2
 grow_vertical = 0
 bbcode_enabled = true
-text = "[b]遊戲初始化[/b]"
+text = "[b]Game initialized[/b]"
