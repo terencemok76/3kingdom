@@ -1,5 +1,7 @@
-﻿using Godot;
+﻿using System.Collections.Generic;
+using Godot;
 using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -22,6 +24,11 @@ public partial class HudController : CanvasLayer
 
     private TurnManager? _turnManager;
     private LocalizationService? _localization;
+    private AiController? _aiController;
+    private CityData? _selectedCity;
+
+    private bool _isLanguageButtonConnected;
+    private bool _isEndTurnButtonConnected;
 
     public override void _Ready()
     {
@@ -49,9 +56,16 @@ public partial class HudController : CanvasLayer
             _localization.LanguageChanged -= OnLanguageChanged;
         }
 
-        if (_languageButton != null)
+        if (_languageButton != null && _isLanguageButtonConnected)
         {
             _languageButton.Pressed -= OnLanguageButtonPressed;
+            _isLanguageButtonConnected = false;
+        }
+
+        if (_endTurnButton != null && _isEndTurnButtonConnected)
+        {
+            _endTurnButton.Pressed -= OnEndTurnPressed;
+            _isEndTurnButtonConnected = false;
         }
     }
 
@@ -63,17 +77,35 @@ public partial class HudController : CanvasLayer
     {
         _turnManager = turnManager;
         _localization = localization;
+        _aiController = aiController;
+
         _localization.LanguageChanged -= OnLanguageChanged;
         _localization.LanguageChanged += OnLanguageChanged;
 
-        if (_languageButton != null)
+        if (_languageButton != null && !_isLanguageButtonConnected)
         {
-            _languageButton.Pressed -= OnLanguageButtonPressed;
             _languageButton.Pressed += OnLanguageButtonPressed;
+            _isLanguageButtonConnected = true;
+        }
+
+        if (_endTurnButton != null && !_isEndTurnButtonConnected)
+        {
+            _endTurnButton.Pressed += OnEndTurnPressed;
+            _isEndTurnButtonConnected = true;
         }
 
         RefreshAllText();
         AddLog(_localization.T("log.boot"));
+    }
+
+    public void OnCitySelected(CityData city)
+    {
+        _selectedCity = city;
+        RefreshSelectedCity();
+        if (_localization != null)
+        {
+            AddLog(_localization.FormatCitySelected(_localization.GetCityName(city)));
+        }
     }
 
     public void RefreshMonth()
@@ -100,6 +132,61 @@ public partial class HudController : CanvasLayer
     private void OnLanguageButtonPressed()
     {
         _localization?.ToggleLanguage();
+    }
+
+    private void OnEndTurnPressed()
+    {
+        if (_turnManager?.World == null || _localization == null || _aiController == null)
+        {
+            return;
+        }
+
+        var world = _turnManager.World;
+        AddLog(_localization.T("log.player_end_turn"));
+
+        foreach (var faction in world.Factions)
+        {
+            if (faction.IsPlayer)
+            {
+                continue;
+            }
+
+            var cityIds = new List<int>();
+            foreach (var city in world.Cities)
+            {
+                if (city.OwnerFactionId == faction.Id)
+                {
+                    cityIds.Add(city.Id);
+                }
+            }
+
+            foreach (var cityId in cityIds)
+            {
+                var city = world.GetCity(cityId);
+                if (city == null)
+                {
+                    continue;
+                }
+
+                var result = _aiController.RunSingleCityDecision(faction.Id, cityId);
+                var cityName = _localization.GetCityName(city);
+                AddLog(_localization.FormatAiCityAction(faction.Name, cityName, result.Message));
+            }
+        }
+
+        _turnManager.AdvanceMonth();
+        AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month));
+        RefreshMonth();
+
+        if (_selectedCity != null)
+        {
+            var refreshed = world.GetCity(_selectedCity.Id);
+            if (refreshed != null)
+            {
+                _selectedCity = refreshed;
+                RefreshSelectedCity();
+            }
+        }
     }
 
     private void OnLanguageChanged()
@@ -151,21 +238,50 @@ public partial class HudController : CanvasLayer
             _attackButton.Text = _localization.T("ui.attack");
         }
 
-        if (_cityNameLabel != null)
-        {
-            _cityNameLabel.Text = _localization.FormatCityHeader("-");
-        }
-
-        if (_cityStatsLabel != null)
-        {
-            _cityStatsLabel.Text = _localization.FormatCityStats(0, 0, 0, 0);
-        }
-
         if (_languageButton != null)
         {
             _languageButton.Text = _localization.IsTraditionalChinese
                 ? _localization.T("ui.lang_btn_en")
                 : _localization.T("ui.lang_btn_zh");
+        }
+
+        RefreshSelectedCity();
+    }
+
+    private void RefreshSelectedCity()
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        if (_selectedCity == null)
+        {
+            if (_cityNameLabel != null)
+            {
+                _cityNameLabel.Text = _localization.FormatCityHeader("-");
+            }
+
+            if (_cityStatsLabel != null)
+            {
+                _cityStatsLabel.Text = _localization.FormatCityStats(0, 0, 0, 0);
+            }
+
+            return;
+        }
+
+        if (_cityNameLabel != null)
+        {
+            _cityNameLabel.Text = _localization.FormatCityHeader(_localization.GetCityName(_selectedCity));
+        }
+
+        if (_cityStatsLabel != null)
+        {
+            _cityStatsLabel.Text = _localization.FormatCityStats(
+                _selectedCity.Gold,
+                _selectedCity.Food,
+                _selectedCity.Troops,
+                _selectedCity.OfficerIds.Count);
         }
     }
 }

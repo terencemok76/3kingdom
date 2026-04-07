@@ -28,7 +28,8 @@ public class LocalizationService
         ["ui.officers"] = ("武將", "Officers"),
         ["ui.lang_btn_zh"] = ("繁中", "繁中"),
         ["ui.lang_btn_en"] = ("English", "English"),
-        ["log.boot"] = ("M1 初始化完成：核心服務已接線。", "M1 initialized: services wired.")
+        ["log.boot"] = ("M1 初始化完成：核心服務已接線。", "M1 initialized: services wired."),
+        ["log.player_end_turn"] = ("玩家回合結束，AI 勢力行動中...", "Player turn ended. AI factions are taking actions...")
     };
 
     public event Action? LanguageChanged;
@@ -76,6 +77,25 @@ public class LocalizationService
     public string FormatCityStats(int gold, int food, int troops, int officers)
     {
         return $"{T("ui.gold")}: {gold}\n{T("ui.food")}: {food}\n{T("ui.troops")}: {troops}\n{T("ui.officers")}: {officers}";
+    }
+
+    public string FormatCitySelected(string cityName)
+    {
+        return IsTraditionalChinese ? $"已選擇城市：{cityName}" : $"Selected city: {cityName}";
+    }
+
+    public string FormatAiCityAction(string factionName, string cityName, string actionMessage)
+    {
+        return IsTraditionalChinese
+            ? $"[{factionName}] {cityName}：{actionMessage}"
+            : $"[{factionName}] {cityName}: {actionMessage}";
+    }
+
+    public string FormatMonthAdvanced(int year, int month)
+    {
+        return IsTraditionalChinese
+            ? $"進入新月份：{year}年 {month}月"
+            : $"New month: Year {year} Month {month}";
     }
 
     public string GetCityName(CityData city)

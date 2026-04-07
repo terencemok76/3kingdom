@@ -33,6 +33,11 @@ public partial class GameBootstrap : Node
         var hudController = GetNodeOrNull<HudController>("HUD");
         hudController?.Initialize(_turnManager, _commandResolver, _aiController, _localization);
 
-        GD.Print("Phase 1 M1 bootstrap complete.");
+        if (mapController != null && hudController != null)
+        {
+            mapController.CitySelected += hudController.OnCitySelected;
+        }
+
+        GD.Print("Phase 1 bootstrap complete.");
     }
 }

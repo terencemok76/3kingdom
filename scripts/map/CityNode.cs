@@ -7,6 +7,7 @@ public partial class CityNode : Node2D
 {
     private CityData? _city;
     private string _displayName = string.Empty;
+    private bool _isSelected;
 
     public void Bind(CityData city, string displayName)
     {
@@ -21,10 +22,19 @@ public partial class CityNode : Node2D
         QueueRedraw();
     }
 
+    public void SetSelected(bool isSelected)
+    {
+        _isSelected = isSelected;
+        QueueRedraw();
+    }
+
     public override void _Draw()
     {
-        DrawCircle(Vector2.Zero, 16.0f, new Color("d8c27a"));
-        DrawCircle(Vector2.Zero, 17.0f, new Color("2d2a26"), false, 2.0f);
+        var fillColor = _isSelected ? new Color("f4d35e") : new Color("d8c27a");
+        var borderColor = _isSelected ? new Color("fffbeb") : new Color("2d2a26");
+
+        DrawCircle(Vector2.Zero, 16.0f, fillColor);
+        DrawCircle(Vector2.Zero, 17.0f, borderColor, false, 2.0f);
 
         var label = !string.IsNullOrWhiteSpace(_displayName)
             ? _displayName

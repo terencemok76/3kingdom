@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
@@ -7,16 +8,51 @@ namespace ThreeKingdom.Map;
 
 public partial class MapController : Node2D
 {
+    private const float CityClickRadius = 22.0f;
+
     private Node2D? _citiesLayer;
     private Node2D? _routesLayer;
 
     private readonly List<(CityData City, CityNode Node)> _cityNodes = new();
     private LocalizationService? _localization;
+    private int _selectedCityId = -1;
+
+    public event Action<CityData>? CitySelected;
 
     public override void _Ready()
     {
         _citiesLayer = GetNodeOrNull<Node2D>("CitiesLayer");
         _routesLayer = GetNodeOrNull<Node2D>("RoutesLayer");
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton mouseButton)
+        {
+            return;
+        }
+
+        if (!mouseButton.Pressed || mouseButton.ButtonIndex != MouseButton.Left)
+        {
+            return;
+        }
+
+        var clickPos = mouseButton.Position;
+        CityData? pickedCity = null;
+
+        foreach (var entry in _cityNodes)
+        {
+            if (entry.Node.GlobalPosition.DistanceTo(clickPos) <= CityClickRadius)
+            {
+                pickedCity = entry.City;
+                break;
+            }
+        }
+
+        if (pickedCity != null)
+        {
+            SelectCity(pickedCity.Id);
+        }
     }
 
     public override void _ExitTree()
@@ -73,6 +109,32 @@ public partial class MapController : Node2D
             routeRenderer.Bind(world, offset);
             _routesLayer.AddChild(routeRenderer);
         }
+
+        if (world.Cities.Count > 0)
+        {
+            SelectCity(world.Cities[0].Id);
+        }
+    }
+
+    private void SelectCity(int cityId)
+    {
+        _selectedCityId = cityId;
+        CityData? selected = null;
+
+        foreach (var entry in _cityNodes)
+        {
+            var isMatch = entry.City.Id == cityId;
+            entry.Node.SetSelected(isMatch);
+            if (isMatch)
+            {
+                selected = entry.City;
+            }
+        }
+
+        if (selected != null)
+        {
+            CitySelected?.Invoke(selected);
+        }
     }
 
     private void OnLanguageChanged()
@@ -85,6 +147,11 @@ public partial class MapController : Node2D
         foreach (var entry in _cityNodes)
         {
             entry.Node.SetDisplayName(_localization.GetCityName(entry.City));
+        }
+
+        if (_selectedCityId > 0)
+        {
+            SelectCity(_selectedCityId);
         }
     }
 
