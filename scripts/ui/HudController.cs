@@ -21,6 +21,7 @@ public partial class HudController : CanvasLayer
     private Button? _moveButton;
     private Button? _searchButton;
     private Button? _attackButton;
+    private PopupMenu? _targetCityMenu;
 
     private RichTextLabel? _logText;
 
@@ -40,6 +41,7 @@ public partial class HudController : CanvasLayer
     private bool _isAttackButtonConnected;
     private bool _gameEnded;
     private readonly HashSet<int> _aliveFactionIds = new();
+    private CommandType _pendingTargetCommand = CommandType.Pass;
 
     public override void _Ready()
     {
@@ -63,6 +65,10 @@ public partial class HudController : CanvasLayer
         {
             _logText.ScrollFollowing = true;
         }
+
+        _targetCityMenu = new PopupMenu();
+        AddChild(_targetCityMenu);
+        _targetCityMenu.IdPressed += OnTargetCityMenuIdPressed;
     }
 
     public override void _ExitTree()
@@ -252,6 +258,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var candidateIds = new List<int>();
         foreach (var targetId in _selectedCity.ConnectedCityIds)
         {
             var target = _turnManager.World.GetCity(targetId);
@@ -260,11 +267,13 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
-            ExecutePlayerCommand(CommandType.Move, target.Id, _selectedCity.Troops / 2);
-            return;
+            candidateIds.Add(target.Id);
         }
 
-        AddLog("No connected friendly city to move troops.");
+        ExecuteTargetSelectionOrCommand(
+            CommandType.Move,
+            candidateIds,
+            "No connected friendly city to move troops.");
     }
 
     private void OnSearchPressed()
@@ -279,6 +288,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var candidateIds = new List<int>();
         foreach (var targetId in _selectedCity.ConnectedCityIds)
         {
             var target = _turnManager.World.GetCity(targetId);
@@ -287,11 +297,80 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
-            ExecutePlayerCommand(CommandType.Attack, target.Id, _selectedCity.Troops / 2);
+            candidateIds.Add(target.Id);
+        }
+
+        ExecuteTargetSelectionOrCommand(
+            CommandType.Attack,
+            candidateIds,
+            "No connected enemy city to attack.");
+    }
+
+    private void ExecuteTargetSelectionOrCommand(
+        CommandType commandType,
+        List<int> candidateIds,
+        string noTargetMessage)
+    {
+        if (_turnManager?.World == null || _selectedCity == null)
+        {
             return;
         }
 
-        AddLog("No connected enemy city to attack.");
+        if (candidateIds.Count == 0)
+        {
+            AddLog(noTargetMessage);
+            return;
+        }
+
+        if (candidateIds.Count == 1)
+        {
+            ExecutePlayerCommand(commandType, candidateIds[0], _selectedCity.Troops / 2);
+            return;
+        }
+
+        ShowTargetCityMenu(commandType, candidateIds);
+    }
+
+    private void ShowTargetCityMenu(CommandType commandType, List<int> candidateIds)
+    {
+        if (_targetCityMenu == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        _pendingTargetCommand = commandType;
+        _targetCityMenu.Clear();
+
+        foreach (var cityId in candidateIds)
+        {
+            var city = _turnManager.World.GetCity(cityId);
+            if (city == null)
+            {
+                continue;
+            }
+
+            _targetCityMenu.AddItem(_localization.GetCityName(city), cityId);
+        }
+
+        if (_targetCityMenu.ItemCount == 0)
+        {
+            return;
+        }
+
+        var mousePos = GetViewport().GetMousePosition();
+        _targetCityMenu.Position = new Vector2I((int)mousePos.X, (int)mousePos.Y);
+        _targetCityMenu.ResetSize();
+        _targetCityMenu.Popup();
+    }
+
+    private void OnTargetCityMenuIdPressed(long id)
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ExecutePlayerCommand(_pendingTargetCommand, (int)id, _selectedCity.Troops / 2);
     }
 
     private void ExecutePlayerCommand(CommandType type, int? targetCityId = null, int troopsToSend = 0)
