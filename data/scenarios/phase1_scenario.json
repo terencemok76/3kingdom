@@ -3,9 +3,9 @@
   "month": 1,
   "randomSeed": 12345,
   "factions": [
-    { "id": 1, "name": "Liu Bei", "nameEn": "Liu Bei", "nameZhHant": "劉備", "isPlayer": true },
-    { "id": 2, "name": "Cao Cao", "nameEn": "Cao Cao", "nameZhHant": "曹操", "isPlayer": false },
-    { "id": 3, "name": "Sun Quan", "nameEn": "Sun Quan", "nameZhHant": "孫權", "isPlayer": false }
+    { "id": 1, "name": "Liu Bei", "nameEn": "Liu Bei", "nameZhHant": "劉備", "rulerOfficerId": 1, "officerIds": [1, 2], "isPlayer": true },
+    { "id": 2, "name": "Cao Cao", "nameEn": "Cao Cao", "nameZhHant": "曹操", "rulerOfficerId": 3, "officerIds": [3], "isPlayer": false },
+    { "id": 3, "name": "Sun Quan", "nameEn": "Sun Quan", "nameZhHant": "孫權", "rulerOfficerId": 4, "officerIds": [4, 5], "isPlayer": false }
   ],
   "cities": [
     {
@@ -17,6 +17,10 @@
       "gold": 1200,
       "food": 1800,
       "troops": 2500,
+      "farm": 72,
+      "commercial": 68,
+      "defense": 64,
+      "loyalty": 85,
       "officerIds": [1, 2],
       "connectedCityIds": [2, 3],
       "mapX": 600,
@@ -31,6 +35,10 @@
       "gold": 900,
       "food": 1600,
       "troops": 2200,
+      "farm": 66,
+      "commercial": 74,
+      "defense": 70,
+      "loyalty": 83,
       "officerIds": [3],
       "connectedCityIds": [1, 4],
       "mapX": 690,
@@ -45,7 +53,11 @@
       "gold": 850,
       "food": 1700,
       "troops": 2100,
-      "officerIds": [4],
+      "farm": 78,
+      "commercial": 62,
+      "defense": 58,
+      "loyalty": 80,
+      "officerIds": [4, 5],
       "connectedCityIds": [1, 4],
       "mapX": 900,
       "mapY": 760
@@ -59,6 +71,10 @@
       "gold": 700,
       "food": 1400,
       "troops": 1500,
+      "farm": 60,
+      "commercial": 55,
+      "defense": 52,
+      "loyalty": 65,
       "officerIds": [],
       "connectedCityIds": [2, 3],
       "mapX": 160,
@@ -66,9 +82,11 @@
     }
   ],
   "officers": [
-    { "id": 1, "name": "Liu Bei", "war": 78, "intelligence": 73, "charm": 95, "loyalty": 95, "cityId": 1 },
-    { "id": 2, "name": "Guan Yu", "war": 97, "intelligence": 69, "charm": 82, "loyalty": 99, "cityId": 1 },
-    { "id": 3, "name": "Xiahou Dun", "war": 90, "intelligence": 62, "charm": 70, "loyalty": 92, "cityId": 2 },
-    { "id": 4, "name": "Zhou Yu", "war": 80, "intelligence": 95, "charm": 87, "loyalty": 90, "cityId": 3 }
+    { "id": 1, "name": "Liu Bei", "role": "Ruler", "war": 78, "intelligence": 73, "charm": 95, "loyalty": 95, "cityId": 1 },
+    { "id": 2, "name": "Guan Yu", "role": "General", "war": 97, "intelligence": 69, "charm": 82, "loyalty": 99, "cityId": 1 },
+    { "id": 3, "name": "Cao Cao", "role": "Ruler", "war": 92, "intelligence": 94, "charm": 90, "loyalty": 98, "cityId": 2 },
+    { "id": 4, "name": "Sun Quan", "role": "Ruler", "war": 76, "intelligence": 82, "charm": 88, "loyalty": 94, "cityId": 3 },
+    { "id": 5, "name": "Zhou Yu", "role": "General", "war": 80, "intelligence": 95, "charm": 87, "loyalty": 90, "cityId": 3 }
   ]
 }
+

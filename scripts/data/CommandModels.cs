@@ -26,4 +26,6 @@ public class CommandResult
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
+    public string MessageZhHant { get; set; } = string.Empty;
+    public string MessageEn { get; set; } = string.Empty;
 }

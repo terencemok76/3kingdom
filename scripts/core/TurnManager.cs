@@ -1,5 +1,4 @@
-﻿using Godot;
-using ThreeKingdom.Data;
+﻿using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
 
@@ -32,6 +31,41 @@ public class TurnManager
         return -1;
     }
 
+    public void ApplyMonthlyEconomy()
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        foreach (var city in World.Cities)
+        {
+            var loyaltyFactor = 0.8f + city.Loyalty / 200.0f;
+            var goldIncome = (int)((30 + city.Commercial * 2.0f) * loyaltyFactor);
+            var foodIncome = (int)((40 + city.Farm * 3.0f) * loyaltyFactor);
+
+            city.Gold += goldIncome;
+            city.Food += foodIncome;
+
+            var upkeep = city.Troops / 20;
+            city.Food -= upkeep;
+
+            if (city.Food < 0)
+            {
+                var shortage = -city.Food;
+                var deserters = shortage * 2;
+                if (deserters > city.Troops)
+                {
+                    deserters = city.Troops;
+                }
+
+                city.Troops -= deserters;
+                city.Food = 0;
+                city.Loyalty = city.Loyalty > 2 ? city.Loyalty - 2 : 0;
+            }
+        }
+    }
+
     public void AdvanceMonth()
     {
         if (World == null)
@@ -47,3 +81,4 @@ public class TurnManager
         }
     }
 }
+

@@ -31,7 +31,7 @@ public partial class GameBootstrap : Node
         mapController?.BindWorld(world, _localization);
 
         var hudController = GetNodeOrNull<HudController>("HUD");
-        hudController?.Initialize(_turnManager, _commandResolver, _aiController, _localization);
+        hudController?.Initialize(_turnManager, _commandResolver, _aiController, _localization, mapController);
 
         if (mapController != null && hudController != null)
         {

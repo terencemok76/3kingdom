@@ -28,12 +28,17 @@ public class LocalizationService
         ["ui.food"] = ("糧", "Food"),
         ["ui.troops"] = ("兵力", "Troops"),
         ["ui.officers"] = ("武將", "Officers"),
+        ["ui.farm"] = ("農業", "Farm"),
+        ["ui.commercial"] = ("商業", "Commercial"),
+        ["ui.defense"] = ("防禦", "Defense"),
+        ["ui.loyalty"] = ("忠誠", "Loyalty"),
         ["ui.neutral"] = ("中立", "Neutral"),
         ["ui.unknown"] = ("未知", "Unknown"),
         ["ui.lang_btn_zh"] = ("繁中", "繁中"),
         ["ui.lang_btn_en"] = ("English", "English"),
         ["log.boot"] = ("M1 初始化完成：核心服務已接線。", "M1 initialized: services wired."),
-        ["log.player_end_turn"] = ("玩家回合結束，AI 勢力行動中...", "Player turn ended. AI factions are taking actions...")
+        ["log.player_end_turn"] = ("玩家回合結束，AI 勢力行動中...", "Player turn ended. AI factions are taking actions..."),
+        ["log.monthly_economy"] = ("已結算城市月度內政收益。", "Monthly city economy resolved.")
     };
 
     public event Action? LanguageChanged;
@@ -83,9 +88,30 @@ public class LocalizationService
         return $"{T("ui.player")}: {factionName}";
     }
 
-    public string FormatCityStats(int gold, int food, int troops, int officers)
+    public string FormatCityStats(CityData city)
     {
-        return $"{T("ui.gold")}: {gold}\n{T("ui.food")}: {food}\n{T("ui.troops")}: {troops}\n{T("ui.officers")}: {officers}";
+        return
+            $"{T("ui.gold")}: {city.Gold}\n" +
+            $"{T("ui.food")}: {city.Food}\n" +
+            $"{T("ui.troops")}: {city.Troops}\n" +
+            $"{T("ui.officers")}: {city.OfficerIds.Count}\n" +
+            $"{T("ui.farm")}: {city.Farm}\n" +
+            $"{T("ui.commercial")}: {city.Commercial}\n" +
+            $"{T("ui.defense")}: {city.Defense}\n" +
+            $"{T("ui.loyalty")}: {city.Loyalty}";
+    }
+
+    public string FormatEmptyCityStats()
+    {
+        return
+            $"{T("ui.gold")}: 0\n" +
+            $"{T("ui.food")}: 0\n" +
+            $"{T("ui.troops")}: 0\n" +
+            $"{T("ui.officers")}: 0\n" +
+            $"{T("ui.farm")}: 0\n" +
+            $"{T("ui.commercial")}: 0\n" +
+            $"{T("ui.defense")}: 0\n" +
+            $"{T("ui.loyalty")}: 0";
     }
 
     public string FormatOwnerLine(string ownerName)
@@ -110,6 +136,13 @@ public class LocalizationService
         return IsTraditionalChinese
             ? $"進入新月份：{year}年 {month}月"
             : $"New month: Year {year} Month {month}";
+    }
+
+    public string FormatFactionDestroyed(string factionName)
+    {
+        return IsTraditionalChinese
+            ? $"勢力滅亡：{factionName}"
+            : $"Faction destroyed: {factionName}";
     }
 
     public string GetCityName(CityData city)
@@ -183,3 +216,4 @@ public class LocalizationService
         return faction.NameZhHant;
     }
 }
+

@@ -111,6 +111,20 @@ public partial class MapController : Node2D
         }
     }
 
+    public void RefreshVisuals()
+    {
+        foreach (var entry in _cityNodes)
+        {
+            entry.Node.SetDisplayLabel(BuildCityLabel(entry.City));
+            entry.Node.QueueRedraw();
+        }
+
+        if (_selectedCityId > 0)
+        {
+            SelectCity(_selectedCityId);
+        }
+    }
+
     private void HandleMouseButton(InputEventMouseButton mouseButton)
     {
         if (mouseButton.ButtonIndex == MouseButton.Right)
