@@ -1,0 +1,296 @@
+{
+    "map_metadata": {
+        "original_resolution": "1024x1024",
+        "coordinate_origin": "Top-Left (0,0)",
+        "count": 41
+    },
+    "locations": [
+        {
+            "nameEn": "Ji",
+            "nameChi": "薊",
+            "region": "Youzhou",
+            "x": 720,
+            "y": 65
+        },
+        {
+            "nameEn": "Xiangping",
+            "nameChi": "襄平",
+            "region": "Liaodong",
+            "x": 860,
+            "y": 45
+        },
+        {
+            "nameEn": "Beiping",
+            "nameChi": "北平",
+            "region": "Youzhou",
+            "x": 780,
+            "y": 80
+        },
+        {
+            "nameEn": "Jinyang",
+            "nameChi": "晉陽",
+            "region": "Bingzhou",
+            "x": 480,
+            "y": 140
+        },
+        {
+            "nameEn": "Ye",
+            "nameChi": "鄴",
+            "region": "Jizhou",
+            "x": 510,
+            "y": 195
+        },
+        {
+            "nameEn": "Nanpi",
+            "nameChi": "南皮",
+            "region": "Jizhou",
+            "x": 610,
+            "y": 160
+        },
+        {
+            "nameEn": "Linzi",
+            "nameChi": "臨淄",
+            "region": "Qingzhou",
+            "x": 705,
+            "y": 170
+        },
+        {
+            "nameEn": "Beihai",
+            "nameChi": "北海",
+            "region": "Qingzhou",
+            "x": 780,
+            "y": 210
+        },
+        {
+            "nameEn": "Luoyang",
+            "nameChi": "洛陽",
+            "region": "Sili",
+            "x": 440,
+            "y": 310
+        },
+        {
+            "nameEn": "Changan",
+            "nameChi": "長安",
+            "region": "Sili",
+            "x": 320,
+            "y": 355
+        },
+        {
+            "nameEn": "Xuchang",
+            "nameChi": "許昌",
+            "region": "Yuzhou",
+            "x": 520,
+            "y": 360
+        },
+        {
+            "nameEn": "Chenliu",
+            "nameChi": "陳留",
+            "region": "Yanzhou",
+            "x": 550,
+            "y": 300
+        },
+        {
+            "nameEn": "Puyang",
+            "nameChi": "濮陽",
+            "region": "Yanzhou",
+            "x": 580,
+            "y": 240
+        },
+        {
+            "nameEn": "Qiao",
+            "nameChi": "譙",
+            "region": "Yuzhou",
+            "x": 600,
+            "y": 370
+        },
+        {
+            "nameEn": "Runan",
+            "nameChi": "汝南",
+            "region": "Yuzhou",
+            "x": 540,
+            "y": 420
+        },
+        {
+            "nameEn": "Wancheng",
+            "nameChi": "宛",
+            "region": "Jingzhou",
+            "x": 460,
+            "y": 430
+        },
+        {
+            "nameEn": "Xiapi",
+            "nameChi": "下邳",
+            "region": "Xuzhou",
+            "x": 710,
+            "y": 320
+        },
+        {
+            "nameEn": "Xiaopei",
+            "nameChi": "小沛",
+            "region": "Xuzhou",
+            "x": 660,
+            "y": 310
+        },
+        {
+            "nameEn": "Guangling",
+            "nameChi": "廣陵",
+            "region": "Xuzhou",
+            "x": 770,
+            "y": 420
+        },
+        {
+            "nameEn": "Shouchun",
+            "nameChi": "壽春",
+            "region": "Yangzhou",
+            "x": 650,
+            "y": 410
+        },
+        {
+            "nameEn": "Lujiang",
+            "nameChi": "廬江",
+            "region": "Yangzhou",
+            "x": 640,
+            "y": 480
+        },
+        {
+            "nameEn": "Jianye",
+            "nameChi": "建業",
+            "region": "Yangzhou",
+            "x": 785,
+            "y": 375
+        },
+        {
+            "nameEn": "Wu",
+            "nameChi": "吳",
+            "region": "Yangzhou",
+            "x": 845,
+            "y": 430
+        },
+        {
+            "nameEn": "Kuaiji",
+            "nameChi": "會稽",
+            "region": "Yangzhou",
+            "x": 840,
+            "y": 510
+        },
+        {
+            "nameEn": "Chaisang",
+            "nameChi": "柴桑",
+            "region": "Yangzhou",
+            "x": 610,
+            "y": 560
+        },
+        {
+            "nameEn": "Tianshui",
+            "nameChi": "天水",
+            "region": "Liangzhou",
+            "x": 180,
+            "y": 360
+        },
+        {
+            "nameEn": "Xiping",
+            "nameChi": "西平",
+            "region": "Liangzhou",
+            "x": 80,
+            "y": 330
+        },
+        {
+            "nameEn": "Wuwei",
+            "nameChi": "武威",
+            "region": "Liangzhou",
+            "x": 120,
+            "y": 250
+        },
+        {
+            "nameEn": "Hanzhong",
+            "nameChi": "漢中",
+            "region": "Yiazhou",
+            "x": 240,
+            "y": 490
+        },
+        {
+            "nameEn": "Xiangyang",
+            "nameChi": "襄陽",
+            "region": "Jingzhou",
+            "x": 490,
+            "y": 515
+        },
+        {
+            "nameEn": "Jiangling",
+            "nameChi": "江陵",
+            "region": "Jingzhou",
+            "x": 480,
+            "y": 590
+        },
+        {
+            "nameEn": "Wuchang",
+            "nameChi": "武昌",
+            "region": "Jingzhou",
+            "x": 560,
+            "y": 620
+        },
+        {
+            "nameEn": "Changsha",
+            "nameChi": "長沙",
+            "region": "Jingzhou",
+            "x": 520,
+            "y": 750
+        },
+        {
+            "nameEn": "Lingling",
+            "nameChi": "零陵",
+            "region": "Jingzhou",
+            "x": 450,
+            "y": 820
+        },
+        {
+            "nameEn": "Guiyang",
+            "nameChi": "桂陽",
+            "region": "Jingzhou",
+            "x": 530,
+            "y": 840
+        },
+        {
+            "nameEn": "Chengdu",
+            "nameChi": "成都",
+            "region": "Yiazhou",
+            "x": 145,
+            "y": 680
+        },
+        {
+            "nameEn": "Jiangzhou",
+            "nameChi": "江州",
+            "region": "Yiazhou",
+            "x": 310,
+            "y": 690
+        },
+        {
+            "nameEn": "Yongchang",
+            "nameChi": "永昌",
+            "region": "Yiazhou",
+            "x": 60,
+            "y": 920
+        },
+        {
+            "nameEn": "Nanhai",
+            "nameChi": "南海",
+            "region": "Jiaozhou",
+            "x": 510,
+            "y": 935
+        },
+        {
+            "nameEn": "Jiaozhou",
+            "nameChi": "交州",
+            "region": "Jiaozhou",
+            "x": 280,
+            "y": 960
+        },
+        {
+            "nameEn": "Taiwan",
+            "nameChi": "臺灣",
+            "region": "Island",
+            "x": 915,
+            "y": 830
+        }
+    ]
+}
