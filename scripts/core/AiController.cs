@@ -6,25 +6,27 @@ public class AiController
 {
     private CommandResolver? _commandResolver;
     private TurnManager? _turnManager;
+    private LocalizationService? _localization;
 
-    public void Initialize(CommandResolver commandResolver, TurnManager turnManager)
+    public void Initialize(CommandResolver commandResolver, TurnManager turnManager, LocalizationService localization)
     {
         _commandResolver = commandResolver;
         _turnManager = turnManager;
+        _localization = localization;
     }
 
     public CommandResult RunSingleCityDecision(int factionId, int cityId)
     {
         if (_commandResolver == null || _turnManager?.World == null)
         {
-            return new CommandResult { Success = false, Message = "AI not initialized." };
+            return LocalizedResult(false, "cmd.ai_not_initialized");
         }
 
         var world = _turnManager.World;
         var city = world.GetCity(cityId);
         if (city == null)
         {
-            return new CommandResult { Success = false, Message = "AI city not found." };
+            return LocalizedResult(false, "cmd.ai_city_not_found");
         }
 
         CommandResult? militaryResult = null;
@@ -126,21 +128,56 @@ public class AiController
         }
 
         var messages = new System.Collections.Generic.List<string>();
+        var messagesZh = new System.Collections.Generic.List<string>();
+        var messagesEn = new System.Collections.Generic.List<string>();
         if (!string.IsNullOrWhiteSpace(militaryResult.Message))
         {
             messages.Add(militaryResult.Message);
+            if (!string.IsNullOrWhiteSpace(militaryResult.MessageZhHant))
+            {
+                messagesZh.Add(militaryResult.MessageZhHant);
+            }
+
+            if (!string.IsNullOrWhiteSpace(militaryResult.MessageEn))
+            {
+                messagesEn.Add(militaryResult.MessageEn);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(coreResult.Message) &&
             !coreResult.Message.Equals("Pass", System.StringComparison.OrdinalIgnoreCase))
         {
             messages.Add(coreResult.Message);
+            if (!string.IsNullOrWhiteSpace(coreResult.MessageZhHant))
+            {
+                messagesZh.Add(coreResult.MessageZhHant);
+            }
+
+            if (!string.IsNullOrWhiteSpace(coreResult.MessageEn))
+            {
+                messagesEn.Add(coreResult.MessageEn);
+            }
         }
 
         return new CommandResult
         {
             Success = militaryResult.Success || coreResult.Success,
-            Message = messages.Count > 0 ? string.Join(" | ", messages) : "Pass"
+            Message = messages.Count > 0 ? string.Join(" | ", messages) : (_localization?.TForLanguage(GameLanguage.English, "cmd.pass") ?? "Pass"),
+            MessageZhHant = messagesZh.Count > 0 ? string.Join(" | ", messagesZh) : (_localization?.TForLanguage(GameLanguage.TraditionalChinese, "cmd.pass") ?? "待命"),
+            MessageEn = messagesEn.Count > 0 ? string.Join(" | ", messagesEn) : (_localization?.TForLanguage(GameLanguage.English, "cmd.pass") ?? "Pass")
+        };
+    }
+
+    private CommandResult LocalizedResult(bool success, string key)
+    {
+        var zh = _localization?.TForLanguage(GameLanguage.TraditionalChinese, key) ?? key;
+        var en = _localization?.TForLanguage(GameLanguage.English, key) ?? key;
+        return new CommandResult
+        {
+            Success = success,
+            Message = en,
+            MessageZhHant = zh,
+            MessageEn = en
         };
     }
 }

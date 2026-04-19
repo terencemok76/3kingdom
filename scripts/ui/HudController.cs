@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
@@ -8,6 +9,9 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
+    private const string PortraitSheetPath = "res://assets/portrait/100.png";
+    private const string PortraitMappingPath = "res://data/person/portraits_names.json";
+
     private Label? _monthLabel;
     private Label? _playerFactionLabel;
     private Label? _cityNameLabel;
@@ -23,7 +27,14 @@ public partial class HudController : CanvasLayer
     private Button? _moveButton;
     private Button? _searchButton;
     private Button? _attackButton;
+    private Button? _viewButton;
     private PopupMenu? _targetCityMenu;
+    private AcceptDialog? _officerListDialog;
+    private ItemList? _officerListView;
+    private AcceptDialog? _officerDetailDialog;
+    private TextureRect? _officerPortraitRect;
+    private Label? _officerPortraitPlaceholderLabel;
+    private RichTextLabel? _officerDetailText;
 
     private RichTextLabel? _logText;
 
@@ -41,9 +52,12 @@ public partial class HudController : CanvasLayer
     private bool _isMoveButtonConnected;
     private bool _isSearchButtonConnected;
     private bool _isAttackButtonConnected;
+    private bool _isViewButtonConnected;
     private bool _gameEnded;
     private readonly HashSet<int> _aliveFactionIds = new();
     private CommandType _pendingTargetCommand = CommandType.Pass;
+    private Texture2D? _portraitSheetTexture;
+    private readonly Dictionary<int, Rect2> _portraitRegions = new();
 
     public override void _Ready()
     {
@@ -66,6 +80,7 @@ public partial class HudController : CanvasLayer
         _moveButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MoveButton");
         _searchButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/SearchButton");
         _attackButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
+        _viewButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton");
 
         _logText = GetNodeOrNull<RichTextLabel>("Root/LogText");
         if (_logText != null)
@@ -76,6 +91,27 @@ public partial class HudController : CanvasLayer
         _targetCityMenu = new PopupMenu();
         AddChild(_targetCityMenu);
         _targetCityMenu.IdPressed += OnTargetCityMenuIdPressed;
+
+        _officerListDialog = new AcceptDialog();
+        _officerListDialog.Title = "Select Officer";
+        _officerListDialog.Exclusive = false;
+        _officerListDialog.Unfocusable = false;
+        AddChild(_officerListDialog);
+
+        _officerListView = new ItemList
+        {
+            SelectMode = ItemList.SelectModeEnum.Single,
+            CustomMinimumSize = new Vector2(320.0f, 220.0f)
+        };
+        _officerListView.ItemActivated += OnOfficerListItemActivated;
+        _officerListDialog.AddChild(_officerListView);
+
+        _officerDetailDialog = new AcceptDialog();
+        _officerDetailDialog.Exclusive = false;
+        _officerDetailDialog.Unfocusable = false;
+        AddChild(_officerDetailDialog);
+        EnsureOfficerDetailWidgets();
+        LoadPortraitData();
     }
 
     public override void _ExitTree()
@@ -86,6 +122,17 @@ public partial class HudController : CanvasLayer
         }
 
         DisconnectButtons();
+    }
+
+    public override void _Notification(int what)
+    {
+        if (what != NotificationWMCloseRequest)
+        {
+            return;
+        }
+
+        _officerDetailDialog?.Hide();
+        _officerListDialog?.Hide();
     }
 
     public void Initialize(
@@ -196,6 +243,12 @@ public partial class HudController : CanvasLayer
             _attackButton.Pressed += OnAttackPressed;
             _isAttackButtonConnected = true;
         }
+
+        if (_viewButton != null && !_isViewButtonConnected)
+        {
+            _viewButton.Pressed += OnViewPressed;
+            _isViewButtonConnected = true;
+        }
     }
 
     private void DisconnectButtons()
@@ -241,6 +294,12 @@ public partial class HudController : CanvasLayer
             _attackButton.Pressed -= OnAttackPressed;
             _isAttackButtonConnected = false;
         }
+
+        if (_viewButton != null && _isViewButtonConnected)
+        {
+            _viewButton.Pressed -= OnViewPressed;
+            _isViewButtonConnected = false;
+        }
     }
 
     private void OnLanguageButtonPressed()
@@ -280,7 +339,7 @@ public partial class HudController : CanvasLayer
         ExecuteTargetSelectionOrCommand(
             CommandType.Move,
             candidateIds,
-            "No connected friendly city to move troops, resources, or officers.");
+            _localization?.T("ui.no_connected_friendly_city") ?? "No connected friendly city to move troops, resources, or officers.");
     }
 
     private void OnSearchPressed()
@@ -310,7 +369,44 @@ public partial class HudController : CanvasLayer
         ExecuteTargetSelectionOrCommand(
             CommandType.Attack,
             candidateIds,
-            "No connected enemy city to attack.");
+            _localization?.T("ui.no_connected_enemy_city") ?? "No connected enemy city to attack.");
+    }
+
+    private void OnViewPressed()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _officerListDialog == null || _officerListView == null)
+        {
+            return;
+        }
+
+        if (_selectedCity.OfficerIds.Count == 0)
+        {
+            AddLog(_localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.");
+            return;
+        }
+
+        _officerListDialog.Title = _localization?.T("ui.select_officer") ?? "Select Officer";
+        _officerListView.Clear();
+        foreach (var officerId in _selectedCity.OfficerIds)
+        {
+            var officer = _turnManager.World.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            var label = BuildOfficerListRowText(officer);
+            var itemIndex = _officerListView.AddItem(label);
+            _officerListView.SetItemMetadata(itemIndex, officer.Id);
+        }
+
+        if (_officerListView.ItemCount == 0)
+        {
+            AddLog(_localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.");
+            return;
+        }
+
+        _officerListDialog.PopupCentered(new Vector2I(420, 320));
     }
 
     private void ExecuteTargetSelectionOrCommand(
@@ -378,6 +474,55 @@ public partial class HudController : CanvasLayer
         }
 
         ExecutePlayerCommand(_pendingTargetCommand, (int)id, _selectedCity.Troops / 2);
+    }
+
+    private void OnOfficerListItemActivated(long index)
+    {
+        if (_turnManager?.World == null || _officerDetailDialog == null || _officerListView == null)
+        {
+            return;
+        }
+
+        var metadata = _officerListView.GetItemMetadata((int)index);
+        if (metadata.VariantType != Variant.Type.Int)
+        {
+            return;
+        }
+
+        var officer = _turnManager.World.GetOfficer(metadata.AsInt32());
+        if (officer == null)
+        {
+            return;
+        }
+
+        _officerDetailDialog.Title = _localization?.T("ui.officer_detail") ?? "Officer Details";
+        if (_officerDetailText != null)
+        {
+            _officerDetailText.Text = BuildOfficerDetailText(officer);
+        }
+
+        if (_officerPortraitRect != null)
+        {
+            _officerPortraitRect.Texture = BuildOfficerPortraitTexture(officer.Id);
+        }
+
+        if (_officerPortraitPlaceholderLabel != null)
+        {
+            var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+            var hasPortrait = _officerPortraitRect?.Texture != null;
+            _officerPortraitPlaceholderLabel.Visible = !hasPortrait;
+            _officerPortraitPlaceholderLabel.Text = $"{(_localization?.T("ui.portrait") ?? "Portrait")}\n{officerName}";
+        }
+
+        _officerDetailDialog.DialogText = string.Empty;
+        if (_officerDetailDialog.Visible)
+        {
+            _officerDetailDialog.Show();
+        }
+        else
+        {
+            _officerDetailDialog.PopupCentered(new Vector2I(520, 340));
+        }
     }
 
     private void ExecutePlayerCommand(CommandType type, int? targetCityId = null, int troopsToSend = 0)
@@ -508,7 +653,7 @@ public partial class HudController : CanvasLayer
         if (playerCityCount == 0)
         {
             _gameEnded = true;
-            AddLog("Defeat: You have lost all cities.");
+            AddLog(_localization?.T("log.defeat_all_cities") ?? "Defeat: You have lost all cities.");
             SetGameplayButtonsEnabled(false);
             return;
         }
@@ -516,7 +661,7 @@ public partial class HudController : CanvasLayer
         if (playerCityCount == world.Cities.Count)
         {
             _gameEnded = true;
-            AddLog("Victory: You control all cities.");
+            AddLog(_localization?.T("log.victory_all_cities") ?? "Victory: You control all cities.");
             SetGameplayButtonsEnabled(false);
         }
     }
@@ -604,6 +749,11 @@ public partial class HudController : CanvasLayer
         {
             _attackButton.Disabled = !enabled;
         }
+
+        if (_viewButton != null)
+        {
+            _viewButton.Disabled = !enabled;
+        }
     }
 
     private string GetLocalizedResultMessage(CommandResult result)
@@ -679,6 +829,27 @@ public partial class HudController : CanvasLayer
         if (_attackButton != null)
         {
             _attackButton.Text = _localization.T("ui.attack");
+        }
+
+        if (_viewButton != null)
+        {
+            _viewButton.Text = _localization.T("ui.view");
+        }
+
+        if (_officerListDialog != null)
+        {
+            _officerListDialog.Title = _localization.T("ui.select_officer");
+        }
+
+        if (_officerDetailDialog != null)
+        {
+            _officerDetailDialog.Title = _localization.T("ui.officer_detail");
+        }
+
+        if (_officerPortraitPlaceholderLabel != null && (_officerDetailDialog == null || !_officerDetailDialog.Visible))
+        {
+            _officerPortraitPlaceholderLabel.Visible = true;
+            _officerPortraitPlaceholderLabel.Text = _localization.T("ui.portrait_pending_asset");
         }
 
         if (_languageButton != null)
@@ -800,11 +971,192 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
+            var roleName = _localization.GetOfficerRole(officer);
             officerLines.Add(
-                $"{_localization.GetOfficerName(officer)} | {officer.Role} | STR {officer.Strength} | INT {officer.Intelligence} | CHA {officer.Charm}");
+                $"{_localization.GetOfficerName(officer)} | {roleName} | {_localization.T("ui.strength")} {officer.Strength} | {_localization.T("ui.intelligence")} {officer.Intelligence} | {_localization.T("ui.charm")} {officer.Charm}");
         }
 
         return officerLines.Count == 0 ? _localization.T("ui.none") : string.Join("\n", officerLines);
     }
+
+    private string BuildOfficerDetailText(OfficerData officer)
+    {
+        var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+        var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
+        return
+            $"{officerName}\n" +
+            $"{_localization?.T("ui.role") ?? "Role"}: {roleName}\n" +
+            $"{_localization?.T("ui.age") ?? "Age"}: {officer.Age}\n" +
+            $"{_localization?.T("ui.strength") ?? "STR"}: {officer.Strength}\n" +
+            $"{_localization?.T("ui.intelligence") ?? "INT"}: {officer.Intelligence}\n" +
+            $"{_localization?.T("ui.charm") ?? "CHA"}: {officer.Charm}\n" +
+            $"{_localization?.T("ui.leadership") ?? "LEA"}: {officer.Leadership}\n" +
+            $"{_localization?.T("ui.politics") ?? "POL"}: {officer.Politics}\n" +
+            $"{_localization?.T("ui.combat") ?? "COM"}: {officer.Combat}\n" +
+            $"{_localization?.T("ui.loyalty_short") ?? "LOY"}: {officer.Loyalty}\n" +
+            $"{_localization?.T("ui.ambition") ?? "AMB"}: {officer.Ambition}";
+    }
+
+    private void EnsureOfficerDetailWidgets()
+    {
+        if (_officerDetailDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _officerDetailDialog.GetNodeOrNull<HBoxContainer>("OfficerDetailRoot");
+        if (existingRoot != null)
+        {
+            _officerPortraitRect = existingRoot.GetNodeOrNull<TextureRect>("PortraitPanel/PortraitRect");
+            _officerPortraitPlaceholderLabel = existingRoot.GetNodeOrNull<Label>("PortraitPanel/PortraitPlaceholder");
+            _officerDetailText = existingRoot.GetNodeOrNull<RichTextLabel>("DetailText");
+            return;
+        }
+
+        var root = new HBoxContainer
+        {
+            Name = "OfficerDetailRoot",
+            CustomMinimumSize = new Vector2(460.0f, 240.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        root.AddThemeConstantOverride("separation", 16);
+        _officerDetailDialog.AddChild(root);
+
+        var portraitPanel = new PanelContainer
+        {
+            Name = "PortraitPanel",
+            CustomMinimumSize = new Vector2(160.0f, 220.0f)
+        };
+        root.AddChild(portraitPanel);
+
+        var portraitCenter = new CenterContainer();
+        portraitPanel.AddChild(portraitCenter);
+
+        var portraitStack = new VBoxContainer();
+        portraitStack.Alignment = BoxContainer.AlignmentMode.Center;
+        portraitStack.AddThemeConstantOverride("separation", 8);
+        portraitCenter.AddChild(portraitStack);
+
+        _officerPortraitRect = new TextureRect
+        {
+            Name = "PortraitRect",
+            CustomMinimumSize = new Vector2(128.0f, 160.0f),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            Modulate = new Color(0.7f, 0.7f, 0.75f, 1.0f)
+        };
+        portraitStack.AddChild(_officerPortraitRect);
+
+        _officerPortraitPlaceholderLabel = new Label
+        {
+            Name = "PortraitPlaceholder",
+            Text = _localization?.T("ui.portrait_pending_asset") ?? "Portrait\nPending Asset",
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        portraitStack.AddChild(_officerPortraitPlaceholderLabel);
+
+        _officerDetailText = new RichTextLabel
+        {
+            Name = "DetailText",
+            FitContent = true,
+            ScrollActive = true,
+            CustomMinimumSize = new Vector2(260.0f, 220.0f),
+            BbcodeEnabled = false
+        };
+        root.AddChild(_officerDetailText);
+    }
+
+    private string BuildOfficerListRowText(OfficerData officer)
+    {
+        var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+        var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
+        return $"{officerName} | {roleName} | {_localization?.T("ui.strength") ?? "STR"} {officer.Strength} | {_localization?.T("ui.intelligence") ?? "INT"} {officer.Intelligence}";
+    }
+
+    private void LoadPortraitData()
+    {
+        _portraitRegions.Clear();
+        _portraitSheetTexture = ResourceLoader.Load<Texture2D>(PortraitSheetPath);
+        if (_portraitSheetTexture == null || !FileAccess.FileExists(PortraitMappingPath))
+        {
+            return;
+        }
+
+        using var file = FileAccess.Open(PortraitMappingPath, FileAccess.ModeFlags.Read);
+        var rawText = file.GetAsText();
+        if (string.IsNullOrWhiteSpace(rawText))
+        {
+            return;
+        }
+
+        var matches = Regex.Matches(
+            rawText,
+            "\\{\\s*\"id\"\\s*:\\s*(\\d+)\\s*,.*?\"filename\"\\s*:\\s*\"([^\"]+)\"\\s*,.*?\"row\"\\s*:\\s*(\\d+)\\s*,.*?\"col\"\\s*:\\s*(\\d+)",
+            RegexOptions.Singleline);
+
+        if (matches.Count == 0)
+        {
+            return;
+        }
+
+        var entries = new List<(int Id, int Row, int Col)>();
+        var maxRow = 0;
+        var maxCol = 0;
+        foreach (Match match in matches)
+        {
+            if (!match.Success)
+            {
+                continue;
+            }
+
+            var id = int.Parse(match.Groups[1].Value);
+            var row = int.Parse(match.Groups[3].Value);
+            var col = int.Parse(match.Groups[4].Value);
+            entries.Add((id, row, col));
+            if (row > maxRow)
+            {
+                maxRow = row;
+            }
+
+            if (col > maxCol)
+            {
+                maxCol = col;
+            }
+        }
+
+        if (entries.Count == 0 || maxRow <= 0 || maxCol <= 0)
+        {
+            return;
+        }
+
+        var tileWidth = _portraitSheetTexture.GetWidth() / (float)maxCol;
+        var tileHeight = _portraitSheetTexture.GetHeight() / (float)maxRow;
+        foreach (var entry in entries)
+        {
+            var region = new Rect2(
+                (entry.Col - 1) * tileWidth,
+                (entry.Row - 1) * tileHeight,
+                tileWidth,
+                tileHeight);
+            _portraitRegions[entry.Id] = region;
+        }
+    }
+
+    private Texture2D? BuildOfficerPortraitTexture(int officerId)
+    {
+        if (_portraitSheetTexture == null || !_portraitRegions.TryGetValue(officerId, out var region))
+        {
+            return null;
+        }
+
+        var atlasTexture = new AtlasTexture
+        {
+            Atlas = _portraitSheetTexture,
+            Region = region
+        };
+        return atlasTexture;
+    }
+
 }
 

@@ -2,6 +2,54 @@
 
 [ext_resource type="Script" uid="uid://cr23bw05cupg4" path="res://scripts/ui/HudController.cs" id="1"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_normal"]
+bg_color = Color(0.8, 0.73, 0.56, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.31, 0.24, 0.14, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_hover"]
+bg_color = Color(0.88, 0.8, 0.61, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.3, 0.18, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_pressed"]
+bg_color = Color(0.67, 0.57, 0.39, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.18, 0.1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_disabled"]
+bg_color = Color(0.34, 0.33, 0.31, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.18, 0.18, 0.18, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [node name="HUD" type="CanvasLayer" unique_id=1377864672]
 layer = 10
 script = ExtResource("1")
@@ -87,29 +135,89 @@ autowrap_mode = 3
 layout_mode = 2
 text = "Commands"
 
-[node name="CommandButtons" type="HBoxContainer" parent="Root/LeftPanel" unique_id=1912230832]
+[node name="CommandButtons" type="GridContainer" parent="Root/LeftPanel" unique_id=1912230832]
 layout_mode = 2
-theme_override_constants/separation = 6
+columns = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 
 [node name="DevelopButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=752422522]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
 text = "Develop"
 
 [node name="RecruitButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=1928802368]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
 text = "Recruit"
 
 [node name="MoveButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=417042718]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
 text = "Move"
 
 [node name="SearchButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=1085414624]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
 text = "Search"
 
 [node name="AttackButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=718091365]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
 text = "Attack"
+
+[node name="ViewButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=904116221]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+text = "View"
 
 [node name="LogPanelBg" type="ColorRect" parent="Root" unique_id=538340313]
 layout_mode = 1

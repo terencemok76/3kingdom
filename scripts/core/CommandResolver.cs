@@ -14,30 +14,32 @@ public class CommandResolver
 
     private TurnManager? _turnManager;
     private CombatResolver? _combatResolver;
+    private LocalizationService? _localization;
 
-    public void Initialize(TurnManager turnManager, CombatResolver combatResolver)
+    public void Initialize(TurnManager turnManager, CombatResolver combatResolver, LocalizationService localization)
     {
         _turnManager = turnManager;
         _combatResolver = combatResolver;
+        _localization = localization;
     }
 
     public CommandResult Execute(CommandRequest request)
     {
         if (_turnManager?.World == null)
         {
-            return new CommandResult { Success = false, Message = "World not initialized." };
+            return LocalizedResult(false, "cmd.world_not_initialized");
         }
 
         var world = _turnManager.World;
         var sourceCity = world.GetCity(request.SourceCityId);
         if (sourceCity == null)
         {
-            return new CommandResult { Success = false, Message = "Source city not found." };
+            return LocalizedResult(false, "cmd.source_city_not_found");
         }
 
         if (request.Type != CommandType.Pass && sourceCity.OwnerFactionId != request.ActorFactionId)
         {
-            return new CommandResult { Success = false, Message = "City is not controlled by actor faction." };
+            return LocalizedResult(false, "cmd.city_not_controlled");
         }
 
         return request.Type switch
@@ -47,8 +49,8 @@ public class CommandResolver
             CommandType.Move => ScheduleMove(world, sourceCity, request),
             CommandType.Search => ExecuteSearch(world, sourceCity),
             CommandType.Attack => ScheduleAttack(world, sourceCity, request),
-            CommandType.Pass => new CommandResult { Success = true, Message = "Pass" },
-            _ => new CommandResult { Success = false, Message = "Unknown command." }
+            CommandType.Pass => LocalizedResult(true, "cmd.pass"),
+            _ => LocalizedResult(false, "cmd.unknown_command")
         };
     }
 
@@ -56,14 +58,14 @@ public class CommandResolver
     {
         if (_turnManager?.World == null)
         {
-            return new CommandResult { Success = false, Message = "World not initialized." };
+            return LocalizedResult(false, "cmd.world_not_initialized");
         }
 
         var world = _turnManager.World;
         var sourceCity = world.GetCity(pendingCommand.SourceCityId);
         if (sourceCity == null)
         {
-            return new CommandResult { Success = false, Message = "Pending source city not found." };
+            return LocalizedResult(false, "cmd.pending_source_city_not_found");
         }
 
         return pendingCommand.Type switch
@@ -72,7 +74,7 @@ public class CommandResolver
             CommandType.Recruit => ResolveRecruit(world, sourceCity),
             CommandType.Move => ResolveMove(world, sourceCity, pendingCommand),
             CommandType.Attack => ResolveAttack(world, sourceCity, pendingCommand),
-            _ => new CommandResult { Success = false, Message = "Unsupported pending command." }
+            _ => LocalizedResult(false, "cmd.unsupported_pending_command")
         };
     }
 
@@ -80,12 +82,12 @@ public class CommandResolver
     {
         if (HasUsedCoreAction(world, city))
         {
-            return new CommandResult { Success = false, Message = "Core city action already used this month." };
+            return LocalizedResult(false, "cmd.core_action_used");
         }
 
         if (city.Gold < DevelopGoldCost)
         {
-            return new CommandResult { Success = false, Message = "Not enough gold for Develop." };
+            return LocalizedResult(false, "cmd.develop.not_enough_gold");
         }
 
         MarkCoreActionUsed(world, city);
@@ -96,18 +98,14 @@ public class CommandResolver
             SourceCityId = city.Id
         });
 
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Develop order scheduled for \"{city.Name}\"."
-        };
+        return LocalizedResult(true, "cmd.develop.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
     }
 
     private CommandResult ResolveDevelop(WorldState world, CityData city)
     {
         if (city.Gold < DevelopGoldCost)
         {
-            return new CommandResult { Success = false, Message = "Develop failed at month end: not enough gold." };
+            return LocalizedResult(false, "cmd.develop.failed_month_end");
         }
 
         city.Gold -= DevelopGoldCost;
@@ -118,23 +116,19 @@ public class CommandResolver
         city.Defense = ClampStat(city.Defense + 1);
         city.Loyalty = ClampStat(city.Loyalty + 1);
 
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Develop success. Gold-{DevelopGoldCost}. Farm+{2 + loyaltyBoost}, Commercial+{2 + loyaltyBoost}, Defense+1, Loyalty+1."
-        };
+        return LocalizedResult(true, "cmd.develop.resolved", new object[] { DevelopGoldCost, 2 + loyaltyBoost, 2 + loyaltyBoost, 1, 1 });
     }
 
     private CommandResult ScheduleRecruit(WorldState world, CityData city, CommandRequest request)
     {
         if (HasUsedCoreAction(world, city))
         {
-            return new CommandResult { Success = false, Message = "Core city action already used this month." };
+            return LocalizedResult(false, "cmd.core_action_used");
         }
 
         if (city.Gold < RecruitGoldCost || city.Food < RecruitFoodCost)
         {
-            return new CommandResult { Success = false, Message = "Not enough resources for Recruit." };
+            return LocalizedResult(false, "cmd.recruit.not_enough_resources");
         }
 
         MarkCoreActionUsed(world, city);
@@ -145,18 +139,14 @@ public class CommandResolver
             SourceCityId = city.Id
         });
 
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Recruit order scheduled for \"{city.Name}\"."
-        };
+        return LocalizedResult(true, "cmd.recruit.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
     }
 
     private CommandResult ResolveRecruit(WorldState world, CityData city)
     {
         if (city.Gold < RecruitGoldCost || city.Food < RecruitFoodCost)
         {
-            return new CommandResult { Success = false, Message = "Recruit failed at month end: not enough resources." };
+            return LocalizedResult(false, "cmd.recruit.failed_month_end");
         }
 
         city.Gold -= RecruitGoldCost;
@@ -168,34 +158,30 @@ public class CommandResolver
         city.Troops += recruits;
         city.Loyalty = ClampStat(city.Loyalty - 3);
 
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Recruit success. Gold-{RecruitGoldCost}, Food-{RecruitFoodCost}, Troops+{recruits}, Loyalty-3."
-        };
+        return LocalizedResult(true, "cmd.recruit.resolved", new object[] { RecruitGoldCost, RecruitFoodCost, recruits, 3 });
     }
 
     private CommandResult ScheduleMove(WorldState world, CityData sourceCity, CommandRequest request)
     {
         if (!request.TargetCityId.HasValue)
         {
-            return new CommandResult { Success = false, Message = "Move needs a target city." };
+            return LocalizedResult(false, "cmd.move.target_required");
         }
 
         var targetCity = world.GetCity(request.TargetCityId.Value);
         if (targetCity == null)
         {
-            return new CommandResult { Success = false, Message = "Target city not found." };
+            return LocalizedResult(false, "cmd.target_city_not_found");
         }
 
         if (!IsConnected(sourceCity, targetCity.Id))
         {
-            return new CommandResult { Success = false, Message = "Target city is not connected." };
+            return LocalizedResult(false, "cmd.target_city_not_connected");
         }
 
         if (targetCity.OwnerFactionId != sourceCity.OwnerFactionId)
         {
-            return new CommandResult { Success = false, Message = "Move target must be same faction city." };
+            return LocalizedResult(false, "cmd.move.must_be_same_faction");
         }
 
         var selectedOfficerIds = GetMovableOfficerIds(sourceCity, request.OfficerIds);
@@ -205,7 +191,7 @@ public class CommandResolver
 
         if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && selectedOfficerIds.Count == 0)
         {
-            return new CommandResult { Success = false, Message = "No troops, gold, food, or officers available to move." };
+            return LocalizedResult(false, "cmd.move.nothing_to_move");
         }
 
         UpsertPendingCommand(world, new PendingCommandData
@@ -220,36 +206,19 @@ public class CommandResolver
             OfficerIds = selectedOfficerIds
         });
 
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Move order scheduled for \"{targetCity.Name}\".",
-            MessageZhHant = $"已排定移動命令，將於月末轉移至「{targetCity.NameZhHant}」。",
-            MessageEn = $"Move order scheduled for \"{targetCity.NameEn}\"."
-        };
+        return LocalizedResult(true, "cmd.move.scheduled", GetCityArgs(targetCity, GameLanguage.TraditionalChinese), GetCityArgs(targetCity, GameLanguage.English));
     }
 
     private CommandResult ExecuteSearch(WorldState world, CityData city)
     {
         if (HasUsedCoreAction(world, city))
         {
-            return new CommandResult
-            {
-                Success = false,
-                Message = "Core city action already used this month.",
-                MessageEn = "Core city action already used this month."
-            };
+            return LocalizedResult(false, "cmd.core_action_used");
         }
 
         if (city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month)
         {
-            return new CommandResult
-            {
-                Success = false,
-                Message = "Search already used in this city this month.",
-                MessageZhHant = "本月此城市已執行過搜索。",
-                MessageEn = "Search already used in this city this month."
-            };
+            return LocalizedResult(false, "cmd.search.already_used");
         }
 
         MarkCoreActionUsed(world, city);
@@ -262,7 +231,7 @@ public class CommandResolver
 
         if (_random.NextDouble() > chance)
         {
-            return new CommandResult { Success = true, Message = "Search found nothing." };
+            return LocalizedResult(true, "cmd.search.nothing_found");
         }
 
         var hiddenOfficer = TryFindDiscoverableOfficer(world, city.OwnerFactionId);
@@ -282,66 +251,48 @@ public class CommandResolver
                 faction.OfficerIds.Add(hiddenOfficer.Id);
             }
 
-            return new CommandResult
-            {
-                Success = true,
-                Message = $"Search success. Officer \"{hiddenOfficer.Name}\" joined the city.",
-                MessageZhHant = $"搜索成功。武將「{GetOfficerDisplayName(hiddenOfficer)}」加入了城市。",
-                MessageEn = $"Search success. Officer \"{hiddenOfficer.Name}\" joined the city."
-            };
+            return LocalizedResult(true, "cmd.search.officer_joined", GetOfficerArgs(hiddenOfficer, GameLanguage.TraditionalChinese), GetOfficerArgs(hiddenOfficer, GameLanguage.English));
         }
 
         if (_random.NextDouble() < 0.5)
         {
             var foundGold = 40 + _random.Next(0, 81);
             city.Gold += foundGold;
-            return new CommandResult
-            {
-                Success = true,
-                Message = $"Search success. Gold+{foundGold}.",
-                MessageZhHant = $"搜索成功。金 +{foundGold}。",
-                MessageEn = $"Search success. Gold+{foundGold}."
-            };
+            return LocalizedResult(true, "cmd.search.found_gold", new object[] { foundGold });
         }
 
         var foundFood = 60 + _random.Next(0, 121);
         city.Food += foundFood;
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Search success. Food+{foundFood}.",
-            MessageZhHant = $"搜索成功。糧 +{foundFood}。",
-            MessageEn = $"Search success. Food+{foundFood}."
-        };
+        return LocalizedResult(true, "cmd.search.found_food", new object[] { foundFood });
     }
 
     private CommandResult ScheduleAttack(WorldState world, CityData sourceCity, CommandRequest request)
     {
         if (!request.TargetCityId.HasValue)
         {
-            return new CommandResult { Success = false, Message = "Attack needs a target city." };
+            return LocalizedResult(false, "cmd.attack.target_required");
         }
 
         var targetCity = world.GetCity(request.TargetCityId.Value);
         if (targetCity == null)
         {
-            return new CommandResult { Success = false, Message = "Target city not found." };
+            return LocalizedResult(false, "cmd.target_city_not_found");
         }
 
         if (!IsConnected(sourceCity, targetCity.Id))
         {
-            return new CommandResult { Success = false, Message = "Target city is not connected." };
+            return LocalizedResult(false, "cmd.target_city_not_connected");
         }
 
         if (targetCity.OwnerFactionId == sourceCity.OwnerFactionId)
         {
-            return new CommandResult { Success = false, Message = "Cannot attack same faction city." };
+            return LocalizedResult(false, "cmd.attack.same_faction");
         }
 
         var attackingTroops = GetTransferAmount(request.TroopsToSend, sourceCity.Troops);
         if (attackingTroops <= 0)
         {
-            return new CommandResult { Success = false, Message = "No troops available for attack." };
+            return LocalizedResult(false, "cmd.attack.no_troops");
         }
 
         UpsertPendingCommand(world, new PendingCommandData
@@ -353,13 +304,7 @@ public class CommandResolver
             TroopsToSend = attackingTroops
         });
 
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Attack order scheduled against \"{targetCity.Name}\".",
-            MessageZhHant = $"已排定攻擊命令，月末將進攻「{targetCity.NameZhHant}」。",
-            MessageEn = $"Attack order scheduled against \"{targetCity.NameEn}\"."
-        };
+        return LocalizedResult(true, "cmd.attack.scheduled", GetCityArgs(targetCity, GameLanguage.TraditionalChinese), GetCityArgs(targetCity, GameLanguage.English));
     }
 
     private CommandResult ResolveMove(WorldState world, CityData sourceCity, PendingCommandData pendingCommand)
@@ -367,18 +312,12 @@ public class CommandResolver
         var targetCity = world.GetCity(pendingCommand.TargetCityId);
         if (targetCity == null)
         {
-            return new CommandResult { Success = false, Message = "Move target city not found at resolution." };
+            return LocalizedResult(false, "cmd.move.target_not_found_resolution");
         }
 
         if (!IsConnected(sourceCity, targetCity.Id) || targetCity.OwnerFactionId != sourceCity.OwnerFactionId)
         {
-            return new CommandResult
-            {
-                Success = false,
-                Message = $"Move order to \"{targetCity.Name}\" was cancelled.",
-                MessageZhHant = $"移動命令已取消，目標「{targetCity.NameZhHant}」已不符合條件。",
-                MessageEn = $"Move order to \"{targetCity.NameEn}\" was cancelled."
-            };
+            return LocalizedResult(false, "cmd.move.cancelled", GetCityArgs(targetCity, GameLanguage.TraditionalChinese), GetCityArgs(targetCity, GameLanguage.English));
         }
 
         var movableTroops = GetTransferAmount(pendingCommand.TroopsToSend, sourceCity.Troops);
@@ -388,13 +327,7 @@ public class CommandResolver
 
         if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movedOfficerCount == 0)
         {
-            return new CommandResult
-            {
-                Success = false,
-                Message = $"Move order to \"{targetCity.Name}\" had no effect.",
-                MessageZhHant = $"移動命令未生效，沒有可轉移的兵力、資源或武將。",
-                MessageEn = $"Move order to \"{targetCity.NameEn}\" had no effect."
-            };
+            return LocalizedResult(false, "cmd.move.no_effect", GetCityArgs(targetCity, GameLanguage.TraditionalChinese), GetCityArgs(targetCity, GameLanguage.English));
         }
 
         sourceCity.Troops -= movableTroops;
@@ -405,43 +338,35 @@ public class CommandResolver
         targetCity.Gold += movableGold;
         targetCity.Food += movableFood;
 
-        return new CommandResult
-        {
-            Success = true,
-            Message = $"Move resolved. Troops+{movableTroops}, Gold+{movableGold}, Food+{movableFood}, Officers+{movedOfficerCount} moved to \"{targetCity.Name}\".",
-            MessageZhHant = $"移動完成。兵力 +{movableTroops}、金 +{movableGold}、糧 +{movableFood}、武將 +{movedOfficerCount} 已轉移至「{targetCity.NameZhHant}」。",
-            MessageEn = $"Move resolved. Troops+{movableTroops}, Gold+{movableGold}, Food+{movableFood}, Officers+{movedOfficerCount} moved to \"{targetCity.NameEn}\"."
-        };
+        return LocalizedResult(
+            true,
+            "cmd.move.resolved",
+            new object[] { movableTroops, movableGold, movableFood, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
+            new object[] { movableTroops, movableGold, movableFood, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
     }
 
     private CommandResult ResolveAttack(WorldState world, CityData sourceCity, PendingCommandData pendingCommand)
     {
         if (_combatResolver == null)
         {
-            return new CommandResult { Success = false, Message = "Combat resolver not initialized." };
+            return LocalizedResult(false, "cmd.combat_not_initialized");
         }
 
         var targetCity = world.GetCity(pendingCommand.TargetCityId);
         if (targetCity == null)
         {
-            return new CommandResult { Success = false, Message = "Attack target city not found at resolution." };
+            return LocalizedResult(false, "cmd.attack.target_not_found_resolution");
         }
 
         if (!IsConnected(sourceCity, targetCity.Id) || targetCity.OwnerFactionId == sourceCity.OwnerFactionId)
         {
-            return new CommandResult
-            {
-                Success = false,
-                Message = $"Attack order against \"{targetCity.Name}\" was cancelled.",
-                MessageZhHant = $"攻擊命令已取消，目標「{targetCity.NameZhHant}」已不符合條件。",
-                MessageEn = $"Attack order against \"{targetCity.NameEn}\" was cancelled."
-            };
+            return LocalizedResult(false, "cmd.attack.cancelled", GetCityArgs(targetCity, GameLanguage.TraditionalChinese), GetCityArgs(targetCity, GameLanguage.English));
         }
 
         var attackingTroops = GetTransferAmount(pendingCommand.TroopsToSend, sourceCity.Troops);
         if (attackingTroops <= 0)
         {
-            return new CommandResult { Success = false, Message = "No troops available when attack resolved." };
+            return LocalizedResult(false, "cmd.attack.no_troops_resolution");
         }
 
         var defendingFactionId = targetCity.OwnerFactionId;
@@ -473,13 +398,7 @@ public class CommandResolver
 
         if (!combat.AttackerWon)
         {
-            return new CommandResult
-            {
-                Success = true,
-                Message = $"Attack failed at \"{targetCity.Name}\".",
-                MessageZhHant = $"Attack failed at \"{targetCity.NameZhHant}\".",
-                MessageEn = $"Attack failed at \"{targetCity.NameEn}\"."
-            };
+            return LocalizedResult(true, "cmd.attack.failed", GetCityArgs(targetCity, GameLanguage.TraditionalChinese), GetCityArgs(targetCity, GameLanguage.English));
         }
 
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
@@ -493,12 +412,43 @@ public class CommandResolver
         targetCity.Troops = garrison;
         sourceCity.Loyalty = ClampStat(sourceCity.Loyalty + 2);
 
+        return LocalizedResult(true, "cmd.attack.success", GetCityArgs(targetCity, GameLanguage.TraditionalChinese), GetCityArgs(targetCity, GameLanguage.English));
+    }
+
+    private CommandResult LocalizedResult(bool success, string key, object[]? args = null)
+    {
+        return LocalizedResult(success, key, args, args);
+    }
+
+    private CommandResult LocalizedResult(bool success, string key, object[]? zhArgs, object[]? enArgs)
+    {
+        var traditionalArgs = zhArgs ?? Array.Empty<object>();
+        var englishArgs = enArgs ?? Array.Empty<object>();
+        var zh = _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, key, traditionalArgs) ?? key;
+        var en = _localization?.FormatForLanguage(GameLanguage.English, key, englishArgs) ?? key;
+
         return new CommandResult
         {
-            Success = true,
-            Message = $"Attack success. Captured \"{targetCity.Name}\".",
-            MessageZhHant = $"Attack success. Captured \"{targetCity.NameZhHant}\".",
-            MessageEn = $"Attack success. Captured \"{targetCity.NameEn}\"."
+            Success = success,
+            Message = en,
+            MessageZhHant = zh,
+            MessageEn = en
+        };
+    }
+
+    private object[] GetCityArgs(CityData city, GameLanguage language)
+    {
+        return new object[]
+        {
+            GetCityName(city, language)
+        };
+    }
+
+    private object[] GetOfficerArgs(OfficerData officer, GameLanguage language)
+    {
+        return new object[]
+        {
+            GetOfficerDisplayName(officer, language)
         };
     }
 
@@ -623,9 +573,49 @@ public class CommandResolver
         };
     }
 
-    private static string GetOfficerDisplayName(OfficerData officer)
+    private static string GetCityName(CityData city, GameLanguage language)
     {
-        return string.IsNullOrWhiteSpace(officer.NameZhHant) ? officer.Name : officer.NameZhHant;
+        if (language == GameLanguage.TraditionalChinese)
+        {
+            if (!string.IsNullOrWhiteSpace(city.NameZhHant))
+            {
+                return city.NameZhHant;
+            }
+
+            if (!string.IsNullOrWhiteSpace(city.Name))
+            {
+                return city.Name;
+            }
+
+            return city.NameEn;
+        }
+
+        if (!string.IsNullOrWhiteSpace(city.NameEn))
+        {
+            return city.NameEn;
+        }
+
+        if (!string.IsNullOrWhiteSpace(city.Name))
+        {
+            return city.Name;
+        }
+
+        return city.NameZhHant;
+    }
+
+    private static string GetOfficerDisplayName(OfficerData officer, GameLanguage language)
+    {
+        if (language == GameLanguage.TraditionalChinese)
+        {
+            if (!string.IsNullOrWhiteSpace(officer.NameZhHant))
+            {
+                return officer.NameZhHant;
+            }
+
+            return officer.Name;
+        }
+
+        return !string.IsNullOrWhiteSpace(officer.Name) ? officer.Name : officer.NameZhHant;
     }
 
     private static void ResolveCapturedCityOfficers(WorldState world, CityData capturedCity, int previousFactionId)

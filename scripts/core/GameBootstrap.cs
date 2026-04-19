@@ -16,6 +16,8 @@ public partial class GameBootstrap : Node
 
     public override void _Ready()
     {
+        _localization.Load();
+
         var world = _worldRepository.LoadScenario("res://data/scenarios/phase1_scenario.json");
         if (world == null)
         {
@@ -24,8 +26,8 @@ public partial class GameBootstrap : Node
         }
 
         _turnManager.Initialize(world);
-        _commandResolver.Initialize(_turnManager, _combatResolver);
-        _aiController.Initialize(_commandResolver, _turnManager);
+        _commandResolver.Initialize(_turnManager, _combatResolver, _localization);
+        _aiController.Initialize(_commandResolver, _turnManager, _localization);
 
         var mapController = GetNodeOrNull<MapController>("MapScene");
         mapController?.BindWorld(world, _localization);

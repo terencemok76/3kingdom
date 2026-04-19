@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Godot;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
@@ -12,42 +15,40 @@ public enum GameLanguage
 
 public class LocalizationService
 {
-    private static readonly Dictionary<string, (string ZhHant, string En)> TextTable = new()
-    {
-        ["ui.end_turn"] = ("回合結束", "End Turn"),
-        ["ui.commands"] = ("指令", "Commands"),
-        ["ui.develop"] = ("開發", "Develop"),
-        ["ui.recruit"] = ("徵兵", "Recruit"),
-        ["ui.move"] = ("移動", "Move"),
-        ["ui.search"] = ("搜索", "Search"),
-        ["ui.attack"] = ("攻擊", "Attack"),
-        ["ui.city"] = ("城市", "City"),
-        ["ui.owner"] = ("勢力", "Owner"),
-        ["ui.player"] = ("玩家", "Player"),
-        ["ui.gold"] = ("金", "Gold"),
-        ["ui.food"] = ("糧", "Food"),
-        ["ui.troops"] = ("兵力", "Troops"),
-        ["ui.officers"] = ("武將", "Officers"),
-        ["ui.officer_list"] = ("城市武將", "City Officers"),
-        ["ui.farm"] = ("農業", "Farm"),
-        ["ui.commercial"] = ("商業", "Commercial"),
-        ["ui.defense"] = ("防禦", "Defense"),
-        ["ui.loyalty"] = ("忠誠", "Loyalty"),
-        ["ui.neutral"] = ("中立", "Neutral"),
-        ["ui.unknown"] = ("未知", "Unknown"),
-        ["ui.none"] = ("無", "None"),
-        ["ui.lang_btn_zh"] = ("繁中", "繁中"),
-        ["ui.lang_btn_en"] = ("English", "English"),
-        ["log.boot"] = ("M1 初始化完成：核心服務已接線。", "M1 initialized: services wired."),
-        ["log.player_end_turn"] = ("玩家回合結束，AI 勢力行動中...", "Player turn ended. AI factions are taking actions..."),
-        ["log.monthly_economy"] = ("已結算城市月度內政收益。", "Monthly city economy resolved.")
-    };
+    private const string LocalePath = "res://data/localization/locale.json";
+
+    private readonly Dictionary<string, LocaleTextEntry> _textTable = new(StringComparer.OrdinalIgnoreCase);
 
     public event Action? LanguageChanged;
 
     public GameLanguage CurrentLanguage { get; private set; } = GameLanguage.TraditionalChinese;
 
     public bool IsTraditionalChinese => CurrentLanguage == GameLanguage.TraditionalChinese;
+
+    public void Load()
+    {
+        _textTable.Clear();
+
+        if (!FileAccess.FileExists(LocalePath))
+        {
+            GD.PushWarning($"Locale file missing: {LocalePath}");
+            return;
+        }
+
+        using var file = FileAccess.Open(LocalePath, FileAccess.ModeFlags.Read);
+        var json = file.GetAsText();
+        var document = JsonSerializer.Deserialize<Dictionary<string, LocaleTextEntry>>(json);
+        if (document == null)
+        {
+            GD.PushWarning($"Locale file could not be parsed: {LocalePath}");
+            return;
+        }
+
+        foreach (var pair in document)
+        {
+            _textTable[pair.Key] = pair.Value;
+        }
+    }
 
     public void ToggleLanguage()
     {
@@ -67,27 +68,42 @@ public class LocalizationService
 
     public string T(string key)
     {
-        if (!TextTable.TryGetValue(key, out var textPair))
+        return TForLanguage(CurrentLanguage, key);
+    }
+
+    public string TForLanguage(GameLanguage language, string key)
+    {
+        if (!_textTable.TryGetValue(key, out var textPair))
         {
             return key;
         }
 
-        return IsTraditionalChinese ? textPair.ZhHant : textPair.En;
+        return language == GameLanguage.TraditionalChinese ? textPair.ZhHant : textPair.En;
+    }
+
+    public string Format(string key, params object[] args)
+    {
+        return string.Format(T(key), args);
+    }
+
+    public string FormatForLanguage(GameLanguage language, string key, params object[] args)
+    {
+        return string.Format(TForLanguage(language, key), args);
     }
 
     public string FormatYearMonth(int year, int month)
     {
-        return IsTraditionalChinese ? $"{year}年 {month}月" : $"Year {year}  Month {month}";
+        return Format("fmt.year_month", year, month);
     }
 
     public string FormatCityHeader(string cityName)
     {
-        return $"{T("ui.city")}: {cityName}";
+        return Format("fmt.city_header", T("ui.city"), cityName);
     }
 
     public string FormatPlayerFaction(string factionName)
     {
-        return $"{T("ui.player")}: {factionName}";
+        return Format("fmt.player_faction", T("ui.player"), factionName);
     }
 
     public string FormatCityStats(CityData city)
@@ -118,33 +134,27 @@ public class LocalizationService
 
     public string FormatOwnerLine(string ownerName)
     {
-        return $"{T("ui.owner")}: {ownerName}";
+        return Format("fmt.owner_line", T("ui.owner"), ownerName);
     }
 
     public string FormatCitySelected(string cityName)
     {
-        return IsTraditionalChinese ? $"已選擇城市：{cityName}" : $"Selected city: {cityName}";
+        return Format("fmt.city_selected", cityName);
     }
 
     public string FormatAiCityAction(string factionName, string cityName, string actionMessage)
     {
-        return IsTraditionalChinese
-            ? $"[{factionName}] {cityName}：{actionMessage}"
-            : $"[{factionName}] {cityName}: {actionMessage}";
+        return Format("fmt.ai_city_action", factionName, cityName, actionMessage);
     }
 
     public string FormatMonthAdvanced(int year, int month)
     {
-        return IsTraditionalChinese
-            ? $"進入新月份：{year}年 {month}月"
-            : $"New month: Year {year} Month {month}";
+        return Format("fmt.month_advanced", year, month);
     }
 
     public string FormatFactionDestroyed(string factionName)
     {
-        return IsTraditionalChinese
-            ? $"勢力滅亡：{factionName}"
-            : $"Faction destroyed: {factionName}";
+        return Format("fmt.faction_destroyed", factionName);
     }
 
     public string GetCityName(CityData city)
@@ -221,5 +231,35 @@ public class LocalizationService
         }
 
         return !string.IsNullOrWhiteSpace(officer.Name) ? officer.Name : officer.NameZhHant;
+    }
+
+    public string GetOfficerRole(OfficerData officer)
+    {
+        var key = officer.Role.ToLowerInvariant() switch
+        {
+            "lord" => "role.lord",
+            "general" => "role.general",
+            "strategist" => "role.strategist",
+            "advisor" => "role.advisor",
+            "governor" => "role.governor",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return officer.Role;
+        }
+
+        var localized = T(key);
+        return string.Equals(localized, key, StringComparison.Ordinal) ? officer.Role : localized;
+    }
+
+    private sealed class LocaleTextEntry
+    {
+        [JsonPropertyName("zhHant")]
+        public string ZhHant { get; set; } = string.Empty;
+
+        [JsonPropertyName("en")]
+        public string En { get; set; } = string.Empty;
     }
 }
