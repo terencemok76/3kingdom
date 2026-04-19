@@ -1,4 +1,4 @@
-﻿# Three Kingdoms Strategy (Godot 4.6.2, C#)
+# Three Kingdoms Strategy (Godot 4.6.2, C#)
 ## Phase 1 Design Document
 
 ## Feature Freeze
@@ -67,7 +67,11 @@
 - Turn order each month:
 1. Player phase (issue commands to owned cities)
 2. AI faction phases (one faction at a time)
-3. End-of-month resolution (food upkeep, loyalty drift checks if any, month increment)
+3. End-of-month resolution:
+- Resolve scheduled `Move` commands
+- Resolve scheduled `Attack` commands into battle
+- Apply food upkeep and loyalty drift checks if any
+- Advance month
 - Seasonal resource schedule:
 - Collect city `Gold` income in **April**
 - Collect city `Food` income in **August**
@@ -131,14 +135,22 @@
 ## 5.1 Develop
 - Purpose: Improve city economy
 - Cost: small gold amount
-- Effect: Improve city development attributes directly in Phase 1
+- Flow:
+- During command phase, player/AI assigns a `Develop` order to the city
+- Assigned develop does **not** resolve immediately in the same command step
+- At end-of-month resolution of the current round, scheduled develop orders resolve before recruit, move, and attack
+- Effect: Improve city development attributes when month-end resolution runs
 - Suggested formula:
 - `gain = 20 + leadOfficer.Intelligence / 5 + random(0..10)`
 
 ## 5.2 Recruit
 - Purpose: Convert resources into troops
 - Cost: gold + food
-- Effect: Add troops to city
+- Flow:
+- During command phase, player/AI assigns a `Recruit` order to the city
+- Assigned recruit does **not** resolve immediately in the same command step
+- At end-of-month resolution of the current round, scheduled recruit orders resolve after develop and before move/attack
+- Effect: Add troops to city when month-end resolution runs
 - Suggested formula:
 - `newTroops = 50 + leadOfficer.Charm / 4 + random(0..30)`
 - Recruit extension (Phase 1.5):
@@ -150,9 +162,17 @@
 - Population-to-troop conversion ratio: `1 population -> 1 troop`
 
 ## 5.3 Move
-- Purpose: Relocate troops and optionally officers between connected friendly cities
+- Purpose: Transfer troops, gold, food, and officers between connected friendly cities
 - Constraint: source and destination must be connected and same faction
-- Effect: transfer selected troops/officers
+- Flow:
+- During command phase, player/AI assigns a `Move` order from source city to connected friendly target city
+- Assigned move does **not** resolve immediately in the same command step
+- At end-of-month resolution of the current round, scheduled moves resolve after develop/recruit and before scheduled attacks
+- Effect:
+- Transfer selected `Troops`
+- Transfer selected `Gold`
+- Transfer selected `Food`
+- Transfer selected `Officers`
 
 ## 5.4 Search
 - Purpose: Find hidden officer or bonus resources
@@ -164,9 +184,13 @@
 
 ## 5.5 Attack
 - Purpose: Invade connected enemy/neutral city
+- Flow:
+- During command phase, player/AI assigns an `Attack` order from source city to connected target city
+- Assigned attack does **not** resolve immediately in the same command step
+- At end-of-month resolution of the current round, scheduled attacks resolve into battle after develop/recruit/move
 - Resolution: lightweight numeric combat (no tactical subscene in Phase 1)
 - Suggested power:
-- `attackPower = attackingTroops * (1 + avgWar / 200.0)`
+- `attackPower = attackingTroops * (1 + avgStrength / 200.0)`
 - `defensePower = defendingTroops * (1 + Defense * 0.006)`
 - Winner captures/holds city; casualties applied to both sides
 
@@ -193,14 +217,15 @@
 ### 6.1 AI Profile
 - Simple heuristic AI, no long planning tree
 - For each AI city each month, choose one action based on priority:
-1. If adjacent enemy is weak and own troops sufficient: `Attack`
+1. If adjacent enemy is weak and own troops sufficient: assign `Attack`
 2. If low troops and enough resources: `Recruit`
 3. If economy low: `Develop`
-4. If adjacent friendly city needs troops: `Move`
+4. If adjacent friendly city needs support: assign `Move` (troops / gold / food)
 5. Otherwise: `Search`
 
 ### 6.2 AI Constraints
-- One command per city per month (matches player pacing)
+- Each city can take one core city action per month: `Develop`, `Recruit`, or `Search`
+- `Move` and `Attack` are scheduled military/logistics orders and are not blocked by the core city-action limit as long as they target valid connected cities
 - Use deterministic seed option for reproducible test runs
 
 ### 6.3 AI Job Assignment (Phase 1.5)
@@ -342,46 +367,49 @@
 ```text
 res://
   scenes/
-    main/Main.tscn
-    map/MapScene.tscn
-    ui/HUD.tscn
-    ui/CityDetailPanel.tscn
-    ui/CommandDialog.tscn
+	main/Main.tscn
+	map/MapScene.tscn
+	ui/HUD.tscn
+	ui/CityDetailPanel.tscn
+	ui/CommandDialog.tscn
   scripts/
-    core/
-      GameBootstrap.cs
-      TurnManager.cs
-      CommandResolver.cs
-      CombatResolver.cs
-      AiController.cs
-      WorldRepository.cs
-    data/
-      OfficerData.cs
-      CityData.cs
-      FactionData.cs
-      WorldState.cs
-      CommandModels.cs
-    map/
-      MapController.cs
-      CityNode.cs
-      RouteRenderer.cs
-    ui/
-      HudController.cs
-      CommandPanel.cs
-      CityInfoPanel.cs
-      LogPanel.cs
+	core/
+	  GameBootstrap.cs
+	  TurnManager.cs
+	  CommandResolver.cs
+	  CombatResolver.cs
+	  AiController.cs
+	  WorldRepository.cs
+	data/
+	  OfficerData.cs
+	  CityData.cs
+	  FactionData.cs
+	  WorldState.cs
+	  CommandModels.cs
+	map/
+	  MapController.cs
+	  CityNode.cs
+	  RouteRenderer.cs
+	ui/
+	  HudController.cs
+	  CommandPanel.cs
+	  CityInfoPanel.cs
+	  LogPanel.cs
   data/
-    scenarios/
-      phase1_scenario.json
+	scenarios/
+	  phase1_scenario.json
 ```
 
 ## 10. UI/UX Flow (Phase 1)
 1. Player clicks city on map
 2. HUD shows city data and available commands
-3. Player picks command, enters required values (troops target city etc.)
-4. Command executes, log updates
-5. When all player cities have acted or player ends turn, AI turns run automatically
-6. Month advances and upkeep applies
+3. Player picks command, enters required values (for example troops / gold / food / officers / target city)
+4. Each city can only use one core city action per month: `Develop`, `Recruit`, or `Search`
+5. `Move` and `Attack` can still be assigned in the same month if they target valid connected cities
+6. `Develop`, `Recruit`, `Move`, and `Attack` are registered as scheduled actions for end-of-month resolution
+7. `Search` resolves immediately and consumes that city's core monthly action
+8. When all player cities have acted or player ends turn, AI turns run automatically
+9. End-of-month develop, recruit, move, attack, upkeep, and month advance apply
 
 ## 10.1 UI Additions for Jobs (Phase 1.5)
 1. City panel shows job slots (`Farm`, `Commercial`, `Defense`, `Training`)
@@ -488,9 +516,18 @@ res://
 - Add fixed event execution order in month resolver
 
 ## 14. Testing Checklist (Phase 1)
+- Each city can only use one core city action per month for player and AI: `Develop`, `Recruit`, or `Search`
+- Develop order is queued during command phase and resolves in end-of-month step
+- Recruit order is queued during command phase and resolves in end-of-month step
 - City cannot move/attack to non-connected target
 - Recruit blocked when resources insufficient
-- Attack can capture city and transfer ownership
+- Search resolves immediately and still consumes the city core monthly action
+- Move order is queued during command phase and resolves in end-of-month step
+- Move can still be assigned even if the city already used `Develop`, `Recruit`, or `Search` this month, as long as the target city is valid
+- Move can transfer troops, gold, food, and officers to connected friendly city after resolution
+- Attack order is queued during command phase and resolves in end-of-month battle step
+- Attack can still be assigned even if the city already used `Develop`, `Recruit`, or `Search` this month, as long as the target city is valid
+- Attack can capture city and transfer ownership after battle resolution
 - AI turn executes without freezing
 - Month increments and upkeep applied consistently
 - Win/lose triggers correctly
@@ -555,16 +592,20 @@ res://
 - Monthly event execution order:
 1. Player command phase
 2. AI command phase
-3. Recruit loyalty penalty and command-side immediate effects
-4. Relief effects (loyalty updates)
-5. Riot checks and riot one-time losses
-6. Officer defection/leave checks
-7. Officer/ruler death checks
-8. Same-month ruler succession resolution
-9. Faction-end checks (no ruler or no cities)
-10. Seasonal economy collection (April gold, August food)
-11. Upkeep and post-income adjustments
-12. Month advance
+3. Resolve scheduled `Develop` commands
+4. Resolve scheduled `Recruit` commands
+5. Resolve scheduled `Move` commands
+6. Resolve scheduled `Attack` commands into battle
+7. Recruit loyalty penalty and other command-side month-end effects
+8. Relief effects (loyalty updates)
+9. Riot checks and riot one-time losses
+10. Officer defection/leave checks
+11. Officer/ruler death checks
+12. Same-month ruler succession resolution
+13. Faction-end checks (no ruler or no cities)
+14. Seasonal economy collection (April gold, August food)
+15. Upkeep and post-income adjustments
+16. Month advance
 - Faction end and ownership:
 - On faction end, officers leave faction
 - Officer items stay with officer
@@ -584,7 +625,3 @@ res://
 - All required commands functional
 - AI factions take full monthly turns
 - Code organized by structure above, with clear separation between data, core logic, map, and UI
-
-
-
-

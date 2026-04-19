@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using ThreeKingdom.Data;
 
@@ -28,12 +28,14 @@ public class LocalizationService
         ["ui.food"] = ("糧", "Food"),
         ["ui.troops"] = ("兵力", "Troops"),
         ["ui.officers"] = ("武將", "Officers"),
+        ["ui.officer_list"] = ("城市武將", "City Officers"),
         ["ui.farm"] = ("農業", "Farm"),
         ["ui.commercial"] = ("商業", "Commercial"),
         ["ui.defense"] = ("防禦", "Defense"),
         ["ui.loyalty"] = ("忠誠", "Loyalty"),
         ["ui.neutral"] = ("中立", "Neutral"),
         ["ui.unknown"] = ("未知", "Unknown"),
+        ["ui.none"] = ("無", "None"),
         ["ui.lang_btn_zh"] = ("繁中", "繁中"),
         ["ui.lang_btn_en"] = ("English", "English"),
         ["log.boot"] = ("M1 初始化完成：核心服務已接線。", "M1 initialized: services wired."),
@@ -195,11 +197,6 @@ public class LocalizationService
                 return faction.NameZhHant;
             }
 
-            if (!string.IsNullOrWhiteSpace(faction.Name))
-            {
-                return faction.Name;
-            }
-
             return faction.NameEn;
         }
 
@@ -208,12 +205,21 @@ public class LocalizationService
             return faction.NameEn;
         }
 
-        if (!string.IsNullOrWhiteSpace(faction.Name))
-        {
-            return faction.Name;
-        }
-
         return faction.NameZhHant;
     }
-}
 
+    public string GetOfficerName(OfficerData officer)
+    {
+        if (IsTraditionalChinese)
+        {
+            if (!string.IsNullOrWhiteSpace(officer.NameZhHant))
+            {
+                return officer.NameZhHant;
+            }
+
+            return officer.Name;
+        }
+
+        return !string.IsNullOrWhiteSpace(officer.Name) ? officer.Name : officer.NameZhHant;
+    }
+}

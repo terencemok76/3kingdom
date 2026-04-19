@@ -1,4 +1,5 @@
-﻿using ThreeKingdom.Data;
+using System.Collections.Generic;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
 
@@ -29,6 +30,22 @@ public class TurnManager
         }
 
         return -1;
+    }
+
+    public List<CommandResult> ResolvePendingCommands(CommandResolver resolver)
+    {
+        var results = new List<CommandResult>();
+        if (World == null)
+        {
+            return results;
+        }
+
+        ResolvePendingCommandsOfType(resolver, CommandType.Develop, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Recruit, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
+        World.PendingCommands.Clear();
+        return results;
     }
 
     public void ApplyMonthlyEconomy()
@@ -80,5 +97,25 @@ public class TurnManager
             World.Year += 1;
         }
     }
-}
 
+    private void ResolvePendingCommandsOfType(
+        CommandResolver resolver,
+        CommandType commandType,
+        List<CommandResult> results)
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        foreach (var pendingCommand in World.PendingCommands)
+        {
+            if (pendingCommand.Type != commandType)
+            {
+                continue;
+            }
+
+            results.Add(resolver.ResolvePendingCommand(pendingCommand));
+        }
+    }
+}

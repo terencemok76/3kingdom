@@ -105,9 +105,10 @@ public partial class MapController : Node2D
             _routesLayer.AddChild(routeRenderer);
         }
 
-        if (world.Cities.Count > 0)
+        var initialCityId = GetInitialSelectedCityId(world);
+        if (initialCityId > 0)
         {
-            SelectCity(world.Cities[0].Id);
+            SelectCity(initialCityId);
         }
     }
 
@@ -201,6 +202,40 @@ public partial class MapController : Node2D
         }
     }
 
+    private static int GetInitialSelectedCityId(WorldState world)
+    {
+        var playerFactionId = -1;
+        foreach (var faction in world.Factions)
+        {
+            if (faction.IsPlayer)
+            {
+                playerFactionId = faction.Id;
+                break;
+            }
+        }
+
+        if (playerFactionId > 0)
+        {
+            foreach (var city in world.Cities)
+            {
+                if (city.OwnerFactionId == playerFactionId && city.OfficerIds.Count > 0)
+                {
+                    return city.Id;
+                }
+            }
+
+            foreach (var city in world.Cities)
+            {
+                if (city.OwnerFactionId == playerFactionId)
+                {
+                    return city.Id;
+                }
+            }
+        }
+
+        return world.Cities.Count > 0 ? world.Cities[0].Id : -1;
+    }
+
     private void OnLanguageChanged()
     {
         foreach (var entry in _cityNodes)
@@ -218,12 +253,12 @@ public partial class MapController : Node2D
     {
         if (_localization == null || _world == null)
         {
-            return city.Name;
+            return $"{city.Name}({city.Id})";
         }
 
         var cityName = _localization.GetCityName(city);
         var ownerName = _localization.GetFactionName(_world, city.OwnerFactionId);
-        return $"{cityName}\n{ownerName}";
+        return $"{cityName}({city.Id})\n{ownerName}";
     }
 
     private Vector2 CalculateCenterOffset(WorldState world)

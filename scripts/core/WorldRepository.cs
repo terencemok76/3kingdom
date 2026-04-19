@@ -8,6 +8,8 @@ namespace ThreeKingdom.Core;
 public class WorldRepository
 {
     private const string MapLocationsPath = "res://data/scenarios/map_locations_40.json";
+    private const string OfficerDataPath = "res://data/person/officer.json";
+    private const string ScenarioSetupPath = "res://data/scenarios/scenario_setup.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -30,6 +32,7 @@ public class WorldRepository
             return null;
         }
 
+        LoadOfficerData(world);
         ApplyMapLocations(world);
         return world;
     }
@@ -76,9 +79,11 @@ public class WorldRepository
                 continue;
             }
 
+            var cityId = entry.Id > 0 ? entry.Id : nextCityId;
+
             var city = new CityData
             {
-                Id = nextCityId,
+                Id = cityId,
                 Name = !string.IsNullOrWhiteSpace(nameZh) ? nameZh : nameEn,
                 NameEn = nameEn,
                 NameZhHant = nameZh,
@@ -95,12 +100,15 @@ public class WorldRepository
             };
 
             cities.Add(city);
-            nextCityId += 1;
+            if (cityId >= nextCityId)
+            {
+                nextCityId = cityId + 1;
+            }
         }
 
         BuildAutoConnections(cities);
         world.Cities = cities;
-        SetupInitialOwnershipAndOfficers(world);
+        SetupInitialOwnershipAndOfficers(world, LoadScenarioSetup());
     }
 
     private static void BuildAutoConnections(List<CityData> cities)
@@ -170,73 +178,211 @@ public class WorldRepository
         }
     }
 
-    private static void SetupInitialOwnershipAndOfficers(WorldState world)
+    private static void SetupInitialOwnershipAndOfficers(WorldState world, ScenarioSetupData setup)
     {
-        var chengdu = FindCityByName(world.Cities, "Chengdu");
-        var ye = FindCityByName(world.Cities, "Ye");
-        var jianye = FindCityByName(world.Cities, "Jianye");
-
         foreach (var city in world.Cities)
         {
             city.OwnerFactionId = 0;
             city.OfficerIds.Clear();
         }
 
-        if (chengdu != null)
-        {
-            chengdu.OwnerFactionId = 1;
-            chengdu.Gold = 1200;
-            chengdu.Food = 1800;
-            chengdu.Troops = 2500;
-        }
-
-        if (ye != null)
-        {
-            ye.OwnerFactionId = 2;
-            ye.Gold = 1000;
-            ye.Food = 1700;
-            ye.Troops = 2300;
-        }
-
-        if (jianye != null)
-        {
-            jianye.OwnerFactionId = 3;
-            jianye.Gold = 950;
-            jianye.Food = 1750;
-            jianye.Troops = 2200;
-        }
-
         foreach (var officer in world.Officers)
         {
-            CityData? assignedCity = null;
-            if (IsOfficerName(officer.Name, "Liu Bei") || IsOfficerName(officer.Name, "Guan Yu"))
-            {
-                assignedCity = chengdu;
-            }
-            else if (IsOfficerName(officer.Name, "Cao Cao"))
-            {
-                assignedCity = ye;
-            }
-            else if (IsOfficerName(officer.Name, "Sun Quan") || IsOfficerName(officer.Name, "Zhou Yu"))
-            {
-                assignedCity = jianye;
-            }
-            else
-            {
-                assignedCity = chengdu ?? ye ?? jianye;
-            }
+            officer.CityId = 0;
+        }
 
-            if (assignedCity == null)
+        ApplyCityStarts(world, setup.CityStarts);
+
+        foreach (var faction in world.Factions)
+        {
+            faction.OfficerIds.Clear();
+        }
+
+        ApplyFactionStarts(world, setup.FactionStarts);
+        EnsureFactionRulersAssigned(world);
+    }
+
+    private static void LoadOfficerData(WorldState world)
+    {
+        if (!FileAccess.FileExists(OfficerDataPath))
+        {
+            return;
+        }
+
+        using var file = FileAccess.Open(OfficerDataPath, FileAccess.ModeFlags.Read);
+        var raw = file.GetAsText();
+        var document = JsonSerializer.Deserialize<OfficerDatasetDocument>(raw, JsonOptions);
+        if (document?.Characters == null || document.Characters.Count == 0)
+        {
+            GD.PushWarning($"Officer dataset could not be parsed: {OfficerDataPath}");
+            return;
+        }
+
+        world.Officers = document.Characters;
+    }
+
+    private static ScenarioSetupData LoadScenarioSetup()
+    {
+        if (!FileAccess.FileExists(ScenarioSetupPath))
+        {
+            GD.PushError($"Scenario setup file missing: {ScenarioSetupPath}");
+            return new ScenarioSetupData();
+        }
+
+        using var file = FileAccess.Open(ScenarioSetupPath, FileAccess.ModeFlags.Read);
+        var json = file.GetAsText();
+        var setup = JsonSerializer.Deserialize<ScenarioSetupData>(json, JsonOptions);
+        if (setup == null)
+        {
+            GD.PushWarning($"Scenario setup could not be parsed: {ScenarioSetupPath}");
+            return new ScenarioSetupData();
+        }
+
+        return setup;
+    }
+
+    private static void ApplyCityStarts(WorldState world, List<CityStartData> cityStarts)
+    {
+        foreach (var cityStart in cityStarts)
+        {
+            var city = world.GetCity(cityStart.CityId);
+            if (city == null)
             {
                 continue;
             }
 
-            officer.CityId = assignedCity.Id;
-            if (!assignedCity.OfficerIds.Contains(officer.Id))
+            city.OwnerFactionId = cityStart.OwnerFactionId;
+            city.Gold = cityStart.Gold;
+            city.Food = cityStart.Food;
+            city.Troops = cityStart.Troops;
+
+            foreach (var officerId in cityStart.OfficerIds)
             {
-                assignedCity.OfficerIds.Add(officer.Id);
+                AssignOfficerToCity(world, officerId, city.Id);
             }
         }
+    }
+
+    private static void ApplyFactionStarts(WorldState world, List<FactionStartData> factionStarts)
+    {
+        foreach (var factionStart in factionStarts)
+        {
+            var faction = world.GetFaction(factionStart.FactionId);
+            if (faction == null)
+            {
+                continue;
+            }
+
+            foreach (var cityId in factionStart.CityIds)
+            {
+                var city = world.GetCity(cityId);
+                if (city != null)
+                {
+                    city.OwnerFactionId = factionStart.FactionId;
+                }
+            }
+
+            var primaryCityId = factionStart.CityIds.Count > 0 ? factionStart.CityIds[0] : 0;
+            var officerIds = new List<int>(factionStart.OfficerIds);
+            if (faction.RulerOfficerId > 0 && !officerIds.Contains(faction.RulerOfficerId))
+            {
+                officerIds.Insert(0, faction.RulerOfficerId);
+            }
+
+            foreach (var officerId in officerIds)
+            {
+                if (!faction.OfficerIds.Contains(officerId))
+                {
+                    faction.OfficerIds.Add(officerId);
+                }
+
+                var officer = world.GetOfficer(officerId);
+                if (officer == null)
+                {
+                    continue;
+                }
+
+                if (primaryCityId > 0)
+                {
+                    var officerCity = world.GetCity(officer.CityId);
+                    var isInFactionCity = officerCity != null && factionStart.CityIds.Contains(officerCity.Id);
+                    if (!isInFactionCity)
+                    {
+                        AssignOfficerToCity(world, officerId, primaryCityId);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void AssignOfficerToCity(WorldState world, int officerId, int cityId)
+    {
+        var officer = world.GetOfficer(officerId);
+        var targetCity = world.GetCity(cityId);
+        if (officer == null || targetCity == null)
+        {
+            return;
+        }
+
+        if (officer.CityId > 0)
+        {
+            var oldCity = world.GetCity(officer.CityId);
+            if (oldCity != null)
+            {
+                oldCity.OfficerIds.Remove(officerId);
+            }
+        }
+
+        officer.CityId = cityId;
+        if (!targetCity.OfficerIds.Contains(officerId))
+        {
+            targetCity.OfficerIds.Add(officerId);
+        }
+    }
+
+    private static void EnsureFactionRulersAssigned(WorldState world)
+    {
+        foreach (var faction in world.Factions)
+        {
+            if (faction.RulerOfficerId <= 0)
+            {
+                var fallbackRuler = FindFactionRulerOfficer(world, faction);
+                if (fallbackRuler != null)
+                {
+                    faction.RulerOfficerId = fallbackRuler.Id;
+                }
+            }
+
+            if (faction.RulerOfficerId <= 0)
+            {
+                continue;
+            }
+
+            if (!faction.OfficerIds.Contains(faction.RulerOfficerId))
+            {
+                faction.OfficerIds.Add(faction.RulerOfficerId);
+            }
+        }
+    }
+
+    private static OfficerData? FindFactionRulerOfficer(WorldState world, FactionData faction)
+    {
+        foreach (var officerId in faction.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer != null && IsRulerRole(officer.Role))
+            {
+                return officer;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsRulerRole(string role)
+    {
+        return role.Equals("Lord", System.StringComparison.OrdinalIgnoreCase) ||
+               role.Equals("Ruler", System.StringComparison.OrdinalIgnoreCase);
     }
 
     private static CityData? FindCityByName(List<CityData> cities, string nameEn)
@@ -264,11 +410,6 @@ public class WorldRepository
         return rawName[..index].Trim();
     }
 
-    private static bool IsOfficerName(string officerName, string targetEn)
-    {
-        return officerName.Equals(targetEn, System.StringComparison.OrdinalIgnoreCase);
-    }
-
     private static string ToZhHantName(string nameEn)
     {
         return nameEn switch
@@ -292,7 +433,7 @@ public class WorldRepository
             "Kuaiji" => "會稽",
             "Nanhai" => "南海",
             "Jiaozhou" => "交州",
-            "Taiwan" => "台灣",
+            "Taiwan" => "臺灣",
             _ => nameEn
         };
     }
@@ -303,8 +444,14 @@ public class WorldRepository
         public List<MapLocationEntry> Cities { get; set; } = new();
     }
 
+    private sealed class OfficerDatasetDocument
+    {
+        public List<OfficerData> Characters { get; set; } = new();
+    }
+
     private sealed class MapLocationEntry
     {
+        public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string NameEn { get; set; } = string.Empty;
         public string NameChi { get; set; } = string.Empty;

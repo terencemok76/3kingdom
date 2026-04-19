@@ -1,0 +1,711 @@
+{
+  "source_image": "a_large_dense_composite_image_a_clean_white_back.png",
+  "tile_size": {
+	"width": 100,
+	"height": 100
+  },
+  "count": 100,
+  "note": "Portraits were cropped from the earlier named composite image. Names are provided separately in row-major order.",
+  "characters": [
+	{
+	  "id": 1,
+	  "filename": "portrait_001.png",
+	  "name_cn": "劉備",
+	  "row": 1,
+	  "col": 1
+	},
+	{
+	  "id": 2,
+	  "filename": "portrait_002.png",
+	  "name_cn": "關羽",
+	  "row": 1,
+	  "col": 2
+	},
+	{
+	  "id": 3,
+	  "filename": "portrait_003.png",
+	  "name_cn": "張飛",
+	  "row": 1,
+	  "col": 3
+	},
+	{
+	  "id": 4,
+	  "filename": "portrait_004.png",
+	  "name_cn": "趙雲",
+	  "row": 1,
+	  "col": 4
+	},
+	{
+	  "id": 5,
+	  "filename": "portrait_005.png",
+	  "name_cn": "馬超",
+	  "row": 1,
+	  "col": 5
+	},
+	{
+	  "id": 6,
+	  "filename": "portrait_006.png",
+	  "name_cn": "黃忠",
+	  "row": 1,
+	  "col": 6
+	},
+	{
+	  "id": 7,
+	  "filename": "portrait_007.png",
+	  "name_cn": "諸葛亮",
+	  "row": 1,
+	  "col": 7
+	},
+	{
+	  "id": 8,
+	  "filename": "portrait_008.png",
+	  "name_cn": "龐統",
+	  "row": 1,
+	  "col": 8
+	},
+	{
+	  "id": 9,
+	  "filename": "portrait_009.png",
+	  "name_cn": "法正",
+	  "row": 1,
+	  "col": 9
+	},
+	{
+	  "id": 10,
+	  "filename": "portrait_010.png",
+	  "name_cn": "徐庶",
+	  "row": 1,
+	  "col": 10
+	},
+	{
+	  "id": 11,
+	  "filename": "portrait_011.png",
+	  "name_cn": "魏延",
+	  "row": 2,
+	  "col": 1
+	},
+	{
+	  "id": 12,
+	  "filename": "portrait_012.png",
+	  "name_cn": "黃月英",
+	  "row": 2,
+	  "col": 2
+	},
+	{
+	  "id": 13,
+	  "filename": "portrait_013.png",
+	  "name_cn": "姜維",
+	  "row": 2,
+	  "col": 3
+	},
+	{
+	  "id": 14,
+	  "filename": "portrait_014.png",
+	  "name_cn": "關平",
+	  "row": 2,
+	  "col": 4
+	},
+	{
+	  "id": 15,
+	  "filename": "portrait_015.png",
+	  "name_cn": "張苞",
+	  "row": 2,
+	  "col": 5
+	},
+	{
+	  "id": 16,
+	  "filename": "portrait_016.png",
+	  "name_cn": "關興",
+	  "row": 2,
+	  "col": 6
+	},
+	{
+	  "id": 17,
+	  "filename": "portrait_017.png",
+	  "name_cn": "張翼",
+	  "row": 2,
+	  "col": 7
+	},
+	{
+	  "id": 18,
+	  "filename": "portrait_018.png",
+	  "name_cn": "曹操",
+	  "row": 2,
+	  "col": 8
+	},
+	{
+	  "id": 19,
+	  "filename": "portrait_019.png",
+	  "name_cn": "夏侯惇",
+	  "row": 2,
+	  "col": 9
+	},
+	{
+	  "id": 20,
+	  "filename": "portrait_020.png",
+	  "name_cn": "夏侯淵",
+	  "row": 2,
+	  "col": 10
+	},
+	{
+	  "id": 21,
+	  "filename": "portrait_021.png",
+	  "name_cn": "曹仁",
+	  "row": 3,
+	  "col": 1
+	},
+	{
+	  "id": 22,
+	  "filename": "portrait_022.png",
+	  "name_cn": "曹洪",
+	  "row": 3,
+	  "col": 2
+	},
+	{
+	  "id": 23,
+	  "filename": "portrait_023.png",
+	  "name_cn": "曹純",
+	  "row": 3,
+	  "col": 3
+	},
+	{
+	  "id": 24,
+	  "filename": "portrait_024.png",
+	  "name_cn": "張遼",
+	  "row": 3,
+	  "col": 4
+	},
+	{
+	  "id": 25,
+	  "filename": "portrait_025.png",
+	  "name_cn": "許褚",
+	  "row": 3,
+	  "col": 5
+	},
+	{
+	  "id": 26,
+	  "filename": "portrait_026.png",
+	  "name_cn": "典韋",
+	  "row": 3,
+	  "col": 6
+	},
+	{
+	  "id": 27,
+	  "filename": "portrait_027.png",
+	  "name_cn": "郭嘉",
+	  "row": 3,
+	  "col": 7
+	},
+	{
+	  "id": 28,
+	  "filename": "portrait_028.png",
+	  "name_cn": "荀彧",
+	  "row": 3,
+	  "col": 8
+	},
+	{
+	  "id": 29,
+	  "filename": "portrait_029.png",
+	  "name_cn": "荀攸",
+	  "row": 3,
+	  "col": 9
+	},
+	{
+	  "id": 30,
+	  "filename": "portrait_030.png",
+	  "name_cn": "程昱",
+	  "row": 3,
+	  "col": 10
+	},
+	{
+	  "id": 31,
+	  "filename": "portrait_031.png",
+	  "name_cn": "賈詡",
+	  "row": 4,
+	  "col": 1
+	},
+	{
+	  "id": 32,
+	  "filename": "portrait_032.png",
+	  "name_cn": "司馬懿",
+	  "row": 4,
+	  "col": 2
+	},
+	{
+	  "id": 33,
+	  "filename": "portrait_033.png",
+	  "name_cn": "司馬師",
+	  "row": 4,
+	  "col": 3
+	},
+	{
+	  "id": 34,
+	  "filename": "portrait_034.png",
+	  "name_cn": "司馬昭",
+	  "row": 4,
+	  "col": 4
+	},
+	{
+	  "id": 35,
+	  "filename": "portrait_035.png",
+	  "name_cn": "孫權",
+	  "row": 4,
+	  "col": 5
+	},
+	{
+	  "id": 36,
+	  "filename": "portrait_036.png",
+	  "name_cn": "周瑜",
+	  "row": 4,
+	  "col": 6
+	},
+	{
+	  "id": 37,
+	  "filename": "portrait_037.png",
+	  "name_cn": "魯肅",
+	  "row": 4,
+	  "col": 7
+	},
+	{
+	  "id": 38,
+	  "filename": "portrait_038.png",
+	  "name_cn": "呂蒙",
+	  "row": 4,
+	  "col": 8
+	},
+	{
+	  "id": 39,
+	  "filename": "portrait_039.png",
+	  "name_cn": "陸遜",
+	  "row": 4,
+	  "col": 9
+	},
+	{
+	  "id": 40,
+	  "filename": "portrait_040.png",
+	  "name_cn": "太史慈",
+	  "row": 4,
+	  "col": 10
+	},
+	{
+	  "id": 41,
+	  "filename": "portrait_041.png",
+	  "name_cn": "甘寧",
+	  "row": 5,
+	  "col": 1
+	},
+	{
+	  "id": 42,
+	  "filename": "portrait_042.png",
+	  "name_cn": "凌統",
+	  "row": 5,
+	  "col": 2
+	},
+	{
+	  "id": 43,
+	  "filename": "portrait_043.png",
+	  "name_cn": "黃蓋",
+	  "row": 5,
+	  "col": 3
+	},
+	{
+	  "id": 44,
+	  "filename": "portrait_044.png",
+	  "name_cn": "程普",
+	  "row": 5,
+	  "col": 4
+	},
+	{
+	  "id": 45,
+	  "filename": "portrait_045.png",
+	  "name_cn": "韓當",
+	  "row": 5,
+	  "col": 5
+	},
+	{
+	  "id": 46,
+	  "filename": "portrait_046.png",
+	  "name_cn": "周泰",
+	  "row": 5,
+	  "col": 6
+	},
+	{
+	  "id": 47,
+	  "filename": "portrait_047.png",
+	  "name_cn": "丁奉",
+	  "row": 5,
+	  "col": 7
+	},
+	{
+	  "id": 48,
+	  "filename": "portrait_048.png",
+	  "name_cn": "蔣欽",
+	  "row": 5,
+	  "col": 8
+	},
+	{
+	  "id": 49,
+	  "filename": "portrait_049.png",
+	  "name_cn": "張昭",
+	  "row": 5,
+	  "col": 9
+	},
+	{
+	  "id": 50,
+	  "filename": "portrait_050.png",
+	  "name_cn": "諸葛瑾",
+	  "row": 5,
+	  "col": 10
+	},
+	{
+	  "id": 51,
+	  "filename": "portrait_051.png",
+	  "name_cn": "呂布",
+	  "row": 6,
+	  "col": 1
+	},
+	{
+	  "id": 52,
+	  "filename": "portrait_052.png",
+	  "name_cn": "貂蟬",
+	  "row": 6,
+	  "col": 2
+	},
+	{
+	  "id": 53,
+	  "filename": "portrait_053.png",
+	  "name_cn": "袁紹",
+	  "row": 6,
+	  "col": 3
+	},
+	{
+	  "id": 54,
+	  "filename": "portrait_054.png",
+	  "name_cn": "袁術",
+	  "row": 6,
+	  "col": 4
+	},
+	{
+	  "id": 55,
+	  "filename": "portrait_055.png",
+	  "name_cn": "公孫瓚",
+	  "row": 6,
+	  "col": 5
+	},
+	{
+	  "id": 56,
+	  "filename": "portrait_056.png",
+	  "name_cn": "劉表",
+	  "row": 6,
+	  "col": 6
+	},
+	{
+	  "id": 57,
+	  "filename": "portrait_057.png",
+	  "name_cn": "劉璋",
+	  "row": 6,
+	  "col": 7
+	},
+	{
+	  "id": 58,
+	  "filename": "portrait_058.png",
+	  "name_cn": "馬騰",
+	  "row": 6,
+	  "col": 8
+	},
+	{
+	  "id": 59,
+	  "filename": "portrait_059.png",
+	  "name_cn": "董卓",
+	  "row": 6,
+	  "col": 9
+	},
+	{
+	  "id": 60,
+	  "filename": "portrait_060.png",
+	  "name_cn": "張角",
+	  "row": 6,
+	  "col": 10
+	},
+	{
+	  "id": 61,
+	  "filename": "portrait_061.png",
+	  "name_cn": "于吉",
+	  "row": 7,
+	  "col": 1
+	},
+	{
+	  "id": 62,
+	  "filename": "portrait_062.png",
+	  "name_cn": "華佗",
+	  "row": 7,
+	  "col": 2
+	},
+	{
+	  "id": 63,
+	  "filename": "portrait_063.png",
+	  "name_cn": "左慈",
+	  "row": 7,
+	  "col": 3
+	},
+	{
+	  "id": 64,
+	  "filename": "portrait_064.png",
+	  "name_cn": "呂玲綺",
+	  "row": 7,
+	  "col": 4
+	},
+	{
+	  "id": 65,
+	  "filename": "portrait_065.png",
+	  "name_cn": "文醜",
+	  "row": 7,
+	  "col": 5
+	},
+	{
+	  "id": 66,
+	  "filename": "portrait_066.png",
+	  "name_cn": "顏良",
+	  "row": 7,
+	  "col": 6
+	},
+	{
+	  "id": 67,
+	  "filename": "portrait_067.png",
+	  "name_cn": "張任",
+	  "row": 7,
+	  "col": 7
+	},
+	{
+	  "id": 68,
+	  "filename": "portrait_068.png",
+	  "name_cn": "田豐",
+	  "row": 7,
+	  "col": 8
+	},
+	{
+	  "id": 69,
+	  "filename": "portrait_069.png",
+	  "name_cn": "沮授",
+	  "row": 7,
+	  "col": 9
+	},
+	{
+	  "id": 70,
+	  "filename": "portrait_070.png",
+	  "name_cn": "審配",
+	  "row": 7,
+	  "col": 10
+	},
+	{
+	  "id": 71,
+	  "filename": "portrait_071.png",
+	  "name_cn": "孔融",
+	  "row": 8,
+	  "col": 1
+	},
+	{
+	  "id": 72,
+	  "filename": "portrait_072.png",
+	  "name_cn": "陶謙",
+	  "row": 8,
+	  "col": 2
+	},
+	{
+	  "id": 73,
+	  "filename": "portrait_073.png",
+	  "name_cn": "韓馥",
+	  "row": 8,
+	  "col": 3
+	},
+	{
+	  "id": 74,
+	  "filename": "portrait_074.png",
+	  "name_cn": "張楊",
+	  "row": 8,
+	  "col": 4
+	},
+	{
+	  "id": 75,
+	  "filename": "portrait_075.png",
+	  "name_cn": "馬岱",
+	  "row": 8,
+	  "col": 5
+	},
+	{
+	  "id": 76,
+	  "filename": "portrait_076.png",
+	  "name_cn": "馬休",
+	  "row": 8,
+	  "col": 6
+	},
+	{
+	  "id": 77,
+	  "filename": "portrait_077.png",
+	  "name_cn": "馬鐵",
+	  "row": 8,
+	  "col": 7
+	},
+	{
+	  "id": 78,
+	  "filename": "portrait_078.png",
+	  "name_cn": "費詩",
+	  "row": 8,
+	  "col": 8
+	},
+	{
+	  "id": 79,
+	  "filename": "portrait_079.png",
+	  "name_cn": "蔣琬",
+	  "row": 8,
+	  "col": 9
+	},
+	{
+	  "id": 80,
+	  "filename": "portrait_080.png",
+	  "name_cn": "向寵",
+	  "row": 8,
+	  "col": 10
+	},
+	{
+	  "id": 81,
+	  "filename": "portrait_081.png",
+	  "name_cn": "費禕",
+	  "row": 9,
+	  "col": 1
+	},
+	{
+	  "id": 82,
+	  "filename": "portrait_082.png",
+	  "name_cn": "董允",
+	  "row": 9,
+	  "col": 2
+	},
+	{
+	  "id": 83,
+	  "filename": "portrait_083.png",
+	  "name_cn": "傅彤",
+	  "row": 9,
+	  "col": 3
+	},
+	{
+	  "id": 84,
+	  "filename": "portrait_084.png",
+	  "name_cn": "簡雍",
+	  "row": 9,
+	  "col": 4
+	},
+	{
+	  "id": 85,
+	  "filename": "portrait_085.png",
+	  "name_cn": "廖蘭",
+	  "row": 9,
+	  "col": 5
+	},
+	{
+	  "id": 86,
+	  "filename": "portrait_086.png",
+	  "name_cn": "廖芳",
+	  "row": 9,
+	  "col": 6
+	},
+	{
+	  "id": 87,
+	  "filename": "portrait_087.png",
+	  "name_cn": "孫乾",
+	  "row": 9,
+	  "col": 7
+	},
+	{
+	  "id": 88,
+	  "filename": "portrait_088.png",
+	  "name_cn": "孫尚香",
+	  "row": 9,
+	  "col": 8
+	},
+	{
+	  "id": 89,
+	  "filename": "portrait_089.png",
+	  "name_cn": "劉禪",
+	  "row": 9,
+	  "col": 9
+	},
+	{
+	  "id": 90,
+	  "filename": "portrait_090.png",
+	  "name_cn": "諸葛瞻",
+	  "row": 9,
+	  "col": 10
+	},
+	{
+	  "id": 91,
+	  "filename": "portrait_091.png",
+	  "name_cn": "關索",
+	  "row": 10,
+	  "col": 1
+	},
+	{
+	  "id": 92,
+	  "filename": "portrait_092.png",
+	  "name_cn": "張嶷",
+	  "row": 10,
+	  "col": 2
+	},
+	{
+	  "id": 93,
+	  "filename": "portrait_093.png",
+	  "name_cn": "孟達",
+	  "row": 10,
+	  "col": 3
+	},
+	{
+	  "id": 94,
+	  "filename": "portrait_094.png",
+	  "name_cn": "嚴顏",
+	  "row": 10,
+	  "col": 4
+	},
+	{
+	  "id": 95,
+	  "filename": "portrait_095.png",
+	  "name_cn": "王平",
+	  "row": 10,
+	  "col": 5
+	},
+	{
+	  "id": 96,
+	  "filename": "portrait_096.png",
+	  "name_cn": "廖化",
+	  "row": 10,
+	  "col": 6
+	},
+	{
+	  "id": 97,
+	  "filename": "portrait_097.png",
+	  "name_cn": "霍峻",
+	  "row": 10,
+	  "col": 7
+	},
+	{
+	  "id": 98,
+	  "filename": "portrait_098.png",
+	  "name_cn": "諸葛尚",
+	  "row": 10,
+	  "col": 8
+	},
+	{
+	  "id": 99,
+	  "filename": "portrait_099.png",
+	  "name_cn": "步騭",
+	  "row": 10,
+	  "col": 9
+	},
+	{
+	  "id": 100,
+	  "filename": "portrait_100.png",
+	  "name_cn": "祝融",
+	  "row": 10,
+	  "col": 10
+	}
+  ]
+}

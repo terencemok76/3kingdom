@@ -11,13 +11,16 @@ public class CombatResult
 
 public class CombatResolver
 {
-    public CombatResult Resolve(CityData attacker, CityData defender, int attackingTroops)
+    public CombatResult Resolve(WorldState world, CityData attacker, CityData defender, int attackingTroops)
     {
         var clampedAttackTroops = attackingTroops < 0 ? 0 : attackingTroops;
+        var attackerStrength = GetAverageOfficerStat(world, attacker, officer => officer.Strength);
+        var attackerCombat = GetAverageOfficerStat(world, attacker, officer => officer.Combat);
+        var defenderCombat = GetAverageOfficerStat(world, defender, officer => officer.Combat);
 
-        // Defense now contributes directly to defender effective strength.
-        var attackMultiplier = 1.0f + (attacker.Defense * 0.002f);
-        var defenseMultiplier = 1.0f + (defender.Defense * 0.006f);
+        var attackStat = attackerStrength * 0.6f + attackerCombat * 0.4f;
+        var attackMultiplier = 1.0f + attackStat / 200.0f;
+        var defenseMultiplier = 1.0f + (defender.Defense * 0.006f) + (defenderCombat / 500.0f);
 
         var effectiveAttack = clampedAttackTroops * attackMultiplier;
         var effectiveDefense = defender.Troops * defenseMultiplier;
@@ -29,5 +32,25 @@ public class CombatResolver
             AttackerLosses = attackerWon ? defender.Troops / 3 : clampedAttackTroops / 2,
             DefenderLosses = attackerWon ? defender.Troops : clampedAttackTroops / 2
         };
+    }
+
+    private static int GetAverageOfficerStat(WorldState world, CityData city, System.Func<OfficerData, int> selector)
+    {
+        var total = 0;
+        var count = 0;
+
+        foreach (var officerId in city.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            total += selector(officer);
+            count += 1;
+        }
+
+        return count == 0 ? 50 : total / count;
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace ThreeKingdom.Data;
 
@@ -19,6 +19,20 @@ public class CommandRequest
     public int SourceCityId { get; set; }
     public int? TargetCityId { get; set; }
     public int TroopsToSend { get; set; }
+    public int GoldToSend { get; set; }
+    public int FoodToSend { get; set; }
+    public List<int> OfficerIds { get; set; } = new();
+}
+
+public class PendingCommandData
+{
+    public CommandType Type { get; set; }
+    public int ActorFactionId { get; set; }
+    public int SourceCityId { get; set; }
+    public int TargetCityId { get; set; }
+    public int TroopsToSend { get; set; }
+    public int GoldToSend { get; set; }
+    public int FoodToSend { get; set; }
     public List<int> OfficerIds { get; set; } = new();
 }
 

@@ -1,0 +1,45 @@
+{
+  "cityStarts": [
+    {
+      "cityId": 36,
+      "ownerFactionId": 1,
+      "gold": 1200,
+      "food": 1800,
+      "troops": 2500,
+      "officerIds": [1, 2, 3]
+    },
+    {
+      "cityId": 5,
+      "ownerFactionId": 2,
+      "gold": 1000,
+      "food": 1700,
+      "troops": 2300,
+      "officerIds": [21, 24, 25, 40]
+    },
+    {
+      "cityId": 22,
+      "ownerFactionId": 3,
+      "gold": 950,
+      "food": 1750,
+      "troops": 2200,
+      "officerIds": [41, 44, 50, 51]
+    }
+  ],
+  "factionStarts": [
+    {
+      "factionId": 1,
+      "cityIds": [36],
+      "officerIds": [2, 3]
+    },
+    {
+      "factionId": 2,
+      "cityIds": [5],
+      "officerIds": [24, 25, 40]
+    },
+    {
+      "factionId": 3,
+      "cityIds": [22],
+      "officerIds": [44, 50, 51]
+    }
+  ]
+}

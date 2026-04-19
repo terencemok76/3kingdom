@@ -1,0 +1,614 @@
+{
+  "image": "perfect_version_picture_1",
+  "source_file": "a_high_resolution_game_art_style_composite_wall_o.png",
+  "grid": {
+	"cols": 10,
+	"rows": 10,
+	"tile_width": 100,
+	"tile_height": 100,
+	"order": "row-major"
+  },
+  "note": "這個 JSON 係按 10x10 格，由左到右、由上到下對應完美版 picture 1。",
+  "characters": [
+	{
+	  "id": 1,
+	  "name_cn": "劉備",
+	  "row": 1,
+	  "col": 1
+	},
+	{
+	  "id": 2,
+	  "name_cn": "關羽",
+	  "row": 1,
+	  "col": 2
+	},
+	{
+	  "id": 3,
+	  "name_cn": "張飛",
+	  "row": 1,
+	  "col": 3
+	},
+	{
+	  "id": 4,
+	  "name_cn": "趙雲",
+	  "row": 1,
+	  "col": 4
+	},
+	{
+	  "id": 5,
+	  "name_cn": "馬超",
+	  "row": 1,
+	  "col": 5
+	},
+	{
+	  "id": 6,
+	  "name_cn": "黃忠",
+	  "row": 1,
+	  "col": 6
+	},
+	{
+	  "id": 7,
+	  "name_cn": "諸葛亮",
+	  "row": 1,
+	  "col": 7
+	},
+	{
+	  "id": 8,
+	  "name_cn": "龐統",
+	  "row": 1,
+	  "col": 8
+	},
+	{
+	  "id": 9,
+	  "name_cn": "法正",
+	  "row": 1,
+	  "col": 9
+	},
+	{
+	  "id": 10,
+	  "name_cn": "徐庶",
+	  "row": 1,
+	  "col": 10
+	},
+	{
+	  "id": 11,
+	  "name_cn": "魏延",
+	  "row": 2,
+	  "col": 1
+	},
+	{
+	  "id": 12,
+	  "name_cn": "黃月英",
+	  "row": 2,
+	  "col": 2
+	},
+	{
+	  "id": 13,
+	  "name_cn": "姜維",
+	  "row": 2,
+	  "col": 3
+	},
+	{
+	  "id": 14,
+	  "name_cn": "關平",
+	  "row": 2,
+	  "col": 4
+	},
+	{
+	  "id": 15,
+	  "name_cn": "張苞",
+	  "row": 2,
+	  "col": 5
+	},
+	{
+	  "id": 16,
+	  "name_cn": "關興",
+	  "row": 2,
+	  "col": 6
+	},
+	{
+	  "id": 17,
+	  "name_cn": "張翼",
+	  "row": 2,
+	  "col": 7
+	},
+	{
+	  "id": 18,
+	  "name_cn": "曹操",
+	  "row": 2,
+	  "col": 8
+	},
+	{
+	  "id": 19,
+	  "name_cn": "夏侯惇",
+	  "row": 2,
+	  "col": 9
+	},
+	{
+	  "id": 20,
+	  "name_cn": "夏侯淵",
+	  "row": 2,
+	  "col": 10
+	},
+	{
+	  "id": 21,
+	  "name_cn": "曹仁",
+	  "row": 3,
+	  "col": 1
+	},
+	{
+	  "id": 22,
+	  "name_cn": "曹洪",
+	  "row": 3,
+	  "col": 2
+	},
+	{
+	  "id": 23,
+	  "name_cn": "曹純",
+	  "row": 3,
+	  "col": 3
+	},
+	{
+	  "id": 24,
+	  "name_cn": "張遼",
+	  "row": 3,
+	  "col": 4
+	},
+	{
+	  "id": 25,
+	  "name_cn": "許褚",
+	  "row": 3,
+	  "col": 5
+	},
+	{
+	  "id": 26,
+	  "name_cn": "典韋",
+	  "row": 3,
+	  "col": 6
+	},
+	{
+	  "id": 27,
+	  "name_cn": "郭嘉",
+	  "row": 3,
+	  "col": 7
+	},
+	{
+	  "id": 28,
+	  "name_cn": "荀彧",
+	  "row": 3,
+	  "col": 8
+	},
+	{
+	  "id": 29,
+	  "name_cn": "荀攸",
+	  "row": 3,
+	  "col": 9
+	},
+	{
+	  "id": 30,
+	  "name_cn": "程昱",
+	  "row": 3,
+	  "col": 10
+	},
+	{
+	  "id": 31,
+	  "name_cn": "賈詡",
+	  "row": 4,
+	  "col": 1
+	},
+	{
+	  "id": 32,
+	  "name_cn": "司馬懿",
+	  "row": 4,
+	  "col": 2
+	},
+	{
+	  "id": 33,
+	  "name_cn": "司馬師",
+	  "row": 4,
+	  "col": 3
+	},
+	{
+	  "id": 34,
+	  "name_cn": "司馬昭",
+	  "row": 4,
+	  "col": 4
+	},
+	{
+	  "id": 35,
+	  "name_cn": "孫權",
+	  "row": 4,
+	  "col": 5
+	},
+	{
+	  "id": 36,
+	  "name_cn": "周瑜",
+	  "row": 4,
+	  "col": 6
+	},
+	{
+	  "id": 37,
+	  "name_cn": "魯肅",
+	  "row": 4,
+	  "col": 7
+	},
+	{
+	  "id": 38,
+	  "name_cn": "呂蒙",
+	  "row": 4,
+	  "col": 8
+	},
+	{
+	  "id": 39,
+	  "name_cn": "陸遜",
+	  "row": 4,
+	  "col": 9
+	},
+	{
+	  "id": 40,
+	  "name_cn": "太史慈",
+	  "row": 4,
+	  "col": 10
+	},
+	{
+	  "id": 41,
+	  "name_cn": "甘寧",
+	  "row": 5,
+	  "col": 1
+	},
+	{
+	  "id": 42,
+	  "name_cn": "凌統",
+	  "row": 5,
+	  "col": 2
+	},
+	{
+	  "id": 43,
+	  "name_cn": "黃蓋",
+	  "row": 5,
+	  "col": 3
+	},
+	{
+	  "id": 44,
+	  "name_cn": "程普",
+	  "row": 5,
+	  "col": 4
+	},
+	{
+	  "id": 45,
+	  "name_cn": "韓當",
+	  "row": 5,
+	  "col": 5
+	},
+	{
+	  "id": 46,
+	  "name_cn": "周泰",
+	  "row": 5,
+	  "col": 6
+	},
+	{
+	  "id": 47,
+	  "name_cn": "丁奉",
+	  "row": 5,
+	  "col": 7
+	},
+	{
+	  "id": 48,
+	  "name_cn": "蔣欽",
+	  "row": 5,
+	  "col": 8
+	},
+	{
+	  "id": 49,
+	  "name_cn": "張昭",
+	  "row": 5,
+	  "col": 9
+	},
+	{
+	  "id": 50,
+	  "name_cn": "諸葛瑾",
+	  "row": 5,
+	  "col": 10
+	},
+	{
+	  "id": 51,
+	  "name_cn": "呂布",
+	  "row": 6,
+	  "col": 1
+	},
+	{
+	  "id": 52,
+	  "name_cn": "貂蟬",
+	  "row": 6,
+	  "col": 2
+	},
+	{
+	  "id": 53,
+	  "name_cn": "袁紹",
+	  "row": 6,
+	  "col": 3
+	},
+	{
+	  "id": 54,
+	  "name_cn": "袁術",
+	  "row": 6,
+	  "col": 4
+	},
+	{
+	  "id": 55,
+	  "name_cn": "公孫瓚",
+	  "row": 6,
+	  "col": 5
+	},
+	{
+	  "id": 56,
+	  "name_cn": "劉表",
+	  "row": 6,
+	  "col": 6
+	},
+	{
+	  "id": 57,
+	  "name_cn": "劉璋",
+	  "row": 6,
+	  "col": 7
+	},
+	{
+	  "id": 58,
+	  "name_cn": "馬騰",
+	  "row": 6,
+	  "col": 8
+	},
+	{
+	  "id": 59,
+	  "name_cn": "董卓",
+	  "row": 6,
+	  "col": 9
+	},
+	{
+	  "id": 60,
+	  "name_cn": "張角",
+	  "row": 6,
+	  "col": 10
+	},
+	{
+	  "id": 61,
+	  "name_cn": "于吉",
+	  "row": 7,
+	  "col": 1
+	},
+	{
+	  "id": 62,
+	  "name_cn": "華佗",
+	  "row": 7,
+	  "col": 2
+	},
+	{
+	  "id": 63,
+	  "name_cn": "左慈",
+	  "row": 7,
+	  "col": 3
+	},
+	{
+	  "id": 64,
+	  "name_cn": "呂玲綺",
+	  "row": 7,
+	  "col": 4
+	},
+	{
+	  "id": 65,
+	  "name_cn": "文醜",
+	  "row": 7,
+	  "col": 5
+	},
+	{
+	  "id": 66,
+	  "name_cn": "顏良",
+	  "row": 7,
+	  "col": 6
+	},
+	{
+	  "id": 67,
+	  "name_cn": "張任",
+	  "row": 7,
+	  "col": 7
+	},
+	{
+	  "id": 68,
+	  "name_cn": "田豐",
+	  "row": 7,
+	  "col": 8
+	},
+	{
+	  "id": 69,
+	  "name_cn": "沮授",
+	  "row": 7,
+	  "col": 9
+	},
+	{
+	  "id": 70,
+	  "name_cn": "審配",
+	  "row": 7,
+	  "col": 10
+	},
+	{
+	  "id": 71,
+	  "name_cn": "孔融",
+	  "row": 8,
+	  "col": 1
+	},
+	{
+	  "id": 72,
+	  "name_cn": "陶謙",
+	  "row": 8,
+	  "col": 2
+	},
+	{
+	  "id": 73,
+	  "name_cn": "韓馥",
+	  "row": 8,
+	  "col": 3
+	},
+	{
+	  "id": 74,
+	  "name_cn": "張楊",
+	  "row": 8,
+	  "col": 4
+	},
+	{
+	  "id": 75,
+	  "name_cn": "馬岱",
+	  "row": 8,
+	  "col": 5
+	},
+	{
+	  "id": 76,
+	  "name_cn": "馬休",
+	  "row": 8,
+	  "col": 6
+	},
+	{
+	  "id": 77,
+	  "name_cn": "馬鐵",
+	  "row": 8,
+	  "col": 7
+	},
+	{
+	  "id": 78,
+	  "name_cn": "費詩",
+	  "row": 8,
+	  "col": 8
+	},
+	{
+	  "id": 79,
+	  "name_cn": "蔣琬",
+	  "row": 8,
+	  "col": 9
+	},
+	{
+	  "id": 80,
+	  "name_cn": "向寵",
+	  "row": 8,
+	  "col": 10
+	},
+	{
+	  "id": 81,
+	  "name_cn": "費禕",
+	  "row": 9,
+	  "col": 1
+	},
+	{
+	  "id": 82,
+	  "name_cn": "董允",
+	  "row": 9,
+	  "col": 2
+	},
+	{
+	  "id": 83,
+	  "name_cn": "傅彤",
+	  "row": 9,
+	  "col": 3
+	},
+	{
+	  "id": 84,
+	  "name_cn": "簡雍",
+	  "row": 9,
+	  "col": 4
+	},
+	{
+	  "id": 85,
+	  "name_cn": "廖化",
+	  "row": 9,
+	  "col": 5
+	},
+	{
+	  "id": 86,
+	  "name_cn": "廖芳",
+	  "row": 9,
+	  "col": 6
+	},
+	{
+	  "id": 87,
+	  "name_cn": "孫乾",
+	  "row": 9,
+	  "col": 7
+	},
+	{
+	  "id": 88,
+	  "name_cn": "孫尚香",
+	  "row": 9,
+	  "col": 8
+	},
+	{
+	  "id": 89,
+	  "name_cn": "劉禪",
+	  "row": 9,
+	  "col": 9
+	},
+	{
+	  "id": 90,
+	  "name_cn": "諸葛瞻",
+	  "row": 9,
+	  "col": 10
+	},
+	{
+	  "id": 91,
+	  "name_cn": "關索",
+	  "row": 10,
+	  "col": 1
+	},
+	{
+	  "id": 92,
+	  "name_cn": "張嶷",
+	  "row": 10,
+	  "col": 2
+	},
+	{
+	  "id": 93,
+	  "name_cn": "孟達",
+	  "row": 10,
+	  "col": 3
+	},
+	{
+	  "id": 94,
+	  "name_cn": "嚴顏",
+	  "row": 10,
+	  "col": 4
+	},
+	{
+	  "id": 95,
+	  "name_cn": "王平",
+	  "row": 10,
+	  "col": 5
+	},
+	{
+	  "id": 96,
+	  "name_cn": "霍峻",
+	  "row": 10,
+	  "col": 6
+	},
+	{
+	  "id": 97,
+	  "name_cn": "祝融",
+	  "row": 10,
+	  "col": 7
+	},
+	{
+	  "id": 98,
+	  "name_cn": "諸葛尚",
+	  "row": 10,
+	  "col": 8
+	},
+	{
+	  "id": 99,
+	  "name_cn": "步騭",
+	  "row": 10,
+	  "col": 9
+	},
+	{
+	  "id": 100,
+	  "name_cn": "廖化",
+	  "row": 10,
+	  "col": 10
+	}
+  ]
+}

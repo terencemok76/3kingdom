@@ -1,22 +1,20 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://6nej0d0lpe8e"]
 
-[ext_resource type="Script" path="res://scripts/map/MapController.cs" id="1"]
-[ext_resource type="Texture2D" path="res://assets/map/san4_generated_v2.png" id="2"]
+[ext_resource type="Script" uid="uid://usx31cxx2p30" path="res://scripts/map/MapController.cs" id="1"]
 
-[node name="MapScene" type="Node2D"]
+[node name="MapScene" type="Node2D" unique_id=1875975713]
 script = ExtResource("1")
 
-[node name="WorldRoot" type="Node2D" parent="."]
+[node name="WorldRoot" type="Node2D" parent="." unique_id=7192764]
 
-[node name="BackgroundSprite" type="Sprite2D" parent="WorldRoot"]
+[node name="BackgroundSprite" type="Sprite2D" parent="WorldRoot" unique_id=308725284]
+z_index = -20
 position = Vector2(140, 80)
 scale = Vector2(0.86, 0.86)
 centered = false
-z_index = -20
-texture = ExtResource("2")
 
-[node name="RoutesLayer" type="Node2D" parent="WorldRoot"]
+[node name="RoutesLayer" type="Node2D" parent="WorldRoot" unique_id=1720374353]
 z_index = -5
 
-[node name="CitiesLayer" type="Node2D" parent="WorldRoot"]
+[node name="CitiesLayer" type="Node2D" parent="WorldRoot" unique_id=977475053]
 z_index = 5

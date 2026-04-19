@@ -6,6 +6,7 @@
     },
     "locations": [
         {
+            "id": 1,
             "nameEn": "Ji",
             "nameChi": "薊",
             "region": "Youzhou",
@@ -13,6 +14,7 @@
             "y": 65
         },
         {
+            "id": 2,
             "nameEn": "Xiangping",
             "nameChi": "襄平",
             "region": "Liaodong",
@@ -20,6 +22,7 @@
             "y": 45
         },
         {
+            "id": 3,
             "nameEn": "Beiping",
             "nameChi": "北平",
             "region": "Youzhou",
@@ -27,6 +30,7 @@
             "y": 80
         },
         {
+            "id": 4,
             "nameEn": "Jinyang",
             "nameChi": "晉陽",
             "region": "Bingzhou",
@@ -34,6 +38,7 @@
             "y": 140
         },
         {
+            "id": 5,
             "nameEn": "Ye",
             "nameChi": "鄴",
             "region": "Jizhou",
@@ -41,6 +46,7 @@
             "y": 195
         },
         {
+            "id": 6,
             "nameEn": "Nanpi",
             "nameChi": "南皮",
             "region": "Jizhou",
@@ -48,6 +54,7 @@
             "y": 160
         },
         {
+            "id": 7,
             "nameEn": "Linzi",
             "nameChi": "臨淄",
             "region": "Qingzhou",
@@ -55,6 +62,7 @@
             "y": 170
         },
         {
+            "id": 8,
             "nameEn": "Beihai",
             "nameChi": "北海",
             "region": "Qingzhou",
@@ -62,6 +70,7 @@
             "y": 210
         },
         {
+            "id": 9,
             "nameEn": "Luoyang",
             "nameChi": "洛陽",
             "region": "Sili",
@@ -69,6 +78,7 @@
             "y": 310
         },
         {
+            "id": 10,
             "nameEn": "Changan",
             "nameChi": "長安",
             "region": "Sili",
@@ -76,6 +86,7 @@
             "y": 355
         },
         {
+            "id": 11,
             "nameEn": "Xuchang",
             "nameChi": "許昌",
             "region": "Yuzhou",
@@ -83,6 +94,7 @@
             "y": 360
         },
         {
+            "id": 12,
             "nameEn": "Chenliu",
             "nameChi": "陳留",
             "region": "Yanzhou",
@@ -90,6 +102,7 @@
             "y": 300
         },
         {
+            "id": 13,
             "nameEn": "Puyang",
             "nameChi": "濮陽",
             "region": "Yanzhou",
@@ -97,6 +110,7 @@
             "y": 240
         },
         {
+            "id": 14,
             "nameEn": "Qiao",
             "nameChi": "譙",
             "region": "Yuzhou",
@@ -104,6 +118,7 @@
             "y": 370
         },
         {
+            "id": 15,
             "nameEn": "Runan",
             "nameChi": "汝南",
             "region": "Yuzhou",
@@ -111,6 +126,7 @@
             "y": 420
         },
         {
+            "id": 16,
             "nameEn": "Wancheng",
             "nameChi": "宛",
             "region": "Jingzhou",
@@ -118,6 +134,7 @@
             "y": 430
         },
         {
+            "id": 17,
             "nameEn": "Xiapi",
             "nameChi": "下邳",
             "region": "Xuzhou",
@@ -125,6 +142,7 @@
             "y": 320
         },
         {
+            "id": 18,
             "nameEn": "Xiaopei",
             "nameChi": "小沛",
             "region": "Xuzhou",
@@ -132,6 +150,7 @@
             "y": 310
         },
         {
+            "id": 19,
             "nameEn": "Guangling",
             "nameChi": "廣陵",
             "region": "Xuzhou",
@@ -139,6 +158,7 @@
             "y": 420
         },
         {
+            "id": 20,
             "nameEn": "Shouchun",
             "nameChi": "壽春",
             "region": "Yangzhou",
@@ -146,6 +166,7 @@
             "y": 410
         },
         {
+            "id": 21,
             "nameEn": "Lujiang",
             "nameChi": "廬江",
             "region": "Yangzhou",
@@ -153,6 +174,7 @@
             "y": 480
         },
         {
+            "id": 22,
             "nameEn": "Jianye",
             "nameChi": "建業",
             "region": "Yangzhou",
@@ -160,6 +182,7 @@
             "y": 375
         },
         {
+            "id": 23,
             "nameEn": "Wu",
             "nameChi": "吳",
             "region": "Yangzhou",
@@ -167,6 +190,7 @@
             "y": 430
         },
         {
+            "id": 24,
             "nameEn": "Kuaiji",
             "nameChi": "會稽",
             "region": "Yangzhou",
@@ -174,6 +198,7 @@
             "y": 510
         },
         {
+            "id": 25,
             "nameEn": "Chaisang",
             "nameChi": "柴桑",
             "region": "Yangzhou",
@@ -181,6 +206,7 @@
             "y": 560
         },
         {
+            "id": 26,
             "nameEn": "Tianshui",
             "nameChi": "天水",
             "region": "Liangzhou",
@@ -188,6 +214,7 @@
             "y": 360
         },
         {
+            "id": 27,
             "nameEn": "Xiping",
             "nameChi": "西平",
             "region": "Liangzhou",
@@ -195,6 +222,7 @@
             "y": 330
         },
         {
+            "id": 28,
             "nameEn": "Wuwei",
             "nameChi": "武威",
             "region": "Liangzhou",
@@ -202,6 +230,7 @@
             "y": 250
         },
         {
+            "id": 29,
             "nameEn": "Hanzhong",
             "nameChi": "漢中",
             "region": "Yiazhou",
@@ -209,6 +238,7 @@
             "y": 490
         },
         {
+            "id": 30,
             "nameEn": "Xiangyang",
             "nameChi": "襄陽",
             "region": "Jingzhou",
@@ -216,6 +246,7 @@
             "y": 515
         },
         {
+            "id": 31,
             "nameEn": "Jiangling",
             "nameChi": "江陵",
             "region": "Jingzhou",
@@ -223,6 +254,7 @@
             "y": 590
         },
         {
+            "id": 32,
             "nameEn": "Wuchang",
             "nameChi": "武昌",
             "region": "Jingzhou",
@@ -230,6 +262,7 @@
             "y": 620
         },
         {
+            "id": 33,
             "nameEn": "Changsha",
             "nameChi": "長沙",
             "region": "Jingzhou",
@@ -237,6 +270,7 @@
             "y": 750
         },
         {
+            "id": 34,
             "nameEn": "Lingling",
             "nameChi": "零陵",
             "region": "Jingzhou",
@@ -244,6 +278,7 @@
             "y": 820
         },
         {
+            "id": 35,
             "nameEn": "Guiyang",
             "nameChi": "桂陽",
             "region": "Jingzhou",
@@ -251,6 +286,7 @@
             "y": 840
         },
         {
+            "id": 36,
             "nameEn": "Chengdu",
             "nameChi": "成都",
             "region": "Yiazhou",
@@ -258,6 +294,7 @@
             "y": 680
         },
         {
+            "id": 37,
             "nameEn": "Jiangzhou",
             "nameChi": "江州",
             "region": "Yiazhou",
@@ -265,6 +302,7 @@
             "y": 690
         },
         {
+            "id": 38,
             "nameEn": "Yongchang",
             "nameChi": "永昌",
             "region": "Yiazhou",
@@ -272,6 +310,7 @@
             "y": 920
         },
         {
+            "id": 39,
             "nameEn": "Nanhai",
             "nameChi": "南海",
             "region": "Jiaozhou",
@@ -279,6 +318,7 @@
             "y": 935
         },
         {
+            "id": 40,
             "nameEn": "Jiaozhou",
             "nameChi": "交州",
             "region": "Jiaozhou",
@@ -286,6 +326,7 @@
             "y": 960
         },
         {
+            "id": 41,
             "nameEn": "Taiwan",
             "nameChi": "臺灣",
             "region": "Island",

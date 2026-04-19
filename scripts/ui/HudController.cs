@@ -13,6 +13,8 @@ public partial class HudController : CanvasLayer
     private Label? _cityNameLabel;
     private Label? _cityStatsLabel;
     private Label? _commandsTitle;
+    private Label? _cityOfficerListTitle;
+    private RichTextLabel? _cityOfficerListText;
 
     private Button? _languageButton;
     private Button? _endTurnButton;
@@ -53,6 +55,11 @@ public partial class HudController : CanvasLayer
         _cityNameLabel = GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");
         _cityStatsLabel = GetNodeOrNull<Label>("Root/LeftPanel/CityStatsLabel");
         _commandsTitle = GetNodeOrNull<Label>("Root/LeftPanel/CommandsTitle");
+        var leftPanel = GetNodeOrNull<VBoxContainer>("Root/LeftPanel");
+        if (leftPanel != null)
+        {
+            EnsureOfficerListWidgets(leftPanel);
+        }
 
         _developButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/DevelopButton");
         _recruitButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/RecruitButton");
@@ -273,7 +280,7 @@ public partial class HudController : CanvasLayer
         ExecuteTargetSelectionOrCommand(
             CommandType.Move,
             candidateIds,
-            "No connected friendly city to move troops.");
+            "No connected friendly city to move troops, resources, or officers.");
     }
 
     private void OnSearchPressed()
@@ -386,7 +393,10 @@ public partial class HudController : CanvasLayer
             ActorFactionId = _turnManager.GetPlayerFactionId(),
             SourceCityId = _selectedCity.Id,
             TargetCityId = targetCityId,
-            TroopsToSend = troopsToSend
+            TroopsToSend = troopsToSend,
+            GoldToSend = type == CommandType.Move ? _selectedCity.Gold / 2 : 0,
+            FoodToSend = type == CommandType.Move ? _selectedCity.Food / 2 : 0,
+            OfficerIds = type == CommandType.Move ? new List<int>(_selectedCity.OfficerIds) : new List<int>()
         };
 
         var result = _commandResolver.Execute(request);
@@ -442,6 +452,15 @@ public partial class HudController : CanvasLayer
                 var cityName = _localization.GetCityName(city);
                 var factionName = _localization.GetFactionName(world, faction.Id);
                 AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(result)));
+                CheckFactionEliminations();
+            }
+        }
+
+        if (_commandResolver != null)
+        {
+            foreach (var result in _turnManager.ResolvePendingCommands(_commandResolver))
+            {
+                AddLog(GetLocalizedResultMessage(result));
                 CheckFactionEliminations();
             }
         }
@@ -627,6 +646,11 @@ public partial class HudController : CanvasLayer
             _commandsTitle.Text = _localization.T("ui.commands");
         }
 
+        if (_cityOfficerListTitle != null)
+        {
+            _cityOfficerListTitle.Text = _localization.T("ui.officer_list");
+        }
+
         if (_endTurnButton != null)
         {
             _endTurnButton.Text = _localization.T("ui.end_turn");
@@ -701,6 +725,11 @@ public partial class HudController : CanvasLayer
                     _localization.FormatEmptyCityStats();
             }
 
+            if (_cityOfficerListText != null)
+            {
+                _cityOfficerListText.Text = _localization.T("ui.none");
+            }
+
             return;
         }
 
@@ -717,6 +746,65 @@ public partial class HudController : CanvasLayer
                 "\n" +
                 _localization.FormatCityStats(_selectedCity);
         }
+
+        if (_cityOfficerListText != null)
+        {
+            _cityOfficerListText.Text = BuildOfficerListText(_selectedCity);
+        }
+    }
+
+    private void EnsureOfficerListWidgets(VBoxContainer leftPanel)
+    {
+        _cityOfficerListTitle = GetNodeOrNull<Label>("Root/LeftPanel/OfficerListTitle");
+        if (_cityOfficerListTitle == null)
+        {
+            _cityOfficerListTitle = new Label
+            {
+                Name = "OfficerListTitle"
+            };
+            leftPanel.AddChild(_cityOfficerListTitle);
+        }
+
+        _cityOfficerListText = GetNodeOrNull<RichTextLabel>("Root/LeftPanel/OfficerListText");
+        if (_cityOfficerListText == null)
+        {
+            _cityOfficerListText = new RichTextLabel
+            {
+                Name = "OfficerListText",
+                FitContent = true,
+                ScrollActive = true,
+                CustomMinimumSize = new Vector2(0.0f, 180.0f)
+            };
+            leftPanel.AddChild(_cityOfficerListText);
+        }
+    }
+
+    private string BuildOfficerListText(CityData city)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return string.Empty;
+        }
+
+        if (city.OfficerIds.Count == 0)
+        {
+            return _localization.T("ui.none");
+        }
+
+        var officerLines = new List<string>();
+        foreach (var officerId in city.OfficerIds)
+        {
+            var officer = _turnManager.World.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            officerLines.Add(
+                $"{_localization.GetOfficerName(officer)} | {officer.Role} | STR {officer.Strength} | INT {officer.Intelligence} | CHA {officer.Charm}");
+        }
+
+        return officerLines.Count == 0 ? _localization.T("ui.none") : string.Join("\n", officerLines);
     }
 }
 

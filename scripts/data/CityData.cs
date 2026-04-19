@@ -18,6 +18,8 @@ public class CityData
     public int Commercial { get; set; }
     public int Defense { get; set; }
     public int Loyalty { get; set; }
+    public int LastCoreActionYear { get; set; } = -1;
+    public int LastCoreActionMonth { get; set; } = -1;
     public int LastSearchYear { get; set; } = -1;
     public int LastSearchMonth { get; set; } = -1;
 
