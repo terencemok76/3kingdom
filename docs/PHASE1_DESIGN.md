@@ -73,8 +73,9 @@
 - Apply food upkeep and loyalty drift checks if any
 - Advance month
 - Seasonal resource schedule:
-- Collect city `Gold` income in **April**
-- Collect city `Food` income in **August**
+- Collect city `Gold` income in **April** as one annual settlement
+- Collect city `Food` income in **August** as one annual settlement
+- Annual settlement uses the city's current monthly income formula multiplied by `12`
 
 ### 4.2 Factions and Cities
 - World contains multiple factions and neutral cities
@@ -95,11 +96,23 @@
 - Move/Attack can only target directly connected cities in Phase 1
 
 ### 4.3 Officers
-- Officer stats:
-- `War`
+- Current Phase 1 officer attributes:
+- `Name`
+- `NameZhHant`
+- `Role`
+- `Belongs`
+- `Sex`
+- `Age`
+- `Strength`
 - `Intelligence`
 - `Charm`
+- `Leadership`
+- `Politics`
 - `Loyalty`
+- `Ambition`
+- `Combat`
+- `RelationshipType`
+- `CityId`
 - Officers are assigned to exactly one city
 - Commands use either city aggregate power or a selected lead officer
 - Officers can also be assigned to one city job:
@@ -107,10 +120,10 @@
 - `Commercial` (commerce)
 - `Defense` (fortification and city security)
 - `Training` (soldier drill and combat readiness)
-- Officer profile extensions:
-- `Age`
+- `RelationshipType` stores lightweight officer relationship links used by startup placement and future loyalty/event rules
+- Deferred officer profile extensions (Phase 1.5+):
 - `BodyStatus` (e.g. `Healthy`, `Injured`, `Sick`, `Exhausted`)
-- `BloodRelationship` links (with ruler and/or other officers)
+- expanded blood/family relationship systems beyond current `RelationshipType`
 
 ### 4.4 Officer Job Title and Rank
 - Add to officer profile:
@@ -166,6 +179,12 @@
 - Constraint: source and destination must be connected and same faction
 - Flow:
 - During command phase, player/AI assigns a `Move` order from source city to connected friendly target city
+- Player UI can choose:
+- `target city`
+- `troops`
+- `gold`
+- `food`
+- `officers`
 - Assigned move does **not** resolve immediately in the same command step
 - At end-of-month resolution of the current round, scheduled moves resolve after develop/recruit and before scheduled attacks
 - Effect:
@@ -186,13 +205,28 @@
 - Purpose: Invade connected enemy/neutral city
 - Flow:
 - During command phase, player/AI assigns an `Attack` order from source city to connected target city
+- Player UI can choose:
+- `target city`
+- `troops`
+- `gold`
+- `food`
+- `officers`
+- When attack is assigned, selected `gold` and `food` are consumed from the source city immediately
 - Assigned attack does **not** resolve immediately in the same command step
 - At end-of-month resolution of the current round, scheduled attacks resolve into battle after develop/recruit/move
 - Resolution: lightweight numeric combat (no tactical subscene in Phase 1)
 - Suggested power:
 - `attackPower = attackingTroops * (1 + avgStrength / 200.0)`
 - `defensePower = defendingTroops * (1 + Defense * 0.006)`
-- Winner captures/holds city; casualties applied to both sides
+- If attack succeeds:
+- Target city changes ownership
+- Selected attack `gold` and `food` are brought into the captured city
+- Selected attack officers are transferred from the source city and remain in the captured city
+- If attack fails:
+- Attack officers return to the source city
+- Carried `gold` and `food` are only partially returned to the source city
+- Current implementation: `50%` returned, `50%` lost
+- Winner/holder applies casualties to both sides
 
 ## 5.6 Assign Job (Phase 1.5)
 - Purpose: assign or reassign officer to one city job
@@ -239,11 +273,11 @@
 ## 7. Data Model (C#)
 ## 7.1 Domain Classes
 - `OfficerData`
-- Fields: `Id`, `Name`, `War`, `Intelligence`, `Charm`, `Loyalty`, `CityId`, `JobType`, `JobTitle`, `Rank`, `SkillTags`, `Age`, `BodyStatus`, `BloodRelationships`
+- Fields: `Id`, `Name`, `NameZhHant`, `Role`, `Belongs`, `Sex`, `Age`, `Strength`, `Intelligence`, `Charm`, `Leadership`, `Politics`, `Loyalty`, `Ambition`, `Combat`, `RelationshipType`, `CityId`
 - `CityData`
 - Fields: `Id`, `Name`, `OwnerFactionId`, `Gold`, `Food`, `Troops`, `Farm`, `Commercial`, `Defense`, `Loyalty`, `OfficerIds`, `ConnectedCityIds`
 - `FactionData`
-- Fields: `Id`, `Name`, `IsPlayer`
+- Fields: `Id`, `NameEn`, `NameZhHant`, `RulerOfficerId`, `OfficerIds`, `IsPlayer`
 - `WorldState`
 - Fields: `Month`, `Year`, `Cities`, `Officers`, `Factions`, `RandomSeed`
 
@@ -251,8 +285,8 @@
 - Each job has a base formula:
 - `FarmOutput = BaseFarm * (1 + officer.Intelligence * 0.004 + RankBonus + SkillBonus)`
 - `CommercialOutput = BaseGold * (1 + officer.Charm * 0.004 + RankBonus + SkillBonus)`
-- `DefenseOutput = BaseDefense * (1 + officer.War * 0.003 + officer.Intelligence * 0.002 + RankBonus + SkillBonus)`
-- `TrainingOutput = BaseTraining * (1 + officer.War * 0.004 + officer.Charm * 0.002 + RankBonus + SkillBonus)`
+- `DefenseOutput = BaseDefense * (1 + officer.Strength * 0.003 + officer.Intelligence * 0.002 + RankBonus + SkillBonus)`
+- `TrainingOutput = BaseTraining * (1 + officer.Strength * 0.004 + officer.Charm * 0.002 + RankBonus + SkillBonus)`
 - Suggested rank bonus:
 - `Rank 1-3: +0.12`
 - `Rank 4-6: +0.06`
@@ -294,7 +328,7 @@
 - Enum values: `Healthy`, `Injured`, `Sick`, `Exhausted`
 - Optional duration field: `StatusRemainingMonths`
 - Suggested strategy-layer effects:
-- `Injured`: `War -10%`
+- `Injured`: `Strength -10%`
 - `Sick`: `Intelligence -10%`, `Charm -10%`
 - `Exhausted`: all outputs/job performance `-8%`
 - `Healthy`: no penalty
@@ -434,7 +468,7 @@ res://
 - Gold `+50`
 - Food `+80`
 - Monthly troop upkeep:
-- Food cost `troops / 20` (rounded down)
+- Food cost `troops / 40` (rounded down)
 - If food below 0, troop desertion applies
 
 ## 11.1 Job-driven Economy (Phase 1.5)
@@ -444,8 +478,11 @@ res://
 - `Training` job raises monthly troop readiness (used by combat modifier, morale proxy, or recruit quality)
 - Low city `Loyalty` applies output penalties and increases riot risk
 - Seasonal settlement:
-- Gold is collected from cities in April
-- Food is collected from cities in August
+- Gold is collected from cities in April as annual accumulated settlement
+- Food is collected from cities in August as annual accumulated settlement
+- Current implementation model:
+- `April Gold = monthlyGoldIncome * 12`
+- `August Food = monthlyFoodIncome * 12`
 - Population model:
 - City population increases once per year
 - Population is capped by `MaxPopulation`
@@ -528,6 +565,10 @@ res://
 - Attack order is queued during command phase and resolves in end-of-month battle step
 - Attack can still be assigned even if the city already used `Develop`, `Recruit`, or `Search` this month, as long as the target city is valid
 - Attack can capture city and transfer ownership after battle resolution
+- Attack player UI supports choosing target city, troops, gold, food, and officers
+- Attack consumes carried gold/food immediately when order is assigned
+- Attack success transfers carried gold/food and selected officers into the captured city
+- Attack failure returns officers to source city and refunds only part of carried gold/food
 - AI turn executes without freezing
 - Month increments and upkeep applied consistently
 - Win/lose triggers correctly
@@ -603,7 +644,7 @@ res://
 11. Officer/ruler death checks
 12. Same-month ruler succession resolution
 13. Faction-end checks (no ruler or no cities)
-14. Seasonal economy collection (April gold, August food)
+14. Seasonal economy collection (April annual gold, August annual food)
 15. Upkeep and post-income adjustments
 16. Month advance
 - Faction end and ownership:

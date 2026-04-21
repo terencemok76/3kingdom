@@ -5,6 +5,8 @@ namespace ThreeKingdom.Core;
 
 public class TurnManager
 {
+    private const int MonthlyUpkeepDivisor = 40;
+
     public WorldState? World { get; private set; }
     public int ActiveFactionId { get; private set; }
 
@@ -61,10 +63,17 @@ public class TurnManager
             var goldIncome = (int)((30 + city.Commercial * 2.0f) * loyaltyFactor);
             var foodIncome = (int)((40 + city.Farm * 3.0f) * loyaltyFactor);
 
-            city.Gold += goldIncome;
-            city.Food += foodIncome;
+            if (World.Month == 4)
+            {
+                city.Gold += goldIncome * 12;
+            }
 
-            var upkeep = city.Troops / 20;
+            if (World.Month == 8)
+            {
+                city.Food += foodIncome * 12;
+            }
+
+            var upkeep = city.Troops / MonthlyUpkeepDivisor;
             city.Food -= upkeep;
 
             if (city.Food < 0)
