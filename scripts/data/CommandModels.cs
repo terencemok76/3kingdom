@@ -8,6 +8,7 @@ public enum CommandType
     Recruit,
     Move,
     Search,
+    Merchant,
     Attack,
     Pass
 }
@@ -21,6 +22,7 @@ public class CommandRequest
     public int TroopsToSend { get; set; }
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }
+    public bool SellFood { get; set; }
     public List<int> OfficerIds { get; set; } = new();
 }
 

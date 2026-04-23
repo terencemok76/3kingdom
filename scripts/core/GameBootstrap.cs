@@ -30,8 +30,6 @@ public partial class GameBootstrap : Node
         _aiController.Initialize(_commandResolver, _turnManager, _localization);
 
         var mapController = GetNodeOrNull<MapController>("MapScene");
-        mapController?.BindWorld(world, _localization);
-
         var hudController = GetNodeOrNull<HudController>("HUD");
         hudController?.Initialize(_turnManager, _commandResolver, _aiController, _localization, mapController);
 
@@ -39,6 +37,8 @@ public partial class GameBootstrap : Node
         {
             mapController.CitySelected += hudController.OnCitySelected;
         }
+
+        mapController?.BindWorld(world, _localization);
 
         GD.Print("Phase 1 bootstrap complete.");
     }

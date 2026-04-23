@@ -3,6 +3,14 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
 
+public class MonthlyEconomyResult
+{
+    public int AnnualGoldCollected { get; set; }
+    public int AnnualFoodCollected { get; set; }
+    public List<(int CityId, int Amount)> PlayerCityGoldIncome { get; } = new();
+    public List<(int CityId, int Amount)> PlayerCityFoodIncome { get; } = new();
+}
+
 public class TurnManager
 {
     private const int MonthlyUpkeepDivisor = 40;
@@ -50,12 +58,15 @@ public class TurnManager
         return results;
     }
 
-    public void ApplyMonthlyEconomy()
+    public MonthlyEconomyResult ApplyMonthlyEconomy()
     {
+        var result = new MonthlyEconomyResult();
         if (World == null)
         {
-            return;
+            return result;
         }
+
+        var playerFactionId = GetPlayerFactionId();
 
         foreach (var city in World.Cities)
         {
@@ -65,12 +76,24 @@ public class TurnManager
 
             if (World.Month == 4)
             {
-                city.Gold += goldIncome * 12;
+                var annualGold = goldIncome * 12;
+                city.Gold += annualGold;
+                result.AnnualGoldCollected += annualGold;
+                if (city.OwnerFactionId == playerFactionId)
+                {
+                    result.PlayerCityGoldIncome.Add((city.Id, annualGold));
+                }
             }
 
             if (World.Month == 8)
             {
-                city.Food += foodIncome * 12;
+                var annualFood = foodIncome * 12;
+                city.Food += annualFood;
+                result.AnnualFoodCollected += annualFood;
+                if (city.OwnerFactionId == playerFactionId)
+                {
+                    result.PlayerCityFoodIncome.Add((city.Id, annualFood));
+                }
             }
 
             var upkeep = city.Troops / MonthlyUpkeepDivisor;
@@ -90,6 +113,8 @@ public class TurnManager
                 city.Loyalty = city.Loyalty > 2 ? city.Loyalty - 2 : 0;
             }
         }
+
+        return result;
     }
 
     public void AdvanceMonth()

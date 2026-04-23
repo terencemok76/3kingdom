@@ -9,6 +9,8 @@ public class CommandResolver
     private const int DevelopGoldCost = 100;
     private const int RecruitGoldCost = 120;
     private const int RecruitFoodCost = 80;
+    private const int MerchantFoodPerTrade = 100;
+    private const int MerchantGoldPerTrade = 10;
     private const float FailedAttackSupplyReturnRatio = 0.5f;
 
     private readonly Random _random = new();
@@ -49,6 +51,7 @@ public class CommandResolver
             CommandType.Recruit => ScheduleRecruit(world, sourceCity, request),
             CommandType.Move => ScheduleMove(world, sourceCity, request),
             CommandType.Search => ExecuteSearch(world, sourceCity),
+            CommandType.Merchant => ExecuteMerchant(world, sourceCity, request),
             CommandType.Attack => ScheduleAttack(world, sourceCity, request),
             CommandType.Pass => LocalizedResult(true, "cmd.pass"),
             _ => LocalizedResult(false, "cmd.unknown_command")
@@ -181,6 +184,11 @@ public class CommandResolver
             return LocalizedResult(false, "cmd.move.must_be_same_faction");
         }
 
+        if (!AreOfficerIdsAvailableForPendingOrder(world, request.OfficerIds))
+        {
+            return LocalizedResult(false, "cmd.move.officer_already_assigned", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+        }
+
         var selectedOfficerIds = GetMovableOfficerIds(sourceCity, request.OfficerIds);
         var movableTroops = GetTransferAmount(request.TroopsToSend, sourceCity.Troops);
         var movableGold = GetTransferAmount(request.GoldToSend, sourceCity.Gold);
@@ -272,6 +280,45 @@ public class CommandResolver
             new object[] { GetCityName(city, GameLanguage.English), foundFood });
     }
 
+    private CommandResult ExecuteMerchant(WorldState world, CityData city, CommandRequest request)
+    {
+        var foodAmount = request.FoodToSend;
+        if (foodAmount <= 0 || foodAmount % MerchantFoodPerTrade != 0)
+        {
+            return LocalizedResult(false, "cmd.merchant.invalid_amount", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        var goldAmount = foodAmount / MerchantFoodPerTrade * MerchantGoldPerTrade;
+        if (request.SellFood)
+        {
+            if (city.Food < foodAmount)
+            {
+                return LocalizedResult(false, "cmd.merchant.not_enough_food", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+            }
+
+            city.Food -= foodAmount;
+            city.Gold += goldAmount;
+            return LocalizedResult(
+                true,
+                "cmd.merchant.sell_success",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), foodAmount, goldAmount },
+                new object[] { GetCityName(city, GameLanguage.English), foodAmount, goldAmount });
+        }
+
+        if (city.Gold < goldAmount)
+        {
+            return LocalizedResult(false, "cmd.merchant.not_enough_gold", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        city.Gold -= goldAmount;
+        city.Food += foodAmount;
+        return LocalizedResult(
+            true,
+            "cmd.merchant.buy_success",
+            new object[] { GetCityName(city, GameLanguage.TraditionalChinese), goldAmount, foodAmount },
+            new object[] { GetCityName(city, GameLanguage.English), goldAmount, foodAmount });
+    }
+
     private CommandResult ScheduleAttack(WorldState world, CityData sourceCity, CommandRequest request)
     {
         if (!request.TargetCityId.HasValue)
@@ -295,15 +342,31 @@ public class CommandResolver
             return LocalizedResult(false, "cmd.attack.same_faction");
         }
 
-        var attackingTroops = GetTransferAmount(request.TroopsToSend, sourceCity.Troops);
+        if (!AreOfficerIdsAvailableForPendingOrder(world, request.OfficerIds))
+        {
+            return LocalizedResult(false, "cmd.attack.officer_already_assigned", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+        }
+
+        var attackingTroops = request.TroopsToSend;
         var carriedGold = GetTransferAmount(request.GoldToSend, sourceCity.Gold);
         var carriedFood = GetTransferAmount(request.FoodToSend, sourceCity.Food);
         var selectedOfficerIds = GetMovableOfficerIds(sourceCity, request.OfficerIds);
+        if (selectedOfficerIds.Count == 0)
+        {
+            return LocalizedResult(false, "cmd.attack.officer_required", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+        }
+
         if (attackingTroops <= 0)
         {
             return LocalizedResult(false, "cmd.attack.no_troops");
         }
 
+        if (attackingTroops > sourceCity.Troops)
+        {
+            return LocalizedResult(false, "cmd.attack.too_many_troops", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+        }
+
+        sourceCity.Troops -= attackingTroops;
         sourceCity.Gold -= carriedGold;
         sourceCity.Food -= carriedFood;
 
@@ -387,6 +450,8 @@ public class CommandResolver
 
         if (!IsConnected(sourceCity, targetCity.Id) || targetCity.OwnerFactionId == sourceCity.OwnerFactionId)
         {
+            sourceCity.Troops += pendingCommand.TroopsToSend;
+
             return LocalizedResult(
                 false,
                 "cmd.attack.cancelled",
@@ -394,7 +459,7 @@ public class CommandResolver
                 new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
         }
 
-        var attackingTroops = GetTransferAmount(pendingCommand.TroopsToSend, sourceCity.Troops);
+        var attackingTroops = pendingCommand.TroopsToSend;
         if (attackingTroops <= 0)
         {
             return LocalizedResult(false, "cmd.attack.no_troops_resolution");
@@ -407,12 +472,6 @@ public class CommandResolver
         if (effectiveAttackerLoss > attackingTroops)
         {
             effectiveAttackerLoss = attackingTroops;
-        }
-
-        sourceCity.Troops -= effectiveAttackerLoss;
-        if (sourceCity.Troops < 0)
-        {
-            sourceCity.Troops = 0;
         }
 
         var defenderLoss = combat.DefenderLosses;
@@ -431,6 +490,12 @@ public class CommandResolver
         {
             var returnedGold = (int)(pendingCommand.GoldToSend * FailedAttackSupplyReturnRatio);
             var returnedFood = (int)(pendingCommand.FoodToSend * FailedAttackSupplyReturnRatio);
+            var returningTroops = attackingTroops - effectiveAttackerLoss;
+            if (returningTroops > 0)
+            {
+                sourceCity.Troops += returningTroops;
+            }
+
             sourceCity.Gold += returnedGold;
             sourceCity.Food += returnedFood;
 
@@ -543,6 +608,46 @@ public class CommandResolver
         }
 
         return result;
+    }
+
+    private static bool AreOfficerIdsAvailableForPendingOrder(
+        WorldState world,
+        List<int> requestedOfficerIds)
+    {
+        if (requestedOfficerIds.Count == 0)
+        {
+            return true;
+        }
+
+        var reservedOfficerIds = GetReservedOfficerIds(world);
+        foreach (var officerId in requestedOfficerIds)
+        {
+            if (reservedOfficerIds.Contains(officerId))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static HashSet<int> GetReservedOfficerIds(WorldState world)
+    {
+        var reservedOfficerIds = new HashSet<int>();
+        foreach (var pendingCommand in world.PendingCommands)
+        {
+            if (pendingCommand.Type != CommandType.Move && pendingCommand.Type != CommandType.Attack)
+            {
+                continue;
+            }
+
+            foreach (var officerId in pendingCommand.OfficerIds)
+            {
+                reservedOfficerIds.Add(officerId);
+            }
+        }
+
+        return reservedOfficerIds;
     }
 
     private static int TransferOfficers(
@@ -747,6 +852,12 @@ public class CommandResolver
 
     private static void UpsertPendingCommand(WorldState world, PendingCommandData pendingCommand)
     {
+        if (pendingCommand.Type == CommandType.Move || pendingCommand.Type == CommandType.Attack)
+        {
+            world.PendingCommands.Add(pendingCommand);
+            return;
+        }
+
         world.PendingCommands.RemoveAll(existing =>
             existing.SourceCityId == pendingCommand.SourceCityId &&
             existing.Type == pendingCommand.Type);

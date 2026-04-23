@@ -193,6 +193,19 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
 text = "Search"
 
+[node name="MerchantButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=1183414624]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+text = "Merchant"
+
 [node name="AttackButton" type="Button" parent="Root/LeftPanel/CommandButtons" unique_id=718091365]
 layout_mode = 2
 size_flags_horizontal = 3

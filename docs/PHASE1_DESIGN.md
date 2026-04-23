@@ -13,7 +13,7 @@
 - `Gold`, `Food`, `Troops`, `Officers`, `Farm`, `Commercial`, `Defense`, `Loyalty`
 - City selection and HUD city info display
 - Commands available in UI:
-- `Develop`, `Recruit`, `Move`, `Search`, `Attack`
+- `Develop`, `Recruit`, `Move`, `Search`, `Merchant`, `Attack`
 - Baseline AI turn execution
 - Win/lose check for city control completion
 
@@ -39,7 +39,7 @@
 - 2D map containing connected cities
 - Monthly turn progression
 - City and officer simulation basics
-- Player command system: `Develop`, `Recruit`, `Move`, `Search`, `Attack`
+- Player command system: `Develop`, `Recruit`, `Move`, `Search`, `Merchant`, `Attack`
 - Simple AI factions taking turns
 - Win/lose conditions for basic campaign flow
 
@@ -201,7 +201,24 @@
 - Find gold or food cache
 - No result
 
-## 5.5 Attack
+## 5.5 Merchant
+- Purpose: Trade city `Gold` and `Food` immediately through merchant exchange
+- Flow:
+- Player opens `Merchant` dialog from HUD
+- Player chooses trade mode:
+- `Buy Food`
+- `Sell Food`
+- Player enters `Food` amount
+- Dialog shows preview of resulting `Gold` gain/loss before confirmation
+- Trade resolves immediately in the same command step
+- Current implementation:
+- Fixed rate `100 Food <-> 10 Gold`
+- Trade amount must be multiple of `100 Food`
+- `Buy Food`: spend `Gold`, gain `Food`
+- `Sell Food`: spend `Food`, gain `Gold`
+- Merchant is currently not blocked by the city core-action limit
+
+## 5.6 Attack
 - Purpose: Invade connected enemy/neutral city
 - Flow:
 - During command phase, player/AI assigns an `Attack` order from source city to connected target city
@@ -211,6 +228,12 @@
 - `gold`
 - `food`
 - `officers`
+- On `Confirm Attack`, UI validates the request before submitting:
+- at least `1` officer must be selected
+- `troops` must be greater than `0`
+- `troops` cannot exceed the source city's currently available troops after earlier same-month attack assignments
+- if validation fails, the attack dialog stays open and shows an inline warning message
+- When attack is assigned, selected `troops` are reserved from the source city immediately so city UI updates at once
 - When attack is assigned, selected `gold` and `food` are consumed from the source city immediately
 - Assigned attack does **not** resolve immediately in the same command step
 - At end-of-month resolution of the current round, scheduled attacks resolve into battle after develop/recruit/move
@@ -224,6 +247,7 @@
 - Selected attack officers are transferred from the source city and remain in the captured city
 - If attack fails:
 - Attack officers return to the source city
+- Surviving attack troops return to the source city
 - Carried `gold` and `food` are only partially returned to the source city
 - Current implementation: `50%` returned, `50%` lost
 - Winner/holder applies casualties to both sides
@@ -255,11 +279,13 @@
 2. If low troops and enough resources: `Recruit`
 3. If economy low: `Develop`
 4. If adjacent friendly city needs support: assign `Move` (troops / gold / food)
-5. Otherwise: `Search`
+5. If food stock must be adjusted immediately: `Merchant`
+6. Otherwise: `Search`
 
 ### 6.2 AI Constraints
 - Each city can take one core city action per month: `Develop`, `Recruit`, or `Search`
 - `Move` and `Attack` are scheduled military/logistics orders and are not blocked by the core city-action limit as long as they target valid connected cities
+- `Merchant` is an immediate economy action and is not blocked by the core city-action limit
 - Use deterministic seed option for reproducible test runs
 
 ### 6.3 AI Job Assignment (Phase 1.5)
@@ -437,13 +463,15 @@ res://
 ## 10. UI/UX Flow (Phase 1)
 1. Player clicks city on map
 2. HUD shows city data and available commands
-3. Player picks command, enters required values (for example troops / gold / food / officers / target city)
+3. Player picks command, enters required values (for example troops / gold / food / officers / target city / trade mode)
 4. Each city can only use one core city action per month: `Develop`, `Recruit`, or `Search`
 5. `Move` and `Attack` can still be assigned in the same month if they target valid connected cities
-6. `Develop`, `Recruit`, `Move`, and `Attack` are registered as scheduled actions for end-of-month resolution
-7. `Search` resolves immediately and consumes that city's core monthly action
-8. When all player cities have acted or player ends turn, AI turns run automatically
-9. End-of-month develop, recruit, move, attack, upkeep, and month advance apply
+6. `Merchant` resolves immediately and updates city resources at once
+7. `Develop`, `Recruit`, `Move`, and `Attack` are registered as scheduled actions for end-of-month resolution
+8. `Search` resolves immediately and consumes that city's core monthly action
+9. When all player cities have acted or player ends turn, AI turns run automatically
+10. End-of-month develop, recruit, move, attack, upkeep, and month advance apply
+11. Invalid `Attack` input keeps the attack dialog open and displays an inline warning instead of submitting the order
 
 ## 10.1 UI Additions for Jobs (Phase 1.5)
 1. City panel shows job slots (`Farm`, `Commercial`, `Defense`, `Training`)
@@ -467,6 +495,10 @@ res://
 - Monthly base city income:
 - Gold `+50`
 - Food `+80`
+- Merchant exchange:
+- Fixed rate `100 Food <-> 10 Gold`
+- Merchant trade is immediate
+- Merchant dialog shows preview of resulting gold gain/loss before confirmation
 - Monthly troop upkeep:
 - Food cost `troops / 40` (rounded down)
 - If food below 0, troop desertion applies
@@ -559,6 +591,9 @@ res://
 - City cannot move/attack to non-connected target
 - Recruit blocked when resources insufficient
 - Search resolves immediately and still consumes the city core monthly action
+- Merchant resolves immediately and updates city gold/food at once
+- Merchant UI supports `Buy Food` and `Sell Food`
+- Merchant dialog previews expected gold/food change while trade amount changes
 - Move order is queued during command phase and resolves in end-of-month step
 - Move can still be assigned even if the city already used `Develop`, `Recruit`, or `Search` this month, as long as the target city is valid
 - Move can transfer troops, gold, food, and officers to connected friendly city after resolution
@@ -566,9 +601,12 @@ res://
 - Attack can still be assigned even if the city already used `Develop`, `Recruit`, or `Search` this month, as long as the target city is valid
 - Attack can capture city and transfer ownership after battle resolution
 - Attack player UI supports choosing target city, troops, gold, food, and officers
+- Attack player UI validates that at least one officer is selected and that requested troops are above `0` and do not exceed currently available troops
+- Attack validation failure keeps the dialog open and shows an inline warning message
+- Attack reserves selected troops immediately when the order is assigned, so source city troop count updates at once
 - Attack consumes carried gold/food immediately when order is assigned
 - Attack success transfers carried gold/food and selected officers into the captured city
-- Attack failure returns officers to source city and refunds only part of carried gold/food
+- Attack failure returns officers and surviving troops to source city and refunds only part of carried gold/food
 - AI turn executes without freezing
 - Month increments and upkeep applied consistently
 - Win/lose triggers correctly

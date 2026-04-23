@@ -51,7 +51,8 @@ public class AiController
                     ActorFactionId = factionId,
                     SourceCityId = cityId,
                     TargetCityId = targetId,
-                    TroopsToSend = city.Troops / 2
+                    TroopsToSend = city.Troops / 2,
+                    OfficerIds = new System.Collections.Generic.List<int>(city.OfficerIds)
                 });
                 break;
             }

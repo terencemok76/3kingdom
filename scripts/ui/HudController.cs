@@ -26,9 +26,14 @@ public partial class HudController : CanvasLayer
     private Button? _recruitButton;
     private Button? _moveButton;
     private Button? _searchButton;
+    private Button? _merchantButton;
     private Button? _attackButton;
     private Button? _viewButton;
     private PopupMenu? _targetCityMenu;
+    private AcceptDialog? _merchantDialog;
+    private OptionButton? _merchantModeOption;
+    private SpinBox? _merchantFoodSpinBox;
+    private Label? _merchantSummaryLabel;
     private AcceptDialog? _moveDialog;
     private OptionButton? _moveTargetCityOption;
     private SpinBox? _moveTroopsSpinBox;
@@ -41,6 +46,7 @@ public partial class HudController : CanvasLayer
     private SpinBox? _attackGoldSpinBox;
     private SpinBox? _attackFoodSpinBox;
     private ItemList? _attackOfficerList;
+    private Label? _attackWarningLabel;
     private AcceptDialog? _officerListDialog;
     private ItemList? _officerListView;
     private AcceptDialog? _officerDetailDialog;
@@ -63,8 +69,10 @@ public partial class HudController : CanvasLayer
     private bool _isRecruitButtonConnected;
     private bool _isMoveButtonConnected;
     private bool _isSearchButtonConnected;
+    private bool _isMerchantButtonConnected;
     private bool _isAttackButtonConnected;
     private bool _isViewButtonConnected;
+    private bool _merchantDialogSignalsConnected;
     private bool _gameEnded;
     private readonly HashSet<int> _aliveFactionIds = new();
     private CommandType _pendingTargetCommand = CommandType.Pass;
@@ -91,6 +99,7 @@ public partial class HudController : CanvasLayer
         _recruitButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/RecruitButton");
         _moveButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MoveButton");
         _searchButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/SearchButton");
+        _merchantButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MerchantButton");
         _attackButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
         _viewButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton");
 
@@ -103,6 +112,13 @@ public partial class HudController : CanvasLayer
         _targetCityMenu = new PopupMenu();
         AddChild(_targetCityMenu);
         _targetCityMenu.IdPressed += OnTargetCityMenuIdPressed;
+
+        _merchantDialog = new AcceptDialog();
+        _merchantDialog.Exclusive = false;
+        _merchantDialog.Unfocusable = false;
+        _merchantDialog.Confirmed += OnMerchantDialogConfirmed;
+        AddChild(_merchantDialog);
+        EnsureMerchantDialogWidgets();
 
         _moveDialog = new AcceptDialog();
         _moveDialog.Exclusive = false;
@@ -159,6 +175,7 @@ public partial class HudController : CanvasLayer
 
         _officerDetailDialog?.Hide();
         _officerListDialog?.Hide();
+        _merchantDialog?.Hide();
         _moveDialog?.Hide();
         _attackDialog?.Hide();
     }
@@ -266,6 +283,12 @@ public partial class HudController : CanvasLayer
             _isSearchButtonConnected = true;
         }
 
+        if (_merchantButton != null && !_isMerchantButtonConnected)
+        {
+            _merchantButton.Pressed += OnMerchantPressed;
+            _isMerchantButtonConnected = true;
+        }
+
         if (_attackButton != null && !_isAttackButtonConnected)
         {
             _attackButton.Pressed += OnAttackPressed;
@@ -315,6 +338,12 @@ public partial class HudController : CanvasLayer
         {
             _searchButton.Pressed -= OnSearchPressed;
             _isSearchButtonConnected = false;
+        }
+
+        if (_merchantButton != null && _isMerchantButtonConnected)
+        {
+            _merchantButton.Pressed -= OnMerchantPressed;
+            _isMerchantButtonConnected = false;
         }
 
         if (_attackButton != null && _isAttackButtonConnected)
@@ -376,6 +405,16 @@ public partial class HudController : CanvasLayer
     private void OnSearchPressed()
     {
         ExecutePlayerCommand(CommandType.Search);
+    }
+
+    private void OnMerchantPressed()
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ShowMerchantDialog();
     }
 
     private void OnAttackPressed()
@@ -556,10 +595,56 @@ public partial class HudController : CanvasLayer
             selectedOfficerIds);
     }
 
+    private void OnMerchantDialogConfirmed()
+    {
+        if (_merchantModeOption == null)
+        {
+            return;
+        }
+
+        var selectedIndex = _merchantModeOption.Selected;
+        if (selectedIndex < 0)
+        {
+            return;
+        }
+
+        ExecutePlayerCommand(
+            CommandType.Merchant,
+            null,
+            0,
+            0,
+            _merchantFoodSpinBox != null ? (int)_merchantFoodSpinBox.Value : 0,
+            null,
+            selectedIndex == 1);
+    }
+
     private void OnAttackDialogConfirmed()
     {
         if (_attackTargetCityOption == null)
         {
+            return;
+        }
+
+        var selectedOfficerIds = GetSelectedItemMetadataIds(_attackOfficerList);
+        if (selectedOfficerIds.Count == 0)
+        {
+            SetAttackDialogWarning(_localization?.T("ui.attack_officer_required_warning") ?? "Select at least one officer.");
+            ReopenAttackDialog();
+            return;
+        }
+
+        var attackTroops = GetRequestedSpinBoxValue(_attackTroopsSpinBox);
+        if (attackTroops <= 0)
+        {
+            SetAttackDialogWarning(_localization?.T("ui.attack_troops_required_warning") ?? "Enter the number of troops to deploy.");
+            ReopenAttackDialog();
+            return;
+        }
+
+        if (_selectedCity != null && attackTroops > _selectedCity.Troops)
+        {
+            SetAttackDialogWarning(_localization?.T("ui.attack_troops_exceed_warning") ?? "Troops to deploy cannot exceed the city's available troops.");
+            ReopenAttackDialog();
             return;
         }
 
@@ -575,13 +660,23 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        ExecutePlayerCommand(
+        var result = ExecutePlayerCommand(
             CommandType.Attack,
             targetMetadata.AsInt32(),
-            _attackTroopsSpinBox != null ? (int)_attackTroopsSpinBox.Value : 0,
+            attackTroops,
             _attackGoldSpinBox != null ? (int)_attackGoldSpinBox.Value : 0,
             _attackFoodSpinBox != null ? (int)_attackFoodSpinBox.Value : 0,
-            GetSelectedItemMetadataIds(_attackOfficerList));
+            selectedOfficerIds);
+
+        if (result.Success)
+        {
+            SetAttackDialogWarning(string.Empty);
+            _attackDialog?.Hide();
+            return;
+        }
+
+        SetAttackDialogWarning(GetLocalizedResultMessage(result));
+        ReopenAttackDialog();
     }
 
     private void OnOfficerListItemActivated(long index)
@@ -633,17 +728,24 @@ public partial class HudController : CanvasLayer
         }
     }
 
-    private void ExecutePlayerCommand(
+    private CommandResult ExecutePlayerCommand(
         CommandType type,
         int? targetCityId = null,
         int troopsToSend = 0,
         int goldToSend = 0,
         int foodToSend = 0,
-        List<int>? officerIds = null)
+        List<int>? officerIds = null,
+        bool sellFood = false)
     {
         if (_gameEnded || _turnManager?.World == null || _commandResolver == null || _selectedCity == null)
         {
-            return;
+            return new CommandResult
+            {
+                Success = false,
+                Message = string.Empty,
+                MessageZhHant = string.Empty,
+                MessageEn = string.Empty
+            };
         }
 
         var request = new CommandRequest
@@ -654,7 +756,8 @@ public partial class HudController : CanvasLayer
             TargetCityId = targetCityId,
             TroopsToSend = troopsToSend,
             GoldToSend = type is CommandType.Move or CommandType.Attack ? goldToSend : 0,
-            FoodToSend = type is CommandType.Move or CommandType.Attack ? foodToSend : 0,
+            FoodToSend = type is CommandType.Move or CommandType.Attack or CommandType.Merchant ? foodToSend : 0,
+            SellFood = type == CommandType.Merchant && sellFood,
             OfficerIds = type is CommandType.Move or CommandType.Attack ? (officerIds ?? new List<int>()) : new List<int>()
         };
 
@@ -671,6 +774,7 @@ public partial class HudController : CanvasLayer
         CheckFactionEliminations();
         EvaluateWinLose();
         _mapController?.RefreshVisuals();
+        return result;
     }
 
     private void EnsureMoveDialogWidgets()
@@ -733,6 +837,56 @@ public partial class HudController : CanvasLayer
         root.AddChild(_moveOfficerList);
     }
 
+    private void EnsureMerchantDialogWidgets()
+    {
+        if (_merchantDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _merchantDialog.GetNodeOrNull<VBoxContainer>("MerchantDialogRoot");
+        if (existingRoot != null)
+        {
+            _merchantModeOption = existingRoot.GetNodeOrNull<OptionButton>("TradeModeOption");
+            _merchantFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
+            _merchantSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            ConnectMerchantDialogSignals();
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "MerchantDialogRoot",
+            CustomMinimumSize = new Vector2(380.0f, 180.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        root.AddThemeConstantOverride("separation", 10);
+        _merchantDialog.AddChild(root);
+
+        root.AddChild(CreateMoveFieldLabel("TradeModeLabel"));
+        _merchantModeOption = new OptionButton
+        {
+            Name = "TradeModeOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_merchantModeOption);
+
+        root.AddChild(CreateMoveFieldLabel("FoodLabel"));
+        _merchantFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
+        _merchantFoodSpinBox.Step = 100;
+        root.AddChild(_merchantFoodSpinBox);
+
+        _merchantSummaryLabel = new Label
+        {
+            Name = "SummaryLabel",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        root.AddChild(_merchantSummaryLabel);
+
+        ConnectMerchantDialogSignals();
+    }
+
     private Label CreateMoveFieldLabel(string name)
     {
         return new Label
@@ -786,11 +940,17 @@ public partial class HudController : CanvasLayer
         ConfigureMoveSpinBox(_moveGoldSpinBox, _selectedCity.Gold, _selectedCity.Gold / 2);
         ConfigureMoveSpinBox(_moveFoodSpinBox, _selectedCity.Food, _selectedCity.Food / 2);
 
+        var availableOfficerIds = GetAvailableOfficerIdsForOrder();
         if (_moveOfficerList != null)
         {
             _moveOfficerList.Clear();
             foreach (var officerId in _selectedCity.OfficerIds)
             {
+                if (!availableOfficerIds.Contains(officerId))
+                {
+                    continue;
+                }
+
                 var officer = _turnManager.World.GetOfficer(officerId);
                 if (officer == null)
                 {
@@ -799,7 +959,6 @@ public partial class HudController : CanvasLayer
 
                 var itemIndex = _moveOfficerList.AddItem(BuildOfficerListRowText(officer));
                 _moveOfficerList.SetItemMetadata(itemIndex, officer.Id);
-                _moveOfficerList.Select(itemIndex, false);
             }
         }
 
@@ -821,6 +980,7 @@ public partial class HudController : CanvasLayer
             _attackGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldSpinBox");
             _attackFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
             _attackOfficerList = existingRoot.GetNodeOrNull<ItemList>("OfficerList");
+            _attackWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
             return;
         }
 
@@ -864,6 +1024,18 @@ public partial class HudController : CanvasLayer
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         root.AddChild(_attackOfficerList);
+
+        _attackWarningLabel = new Label
+        {
+            Name = "WarningLabel",
+            Visible = false,
+            AutowrapMode = TextServer.AutowrapMode.Off,
+            ClipText = true,
+            CustomMinimumSize = new Vector2(0.0f, 24.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _attackWarningLabel.AddThemeColorOverride("font_color", new Color(0.92f, 0.52f, 0.45f, 1.0f));
+        root.AddChild(_attackWarningLabel);
     }
 
     private void ConfigureMoveSpinBox(SpinBox? spinBox, int maxValue, int defaultValue)
@@ -877,6 +1049,38 @@ public partial class HudController : CanvasLayer
         spinBox.Value = maxValue <= 0 ? 0 : Mathf.Clamp(defaultValue, 0, maxValue);
     }
 
+    private static void ConfigureAttackTroopsSpinBox(SpinBox? spinBox, int availableTroops)
+    {
+        if (spinBox == null)
+        {
+            return;
+        }
+
+        spinBox.MinValue = 0;
+        spinBox.MaxValue = Mathf.Max(availableTroops * 10, 99999);
+        spinBox.Value = availableTroops <= 0 ? 0 : availableTroops / 2;
+    }
+
+    private static int GetRequestedSpinBoxValue(SpinBox? spinBox)
+    {
+        if (spinBox == null)
+        {
+            return 0;
+        }
+
+        var lineEdit = spinBox.GetLineEdit();
+        if (lineEdit != null)
+        {
+            var rawText = lineEdit.Text?.Trim();
+            if (!string.IsNullOrEmpty(rawText) && int.TryParse(rawText, out var parsedValue))
+            {
+                return parsedValue;
+            }
+        }
+
+        return (int)spinBox.Value;
+    }
+
     private void ShowAttackDialog(List<int> candidateIds)
     {
         if (_turnManager?.World == null || _selectedCity == null || _attackDialog == null || _attackTargetCityOption == null)
@@ -886,6 +1090,7 @@ public partial class HudController : CanvasLayer
 
         EnsureAttackDialogWidgets();
         UpdateAttackDialogText();
+        SetAttackDialogWarning(string.Empty);
 
         _attackTargetCityOption.Clear();
         foreach (var cityId in candidateIds)
@@ -906,15 +1111,21 @@ public partial class HudController : CanvasLayer
             _attackTargetCityOption.Select(0);
         }
 
-        ConfigureMoveSpinBox(_attackTroopsSpinBox, _selectedCity.Troops, _selectedCity.Troops / 2);
+        ConfigureAttackTroopsSpinBox(_attackTroopsSpinBox, _selectedCity.Troops);
         ConfigureMoveSpinBox(_attackGoldSpinBox, _selectedCity.Gold, 0);
         ConfigureMoveSpinBox(_attackFoodSpinBox, _selectedCity.Food, 0);
 
+        var availableOfficerIds = GetAvailableOfficerIdsForOrder();
         if (_attackOfficerList != null)
         {
             _attackOfficerList.Clear();
             foreach (var officerId in _selectedCity.OfficerIds)
             {
+                if (!availableOfficerIds.Contains(officerId))
+                {
+                    continue;
+                }
+
                 var officer = _turnManager.World.GetOfficer(officerId);
                 if (officer == null)
                 {
@@ -923,11 +1134,30 @@ public partial class HudController : CanvasLayer
 
                 var itemIndex = _attackOfficerList.AddItem(BuildOfficerListRowText(officer));
                 _attackOfficerList.SetItemMetadata(itemIndex, officer.Id);
-                _attackOfficerList.Select(itemIndex, false);
             }
         }
 
         _attackDialog.PopupCentered(new Vector2I(460, 560));
+    }
+
+    private void ShowMerchantDialog()
+    {
+        if (_merchantDialog == null || _merchantModeOption == null)
+        {
+            return;
+        }
+
+        EnsureMerchantDialogWidgets();
+        UpdateMerchantDialogText();
+
+        _merchantModeOption.Clear();
+        _merchantModeOption.AddItem(_localization?.T("ui.buy_food") ?? "Buy Food");
+        _merchantModeOption.AddItem(_localization?.T("ui.sell_food") ?? "Sell Food");
+        _merchantModeOption.Select(0);
+
+        UpdateMerchantFoodSpinBoxRange();
+        UpdateMerchantTradeSummary();
+        _merchantDialog.PopupCentered(new Vector2I(400, 220));
     }
 
     private void UpdateMoveDialogText()
@@ -945,6 +1175,20 @@ public partial class HudController : CanvasLayer
         SetMoveDialogLabelText("GoldLabel", _localization.T("ui.transfer_gold"));
         SetMoveDialogLabelText("FoodLabel", _localization.T("ui.transfer_food"));
         SetMoveDialogLabelText("OfficerListLabel", _localization.T("ui.transfer_officers"));
+    }
+
+    private void UpdateMerchantDialogText()
+    {
+        if (_merchantDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _merchantDialog.Title = _localization.T("ui.merchant");
+        _merchantDialog.OkButtonText = _localization.T("ui.confirm_merchant");
+        SetMerchantDialogLabelText("TradeModeLabel", _localization.T("ui.trade_mode"));
+        SetMerchantDialogLabelText("FoodLabel", _localization.T("ui.food_amount"));
+        UpdateMerchantTradeSummary();
     }
 
     private void UpdateAttackDialogText()
@@ -982,6 +1226,114 @@ public partial class HudController : CanvasLayer
         }
     }
 
+    private void SetAttackDialogWarning(string text)
+    {
+        if (_attackWarningLabel == null)
+        {
+            return;
+        }
+
+        _attackWarningLabel.Text = text;
+        _attackWarningLabel.Visible = !string.IsNullOrWhiteSpace(text);
+    }
+
+    private void ReopenAttackDialog()
+    {
+        if (_attackDialog == null)
+        {
+            return;
+        }
+
+        CallDeferred(nameof(ReopenAttackDialogDeferred));
+    }
+
+    private void ReopenAttackDialogDeferred()
+    {
+        if (_attackDialog == null)
+        {
+            return;
+        }
+
+        var size = _attackDialog.Size;
+        if (size == Vector2I.Zero)
+        {
+            size = new Vector2I(460, 560);
+        }
+
+        _attackDialog.PopupCentered(size);
+    }
+
+    private void SetMerchantDialogLabelText(string nodeName, string text)
+    {
+        var label = _merchantDialog?.GetNodeOrNull<Label>($"MerchantDialogRoot/{nodeName}");
+        if (label != null)
+        {
+            label.Text = text;
+        }
+    }
+
+    private void ConnectMerchantDialogSignals()
+    {
+        if (_merchantDialogSignalsConnected)
+        {
+            return;
+        }
+
+        if (_merchantModeOption != null)
+        {
+            _merchantModeOption.ItemSelected += OnMerchantModeSelected;
+        }
+
+        if (_merchantFoodSpinBox != null)
+        {
+            _merchantFoodSpinBox.ValueChanged += OnMerchantFoodValueChanged;
+        }
+
+        _merchantDialogSignalsConnected = true;
+    }
+
+    private void OnMerchantModeSelected(long index)
+    {
+        UpdateMerchantFoodSpinBoxRange();
+        UpdateMerchantTradeSummary();
+    }
+
+    private void OnMerchantFoodValueChanged(double value)
+    {
+        UpdateMerchantTradeSummary();
+    }
+
+    private void UpdateMerchantFoodSpinBoxRange()
+    {
+        if (_merchantFoodSpinBox == null || _merchantModeOption == null || _selectedCity == null)
+        {
+            return;
+        }
+
+        var isSell = _merchantModeOption.Selected == 1;
+        var maxFood = isSell ? _selectedCity.Food : (_selectedCity.Gold / 10) * 100;
+        ConfigureMoveSpinBox(_merchantFoodSpinBox, maxFood, maxFood > 0 ? 100 : 0);
+        _merchantFoodSpinBox.Step = 100;
+    }
+
+    private void UpdateMerchantTradeSummary()
+    {
+        if (_merchantSummaryLabel == null || _merchantFoodSpinBox == null || _merchantModeOption == null || _localization == null)
+        {
+            return;
+        }
+
+        var foodAmount = (int)_merchantFoodSpinBox.Value;
+        var goldAmount = foodAmount / 100 * 10;
+        if (_merchantModeOption.Selected == 1)
+        {
+            _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_sell_preview", foodAmount, goldAmount);
+            return;
+        }
+
+        _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_buy_preview", goldAmount, foodAmount);
+    }
+
     private static List<int> GetSelectedItemMetadataIds(ItemList? itemList)
     {
         var result = new List<int>();
@@ -1001,6 +1353,39 @@ public partial class HudController : CanvasLayer
             if (metadata.VariantType == Variant.Type.Int)
             {
                 result.Add(metadata.AsInt32());
+            }
+        }
+
+        return result;
+    }
+
+    private HashSet<int> GetAvailableOfficerIdsForOrder()
+    {
+        var result = new HashSet<int>();
+        if (_turnManager?.World == null || _selectedCity == null)
+        {
+            return result;
+        }
+
+        var reservedOfficerIds = new HashSet<int>();
+        foreach (var pendingCommand in _turnManager.World.PendingCommands)
+        {
+            if (pendingCommand.Type != CommandType.Move && pendingCommand.Type != CommandType.Attack)
+            {
+                continue;
+            }
+
+            foreach (var officerId in pendingCommand.OfficerIds)
+            {
+                reservedOfficerIds.Add(officerId);
+            }
+        }
+
+        foreach (var officerId in _selectedCity.OfficerIds)
+        {
+            if (!reservedOfficerIds.Contains(officerId))
+            {
+                result.Add(officerId);
             }
         }
 
@@ -1058,20 +1443,40 @@ public partial class HudController : CanvasLayer
             }
         }
 
+        _turnManager.AdvanceMonth();
         var economyMonth = world.Month;
-        _turnManager.ApplyMonthlyEconomy();
+        var economyResult = _turnManager.ApplyMonthlyEconomy();
         AddLog(_localization.T("log.monthly_economy"));
         if (economyMonth == 4)
         {
-            AddLog(_localization.T("log.seasonal_gold_collected"));
+            AddLog(_localization.T("log.player_city_gold_income_header"));
+            foreach (var entry in economyResult.PlayerCityGoldIncome)
+            {
+                var city = world.GetCity(entry.CityId);
+                if (city == null)
+                {
+                    continue;
+                }
+
+                AddLog(_localization.Format("log.player_city_income_line", _localization.GetCityName(city), entry.Amount));
+            }
         }
 
         if (economyMonth == 8)
         {
-            AddLog(_localization.T("log.seasonal_food_collected"));
+            AddLog(_localization.T("log.player_city_food_income_header"));
+            foreach (var entry in economyResult.PlayerCityFoodIncome)
+            {
+                var city = world.GetCity(entry.CityId);
+                if (city == null)
+                {
+                    continue;
+                }
+
+                AddLog(_localization.Format("log.player_city_income_line", _localization.GetCityName(city), entry.Amount));
+            }
         }
 
-        _turnManager.AdvanceMonth();
         AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month));
         RefreshMonth();
 
@@ -1203,6 +1608,11 @@ public partial class HudController : CanvasLayer
             _searchButton.Disabled = !enabled;
         }
 
+        if (_merchantButton != null)
+        {
+            _merchantButton.Disabled = !enabled;
+        }
+
         if (_attackButton != null)
         {
             _attackButton.Disabled = !enabled;
@@ -1256,6 +1666,11 @@ public partial class HudController : CanvasLayer
         if (_searchButton != null)
         {
             _searchButton.Disabled = !baseEnabled || !isPlayerCity || hasUsedSearch;
+        }
+
+        if (_merchantButton != null)
+        {
+            _merchantButton.Disabled = !baseEnabled || !isPlayerCity;
         }
 
         if (_moveButton != null)
@@ -1344,6 +1759,11 @@ public partial class HudController : CanvasLayer
             _searchButton.Text = _localization.T("ui.search");
         }
 
+        if (_merchantButton != null)
+        {
+            _merchantButton.Text = _localization.T("ui.merchant");
+        }
+
         if (_attackButton != null)
         {
             _attackButton.Text = _localization.T("ui.attack");
@@ -1359,6 +1779,7 @@ public partial class HudController : CanvasLayer
             _officerListDialog.Title = _localization.T("ui.select_officer");
         }
 
+        UpdateMerchantDialogText();
         UpdateMoveDialogText();
         UpdateAttackDialogText();
 
