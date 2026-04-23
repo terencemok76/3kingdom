@@ -7,4 +7,9 @@
     <AssemblyName>ThreeKingdom</AssemblyName>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tools\AiHarness\**\*.cs" />
+    <None Include="tools\AiHarness\**\*" />
+  </ItemGroup>
 </Project>
