@@ -629,6 +629,7 @@ public partial class HudController : CanvasLayer
         if (selectedOfficerIds.Count == 0)
         {
             SetAttackDialogWarning(_localization?.T("ui.attack_officer_required_warning") ?? "Select at least one officer.");
+            // Reopen after AcceptDialog confirmation so invalid input behaves like inline validation, not submit-and-close.
             ReopenAttackDialog();
             return;
         }
@@ -1056,6 +1057,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        // Allow over-typing here so confirm-time validation can show a real warning instead of silent clamping.
         spinBox.MinValue = 0;
         spinBox.MaxValue = Mathf.Max(availableTroops * 10, 99999);
         spinBox.Value = availableTroops <= 0 ? 0 : availableTroops / 2;
@@ -1068,6 +1070,7 @@ public partial class HudController : CanvasLayer
             return 0;
         }
 
+        // Read the raw text first because SpinBox.Value may already be clamped to MaxValue.
         var lineEdit = spinBox.GetLineEdit();
         if (lineEdit != null)
         {

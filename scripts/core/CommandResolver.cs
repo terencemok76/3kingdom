@@ -366,6 +366,7 @@ public class CommandResolver
             return LocalizedResult(false, "cmd.attack.too_many_troops", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
+        // Reserve attack resources immediately so same-month orders see the reduced stock.
         sourceCity.Troops -= attackingTroops;
         sourceCity.Gold -= carriedGold;
         sourceCity.Food -= carriedFood;
@@ -450,6 +451,7 @@ public class CommandResolver
 
         if (!IsConnected(sourceCity, targetCity.Id) || targetCity.OwnerFactionId == sourceCity.OwnerFactionId)
         {
+            // If the target becomes invalid before month end, return the reserved troops to the source city.
             sourceCity.Troops += pendingCommand.TroopsToSend;
 
             return LocalizedResult(
@@ -490,6 +492,7 @@ public class CommandResolver
         {
             var returnedGold = (int)(pendingCommand.GoldToSend * FailedAttackSupplyReturnRatio);
             var returnedFood = (int)(pendingCommand.FoodToSend * FailedAttackSupplyReturnRatio);
+            // Only surviving attackers return; carried supply refund stays partial to preserve expedition risk.
             var returningTroops = attackingTroops - effectiveAttackerLoss;
             if (returningTroops > 0)
             {
@@ -852,6 +855,7 @@ public class CommandResolver
 
     private static void UpsertPendingCommand(WorldState world, PendingCommandData pendingCommand)
     {
+        // Military orders can stack per source city; core city actions stay one-pending-per-type.
         if (pendingCommand.Type == CommandType.Move || pendingCommand.Type == CommandType.Attack)
         {
             world.PendingCommands.Add(pendingCommand);

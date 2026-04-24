@@ -5,6 +5,7 @@ namespace ThreeKingdom.Core;
 
 public class MonthlyEconomyResult
 {
+    // Keep both world totals and player-city breakdown so HUD can choose the right summary.
     public int AnnualGoldCollected { get; set; }
     public int AnnualFoodCollected { get; set; }
     public List<(int CityId, int Amount)> PlayerCityGoldIncome { get; } = new();
@@ -74,6 +75,7 @@ public class TurnManager
             var goldIncome = (int)((30 + city.Commercial * 2.0f) * loyaltyFactor);
             var foodIncome = (int)((40 + city.Farm * 3.0f) * loyaltyFactor);
 
+            // Seasonal income is paid when the game enters April/August, not after those months end.
             if (World.Month == 4)
             {
                 var annualGold = goldIncome * 12;
@@ -101,6 +103,7 @@ public class TurnManager
 
             if (city.Food < 0)
             {
+                // Resolve shortage immediately here so later systems do not see negative food carry-over.
                 var shortage = -city.Food;
                 var deserters = shortage * 2;
                 if (deserters > city.Troops)
