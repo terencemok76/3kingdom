@@ -72,22 +72,26 @@ internal static class Program
     private static void RunCoreActionsTest()
     {
         var world = TestHelpers.World();
-        world.Cities.Add(TestHelpers.City(2, "CoreCity", 2, 500, 500, 1500, new[] { 201 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "CoreCity", 2, 500, 500, 1500, new[] { 201, 202, 203 }, Array.Empty<int>()));
         world.Officers.Add(TestHelpers.Officer(201, "A1", 2, 70, 80, 75, 70));
+        world.Officers.Add(TestHelpers.Officer(202, "A2", 2, 65, 88, 60, 68));
+        world.Officers.Add(TestHelpers.Officer(203, "A3", 2, 60, 70, 85, 72));
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
-        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201, 202, 203 }));
         var services = CreateServices(world);
 
         _ = services.Ai.RunSingleCityDecision(2, 2);
 
         var recruitPending = world.PendingCommands.Count(x => x.Type == CommandType.Recruit);
         var developPending = world.PendingCommands.Count(x => x.Type == CommandType.Develop);
+        var searchPending = world.PendingCommands.Count(x => x.Type == CommandType.Search);
         var city = world.GetCity(2)!;
         Assert(recruitPending == 1, "AI recruit scheduling", $"pending={recruitPending}");
         Assert(developPending == 1, "AI develop scheduling", $"pending={developPending}");
-        Assert(city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month, "AI search execution", $"lastSearch={city.LastSearchYear}/{city.LastSearchMonth}");
-        // Search can grant random rewards, so this only checks that required costs were applied.
-        Assert(city.Gold >= 280 && city.Food >= 420, "AI core action immediate costs", $"gold={city.Gold}, food={city.Food}");
+        Assert(searchPending == 1, "AI search scheduling", $"pending={searchPending}");
+        Assert(city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month, "AI search marked used", $"lastSearch={city.LastSearchYear}/{city.LastSearchMonth}");
+        // Search now resolves at month end, so only immediate recruit/develop costs should be visible here.
+        Assert(city.Gold == 280 && city.Food == 420, "AI core action immediate costs", $"gold={city.Gold}, food={city.Food}");
     }
 
     private static void RunAttackResolutionTest()

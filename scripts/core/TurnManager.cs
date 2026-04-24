@@ -53,6 +53,7 @@ public class TurnManager
 
         ResolvePendingCommandsOfType(resolver, CommandType.Develop, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Recruit, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Search, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
         World.PendingCommands.Clear();

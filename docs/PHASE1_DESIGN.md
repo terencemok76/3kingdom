@@ -68,6 +68,9 @@
 1. Player phase (issue commands to owned cities)
 2. AI faction phases (one faction at a time)
 3. End-of-month resolution:
+- Resolve scheduled `Develop` commands
+- Resolve scheduled `Recruit` commands
+- Resolve scheduled `Search` commands
 - Resolve scheduled `Move` commands
 - Resolve scheduled `Attack` commands into battle
 - Apply food upkeep and loyalty drift checks if any
@@ -115,6 +118,8 @@
 - `CityId`
 - Officers are assigned to exactly one city
 - Commands use either city aggregate power or a selected lead officer
+- `Develop`, `Recruit`, and `Search` each require one assigned officer
+- An officer assigned to any command in the current month cannot be assigned to another command until next month
 - Officers can also be assigned to one city job:
 - `Farm` (agriculture)
 - `Commercial` (commerce)
@@ -148,10 +153,12 @@
 ## 5.1 Develop
 - Purpose: Improve city economy
 - Cost: small gold amount
+- Officer requirement: assign exactly `1` officer to execute the command
 - Flow:
 - During command phase, player/AI assigns a `Develop` order to the city
+- Assigned officer becomes unavailable for other commands for the rest of the month
 - Assigned develop does **not** resolve immediately in the same command step
-- At end-of-month resolution of the current round, scheduled develop orders resolve before recruit, move, and attack
+- At end-of-month resolution of the current round, scheduled develop orders resolve before recruit, search, move, and attack
 - Effect: Improve city development attributes when month-end resolution runs
 - Suggested formula:
 - `gain = 20 + leadOfficer.Intelligence / 5 + random(0..10)`
@@ -159,10 +166,12 @@
 ## 5.2 Recruit
 - Purpose: Convert resources into troops
 - Cost: gold + food
+- Officer requirement: assign exactly `1` officer to execute the command
 - Flow:
 - During command phase, player/AI assigns a `Recruit` order to the city
+- Assigned officer becomes unavailable for other commands for the rest of the month
 - Assigned recruit does **not** resolve immediately in the same command step
-- At end-of-month resolution of the current round, scheduled recruit orders resolve after develop and before move/attack
+- At end-of-month resolution of the current round, scheduled recruit orders resolve after develop, before search/move/attack
 - Effect: Add troops to city when month-end resolution runs
 - Suggested formula:
 - `newTroops = 50 + leadOfficer.Charm / 4 + random(0..30)`
@@ -195,7 +204,13 @@
 
 ## 5.4 Search
 - Purpose: Find hidden officer or bonus resources
+- Officer requirement: assign exactly `1` officer to execute the command
 - Success chance scales with Intelligence + Charm
+- Flow:
+- During command phase, player/AI assigns a `Search` order to the city
+- Assigned officer becomes unavailable for other commands for the rest of the month
+- Assigned search does **not** resolve immediately in the same command step
+- At end-of-month resolution of the current round, scheduled search orders resolve after develop/recruit and before move/attack
 - Outcomes:
 - Discover officer (joins city with medium loyalty)
 - Find gold or food cache

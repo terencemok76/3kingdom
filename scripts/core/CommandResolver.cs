@@ -50,7 +50,7 @@ public class CommandResolver
             CommandType.Develop => ScheduleDevelop(world, sourceCity, request),
             CommandType.Recruit => ScheduleRecruit(world, sourceCity, request),
             CommandType.Move => ScheduleMove(world, sourceCity, request),
-            CommandType.Search => ExecuteSearch(world, sourceCity),
+            CommandType.Search => ScheduleSearch(world, sourceCity, request),
             CommandType.Merchant => ExecuteMerchant(world, sourceCity, request),
             CommandType.Attack => ScheduleAttack(world, sourceCity, request),
             CommandType.Pass => LocalizedResult(true, "cmd.pass"),
@@ -74,8 +74,9 @@ public class CommandResolver
 
         return pendingCommand.Type switch
         {
-            CommandType.Develop => ResolveDevelop(world, sourceCity),
-            CommandType.Recruit => ResolveRecruit(world, sourceCity),
+            CommandType.Develop => ResolveDevelop(world, sourceCity, pendingCommand),
+            CommandType.Recruit => ResolveRecruit(world, sourceCity, pendingCommand),
+            CommandType.Search => ResolveSearch(world, sourceCity, pendingCommand),
             CommandType.Move => ResolveMove(world, sourceCity, pendingCommand),
             CommandType.Attack => ResolveAttack(world, sourceCity, pendingCommand),
             _ => LocalizedResult(false, "cmd.unsupported_pending_command")
@@ -89,6 +90,14 @@ public class CommandResolver
             return LocalizedResult(false, "cmd.develop.already_used", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
+        var assignedOfficer = GetSingleAvailableOfficer(world, city, request.OfficerIds);
+        if (assignedOfficer == null)
+        {
+            return request.OfficerIds.Count == 0
+                ? LocalizedResult(false, "cmd.develop.officer_required", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English))
+                : LocalizedResult(false, "cmd.develop.officer_unavailable", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
         if (city.Gold < DevelopGoldCost)
         {
             return LocalizedResult(false, "cmd.develop.not_enough_gold", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
@@ -96,17 +105,19 @@ public class CommandResolver
 
         city.Gold -= DevelopGoldCost;
         MarkDevelopUsed(world, city);
+        MarkOfficerAssigned(world, assignedOfficer, CommandType.Develop);
         UpsertPendingCommand(world, new PendingCommandData
         {
             Type = CommandType.Develop,
             ActorFactionId = request.ActorFactionId,
-            SourceCityId = city.Id
+            SourceCityId = city.Id,
+            OfficerIds = new List<int> { assignedOfficer.Id }
         });
 
         return LocalizedResult(true, "cmd.develop.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
     }
 
-    private CommandResult ResolveDevelop(WorldState world, CityData city)
+    private CommandResult ResolveDevelop(WorldState world, CityData city, PendingCommandData pendingCommand)
     {
         var loyaltyBoost = city.Loyalty >= 80 ? 2 : 1;
         city.Farm = ClampStat(city.Farm + (2 + loyaltyBoost));
@@ -128,6 +139,14 @@ public class CommandResolver
             return LocalizedResult(false, "cmd.recruit.already_used", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
+        var assignedOfficer = GetSingleAvailableOfficer(world, city, request.OfficerIds);
+        if (assignedOfficer == null)
+        {
+            return request.OfficerIds.Count == 0
+                ? LocalizedResult(false, "cmd.recruit.officer_required", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English))
+                : LocalizedResult(false, "cmd.recruit.officer_unavailable", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
         if (city.Gold < RecruitGoldCost || city.Food < RecruitFoodCost)
         {
             return LocalizedResult(false, "cmd.recruit.not_enough_resources", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
@@ -136,17 +155,19 @@ public class CommandResolver
         city.Gold -= RecruitGoldCost;
         city.Food -= RecruitFoodCost;
         MarkRecruitUsed(world, city);
+        MarkOfficerAssigned(world, assignedOfficer, CommandType.Recruit);
         UpsertPendingCommand(world, new PendingCommandData
         {
             Type = CommandType.Recruit,
             ActorFactionId = request.ActorFactionId,
-            SourceCityId = city.Id
+            SourceCityId = city.Id,
+            OfficerIds = new List<int> { assignedOfficer.Id }
         });
 
         return LocalizedResult(true, "cmd.recruit.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
     }
 
-    private CommandResult ResolveRecruit(WorldState world, CityData city)
+    private CommandResult ResolveRecruit(WorldState world, CityData city, PendingCommandData pendingCommand)
     {
         var charm = GetAverageStat(world, city, officer => officer.Charm);
         var recruits = 80 + charm / 2 + _random.Next(0, 41);
@@ -199,6 +220,7 @@ public class CommandResolver
             return LocalizedResult(false, "cmd.move.nothing_to_move");
         }
 
+        MarkOfficersAssigned(world, selectedOfficerIds, CommandType.Move);
         UpsertPendingCommand(world, new PendingCommandData
         {
             Type = CommandType.Move,
@@ -218,17 +240,39 @@ public class CommandResolver
             new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
     }
 
-    private CommandResult ExecuteSearch(WorldState world, CityData city)
+    private CommandResult ScheduleSearch(WorldState world, CityData city, CommandRequest request)
     {
         if (HasUsedSearch(world, city))
         {
             return LocalizedResult(false, "cmd.search.already_used", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
-        MarkSearchUsed(world, city);
+        var assignedOfficer = GetSingleAvailableOfficer(world, city, request.OfficerIds);
+        if (assignedOfficer == null)
+        {
+            return request.OfficerIds.Count == 0
+                ? LocalizedResult(false, "cmd.search.officer_required", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English))
+                : LocalizedResult(false, "cmd.search.officer_unavailable", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
 
-        var intelligence = GetAverageStat(world, city, officer => officer.Intelligence);
-        var charm = GetAverageStat(world, city, officer => officer.Charm);
+        MarkSearchUsed(world, city);
+        MarkOfficerAssigned(world, assignedOfficer, CommandType.Search);
+        UpsertPendingCommand(world, new PendingCommandData
+        {
+            Type = CommandType.Search,
+            ActorFactionId = request.ActorFactionId,
+            SourceCityId = city.Id,
+            OfficerIds = new List<int> { assignedOfficer.Id }
+        });
+
+        return LocalizedResult(true, "cmd.search.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+    }
+
+    private CommandResult ResolveSearch(WorldState world, CityData city, PendingCommandData pendingCommand)
+    {
+        var assignedOfficer = pendingCommand.OfficerIds.Count > 0 ? world.GetOfficer(pendingCommand.OfficerIds[0]) : null;
+        var intelligence = assignedOfficer?.Intelligence ?? GetAverageStat(world, city, officer => officer.Intelligence);
+        var charm = assignedOfficer?.Charm ?? GetAverageStat(world, city, officer => officer.Charm);
         var chance = 0.25f + intelligence / 250.0f + charm / 300.0f;
 
         if (_random.NextDouble() > chance)
@@ -366,6 +410,7 @@ public class CommandResolver
             return LocalizedResult(false, "cmd.attack.too_many_troops", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
+        MarkOfficersAssigned(world, selectedOfficerIds, CommandType.Attack);
         // Reserve attack resources immediately so same-month orders see the reduced stock.
         sourceCity.Troops -= attackingTroops;
         sourceCity.Gold -= carriedGold;
@@ -622,10 +667,10 @@ public class CommandResolver
             return true;
         }
 
-        var reservedOfficerIds = GetReservedOfficerIds(world);
         foreach (var officerId in requestedOfficerIds)
         {
-            if (reservedOfficerIds.Contains(officerId))
+            var officer = world.GetOfficer(officerId);
+            if (officer == null || IsOfficerAssignedThisMonth(world, officer))
             {
                 return false;
             }
@@ -634,23 +679,52 @@ public class CommandResolver
         return true;
     }
 
-    private static HashSet<int> GetReservedOfficerIds(WorldState world)
+    private static OfficerData? GetSingleAvailableOfficer(WorldState world, CityData city, List<int> requestedOfficerIds)
     {
-        var reservedOfficerIds = new HashSet<int>();
-        foreach (var pendingCommand in world.PendingCommands)
+        if (requestedOfficerIds.Count != 1)
         {
-            if (pendingCommand.Type != CommandType.Move && pendingCommand.Type != CommandType.Attack)
+            return null;
+        }
+
+        var officerId = requestedOfficerIds[0];
+        if (!city.OfficerIds.Contains(officerId))
+        {
+            return null;
+        }
+
+        var officer = world.GetOfficer(officerId);
+        if (officer == null || IsOfficerAssignedThisMonth(world, officer))
+        {
+            return null;
+        }
+
+        return officer;
+    }
+
+    private static bool IsOfficerAssignedThisMonth(WorldState world, OfficerData officer)
+    {
+        return officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month;
+    }
+
+    private static void MarkOfficerAssigned(WorldState world, OfficerData officer, CommandType commandType)
+    {
+        officer.LastAssignedYear = world.Year;
+        officer.LastAssignedMonth = world.Month;
+        officer.LastAssignedCommand = commandType;
+    }
+
+    private static void MarkOfficersAssigned(WorldState world, List<int> officerIds, CommandType commandType)
+    {
+        foreach (var officerId in officerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
             {
                 continue;
             }
 
-            foreach (var officerId in pendingCommand.OfficerIds)
-            {
-                reservedOfficerIds.Add(officerId);
-            }
+            MarkOfficerAssigned(world, officer, commandType);
         }
-
-        return reservedOfficerIds;
     }
 
     private static int TransferOfficers(

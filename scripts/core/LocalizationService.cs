@@ -254,6 +254,26 @@ public class LocalizationService
         return string.Equals(localized, key, StringComparison.Ordinal) ? officer.Role : localized;
     }
 
+    public string GetOfficerStatus(WorldState world, OfficerData officer)
+    {
+        if (officer.LastAssignedYear != world.Year || officer.LastAssignedMonth != world.Month)
+        {
+            return T("status.idle");
+        }
+
+        var key = officer.LastAssignedCommand switch
+        {
+            CommandType.Develop => "status.develop",
+            CommandType.Recruit => "status.recruit",
+            CommandType.Move => "status.move",
+            CommandType.Search => "status.search",
+            CommandType.Attack => "status.attack",
+            _ => "status.idle"
+        };
+
+        return T(key);
+    }
+
     private sealed class LocaleTextEntry
     {
         [JsonPropertyName("zhHant")]

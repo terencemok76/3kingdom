@@ -29,6 +29,8 @@ public class AiController
             return LocalizedResult(false, "cmd.ai_city_not_found");
         }
 
+        var availableOfficerIds = GetAvailableOfficerIds(world, city);
+
         CommandResult? militaryResult = null;
         foreach (var targetId in city.ConnectedCityIds)
         {
@@ -43,7 +45,7 @@ public class AiController
                 continue;
             }
 
-            if (city.Troops > target.Troops + 300)
+            if (city.Troops > target.Troops + 300 && availableOfficerIds.Count > 0)
             {
                 militaryResult = _commandResolver.Execute(new CommandRequest
                 {
@@ -52,7 +54,7 @@ public class AiController
                     SourceCityId = cityId,
                     TargetCityId = targetId,
                     TroopsToSend = city.Troops / 2,
-                    OfficerIds = new System.Collections.Generic.List<int>(city.OfficerIds)
+                    OfficerIds = new System.Collections.Generic.List<int>(availableOfficerIds)
                 });
                 break;
             }
@@ -86,37 +88,61 @@ public class AiController
         }
 
         var coreResults = new System.Collections.Generic.List<CommandResult>();
+        var recruitOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Charm + officer.Leadership);
+        var developOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics);
+        var searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
         if (city.Troops < 2200 &&
             city.Gold >= 120 &&
             city.Food >= 80 &&
+            recruitOfficerId > 0 &&
             !(city.LastRecruitYear == world.Year && city.LastRecruitMonth == world.Month))
         {
             coreResults.Add(_commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Recruit,
                 ActorFactionId = factionId,
-                SourceCityId = cityId
+                SourceCityId = cityId,
+                OfficerIds = new System.Collections.Generic.List<int> { recruitOfficerId }
             }));
+            availableOfficerIds.Remove(recruitOfficerId);
+            if (developOfficerId == recruitOfficerId)
+            {
+                developOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics);
+            }
+
+            if (searchOfficerId == recruitOfficerId)
+            {
+                searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
+            }
         }
 
         if (city.Gold >= 100 &&
+            developOfficerId > 0 &&
             !(city.LastDevelopYear == world.Year && city.LastDevelopMonth == world.Month))
         {
             coreResults.Add(_commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Develop,
                 ActorFactionId = factionId,
-                SourceCityId = cityId
+                SourceCityId = cityId,
+                OfficerIds = new System.Collections.Generic.List<int> { developOfficerId }
             }));
+            availableOfficerIds.Remove(developOfficerId);
+            if (searchOfficerId == developOfficerId)
+            {
+                searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
+            }
         }
 
-        if (!(city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month))
+        if (searchOfficerId > 0 &&
+            !(city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month))
         {
             coreResults.Add(_commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Search,
                 ActorFactionId = factionId,
-                SourceCityId = cityId
+                SourceCityId = cityId,
+                OfficerIds = new System.Collections.Generic.List<int> { searchOfficerId }
             }));
         }
 
@@ -246,5 +272,57 @@ public class AiController
             MessageZhHant = zh,
             MessageEn = en
         };
+    }
+
+    private static System.Collections.Generic.List<int> GetAvailableOfficerIds(WorldState world, CityData city)
+    {
+        var result = new System.Collections.Generic.List<int>();
+        foreach (var officerId in city.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            if (officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month)
+            {
+                continue;
+            }
+
+            result.Add(officerId);
+        }
+
+        return result;
+    }
+
+    private static int GetBestOfficerId(
+        WorldState world,
+        CityData city,
+        System.Collections.Generic.List<int> availableOfficerIds,
+        System.Func<OfficerData, int> scoreSelector)
+    {
+        var bestOfficerId = -1;
+        var bestScore = int.MinValue;
+
+        foreach (var officerId in availableOfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null || !city.OfficerIds.Contains(officerId))
+            {
+                continue;
+            }
+
+            var score = scoreSelector(officer);
+            if (score <= bestScore)
+            {
+                continue;
+            }
+
+            bestScore = score;
+            bestOfficerId = officerId;
+        }
+
+        return bestOfficerId;
     }
 }
