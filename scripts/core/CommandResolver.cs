@@ -550,8 +550,24 @@ public class CommandResolver
             return LocalizedResult(
                 true,
                 "cmd.attack.failed",
-                new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese), returnedGold, returnedFood },
-                new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English), returnedGold, returnedFood });
+                new object[]
+                {
+                    GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                    GetCityName(sourceCity, GameLanguage.TraditionalChinese),
+                    GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                    GetCityName(targetCity, GameLanguage.TraditionalChinese),
+                    returnedGold,
+                    returnedFood
+                },
+                new object[]
+                {
+                    GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.English),
+                    GetCityName(sourceCity, GameLanguage.English),
+                    GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.English),
+                    GetCityName(targetCity, GameLanguage.English),
+                    returnedGold,
+                    returnedFood
+                });
         }
 
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
@@ -571,8 +587,20 @@ public class CommandResolver
         return LocalizedResult(
             true,
             "cmd.attack.success",
-            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese) },
-            new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
+            new object[]
+            {
+                GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                GetCityName(sourceCity, GameLanguage.TraditionalChinese),
+                GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                GetCityName(targetCity, GameLanguage.TraditionalChinese)
+            },
+            new object[]
+            {
+                GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.English),
+                GetCityName(sourceCity, GameLanguage.English),
+                GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.English),
+                GetCityName(targetCity, GameLanguage.English)
+            });
     }
 
     private CommandResult LocalizedResult(bool success, string key, object[]? args = null)
@@ -770,6 +798,11 @@ public class CommandResolver
                 continue;
             }
 
+            if (!IsOfficerOldEnoughToJoin(world, officer))
+            {
+                continue;
+            }
+
             candidates.Add(officer);
         }
 
@@ -798,8 +831,19 @@ public class CommandResolver
             1 => belongs.Equals("Shu", StringComparison.OrdinalIgnoreCase),
             2 => belongs.Equals("Wei", StringComparison.OrdinalIgnoreCase),
             3 => belongs.Equals("Wu", StringComparison.OrdinalIgnoreCase),
+            4 => belongs.Equals("YellowTurban", StringComparison.OrdinalIgnoreCase),
             _ => false
         };
+    }
+
+    private static bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer)
+    {
+        if (officer.BirthYear <= 0)
+        {
+            return true;
+        }
+
+        return world.Year - officer.BirthYear >= 18;
     }
 
     private static string GetCityName(CityData city, GameLanguage language)
@@ -845,6 +889,28 @@ public class CommandResolver
         }
 
         return !string.IsNullOrWhiteSpace(officer.Name) ? officer.Name : officer.NameZhHant;
+    }
+
+    private static string GetRulerDisplayName(WorldState world, int factionId, GameLanguage language)
+    {
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return factionId > 0 ? factionId.ToString() : "-";
+        }
+
+        var ruler = world.GetOfficer(faction.RulerOfficerId);
+        if (ruler != null)
+        {
+            return GetOfficerDisplayName(ruler, language);
+        }
+
+        if (language == GameLanguage.TraditionalChinese && !string.IsNullOrWhiteSpace(faction.NameZhHant))
+        {
+            return faction.NameZhHant;
+        }
+
+        return !string.IsNullOrWhiteSpace(faction.NameEn) ? faction.NameEn : faction.NameZhHant;
     }
 
     private static void ResolveCapturedCityOfficers(WorldState world, CityData capturedCity, int previousFactionId)

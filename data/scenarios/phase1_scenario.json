@@ -1,4 +1,7 @@
 {
+  "storyId": "yellow_turban_rebellion",
+  "storyNameEn": "Yellow Turban Rebellion",
+  "storyNameZhHant": "黃巾之亂",
   "year": 184,
   "month": 1,
   "randomSeed": 12345,
@@ -19,10 +22,81 @@
 	},
 	{
 	  "id": 3,
-	  "nameEn": "Sun Quan",
-	  "nameZhHant": "孫權",
-	  "rulerOfficerId": 41,
+	  "nameEn": "Sun Jian",
+	  "nameZhHant": "孫堅",
+	  "rulerOfficerId": 43,
 	  "isPlayer": false
+	},
+	{
+	  "id": 4,
+	  "nameEn": "Zhang Jiao",
+	  "nameZhHant": "張角",
+	  "rulerOfficerId": 66,
+	  "isPlayer": false
+	}
+  ],
+  "cityStarts": [
+	{
+	  "cityId": 8,
+	  "ownerFactionId": 1,
+	  "gold": 1200,
+	  "food": 1800,
+	  "troops": 2500,
+	  "officerIds": [1, 2, 3]
+	},
+	{
+	  "cityId": 12,
+	  "ownerFactionId": 2,
+	  "gold": 1000,
+	  "food": 1700,
+	  "troops": 2300,
+	  "officerIds": [21, 24, 25, 40]
+	},
+	{
+	  "cityId": 32,
+	  "ownerFactionId": 3,
+	  "gold": 950,
+	  "food": 1750,
+	  "troops": 2200,
+	  "officerIds": [43, 50, 51]
+	},
+	{
+	  "cityId": 6,
+	  "ownerFactionId": 4,
+	  "gold": 950,
+	  "food": 1750,
+	  "troops": 2200,
+	  "officerIds": [66, 67, 68]
+	},
+	{
+	  "cityId": 4,
+	  "ownerFactionId": 4,
+	  "gold": 800,
+	  "food": 1400,
+	  "troops": 1600,
+	  "officerIds": [77]
+	}
+  ],
+  "factionStarts": [
+	{
+	  "factionId": 1,
+	  "cityIds": [8],
+	  "officerIds": [2, 3]
+	},
+	{
+	  "factionId": 2,
+	  "cityIds": [12],
+	  "officerIds": [24, 25, 40]
+	},
+	{
+	  "factionId": 3,
+	  "cityIds": [32],
+	  "officerIds": [50, 51]
+	},
+	{
+	  "factionId": 4,
+	  "cityIds": [6, 4],
+	  "officerIds": [67, 68, 77]
 	}
   ]
 }

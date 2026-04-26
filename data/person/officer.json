@@ -6,7 +6,6 @@
 	  "id": 1,
 	  "name": "Liu Bei",
 	  "name_cn": "劉備",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -22,13 +21,14 @@
 		"關羽": "brother",
 		"張飛": "brother",
 		"諸葛亮": "lord"
-	  }
+	  },
+	  "birth_year": 161,
+	  "death_year": 223
 	},
 	{
 	  "id": 2,
 	  "name": "Guan Yu",
 	  "name_cn": "關羽",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -43,13 +43,14 @@
 	  "relationship_type": {
 		"劉備": "brother",
 		"張飛": "brother"
-	  }
+	  },
+	  "birth_year": 163,
+	  "death_year": 219
 	},
 	{
 	  "id": 3,
 	  "name": "Zhang Fei",
 	  "name_cn": "張飛",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -64,13 +65,14 @@
 	  "relationship_type": {
 		"劉備": "brother",
 		"關羽": "brother"
-	  }
+	  },
+	  "birth_year": 166,
+	  "death_year": 219
 	},
 	{
 	  "id": 4,
 	  "name": "Zhuge Liang",
 	  "name_cn": "諸葛亮",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -85,13 +87,14 @@
 	  "relationship_type": {
 		"劉備": "servant",
 		"姜維": "mentor"
-	  }
+	  },
+	  "birth_year": 181,
+	  "death_year": 234
 	},
 	{
 	  "id": 5,
 	  "name": "Zhao Yun",
 	  "name_cn": "趙雲",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -103,13 +106,14 @@
 	  "loyalty": 97,
 	  "ambition": 71,
 	  "combat": 98,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 157,
+	  "death_year": 229
 	},
 	{
 	  "id": 6,
 	  "name": "Ma Chao",
 	  "name_cn": "馬超",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -121,13 +125,14 @@
 	  "loyalty": 78,
 	  "ambition": 67,
 	  "combat": 94,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 176,
+	  "death_year": 222
 	},
 	{
 	  "id": 7,
 	  "name": "Huang Zhong",
 	  "name_cn": "黃忠",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -139,13 +144,14 @@
 	  "loyalty": 90,
 	  "ambition": 75,
 	  "combat": 90,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 148,
+	  "death_year": 220
 	},
 	{
 	  "id": 8,
 	  "name": "Jiang Wei",
 	  "name_cn": "姜維",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -157,13 +163,14 @@
 	  "loyalty": 96,
 	  "ambition": 65,
 	  "combat": 89,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 202,
+	  "death_year": 264
 	},
 	{
 	  "id": 9,
 	  "name": "Pang Tong",
 	  "name_cn": "龐統",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -175,13 +182,14 @@
 	  "loyalty": 88,
 	  "ambition": 81,
 	  "combat": 51,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 179,
+	  "death_year": 214
 	},
 	{
 	  "id": 10,
 	  "name": "Fa Zheng",
 	  "name_cn": "法正",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -193,13 +201,14 @@
 	  "loyalty": 84,
 	  "ambition": 60,
 	  "combat": 52,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 176,
+	  "death_year": 220
 	},
 	{
 	  "id": 11,
 	  "name": "Wei Yan",
 	  "name_cn": "魏延",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -211,13 +220,14 @@
 	  "loyalty": 82,
 	  "ambition": 62,
 	  "combat": 87,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 185,
+	  "death_year": 234
 	},
 	{
 	  "id": 12,
 	  "name": "Jiang Wan",
 	  "name_cn": "蔣琬",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -229,13 +239,14 @@
 	  "loyalty": 85,
 	  "ambition": 54,
 	  "combat": 49,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 193,
+	  "death_year": 246
 	},
 	{
 	  "id": 13,
 	  "name": "Fei Yi",
 	  "name_cn": "費禕",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -247,13 +258,14 @@
 	  "loyalty": 85,
 	  "ambition": 52,
 	  "combat": 45,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 193,
+	  "death_year": 253
 	},
 	{
 	  "id": 14,
 	  "name": "Guan Ping",
 	  "name_cn": "關平",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -265,13 +277,14 @@
 	  "loyalty": 82,
 	  "ambition": 75,
 	  "combat": 90,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 178,
+	  "death_year": 220
 	},
 	{
 	  "id": 15,
 	  "name": "Guan Xing",
 	  "name_cn": "關興",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -283,13 +296,14 @@
 	  "loyalty": 82,
 	  "ambition": 56,
 	  "combat": 90,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 204,
+	  "death_year": 230
 	},
 	{
 	  "id": 16,
 	  "name": "Zhang Bao",
 	  "name_cn": "張苞",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -301,13 +315,14 @@
 	  "loyalty": 82,
 	  "ambition": 55,
 	  "combat": 90,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 201,
+	  "death_year": 231
 	},
 	{
 	  "id": 17,
 	  "name": "Ma Dai",
 	  "name_cn": "馬岱",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -319,13 +334,14 @@
 	  "loyalty": 82,
 	  "ambition": 73,
 	  "combat": 85,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 176,
+	  "death_year": 235
 	},
 	{
 	  "id": 18,
 	  "name": "Li Yan",
 	  "name_cn": "李嚴",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -337,13 +353,14 @@
 	  "loyalty": 84,
 	  "ambition": 70,
 	  "combat": 56,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 193,
+	  "death_year": 234
 	},
 	{
 	  "id": 19,
 	  "name": "Liu Shan",
 	  "name_cn": "劉禪",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -355,13 +372,14 @@
 	  "loyalty": 88,
 	  "ambition": 80,
 	  "combat": 72,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 207,
+	  "death_year": 271
 	},
 	{
 	  "id": 20,
 	  "name": "Jian Yong",
 	  "name_cn": "簡雍",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -373,13 +391,14 @@
 	  "loyalty": 85,
 	  "ambition": 56,
 	  "combat": 46,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 167,
+	  "death_year": 243
 	},
 	{
 	  "id": 21,
 	  "name": "Cao Cao",
 	  "name_cn": "曹操",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -395,13 +414,14 @@
 		"郭嘉": "lord",
 		"荀彧": "lord",
 		"司馬懿": "lord"
-	  }
+	  },
+	  "birth_year": 155,
+	  "death_year": 220
 	},
 	{
 	  "id": 22,
 	  "name": "Cao Pi",
 	  "name_cn": "曹丕",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -413,13 +433,14 @@
 	  "loyalty": 76,
 	  "ambition": 81,
 	  "combat": 70,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 187,
+	  "death_year": 226
 	},
 	{
 	  "id": 23,
 	  "name": "Cao Rui",
 	  "name_cn": "曹叡",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -431,13 +452,14 @@
 	  "loyalty": 78,
 	  "ambition": 78,
 	  "combat": 72,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 204,
+	  "death_year": 239
 	},
 	{
 	  "id": 24,
 	  "name": "Xiahou Dun",
 	  "name_cn": "夏侯惇",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -449,13 +471,14 @@
 	  "loyalty": 96,
 	  "ambition": 69,
 	  "combat": 87,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 154,
+	  "death_year": 220
 	},
 	{
 	  "id": 25,
 	  "name": "Xiahou Yuan",
 	  "name_cn": "夏侯淵",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -467,13 +490,14 @@
 	  "loyalty": 95,
 	  "ambition": 61,
 	  "combat": 94,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 155,
+	  "death_year": 219
 	},
 	{
 	  "id": 26,
 	  "name": "Zhang Liao",
 	  "name_cn": "張遼",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -485,13 +509,14 @@
 	  "loyalty": 92,
 	  "ambition": 75,
 	  "combat": 93,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 169,
+	  "death_year": 222
 	},
 	{
 	  "id": 27,
 	  "name": "Xu Huang",
 	  "name_cn": "徐晃",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -503,13 +528,14 @@
 	  "loyalty": 91,
 	  "ambition": 67,
 	  "combat": 88,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 169,
+	  "death_year": 227
 	},
 	{
 	  "id": 28,
 	  "name": "Zhang He",
 	  "name_cn": "張郃",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -521,13 +547,14 @@
 	  "loyalty": 83,
 	  "ambition": 57,
 	  "combat": 94,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 164,
+	  "death_year": 231
 	},
 	{
 	  "id": 29,
 	  "name": "Yue Jin",
 	  "name_cn": "樂進",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -539,13 +566,14 @@
 	  "loyalty": 88,
 	  "ambition": 72,
 	  "combat": 86,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 159,
+	  "death_year": 218
 	},
 	{
 	  "id": 30,
 	  "name": "Yu Jin",
 	  "name_cn": "于禁",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -557,13 +585,14 @@
 	  "loyalty": 58,
 	  "ambition": 61,
 	  "combat": 88,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 162,
+	  "death_year": 211
 	},
 	{
 	  "id": 31,
 	  "name": "Dian Wei",
 	  "name_cn": "典韋",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -575,13 +604,14 @@
 	  "loyalty": 97,
 	  "ambition": 66,
 	  "combat": 92,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 157,
+	  "death_year": 197
 	},
 	{
 	  "id": 32,
 	  "name": "Xu Chu",
 	  "name_cn": "許褚",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -593,13 +623,14 @@
 	  "loyalty": 96,
 	  "ambition": 60,
 	  "combat": 90,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 161,
+	  "death_year": 230
 	},
 	{
 	  "id": 33,
 	  "name": "Sima Yi",
 	  "name_cn": "司馬懿",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -614,13 +645,14 @@
 	  "relationship_type": {
 		"司馬昭": "father",
 		"司馬師": "father"
-	  }
+	  },
+	  "birth_year": 179,
+	  "death_year": 251
 	},
 	{
 	  "id": 34,
 	  "name": "Sima Zhao",
 	  "name_cn": "司馬昭",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -632,13 +664,14 @@
 	  "loyalty": 58,
 	  "ambition": 92,
 	  "combat": 76,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 211,
+	  "death_year": 265
 	},
 	{
 	  "id": 35,
 	  "name": "Sima Shi",
 	  "name_cn": "司馬師",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -650,13 +683,14 @@
 	  "loyalty": 60,
 	  "ambition": 90,
 	  "combat": 71,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 208,
+	  "death_year": 255
 	},
 	{
 	  "id": 36,
 	  "name": "Xun Yu",
 	  "name_cn": "荀彧",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -668,13 +702,14 @@
 	  "loyalty": 94,
 	  "ambition": 67,
 	  "combat": 58,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 163,
+	  "death_year": 212
 	},
 	{
 	  "id": 37,
 	  "name": "Xun You",
 	  "name_cn": "荀攸",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -686,13 +721,14 @@
 	  "loyalty": 91,
 	  "ambition": 69,
 	  "combat": 51,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 157,
+	  "death_year": 214
 	},
 	{
 	  "id": 38,
 	  "name": "Jia Xu",
 	  "name_cn": "賈詡",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -704,13 +740,14 @@
 	  "loyalty": 70,
 	  "ambition": 68,
 	  "combat": 53,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 147,
+	  "death_year": 223
 	},
 	{
 	  "id": 39,
 	  "name": "Cheng Yu",
 	  "name_cn": "程昱",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -722,13 +759,14 @@
 	  "loyalty": 86,
 	  "ambition": 53,
 	  "combat": 52,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 141,
+	  "death_year": 220
 	},
 	{
 	  "id": 40,
 	  "name": "Guo Jia",
 	  "name_cn": "郭嘉",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -740,13 +778,14 @@
 	  "loyalty": 90,
 	  "ambition": 70,
 	  "combat": 53,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 170,
+	  "death_year": 207
 	},
 	{
 	  "id": 41,
 	  "name": "Sun Quan",
 	  "name_cn": "孫權",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -762,13 +801,14 @@
 		"周瑜": "lord",
 		"魯肅": "lord",
 		"陸遜": "lord"
-	  }
+	  },
+	  "birth_year": 182,
+	  "death_year": 252
 	},
 	{
 	  "id": 42,
 	  "name": "Sun Ce",
 	  "name_cn": "孫策",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -780,13 +820,14 @@
 	  "loyalty": 92,
 	  "ambition": 91,
 	  "combat": 71,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 175,
+	  "death_year": 200
 	},
 	{
 	  "id": 43,
 	  "name": "Sun Jian",
 	  "name_cn": "孫堅",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -798,13 +839,14 @@
 	  "loyalty": 91,
 	  "ambition": 79,
 	  "combat": 78,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 155,
+	  "death_year": 191
 	},
 	{
 	  "id": 44,
 	  "name": "Zhou Yu",
 	  "name_cn": "周瑜",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -819,13 +861,14 @@
 	  "relationship_type": {
 		"孫權": "servant",
 		"魯肅": "ally"
-	  }
+	  },
+	  "birth_year": 175,
+	  "death_year": 210
 	},
 	{
 	  "id": 45,
 	  "name": "Lu Su",
 	  "name_cn": "魯肅",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
@@ -837,13 +880,14 @@
 	  "loyalty": 94,
 	  "ambition": 70,
 	  "combat": 53,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 172,
+	  "death_year": 217
 	},
 	{
 	  "id": 46,
 	  "name": "Lu Meng",
 	  "name_cn": "呂蒙",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -855,13 +899,14 @@
 	  "loyalty": 93,
 	  "ambition": 71,
 	  "combat": 91,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 178,
+	  "death_year": 217
 	},
 	{
 	  "id": 47,
 	  "name": "Lu Xun",
 	  "name_cn": "陸遜",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -873,13 +918,14 @@
 	  "loyalty": 94,
 	  "ambition": 72,
 	  "combat": 88,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 183,
+	  "death_year": 245
 	},
 	{
 	  "id": 48,
 	  "name": "Gan Ning",
 	  "name_cn": "甘寧",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -891,13 +937,14 @@
 	  "loyalty": 84,
 	  "ambition": 59,
 	  "combat": 93,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 174,
+	  "death_year": 215
 	},
 	{
 	  "id": 49,
 	  "name": "Taishi Ci",
 	  "name_cn": "太史慈",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -909,13 +956,14 @@
 	  "loyalty": 87,
 	  "ambition": 75,
 	  "combat": 91,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 166,
+	  "death_year": 206
 	},
 	{
 	  "id": 50,
 	  "name": "Huang Gai",
 	  "name_cn": "黃蓋",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -927,13 +975,14 @@
 	  "loyalty": 92,
 	  "ambition": 68,
 	  "combat": 95,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 155,
+	  "death_year": 215
 	},
 	{
 	  "id": 51,
 	  "name": "Cheng Pu",
 	  "name_cn": "程普",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -945,13 +994,14 @@
 	  "loyalty": 82,
 	  "ambition": 58,
 	  "combat": 87,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 155,
+	  "death_year": 210
 	},
 	{
 	  "id": 52,
 	  "name": "Han Dang",
 	  "name_cn": "韓當",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -963,13 +1013,14 @@
 	  "loyalty": 82,
 	  "ambition": 69,
 	  "combat": 88,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 160,
+	  "death_year": 226
 	},
 	{
 	  "id": 53,
 	  "name": "Zhou Tai",
 	  "name_cn": "周泰",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -981,13 +1032,14 @@
 	  "loyalty": 82,
 	  "ambition": 70,
 	  "combat": 92,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 175,
+	  "death_year": 222
 	},
 	{
 	  "id": 54,
 	  "name": "Ling Tong",
 	  "name_cn": "凌統",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -999,13 +1051,14 @@
 	  "loyalty": 82,
 	  "ambition": 74,
 	  "combat": 92,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 189,
+	  "death_year": 217
 	},
 	{
 	  "id": 55,
 	  "name": "Zhang Zhao",
 	  "name_cn": "張昭",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1017,13 +1070,14 @@
 	  "loyalty": 85,
 	  "ambition": 53,
 	  "combat": 50,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 156,
+	  "death_year": 236
 	},
 	{
 	  "id": 56,
 	  "name": "Gu Yong",
 	  "name_cn": "顧雍",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1035,13 +1089,14 @@
 	  "loyalty": 85,
 	  "ambition": 55,
 	  "combat": 55,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 168,
+	  "death_year": 243
 	},
 	{
 	  "id": 57,
 	  "name": "Zhuge Jin",
 	  "name_cn": "諸葛瑾",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1053,13 +1108,14 @@
 	  "loyalty": 85,
 	  "ambition": 53,
 	  "combat": 55,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 174,
+	  "death_year": 214
 	},
 	{
 	  "id": 58,
 	  "name": "Sun Shangxiang",
 	  "name_cn": "孫尚香",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1071,13 +1127,14 @@
 	  "loyalty": 82,
 	  "ambition": 60,
 	  "combat": 89,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 182,
+	  "death_year": 211
 	},
 	{
 	  "id": 59,
 	  "name": "Bu Zhi",
 	  "name_cn": "步騭",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1089,13 +1146,14 @@
 	  "loyalty": 84,
 	  "ambition": 76,
 	  "combat": 56,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 180,
+	  "death_year": 247
 	},
 	{
 	  "id": 60,
 	  "name": "Ding Feng",
 	  "name_cn": "丁奉",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1107,13 +1165,14 @@
 	  "loyalty": 82,
 	  "ambition": 56,
 	  "combat": 90,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 195,
+	  "death_year": 271
 	},
 	{
 	  "id": 61,
 	  "name": "Lu Bu",
 	  "name_cn": "呂布",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1128,13 +1187,14 @@
 	  "relationship_type": {
 		"董卓": "betray",
 		"貂蟬": "lover"
-	  }
+	  },
+	  "birth_year": 161,
+	  "death_year": 198
 	},
 	{
 	  "id": 62,
 	  "name": "Dong Zhuo",
 	  "name_cn": "董卓",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -1148,13 +1208,14 @@
 	  "combat": 74,
 	  "relationship_type": {
 		"呂布": "adopted_son"
-	  }
+	  },
+	  "birth_year": 138,
+	  "death_year": 192
 	},
 	{
 	  "id": 63,
 	  "name": "Yuan Shao",
 	  "name_cn": "袁紹",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -1169,13 +1230,14 @@
 	  "relationship_type": {
 		"顏良": "lord",
 		"文醜": "lord"
-	  }
+	  },
+	  "birth_year": 150,
+	  "death_year": 202
 	},
 	{
 	  "id": 64,
 	  "name": "Yuan Shu",
 	  "name_cn": "袁術",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -1187,13 +1249,14 @@
 	  "loyalty": 35,
 	  "ambition": 85,
 	  "combat": 72,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 155,
+	  "death_year": 199
 	},
 	{
 	  "id": 65,
 	  "name": "Gongsun Zan",
 	  "name_cn": "公孫瓚",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1205,67 +1268,80 @@
 	  "loyalty": 72,
 	  "ambition": 61,
 	  "combat": 88,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 149,
+	  "death_year": 199
 	},
 	{
 	  "id": 66,
 	  "name": "Zhang Jiao",
 	  "name_cn": "張角",
-	  "age": 30,
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
 	  "sex": "Male",
-	  "role": "Strategist",
-	  "belongs": "Qun",
+	  "role": "Lord",
+	  "belongs": "YellowTurban",
 	  "leadership": 80,
 	  "politics": 72,
 	  "loyalty": 89,
 	  "ambition": 77,
 	  "combat": 54,
-	  "relationship_type": {}
+	  "relationship_type": {
+		  "張寶":"brother",
+		  "張梁":"brother"
+	  },
+	  "birth_year": 130,
+	  "death_year": 184
 	},
 	{
 	  "id": 67,
-	  "name": "Zhang Pao",
+	  "name": "Zhang Bao",
 	  "name_cn": "張寶",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
 	  "sex": "Male",
 	  "role": "General",
-	  "belongs": "Qun",
+	  "belongs": "YellowTurban",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 68,
 	  "combat": 90,
-	  "relationship_type": {}
+	  "relationship_type": {
+		  "張角":"brother",
+		  "張梁":"brother"
+	  },
+	  "birth_year": 132,
+	  "death_year": 184
 	},
 	{
 	  "id": 68,
 	  "name": "Zhang Liang",
 	  "name_cn": "張梁",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
 	  "sex": "Male",
 	  "role": "General",
-	  "belongs": "Qun",
+	  "belongs": "YellowTurban",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 70,
 	  "combat": 86,
-	  "relationship_type": {}
+	  "relationship_type": {
+		  "張角":"brother",
+		  "張寶":"brother"
+	  },
+	  "birth_year": 134,
+	  "death_year": 184
 	},
 	{
 	  "id": 69,
 	  "name": "Hua Xiong",
 	  "name_cn": "華雄",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1277,13 +1353,14 @@
 	  "loyalty": 82,
 	  "ambition": 57,
 	  "combat": 94,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 156,
+	  "death_year": 191
 	},
 	{
 	  "id": 70,
 	  "name": "Yan Liang",
 	  "name_cn": "顏良",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1295,13 +1372,14 @@
 	  "loyalty": 82,
 	  "ambition": 57,
 	  "combat": 86,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 160,
+	  "death_year": 200
 	},
 	{
 	  "id": 71,
 	  "name": "Wen Chou",
 	  "name_cn": "文醜",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1313,13 +1391,14 @@
 	  "loyalty": 82,
 	  "ambition": 55,
 	  "combat": 87,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 160,
+	  "death_year": 200
 	},
 	{
 	  "id": 72,
 	  "name": "Li Jue",
 	  "name_cn": "李傕",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1331,13 +1410,14 @@
 	  "loyalty": 82,
 	  "ambition": 67,
 	  "combat": 93,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 148,
+	  "death_year": 198
 	},
 	{
 	  "id": 73,
 	  "name": "Guo Si",
 	  "name_cn": "郭汜",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1349,13 +1429,14 @@
 	  "loyalty": 82,
 	  "ambition": 74,
 	  "combat": 89,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 146,
+	  "death_year": 197
 	},
 	{
 	  "id": 74,
 	  "name": "Ma Teng",
 	  "name_cn": "馬騰",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -1367,13 +1448,14 @@
 	  "loyalty": 88,
 	  "ambition": 89,
 	  "combat": 80,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 142,
+	  "death_year": 212
 	},
 	{
 	  "id": 75,
 	  "name": "Han Sui",
 	  "name_cn": "韓遂",
-	  "age": 30,
 	  "intelligence": 80,
 	  "strength": 70,
 	  "charm": 85,
@@ -1385,13 +1467,14 @@
 	  "loyalty": 88,
 	  "ambition": 90,
 	  "combat": 76,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 144,
+	  "death_year": 215
 	},
 	{
 	  "id": 76,
 	  "name": "Kong Rong",
 	  "name_cn": "孔融",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1403,13 +1486,14 @@
 	  "loyalty": 74,
 	  "ambition": 55,
 	  "combat": 50,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 153,
+	  "death_year": 208
 	},
 	{
 	  "id": 77,
 	  "name": "Cai Yong",
 	  "name_cn": "蔡邕",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1421,13 +1505,14 @@
 	  "loyalty": 85,
 	  "ambition": 57,
 	  "combat": 52,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 132,
+	  "death_year": 192
 	},
 	{
 	  "id": 78,
 	  "name": "Mi Heng",
 	  "name_cn": "禰衡",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1439,13 +1524,14 @@
 	  "loyalty": 85,
 	  "ambition": 59,
 	  "combat": 49,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 173,
+	  "death_year": 198
 	},
 	{
 	  "id": 79,
 	  "name": "Wang Yun",
 	  "name_cn": "王允",
-	  "age": 30,
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
@@ -1457,13 +1543,14 @@
 	  "loyalty": 70,
 	  "ambition": 61,
 	  "combat": 50,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 137,
+	  "death_year": 192
 	},
 	{
 	  "id": 80,
 	  "name": "Diao Chan",
 	  "name_cn": "貂蟬",
-	  "age": 30,
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
@@ -1475,367 +1562,389 @@
 	  "loyalty": 55,
 	  "ambition": 70,
 	  "combat": 94,
-	  "relationship_type": {}
+	  "relationship_type": {},
+	  "birth_year": 180,
+	  "death_year": 230
 	},
 	{
-	  "name_cn": "董允",
+	  "id": 81,
 	  "name": "Dong Yun",
-	  "belongs": "Shu",
-	  "role": "Advisor",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "董允",
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
+	  "sex": "Male",
+	  "role": "Advisor",
+	  "belongs": "Shu",
 	  "leadership": 62,
 	  "politics": 84,
 	  "loyalty": 85,
 	  "ambition": 60,
 	  "combat": 50,
 	  "relationship_type": {},
-	  "id": 81
+	  "birth_year": 176,
+	  "death_year": 246
 	},
 	{
-	  "name_cn": "傅彤",
+	  "id": 82,
 	  "name": "Fu Tong",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "傅彤",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "sex": "Male",
+	  "role": "General",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 82
+	  "birth_year": 152,
+	  "death_year": 222
 	},
 	{
-	  "name_cn": "孫乾",
+	  "id": 83,
 	  "name": "Sun Qian",
-	  "belongs": "Shu",
-	  "role": "Advisor",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "孫乾",
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
+	  "role": "Advisor",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 62,
 	  "politics": 84,
 	  "loyalty": 85,
 	  "ambition": 60,
 	  "combat": 50,
 	  "relationship_type": {},
-	  "id": 83
+	  "birth_year": 154,
+	  "death_year": 214
 	},
 	{
-	  "name_cn": "糜竺",
+	  "id": 84,
 	  "name": "Mi Zhu",
-	  "belongs": "Shu",
-	  "role": "Advisor",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "糜竺",
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
+	  "role": "Advisor",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 62,
 	  "politics": 84,
 	  "loyalty": 85,
 	  "ambition": 60,
 	  "combat": 50,
 	  "relationship_type": {},
-	  "id": 84
+	  "birth_year": 151,
+	  "death_year": 221
 	},
 	{
-	  "name_cn": "糜芳",
+	  "id": 85,
 	  "name": "Mi Fang",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "糜芳",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "sex": "Male",
+	  "role": "General",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 85
+	  "birth_year": 153,
+	  "death_year": 223
 	},
 	{
-	  "name_cn": "馬良",
+	  "id": 86,
 	  "name": "Ma Liang",
-	  "belongs": "Shu",
-	  "role": "Advisor",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "馬良",
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
+	  "sex": "Male",
+	  "role": "Advisor",
+	  "belongs": "Shu",
 	  "leadership": 62,
 	  "politics": 84,
 	  "loyalty": 85,
 	  "ambition": 60,
 	  "combat": 50,
 	  "relationship_type": {},
-	  "id": 86
+	  "birth_year": 187,
+	  "death_year": 222
 	},
 	{
-	  "name_cn": "馬謖",
+	  "id": 87,
 	  "name": "Ma Su",
-	  "belongs": "Shu",
-	  "role": "Strategist",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "馬謖",
 	  "intelligence": 90,
 	  "strength": 40,
 	  "charm": 80,
+	  "role": "Strategist",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 70,
 	  "politics": 90,
 	  "loyalty": 86,
 	  "ambition": 75,
 	  "combat": 55,
 	  "relationship_type": {},
-	  "id": 87
+	  "birth_year": 190,
+	  "death_year": 228
 	},
 	{
-	  "name_cn": "王平",
+	  "id": 88,
 	  "name": "Wang Ping",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "王平",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 88
+	  "birth_year": 190,
+	  "death_year": 248
 	},
 	{
-	  "name_cn": "鄧芝",
+	  "id": 89,
 	  "name": "Deng Zhi",
-	  "belongs": "Shu",
-	  "role": "Advisor",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "鄧芝",
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
+	  "role": "Advisor",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 62,
 	  "politics": 84,
 	  "loyalty": 85,
 	  "ambition": 60,
 	  "combat": 50,
 	  "relationship_type": {},
-	  "id": 89
+	  "birth_year": 178,
+	  "death_year": 251
 	},
 	{
-	  "name_cn": "李恢",
+	  "id": 90,
 	  "name": "Li Hui",
-	  "belongs": "Shu",
-	  "role": "Governor",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "李恢",
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
+	  "role": "Governor",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 68,
 	  "politics": 82,
 	  "loyalty": 84,
 	  "ambition": 70,
 	  "combat": 60,
 	  "relationship_type": {},
-	  "id": 90
+	  "birth_year": 161,
+	  "death_year": 231
 	},
 	{
-	  "name_cn": "霍峻",
+	  "id": 91,
 	  "name": "Huo Jun",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "霍峻",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 91
+	  "birth_year": 180,
+	  "death_year": 217
 	},
 	{
-	  "name_cn": "嚴顏",
+	  "id": 92,
 	  "name": "Yan Yan",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "嚴顏",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 92
+	  "birth_year": 147,
+	  "death_year": 222
 	},
 	{
-	  "name_cn": "張嶷",
+	  "id": 93,
 	  "name": "Zhang Ni",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "張嶷",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 93
+	  "birth_year": 196,
+	  "death_year": 254
 	},
 	{
-	  "name_cn": "廖化",
+	  "id": 94,
 	  "name": "Liao Hua",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "廖化",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 94
+	  "birth_year": 174,
+	  "death_year": 264
 	},
 	{
-	  "name_cn": "周倉",
+	  "id": 95,
 	  "name": "Zhou Cang",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "周倉",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 95
+	  "birth_year": 158,
+	  "death_year": 219
 	},
 	{
-	  "name_cn": "關索",
+	  "id": 96,
 	  "name": "Guan Suo",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "關索",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 96
+	  "birth_year": 179,
+	  "death_year": 244
 	},
 	{
-	  "name_cn": "諸葛瞻",
+	  "id": 97,
 	  "name": "Zhuge Zhan",
-	  "belongs": "Shu",
-	  "role": "Advisor",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "諸葛瞻",
 	  "intelligence": 75,
 	  "strength": 60,
 	  "charm": 75,
+	  "role": "Advisor",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 62,
 	  "politics": 84,
 	  "loyalty": 85,
 	  "ambition": 60,
 	  "combat": 50,
 	  "relationship_type": {},
-	  "id": 97
+	  "birth_year": 227,
+	  "death_year": 263
 	},
 	{
-	  "name_cn": "諸葛尚",
+	  "id": 98,
 	  "name": "Zhuge Shang",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "諸葛尚",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 98
+	  "birth_year": 244,
+	  "death_year": 263
 	},
 	{
-	  "name_cn": "孟達",
+	  "id": 99,
 	  "name": "Meng Da",
-	  "belongs": "Wei",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "孟達",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Wei",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 99
+	  "birth_year": 158,
+	  "death_year": 228
 	},
 	{
-	  "name_cn": "沙摩柯",
+	  "id": 100,
 	  "name": "Shamoke",
-	  "belongs": "Shu",
-	  "role": "General",
-	  "sex": "Male",
-	  "age": 30,
+	  "name_cn": "沙摩柯",
 	  "intelligence": 60,
 	  "strength": 90,
 	  "charm": 70,
+	  "role": "General",
+	  "sex": "Male",
+	  "belongs": "Shu",
 	  "leadership": 80,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 65,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "id": 100
+	  "birth_year": 162,
+	  "death_year": 222
 	}
   ],
   "stat_range": {
@@ -1845,5 +1954,5 @@
 	"ambition": "1-100",
 	"combat": "1-100"
   },
-  "note": "Added leadership, politics, and loyalty attributes. Values are role-based with hand-tuned overrides for major historical figures. Added ambition and relationships. Added combat and relationship_type. Removed redundant relationships field (kept relationship_type only). Replaced positions 81-100 with unique real Three Kingdoms officers."
+  "note": "Added leadership, politics, and loyalty attributes. Values are role-based with hand-tuned overrides for major historical figures. Added ambition and relationships. Added combat and relationship_type. Removed redundant relationships field (kept relationship_type only). Replaced positions 81-100 with unique real Three Kingdoms officers. Updated age to more realistic approximate historical values. Added birth_year, appear_year, death_year (approx historical)."
 }

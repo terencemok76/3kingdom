@@ -34,6 +34,15 @@
 - Inspiration: Romance of the Three Kingdoms I (early-era strategic flow), with simplified Phase 1 scope
 - Core loop: Monthly turn-based empire management and expansion through city commands and AI faction turns
 
+## 1.1 Scenario / Story
+- Current Phase 1 story:
+- `storyId`: `yellow_turban_rebellion`
+- English name: `Yellow Turban Rebellion`
+- Traditional Chinese name: `黃巾之亂`
+- Start date: `184年 1月`
+- Current implementation has one scenario/story, but each scenario file owns its own story metadata, start date, factions, `cityStarts`, and `factionStarts`
+- Later versions can add more scenario files and a scenario selection flow without sharing one global startup setup
+
 ## 2. Phase 1 Goals
 - Deliver a playable vertical slice with:
 - 2D map containing connected cities
@@ -105,7 +114,8 @@
 - `Role`
 - `Belongs`
 - `Sex`
-- `Age`
+- `BirthYear`
+- `DeathYear`
 - `Strength`
 - `Intelligence`
 - `Charm`
@@ -117,6 +127,9 @@
 - `RelationshipType`
 - `CityId`
 - Officers are assigned to exactly one city
+- Display age is calculated from `currentYear - BirthYear`
+- `DeathYear` is loaded from historical reference data for future rules
+- Officers must be at least `18` years old at scenario start to join an initial city/faction
 - Commands use either city aggregate power or a selected lead officer
 - `Develop`, `Recruit`, and `Search` each require one assigned officer
 - An officer assigned to any command in the current month cannot be assigned to another command until next month
@@ -215,6 +228,7 @@
 - Discover officer (joins city with medium loyalty)
 - Find gold or food cache
 - No result
+- Hidden officers under age `18` cannot be discovered or recruited by Search
 
 ## 5.5 Merchant
 - Purpose: Trade city `Gold` and `Food` immediately through merchant exchange
@@ -314,13 +328,13 @@
 ## 7. Data Model (C#)
 ## 7.1 Domain Classes
 - `OfficerData`
-- Fields: `Id`, `Name`, `NameZhHant`, `Role`, `Belongs`, `Sex`, `Age`, `Strength`, `Intelligence`, `Charm`, `Leadership`, `Politics`, `Loyalty`, `Ambition`, `Combat`, `RelationshipType`, `CityId`
+- Fields: `Id`, `Name`, `NameZhHant`, `Role`, `Belongs`, `Sex`, `BirthYear`, `DeathYear`, `Strength`, `Intelligence`, `Charm`, `Leadership`, `Politics`, `Loyalty`, `Ambition`, `Combat`, `RelationshipType`, `CityId`
 - `CityData`
 - Fields: `Id`, `Name`, `OwnerFactionId`, `Gold`, `Food`, `Troops`, `Farm`, `Commercial`, `Defense`, `Loyalty`, `OfficerIds`, `ConnectedCityIds`
 - `FactionData`
 - Fields: `Id`, `NameEn`, `NameZhHant`, `RulerOfficerId`, `OfficerIds`, `IsPlayer`
 - `WorldState`
-- Fields: `Month`, `Year`, `Cities`, `Officers`, `Factions`, `RandomSeed`
+- Fields: `StoryId`, `StoryNameEn`, `StoryNameZhHant`, `Month`, `Year`, `Cities`, `Officers`, `Factions`, `CityStarts`, `FactionStarts`, `RandomSeed`
 
 ## 7.3 Job Performance Model
 - Each job has a base formula:
@@ -380,7 +394,8 @@
 
 ## 7.7 Aging, Death, Defection, Riot Rules
 - Officer and ruler aging:
-- `Age` increases by 1 each in-game year
+- Officer age is calculated from `currentYear - BirthYear`
+- `DeathYear` is loaded as historical reference data; automatic death handling is reserved for a later phase
 - Starting from threshold age (suggested `>= 60`), monthly death check applies
 - Suggested death chance by age:
 - `60-69`: low chance
@@ -470,10 +485,13 @@ res://
 	  CommandPanel.cs
 	  CityInfoPanel.cs
 	  LogPanel.cs
-  data/
-	scenarios/
-	  phase1_scenario.json
+	data/
+	  scenarios/
+		phase1_scenario.json
 ```
+
+- `phase1_scenario.json` contains the current story metadata, start year/month, factions, `cityStarts`, and `factionStarts`
+- There is no separate `scenario_setup.json`; scenario setup belongs inside each scenario file
 
 ## 10. UI/UX Flow (Phase 1)
 1. Player clicks city on map
@@ -501,7 +519,7 @@ res://
 4. City/officer tooltip can show active item bonuses in compact form
 
 ## 10.3 UI Additions for Officer Profile (Phase 1.5)
-1. Officer card shows `Age`, `BodyStatus`, and relationship summary
+1. Officer card shows calculated age, `BodyStatus`, and relationship summary
 2. Relationship panel lists kin links and ruler relation badge
 3. Body status icon and color indicator shown in city officer list
 4. Tooltips explain active penalties/bonuses from status and relationship
@@ -584,7 +602,7 @@ res://
 - Integrate item-aware AI evaluation
 
 ### M8: Officer Profile Extensions (Phase 1.5)
-- Add officer `Age`, `BodyStatus`, and `BloodRelationship` data structures
+- Add officer `BirthYear`, `DeathYear`, `BodyStatus`, and `BloodRelationship` data structures
 - Apply condition penalties and relationship-based loyalty modifiers
 - Add profile UI and relationship/status indicators
 - Add monthly status tick/update handling
@@ -643,7 +661,7 @@ res://
 - Save/load preserves item ownership and equipment state
 
 ## 14.3 Testing Checklist (Phase 1.5 Officer Profile)
-- Officer `Age`, `BodyStatus`, and relationship data load correctly
+- Officer `BirthYear`, `DeathYear`, `BodyStatus`, and relationship data load correctly
 - Body status penalties apply to effective attributes and job output
 - Relationship bonuses/penalties apply consistently to loyalty logic
 - UI correctly reflects status/age/relationship changes

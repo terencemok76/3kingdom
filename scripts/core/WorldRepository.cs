@@ -7,9 +7,9 @@ namespace ThreeKingdom.Core;
 
 public class WorldRepository
 {
+    private const int MinimumOfficerJoinAge = 18;
     private const string MapLocationsPath = "res://data/scenarios/map_locations_40.json";
     private const string OfficerDataPath = "res://data/person/officer.json";
-    private const string ScenarioSetupPath = "res://data/scenarios/scenario_setup.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -108,7 +108,7 @@ public class WorldRepository
 
         BuildAutoConnections(cities);
         world.Cities = cities;
-        SetupInitialOwnershipAndOfficers(world, LoadScenarioSetup());
+        SetupInitialOwnershipAndOfficers(world);
     }
 
     private static void BuildAutoConnections(List<CityData> cities)
@@ -178,7 +178,7 @@ public class WorldRepository
         }
     }
 
-    private static void SetupInitialOwnershipAndOfficers(WorldState world, ScenarioSetupData setup)
+    private static void SetupInitialOwnershipAndOfficers(WorldState world)
     {
         foreach (var city in world.Cities)
         {
@@ -191,14 +191,14 @@ public class WorldRepository
             officer.CityId = 0;
         }
 
-        ApplyCityStarts(world, setup.CityStarts);
+        ApplyCityStarts(world, world.CityStarts);
 
         foreach (var faction in world.Factions)
         {
             faction.OfficerIds.Clear();
         }
 
-        ApplyFactionStarts(world, setup.FactionStarts);
+        ApplyFactionStarts(world, world.FactionStarts);
         EnsureFactionRulersAssigned(world);
     }
 
@@ -221,26 +221,6 @@ public class WorldRepository
         world.Officers = document.Characters;
     }
 
-    private static ScenarioSetupData LoadScenarioSetup()
-    {
-        if (!FileAccess.FileExists(ScenarioSetupPath))
-        {
-            GD.PushError($"Scenario setup file missing: {ScenarioSetupPath}");
-            return new ScenarioSetupData();
-        }
-
-        using var file = FileAccess.Open(ScenarioSetupPath, FileAccess.ModeFlags.Read);
-        var json = file.GetAsText();
-        var setup = JsonSerializer.Deserialize<ScenarioSetupData>(json, JsonOptions);
-        if (setup == null)
-        {
-            GD.PushWarning($"Scenario setup could not be parsed: {ScenarioSetupPath}");
-            return new ScenarioSetupData();
-        }
-
-        return setup;
-    }
-
     private static void ApplyCityStarts(WorldState world, List<CityStartData> cityStarts)
     {
         foreach (var cityStart in cityStarts)
@@ -258,6 +238,11 @@ public class WorldRepository
 
             foreach (var officerId in cityStart.OfficerIds)
             {
+                if (!IsOfficerOldEnoughToJoin(world, officerId))
+                {
+                    continue;
+                }
+
                 AssignOfficerToCity(world, officerId, city.Id);
             }
         }
@@ -291,6 +276,11 @@ public class WorldRepository
 
             foreach (var officerId in officerIds)
             {
+                if (!IsOfficerOldEnoughToJoin(world, officerId))
+                {
+                    continue;
+                }
+
                 if (!faction.OfficerIds.Contains(officerId))
                 {
                     faction.OfficerIds.Add(officerId);
@@ -338,6 +328,22 @@ public class WorldRepository
         {
             targetCity.OfficerIds.Add(officerId);
         }
+    }
+
+    private static bool IsOfficerOldEnoughToJoin(WorldState world, int officerId)
+    {
+        var officer = world.GetOfficer(officerId);
+        if (officer == null)
+        {
+            return false;
+        }
+
+        if (officer.BirthYear <= 0)
+        {
+            return true;
+        }
+
+        return world.Year - officer.BirthYear >= MinimumOfficerJoinAge;
     }
 
     private static void EnsureFactionRulersAssigned(WorldState world)

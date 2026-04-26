@@ -74,7 +74,8 @@ public partial class CityNode : Node2D
         {
             1 => new Color("3f7f4c"), // Liu Bei - green
             2 => new Color("8a3e2f"), // Cao Cao - red brown
-            3 => new Color("2f5f8a"), // Sun Quan - blue
+            3 => new Color("2f5f8a"), // Sun Jian - blue
+            4 => new Color("b9932f"), // Zhang Jiao - yellow
             _ => new Color("6d6d6d")  // Neutral/unknown
         };
     }

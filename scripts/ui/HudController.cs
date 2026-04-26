@@ -23,6 +23,19 @@ public partial class HudController : CanvasLayer
         Faction
     }
 
+    private enum OfficerListContentMode
+    {
+        Officers,
+        Cities
+    }
+
+    private enum CityListFilterMode
+    {
+        SelfFaction,
+        OtherFactions,
+        AllCities
+    }
+
     private enum OfficerSortMode
     {
         Strength,
@@ -30,11 +43,33 @@ public partial class HudController : CanvasLayer
         Status
     }
 
+    private enum ViewTableSortField
+    {
+        Name,
+        Role,
+        Status,
+        City,
+        Age,
+        Strength,
+        Intelligence,
+        OfficerLoyalty,
+        Owner,
+        Gold,
+        Food,
+        Troops,
+        OfficerCount,
+        Farm,
+        Commercial,
+        Defense,
+        Loyalty
+    }
+
     private const string PortraitSheetPath = "res://assets/portrait/100.png";
     private const string PortraitMappingPath = "res://data/person/portraits_names.json";
 
     private Label? _monthLabel;
     private Label? _playerFactionLabel;
+    private Label? _storyLabel;
     private Label? _cityNameLabel;
     private Label? _cityStatsLabel;
     private Label? _commandsTitle;
@@ -69,10 +104,18 @@ public partial class HudController : CanvasLayer
     private ItemList? _attackOfficerList;
     private Label? _attackWarningLabel;
     private AcceptDialog? _officerListDialog;
+    private PanelContainer? _officerListTitlebarFill;
+    private PanelContainer? _officerListHeaderPanel;
+    private Label? _officerListHeaderLabel;
+    private Button? _officerListCloseButton;
     private HBoxContainer? _officerListToolbar;
     private Button? _viewCityOfficersDialogButton;
     private Button? _viewFactionOfficersDialogButton;
+    private Button? _viewCitiesDialogButton;
+    private Button? _officerListConfirmButton;
+    private OptionButton? _cityListFilterOption;
     private OptionButton? _officerSortOption;
+    private Tree? _officerListTable;
     private ItemList? _officerListView;
     private AcceptDialog? _officerDetailDialog;
     private TextureRect? _officerPortraitRect;
@@ -99,19 +142,26 @@ public partial class HudController : CanvasLayer
     private bool _isViewButtonConnected;
     private bool _merchantDialogSignalsConnected;
     private bool _gameEnded;
+    private bool _isDraggingOfficerListDialog;
+    private Vector2I _officerListDialogDragOffset;
     private readonly HashSet<int> _aliveFactionIds = new();
     private CommandType _pendingTargetCommand = CommandType.Pass;
     private Texture2D? _portraitSheetTexture;
     private readonly Dictionary<int, Rect2> _portraitRegions = new();
     private OfficerListMode _officerListMode = OfficerListMode.View;
     private OfficerListScope _officerListScope = OfficerListScope.City;
+    private OfficerListContentMode _officerListContentMode = OfficerListContentMode.Officers;
+    private CityListFilterMode _cityListFilterMode = CityListFilterMode.SelfFaction;
     private OfficerSortMode _officerSortMode = OfficerSortMode.Strength;
+    private ViewTableSortField _viewTableSortField = ViewTableSortField.Name;
+    private bool _viewTableSortAscending = true;
     private CommandType _pendingOfficerCommand = CommandType.Pass;
 
     public override void _Ready()
     {
         _monthLabel = GetNodeOrNull<Label>("Root/TopBar/MonthLabel");
         _playerFactionLabel = GetNodeOrNull<Label>("Root/TopBar/PlayerFactionLabel");
+        _storyLabel = GetNodeOrNull<Label>("Root/TopBar/StoryLabel");
         _languageButton = GetNodeOrNull<Button>("Root/TopBar/LanguageButton");
         _endTurnButton = GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
 
@@ -164,11 +214,28 @@ public partial class HudController : CanvasLayer
         EnsureAttackDialogWidgets();
 
         _officerListDialog = new AcceptDialog();
-        _officerListDialog.Title = "Select Officer";
+        _officerListDialog.Title = " ";
+        _officerListDialog.Borderless = true;
         _officerListDialog.Exclusive = false;
         _officerListDialog.Unfocusable = false;
         _officerListDialog.Confirmed += OnOfficerListDialogConfirmed;
         AddChild(_officerListDialog);
+
+        _officerListTitlebarFill = new PanelContainer
+        {
+            Name = "OfficerListTitlebarFill",
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            OffsetLeft = 0.0f,
+            OffsetTop = 0.0f,
+            OffsetRight = 0.0f,
+            OffsetBottom = 34.0f,
+            AnchorLeft = 0.0f,
+            AnchorTop = 0.0f,
+            AnchorRight = 1.0f,
+            AnchorBottom = 0.0f,
+            Visible = false
+        };
+        _officerListDialog.AddChild(_officerListTitlebarFill);
 
         var officerListRoot = new VBoxContainer
         {
@@ -180,13 +247,68 @@ public partial class HudController : CanvasLayer
         officerListRoot.AddThemeConstantOverride("separation", 8);
         _officerListDialog.AddChild(officerListRoot);
 
+        var officerListContentMargin = new MarginContainer
+        {
+            Name = "OfficerListContentMargin",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        officerListContentMargin.AddThemeConstantOverride("margin_left", 12);
+        officerListContentMargin.AddThemeConstantOverride("margin_top", 8);
+        officerListContentMargin.AddThemeConstantOverride("margin_right", 12);
+        officerListContentMargin.AddThemeConstantOverride("margin_bottom", 8);
+        officerListRoot.AddChild(officerListContentMargin);
+
+        var officerListContent = new VBoxContainer
+        {
+            Name = "OfficerListContent",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        officerListContent.AddThemeConstantOverride("separation", 8);
+        officerListContentMargin.AddChild(officerListContent);
+
+        _officerListHeaderPanel = new PanelContainer
+        {
+            Name = "OfficerListHeaderPanel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _officerListHeaderPanel.GuiInput += OnOfficerListHeaderGuiInput;
+        officerListContent.AddChild(_officerListHeaderPanel);
+
+        var officerListHeaderRow = new HBoxContainer
+        {
+            Name = "OfficerListHeaderRow",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        officerListHeaderRow.AddThemeConstantOverride("separation", 8);
+        _officerListHeaderPanel.AddChild(officerListHeaderRow);
+
+        _officerListHeaderLabel = new Label
+        {
+            Name = "OfficerListHeaderLabel",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        officerListHeaderRow.AddChild(_officerListHeaderLabel);
+
+        _officerListCloseButton = new Button
+        {
+            Name = "OfficerListCloseButton",
+            Text = "X",
+            CustomMinimumSize = new Vector2(28.0f, 24.0f),
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _officerListCloseButton.Pressed += OnOfficerListClosePressed;
+        officerListHeaderRow.AddChild(_officerListCloseButton);
+
         _officerListToolbar = new HBoxContainer
         {
             Name = "OfficerListToolbar",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         _officerListToolbar.AddThemeConstantOverride("separation", 8);
-        officerListRoot.AddChild(_officerListToolbar);
+        officerListContent.AddChild(_officerListToolbar);
 
         _viewCityOfficersDialogButton = new Button
         {
@@ -204,6 +326,22 @@ public partial class HudController : CanvasLayer
         _viewFactionOfficersDialogButton.Pressed += OnViewFactionOfficersDialogPressed;
         _officerListToolbar.AddChild(_viewFactionOfficersDialogButton);
 
+        _viewCitiesDialogButton = new Button
+        {
+            Name = "ViewCitiesButton",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _viewCitiesDialogButton.Pressed += OnViewCitiesDialogPressed;
+        _officerListToolbar.AddChild(_viewCitiesDialogButton);
+
+        _cityListFilterOption = new OptionButton
+        {
+            Name = "CityListFilterOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _cityListFilterOption.ItemSelected += OnCityListFilterOptionSelected;
+        _officerListToolbar.AddChild(_cityListFilterOption);
+
         _officerSortOption = new OptionButton
         {
             Name = "OfficerSortOption",
@@ -211,6 +349,21 @@ public partial class HudController : CanvasLayer
         };
         _officerSortOption.ItemSelected += OnOfficerSortOptionSelected;
         _officerListToolbar.AddChild(_officerSortOption);
+
+        _officerListTable = new Tree
+        {
+            Name = "OfficerListTable",
+            HideRoot = true,
+            ColumnTitlesVisible = true,
+            SelectMode = Tree.SelectModeEnum.Row,
+            CustomMinimumSize = new Vector2(920.0f, 260.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
+        _officerListTable.ItemSelected += OnOfficerListTableSelected;
+        _officerListTable.ItemActivated += OnOfficerListTableActivated;
+        _officerListTable.ColumnTitleClicked += OnOfficerListTableColumnTitleClicked;
+        officerListContent.AddChild(_officerListTable);
 
         _officerListView = new ItemList
         {
@@ -220,7 +373,26 @@ public partial class HudController : CanvasLayer
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
         _officerListView.ItemSelected += OnOfficerListItemSelected;
-        officerListRoot.AddChild(_officerListView);
+        officerListContent.AddChild(_officerListView);
+
+        var officerListConfirmRow = new CenterContainer
+        {
+            Name = "OfficerListConfirmRow",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0.0f, 34.0f)
+        };
+        officerListContent.AddChild(officerListConfirmRow);
+
+        _officerListConfirmButton = new Button
+        {
+            Name = "OfficerListConfirmButton",
+            FocusMode = Control.FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(92.0f, 28.0f)
+        };
+        _officerListConfirmButton.Pressed += OnOfficerListDialogConfirmed;
+        officerListConfirmRow.AddChild(_officerListConfirmButton);
+
+        ApplyOfficerListDialogTheme();
 
         _officerDetailDialog = new AcceptDialog();
         _officerDetailDialog.Exclusive = false;
@@ -526,13 +698,8 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        if (_selectedCity.OfficerIds.Count == 0)
-        {
-            AddLog(_localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.");
-            return;
-        }
-
         _officerListMode = OfficerListMode.View;
+        _officerListContentMode = OfficerListContentMode.Officers;
         _officerListScope = OfficerListScope.City;
         _officerListDialog.OkButtonText = _localization?.T("ui.confirm_officer_selection") ?? "Confirm Selection";
         UpdateOfficerListToolbar();
@@ -548,6 +715,7 @@ public partial class HudController : CanvasLayer
         }
 
         _officerListScope = OfficerListScope.City;
+        _officerListContentMode = OfficerListContentMode.Officers;
         UpdateOfficerListToolbar();
         PopulateOfficerListDialog();
     }
@@ -560,6 +728,19 @@ public partial class HudController : CanvasLayer
         }
 
         _officerListScope = OfficerListScope.Faction;
+        _officerListContentMode = OfficerListContentMode.Officers;
+        UpdateOfficerListToolbar();
+        PopulateOfficerListDialog();
+    }
+
+    private void OnViewCitiesDialogPressed()
+    {
+        if (_officerListMode != OfficerListMode.View)
+        {
+            return;
+        }
+
+        _officerListContentMode = OfficerListContentMode.Cities;
         UpdateOfficerListToolbar();
         PopulateOfficerListDialog();
     }
@@ -574,6 +755,21 @@ public partial class HudController : CanvasLayer
         };
 
         if (_officerListMode == OfficerListMode.View)
+        {
+            PopulateOfficerListDialog();
+        }
+    }
+
+    private void OnCityListFilterOptionSelected(long index)
+    {
+        _cityListFilterMode = index switch
+        {
+            1 => CityListFilterMode.OtherFactions,
+            2 => CityListFilterMode.AllCities,
+            _ => CityListFilterMode.SelfFaction
+        };
+
+        if (_officerListMode == OfficerListMode.View && _officerListContentMode == OfficerListContentMode.Cities)
         {
             PopulateOfficerListDialog();
         }
@@ -790,6 +986,21 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        if (_officerListMode == OfficerListMode.View && _officerListContentMode == OfficerListContentMode.Cities)
+        {
+            var city = _turnManager.World.GetCity(metadata.AsInt32());
+            if (city == null)
+            {
+                return;
+            }
+
+            _selectedCity = city;
+            RefreshSelectedCity();
+            _mapController?.SelectCityById(city.Id);
+            _officerListDialog?.Hide();
+            return;
+        }
+
         var officer = _turnManager.World.GetOfficer(metadata.AsInt32());
         if (officer == null)
         {
@@ -836,10 +1047,159 @@ public partial class HudController : CanvasLayer
         }
     }
 
+    private void OnOfficerListClosePressed()
+    {
+        _officerListDialog?.Hide();
+    }
+
+    private void OnOfficerListHeaderGuiInput(InputEvent inputEvent)
+    {
+        if (_officerListDialog == null)
+        {
+            return;
+        }
+
+        if (inputEvent is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
+        {
+            _isDraggingOfficerListDialog = mouseButton.Pressed;
+            if (_isDraggingOfficerListDialog)
+            {
+                _officerListDialogDragOffset = DisplayServer.MouseGetPosition() - _officerListDialog.Position;
+            }
+
+            return;
+        }
+
+        if (_isDraggingOfficerListDialog && inputEvent is InputEventMouseMotion)
+        {
+            _officerListDialog.Position = DisplayServer.MouseGetPosition() - _officerListDialogDragOffset;
+        }
+    }
+
+    private void OnOfficerListTableSelected()
+    {
+        if (_turnManager?.World == null || _officerListTable == null)
+        {
+            return;
+        }
+
+        var selectedItem = _officerListTable.GetSelected();
+        if (selectedItem == null)
+        {
+            return;
+        }
+
+        ApplyViewTableSelectionHighlight(selectedItem);
+
+        var metadata = selectedItem.GetMetadata(0);
+        if (metadata.VariantType != Variant.Type.Int)
+        {
+            return;
+        }
+
+        if (_officerListContentMode == OfficerListContentMode.Cities)
+        {
+            return;
+        }
+
+        var officer = _turnManager.World.GetOfficer(metadata.AsInt32());
+        if (officer == null)
+        {
+            return;
+        }
+
+        if (_officerDetailDialog == null)
+        {
+            return;
+        }
+
+        _officerDetailDialog.Title = _localization?.T("ui.officer_detail") ?? "Officer Details";
+        if (_officerDetailText != null)
+        {
+            _officerDetailText.Text = BuildOfficerDetailText(officer);
+        }
+
+        if (_officerPortraitRect != null)
+        {
+            _officerPortraitRect.Texture = BuildOfficerPortraitTexture(officer.Id);
+        }
+
+        if (_officerPortraitPlaceholderLabel != null)
+        {
+            var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+            var hasPortrait = _officerPortraitRect?.Texture != null;
+            _officerPortraitPlaceholderLabel.Visible = !hasPortrait;
+            _officerPortraitPlaceholderLabel.Text = $"{(_localization?.T("ui.portrait") ?? "Portrait")}\n{officerName}";
+        }
+
+        _officerDetailDialog.DialogText = string.Empty;
+        if (_officerDetailDialog.Visible)
+        {
+            _officerDetailDialog.Show();
+        }
+        else
+        {
+            _officerDetailDialog.PopupCentered(new Vector2I(520, 340));
+        }
+    }
+
+    private void OnOfficerListTableActivated()
+    {
+        if (_turnManager?.World == null || _officerListTable == null || _officerListContentMode != OfficerListContentMode.Cities)
+        {
+            return;
+        }
+
+        var selectedItem = _officerListTable.GetSelected();
+        if (selectedItem == null)
+        {
+            return;
+        }
+
+        var metadata = selectedItem.GetMetadata(0);
+        if (metadata.VariantType != Variant.Type.Int)
+        {
+            return;
+        }
+
+        var city = _turnManager.World.GetCity(metadata.AsInt32());
+        if (city == null)
+        {
+            return;
+        }
+
+        _selectedCity = city;
+        RefreshSelectedCity();
+        _mapController?.SelectCityById(city.Id);
+        _officerListDialog?.Hide();
+    }
+
+    private void OnOfficerListTableColumnTitleClicked(long column, long mouseButtonIndex)
+    {
+        if (_officerListMode != OfficerListMode.View)
+        {
+            return;
+        }
+
+        var nextField = GetViewTableSortFieldForColumn((int)column);
+        if (_viewTableSortField == nextField)
+        {
+            _viewTableSortAscending = !_viewTableSortAscending;
+        }
+        else
+        {
+            _viewTableSortField = nextField;
+            _viewTableSortAscending = IsAscendingDefaultSortField(nextField);
+        }
+
+        PopulateOfficerListDialog();
+    }
+
     private void OnOfficerListDialogConfirmed()
     {
         if (_officerListMode != OfficerListMode.CommandSelection || _officerListView == null)
         {
+            _officerListDialog?.Hide();
             return;
         }
 
@@ -847,7 +1207,6 @@ public partial class HudController : CanvasLayer
         if (selectedItems.Length == 0)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? "Select one officer first.");
-            ReopenOfficerListDialog();
             return;
         }
 
@@ -855,7 +1214,6 @@ public partial class HudController : CanvasLayer
         if (metadata.VariantType != Variant.Type.Int)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? "Select one officer first.");
-            ReopenOfficerListDialog();
             return;
         }
 
@@ -865,28 +1223,82 @@ public partial class HudController : CanvasLayer
             _officerListDialog?.Hide();
             return;
         }
-
-        ReopenOfficerListDialog();
     }
 
     private void PopulateOfficerListDialog()
     {
-        if (_selectedCity == null || _turnManager?.World == null || _officerListView == null)
+        if (_selectedCity == null || _turnManager?.World == null || _officerListView == null || _officerListTable == null)
         {
             return;
         }
 
-        _officerListView.Clear();
+        var isViewTable = _officerListMode == OfficerListMode.View;
+        _officerListTable.Visible = isViewTable;
+        _officerListView.Visible = !isViewTable;
 
-        var officers = new List<OfficerData>();
-        string emptyMessage;
-        var includeCityName = false;
-        if (_officerListMode == OfficerListMode.View && _officerListScope == OfficerListScope.Faction)
+        if (!isViewTable)
         {
-            var faction = _turnManager.World.GetFaction(_selectedCity.OwnerFactionId);
-            if (faction != null)
+            _officerListView.Clear();
+            foreach (var officerId in _selectedCity.OfficerIds)
             {
-                foreach (var officerId in faction.OfficerIds)
+                var officer = _turnManager.World.GetOfficer(officerId);
+                if (officer == null)
+                {
+                    continue;
+                }
+
+                var itemIndex = _officerListView.AddItem(BuildOfficerListRowText(officer));
+                _officerListView.SetItemMetadata(itemIndex, officer.Id);
+            }
+
+            return;
+        }
+
+        _officerListTable.Clear();
+        ConfigureViewTableColumns();
+        var root = _officerListTable.CreateItem();
+
+        if (_officerListMode == OfficerListMode.View && _officerListContentMode == OfficerListContentMode.Cities)
+        {
+            var cities = GetFilteredCities();
+            for (var index = 0; index < cities.Count; index += 1)
+            {
+                var row = _officerListTable.CreateItem(root);
+                PopulateCityTableRow(row, cities[index]);
+                ApplyViewTableRowStriping(row, index, 10);
+            }
+
+            if (cities.Count == 0)
+            {
+                AddLog(_localization?.T("ui.no_city_in_scope") ?? "No cities available in this view.");
+            }
+        }
+        else
+        {
+            var officers = new List<OfficerData>();
+            string emptyMessage;
+            var includeCityName = false;
+            if (_officerListMode == OfficerListMode.View && _officerListScope == OfficerListScope.Faction)
+            {
+                var faction = _turnManager.World.GetFaction(_selectedCity.OwnerFactionId);
+                if (faction != null)
+                {
+                    foreach (var officerId in faction.OfficerIds)
+                    {
+                        var officer = _turnManager.World.GetOfficer(officerId);
+                        if (officer != null)
+                        {
+                            officers.Add(officer);
+                        }
+                    }
+                }
+
+                emptyMessage = _localization?.T("ui.no_officer_in_faction") ?? "No officers available in this faction.";
+                includeCityName = true;
+            }
+            else
+            {
+                foreach (var officerId in _selectedCity.OfficerIds)
                 {
                     var officer = _turnManager.World.GetOfficer(officerId);
                     if (officer != null)
@@ -894,42 +1306,327 @@ public partial class HudController : CanvasLayer
                         officers.Add(officer);
                     }
                 }
+
+                emptyMessage = _localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.";
             }
 
-            emptyMessage = _localization?.T("ui.no_officer_in_faction") ?? "No officers available in this faction.";
-            includeCityName = true;
-        }
-        else
-        {
-            foreach (var officerId in _selectedCity.OfficerIds)
+            var sortedOfficers = GetSortedOfficers(officers).ToList();
+            var columnCount = includeCityName ? 8 : 7;
+            for (var index = 0; index < sortedOfficers.Count; index += 1)
             {
-                var officer = _turnManager.World.GetOfficer(officerId);
-                if (officer != null)
-                {
-                    officers.Add(officer);
-                }
+                var row = _officerListTable.CreateItem(root);
+                PopulateOfficerTableRow(row, sortedOfficers[index], includeCityName);
+                ApplyViewTableRowStriping(row, index, columnCount);
             }
 
-            emptyMessage = _localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.";
-        }
-
-        foreach (var officer in GetSortedOfficers(officers))
-        {
-            var itemIndex = _officerListView.AddItem(BuildOfficerListRowText(officer, includeCityName));
-            _officerListView.SetItemMetadata(itemIndex, officer.Id);
-        }
-
-        if (_officerListView.ItemCount == 0)
-        {
-            AddLog(emptyMessage);
+            if (officers.Count == 0)
+            {
+                AddLog(emptyMessage);
+            }
         }
 
         UpdateOfficerListDialogTitle();
     }
 
+    private List<CityData> GetFilteredCities()
+    {
+        if (_turnManager?.World == null || _selectedCity == null)
+        {
+            return new List<CityData>();
+        }
+
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        var result = new List<CityData>();
+        foreach (var city in _turnManager.World.Cities)
+        {
+            var include = _cityListFilterMode switch
+            {
+                CityListFilterMode.OtherFactions => city.OwnerFactionId > 0 && city.OwnerFactionId != playerFactionId,
+                CityListFilterMode.AllCities => true,
+                _ => city.OwnerFactionId == playerFactionId
+            };
+
+            if (include)
+            {
+                result.Add(city);
+            }
+        }
+
+        IOrderedEnumerable<CityData> ordered = _viewTableSortField switch
+        {
+            ViewTableSortField.Owner => _viewTableSortAscending
+                ? result.OrderBy(city => _localization?.GetFactionName(_turnManager.World, city.OwnerFactionId) ?? city.OwnerFactionId.ToString())
+                : result.OrderByDescending(city => _localization?.GetFactionName(_turnManager.World, city.OwnerFactionId) ?? city.OwnerFactionId.ToString()),
+            ViewTableSortField.Gold => _viewTableSortAscending
+                ? result.OrderBy(city => city.Gold)
+                : result.OrderByDescending(city => city.Gold),
+            ViewTableSortField.Food => _viewTableSortAscending
+                ? result.OrderBy(city => city.Food)
+                : result.OrderByDescending(city => city.Food),
+            ViewTableSortField.Troops => _viewTableSortAscending
+                ? result.OrderBy(city => city.Troops)
+                : result.OrderByDescending(city => city.Troops),
+            ViewTableSortField.OfficerCount => _viewTableSortAscending
+                ? result.OrderBy(city => city.OfficerIds.Count)
+                : result.OrderByDescending(city => city.OfficerIds.Count),
+            ViewTableSortField.Farm => _viewTableSortAscending
+                ? result.OrderBy(city => city.Farm)
+                : result.OrderByDescending(city => city.Farm),
+            ViewTableSortField.Commercial => _viewTableSortAscending
+                ? result.OrderBy(city => city.Commercial)
+                : result.OrderByDescending(city => city.Commercial),
+            ViewTableSortField.Defense => _viewTableSortAscending
+                ? result.OrderBy(city => city.Defense)
+                : result.OrderByDescending(city => city.Defense),
+            ViewTableSortField.Loyalty => _viewTableSortAscending
+                ? result.OrderBy(city => city.Loyalty)
+                : result.OrderByDescending(city => city.Loyalty),
+            _ => _viewTableSortAscending
+                ? result.OrderBy(city => _localization?.GetCityName(city) ?? city.NameEn)
+                : result.OrderByDescending(city => _localization?.GetCityName(city) ?? city.NameEn)
+        };
+
+        return ordered
+            .ThenBy(city => city.Id)
+            .ToList();
+    }
+
+    private void ConfigureViewTableColumns()
+    {
+        if (_officerListTable == null || _localization == null)
+        {
+            return;
+        }
+
+        if (_officerListContentMode == OfficerListContentMode.Cities)
+        {
+            _officerListTable.Columns = 10;
+            SetViewTableColumn(0, _localization.T("ui.city"), 130, ViewTableSortField.Name);
+            SetViewTableColumn(1, _localization.T("ui.owner"), 140, ViewTableSortField.Owner);
+            SetViewTableColumn(2, _localization.T("ui.gold"), 90, ViewTableSortField.Gold);
+            SetViewTableColumn(3, _localization.T("ui.food"), 90, ViewTableSortField.Food);
+            SetViewTableColumn(4, _localization.T("ui.troops"), 90, ViewTableSortField.Troops);
+            SetViewTableColumn(5, _localization.T("ui.officers"), 90, ViewTableSortField.OfficerCount);
+            SetViewTableColumn(6, _localization.T("ui.farm"), 90, ViewTableSortField.Farm);
+            SetViewTableColumn(7, _localization.T("ui.commercial"), 110, ViewTableSortField.Commercial);
+            SetViewTableColumn(8, _localization.T("ui.defense"), 90, ViewTableSortField.Defense);
+            SetViewTableColumn(9, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
+            return;
+        }
+
+        var includeCityName = _officerListScope == OfficerListScope.Faction;
+        _officerListTable.Columns = includeCityName ? 8 : 7;
+        SetViewTableColumn(0, _localization.T("ui.officers"), 170, ViewTableSortField.Name);
+        SetViewTableColumn(1, _localization.T("ui.role"), 120, ViewTableSortField.Role);
+        SetViewTableColumn(2, _localization.T("ui.status"), 100, ViewTableSortField.Status);
+        if (includeCityName)
+        {
+            SetViewTableColumn(3, _localization.T("ui.city"), 140, ViewTableSortField.City);
+            SetViewTableColumn(4, _localization.T("ui.age"), 70, ViewTableSortField.Age);
+            SetViewTableColumn(5, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
+            SetViewTableColumn(6, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
+            SetViewTableColumn(7, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
+        }
+        else
+        {
+            SetViewTableColumn(3, _localization.T("ui.age"), 70, ViewTableSortField.Age);
+            SetViewTableColumn(4, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
+            SetViewTableColumn(5, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
+            SetViewTableColumn(6, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
+        }
+    }
+
+    private void SetViewTableColumn(int column, string title, int minWidth, ViewTableSortField field)
+    {
+        _officerListTable?.SetColumnTitle(column, BuildSortableColumnTitle(title, field));
+        _officerListTable?.SetColumnCustomMinimumWidth(column, minWidth);
+        _officerListTable?.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
+    }
+
+    private string BuildSortableColumnTitle(string title, ViewTableSortField field)
+    {
+        if (_viewTableSortField != field)
+        {
+            return title;
+        }
+
+        return _viewTableSortAscending ? $"{title} ▲" : $"{title} ▼";
+    }
+
+    private static void ApplyViewTableRowStriping(TreeItem row, int rowIndex, int columnCount)
+    {
+        var background = rowIndex % 2 == 0
+            ? new Color(0.98f, 0.95f, 0.89f, 0.92f)
+            : new Color(0.93f, 0.88f, 0.78f, 0.9f);
+        var textColor = new Color(0.13f, 0.09f, 0.05f, 1.0f);
+
+        for (var column = 0; column < columnCount; column += 1)
+        {
+            row.SetCustomBgColor(column, background, false);
+            row.SetCustomColor(column, textColor);
+        }
+    }
+
+    private void ApplyViewTableSelectionHighlight(TreeItem selectedRow)
+    {
+        if (_officerListTable == null)
+        {
+            return;
+        }
+
+        var root = _officerListTable.GetRoot();
+        if (root == null)
+        {
+            return;
+        }
+
+        var columnCount = _officerListTable.Columns;
+        var row = root.GetFirstChild();
+        var rowIndex = 0;
+        while (row != null)
+        {
+            if (row == selectedRow)
+            {
+                ApplyViewTableSelectedRowStyle(row, columnCount);
+            }
+            else
+            {
+                ApplyViewTableRowStriping(row, rowIndex, columnCount);
+            }
+
+            row = row.GetNext();
+            rowIndex += 1;
+        }
+    }
+
+    private static void ApplyViewTableSelectedRowStyle(TreeItem row, int columnCount)
+    {
+        var background = new Color(0.82f, 0.68f, 0.38f, 1.0f);
+        var textColor = new Color(0.22f, 0.05f, 0.02f, 1.0f);
+
+        for (var column = 0; column < columnCount; column += 1)
+        {
+            row.SetCustomBgColor(column, background, false);
+            row.SetCustomColor(column, textColor);
+        }
+    }
+
+    private void PopulateOfficerTableRow(TreeItem row, OfficerData officer, bool includeCityName)
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        row.SetMetadata(0, officer.Id);
+        row.SetText(0, _localization.GetOfficerName(officer));
+        row.SetText(1, _localization.GetOfficerRole(officer));
+        var world = _turnManager!.World!;
+        row.SetText(2, _localization.GetOfficerStatus(world, officer));
+        var officerAge = CalculateOfficerAge(officer, world.Year);
+        var loyaltyText = BuildOfficerLoyaltyTableText(world, officer);
+        if (includeCityName)
+        {
+            var city = _turnManager?.World?.GetCity(officer.CityId);
+            row.SetText(3, city != null ? _localization.GetCityName(city) : "-");
+            row.SetText(4, officerAge.ToString());
+            row.SetText(5, loyaltyText);
+            row.SetText(6, officer.Strength.ToString());
+            row.SetText(7, officer.Intelligence.ToString());
+        }
+        else
+        {
+            row.SetText(3, officerAge.ToString());
+            row.SetText(4, loyaltyText);
+            row.SetText(5, officer.Strength.ToString());
+            row.SetText(6, officer.Intelligence.ToString());
+        }
+    }
+
+    private static string BuildOfficerLoyaltyTableText(WorldState world, OfficerData officer)
+    {
+        return IsFactionRuler(world, officer) ? "-" : officer.Loyalty.ToString();
+    }
+
+    private static bool IsFactionRuler(WorldState world, OfficerData officer)
+    {
+        return world.Factions.Any(faction => faction.RulerOfficerId == officer.Id);
+    }
+
+    private void PopulateCityTableRow(TreeItem row, CityData city)
+    {
+        if (_localization == null || _turnManager?.World == null)
+        {
+            return;
+        }
+
+        row.SetMetadata(0, city.Id);
+        row.SetText(0, _localization.GetCityName(city));
+        row.SetText(1, _localization.GetFactionName(_turnManager.World, city.OwnerFactionId));
+        row.SetText(2, city.Gold.ToString());
+        row.SetText(3, city.Food.ToString());
+        row.SetText(4, city.Troops.ToString());
+        row.SetText(5, city.OfficerIds.Count.ToString());
+        row.SetText(6, city.Farm.ToString());
+        row.SetText(7, city.Commercial.ToString());
+        row.SetText(8, city.Defense.ToString());
+        row.SetText(9, city.Loyalty.ToString());
+    }
+
+    private ViewTableSortField GetViewTableSortFieldForColumn(int column)
+    {
+        if (_officerListContentMode == OfficerListContentMode.Cities)
+        {
+            return column switch
+            {
+                1 => ViewTableSortField.Owner,
+                2 => ViewTableSortField.Gold,
+                3 => ViewTableSortField.Food,
+                4 => ViewTableSortField.Troops,
+                5 => ViewTableSortField.OfficerCount,
+                6 => ViewTableSortField.Farm,
+                7 => ViewTableSortField.Commercial,
+                8 => ViewTableSortField.Defense,
+                9 => ViewTableSortField.Loyalty,
+                _ => ViewTableSortField.Name
+            };
+        }
+
+        if (_officerListScope == OfficerListScope.Faction)
+        {
+            return column switch
+            {
+                1 => ViewTableSortField.Role,
+                2 => ViewTableSortField.Status,
+                3 => ViewTableSortField.City,
+                4 => ViewTableSortField.Age,
+                5 => ViewTableSortField.OfficerLoyalty,
+                6 => ViewTableSortField.Strength,
+                7 => ViewTableSortField.Intelligence,
+                _ => ViewTableSortField.Name
+            };
+        }
+
+        return column switch
+        {
+            1 => ViewTableSortField.Role,
+            2 => ViewTableSortField.Status,
+            3 => ViewTableSortField.Age,
+            4 => ViewTableSortField.OfficerLoyalty,
+            5 => ViewTableSortField.Strength,
+            6 => ViewTableSortField.Intelligence,
+            _ => ViewTableSortField.Name
+        };
+    }
+
+    private static bool IsAscendingDefaultSortField(ViewTableSortField field)
+    {
+        return field is ViewTableSortField.Name or ViewTableSortField.Role or ViewTableSortField.Status or ViewTableSortField.City or ViewTableSortField.Owner;
+    }
+
     private void UpdateOfficerListToolbar()
     {
-        if (_officerListToolbar == null || _viewCityOfficersDialogButton == null || _viewFactionOfficersDialogButton == null || _officerSortOption == null || _selectedCity == null || _turnManager?.World == null || _localization == null)
+        if (_officerListToolbar == null || _viewCityOfficersDialogButton == null || _viewFactionOfficersDialogButton == null || _viewCitiesDialogButton == null || _cityListFilterOption == null || _officerSortOption == null || _selectedCity == null || _turnManager?.World == null || _localization == null)
         {
             return;
         }
@@ -943,6 +1640,27 @@ public partial class HudController : CanvasLayer
 
         _viewCityOfficersDialogButton.Text = _localization.T("ui.view_city_officers");
         _viewFactionOfficersDialogButton.Text = _localization.T("ui.view_faction_officers");
+        _viewCitiesDialogButton.Text = _localization.T("ui.view_cities");
+        if (_cityListFilterOption.ItemCount == 0)
+        {
+            _cityListFilterOption.AddItem(_localization.T("ui.city_filter_self"));
+            _cityListFilterOption.AddItem(_localization.T("ui.city_filter_other"));
+            _cityListFilterOption.AddItem(_localization.T("ui.city_filter_all"));
+        }
+        else
+        {
+            _cityListFilterOption.SetItemText(0, _localization.T("ui.city_filter_self"));
+            _cityListFilterOption.SetItemText(1, _localization.T("ui.city_filter_other"));
+            _cityListFilterOption.SetItemText(2, _localization.T("ui.city_filter_all"));
+        }
+
+        _cityListFilterOption.Select(_cityListFilterMode switch
+        {
+            CityListFilterMode.OtherFactions => 1,
+            CityListFilterMode.AllCities => 2,
+            _ => 0
+        });
+
         if (_officerSortOption.ItemCount == 0)
         {
             _officerSortOption.AddItem(_localization.T("ui.sort_strength"));
@@ -965,13 +1683,16 @@ public partial class HudController : CanvasLayer
 
         var hasFaction = _selectedCity.OwnerFactionId > 0 && _turnManager.World.GetFaction(_selectedCity.OwnerFactionId) != null;
         _viewFactionOfficersDialogButton.Visible = hasFaction;
-        _viewCityOfficersDialogButton.Disabled = _officerListScope == OfficerListScope.City;
-        _viewFactionOfficersDialogButton.Disabled = !hasFaction || _officerListScope == OfficerListScope.Faction;
+        _viewCityOfficersDialogButton.Disabled = _officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.City;
+        _viewFactionOfficersDialogButton.Disabled = !hasFaction || (_officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.Faction);
+        _viewCitiesDialogButton.Disabled = _officerListContentMode == OfficerListContentMode.Cities;
+        _cityListFilterOption.Visible = _officerListContentMode == OfficerListContentMode.Cities;
+        _officerSortOption.Visible = false;
     }
 
     private void UpdateOfficerListDialogTitle()
     {
-        if (_officerListDialog == null || _localization == null)
+        if (_localization == null)
         {
             return;
         }
@@ -981,28 +1702,76 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        _officerListDialog.Title = _officerListScope == OfficerListScope.Faction
+        if (_officerListContentMode == OfficerListContentMode.Cities)
+        {
+            SetOfficerListDialogTitle(_cityListFilterMode switch
+            {
+                CityListFilterMode.OtherFactions => _localization.T("ui.view_dialog_title_other_cities"),
+                CityListFilterMode.AllCities => _localization.T("ui.view_dialog_title_all_cities"),
+                _ => _localization.T("ui.view_dialog_title_self_cities")
+            });
+            return;
+        }
+
+        SetOfficerListDialogTitle(_officerListScope == OfficerListScope.Faction
             ? _localization.T("ui.view_dialog_title_faction")
-            : _localization.T("ui.view_dialog_title_city");
+            : _localization.Format("fmt.view_dialog_title_city_name", _selectedCity != null ? _localization.GetCityName(_selectedCity) : _localization.T("ui.view_dialog_title_city")));
+    }
+
+    private void SetOfficerListDialogTitle(string title)
+    {
+        if (_officerListDialog != null)
+        {
+            // Keep the built-in titlebar visually quiet and show the real title in our themed header row.
+            _officerListDialog.Title = " ";
+        }
+
+        if (_officerListHeaderLabel != null)
+        {
+            _officerListHeaderLabel.Text = title;
+        }
     }
 
     private IEnumerable<OfficerData> GetSortedOfficers(List<OfficerData> officers)
     {
-        return _officerSortMode switch
+        return _viewTableSortField switch
         {
-            OfficerSortMode.Intelligence => officers
-                .OrderByDescending(officer => officer.Intelligence)
-                .ThenByDescending(officer => officer.Strength)
-                .ThenBy(officer => _localization?.GetOfficerName(officer) ?? officer.Name),
-            OfficerSortMode.Status => officers
-                .OrderBy(officer => GetOfficerStatusSortKey(officer))
-                .ThenByDescending(officer => officer.Strength)
-                .ThenBy(officer => _localization?.GetOfficerName(officer) ?? officer.Name),
-            _ => officers
-                .OrderByDescending(officer => officer.Strength)
-                .ThenByDescending(officer => officer.Intelligence)
-                .ThenBy(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
+            ViewTableSortField.Role => _viewTableSortAscending
+                ? officers.OrderBy(officer => _localization?.GetOfficerRole(officer) ?? officer.Role)
+                : officers.OrderByDescending(officer => _localization?.GetOfficerRole(officer) ?? officer.Role),
+            ViewTableSortField.Status => _viewTableSortAscending
+                ? officers.OrderBy(officer => GetOfficerStatusSortKey(officer))
+                : officers.OrderByDescending(officer => GetOfficerStatusSortKey(officer)),
+            ViewTableSortField.City => _viewTableSortAscending
+                ? officers.OrderBy(officer => GetOfficerCityNameForSort(officer))
+                : officers.OrderByDescending(officer => GetOfficerCityNameForSort(officer)),
+            ViewTableSortField.Age => _viewTableSortAscending
+                ? officers.OrderBy(officer => CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0))
+                : officers.OrderByDescending(officer => CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0)),
+            ViewTableSortField.OfficerLoyalty => _viewTableSortAscending
+                ? officers.OrderBy(officer => officer.Loyalty)
+                : officers.OrderByDescending(officer => officer.Loyalty),
+            ViewTableSortField.Strength => _viewTableSortAscending
+                ? officers.OrderBy(officer => officer.Strength)
+                : officers.OrderByDescending(officer => officer.Strength),
+            ViewTableSortField.Intelligence => _viewTableSortAscending
+                ? officers.OrderBy(officer => officer.Intelligence)
+                : officers.OrderByDescending(officer => officer.Intelligence),
+            _ => _viewTableSortAscending
+                ? officers.OrderBy(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
+                : officers.OrderByDescending(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
         };
+    }
+
+    private string GetOfficerCityNameForSort(OfficerData officer)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return string.Empty;
+        }
+
+        var city = _turnManager.World.GetCity(officer.CityId);
+        return city != null ? _localization.GetCityName(city) : string.Empty;
     }
 
     private int GetOfficerStatusSortKey(OfficerData officer)
@@ -1720,9 +2489,18 @@ public partial class HudController : CanvasLayer
 
         _pendingOfficerCommand = commandType;
         _officerListMode = OfficerListMode.CommandSelection;
-        _officerListDialog.Title = _localization.Format("fmt.select_officer_for_command", GetCommandName(commandType));
+        SetOfficerListDialogTitle(_localization.Format("fmt.select_officer_for_command", GetCommandName(commandType)));
         _officerListDialog.OkButtonText = _localization.T("ui.confirm_officer_selection");
+        if (_officerListConfirmButton != null)
+        {
+            _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
+        }
         UpdateOfficerListToolbar();
+        if (_officerListTable != null)
+        {
+            _officerListTable.Visible = false;
+        }
+        _officerListView.Visible = true;
         _officerListView.Clear();
 
         foreach (var officerId in _selectedCity.OfficerIds)
@@ -2089,6 +2867,255 @@ public partial class HudController : CanvasLayer
         RefreshAllText();
     }
 
+    private void ApplyOfficerListDialogTheme()
+    {
+        if (_officerListDialog == null)
+        {
+            return;
+        }
+
+        var dialogPanel = new StyleBoxFlat
+        {
+            BgColor = new Color(0.96f, 0.94f, 0.88f, 1.0f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.56f, 0.45f, 0.29f, 1.0f),
+            CornerRadiusTopLeft = 10,
+            CornerRadiusTopRight = 10,
+            CornerRadiusBottomRight = 10,
+            CornerRadiusBottomLeft = 10
+        };
+        _officerListDialog.AddThemeStyleboxOverride("panel", dialogPanel);
+        var embeddedBorder = new StyleBoxFlat
+        {
+            BgColor = new Color(0.92f, 0.88f, 0.8f, 1.0f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 26,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.56f, 0.45f, 0.29f, 1.0f),
+            CornerRadiusTopLeft = 10,
+            CornerRadiusTopRight = 10,
+            CornerRadiusBottomRight = 10,
+            CornerRadiusBottomLeft = 10
+        };
+        var embeddedBorderUnfocused = (StyleBoxFlat)embeddedBorder.Duplicate();
+        embeddedBorderUnfocused.BgColor = new Color(0.88f, 0.84f, 0.77f, 1.0f);
+        embeddedBorderUnfocused.BorderColor = new Color(0.54f, 0.45f, 0.33f, 1.0f);
+        _officerListDialog.AddThemeStyleboxOverride("embedded_border", embeddedBorder);
+        _officerListDialog.AddThemeStyleboxOverride("embedded_unfocused_border", embeddedBorderUnfocused);
+        _officerListDialog.AddThemeColorOverride("title_color", new Color(0.27f, 0.2f, 0.12f, 1.0f));
+        var titleButtonNormal = new StyleBoxFlat
+        {
+            BgColor = new Color(0.92f, 0.88f, 0.8f, 1.0f),
+            BorderWidthLeft = 0,
+            BorderWidthTop = 0,
+            BorderWidthRight = 0,
+            BorderWidthBottom = 0
+        };
+        var titleButtonHover = (StyleBoxFlat)titleButtonNormal.Duplicate();
+        titleButtonHover.BgColor = new Color(0.95f, 0.91f, 0.83f, 1.0f);
+        var titleButtonPressed = (StyleBoxFlat)titleButtonNormal.Duplicate();
+        titleButtonPressed.BgColor = new Color(0.84f, 0.77f, 0.64f, 1.0f);
+        _officerListDialog.AddThemeStyleboxOverride("close", titleButtonNormal);
+        _officerListDialog.AddThemeStyleboxOverride("close_pressed", titleButtonPressed);
+        _officerListDialog.AddThemeStyleboxOverride("title_button_normal", titleButtonNormal);
+        _officerListDialog.AddThemeStyleboxOverride("title_button_hover", titleButtonHover);
+        _officerListDialog.AddThemeStyleboxOverride("title_button_pressed", titleButtonPressed);
+        _officerListDialog.AddThemeColorOverride("close_color", new Color(0.34f, 0.24f, 0.14f, 1.0f));
+        _officerListDialog.AddThemeColorOverride("close_hover_color", new Color(0.22f, 0.16f, 0.09f, 1.0f));
+
+        if (_officerListHeaderPanel != null)
+        {
+            var headerPanel = new StyleBoxFlat
+            {
+                BgColor = new Color(0.9f, 0.84f, 0.71f, 0.98f),
+                BorderWidthLeft = 1,
+                BorderWidthTop = 1,
+                BorderWidthRight = 1,
+                BorderWidthBottom = 1,
+                BorderColor = new Color(0.62f, 0.49f, 0.29f, 1.0f),
+                CornerRadiusTopLeft = 7,
+                CornerRadiusTopRight = 7,
+                CornerRadiusBottomRight = 7,
+                CornerRadiusBottomLeft = 7,
+                ContentMarginLeft = 10,
+                ContentMarginTop = 6,
+                ContentMarginRight = 10,
+                ContentMarginBottom = 6
+            };
+            _officerListHeaderPanel.AddThemeStyleboxOverride("panel", headerPanel);
+        }
+
+        if (_officerListTitlebarFill != null)
+        {
+            var titlebarFillPanel = new StyleBoxFlat
+            {
+                BgColor = new Color(0.92f, 0.88f, 0.8f, 1.0f),
+                BorderWidthLeft = 0,
+                BorderWidthTop = 0,
+                BorderWidthRight = 0,
+                BorderWidthBottom = 0,
+                CornerRadiusTopLeft = 10,
+                CornerRadiusTopRight = 10
+            };
+            _officerListTitlebarFill.AddThemeStyleboxOverride("panel", titlebarFillPanel);
+        }
+
+        if (_officerListHeaderLabel != null)
+        {
+            _officerListHeaderLabel.AddThemeColorOverride("font_color", new Color(0.25f, 0.18f, 0.1f, 1.0f));
+        }
+
+        if (_officerListCloseButton != null)
+        {
+            var closeNormal = new StyleBoxFlat
+            {
+                BgColor = new Color(0.86f, 0.78f, 0.62f, 1.0f),
+                BorderWidthLeft = 1,
+                BorderWidthTop = 1,
+                BorderWidthRight = 1,
+                BorderWidthBottom = 1,
+                BorderColor = new Color(0.54f, 0.42f, 0.25f, 1.0f),
+                CornerRadiusTopLeft = 5,
+                CornerRadiusTopRight = 5,
+                CornerRadiusBottomRight = 5,
+                CornerRadiusBottomLeft = 5
+            };
+            var closeHover = (StyleBoxFlat)closeNormal.Duplicate();
+            closeHover.BgColor = new Color(0.94f, 0.84f, 0.66f, 1.0f);
+            var closePressed = (StyleBoxFlat)closeNormal.Duplicate();
+            closePressed.BgColor = new Color(0.73f, 0.61f, 0.42f, 1.0f);
+
+            _officerListCloseButton.AddThemeStyleboxOverride("normal", closeNormal);
+            _officerListCloseButton.AddThemeStyleboxOverride("hover", closeHover);
+            _officerListCloseButton.AddThemeStyleboxOverride("pressed", closePressed);
+            _officerListCloseButton.AddThemeColorOverride("font_color", new Color(0.22f, 0.15f, 0.08f, 1.0f));
+        }
+
+        var okNormal = new StyleBoxFlat
+        {
+            BgColor = new Color(0.86f, 0.78f, 0.6f, 1.0f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.48f, 0.36f, 0.2f, 1.0f),
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomRight = 6,
+            CornerRadiusBottomLeft = 6
+        };
+        var okHover = (StyleBoxFlat)okNormal.Duplicate();
+        okHover.BgColor = new Color(0.91f, 0.84f, 0.67f, 1.0f);
+        var okPressed = (StyleBoxFlat)okNormal.Duplicate();
+        okPressed.BgColor = new Color(0.76f, 0.65f, 0.46f, 1.0f);
+
+        _officerListDialog.GetOkButton().Visible = false;
+        if (_officerListConfirmButton != null)
+        {
+            _officerListConfirmButton.AddThemeStyleboxOverride("normal", okNormal);
+            _officerListConfirmButton.AddThemeStyleboxOverride("hover", okHover);
+            _officerListConfirmButton.AddThemeStyleboxOverride("pressed", okPressed);
+            _officerListConfirmButton.AddThemeColorOverride("font_color", new Color(0.14f, 0.1f, 0.06f, 1.0f));
+        }
+
+        foreach (var button in new[] { _viewCityOfficersDialogButton, _viewFactionOfficersDialogButton, _viewCitiesDialogButton })
+        {
+            if (button == null)
+            {
+                continue;
+            }
+
+            var normal = new StyleBoxFlat
+            {
+                BgColor = new Color(0.88f, 0.81f, 0.65f, 0.97f),
+                BorderWidthLeft = 1,
+                BorderWidthTop = 1,
+                BorderWidthRight = 1,
+                BorderWidthBottom = 1,
+                BorderColor = new Color(0.54f, 0.42f, 0.24f, 1.0f),
+                CornerRadiusTopLeft = 6,
+                CornerRadiusTopRight = 6,
+                CornerRadiusBottomRight = 6,
+                CornerRadiusBottomLeft = 6
+            };
+            var hover = (StyleBoxFlat)normal.Duplicate();
+            hover.BgColor = new Color(0.93f, 0.87f, 0.72f, 1.0f);
+            var disabled = (StyleBoxFlat)normal.Duplicate();
+            disabled.BgColor = new Color(0.76f, 0.72f, 0.65f, 0.92f);
+            disabled.BorderColor = new Color(0.58f, 0.54f, 0.47f, 1.0f);
+
+            button.AddThemeStyleboxOverride("normal", normal);
+            button.AddThemeStyleboxOverride("hover", hover);
+            button.AddThemeStyleboxOverride("disabled", disabled);
+            button.AddThemeColorOverride("font_color", new Color(0.16f, 0.12f, 0.08f, 1.0f));
+            button.AddThemeColorOverride("font_disabled_color", new Color(0.32f, 0.29f, 0.24f, 1.0f));
+        }
+
+        if (_officerListTable != null)
+        {
+            var tablePanel = new StyleBoxFlat
+            {
+                BgColor = new Color(0.96f, 0.93f, 0.86f, 0.98f),
+                BorderWidthLeft = 1,
+                BorderWidthTop = 1,
+                BorderWidthRight = 1,
+                BorderWidthBottom = 1,
+                BorderColor = new Color(0.47f, 0.39f, 0.27f, 0.95f)
+            };
+            var focusPanel = (StyleBoxFlat)tablePanel.Duplicate();
+            focusPanel.BorderColor = new Color(0.65f, 0.49f, 0.25f, 1.0f);
+            var selectedPanel = new StyleBoxFlat
+            {
+                BgColor = new Color(0.82f, 0.72f, 0.52f, 1.0f),
+                BorderWidthLeft = 1,
+                BorderWidthTop = 1,
+                BorderWidthRight = 1,
+                BorderWidthBottom = 1,
+                BorderColor = new Color(0.55f, 0.4f, 0.2f, 1.0f)
+            };
+            var selectedFocusPanel = (StyleBoxFlat)selectedPanel.Duplicate();
+            selectedFocusPanel.BgColor = new Color(0.86f, 0.76f, 0.56f, 1.0f);
+
+            var titleNormal = new StyleBoxFlat
+            {
+                BgColor = new Color(0.67f, 0.53f, 0.31f, 1.0f),
+                BorderWidthLeft = 1,
+                BorderWidthTop = 1,
+                BorderWidthRight = 1,
+                BorderWidthBottom = 1,
+                BorderColor = new Color(0.33f, 0.24f, 0.13f, 1.0f)
+            };
+            var titleHover = (StyleBoxFlat)titleNormal.Duplicate();
+            titleHover.BgColor = new Color(0.75f, 0.6f, 0.37f, 1.0f);
+            var titlePressed = (StyleBoxFlat)titleNormal.Duplicate();
+            titlePressed.BgColor = new Color(0.56f, 0.43f, 0.24f, 1.0f);
+
+            _officerListTable.AddThemeStyleboxOverride("panel", tablePanel);
+            _officerListTable.AddThemeStyleboxOverride("focus", focusPanel);
+            _officerListTable.AddThemeStyleboxOverride("selected", selectedPanel);
+            _officerListTable.AddThemeStyleboxOverride("selected_focus", selectedFocusPanel);
+            _officerListTable.AddThemeStyleboxOverride("title_button_normal", titleNormal);
+            _officerListTable.AddThemeStyleboxOverride("title_button_hover", titleHover);
+            _officerListTable.AddThemeStyleboxOverride("title_button_pressed", titlePressed);
+            _officerListTable.AddThemeColorOverride("font_color", new Color(0.17f, 0.13f, 0.09f, 1.0f));
+            _officerListTable.AddThemeColorOverride("font_hovered_color", new Color(0.12f, 0.09f, 0.06f, 1.0f));
+            _officerListTable.AddThemeColorOverride("font_selected_color", new Color(0.12f, 0.09f, 0.06f, 1.0f));
+            _officerListTable.AddThemeColorOverride("font_hovered_selected_color", new Color(0.1f, 0.07f, 0.04f, 1.0f));
+            _officerListTable.AddThemeColorOverride("font_outline_color", new Color(0.96f, 0.93f, 0.86f, 0.0f));
+            _officerListTable.AddThemeColorOverride("custom_button_font_highlight", new Color(0.12f, 0.09f, 0.06f, 1.0f));
+            _officerListTable.AddThemeColorOverride("custom_button_font_highlight_pressed", new Color(0.1f, 0.07f, 0.04f, 1.0f));
+            _officerListTable.AddThemeColorOverride("title_button_color", new Color(0.98f, 0.95f, 0.9f, 1.0f));
+            _officerListTable.AddThemeColorOverride("title_button_hover_color", Colors.White);
+            _officerListTable.AddThemeColorOverride("title_button_pressed_color", Colors.White);
+            _officerListTable.AddThemeColorOverride("guide_color", new Color(0.58f, 0.5f, 0.38f, 0.65f));
+            _officerListTable.AddThemeColorOverride("drop_position_color", new Color(0.75f, 0.55f, 0.22f, 1.0f));
+        }
+    }
+
     private void RefreshAllText()
     {
         if (_localization == null)
@@ -2098,6 +3125,7 @@ public partial class HudController : CanvasLayer
 
         RefreshMonth();
         RefreshPlayerFaction();
+        RefreshStoryName();
 
         if (_commandsTitle != null)
         {
@@ -2151,8 +3179,12 @@ public partial class HudController : CanvasLayer
 
         if (_officerListDialog != null)
         {
-            _officerListDialog.Title = _localization.T("ui.select_officer");
             _officerListDialog.OkButtonText = _localization.T("ui.confirm_officer_selection");
+        }
+
+        if (_officerListConfirmButton != null)
+        {
+            _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
         }
 
         UpdateOfficerListToolbar();
@@ -2193,6 +3225,19 @@ public partial class HudController : CanvasLayer
         var playerFactionId = _turnManager.GetPlayerFactionId();
         var factionName = _localization.GetFactionName(_turnManager.World, playerFactionId);
         _playerFactionLabel.Text = _localization.FormatPlayerFaction(factionName);
+    }
+
+    private void RefreshStoryName()
+    {
+        if (_storyLabel == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var world = _turnManager.World;
+        _storyLabel.Text = _localization.IsTraditionalChinese
+            ? (!string.IsNullOrWhiteSpace(world.StoryNameZhHant) ? world.StoryNameZhHant : world.StoryNameEn)
+            : (!string.IsNullOrWhiteSpace(world.StoryNameEn) ? world.StoryNameEn : world.StoryNameZhHant);
     }
 
     private void RefreshSelectedCity()
@@ -2307,11 +3352,13 @@ public partial class HudController : CanvasLayer
     {
         var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
         var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
+        var currentYear = _turnManager?.World?.Year ?? 0;
+        var officerAge = CalculateOfficerAge(officer, currentYear);
         return
             $"{officerName}\n" +
             $"{_localization?.T("ui.role") ?? "Role"}: {roleName}\n" +
             $"{BuildOfficerStatusText(officer)}\n" +
-            $"{_localization?.T("ui.age") ?? "Age"}: {officer.Age}\n" +
+            $"{_localization?.T("ui.age") ?? "Age"}: {officerAge}\n" +
             $"{_localization?.T("ui.strength") ?? "STR"}: {officer.Strength}\n" +
             $"{_localization?.T("ui.intelligence") ?? "INT"}: {officer.Intelligence}\n" +
             $"{_localization?.T("ui.charm") ?? "CHA"}: {officer.Charm}\n" +
@@ -2320,6 +3367,16 @@ public partial class HudController : CanvasLayer
             $"{_localization?.T("ui.combat") ?? "COM"}: {officer.Combat}\n" +
             $"{_localization?.T("ui.loyalty_short") ?? "LOY"}: {officer.Loyalty}\n" +
             $"{_localization?.T("ui.ambition") ?? "AMB"}: {officer.Ambition}";
+    }
+
+    private static int CalculateOfficerAge(OfficerData officer, int currentYear)
+    {
+        if (officer.BirthYear <= 0 || currentYear <= 0)
+        {
+            return 0;
+        }
+
+        return Math.Max(0, currentYear - officer.BirthYear);
     }
 
     private void EnsureOfficerDetailWidgets()
@@ -2407,6 +3464,15 @@ public partial class HudController : CanvasLayer
         }
 
         return $"{officerName} | {roleName} | {BuildOfficerStatusText(officer)}{cityText} | {_localization?.T("ui.strength") ?? "STR"} {officer.Strength} | {_localization?.T("ui.intelligence") ?? "INT"} {officer.Intelligence}";
+    }
+
+    private string BuildCityListRowText(CityData city)
+    {
+        var cityName = _localization?.GetCityName(city) ?? city.NameEn;
+        var ownerName = _turnManager?.World != null && _localization != null
+            ? _localization.GetFactionName(_turnManager.World, city.OwnerFactionId)
+            : city.OwnerFactionId.ToString();
+        return $"{cityName} | {_localization?.T("ui.owner") ?? "Owner"} {ownerName} | {_localization?.T("ui.gold") ?? "Gold"} {city.Gold} | {_localization?.T("ui.food") ?? "Food"} {city.Food} | {_localization?.T("ui.troops") ?? "Troops"} {city.Troops} | {_localization?.T("ui.officers") ?? "Officers"} {city.OfficerIds.Count}";
     }
 
     private string BuildOfficerStatusText(OfficerData officer)

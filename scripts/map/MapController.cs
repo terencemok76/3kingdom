@@ -126,6 +126,16 @@ public partial class MapController : Node2D
         }
     }
 
+    public void SelectCityById(int cityId)
+    {
+        if (_world == null)
+        {
+            return;
+        }
+
+        SelectCity(cityId);
+    }
+
     private void HandleMouseButton(InputEventMouseButton mouseButton)
     {
         if (mouseButton.ButtonIndex == MouseButton.Right)

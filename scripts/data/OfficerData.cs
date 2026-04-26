@@ -12,7 +12,10 @@ public class OfficerData
     public string Role { get; set; } = "General";
     public string Belongs { get; set; } = string.Empty;
     public string Sex { get; set; } = string.Empty;
-    public int Age { get; set; }
+    [JsonPropertyName("birth_year")]
+    public int BirthYear { get; set; }
+    [JsonPropertyName("death_year")]
+    public int DeathYear { get; set; }
     public int Strength { get; set; }
     public int Intelligence { get; set; }
     public int Charm { get; set; }
