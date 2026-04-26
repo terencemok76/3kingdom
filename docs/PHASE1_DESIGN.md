@@ -4,6 +4,9 @@
 ## Feature Freeze
 - Freeze tag: `Phase1-Locked-v1`
 - Lock date: `April 12, 2026`
+- Completion milestone: `Phase1-Completed-v1`
+- Completion date: `April 27, 2026`
+- Completion status: core Phase 1 playable loop completed and verified
 - Purpose: freeze Phase 1 implementation scope to control complexity and prevent feature drift
 
 ### In Scope (Phase 1 Locked)
