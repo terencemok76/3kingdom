@@ -66,6 +66,7 @@ public partial class HudController : CanvasLayer
 
     private const string PortraitSheetPath = "res://assets/portrait/100.png";
     private const string PortraitMappingPath = "res://data/person/portraits_names.json";
+    private const int HireOfficerGoldCost = 200;
 
     private Label? _monthLabel;
     private Label? _playerFactionLabel;
@@ -83,6 +84,8 @@ public partial class HudController : CanvasLayer
     private Button? _moveButton;
     private Button? _searchButton;
     private Button? _merchantButton;
+    private Button? _personnelButton;
+    private Button? _civilButton;
     private Button? _attackButton;
     private Button? _viewButton;
     private PopupMenu? _targetCityMenu;
@@ -90,6 +93,34 @@ public partial class HudController : CanvasLayer
     private OptionButton? _merchantModeOption;
     private SpinBox? _merchantFoodSpinBox;
     private Label? _merchantSummaryLabel;
+    private AcceptDialog? _militaryDialog;
+    private OptionButton? _militaryCommandOption;
+    private AcceptDialog? _personnelDialog;
+    private OptionButton? _personnelCommandOption;
+    private AcceptDialog? _personnelBonusDialog;
+    private ItemList? _personnelBonusOfficerList;
+    private SpinBox? _personnelBonusGoldSpinBox;
+    private SpinBox? _personnelBonusFoodSpinBox;
+    private Label? _personnelBonusSummaryLabel;
+    private AcceptDialog? _assignRoleDialog;
+    private ItemList? _assignRoleOfficerList;
+    private OptionButton? _assignRoleOption;
+    private AcceptDialog? _hireOfficerDialog;
+    private ItemList? _hireOfficerList;
+    private Label? _hireOfficerSummaryLabel;
+    private AcceptDialog? _civilDialog;
+    private OptionButton? _civilCommandOption;
+    private AcceptDialog? _civilReliefDialog;
+    private SpinBox? _civilReliefGoldSpinBox;
+    private SpinBox? _civilReliefFoodSpinBox;
+    private Label? _civilReliefSummaryLabel;
+    private AcceptDialog? _internalAffairsDialog;
+    private OptionButton? _internalAffairsJobOption;
+    private SpinBox? _internalAffairsDurationSpinBox;
+    private ItemList? _internalAffairsOfficerList;
+    private ItemList? _internalAffairsScheduleList;
+    private Button? _internalAffairsTerminateButton;
+    private Label? _internalAffairsWarningLabel;
     private AcceptDialog? _moveDialog;
     private OptionButton? _moveTargetCityOption;
     private SpinBox? _moveTroopsSpinBox;
@@ -138,6 +169,8 @@ public partial class HudController : CanvasLayer
     private bool _isMoveButtonConnected;
     private bool _isSearchButtonConnected;
     private bool _isMerchantButtonConnected;
+    private bool _isPersonnelButtonConnected;
+    private bool _isCivilButtonConnected;
     private bool _isAttackButtonConnected;
     private bool _isViewButtonConnected;
     private bool _merchantDialogSignalsConnected;
@@ -177,9 +210,19 @@ public partial class HudController : CanvasLayer
         _developButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/DevelopButton");
         _recruitButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/RecruitButton");
         _moveButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MoveButton");
+        if (_moveButton != null)
+        {
+            _moveButton.Visible = false;
+        }
         _searchButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/SearchButton");
         _merchantButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MerchantButton");
+        _personnelButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/PersonnelButton");
+        _civilButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/CivilButton");
         _attackButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
+        if (_attackButton != null)
+        {
+            _attackButton.Visible = false;
+        }
         _viewButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton");
 
         _logText = GetNodeOrNull<RichTextLabel>("Root/LogText");
@@ -198,6 +241,62 @@ public partial class HudController : CanvasLayer
         _merchantDialog.Confirmed += OnMerchantDialogConfirmed;
         AddChild(_merchantDialog);
         EnsureMerchantDialogWidgets();
+
+        _militaryDialog = new AcceptDialog();
+        _militaryDialog.Exclusive = false;
+        _militaryDialog.Unfocusable = false;
+        _militaryDialog.Confirmed += OnMilitaryDialogConfirmed;
+        AddChild(_militaryDialog);
+        EnsureMilitaryDialogWidgets();
+
+        _personnelDialog = new AcceptDialog();
+        _personnelDialog.Exclusive = false;
+        _personnelDialog.Unfocusable = false;
+        _personnelDialog.Confirmed += OnPersonnelDialogConfirmed;
+        AddChild(_personnelDialog);
+        EnsurePersonnelDialogWidgets();
+
+        _personnelBonusDialog = new AcceptDialog();
+        _personnelBonusDialog.Exclusive = false;
+        _personnelBonusDialog.Unfocusable = false;
+        _personnelBonusDialog.Confirmed += OnPersonnelBonusDialogConfirmed;
+        AddChild(_personnelBonusDialog);
+        EnsurePersonnelBonusDialogWidgets();
+
+        _assignRoleDialog = new AcceptDialog();
+        _assignRoleDialog.Exclusive = false;
+        _assignRoleDialog.Unfocusable = false;
+        _assignRoleDialog.Confirmed += OnAssignRoleDialogConfirmed;
+        AddChild(_assignRoleDialog);
+        EnsureAssignRoleDialogWidgets();
+
+        _hireOfficerDialog = new AcceptDialog();
+        _hireOfficerDialog.Exclusive = false;
+        _hireOfficerDialog.Unfocusable = false;
+        _hireOfficerDialog.Confirmed += OnHireOfficerDialogConfirmed;
+        AddChild(_hireOfficerDialog);
+        EnsureHireOfficerDialogWidgets();
+
+        _civilDialog = new AcceptDialog();
+        _civilDialog.Exclusive = false;
+        _civilDialog.Unfocusable = false;
+        _civilDialog.Confirmed += OnCivilDialogConfirmed;
+        AddChild(_civilDialog);
+        EnsureCivilDialogWidgets();
+
+        _civilReliefDialog = new AcceptDialog();
+        _civilReliefDialog.Exclusive = false;
+        _civilReliefDialog.Unfocusable = false;
+        _civilReliefDialog.Confirmed += OnCivilReliefDialogConfirmed;
+        AddChild(_civilReliefDialog);
+        EnsureCivilReliefDialogWidgets();
+
+        _internalAffairsDialog = new AcceptDialog();
+        _internalAffairsDialog.Exclusive = false;
+        _internalAffairsDialog.Unfocusable = false;
+        _internalAffairsDialog.Confirmed += OnInternalAffairsDialogConfirmed;
+        AddChild(_internalAffairsDialog);
+        EnsureInternalAffairsDialogWidgets();
 
         _moveDialog = new AcceptDialog();
         _moveDialog.Exclusive = false;
@@ -421,6 +520,14 @@ public partial class HudController : CanvasLayer
 
         _officerDetailDialog?.Hide();
         _officerListDialog?.Hide();
+        _militaryDialog?.Hide();
+        _personnelDialog?.Hide();
+        _personnelBonusDialog?.Hide();
+        _assignRoleDialog?.Hide();
+        _hireOfficerDialog?.Hide();
+        _civilDialog?.Hide();
+        _civilReliefDialog?.Hide();
+        _internalAffairsDialog?.Hide();
         _merchantDialog?.Hide();
         _moveDialog?.Hide();
         _attackDialog?.Hide();
@@ -535,6 +642,18 @@ public partial class HudController : CanvasLayer
             _isMerchantButtonConnected = true;
         }
 
+        if (_personnelButton != null && !_isPersonnelButtonConnected)
+        {
+            _personnelButton.Pressed += OnPersonnelPressed;
+            _isPersonnelButtonConnected = true;
+        }
+
+        if (_civilButton != null && !_isCivilButtonConnected)
+        {
+            _civilButton.Pressed += OnCivilPressed;
+            _isCivilButtonConnected = true;
+        }
+
         if (_attackButton != null && !_isAttackButtonConnected)
         {
             _attackButton.Pressed += OnAttackPressed;
@@ -592,6 +711,18 @@ public partial class HudController : CanvasLayer
             _isMerchantButtonConnected = false;
         }
 
+        if (_personnelButton != null && _isPersonnelButtonConnected)
+        {
+            _personnelButton.Pressed -= OnPersonnelPressed;
+            _isPersonnelButtonConnected = false;
+        }
+
+        if (_civilButton != null && _isCivilButtonConnected)
+        {
+            _civilButton.Pressed -= OnCivilPressed;
+            _isCivilButtonConnected = false;
+        }
+
         if (_attackButton != null && _isAttackButtonConnected)
         {
             _attackButton.Pressed -= OnAttackPressed;
@@ -612,15 +743,20 @@ public partial class HudController : CanvasLayer
 
     private void OnDevelopPressed()
     {
-        ShowOfficerCommandDialog(CommandType.Develop);
+        ShowInternalAffairsDialog();
     }
 
     private void OnRecruitPressed()
     {
-        ShowOfficerCommandDialog(CommandType.Recruit);
+        ShowMilitaryDialog();
     }
 
     private void OnMovePressed()
+    {
+        OpenMoveFlow();
+    }
+
+    private void OpenMoveFlow()
     {
         if (_turnManager?.World == null || _selectedCity == null)
         {
@@ -663,7 +799,32 @@ public partial class HudController : CanvasLayer
         ShowMerchantDialog();
     }
 
+    private void OnPersonnelPressed()
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ShowPersonnelDialog();
+    }
+
+    private void OnCivilPressed()
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ShowCivilDialog();
+    }
+
     private void OnAttackPressed()
+    {
+        OpenAttackFlow();
+    }
+
+    private void OpenAttackFlow()
     {
         if (_turnManager?.World == null || _selectedCity == null)
         {
@@ -1788,6 +1949,7 @@ public partial class HudController : CanvasLayer
 
         return officer.LastAssignedCommand switch
         {
+            CommandType.InternalAffairs => 1,
             CommandType.Develop => 1,
             CommandType.Recruit => 2,
             CommandType.Search => 3,
@@ -2420,6 +2582,1311 @@ public partial class HudController : CanvasLayer
         _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_buy_preview", goldAmount, foodAmount);
     }
 
+    private void EnsureMilitaryDialogWidgets()
+    {
+        if (_militaryDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _militaryDialog.GetNodeOrNull<VBoxContainer>("MilitaryDialogRoot");
+        if (existingRoot != null)
+        {
+            _militaryCommandOption = existingRoot.GetNodeOrNull<OptionButton>("CommandOption");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "MilitaryDialogRoot",
+            CustomMinimumSize = new Vector2(320.0f, 110.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _militaryDialog.AddChild(root);
+
+        root.AddChild(new Label { Name = "CommandLabel" });
+        _militaryCommandOption = new OptionButton
+        {
+            Name = "CommandOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_militaryCommandOption);
+    }
+
+    private void ShowMilitaryDialog()
+    {
+        if (_selectedCity == null || _militaryDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsureMilitaryDialogWidgets();
+        UpdateMilitaryDialogText();
+        PopulateMilitaryDialog();
+        _militaryDialog.PopupCentered(new Vector2I(340, 150));
+    }
+
+    private void PopulateMilitaryDialog()
+    {
+        if (_militaryCommandOption == null || _localization == null)
+        {
+            return;
+        }
+
+        _militaryCommandOption.Clear();
+        _militaryCommandOption.AddItem(_localization.T("ui.military_recruit"));
+        _militaryCommandOption.SetItemMetadata(_militaryCommandOption.ItemCount - 1, (int)CommandType.Recruit);
+        _militaryCommandOption.AddItem(_localization.T("ui.military_move"));
+        _militaryCommandOption.SetItemMetadata(_militaryCommandOption.ItemCount - 1, (int)CommandType.Move);
+        _militaryCommandOption.AddItem(_localization.T("ui.military_attack"));
+        _militaryCommandOption.SetItemMetadata(_militaryCommandOption.ItemCount - 1, (int)CommandType.Attack);
+    }
+
+    private void UpdateMilitaryDialogText()
+    {
+        if (_militaryDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _militaryDialog.Title = _localization.T("ui.military");
+        _militaryDialog.OkButtonText = _localization.T("ui.confirm_military");
+        var label = _militaryDialog.GetNodeOrNull<Label>("MilitaryDialogRoot/CommandLabel");
+        if (label != null)
+        {
+            label.Text = _localization.T("ui.military_command");
+        }
+    }
+
+    private void OnMilitaryDialogConfirmed()
+    {
+        var commandType = GetSelectedMilitaryCommandType();
+        if (commandType == CommandType.Attack)
+        {
+            OpenAttackFlow();
+            return;
+        }
+
+        if (commandType == CommandType.Move)
+        {
+            OpenMoveFlow();
+            return;
+        }
+
+        ShowOfficerCommandDialog(CommandType.Recruit);
+    }
+
+    private CommandType GetSelectedMilitaryCommandType()
+    {
+        if (_militaryCommandOption == null)
+        {
+            return CommandType.Recruit;
+        }
+
+        var metadata = _militaryCommandOption.GetItemMetadata(_militaryCommandOption.Selected);
+        return metadata.VariantType == Variant.Type.Int
+            ? (CommandType)metadata.AsInt32()
+            : CommandType.Recruit;
+    }
+
+    private void EnsurePersonnelDialogWidgets()
+    {
+        if (_personnelDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _personnelDialog.GetNodeOrNull<VBoxContainer>("PersonnelDialogRoot");
+        if (existingRoot != null)
+        {
+            _personnelCommandOption = existingRoot.GetNodeOrNull<OptionButton>("CommandOption");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "PersonnelDialogRoot",
+            CustomMinimumSize = new Vector2(420.0f, 130.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _personnelDialog.AddChild(root);
+        root.AddChild(new Label { Name = "CommandLabel" });
+        _personnelCommandOption = new OptionButton
+        {
+            Name = "CommandOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_personnelCommandOption);
+    }
+
+    private void ShowPersonnelDialog()
+    {
+        if (_personnelDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsurePersonnelDialogWidgets();
+        UpdatePersonnelDialogText();
+        PopulatePersonnelDialog();
+        _personnelDialog.PopupCentered(new Vector2I(440, 170));
+    }
+
+    private void PopulatePersonnelDialog()
+    {
+        if (_personnelCommandOption == null || _localization == null)
+        {
+            return;
+        }
+
+        _personnelCommandOption.Clear();
+        AddPersonnelCommandOption("personnel.command.give_bonus");
+        AddPersonnelCommandOption("personnel.command.assign_title");
+        AddPersonnelCommandOption("personnel.command.hire_officer");
+    }
+
+    private void AddPersonnelCommandOption(string localeKey)
+    {
+        if (_personnelCommandOption == null || _localization == null)
+        {
+            return;
+        }
+
+        _personnelCommandOption.AddItem(_localization.T(localeKey));
+        _personnelCommandOption.SetItemMetadata(_personnelCommandOption.ItemCount - 1, localeKey);
+    }
+
+    private void UpdatePersonnelDialogText()
+    {
+        if (_personnelDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _personnelDialog.Title = _localization.T("ui.personnel");
+        _personnelDialog.OkButtonText = _localization.T("ui.confirm_personnel");
+        var label = _personnelDialog.GetNodeOrNull<Label>("PersonnelDialogRoot/CommandLabel");
+        if (label != null)
+        {
+            label.Text = _localization.T("ui.personnel_command");
+        }
+    }
+
+    private void OnPersonnelDialogConfirmed()
+    {
+        if (_localization == null || _personnelCommandOption == null)
+        {
+            return;
+        }
+
+        var metadata = _personnelCommandOption.GetItemMetadata(_personnelCommandOption.Selected);
+        var commandKey = metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
+        if (commandKey == "personnel.command.give_bonus")
+        {
+            ShowPersonnelBonusDialog();
+            return;
+        }
+
+        if (commandKey == "personnel.command.assign_title")
+        {
+            ShowAssignRoleDialog();
+            return;
+        }
+
+        if (commandKey == "personnel.command.hire_officer")
+        {
+            ShowHireOfficerDialog();
+            return;
+        }
+
+        AddLog(_localization.Format("log.personnel_command_selected", _personnelCommandOption.GetItemText(_personnelCommandOption.Selected)));
+    }
+
+    private void EnsurePersonnelBonusDialogWidgets()
+    {
+        if (_personnelBonusDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _personnelBonusDialog.GetNodeOrNull<VBoxContainer>("PersonnelBonusDialogRoot");
+        if (existingRoot != null)
+        {
+            _personnelBonusOfficerList = existingRoot.GetNodeOrNull<ItemList>("OfficerList");
+            _personnelBonusGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldSpinBox");
+            _personnelBonusFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
+            _personnelBonusSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "PersonnelBonusDialogRoot",
+            CustomMinimumSize = new Vector2(460.0f, 360.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _personnelBonusDialog.AddChild(root);
+
+        root.AddChild(new Label { Name = "OfficerListLabel" });
+        _personnelBonusOfficerList = new ItemList
+        {
+            Name = "OfficerList",
+            SelectMode = ItemList.SelectModeEnum.Single,
+            CustomMinimumSize = new Vector2(0.0f, 150.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_personnelBonusOfficerList);
+
+        root.AddChild(new Label { Name = "GoldLabel" });
+        _personnelBonusGoldSpinBox = CreateMoveSpinBox("GoldSpinBox");
+        _personnelBonusGoldSpinBox.Step = 100;
+        _personnelBonusGoldSpinBox.ValueChanged += _ => UpdatePersonnelBonusSummary();
+        root.AddChild(_personnelBonusGoldSpinBox);
+
+        root.AddChild(new Label { Name = "FoodLabel" });
+        _personnelBonusFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
+        _personnelBonusFoodSpinBox.Step = 500;
+        _personnelBonusFoodSpinBox.ValueChanged += _ => UpdatePersonnelBonusSummary();
+        root.AddChild(_personnelBonusFoodSpinBox);
+
+        _personnelBonusSummaryLabel = new Label
+        {
+            Name = "SummaryLabel",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        root.AddChild(_personnelBonusSummaryLabel);
+    }
+
+    private void ShowPersonnelBonusDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _personnelBonusDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsurePersonnelBonusDialogWidgets();
+        UpdatePersonnelBonusDialogText();
+        PopulatePersonnelBonusDialog();
+        _personnelBonusDialog.PopupCentered(new Vector2I(480, 400));
+    }
+
+    private void PopulatePersonnelBonusDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _personnelBonusOfficerList == null)
+        {
+            return;
+        }
+
+        _personnelBonusOfficerList.Clear();
+        foreach (var officerId in _selectedCity.OfficerIds)
+        {
+            var officer = _turnManager.World.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            if (IsFactionRuler(_turnManager.World, officer))
+            {
+                continue;
+            }
+
+            var itemIndex = _personnelBonusOfficerList.AddItem(BuildPersonnelBonusOfficerRowText(officer));
+            _personnelBonusOfficerList.SetItemMetadata(itemIndex, officer.Id);
+        }
+
+        ConfigureMoveSpinBox(_personnelBonusGoldSpinBox, _selectedCity.Gold, 0);
+        ConfigureMoveSpinBox(_personnelBonusFoodSpinBox, _selectedCity.Food, 0);
+        if (_personnelBonusGoldSpinBox != null)
+        {
+            _personnelBonusGoldSpinBox.Step = 100;
+        }
+        if (_personnelBonusFoodSpinBox != null)
+        {
+            _personnelBonusFoodSpinBox.Step = 500;
+        }
+
+        UpdatePersonnelBonusSummary();
+    }
+
+    private void UpdatePersonnelBonusDialogText()
+    {
+        if (_personnelBonusDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _personnelBonusDialog.Title = _localization.T("personnel.command.give_bonus");
+        _personnelBonusDialog.OkButtonText = _localization.T("ui.confirm_personnel_bonus");
+        SetPersonnelBonusDialogLabelText("OfficerListLabel", _localization.T("ui.personnel_bonus_officer"));
+        SetPersonnelBonusDialogLabelText("GoldLabel", _localization.T("ui.personnel_bonus_gold"));
+        SetPersonnelBonusDialogLabelText("FoodLabel", _localization.T("ui.personnel_bonus_food"));
+    }
+
+    private string BuildPersonnelBonusOfficerRowText(OfficerData officer)
+    {
+        var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+        var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
+        var loyaltyLabel = _localization?.T("ui.loyalty") ?? "Loyalty";
+        return $"{officerName} | {roleName} | {loyaltyLabel} {officer.Loyalty}";
+    }
+
+    private void SetPersonnelBonusDialogLabelText(string nodeName, string text)
+    {
+        var label = _personnelBonusDialog?.GetNodeOrNull<Label>($"PersonnelBonusDialogRoot/{nodeName}");
+        if (label != null)
+        {
+            label.Text = text;
+        }
+    }
+
+    private void UpdatePersonnelBonusSummary()
+    {
+        if (_personnelBonusSummaryLabel == null || _personnelBonusGoldSpinBox == null || _personnelBonusFoodSpinBox == null || _localization == null)
+        {
+            return;
+        }
+
+        var gold = (int)_personnelBonusGoldSpinBox.Value;
+        var food = (int)_personnelBonusFoodSpinBox.Value;
+        var gain = gold / 100 + food / 500;
+        _personnelBonusSummaryLabel.Text = _localization.Format("fmt.personnel_bonus_preview", gain);
+    }
+
+    private void OnPersonnelBonusDialogConfirmed()
+    {
+        if (_selectedCity == null || _turnManager == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var selectedOfficerIds = GetSelectedItemMetadataIds(_personnelBonusOfficerList);
+        if (selectedOfficerIds.Count == 0)
+        {
+            AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
+            ReopenPersonnelBonusDialog();
+            return;
+        }
+
+        var result = _commandResolver.ExecutePersonnelBonus(
+            _turnManager.GetPlayerFactionId(),
+            _selectedCity.Id,
+            selectedOfficerIds[0],
+            (int)(_personnelBonusGoldSpinBox?.Value ?? 0),
+            (int)(_personnelBonusFoodSpinBox?.Value ?? 0));
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+        _mapController?.RefreshVisuals();
+    }
+
+    private void ReopenPersonnelBonusDialog()
+    {
+        CallDeferred(nameof(ReopenPersonnelBonusDialogDeferred));
+    }
+
+    private void ReopenPersonnelBonusDialogDeferred()
+    {
+        _personnelBonusDialog?.PopupCentered(new Vector2I(480, 400));
+    }
+
+    private void EnsureAssignRoleDialogWidgets()
+    {
+        if (_assignRoleDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _assignRoleDialog.GetNodeOrNull<VBoxContainer>("AssignRoleDialogRoot");
+        if (existingRoot != null)
+        {
+            _assignRoleOfficerList = existingRoot.GetNodeOrNull<ItemList>("OfficerList");
+            _assignRoleOption = existingRoot.GetNodeOrNull<OptionButton>("RoleOption");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "AssignRoleDialogRoot",
+            CustomMinimumSize = new Vector2(460.0f, 330.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _assignRoleDialog.AddChild(root);
+
+        root.AddChild(new Label { Name = "OfficerListLabel" });
+        _assignRoleOfficerList = new ItemList
+        {
+            Name = "OfficerList",
+            SelectMode = ItemList.SelectModeEnum.Single,
+            CustomMinimumSize = new Vector2(0.0f, 160.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_assignRoleOfficerList);
+
+        root.AddChild(new Label { Name = "RoleLabel" });
+        _assignRoleOption = new OptionButton
+        {
+            Name = "RoleOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_assignRoleOption);
+    }
+
+    private void ShowAssignRoleDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _assignRoleDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsureAssignRoleDialogWidgets();
+        UpdateAssignRoleDialogText();
+        PopulateAssignRoleDialog();
+        _assignRoleDialog.PopupCentered(new Vector2I(480, 370));
+    }
+
+    private void PopulateAssignRoleDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null)
+        {
+            return;
+        }
+
+        if (_assignRoleOfficerList != null)
+        {
+            _assignRoleOfficerList.Clear();
+            foreach (var officerId in _selectedCity.OfficerIds)
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                if (officer == null || IsFactionRuler(_turnManager.World, officer))
+                {
+                    continue;
+                }
+
+                var itemIndex = _assignRoleOfficerList.AddItem(BuildAssignRoleOfficerRowText(officer));
+                _assignRoleOfficerList.SetItemMetadata(itemIndex, officer.Id);
+            }
+        }
+
+        if (_assignRoleOption != null)
+        {
+            _assignRoleOption.Clear();
+            AddAssignRoleOption("General");
+            AddAssignRoleOption("Strategist");
+            AddAssignRoleOption("Advisor");
+            AddAssignRoleOption("Governor");
+        }
+    }
+
+    private void AddAssignRoleOption(string role)
+    {
+        if (_assignRoleOption == null || _localization == null)
+        {
+            return;
+        }
+
+        _assignRoleOption.AddItem(GetRoleDisplayName(role));
+        _assignRoleOption.SetItemMetadata(_assignRoleOption.ItemCount - 1, role);
+    }
+
+    private void UpdateAssignRoleDialogText()
+    {
+        if (_assignRoleDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _assignRoleDialog.Title = _localization.T("personnel.command.assign_title");
+        _assignRoleDialog.OkButtonText = _localization.T("ui.confirm_assign_role");
+        SetAssignRoleDialogLabelText("OfficerListLabel", _localization.T("ui.assign_role_officer"));
+        SetAssignRoleDialogLabelText("RoleLabel", _localization.T("ui.assign_role_title"));
+    }
+
+    private void SetAssignRoleDialogLabelText(string nodeName, string text)
+    {
+        var label = _assignRoleDialog?.GetNodeOrNull<Label>($"AssignRoleDialogRoot/{nodeName}");
+        if (label != null)
+        {
+            label.Text = text;
+        }
+    }
+
+    private string BuildAssignRoleOfficerRowText(OfficerData officer)
+    {
+        var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+        var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
+        return $"{officerName} | {roleName}";
+    }
+
+    private string GetRoleDisplayName(string role)
+    {
+        if (_localization == null)
+        {
+            return role;
+        }
+
+        return role.ToLowerInvariant() switch
+        {
+            "general" => _localization.T("role.general"),
+            "strategist" => _localization.T("role.strategist"),
+            "advisor" => _localization.T("role.advisor"),
+            "governor" => _localization.T("role.governor"),
+            _ => role
+        };
+    }
+
+    private void OnAssignRoleDialogConfirmed()
+    {
+        if (_selectedCity == null || _turnManager == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var selectedOfficerIds = GetSelectedItemMetadataIds(_assignRoleOfficerList);
+        if (selectedOfficerIds.Count == 0)
+        {
+            AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
+            ReopenAssignRoleDialog();
+            return;
+        }
+
+        var roleMetadata = _assignRoleOption?.GetItemMetadata(_assignRoleOption.Selected);
+        var role = roleMetadata?.VariantType == Variant.Type.String ? roleMetadata.Value.AsString() : "General";
+        var result = _commandResolver.ExecuteAssignOfficerRole(
+            _turnManager.GetPlayerFactionId(),
+            _selectedCity.Id,
+            selectedOfficerIds[0],
+            role);
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+    }
+
+    private void ReopenAssignRoleDialog()
+    {
+        CallDeferred(nameof(ReopenAssignRoleDialogDeferred));
+    }
+
+    private void ReopenAssignRoleDialogDeferred()
+    {
+        _assignRoleDialog?.PopupCentered(new Vector2I(480, 370));
+    }
+
+    private void EnsureHireOfficerDialogWidgets()
+    {
+        if (_hireOfficerDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _hireOfficerDialog.GetNodeOrNull<VBoxContainer>("HireOfficerDialogRoot");
+        if (existingRoot != null)
+        {
+            _hireOfficerList = existingRoot.GetNodeOrNull<ItemList>("OfficerList");
+            _hireOfficerSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "HireOfficerDialogRoot",
+            CustomMinimumSize = new Vector2(560.0f, 360.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _hireOfficerDialog.AddChild(root);
+
+        root.AddChild(new Label { Name = "OfficerListLabel" });
+        _hireOfficerList = new ItemList
+        {
+            Name = "OfficerList",
+            SelectMode = ItemList.SelectModeEnum.Single,
+            CustomMinimumSize = new Vector2(0.0f, 220.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_hireOfficerList);
+
+        _hireOfficerSummaryLabel = new Label
+        {
+            Name = "SummaryLabel",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        root.AddChild(_hireOfficerSummaryLabel);
+    }
+
+    private void ShowHireOfficerDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _hireOfficerDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsureHireOfficerDialogWidgets();
+        UpdateHireOfficerDialogText();
+        PopulateHireOfficerDialog();
+        _hireOfficerDialog.PopupCentered(new Vector2I(580, 400));
+    }
+
+    private void PopulateHireOfficerDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _hireOfficerList == null || _localization == null)
+        {
+            return;
+        }
+
+        _hireOfficerList.Clear();
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        foreach (var officer in _turnManager.World.Officers.OrderBy(officer => _localization.GetOfficerName(officer)))
+        {
+            if (!IsHireOfficerCandidate(_turnManager.World, playerFactionId, officer))
+            {
+                continue;
+            }
+
+            var itemIndex = _hireOfficerList.AddItem(BuildHireOfficerRowText(officer));
+            _hireOfficerList.SetItemMetadata(itemIndex, officer.Id);
+        }
+
+        if (_hireOfficerList.ItemCount == 0)
+        {
+            _hireOfficerList.AddItem(_localization.T("ui.no_hireable_officer"));
+            _hireOfficerList.SetItemDisabled(0, true);
+        }
+
+        if (_hireOfficerSummaryLabel != null)
+        {
+            _hireOfficerSummaryLabel.Text = _localization.Format("fmt.hire_officer_preview", HireOfficerGoldCost);
+        }
+    }
+
+    private void UpdateHireOfficerDialogText()
+    {
+        if (_hireOfficerDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _hireOfficerDialog.Title = _localization.T("personnel.command.hire_officer");
+        _hireOfficerDialog.OkButtonText = _localization.T("ui.confirm_hire_officer");
+        var label = _hireOfficerDialog.GetNodeOrNull<Label>("HireOfficerDialogRoot/OfficerListLabel");
+        if (label != null)
+        {
+            label.Text = _localization.T("ui.hire_officer_target");
+        }
+    }
+
+    private string BuildHireOfficerRowText(OfficerData officer)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return officer.Name;
+        }
+
+        var sourceCity = officer.CityId > 0 ? _turnManager.World.GetCity(officer.CityId) : null;
+        var sourceCityName = sourceCity != null ? _localization.GetCityName(sourceCity) : _localization.T("ui.none");
+        var sourceFactionName = sourceCity != null ? _localization.GetFactionName(_turnManager.World, sourceCity.OwnerFactionId) : _localization.T("ui.none");
+        return _localization.Format(
+            "fmt.hire_officer_row",
+            _localization.GetOfficerName(officer),
+            _localization.GetOfficerRole(officer),
+            officer.Loyalty,
+            sourceCityName,
+            sourceFactionName);
+    }
+
+    private static bool IsHireOfficerCandidate(WorldState world, int playerFactionId, OfficerData officer)
+    {
+        if (IsFactionRuler(world, officer))
+        {
+            return false;
+        }
+
+        if (!IsOfficerOldEnoughToJoin(world, officer))
+        {
+            return false;
+        }
+
+        var sourceCity = officer.CityId > 0 ? world.GetCity(officer.CityId) : null;
+        return sourceCity == null || sourceCity.OwnerFactionId != playerFactionId;
+    }
+
+    private void OnHireOfficerDialogConfirmed()
+    {
+        if (_selectedCity == null || _turnManager == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var selectedOfficerIds = GetSelectedItemMetadataIds(_hireOfficerList);
+        if (selectedOfficerIds.Count == 0)
+        {
+            AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
+            ReopenHireOfficerDialog();
+            return;
+        }
+
+        var result = _commandResolver.ExecuteHireOfficer(_turnManager.GetPlayerFactionId(), _selectedCity.Id, selectedOfficerIds[0]);
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+        _mapController?.RefreshVisuals();
+    }
+
+    private void ReopenHireOfficerDialog()
+    {
+        CallDeferred(nameof(ReopenHireOfficerDialogDeferred));
+    }
+
+    private void ReopenHireOfficerDialogDeferred()
+    {
+        _hireOfficerDialog?.PopupCentered(new Vector2I(580, 400));
+    }
+
+    private void EnsureCivilDialogWidgets()
+    {
+        if (_civilDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _civilDialog.GetNodeOrNull<VBoxContainer>("CivilDialogRoot");
+        if (existingRoot != null)
+        {
+            _civilCommandOption = existingRoot.GetNodeOrNull<OptionButton>("CommandOption");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "CivilDialogRoot",
+            CustomMinimumSize = new Vector2(420.0f, 120.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _civilDialog.AddChild(root);
+        root.AddChild(new Label { Name = "CommandLabel" });
+        _civilCommandOption = new OptionButton
+        {
+            Name = "CommandOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_civilCommandOption);
+    }
+
+    private void ShowCivilDialog()
+    {
+        if (_civilDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsureCivilDialogWidgets();
+        UpdateCivilDialogText();
+        PopulateCivilDialog();
+        _civilDialog.PopupCentered(new Vector2I(440, 160));
+    }
+
+    private void PopulateCivilDialog()
+    {
+        if (_civilCommandOption == null || _localization == null)
+        {
+            return;
+        }
+
+        _civilCommandOption.Clear();
+        AddCivilCommandOption("civil.command.relief");
+        AddCivilCommandOption("civil.command.investigate_people");
+    }
+
+    private void AddCivilCommandOption(string localeKey)
+    {
+        if (_civilCommandOption == null || _localization == null)
+        {
+            return;
+        }
+
+        _civilCommandOption.AddItem(_localization.T(localeKey));
+        _civilCommandOption.SetItemMetadata(_civilCommandOption.ItemCount - 1, localeKey);
+    }
+
+    private void UpdateCivilDialogText()
+    {
+        if (_civilDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _civilDialog.Title = _localization.T("ui.civil");
+        _civilDialog.OkButtonText = _localization.T("ui.confirm_civil");
+        var label = _civilDialog.GetNodeOrNull<Label>("CivilDialogRoot/CommandLabel");
+        if (label != null)
+        {
+            label.Text = _localization.T("ui.civil_command");
+        }
+    }
+
+    private void OnCivilDialogConfirmed()
+    {
+        if (_localization == null || _civilCommandOption == null)
+        {
+            return;
+        }
+
+        var metadata = _civilCommandOption.GetItemMetadata(_civilCommandOption.Selected);
+        var commandKey = metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
+        if (commandKey == "civil.command.relief")
+        {
+            ShowCivilReliefDialog();
+            return;
+        }
+
+        if (commandKey == "civil.command.investigate_people")
+        {
+            ExecuteCivilInvestigation();
+            return;
+        }
+
+        AddLog(_localization.Format("log.civil_command_selected", _civilCommandOption.GetItemText(_civilCommandOption.Selected)));
+    }
+
+    private void ExecuteCivilInvestigation()
+    {
+        if (_selectedCity == null || _turnManager == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var result = _commandResolver.ExecuteCivilInvestigation(_turnManager.GetPlayerFactionId(), _selectedCity.Id);
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+        _mapController?.RefreshVisuals();
+    }
+
+    private void EnsureCivilReliefDialogWidgets()
+    {
+        if (_civilReliefDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _civilReliefDialog.GetNodeOrNull<VBoxContainer>("CivilReliefDialogRoot");
+        if (existingRoot != null)
+        {
+            _civilReliefGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldSpinBox");
+            _civilReliefFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
+            _civilReliefSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "CivilReliefDialogRoot",
+            CustomMinimumSize = new Vector2(420.0f, 230.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _civilReliefDialog.AddChild(root);
+
+        root.AddChild(new Label { Name = "GoldLabel" });
+        _civilReliefGoldSpinBox = CreateMoveSpinBox("GoldSpinBox");
+        _civilReliefGoldSpinBox.Step = 100;
+        _civilReliefGoldSpinBox.ValueChanged += _ => UpdateCivilReliefSummary();
+        root.AddChild(_civilReliefGoldSpinBox);
+
+        root.AddChild(new Label { Name = "FoodLabel" });
+        _civilReliefFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
+        _civilReliefFoodSpinBox.Step = 1000;
+        _civilReliefFoodSpinBox.ValueChanged += _ => UpdateCivilReliefSummary();
+        root.AddChild(_civilReliefFoodSpinBox);
+
+        _civilReliefSummaryLabel = new Label
+        {
+            Name = "SummaryLabel",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        root.AddChild(_civilReliefSummaryLabel);
+    }
+
+    private void ShowCivilReliefDialog()
+    {
+        if (_selectedCity == null || _civilReliefDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsureCivilReliefDialogWidgets();
+        UpdateCivilReliefDialogText();
+        PopulateCivilReliefDialog();
+        _civilReliefDialog.PopupCentered(new Vector2I(440, 260));
+    }
+
+    private void PopulateCivilReliefDialog()
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ConfigureMoveSpinBox(_civilReliefGoldSpinBox, _selectedCity.Gold, 0);
+        ConfigureMoveSpinBox(_civilReliefFoodSpinBox, _selectedCity.Food, 0);
+        if (_civilReliefGoldSpinBox != null)
+        {
+            _civilReliefGoldSpinBox.Step = 100;
+        }
+        if (_civilReliefFoodSpinBox != null)
+        {
+            _civilReliefFoodSpinBox.Step = 1000;
+        }
+
+        UpdateCivilReliefSummary();
+    }
+
+    private void UpdateCivilReliefDialogText()
+    {
+        if (_civilReliefDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _civilReliefDialog.Title = _localization.T("civil.command.relief");
+        _civilReliefDialog.OkButtonText = _localization.T("ui.confirm_civil_relief");
+        SetCivilReliefDialogLabelText("GoldLabel", _localization.T("ui.civil_relief_gold"));
+        SetCivilReliefDialogLabelText("FoodLabel", _localization.T("ui.civil_relief_food"));
+    }
+
+    private void SetCivilReliefDialogLabelText(string nodeName, string text)
+    {
+        var label = _civilReliefDialog?.GetNodeOrNull<Label>($"CivilReliefDialogRoot/{nodeName}");
+        if (label != null)
+        {
+            label.Text = text;
+        }
+    }
+
+    private void UpdateCivilReliefSummary()
+    {
+        if (_civilReliefSummaryLabel == null || _civilReliefGoldSpinBox == null || _civilReliefFoodSpinBox == null || _localization == null)
+        {
+            return;
+        }
+
+        var gold = (int)_civilReliefGoldSpinBox.Value;
+        var food = (int)_civilReliefFoodSpinBox.Value;
+        var gain = gold / 100 * 10 + food / 1000 * 10;
+        _civilReliefSummaryLabel.Text = _localization.Format("fmt.civil_relief_preview", gain);
+    }
+
+    private void OnCivilReliefDialogConfirmed()
+    {
+        if (_selectedCity == null || _turnManager == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var result = _commandResolver.ExecuteCivilRelief(
+            _turnManager.GetPlayerFactionId(),
+            _selectedCity.Id,
+            (int)(_civilReliefGoldSpinBox?.Value ?? 0),
+            (int)(_civilReliefFoodSpinBox?.Value ?? 0));
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+        _mapController?.RefreshVisuals();
+    }
+
+    private void EnsureInternalAffairsDialogWidgets()
+    {
+        if (_internalAffairsDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _internalAffairsDialog.GetNodeOrNull<VBoxContainer>("InternalAffairsDialogRoot");
+        if (existingRoot != null)
+        {
+            _internalAffairsJobOption = existingRoot.GetNodeOrNull<OptionButton>("JobOption");
+            _internalAffairsDurationSpinBox = existingRoot.GetNodeOrNull<SpinBox>("DurationSpinBox");
+            _internalAffairsOfficerList = existingRoot.GetNodeOrNull<ItemList>("OfficerList");
+            _internalAffairsScheduleList = existingRoot.GetNodeOrNull<ItemList>("ScheduleList");
+            _internalAffairsTerminateButton = existingRoot.GetNodeOrNull<Button>("TerminateButton");
+            _internalAffairsWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "InternalAffairsDialogRoot",
+            CustomMinimumSize = new Vector2(460.0f, 520.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _internalAffairsDialog.AddChild(root);
+
+        root.AddChild(new Label { Name = "JobLabel" });
+        _internalAffairsJobOption = new OptionButton
+        {
+            Name = "JobOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_internalAffairsJobOption);
+
+        root.AddChild(new Label { Name = "DurationLabel" });
+        _internalAffairsDurationSpinBox = new SpinBox
+        {
+            Name = "DurationSpinBox",
+            MinValue = 1,
+            MaxValue = 24,
+            Step = 1,
+            Value = 3,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_internalAffairsDurationSpinBox);
+
+        root.AddChild(new Label { Name = "OfficerListLabel" });
+        _internalAffairsOfficerList = new ItemList
+        {
+            Name = "OfficerList",
+            SelectMode = ItemList.SelectModeEnum.Single,
+            CustomMinimumSize = new Vector2(0.0f, 130.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_internalAffairsOfficerList);
+
+        root.AddChild(new Label { Name = "ScheduleListLabel" });
+        _internalAffairsScheduleList = new ItemList
+        {
+            Name = "ScheduleList",
+            SelectMode = ItemList.SelectModeEnum.Single,
+            CustomMinimumSize = new Vector2(0.0f, 130.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        root.AddChild(_internalAffairsScheduleList);
+
+        _internalAffairsTerminateButton = new Button
+        {
+            Name = "TerminateButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _internalAffairsTerminateButton.Pressed += OnInternalAffairsTerminatePressed;
+        root.AddChild(_internalAffairsTerminateButton);
+
+        _internalAffairsWarningLabel = new Label
+        {
+            Name = "WarningLabel",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        _internalAffairsWarningLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.2f, 0.15f, 1.0f));
+        root.AddChild(_internalAffairsWarningLabel);
+    }
+
+    private void ShowInternalAffairsDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _internalAffairsDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsureInternalAffairsDialogWidgets();
+        UpdateInternalAffairsDialogText();
+        PopulateInternalAffairsDialog();
+        SetInternalAffairsWarning(string.Empty);
+        _internalAffairsDialog.PopupCentered(new Vector2I(500, 560));
+    }
+
+    private void PopulateInternalAffairsDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        if (_internalAffairsJobOption != null)
+        {
+            _internalAffairsJobOption.Clear();
+            AddInternalAffairsJobOption(InternalAffairsJobType.Farm);
+            AddInternalAffairsJobOption(InternalAffairsJobType.Commercial);
+            AddInternalAffairsJobOption(InternalAffairsJobType.Defend);
+            AddInternalAffairsJobOption(InternalAffairsJobType.WaterControl);
+            AddInternalAffairsJobOption(InternalAffairsJobType.Construction);
+        }
+
+        if (_internalAffairsOfficerList != null)
+        {
+            _internalAffairsOfficerList.Clear();
+            var availableOfficerIds = GetAvailableOfficerIdsForOrder();
+            foreach (var officerId in _selectedCity.OfficerIds)
+            {
+                if (!availableOfficerIds.Contains(officerId))
+                {
+                    continue;
+                }
+
+                var officer = _turnManager.World.GetOfficer(officerId);
+                if (officer == null)
+                {
+                    continue;
+                }
+
+                var itemIndex = _internalAffairsOfficerList.AddItem(BuildOfficerListRowText(officer));
+                _internalAffairsOfficerList.SetItemMetadata(itemIndex, officer.Id);
+            }
+        }
+
+        RefreshInternalAffairsScheduleList();
+    }
+
+    private void AddInternalAffairsJobOption(InternalAffairsJobType jobType)
+    {
+        if (_internalAffairsJobOption == null)
+        {
+            return;
+        }
+
+        _internalAffairsJobOption.AddItem(GetInternalAffairsJobName(jobType));
+        _internalAffairsJobOption.SetItemMetadata(_internalAffairsJobOption.ItemCount - 1, (int)jobType);
+    }
+
+    private void RefreshInternalAffairsScheduleList()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _internalAffairsScheduleList == null || _localization == null)
+        {
+            return;
+        }
+
+        _internalAffairsScheduleList.Clear();
+        foreach (var schedule in _turnManager.World.InternalAffairsSchedules)
+        {
+            if (schedule.State != InternalAffairsScheduleState.Active || schedule.CityId != _selectedCity.Id)
+            {
+                continue;
+            }
+
+            var officer = _turnManager.World.GetOfficer(schedule.OfficerId);
+            var officerName = officer != null ? _localization.GetOfficerName(officer) : "-";
+            var itemIndex = _internalAffairsScheduleList.AddItem(
+                _localization.Format("fmt.internal_affairs_schedule_row", GetInternalAffairsJobName(schedule.JobType), officerName, schedule.RemainingMonths));
+            _internalAffairsScheduleList.SetItemMetadata(itemIndex, schedule.Id);
+        }
+    }
+
+    private void UpdateInternalAffairsDialogText()
+    {
+        if (_internalAffairsDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _internalAffairsDialog.Title = _localization.T("ui.internal_affairs");
+        _internalAffairsDialog.OkButtonText = _localization.T("ui.confirm_internal_affairs");
+        SetInternalAffairsDialogLabelText("JobLabel", _localization.T("ui.internal_affairs_job"));
+        SetInternalAffairsDialogLabelText("DurationLabel", _localization.T("ui.internal_affairs_duration"));
+        SetInternalAffairsDialogLabelText("OfficerListLabel", _localization.T("ui.internal_affairs_officer"));
+        SetInternalAffairsDialogLabelText("ScheduleListLabel", _localization.T("ui.internal_affairs_active_schedules"));
+        if (_internalAffairsTerminateButton != null)
+        {
+            _internalAffairsTerminateButton.Text = _localization.T("ui.terminate_internal_affairs");
+        }
+    }
+
+    private void SetInternalAffairsDialogLabelText(string nodeName, string text)
+    {
+        var label = _internalAffairsDialog?.GetNodeOrNull<Label>($"InternalAffairsDialogRoot/{nodeName}");
+        if (label != null)
+        {
+            label.Text = text;
+        }
+    }
+
+    private void OnInternalAffairsDialogConfirmed()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _commandResolver == null || _localization == null)
+        {
+            return;
+        }
+
+        var selectedOfficerIds = GetSelectedItemMetadataIds(_internalAffairsOfficerList);
+        if (selectedOfficerIds.Count == 0)
+        {
+            SetInternalAffairsWarning(_localization.T("ui.select_officer_warning"));
+            ReopenInternalAffairsDialog();
+            return;
+        }
+
+        var jobType = GetSelectedInternalAffairsJobType();
+        var months = Math.Max(1, (int)(_internalAffairsDurationSpinBox?.Value ?? 1));
+        var result = _commandResolver.ScheduleInternalAffairs(
+            _turnManager.GetPlayerFactionId(),
+            _selectedCity.Id,
+            selectedOfficerIds[0],
+            jobType,
+            months);
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+        RefreshInternalAffairsScheduleList();
+        _mapController?.RefreshVisuals();
+    }
+
+    private void OnInternalAffairsTerminatePressed()
+    {
+        if (_turnManager?.World == null || _commandResolver == null || _localization == null)
+        {
+            return;
+        }
+
+        var selectedIds = GetSelectedItemMetadataIds(_internalAffairsScheduleList);
+        if (selectedIds.Count == 0)
+        {
+            SetInternalAffairsWarning(_localization.T("ui.select_internal_affairs_schedule_warning"));
+            return;
+        }
+
+        var result = _commandResolver.TerminateInternalAffairsSchedule(_turnManager.GetPlayerFactionId(), selectedIds[0]);
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+        PopulateInternalAffairsDialog();
+    }
+
+    private InternalAffairsJobType GetSelectedInternalAffairsJobType()
+    {
+        if (_internalAffairsJobOption == null)
+        {
+            return InternalAffairsJobType.Farm;
+        }
+
+        var metadata = _internalAffairsJobOption.GetItemMetadata(_internalAffairsJobOption.Selected);
+        return metadata.VariantType == Variant.Type.Int
+            ? (InternalAffairsJobType)metadata.AsInt32()
+            : InternalAffairsJobType.Farm;
+    }
+
+    private string GetInternalAffairsJobName(InternalAffairsJobType jobType)
+    {
+        if (_localization == null)
+        {
+            return jobType.ToString();
+        }
+
+        return jobType switch
+        {
+            InternalAffairsJobType.Farm => _localization.T("internal_affairs.job.farm"),
+            InternalAffairsJobType.Commercial => _localization.T("internal_affairs.job.commercial"),
+            InternalAffairsJobType.Defend => _localization.T("internal_affairs.job.defend"),
+            InternalAffairsJobType.WaterControl => _localization.T("internal_affairs.job.water_control"),
+            InternalAffairsJobType.Construction => _localization.T("internal_affairs.job.construction"),
+            _ => jobType.ToString()
+        };
+    }
+
+    private void SetInternalAffairsWarning(string text)
+    {
+        if (_internalAffairsWarningLabel != null)
+        {
+            _internalAffairsWarningLabel.Text = text;
+        }
+    }
+
+    private void ReopenInternalAffairsDialog()
+    {
+        CallDeferred(nameof(ReopenInternalAffairsDialogDeferred));
+    }
+
+    private void ReopenInternalAffairsDialogDeferred()
+    {
+        _internalAffairsDialog?.PopupCentered(new Vector2I(500, 560));
+    }
+
     private static List<int> GetSelectedItemMetadataIds(ItemList? itemList)
     {
         var result = new List<int>();
@@ -2467,10 +3934,28 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
+            if (HasActiveInternalAffairsSchedule(officer.Id))
+            {
+                continue;
+            }
+
             result.Add(officerId);
         }
 
         return result;
+    }
+
+    private bool HasActiveInternalAffairsSchedule(int officerId)
+    {
+        var world = _turnManager?.World;
+        if (world == null)
+        {
+            return false;
+        }
+
+        return world.InternalAffairsSchedules.Any(schedule =>
+            schedule.State == InternalAffairsScheduleState.Active &&
+            schedule.OfficerId == officerId);
     }
 
     private void ShowOfficerCommandDialog(CommandType commandType)
@@ -2766,6 +4251,16 @@ public partial class HudController : CanvasLayer
             _merchantButton.Disabled = !enabled;
         }
 
+        if (_personnelButton != null)
+        {
+            _personnelButton.Disabled = !enabled;
+        }
+
+        if (_civilButton != null)
+        {
+            _civilButton.Disabled = !enabled;
+        }
+
         if (_attackButton != null)
         {
             _attackButton.Disabled = !enabled;
@@ -2784,15 +4279,11 @@ public partial class HudController : CanvasLayer
         var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
         var hasSelectedCity = _selectedCity != null;
         var isPlayerCity = hasSelectedCity && _selectedCity!.OwnerFactionId == playerFactionId;
-        var hasUsedDevelop = false;
         var hasUsedRecruit = false;
         var hasUsedSearch = false;
 
         if (world != null && _selectedCity != null)
         {
-            hasUsedDevelop =
-                _selectedCity.LastDevelopYear == world.Year &&
-                _selectedCity.LastDevelopMonth == world.Month;
             hasUsedRecruit =
                 _selectedCity.LastRecruitYear == world.Year &&
                 _selectedCity.LastRecruitMonth == world.Month;
@@ -2808,12 +4299,12 @@ public partial class HudController : CanvasLayer
 
         if (_developButton != null)
         {
-            _developButton.Disabled = !baseEnabled || !isPlayerCity || hasUsedDevelop;
+            _developButton.Disabled = !baseEnabled || !isPlayerCity;
         }
 
         if (_recruitButton != null)
         {
-            _recruitButton.Disabled = !baseEnabled || !isPlayerCity || hasUsedRecruit;
+            _recruitButton.Disabled = !baseEnabled || !isPlayerCity;
         }
 
         if (_searchButton != null)
@@ -2824,6 +4315,16 @@ public partial class HudController : CanvasLayer
         if (_merchantButton != null)
         {
             _merchantButton.Disabled = !baseEnabled || !isPlayerCity;
+        }
+
+        if (_personnelButton != null)
+        {
+            _personnelButton.Disabled = !baseEnabled || !isPlayerCity;
+        }
+
+        if (_civilButton != null)
+        {
+            _civilButton.Disabled = !baseEnabled || !isPlayerCity;
         }
 
         if (_moveButton != null)
@@ -3144,17 +4645,18 @@ public partial class HudController : CanvasLayer
 
         if (_developButton != null)
         {
-            _developButton.Text = _localization.T("ui.develop");
+            _developButton.Text = _localization.T("ui.internal_affairs");
         }
 
         if (_recruitButton != null)
         {
-            _recruitButton.Text = _localization.T("ui.recruit");
+            _recruitButton.Text = _localization.T("ui.military");
         }
 
         if (_moveButton != null)
         {
             _moveButton.Text = _localization.T("ui.move");
+            _moveButton.Visible = false;
         }
 
         if (_searchButton != null)
@@ -3167,9 +4669,20 @@ public partial class HudController : CanvasLayer
             _merchantButton.Text = _localization.T("ui.merchant");
         }
 
+        if (_personnelButton != null)
+        {
+            _personnelButton.Text = _localization.T("ui.personnel");
+        }
+
+        if (_civilButton != null)
+        {
+            _civilButton.Text = _localization.T("ui.civil");
+        }
+
         if (_attackButton != null)
         {
             _attackButton.Text = _localization.T("ui.attack");
+            _attackButton.Visible = false;
         }
 
         if (_viewButton != null)
@@ -3191,6 +4704,14 @@ public partial class HudController : CanvasLayer
         UpdateOfficerListDialogTitle();
 
         UpdateMerchantDialogText();
+        UpdateMilitaryDialogText();
+        UpdatePersonnelDialogText();
+        UpdatePersonnelBonusDialogText();
+        UpdateAssignRoleDialogText();
+        UpdateHireOfficerDialogText();
+        UpdateCivilDialogText();
+        UpdateCivilReliefDialogText();
+        UpdateInternalAffairsDialogText();
         UpdateMoveDialogText();
         UpdateAttackDialogText();
 
@@ -3377,6 +4898,11 @@ public partial class HudController : CanvasLayer
         }
 
         return Math.Max(0, currentYear - officer.BirthYear);
+    }
+
+    private static bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer)
+    {
+        return officer.BirthYear <= 0 || world.Year - officer.BirthYear >= 18;
     }
 
     private void EnsureOfficerDetailWidgets()

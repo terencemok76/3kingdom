@@ -17,6 +17,7 @@ public class WorldState
     public List<CityStartData> CityStarts { get; set; } = new();
     public List<FactionStartData> FactionStarts { get; set; } = new();
     public List<PendingCommandData> PendingCommands { get; set; } = new();
+    public List<InternalAffairsScheduleData> InternalAffairsSchedules { get; set; } = new();
 
     public CityData? GetCity(int cityId)
     {

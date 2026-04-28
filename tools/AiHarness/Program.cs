@@ -18,6 +18,12 @@ internal static class Program
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
         RunUpkeepShortageTest();
+        RunInternalAffairsScheduleTest();
+        RunPersonnelBonusTest();
+        RunAssignOfficerRoleTest();
+        RunHireOfficerTest();
+        RunCivilReliefTest();
+        RunCivilInvestigationTest();
         RunMultiMonthSoakTest();
 
         Console.WriteLine($"AI TEST SUMMARY: PASS={Passes.Count} FAIL={Failures.Count}");
@@ -158,6 +164,127 @@ internal static class Program
         Assert(city.Food == 0, "AI upkeep shortage food clamp", $"food={city.Food}");
         Assert(city.Troops == 1920, "AI upkeep shortage desertion", $"troops={city.Troops}");
         Assert(city.Loyalty == 78, "AI upkeep shortage loyalty penalty", $"loyalty={city.Loyalty}");
+    }
+
+    private static void RunInternalAffairsScheduleTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1, intelligence: 80, charm: 70));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.ScheduleInternalAffairs(1, 1, 101, InternalAffairsJobType.Farm, 2);
+        var firstResolve = services.Turn.ResolvePendingCommands(services.Resolver);
+        var city = world.GetCity(1)!;
+        var remaining = world.InternalAffairsSchedules.FirstOrDefault()?.RemainingMonths ?? -1;
+        var terminated = services.Resolver.TerminateInternalAffairsSchedule(1, world.InternalAffairsSchedules.First().Id);
+
+        Assert(scheduled.Success, "Internal affairs scheduling", $"success={scheduled.Success}");
+        Assert(city.Farm > 50, "Internal affairs monthly effect", $"farm={city.Farm}");
+        Assert(firstResolve.Any(result => result.Success), "Internal affairs month-end result", $"results={firstResolve.Count}");
+        Assert(remaining == 1, "Internal affairs remaining month", $"remaining={remaining}");
+        Assert(terminated.Success && world.InternalAffairsSchedules.First().State == InternalAffairsScheduleState.Terminated, "Internal affairs termination", $"state={world.InternalAffairsSchedules.First().State}");
+    }
+
+    private static void RunPersonnelBonusTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.ExecutePersonnelBonus(1, 1, 101, 200, 500);
+        var city = world.GetCity(1)!;
+        var officer = world.GetOfficer(101)!;
+
+        Assert(result.Success, "Personnel bonus resolves", $"success={result.Success}");
+        Assert(city.Gold == 800 && city.Food == 500, "Personnel bonus resource cost", $"gold={city.Gold}, food={city.Food}");
+        Assert(officer.Loyalty == 83, "Personnel bonus loyalty gain", $"loyalty={officer.Loyalty}");
+    }
+
+    private static void RunAssignOfficerRoleTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "Officer", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.ExecuteAssignOfficerRole(1, 1, 102, "Strategist");
+        var blocked = services.Resolver.ExecuteAssignOfficerRole(1, 1, 101, "Strategist");
+        var officer = world.GetOfficer(102)!;
+
+        Assert(result.Success, "Assign officer role resolves", $"success={result.Success}");
+        Assert(officer.Role == "Strategist", "Assign officer role applies", $"role={officer.Role}");
+        Assert(!blocked.Success, "Assign officer role blocks ruler", $"success={blocked.Success}");
+    }
+
+    private static void RunHireOfficerTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "OtherCity", 2, 1000, 1000, 1000, new[] { 201, 202, 203 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(201, "LowLoyaltyOfficer", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "HighLoyaltyOfficer", 2));
+        world.Officers.Add(TestHelpers.Officer(203, "OtherRuler", 2));
+        world.GetOfficer(201)!.Loyalty = 55;
+        world.GetOfficer(202)!.Loyalty = 90;
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Other", false, 203, new[] { 201, 202, 203 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.ExecuteHireOfficer(1, 1, 201);
+        var refused = services.Resolver.ExecuteHireOfficer(1, 1, 202);
+        var rulerBlocked = services.Resolver.ExecuteHireOfficer(1, 1, 203);
+        var playerCity = world.GetCity(1)!;
+        var otherCity = world.GetCity(2)!;
+
+        Assert(result.Success, "Hire officer resolves", $"success={result.Success}");
+        Assert(playerCity.Gold == 800, "Hire officer gold cost", $"gold={playerCity.Gold}");
+        Assert(playerCity.OfficerIds.Contains(201) && !otherCity.OfficerIds.Contains(201), "Hire officer moves city", $"playerHas={playerCity.OfficerIds.Contains(201)}");
+        Assert(world.GetFaction(1)!.OfficerIds.Contains(201) && !world.GetFaction(2)!.OfficerIds.Contains(201), "Hire officer moves faction", $"playerFactionHas={world.GetFaction(1)!.OfficerIds.Contains(201)}");
+        Assert(!refused.Success, "Hire officer blocks high loyalty", $"success={refused.Success}");
+        Assert(!rulerBlocked.Success, "Hire officer blocks ruler", $"success={rulerBlocked.Success}");
+    }
+
+    private static void RunCivilReliefTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.ExecuteCivilRelief(1, 1, 100, 1000);
+        var city = world.GetCity(1)!;
+
+        Assert(result.Success, "Civil relief resolves", $"success={result.Success}");
+        Assert(city.Gold == 900 && city.Food == 0, "Civil relief resource cost", $"gold={city.Gold}, food={city.Food}");
+        Assert(city.Loyalty == 100, "Civil relief loyalty gain", $"loyalty={city.Loyalty}");
+    }
+
+    private static void RunCivilInvestigationTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var services = CreateServices(world);
+        var city = world.GetCity(1)!;
+        var beforeGold = city.Gold;
+        var beforeFood = city.Food;
+        var beforeFarm = city.Farm;
+        var beforeLoyalty = city.Loyalty;
+
+        var result = services.Resolver.ExecuteCivilInvestigation(1, 1);
+        var changed = city.Gold > beforeGold || city.Food > beforeFood || city.Farm > beforeFarm || city.Loyalty > beforeLoyalty;
+
+        Assert(result.Success, "Civil investigation resolves", $"success={result.Success}");
+        Assert(changed, "Civil investigation changes city", $"gold={city.Gold}, food={city.Food}, farm={city.Farm}, loyalty={city.Loyalty}");
     }
 
     private static void RunMultiMonthSoakTest()

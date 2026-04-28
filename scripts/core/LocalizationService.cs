@@ -256,6 +256,14 @@ public class LocalizationService
 
     public string GetOfficerStatus(WorldState world, OfficerData officer)
     {
+        foreach (var schedule in world.InternalAffairsSchedules)
+        {
+            if (schedule.State == InternalAffairsScheduleState.Active && schedule.OfficerId == officer.Id)
+            {
+                return T("status.internal_affairs");
+            }
+        }
+
         if (officer.LastAssignedYear != world.Year || officer.LastAssignedMonth != world.Month)
         {
             return T("status.idle");
@@ -263,6 +271,7 @@ public class LocalizationService
 
         var key = officer.LastAssignedCommand switch
         {
+            CommandType.InternalAffairs => "status.internal_affairs",
             CommandType.Develop => "status.develop",
             CommandType.Recruit => "status.recruit",
             CommandType.Move => "status.move",

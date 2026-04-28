@@ -4,6 +4,7 @@ namespace ThreeKingdom.Data;
 
 public enum CommandType
 {
+    InternalAffairs,
     Develop,
     Recruit,
     Move,

@@ -9,6 +9,29 @@
 - Completion status: core Phase 1 playable loop completed and verified
 - Purpose: freeze Phase 1 implementation scope to control complexity and prevent feature drift
 
+## Phase 1.5 Design Lock
+- Design lock tag: `Phase1.5-Design-Locked-v1`
+- Design lock date: `April 28, 2026`
+- Purpose: freeze the Phase 1.5 feature design before implementation begins
+- Status: design locked, implementation not started
+- Locked feature areas:
+- `Internal Affairs` / `內政` system replacing Phase 1 `Develop`
+- Five internal affairs jobs: `Farm`, `Commercial`, `Defend`, `WaterControl`, `Construction`
+- Multi-month job schedules, UI termination, and war/event interruption
+- Internal affairs job experience, rank, official titles, and title buffs
+- Battle experience, military rank, general titles, and title buffs
+- Strategist experience, strategist rank, strategist titles, and strategy buffs
+- Civil experience, civil rank, civil official titles, and governance buffs
+- Six basic troop types and baseline matchup rules
+- Item/equipment system with initial famous item set
+- Population, succession, defection, riot, relief, and stability-event design direction
+- Values still allowed to tune during implementation:
+- Exact buff percentages
+- Experience gain and rank thresholds
+- Troop costs, upkeep, and matchup multipliers
+- Item rarity, ownership, location, and stat bonuses
+- AI priority weights and balancing constants
+
 ### In Scope (Phase 1 Locked)
 - 2D desktop playable map loop
 - Monthly turn flow (player -> AI -> month advance)
@@ -64,8 +87,9 @@
 - Audio/animation polish beyond minimal feedback
 
 ## 3.1 Phase 1.5 Extension (Officer Job System)
-- Officer assignment system is introduced as a Phase 1.5 extension on top of Phase 1 loop
-- Adds city jobs, officer job title, officer rank, and performance formulas
+- `Develop` evolves into the broader `Internal Affairs` / `內政` system
+- Internal affairs assignment is introduced as a Phase 1.5 extension on top of the Phase 1 loop
+- Adds city jobs, officer job title, officer rank, recurring schedules, and performance formulas
 - Keeps tactical battle/map scope unchanged
 
 ## 3.2 Phase 1.5 Extension (Item System)
@@ -136,11 +160,17 @@
 - Commands use either city aggregate power or a selected lead officer
 - `Develop`, `Recruit`, and `Search` each require one assigned officer
 - An officer assigned to any command in the current month cannot be assigned to another command until next month
-- Officers can also be assigned to one city job:
-- `Farm` (agriculture)
-- `Commercial` (commerce)
-- `Defense` (fortification and city security)
-- `Training` (soldier drill and combat readiness)
+- Officers can also be assigned to one internal affairs job schedule:
+- `Farm` / `農業` (agriculture and food production)
+- `Commercial` / `商業` (commerce and gold income)
+- `Defend` / `防衛` (fortification and city security)
+- `WaterControl` / `治水` (flood prevention, farming stability, and disaster resistance)
+- `Construction` / `建設` (city infrastructure, defense works, and long-term development)
+- Each active internal affairs job requires one assigned officer
+- One officer can only be assigned to one active internal affairs job at the same time
+- Internal affairs jobs can be scheduled for multiple months instead of being assigned every round
+- A scheduled job can be terminated manually from UI
+- A scheduled job can be interrupted automatically by war or other major events
 - `RelationshipType` stores lightweight officer relationship links used by startup placement and future loyalty/event rules
 - Deferred officer profile extensions (Phase 1.5+):
 - `BodyStatus` (e.g. `Healthy`, `Injured`, `Sick`, `Exhausted`)
@@ -148,11 +178,176 @@
 
 ### 4.4 Officer Job Title and Rank
 - Add to officer profile:
-- `JobType` (`None`, `Farm`, `Commercial`, `Defense`, `Training`)
+- `JobType` (`None`, `Farm`, `Commercial`, `Defend`, `WaterControl`, `Construction`)
 - `JobTitle` (example: `Assistant`, `Director`, `Chief`)
 - `Rank` (numeric or enum, e.g. 1-9 where lower number is higher rank)
-- City supports one active officer per job in Phase 1.5 baseline
+- City supports one active officer per internal affairs job in Phase 1.5 baseline
+- Job schedule fields should track assigned officer, target city, remaining months, and active/terminated state
+- Each completed monthly job tick grants job experience to the assigned officer
+- When job experience reaches the required threshold, the officer increases rank in that job path
+- Each official title grants a small job-specific buff
+- Title buff and rank bonus stack, but final job output should be clamped for balance
 - Optional future expansion: deputy slots per job
+
+### 4.4.1 Internal Affairs Job Titles
+- `Farm` / `Agriculture` titles:
+- `司農` / `Minister of Agriculture`
+- `屯田校尉` / `Commander of Agricultural Garrisons`
+- `典農中郎將` / `Director of Farming`
+- `勸農使` / `Commissioner of Agriculture`
+- `農政官` / `Agricultural Officer`
+- `Commercial` / `Commerce` titles:
+- `度支尚書` / `Minister of Finance`
+- `市令` / `Market Supervisor`
+- `司市` / `Market Director`
+- `商政官` / `Commerce Officer`
+- `平準令` / `Price Stabilization Officer`
+- `WaterControl` / `Water` titles:
+- `都水使者` / `Chief of Waterworks`
+- `河渠令` / `Director of River Works`
+- `治河使` / `River Control Commissioner`
+- `水衡都尉` / `Superintendent of Waterworks`
+- `水利官` / `Waterworks Officer`
+- `Construction` / `Infrastructure` titles:
+- `將作大匠` / `Chief Engineer / Chief Architect`
+- `工部尚書` / `Minister of Works`
+- `營造官` / `Construction Officer`
+- `將作監` / `Directorate of Construction`
+- `修城校尉` / `Fortification Officer`
+- `Defend` / `Garrison` titles:
+- `鎮軍將軍` / `General Who Pacifies the Army`
+- `護軍` / `Protector-General`
+- `城防都尉` / `City Defense Commander`
+- `守城校尉` / `Garrison Commander`
+- `戍衛將軍` / `Defensive General`
+
+### 4.4.2 Job Experience and Title Buffs
+- Job experience is tracked per officer and per job type
+- A month counts as completed when the schedule survives until month-end resolution and applies its job effect
+- Terminated or interrupted schedules do not grant experience for the unfinished month
+- Rank increase should unlock stronger titles or improve the active title buff
+- Suggested title buff examples:
+- Farm titles increase food output or farming growth
+- Commercial titles increase gold income or merchant efficiency
+- WaterControl titles reduce disaster/flood risk and improve farm stability
+- Construction titles increase infrastructure growth and construction efficiency
+- Defend titles increase defensive combat value and reduce siege losses
+
+### 4.4.3 Battle Experience, Military Rank, and General Titles
+- Officers who join battle gain battle experience
+- Battle experience is separate from internal affairs job experience
+- When battle experience reaches the required threshold, the officer increases military rank
+- Military rank unlocks or improves general title buffs
+- Each general title grants a battle-specific buff
+- Suggested battle experience sources:
+- Joining an attack or defense battle
+- Winning a battle
+- Surviving a difficult battle
+- Capturing a city
+- Defeating a stronger enemy force
+- Suggested title buff categories:
+- Attack power bonus
+- Defense power bonus
+- Casualty reduction
+- Morale or combat stability bonus
+- Siege/city capture bonus
+- Troop command efficiency bonus
+
+#### Top Tier General Titles
+- `大將軍` / `General-in-Chief`
+- `驃騎將軍` / `General of Agile Cavalry`
+- `車騎將軍` / `General of Chariots and Cavalry`
+- `衛將軍` / `General of the Guards`
+
+#### Mid Tier Main Battle General Titles
+- `前將軍` / `General of the Vanguard`
+- `後將軍` / `General of the Rear`
+- `左將軍` / `General of the Left`
+- `右將軍` / `General of the Right`
+
+#### Directional Expedition General Titles
+- `征東將軍` / `General Who Conquers the East`
+- `征西將軍` / `General Who Conquers the West`
+- `征南將軍` / `General Who Conquers the South`
+- `征北將軍` / `General Who Conquers the North`
+- `鎮東將軍` / `General Who Pacifies the East`
+- `鎮南將軍` / `General Who Pacifies the South`
+- `安西將軍` / `General Who Secures the West`
+
+#### Low Tier Miscellaneous General Titles
+- `裨將軍` / `Deputy General`
+- `偏將軍` / `Subordinate General`
+- `牙門將軍` / `Gate Guard General`
+- `中郎將` / `General of the Household`
+
+### 4.4.4 Strategist Titles
+- Strategist titles represent the officer's planning, tactics, and advisory path
+- Strategist rank is separate from internal affairs job rank and military/general rank
+- Strategist experience can be gained from successful Search, battle participation as advisor, future tactics, and major strategy events
+- Each strategist title grants a strategy-specific buff
+- Suggested buff categories:
+- Search success bonus
+- Battle tactics or combat stability bonus
+- Enemy casualty bonus or friendly casualty reduction
+- Internal affairs planning bonus
+- Diplomacy or event resolution bonus in later phases
+- Strategist title list:
+- `謀士` / `Tactician`
+- `參軍` / `Military Advisor`
+- `軍師` / `Strategist`
+- `軍師中郎將` / `Chief Strategist`
+- `大軍師` / `Grand Strategist`
+
+### 4.4.5 Civil Official Titles
+- Civil official titles represent governance, administration, and state authority
+- Civil rank is separate from internal affairs job rank, military/general rank, and strategist rank
+- Civil experience can be gained from governing cities, completing construction/internal affairs schedules, managing high-loyalty cities, future policy actions, and major administrative events
+- Each civil title grants a governance-specific buff
+- Suggested buff categories:
+- City loyalty stability bonus
+- Gold or food administration bonus
+- Reduced command/resource waste
+- Improved population growth or public order
+- Better succession/faction stability in later phases
+- High civil titles:
+- `丞相` / `Chancellor`
+- `司徒` / `Minister of the People`
+- `司空` / `Minister of Works`
+- `太尉` / `Grand Commandant`
+- Central government titles:
+- `尚書令` / `Director of Secretariat`
+- `侍中` / `Palace Attendant`
+- `中書令` / `Director of the Imperial Secretariat`
+- Local government titles:
+- `太守` / `Prefect`
+- `刺史` / `Inspector`
+- `州牧` / `Governor`
+
+### 4.4.6 Basic Troop Types
+- Phase 1 uses a single aggregate `Troops` value
+- Phase 1.5 can split troops into six basic troop types:
+- `Infantry` / `步兵`
+- `Spearman` / `槍兵`
+- `Cavalry` / `騎兵`
+- `Archer` / `弓兵`
+- `Crossbow` / `弩兵`
+- `Siege` / `投石車`
+- Each city should track troop counts by type in addition to, or instead of, aggregate total troops
+- Attack and Move UI should eventually allow selecting troop amounts by type
+- Combat resolver should calculate battle power from troop type counts, officer stats, military title buffs, city defense, and matchup modifiers
+- Siege units are mainly for city attack and should be weaker in open-field defense
+- Cavalry should be strong in attack and pursuit but more costly to recruit/upkeep
+- Spearmen should be useful against cavalry
+- Archers and crossbowmen should provide ranged attack value
+- Infantry should be the balanced baseline unit
+- Basic troop matchup table:
+- `Infantry` counters `Archer`
+- `Spearman` counters `Cavalry`
+- `Cavalry` counters `Archer`
+- `Archer` counters `Infantry`
+- `Crossbow` counters `Cavalry`
+- `Siege` counters city defense
+- Matchup multipliers should be configured in data or balance constants, not hardcoded in UI
 
 ### 4.5 Item Categories
 - Item types:
@@ -164,6 +359,31 @@
 - One item can be assigned to only one officer at a time
 - Officer equipment slot policy (Phase 1.5 baseline):
 - Max 1 weapon + 1 horse + 1 special item per officer
+
+### 4.5.1 Initial Famous Items
+- Famous weapons:
+- `青龍偃月刀` / `Green Dragon Crescent Blade`
+- `方天畫戟` / `Sky-Piercing Halberd`
+- `丈八蛇矛` / `Serpent Spear`
+- `雌雄雙股劍` / `Twin Swords of Fate`
+- `青釭劍` / `Blue Steel Sword`
+- `倚天劍` / `Heaven Reliant Sword`
+- `七星寶刀` / `Seven Star Treasure Blade`
+- `古錠刀` / `Ancient Ingot Blade`
+- Famous horses:
+- `赤兔` / `Red Hare`
+- `的盧` / `Dilu`
+- `絕影` / `Shadowless`
+- `爪黃飛電` / `Yellow Claw Lightning`
+- `烏騅` / `Wuzhui`
+- Famous special items/books/seals:
+- `孫子兵法` / `The Art of War`
+- `孟德新書` / `Mengde's New Book`
+- `太平要術` / `Essential Arts of Great Peace`
+- `青囊書` / `Blue Bag Medical Manual`
+- `傳國玉璽` / `Imperial Seal`
+- Item names should be data-driven and localized through item data, not hardcoded in UI code
+- Specific owners, discovery locations, rarity, and exact stat buffs should be configured in item data
 
 ## 5. Player Commands (Phase 1 Rules)
 ## 5.1 Develop
@@ -178,6 +398,12 @@
 - Effect: Improve city development attributes when month-end resolution runs
 - Suggested formula:
 - `gain = 20 + leadOfficer.Intelligence / 5 + random(0..10)`
+- Phase 1.5 transition:
+- `Develop` is replaced by `Internal Affairs` / `內政`
+- Player chooses a specific internal affairs job: `Farm`, `Commercial`, `Defend`, `WaterControl`, or `Construction`
+- Player chooses assigned officer and planned duration in months
+- Job continues month by month until its duration ends, player terminates it, or war/event interruption cancels it
+- Monthly effect is applied at end-of-month while the schedule is active
 
 ## 5.2 Recruit
 - Purpose: Convert resources into troops
@@ -194,6 +420,8 @@
 - Recruit extension (Phase 1.5):
 - City has `Population`
 - Recruit count depends on city `Population`, officer `Charm`, spent `Gold` hiring budget, and modifiers
+- Recruit UI can choose which troop type to recruit
+- Different troop types can have different gold/food/population cost and upkeep
 - Heavy recruitment causes direct percentage decrease to city `Loyalty`
 - Recruiting troops decreases city `Population` directly
 - Recruitment cannot exceed available population constraints
@@ -206,7 +434,7 @@
 - During command phase, player/AI assigns a `Move` order from source city to connected friendly target city
 - Player UI can choose:
 - `target city`
-- `troops`
+- `troops` by type in Phase 1.5
 - `gold`
 - `food`
 - `officers`
@@ -256,7 +484,7 @@
 - During command phase, player/AI assigns an `Attack` order from source city to connected target city
 - Player UI can choose:
 - `target city`
-- `troops`
+- `troops` by type in Phase 1.5
 - `gold`
 - `food`
 - `officers`
@@ -324,27 +552,59 @@
 - AI checks unfilled high-priority jobs first:
 1. Low food: fill `Farm`
 2. Low gold: fill `Commercial`
-3. Border city: fill `Defense`
-4. Low troop quality: fill `Training`
+3. Border city or expected attack risk: fill `Defend`
+4. Low farming stability or high disaster risk: fill `WaterControl`
+5. Long-term growth target or weak infrastructure: fill `Construction`
 - AI favors officers whose best stat matches the job
+- AI prefers multi-month schedules but may terminate or reassign jobs when war pressure changes
 
 ## 7. Data Model (C#)
 ## 7.1 Domain Classes
 - `OfficerData`
 - Fields: `Id`, `Name`, `NameZhHant`, `Role`, `Belongs`, `Sex`, `BirthYear`, `DeathYear`, `Strength`, `Intelligence`, `Charm`, `Leadership`, `Politics`, `Loyalty`, `Ambition`, `Combat`, `RelationshipType`, `CityId`
+- Phase 1.5 job extension fields: current active job id/reference, per-job experience, per-job rank, per-job title
+- Phase 1.5 military extension fields: battle experience, military rank, general title, unlocked general title buffs
+- Phase 1.5 strategist extension fields: strategist experience, strategist rank, strategist title, unlocked strategist title buffs
+- Phase 1.5 civil extension fields: civil experience, civil rank, civil title, unlocked civil title buffs
 - `CityData`
 - Fields: `Id`, `Name`, `OwnerFactionId`, `Gold`, `Food`, `Troops`, `Farm`, `Commercial`, `Defense`, `Loyalty`, `OfficerIds`, `ConnectedCityIds`
+- Phase 1.5 troop extension fields: troop counts by type (`Infantry`, `Spearman`, `Cavalry`, `Archer`, `Crossbow`, `Siege`)
 - `FactionData`
 - Fields: `Id`, `NameEn`, `NameZhHant`, `RulerOfficerId`, `OfficerIds`, `IsPlayer`
 - `WorldState`
 - Fields: `StoryId`, `StoryNameEn`, `StoryNameZhHant`, `Month`, `Year`, `Cities`, `Officers`, `Factions`, `CityStarts`, `FactionStarts`, `RandomSeed`
+- Phase 1.5 should add active internal affairs schedules, or store them under city/faction state if easier for save/load
+
+## 7.2 Internal Affairs Schedule Data
+- `InternalAffairsScheduleData`
+- Fields:
+- `Id`
+- `CityId`
+- `OfficerId`
+- `JobType`
+- `RemainingMonths`
+- `TotalMonths`
+- `StartedYear`
+- `StartedMonth`
+- `State` (`Active`, `Terminated`, `Interrupted`, `Completed`)
+- `InterruptedReason`
+- Constraint: one officer can only have one active schedule
+- Constraint: each city can only have one active officer per job type in Phase 1.5 baseline
+
+## 7.2.1 Troop Type Data
+- `TroopType`
+- Values: `Infantry`, `Spearman`, `Cavalry`, `Archer`, `Crossbow`, `Siege`
+- City troop storage can use a dictionary keyed by `TroopType`
+- Pending move and attack commands should carry troop counts by type
+- Aggregate troop count can be derived from all troop type counts for UI summary, upkeep, and legacy compatibility
 
 ## 7.3 Job Performance Model
 - Each job has a base formula:
 - `FarmOutput = BaseFarm * (1 + officer.Intelligence * 0.004 + RankBonus + SkillBonus)`
 - `CommercialOutput = BaseGold * (1 + officer.Charm * 0.004 + RankBonus + SkillBonus)`
-- `DefenseOutput = BaseDefense * (1 + officer.Strength * 0.003 + officer.Intelligence * 0.002 + RankBonus + SkillBonus)`
-- `TrainingOutput = BaseTraining * (1 + officer.Strength * 0.004 + officer.Charm * 0.002 + RankBonus + SkillBonus)`
+- `DefendOutput = BaseDefense * (1 + officer.Strength * 0.003 + officer.Intelligence * 0.002 + RankBonus + SkillBonus)`
+- `WaterControlOutput = BaseWaterControl * (1 + officer.Politics * 0.004 + officer.Intelligence * 0.002 + RankBonus + SkillBonus)`
+- `ConstructionOutput = BaseConstruction * (1 + officer.Politics * 0.003 + officer.Charm * 0.002 + RankBonus + SkillBonus)`
 - Suggested rank bonus:
 - `Rank 1-3: +0.12`
 - `Rank 4-6: +0.06`
@@ -352,23 +612,31 @@
 - Skill examples:
 - `Agriculture`: +10% Farm job output
 - `Trade`: +10% Commercial job output
-- `Fortification`: +10% Defense job output
-- `Drill`: +10% Training job output
+- `Fortification`: +10% Defend job output
+- `Hydrology`: +10% WaterControl job output
+- `Architecture`: +10% Construction job output
 
 ## 7.4 Item Data Model
 - `ItemData`
-- Fields: `Id`, `Name`, `ItemType`, `WarBonus`, `IntelligenceBonus`, `CharmBonus`, `LoyaltyBonus`, `OwnerFactionId`, `EquippedOfficerId`, `Rarity`
+- Fields: `Id`, `NameEn`, `NameZhHant`, `ItemType`, `StrengthBonus`, `IntelligenceBonus`, `CharmBonus`, `LeadershipBonus`, `PoliticsBonus`, `CombatBonus`, `LoyaltyBonus`, `OwnerFactionId`, `OwnerCityId`, `EquippedOfficerId`, `Rarity`
+- `ItemType` values: `SpecialWeapon`, `SpecialHorse`, `SpecialItem`
+- `OwnerFactionId` stores faction inventory ownership
+- `OwnerCityId` can store unclaimed/searchable city location
+- `EquippedOfficerId` stores active equipment owner when assigned
 - `OfficerData` extension:
 - `EquippedWeaponItemId`
 - `EquippedHorseItemId`
 - `EquippedSpecialItemId`
-- `GetEffectiveWar/Intelligence/Charm/Loyalty` should include item bonuses
+- `GetEffectiveStrength/Intelligence/Charm/Leadership/Politics/Combat/Loyalty` should include item bonuses
 
 ## 7.5 Item Attribute Effects
 - Effective stats used by game logic:
-- `effectiveWar = baseWar + itemWarBonus`
+- `effectiveStrength = baseStrength + itemStrengthBonus`
 - `effectiveIntelligence = baseIntelligence + itemIntelligenceBonus`
 - `effectiveCharm = baseCharm + itemCharmBonus`
+- `effectiveLeadership = baseLeadership + itemLeadershipBonus`
+- `effectivePolitics = basePolitics + itemPoliticsBonus`
+- `effectiveCombat = baseCombat + itemCombatBonus`
 - `effectiveLoyalty = baseLoyalty + itemLoyaltyBonus`
 - Suggested balancing caps:
 - Effective stat clamp: `1..100`
@@ -510,10 +778,13 @@ res://
 11. Invalid `Attack` input keeps the attack dialog open and displays an inline warning instead of submitting the order
 
 ## 10.1 UI Additions for Jobs (Phase 1.5)
-1. City panel shows job slots (`Farm`, `Commercial`, `Defense`, `Training`)
-2. Each slot displays assigned officer, title, rank, estimated monthly contribution
-3. Officer detail panel shows current job, title, rank, and skill tags
-4. Player can open `Assign Job` dialog and switch officer assignment
+1. `Develop` button becomes `Internal Affairs` / `內政`
+2. City panel shows job slots (`Farm`, `Commercial`, `Defend`, `WaterControl`, `Construction`)
+3. Each slot displays assigned officer, title, rank, remaining months, estimated monthly contribution, and schedule state
+4. Player can open an internal affairs dialog to assign officer, choose job, and choose duration in months
+5. Player can terminate an active job schedule from UI
+6. War or major event interruption can cancel an active job schedule and free the assigned officer
+7. Officer detail panel shows current internal affairs job, remaining months, title, rank, and skill tags
 
 ## 10.2 UI Additions for Items (Phase 1.5)
 1. Officer panel displays equipment slots (`Weapon`, `Horse`, `Special`)
@@ -542,8 +813,9 @@ res://
 ## 11.1 Job-driven Economy (Phase 1.5)
 - `Farm` job adds food growth bonus before upkeep
 - `Commercial` job adds gold growth bonus
-- `Defense` job increases defender effective defense and lowers siege loss
-- `Training` job raises monthly troop readiness (used by combat modifier, morale proxy, or recruit quality)
+- `Defend` job increases defender effective defense and lowers siege loss
+- `WaterControl` job improves farming stability and reduces future flood/disaster impact
+- `Construction` job improves long-term city infrastructure and can raise development ceilings in later phases
 - Low city `Loyalty` applies output penalties and increases riot risk
 - Seasonal settlement:
 - Gold is collected from cities in April as annual accumulated settlement
@@ -592,8 +864,9 @@ res://
 - Basic bug fix and polish pass
 
 ### M6: Officer Jobs and Rank (Phase 1.5)
-- Extend officer data with `JobType`, `JobTitle`, `Rank`, `SkillTags`
-- Implement assign/reassign flow
+- Replace `Develop` with `Internal Affairs` / `內政`
+- Extend officer data or schedule data with `JobType`, `JobTitle`, `Rank`, `SkillTags`, assigned city, remaining months, and schedule state
+- Implement assign/reassign/terminate flow
 - Apply monthly job performance formulas
 - Add UI display and AI assignment heuristics
 
@@ -648,18 +921,81 @@ res://
 - Win/lose triggers correctly
 
 ## 14.1 Testing Checklist (Phase 1.5 Jobs)
-- Officer can be assigned to each of 4 jobs
+- Officer can be assigned to each internal affairs job
+- Each active job requires one officer
+- One officer cannot be assigned to more than one active internal affairs job
+- Job can be scheduled for multiple months
+- Remaining months decrease correctly after each month-end resolution
+- Player can terminate a job schedule from UI
+- War or major event interruption can cancel a job schedule and free the officer
+- Completed monthly job ticks grant experience
+- Interrupted or terminated unfinished months do not grant experience
+- Experience threshold increases rank
+- Rank increase unlocks or improves the correct job title
+- Each job title applies the correct title buff
 - Reassign updates city output next month
 - Rank bonus applies correctly in formula
 - Skill bonus applies only to matching job
-- Defense and Training effects impact combat calculations
+- Defend effects impact combat calculations
+- WaterControl effects impact farming stability or disaster resistance
+- Construction effects impact long-term city development
 - AI fills empty critical jobs when possible
+
+## 14.1.1 Testing Checklist (Phase 1.5 Battle Rank)
+- Officers who join attack battles gain battle experience
+- Officers who join defense battles gain battle experience
+- Battle experience is not mixed with internal affairs job experience
+- Winning, difficult survival, city capture, or defeating stronger enemy can grant bonus battle experience
+- Experience threshold increases military rank
+- Military rank unlocks or improves the correct general title
+- Each general title applies the correct battle buff
+- General title buffs affect combat calculations consistently
+- Battle title data displays correctly in officer detail UI
+
+## 14.1.2 Testing Checklist (Phase 1.5 Strategist Rank)
+- Officers can gain strategist experience from successful Search or future strategy/tactics actions
+- Strategist experience is not mixed with internal affairs job experience or battle experience
+- Experience threshold increases strategist rank
+- Strategist rank unlocks or improves the correct strategist title
+- Each strategist title applies the correct strategy buff
+- Strategist buffs affect Search, tactics, or advisory calculations consistently
+- Strategist title data displays correctly in officer detail UI
+
+## 14.1.3 Testing Checklist (Phase 1.5 Civil Rank)
+- Officers can gain civil experience from governance, internal affairs, policy, or administrative events
+- Civil experience is not mixed with internal affairs job experience, battle experience, or strategist experience
+- Experience threshold increases civil rank
+- Civil rank unlocks or improves the correct civil title
+- Each civil title applies the correct governance buff
+- Civil buffs affect city loyalty, economy, population, public order, or faction stability consistently
+- Civil title data displays correctly in officer detail UI
+
+## 14.1.4 Testing Checklist (Phase 1.5 Troop Types)
+- Cities can store all six troop type counts
+- Aggregate troop count matches the sum of all troop type counts
+- Recruit can add a selected troop type
+- Move can transfer selected troop types between friendly connected cities
+- Attack can deploy selected troop types
+- Combat resolver includes troop type counts in battle power
+- Troop type matchup modifiers apply consistently
+- Infantry counter against Archer is applied
+- Spearman counter against Cavalry is applied
+- Cavalry counter against Archer is applied
+- Archer counter against Infantry is applied
+- Crossbow counter against Cavalry is applied
+- Siege counter against city defense is applied
+- Siege units contribute strongly to city attack but are weak outside that role
+- Upkeep can be calculated per troop type or from aggregate fallback
+- UI displays troop type counts clearly in city, move, attack, and recruit dialogs
 
 ## 14.2 Testing Checklist (Phase 1.5 Items)
 - Item can be assigned only to valid slot and valid officer
 - Removing/swapping item updates effective attributes immediately
 - Effective attributes are used by job formulas and combat formulas
 - Multiple item bonuses stack correctly and respect stat clamp
+- Famous weapons, horses, and special items load from item data
+- Localized item names display correctly in Chinese and English
+- Unclaimed item city locations can be searched/discovered if configured
 - AI does not equip duplicate item to multiple officers
 - Save/load preserves item ownership and equipment state
 
