@@ -428,11 +428,24 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.attack.officer_already_assigned", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
-        var troopAllocation = CreateTroopAllocationFromTotal(sourceCity, request.TroopsToSend);
-        var attackingTroops = troopAllocation.Total;
         var carriedGold = GetTransferAmount(request.GoldToSend, sourceCity.Gold);
         var carriedFood = GetTransferAmount(request.FoodToSend, sourceCity.Food);
-        var selectedOfficerIds = GetMovableOfficerIds(sourceCity, request.OfficerIds);
+        var selectedOfficerIds = request.AttackOfficerDeployments.Count > 0
+            ? GetMovableOfficerIds(sourceCity, request.AttackOfficerDeployments.Select(item => item.OfficerId).Distinct().ToList())
+            : GetMovableOfficerIds(sourceCity, request.OfficerIds);
+        var validDeployments = request.AttackOfficerDeployments
+            .Where(item => item.TroopCount > 0 && selectedOfficerIds.Contains(item.OfficerId))
+            .Select(item => new AttackOfficerDeploymentData
+            {
+                OfficerId = item.OfficerId,
+                TroopType = item.TroopType,
+                TroopCount = item.TroopCount
+            })
+            .ToList();
+        var troopAllocation = validDeployments.Count > 0
+            ? CreateTroopAllocationFromAttackDeployments(validDeployments)
+            : CreateTroopAllocationFromTotal(sourceCity, request.TroopsToSend);
+        var attackingTroops = troopAllocation.Total;
         if (selectedOfficerIds.Count == 0)
         {
             return LocalizedResult(false, "cmd.attack.officer_required", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
@@ -444,6 +457,16 @@ public partial class CommandResolver
         }
 
         if (attackingTroops > sourceCity.Troops)
+        {
+            return LocalizedResult(false, "cmd.attack.too_many_troops", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+        }
+
+        if (troopAllocation.Infantry > sourceCity.InfantryTroops ||
+            troopAllocation.Spearman > sourceCity.SpearmanTroops ||
+            troopAllocation.Cavalry > sourceCity.CavalryTroops ||
+            troopAllocation.Archer > sourceCity.ArcherTroops ||
+            troopAllocation.Crossbow > sourceCity.CrossbowTroops ||
+            troopAllocation.Siege > sourceCity.SiegeTroops)
         {
             return LocalizedResult(false, "cmd.attack.too_many_troops", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
@@ -464,6 +487,7 @@ public partial class CommandResolver
             TroopAllocation = troopAllocation,
             GoldToSend = carriedGold,
             FoodToSend = carriedFood,
+            AttackOfficerDeployments = validDeployments,
             OfficerIds = selectedOfficerIds
         });
 
@@ -555,7 +579,7 @@ public partial class CommandResolver
         }
 
         var defendingFactionId = targetCity.OwnerFactionId;
-        var combat = _combatResolver.Resolve(world, sourceCity, targetCity, attackingTroops, pendingCommand.OfficerIds);
+        var combat = _combatResolver.Resolve(world, sourceCity, targetCity, attackingTroops, pendingCommand.OfficerIds, pendingCommand.AttackOfficerDeployments);
 
         var effectiveAttackerLoss = combat.AttackerLosses;
         if (effectiveAttackerLoss > attackingTroops)

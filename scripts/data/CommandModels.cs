@@ -44,6 +44,13 @@ public class TroopAllocationData
     public int Total => Infantry + Spearman + Cavalry + Archer + Crossbow + Siege;
 }
 
+public class AttackOfficerDeploymentData
+{
+    public int OfficerId { get; set; }
+    public TroopType TroopType { get; set; } = TroopType.Infantry;
+    public int TroopCount { get; set; }
+}
+
 public class CommandRequest
 {
     public CommandType Type { get; set; }
@@ -58,6 +65,7 @@ public class CommandRequest
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public MerchantTradeMode MerchantTradeMode { get; set; } = MerchantTradeMode.BuyFood;
     public TroopAllocationData TroopAllocation { get; set; } = new();
+    public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public List<int> OfficerIds { get; set; } = new();
 }
 
@@ -73,6 +81,7 @@ public class PendingCommandData
     public int HorsesToSend { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public TroopAllocationData TroopAllocation { get; set; } = new();
+    public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public List<int> OfficerIds { get; set; } = new();
 }
 

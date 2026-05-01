@@ -131,6 +131,37 @@ public partial class CommandResolver
         return allocation;
     }
 
+    private static TroopAllocationData CreateTroopAllocationFromAttackDeployments(IEnumerable<AttackOfficerDeploymentData> deployments)
+    {
+        var allocation = new TroopAllocationData();
+        foreach (var deployment in deployments)
+        {
+            switch (deployment.TroopType)
+            {
+                case TroopType.Infantry:
+                    allocation.Infantry += deployment.TroopCount;
+                    break;
+                case TroopType.Spearman:
+                    allocation.Spearman += deployment.TroopCount;
+                    break;
+                case TroopType.Cavalry:
+                    allocation.Cavalry += deployment.TroopCount;
+                    break;
+                case TroopType.Archer:
+                    allocation.Archer += deployment.TroopCount;
+                    break;
+                case TroopType.Crossbow:
+                    allocation.Crossbow += deployment.TroopCount;
+                    break;
+                case TroopType.Siege:
+                    allocation.Siege += deployment.TroopCount;
+                    break;
+            }
+        }
+
+        return allocation;
+    }
+
     private static void SetTroopAllocationValue(TroopAllocationData allocation, TroopType troopType, int value)
     {
         switch (troopType)

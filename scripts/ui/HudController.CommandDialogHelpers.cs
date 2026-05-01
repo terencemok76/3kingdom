@@ -84,7 +84,12 @@ public partial class HudController : CanvasLayer
         }
 
         var column = 0;
-        tree.Columns = includeCheck ? 7 : 6;
+        var totalColumns = (includeCheck ? 1 : 0) +
+                           2 +
+                           ((includeStatus || includeCity) ? 1 : 0) +
+                           (includeLoyalty ? 1 : 0) +
+                           (includeStats ? 3 : 0);
+        tree.Columns = totalColumns;
         if (includeCheck)
         {
             tree.SetColumnTitle(column, string.Empty);
@@ -182,7 +187,12 @@ public partial class HudController : CanvasLayer
             row.SetText(column, officer.Charm.ToString());
         }
 
-        ApplyViewTableRowStriping(row, rowIndex, includeCheck ? 7 : 6);
+        var totalColumns = (includeCheck ? 1 : 0) +
+                           2 +
+                           ((includeStatus || includeCity) ? 1 : 0) +
+                           (includeLoyalty ? 1 : 0) +
+                           (includeStats ? 3 : 0);
+        ApplyViewTableRowStriping(row, rowIndex, totalColumns);
     }
 
     private HashSet<int> GetAvailableOfficerIdsForOrder()

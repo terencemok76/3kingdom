@@ -227,14 +227,44 @@ public partial class HudController : CanvasLayer
             _attackGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
             _attackFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
             _attackOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _attackDeploymentScroll = existingRoot.GetNodeOrNull<ScrollContainer>("DeploymentScroll");
+            _attackDeploymentList = existingRoot.GetNodeOrNull<VBoxContainer>("DeploymentScroll/DeploymentList");
+            _attackDeploymentSummaryLabel = existingRoot.GetNodeOrNull<Label>("DeploymentSummaryLabel");
             _attackWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
+            _attackConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+            var existingConfirmRow = existingRoot.GetNodeOrNull<CenterContainer>("ConfirmRow");
+            if (_attackOfficerList != null)
+            {
+                _attackOfficerList.CustomMinimumSize = new Vector2(0.0f, 150.0f);
+                _attackOfficerList.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+            }
+
+            if (_attackDeploymentScroll != null)
+            {
+                _attackDeploymentScroll.CustomMinimumSize = new Vector2(0.0f, 160.0f);
+                _attackDeploymentScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                _attackDeploymentScroll.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+            }
+
+            if (_attackDeploymentList != null)
+            {
+                _attackDeploymentList.CustomMinimumSize = new Vector2(0.0f, 0.0f);
+                _attackDeploymentList.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                _attackDeploymentList.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+            }
+
+            if (existingConfirmRow != null && _attackDeploymentSummaryLabel != null)
+            {
+                existingRoot.MoveChild(existingConfirmRow, _attackDeploymentSummaryLabel.GetIndex());
+            }
+            ConnectAttackDialogSignals();
             return;
         }
 
         var root = new VBoxContainer
         {
             Name = "AttackDialogRoot",
-            CustomMinimumSize = new Vector2(420.0f, 460.0f),
+            CustomMinimumSize = new Vector2(560.0f, 0.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
@@ -253,6 +283,7 @@ public partial class HudController : CanvasLayer
         var troopsRow = CreateAttackFieldRow("TroopsRow", "TroopsLabel");
         _attackTroopsSpinBox = CreateMoveSpinBox("TroopsSpinBox");
         troopsRow.AddChild(_attackTroopsSpinBox);
+        troopsRow.Visible = false;
         root.AddChild(troopsRow);
 
         var goldRow = CreateAttackFieldRow("GoldRow", "GoldLabel");
@@ -272,22 +303,62 @@ public partial class HudController : CanvasLayer
             HideRoot = true,
             ColumnTitlesVisible = true,
             SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 180.0f),
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+            CustomMinimumSize = new Vector2(0.0f, 150.0f),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
         };
         root.AddChild(_attackOfficerList);
+
+        root.AddChild(CreateMoveFieldLabel("DeploymentListLabel"));
+        _attackDeploymentScroll = new ScrollContainer
+        {
+            Name = "DeploymentScroll",
+            CustomMinimumSize = new Vector2(0.0f, 160.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
+        };
+        _attackDeploymentList = new VBoxContainer
+        {
+            Name = "DeploymentList",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkBegin
+        };
+        _attackDeploymentList.AddThemeConstantOverride("separation", 8);
+        _attackDeploymentScroll.AddChild(_attackDeploymentList);
+        root.AddChild(_attackDeploymentScroll);
+
+        var confirmRow = new CenterContainer
+        {
+            Name = "ConfirmRow",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0.0f, 46.0f)
+        };
+        _attackConfirmButton = new Button
+        {
+            Name = "ConfirmButton",
+            CustomMinimumSize = new Vector2(110.0f, 30.0f)
+        };
+        _attackConfirmButton.Pressed += OnAttackDialogConfirmed;
+        confirmRow.AddChild(_attackConfirmButton);
+        root.AddChild(confirmRow);
+
+        _attackDeploymentSummaryLabel = new Label
+        {
+            Name = "DeploymentSummaryLabel",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        root.AddChild(_attackDeploymentSummaryLabel);
 
         _attackWarningLabel = new Label
         {
             Name = "WarningLabel",
             Visible = false,
-            AutowrapMode = TextServer.AutowrapMode.Off,
-            ClipText = true,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
             CustomMinimumSize = new Vector2(0.0f, 24.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         _attackWarningLabel.AddThemeColorOverride("font_color", new Color(0.92f, 0.52f, 0.45f, 1.0f));
         root.AddChild(_attackWarningLabel);
+        ConnectAttackDialogSignals();
     }
 
     private void ConfigureMoveSpinBox(SpinBox? spinBox, int maxValue, int defaultValue)
@@ -337,12 +408,17 @@ public partial class HudController : CanvasLayer
 
     private void ShowAttackDialog(List<int> candidateIds)
     {
-        if (_turnManager?.World == null || _selectedCity == null || _attackDialog == null || _attackTargetCityOption == null)
+        if (_turnManager?.World == null || _selectedCity == null || _attackDialog == null)
         {
             return;
         }
 
         EnsureAttackDialogWidgets();
+        if (_attackTargetCityOption == null)
+        {
+            return;
+        }
+
         UpdateAttackDialogText();
         SetAttackDialogWarning(string.Empty);
 
@@ -368,12 +444,17 @@ public partial class HudController : CanvasLayer
         ConfigureAttackTroopsSpinBox(_attackTroopsSpinBox, _selectedCity.Troops);
         ConfigureMoveSpinBox(_attackGoldSpinBox, _selectedCity.Gold, 0);
         ConfigureMoveSpinBox(_attackFoodSpinBox, _selectedCity.Food, 0);
+        _lastAttackDeploymentSelectionSignature = string.Empty;
+        _attackOfficerDeployments.Clear();
+        _attackDeploymentOfficerOrder.Clear();
 
         var availableOfficerIds = GetAvailableOfficerIdsForOrder();
         if (_attackOfficerList != null)
         {
             _attackOfficerList.Clear();
             ConfigureCompactOfficerTableColumns(_attackOfficerList, includeCheck: true);
+            _attackOfficerList.CustomMinimumSize = new Vector2(0.0f, 150.0f);
+            _attackOfficerList.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
             var tableRoot = _attackOfficerList.CreateItem();
             var rowIndex = 0;
             foreach (var officerId in _selectedCity.OfficerIds)
@@ -395,7 +476,9 @@ public partial class HudController : CanvasLayer
             }
         }
 
-        _attackDialog.PopupCentered(new Vector2I(460, 560));
+        RefreshAttackDeploymentEditor();
+        _attackDialog.ResetSize();
+        _attackDialog.PopupCentered(GetAttackDialogSize());
     }
 
     private void ShowMerchantDialog()
@@ -462,13 +545,18 @@ public partial class HudController : CanvasLayer
         }
 
         _attackDialog.Title = _localization.T("ui.attack");
-        _attackDialog.OkButtonText = _localization.T("ui.confirm_attack");
+        if (_attackConfirmButton != null)
+        {
+            _attackConfirmButton.Text = _localization.T("ui.confirm_attack");
+        }
 
         SetAttackDialogLabelText("TargetCityLabel", _localization.T("ui.target_city"));
         SetAttackDialogLabelText("TroopsLabel", _localization.T("ui.attack_troops"));
         SetAttackDialogLabelText("GoldLabel", _localization.T("ui.attack_gold"));
         SetAttackDialogLabelText("FoodLabel", _localization.T("ui.attack_food"));
         SetAttackDialogLabelText("OfficerListLabel", _localization.T("ui.attack_officers"));
+        SetAttackDialogLabelText("DeploymentListLabel", _localization.T("ui.attack_deployments"));
+        UpdateAttackDeploymentSummary();
     }
 
     private void SetMoveDialogLabelText(string nodeName, string text)
@@ -520,6 +608,323 @@ public partial class HudController : CanvasLayer
         _attackWarningLabel.Visible = !string.IsNullOrWhiteSpace(text);
     }
 
+    private void ConnectAttackDialogSignals()
+    {
+        if (_attackOfficerListSignalsConnected || _attackOfficerList == null)
+        {
+            return;
+        }
+
+        _attackOfficerList.ItemEdited += OnAttackOfficerListEdited;
+        _attackOfficerListSignalsConnected = true;
+    }
+
+    private void OnAttackOfficerListEdited()
+    {
+        RefreshAttackDeploymentEditor();
+    }
+
+    private void SyncAttackDeploymentEditorSelection()
+    {
+        if (_attackDialog == null || !_attackDialog.Visible)
+        {
+            _lastAttackDeploymentSelectionSignature = string.Empty;
+            return;
+        }
+
+        var selectedOfficerIds = GetCheckedTreeMetadataIds(_attackOfficerList);
+        selectedOfficerIds.Sort();
+        var selectionSignature = string.Join(",", selectedOfficerIds);
+        if (_lastAttackDeploymentSelectionSignature == selectionSignature)
+        {
+            return;
+        }
+
+        _lastAttackDeploymentSelectionSignature = selectionSignature;
+        RefreshAttackDeploymentEditor();
+    }
+
+    private void RefreshAttackDeploymentEditor()
+    {
+        if (_attackDeploymentList == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        foreach (var child in _attackDeploymentList.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        var selectedOfficerIds = GetCheckedTreeMetadataIds(_attackOfficerList);
+        var selectedOfficerSet = selectedOfficerIds.ToHashSet();
+
+        foreach (var officerId in selectedOfficerIds)
+        {
+            if (!_attackDeploymentOfficerOrder.Contains(officerId))
+            {
+                _attackDeploymentOfficerOrder.Add(officerId);
+            }
+        }
+
+        foreach (var officerId in _attackOfficerDeployments.Keys.Where(id => !selectedOfficerSet.Contains(id)).ToList())
+        {
+            _attackOfficerDeployments.Remove(officerId);
+        }
+
+        _attackDeploymentOfficerOrder.RemoveAll(officerId => !selectedOfficerSet.Contains(officerId));
+
+        foreach (var officerId in _attackDeploymentOfficerOrder)
+        {
+            if (!_attackOfficerDeployments.ContainsKey(officerId))
+            {
+                _attackOfficerDeployments[officerId] = new AttackOfficerDeploymentData
+                {
+                    OfficerId = officerId,
+                    TroopType = GetDefaultAttackTroopType(),
+                    TroopCount = 0
+                };
+            }
+
+            var officer = _turnManager.World.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            _attackDeploymentList.AddChild(CreateAttackDeploymentRow(officer));
+        }
+
+        if (selectedOfficerIds.Count == 0)
+        {
+            _attackDeploymentList.AddChild(new Label
+            {
+                Text = _localization.T("ui.attack_select_officers_hint"),
+                AutowrapMode = TextServer.AutowrapMode.WordSmart
+            });
+        }
+
+        UpdateAttackDeploymentSummary();
+    }
+
+    private Control CreateAttackDeploymentRow(OfficerData officer)
+    {
+        var row = new HBoxContainer
+        {
+            CustomMinimumSize = new Vector2(0.0f, 32.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        row.AddThemeConstantOverride("separation", 8);
+
+        var officerLabel = new Label
+        {
+            Text = _localization?.GetOfficerName(officer) ?? officer.Name,
+            CustomMinimumSize = new Vector2(100.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.AddChild(officerLabel);
+
+        var troopTypeLabel = new Label
+        {
+            Text = _localization?.T("ui.attack_troop_type") ?? "Troop Type",
+            CustomMinimumSize = new Vector2(62.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.AddChild(troopTypeLabel);
+
+        var troopTypeOption = new OptionButton
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        foreach (var troopType in GetAvailableAttackTroopTypes())
+        {
+            troopTypeOption.AddItem(GetAttackTroopTypeDisplayName(troopType));
+            troopTypeOption.SetItemMetadata(troopTypeOption.ItemCount - 1, (int)troopType);
+        }
+
+        var deployment = _attackOfficerDeployments[officer.Id];
+        SelectAttackTroopTypeOption(troopTypeOption, deployment.TroopType);
+        troopTypeOption.ItemSelected += _ =>
+        {
+            var selectedType = GetSelectedAttackTroopType(troopTypeOption);
+            deployment.TroopType = selectedType;
+            deployment.TroopCount = Mathf.Clamp(deployment.TroopCount, 0, GetAttackTroopTypeAvailableCount(selectedType));
+            _attackOfficerDeployments[officer.Id] = deployment;
+            RefreshAttackDeploymentEditor();
+        };
+        row.AddChild(troopTypeOption);
+
+        var troopCountLabel = new Label
+        {
+            Text = _localization?.T("ui.attack_troops") ?? "Troops",
+            CustomMinimumSize = new Vector2(48.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.AddChild(troopCountLabel);
+
+        var troopCountSpinBox = CreateMoveSpinBox($"AttackTroopsSpinBox_{officer.Id}");
+        troopCountSpinBox.CustomMinimumSize = new Vector2(90.0f, 0.0f);
+        var maxTroops = GetAttackTroopTypeAvailableCount(deployment.TroopType);
+        ConfigureMoveSpinBox(troopCountSpinBox, maxTroops, deployment.TroopCount);
+        troopCountSpinBox.ValueChanged += value =>
+        {
+            deployment.TroopCount = (int)value;
+            _attackOfficerDeployments[officer.Id] = deployment;
+            UpdateAttackDeploymentSummary();
+        };
+        row.AddChild(troopCountSpinBox);
+
+        var availableLabel = new Label
+        {
+            Text = string.Format("{0} {1}", _localization?.T("ui.available_short") ?? "Avail", maxTroops),
+            CustomMinimumSize = new Vector2(72.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.AddChild(availableLabel);
+
+        return row;
+    }
+
+    private void UpdateAttackDeploymentSummary()
+    {
+        if (_attackDeploymentSummaryLabel == null || _selectedCity == null || _localization == null)
+        {
+            return;
+        }
+
+        var activeDeployments = _attackOfficerDeployments.Values.Where(item => item.TroopCount > 0).ToList();
+        var allocation = BuildTroopAllocationFromAttackDeployments(activeDeployments);
+        var summary = string.Join(" | ", new[]
+        {
+            FormatAttackDeploymentSummaryPart(TroopType.Infantry, allocation.Infantry, _selectedCity.InfantryTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Spearman, allocation.Spearman, _selectedCity.SpearmanTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Cavalry, allocation.Cavalry, _selectedCity.CavalryTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Archer, allocation.Archer, _selectedCity.ArcherTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Crossbow, allocation.Crossbow, _selectedCity.CrossbowTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Siege, allocation.Siege, _selectedCity.SiegeTroops)
+        });
+        _attackDeploymentSummaryLabel.Text = _localization.Format("fmt.attack_deployment_summary", summary, allocation.Total);
+    }
+
+    private string FormatAttackDeploymentSummaryPart(TroopType troopType, int assigned, int available)
+    {
+        return string.Format("{0} {1}/{2}", GetAttackTroopTypeDisplayName(troopType), assigned, available);
+    }
+
+    private static TroopAllocationData BuildTroopAllocationFromAttackDeployments(IEnumerable<AttackOfficerDeploymentData> deployments)
+    {
+        var allocation = new TroopAllocationData();
+        foreach (var deployment in deployments)
+        {
+            switch (deployment.TroopType)
+            {
+                case TroopType.Infantry:
+                    allocation.Infantry += deployment.TroopCount;
+                    break;
+                case TroopType.Spearman:
+                    allocation.Spearman += deployment.TroopCount;
+                    break;
+                case TroopType.Cavalry:
+                    allocation.Cavalry += deployment.TroopCount;
+                    break;
+                case TroopType.Archer:
+                    allocation.Archer += deployment.TroopCount;
+                    break;
+                case TroopType.Crossbow:
+                    allocation.Crossbow += deployment.TroopCount;
+                    break;
+                case TroopType.Siege:
+                    allocation.Siege += deployment.TroopCount;
+                    break;
+            }
+        }
+
+        return allocation;
+    }
+
+    private List<TroopType> GetAvailableAttackTroopTypes()
+    {
+        if (_selectedCity == null)
+        {
+            return new List<TroopType> { TroopType.Infantry };
+        }
+
+        var result = new List<TroopType>();
+        foreach (var troopType in Enum.GetValues<TroopType>())
+        {
+            if (GetAttackTroopTypeAvailableCount(troopType) > 0)
+            {
+                result.Add(troopType);
+            }
+        }
+
+        return result.Count == 0 ? new List<TroopType> { TroopType.Infantry } : result;
+    }
+
+    private TroopType GetDefaultAttackTroopType()
+    {
+        return GetAvailableAttackTroopTypes().FirstOrDefault();
+    }
+
+    private int GetDefaultAttackTroopCount(TroopType troopType)
+    {
+        var available = GetAttackTroopTypeAvailableCount(troopType);
+        if (available <= 0)
+        {
+            return 0;
+        }
+
+        return Math.Min(available, 100);
+    }
+
+    private int GetAttackTroopTypeAvailableCount(TroopType troopType)
+    {
+        return _selectedCity?.GetTroops(troopType) ?? 0;
+    }
+
+    private string GetAttackTroopTypeDisplayName(TroopType troopType)
+    {
+        return _localization?.T(troopType switch
+        {
+            TroopType.Infantry => "troop_type.infantry",
+            TroopType.Spearman => "troop_type.spearman",
+            TroopType.Cavalry => "troop_type.cavalry",
+            TroopType.Archer => "troop_type.archer",
+            TroopType.Crossbow => "troop_type.crossbow",
+            TroopType.Siege => "troop_type.siege",
+            _ => "troop_type.infantry"
+        }) ?? troopType.ToString();
+    }
+
+    private static void SelectAttackTroopTypeOption(OptionButton optionButton, TroopType troopType)
+    {
+        for (var index = 0; index < optionButton.ItemCount; index += 1)
+        {
+            var metadata = optionButton.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)troopType)
+            {
+                optionButton.Select(index);
+                return;
+            }
+        }
+
+        if (optionButton.ItemCount > 0)
+        {
+            optionButton.Select(0);
+        }
+    }
+
+    private static TroopType GetSelectedAttackTroopType(OptionButton optionButton)
+    {
+        if (optionButton.Selected < 0)
+        {
+            return TroopType.Infantry;
+        }
+
+        var metadata = optionButton.GetItemMetadata(optionButton.Selected);
+        return metadata.VariantType == Variant.Type.Int ? (TroopType)metadata.AsInt32() : TroopType.Infantry;
+    }
+
     private void ReopenAttackDialog()
     {
         if (_attackDialog == null)
@@ -537,13 +942,24 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        _attackDialog.ResetSize();
         var size = _attackDialog.Size;
         if (size == Vector2I.Zero)
         {
-            size = new Vector2I(460, 560);
+            size = GetAttackDialogSize();
         }
 
         _attackDialog.PopupCentered(size);
+    }
+
+    private Vector2I GetAttackDialogSize()
+    {
+        if (_attackDeploymentScroll != null)
+        {
+            _attackDeploymentScroll.CustomMinimumSize = new Vector2(0.0f, 160.0f);
+        }
+
+        return new Vector2I(620, 720);
     }
 
     private void SetMerchantDialogLabelText(string nodeName, string text)
@@ -654,6 +1070,11 @@ public partial class HudController : CanvasLayer
     private MerchantTradeMode GetSelectedMerchantTradeMode()
     {
         if (_merchantModeOption == null)
+        {
+            return MerchantTradeMode.BuyFood;
+        }
+
+        if (_merchantModeOption.ItemCount == 0 || _merchantModeOption.Selected < 0)
         {
             return MerchantTradeMode.BuyFood;
         }

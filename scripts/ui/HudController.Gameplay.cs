@@ -18,6 +18,7 @@ public partial class HudController : CanvasLayer
         int goldToSend = 0,
         int foodToSend = 0,
         int horsesToSend = 0,
+        List<AttackOfficerDeploymentData>? attackOfficerDeployments = null,
         List<int>? officerIds = null,
         bool sellFood = false,
         MerchantTradeMode merchantTradeMode = MerchantTradeMode.BuyFood,
@@ -47,6 +48,7 @@ public partial class HudController : CanvasLayer
             SellFood = type == CommandType.Merchant && sellFood,
             MerchantTradeMode = merchantTradeMode,
             RecruitTroopType = recruitTroopType,
+            AttackOfficerDeployments = type == CommandType.Attack ? (attackOfficerDeployments ?? new List<AttackOfficerDeploymentData>()) : new List<AttackOfficerDeploymentData>(),
             OfficerIds = type is CommandType.Merchant or CommandType.Pass ? new List<int>() : (officerIds ?? new List<int>())
         };
 

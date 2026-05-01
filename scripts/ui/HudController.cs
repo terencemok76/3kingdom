@@ -158,13 +158,17 @@ public partial class HudController : CanvasLayer
     private SpinBox? _moveFoodSpinBox;
     private SpinBox? _moveHorseSpinBox;
     private Tree? _moveOfficerList;
-    private AcceptDialog? _attackDialog;
+    private Window? _attackDialog;
     private OptionButton? _attackTargetCityOption;
     private SpinBox? _attackTroopsSpinBox;
     private SpinBox? _attackGoldSpinBox;
     private SpinBox? _attackFoodSpinBox;
     private Tree? _attackOfficerList;
+    private ScrollContainer? _attackDeploymentScroll;
+    private VBoxContainer? _attackDeploymentList;
+    private Label? _attackDeploymentSummaryLabel;
     private Label? _attackWarningLabel;
+    private Button? _attackConfirmButton;
     private AcceptDialog? _officerListDialog;
     private PanelContainer? _officerListTitlebarFill;
     private PanelContainer? _officerListHeaderPanel;
@@ -208,6 +212,7 @@ public partial class HudController : CanvasLayer
     private bool _isAttackButtonConnected;
     private bool _isViewButtonConnected;
     private bool _merchantDialogSignalsConnected;
+    private bool _attackOfficerListSignalsConnected;
     private bool _gameEnded;
     private bool _isDraggingOfficerListDialog;
     private Vector2I _officerListDialogDragOffset;
@@ -226,6 +231,9 @@ public partial class HudController : CanvasLayer
     private bool _hireOfficerSortAscending = true;
     private CommandType _pendingOfficerCommand = CommandType.Pass;
     private TroopType _pendingRecruitTroopType = TroopType.Infantry;
+    private readonly Dictionary<int, AttackOfficerDeploymentData> _attackOfficerDeployments = new();
+    private readonly List<int> _attackDeploymentOfficerOrder = new();
+    private string _lastAttackDeploymentSelectionSignature = string.Empty;
 
     public override void _Ready()
     {
@@ -354,12 +362,13 @@ public partial class HudController : CanvasLayer
         AddChild(_moveDialog);
         EnsureMoveDialogWidgets();
 
-        _attackDialog = new AcceptDialog();
+        _attackDialog = new Window();
         _attackDialog.Exclusive = false;
-        _attackDialog.Unfocusable = false;
-        _attackDialog.Confirmed += OnAttackDialogConfirmed;
+        _attackDialog.Unresizable = true;
+        _attackDialog.CloseRequested += () => _attackDialog?.Hide();
         AddChild(_attackDialog);
         EnsureAttackDialogWidgets();
+        _attackDialog.Hide();
 
         _officerListDialog = new AcceptDialog();
         _officerListDialog.Title = " ";
@@ -603,6 +612,11 @@ public partial class HudController : CanvasLayer
         _merchantDialog?.Hide();
         _moveDialog?.Hide();
         _attackDialog?.Hide();
+    }
+
+    public override void _Process(double delta)
+    {
+        SyncAttackDeploymentEditorSelection();
     }
 
     public void Initialize(
@@ -1103,12 +1117,12 @@ public partial class HudController : CanvasLayer
 
         ExecutePlayerCommand(
             CommandType.Move,
-            targetMetadata.AsInt32(),
-            _moveTroopsSpinBox != null ? (int)_moveTroopsSpinBox.Value : 0,
-            _moveGoldSpinBox != null ? (int)_moveGoldSpinBox.Value : 0,
-            _moveFoodSpinBox != null ? (int)_moveFoodSpinBox.Value : 0,
-            _moveHorseSpinBox != null ? (int)_moveHorseSpinBox.Value : 0,
-            selectedOfficerIds);
+            targetCityId: targetMetadata.AsInt32(),
+            troopsToSend: _moveTroopsSpinBox != null ? (int)_moveTroopsSpinBox.Value : 0,
+            goldToSend: _moveGoldSpinBox != null ? (int)_moveGoldSpinBox.Value : 0,
+            foodToSend: _moveFoodSpinBox != null ? (int)_moveFoodSpinBox.Value : 0,
+            horsesToSend: _moveHorseSpinBox != null ? (int)_moveHorseSpinBox.Value : 0,
+            officerIds: selectedOfficerIds);
     }
 
     private void OnMerchantDialogConfirmed()
@@ -1139,16 +1153,25 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = GetCheckedTreeMetadataIds(_attackOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        var attackDeployments = _attackOfficerDeployments.Values
+            .Where(item => item.TroopCount > 0)
+            .Select(item => new AttackOfficerDeploymentData
+            {
+                OfficerId = item.OfficerId,
+                TroopType = item.TroopType,
+                TroopCount = item.TroopCount
+            })
+            .ToList();
+
+        if (attackDeployments.Count == 0)
         {
-            SetAttackDialogWarning(_localization?.T("ui.attack_officer_required_warning") ?? "Select at least one officer.");
-            // Reopen after AcceptDialog confirmation so invalid input behaves like inline validation, not submit-and-close.
+            SetAttackDialogWarning(_localization?.T("ui.attack_deployment_required_warning") ?? "Configure troop type and count for each deployed officer.");
             ReopenAttackDialog();
             return;
         }
 
-        var attackTroops = GetRequestedSpinBoxValue(_attackTroopsSpinBox);
+        var attackAllocation = BuildTroopAllocationFromAttackDeployments(attackDeployments);
+        var attackTroops = attackAllocation.Total;
         if (attackTroops <= 0)
         {
             SetAttackDialogWarning(_localization?.T("ui.attack_troops_required_warning") ?? "Enter the number of troops to deploy.");
@@ -1156,9 +1179,15 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        if (_selectedCity != null && attackTroops > _selectedCity.Troops)
+        if (_selectedCity != null &&
+            (attackAllocation.Infantry > _selectedCity.InfantryTroops ||
+             attackAllocation.Spearman > _selectedCity.SpearmanTroops ||
+             attackAllocation.Cavalry > _selectedCity.CavalryTroops ||
+             attackAllocation.Archer > _selectedCity.ArcherTroops ||
+             attackAllocation.Crossbow > _selectedCity.CrossbowTroops ||
+             attackAllocation.Siege > _selectedCity.SiegeTroops))
         {
-            SetAttackDialogWarning(_localization?.T("ui.attack_troops_exceed_warning") ?? "Troops to deploy cannot exceed the city's available troops.");
+            SetAttackDialogWarning(_localization?.T("ui.attack_deployment_exceed_warning") ?? "Troop deployment exceeds the city's available troop types.");
             ReopenAttackDialog();
             return;
         }
@@ -1181,7 +1210,8 @@ public partial class HudController : CanvasLayer
             troopsToSend: attackTroops,
             goldToSend: _attackGoldSpinBox != null ? (int)_attackGoldSpinBox.Value : 0,
             foodToSend: _attackFoodSpinBox != null ? (int)_attackFoodSpinBox.Value : 0,
-            officerIds: selectedOfficerIds);
+            attackOfficerDeployments: attackDeployments,
+            officerIds: attackDeployments.Select(item => item.OfficerId).Distinct().ToList());
 
         if (result.Success)
         {
