@@ -59,6 +59,7 @@ public partial class CommandResolver
             CommandType.Recruit => ScheduleRecruit(world, sourceCity, request),
             CommandType.Move => ScheduleMove(world, sourceCity, request),
             CommandType.Search => ScheduleSearch(world, sourceCity, request),
+            CommandType.CivilRelief => ScheduleCivilRelief(world, sourceCity, request),
             CommandType.Merchant => ExecuteMerchant(world, sourceCity, request),
             CommandType.Attack => ScheduleAttack(world, sourceCity, request),
             CommandType.Pass => LocalizedResult(true, "cmd.pass"),
@@ -85,6 +86,7 @@ public partial class CommandResolver
             CommandType.Develop => ResolveDevelop(world, sourceCity, pendingCommand),
             CommandType.Recruit => ResolveRecruit(world, sourceCity, pendingCommand),
             CommandType.Search => ResolveSearch(world, sourceCity, pendingCommand),
+            CommandType.CivilRelief => ResolveCivilRelief(world, sourceCity, pendingCommand),
             CommandType.Move => ResolveMove(world, sourceCity, pendingCommand),
             CommandType.Attack => ResolveAttack(world, sourceCity, pendingCommand),
             _ => LocalizedResult(false, "cmd.unsupported_pending_command")

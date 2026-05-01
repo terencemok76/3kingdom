@@ -357,36 +357,44 @@ public partial class CommandResolver
         };
     }
 
-    private static bool IsItemOwnedByFactionAtCity(ItemData item, int factionId, int cityId)
+    private static bool IsItemOwnedByFactionInventory(ItemData item, int factionId)
     {
         return item.OwnerFactionId == factionId &&
-               item.OwnerCityId == cityId &&
                item.EquippedOfficerId <= 0;
     }
 
-    private static void MoveItemToCityInventory(ItemData item, int factionId, int cityId)
+    private static void MoveItemToFactionInventory(ItemData item, int factionId)
     {
         item.OwnerFactionId = factionId;
-        item.OwnerCityId = cityId;
+        item.OwnerCityId = 0;
         item.EquippedOfficerId = 0;
     }
 
-    private static void EquipItemToOfficer(ItemData item, int factionId, int cityId, int officerId)
+    private static void EquipItemToOfficer(ItemData item, int factionId, int officerId)
     {
         item.OwnerFactionId = factionId;
-        item.OwnerCityId = cityId;
+        item.OwnerCityId = 0;
         item.EquippedOfficerId = officerId;
     }
 
-    private static void AssignItemToOfficer(WorldState world, ItemData item, int factionId, int cityId, int officerId)
+    private static void AssignItemToOfficer(WorldState world, ItemData item, int factionId, int officerId)
     {
         var existingItem = GetEquippedItemInSlot(world, officerId, item.ItemType);
         if (existingItem != null && existingItem.Id != item.Id)
         {
-            MoveItemToCityInventory(existingItem, factionId, cityId);
+            MoveItemToFactionInventory(existingItem, factionId);
         }
 
-        EquipItemToOfficer(item, factionId, cityId, officerId);
+        EquipItemToOfficer(item, factionId, officerId);
+    }
+
+    private static void TransferEquippedItemsToFaction(WorldState world, int officerId, int factionId)
+    {
+        foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officerId))
+        {
+            item.OwnerFactionId = factionId;
+            item.OwnerCityId = 0;
+        }
     }
 
     private ItemData? TryFindDiscoverableItem(WorldState world, int cityId)
@@ -683,6 +691,17 @@ public partial class CommandResolver
     {
         city.LastSearchYear = world.Year;
         city.LastSearchMonth = world.Month;
+    }
+
+    private static bool HasUsedCivilRelief(WorldState world, CityData city)
+    {
+        return city.LastCivilReliefYear == world.Year && city.LastCivilReliefMonth == world.Month;
+    }
+
+    private static void MarkCivilReliefUsed(WorldState world, CityData city)
+    {
+        city.LastCivilReliefYear = world.Year;
+        city.LastCivilReliefMonth = world.Month;
     }
 
     private static void UpsertPendingCommand(WorldState world, PendingCommandData pendingCommand)

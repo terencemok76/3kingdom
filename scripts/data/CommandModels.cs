@@ -9,6 +9,7 @@ public enum CommandType
     Recruit,
     Move,
     Search,
+    CivilRelief,
     Merchant,
     Attack,
     Pass

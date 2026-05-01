@@ -26,7 +26,8 @@ public partial class HudController : CanvasLayer
     private enum OfficerListContentMode
     {
         Officers,
-        Cities
+        Cities,
+        Items
     }
 
     private enum CityListFilterMode
@@ -49,9 +50,15 @@ public partial class HudController : CanvasLayer
         Role,
         Status,
         City,
+        ItemType,
+        Rarity,
         Age,
         Strength,
         Intelligence,
+        Charm,
+        Leadership,
+        Politics,
+        Combat,
         OfficerLoyalty,
         Owner,
         Gold,
@@ -120,6 +127,9 @@ public partial class HudController : CanvasLayer
     private AcceptDialog? _assignRoleDialog;
     private Tree? _assignRoleOfficerList;
     private OptionButton? _assignRoleOption;
+    private AcceptDialog? _requestItemDialog;
+    private Tree? _requestItemOfficerList;
+    private OptionButton? _requestItemOption;
     private Window? _hireOfficerDialog;
     private Tree? _hireOfficerList;
     private SpinBox? _hireOfficerGoldSpinBox;
@@ -130,6 +140,7 @@ public partial class HudController : CanvasLayer
     private AcceptDialog? _civilDialog;
     private OptionButton? _civilCommandOption;
     private AcceptDialog? _civilReliefDialog;
+    private Tree? _civilReliefOfficerList;
     private SpinBox? _civilReliefGoldSpinBox;
     private SpinBox? _civilReliefFoodSpinBox;
     private Label? _civilReliefSummaryLabel;
@@ -161,6 +172,7 @@ public partial class HudController : CanvasLayer
     private HBoxContainer? _officerListToolbar;
     private Button? _viewCityOfficersDialogButton;
     private Button? _viewFactionOfficersDialogButton;
+    private Button? _viewFactionItemsDialogButton;
     private Button? _viewCitiesDialogButton;
     private Button? _officerListConfirmButton;
     private OptionButton? _cityListFilterOption;
@@ -293,6 +305,13 @@ public partial class HudController : CanvasLayer
         _assignRoleDialog.Confirmed += OnAssignRoleDialogConfirmed;
         AddChild(_assignRoleDialog);
         EnsureAssignRoleDialogWidgets();
+
+        _requestItemDialog = new AcceptDialog();
+        _requestItemDialog.Exclusive = false;
+        _requestItemDialog.Unfocusable = false;
+        _requestItemDialog.Confirmed += OnRequestItemDialogConfirmed;
+        AddChild(_requestItemDialog);
+        EnsureRequestItemDialogWidgets();
 
         _hireOfficerDialog = new Window();
         _hireOfficerDialog.Exclusive = false;
@@ -449,6 +468,14 @@ public partial class HudController : CanvasLayer
         };
         _viewFactionOfficersDialogButton.Pressed += OnViewFactionOfficersDialogPressed;
         _officerListToolbar.AddChild(_viewFactionOfficersDialogButton);
+
+        _viewFactionItemsDialogButton = new Button
+        {
+            Name = "ViewFactionItemsButton",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _viewFactionItemsDialogButton.Pressed += OnViewFactionItemsDialogPressed;
+        _officerListToolbar.AddChild(_viewFactionItemsDialogButton);
 
         _viewCitiesDialogButton = new Button
         {

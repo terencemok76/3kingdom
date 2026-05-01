@@ -171,7 +171,7 @@ public partial class HudController : CanvasLayer
             _officerListConfirmButton.AddThemeColorOverride("font_color", new Color(0.14f, 0.1f, 0.06f, 1.0f));
         }
 
-        foreach (var button in new[] { _viewCityOfficersDialogButton, _viewFactionOfficersDialogButton, _viewCitiesDialogButton })
+        foreach (var button in new[] { _viewCityOfficersDialogButton, _viewFactionOfficersDialogButton, _viewFactionItemsDialogButton, _viewCitiesDialogButton })
         {
             if (button == null)
             {

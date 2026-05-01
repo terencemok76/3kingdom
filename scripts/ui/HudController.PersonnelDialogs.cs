@@ -64,6 +64,7 @@ public partial class HudController : CanvasLayer
         _personnelCommandOption.Clear();
         AddPersonnelCommandOption("personnel.command.give_bonus");
         AddPersonnelCommandOption("personnel.command.assign_title");
+        AddPersonnelCommandOption("personnel.command.request_item");
         AddPersonnelCommandOption("personnel.command.hire_officer");
     }
 
@@ -112,6 +113,12 @@ public partial class HudController : CanvasLayer
         if (commandKey == "personnel.command.assign_title")
         {
             ShowAssignRoleDialog();
+            return;
+        }
+
+        if (commandKey == "personnel.command.request_item")
+        {
+            ShowRequestItemDialog();
             return;
         }
 
@@ -248,7 +255,7 @@ public partial class HudController : CanvasLayer
             _personnelBonusFoodSpinBox.Step = 500;
         }
 
-        PopulateCityInventoryOption(_personnelBonusItemOption);
+        PopulateFactionInventoryOption(_personnelBonusItemOption);
         UpdatePersonnelBonusSummary();
     }
 
@@ -606,6 +613,228 @@ public partial class HudController : CanvasLayer
         _assignRoleDialog?.PopupCentered(new Vector2I(480, 370));
     }
 
+    private void EnsureRequestItemDialogWidgets()
+    {
+        if (_requestItemDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _requestItemDialog.GetNodeOrNull<VBoxContainer>("RequestItemDialogRoot");
+        if (existingRoot != null)
+        {
+            _requestItemOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _requestItemOption = existingRoot.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "RequestItemDialogRoot",
+            CustomMinimumSize = new Vector2(460.0f, 330.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _requestItemDialog.AddChild(root);
+
+        root.AddChild(new Label { Name = "OfficerListLabel" });
+        _requestItemOfficerList = new Tree
+        {
+            Name = "OfficerTable",
+            HideRoot = true,
+            ColumnTitlesVisible = true,
+            SelectMode = Tree.SelectModeEnum.Row,
+            CustomMinimumSize = new Vector2(0.0f, 160.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _requestItemOfficerList.ItemSelected += OnRequestItemOfficerTableSelected;
+        root.AddChild(_requestItemOfficerList);
+
+        var itemRow = CreatePersonnelBonusFormRow("ItemRow", "ItemLabel");
+        _requestItemOption = new OptionButton
+        {
+            Name = "ItemOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        itemRow.AddChild(_requestItemOption);
+        root.AddChild(itemRow);
+    }
+
+    private void ShowRequestItemDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _requestItemDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        EnsureRequestItemDialogWidgets();
+        UpdateRequestItemDialogText();
+        PopulateRequestItemDialog();
+        _requestItemDialog.PopupCentered(new Vector2I(480, 370));
+    }
+
+    private void PopulateRequestItemDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _requestItemOfficerList == null)
+        {
+            return;
+        }
+
+        _requestItemOfficerList.Clear();
+        ConfigureCompactOfficerTableColumns(_requestItemOfficerList, includeStatus: true, includeCity: false, includeLoyalty: false, includeStats: true);
+        var tableRoot = _requestItemOfficerList.CreateItem();
+        var rowIndex = 0;
+        foreach (var officerId in _selectedCity.OfficerIds)
+        {
+            var officer = _turnManager.World.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            if (!_turnManager.World.Items.Any(item => item.EquippedOfficerId == officer.Id))
+            {
+                continue;
+            }
+
+            var row = _requestItemOfficerList.CreateItem(tableRoot);
+            PopulateCompactOfficerTableRow(row, officer, rowIndex, includeStatus: true, includeCity: false, includeLoyalty: false, includeStats: true);
+            rowIndex += 1;
+        }
+
+        PopulateRequestItemOption();
+    }
+
+    private void UpdateRequestItemDialogText()
+    {
+        if (_requestItemDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _requestItemDialog.Title = _localization.T("personnel.command.request_item");
+        _requestItemDialog.OkButtonText = _localization.T("ui.confirm_request_item");
+        SetRequestItemDialogLabelText("OfficerListLabel", _localization.T("ui.request_item_officer"));
+        SetRequestItemDialogLabelText("ItemLabel", _localization.T("ui.request_item"));
+    }
+
+    private void SetRequestItemDialogLabelText(string nodeName, string text)
+    {
+        var label = _requestItemDialog?.GetNodeOrNull<Label>($"RequestItemDialogRoot/{nodeName}") ??
+                    _requestItemDialog?.GetNodeOrNull<Label>($"RequestItemDialogRoot/ItemRow/{nodeName}");
+        if (label != null)
+        {
+            label.Text = text;
+        }
+    }
+
+    private void OnRequestItemOfficerTableSelected()
+    {
+        if (_requestItemOfficerList == null)
+        {
+            return;
+        }
+
+        var selectedItem = _requestItemOfficerList.GetSelected();
+        if (selectedItem != null)
+        {
+            var root = _requestItemOfficerList.GetRoot();
+            if (root != null)
+            {
+                var row = root.GetFirstChild();
+                var rowIndex = 0;
+                while (row != null)
+                {
+                    if (row == selectedItem)
+                    {
+                        ApplyViewTableSelectedRowStyle(row, _requestItemOfficerList.Columns);
+                    }
+                    else
+                    {
+                        ApplyViewTableRowStriping(row, rowIndex, _requestItemOfficerList.Columns);
+                    }
+
+                    row = row.GetNext();
+                    rowIndex += 1;
+                }
+            }
+        }
+
+        PopulateRequestItemOption();
+    }
+
+    private void PopulateRequestItemOption()
+    {
+        if (_requestItemOption == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        _requestItemOption.Clear();
+        _requestItemOption.AddItem(_localization.T("ui.none_item"));
+        _requestItemOption.SetItemMetadata(0, 0);
+
+        var officerId = GetSelectedTreeMetadataIds(_requestItemOfficerList).FirstOrDefault();
+        if (officerId <= 0)
+        {
+            _requestItemOption.Select(0);
+            return;
+        }
+
+        foreach (var item in _turnManager.World.Items
+                     .Where(item => item.EquippedOfficerId == officerId)
+                     .OrderBy(item => _localization.GetItemName(item)))
+        {
+            var row = _localization.Format(
+                "fmt.item_option",
+                _localization.GetItemName(item),
+                _localization.GetItemType(item),
+                _localization.GetItemRarity(item));
+            _requestItemOption.AddItem(row);
+            _requestItemOption.SetItemMetadata(_requestItemOption.ItemCount - 1, item.Id);
+        }
+
+        _requestItemOption.Select(0);
+    }
+
+    private void OnRequestItemDialogConfirmed()
+    {
+        if (_selectedCity == null || _turnManager == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var officerId = GetSelectedTreeMetadataIds(_requestItemOfficerList).FirstOrDefault();
+        if (officerId <= 0)
+        {
+            AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
+            ReopenRequestItemDialog();
+            return;
+        }
+
+        var item = GetSelectedItemFromOption(_requestItemOption);
+        if (item == null)
+        {
+            AddLog(_localization?.T("ui.select_item_warning") ?? string.Empty);
+            ReopenRequestItemDialog();
+            return;
+        }
+
+        var result = _commandResolver.ExecuteRecallOfficerItem(_turnManager.GetPlayerFactionId(), _selectedCity.Id, officerId, item.Id);
+        AddLog(GetLocalizedResultMessage(result));
+        RefreshSelectedCity();
+        _mapController?.RefreshVisuals();
+    }
+
+    private void ReopenRequestItemDialog()
+    {
+        CallDeferred(nameof(ReopenRequestItemDialogDeferred));
+    }
+
+    private void ReopenRequestItemDialogDeferred()
+    {
+        _requestItemDialog?.PopupCentered(new Vector2I(480, 370));
+    }
+
     private void EnsureHireOfficerDialogWidgets()
     {
         if (_hireOfficerDialog == null)
@@ -752,7 +981,7 @@ public partial class HudController : CanvasLayer
             _hireOfficerFoodSpinBox.Step = 500;
         }
 
-        PopulateCityInventoryOption(_hireOfficerItemOption);
+        PopulateFactionInventoryOption(_hireOfficerItemOption);
         UpdateHireOfficerDialogLayout();
         UpdateHireOfficerSummary();
         if (_hireOfficerConfirmButton != null)
@@ -1215,7 +1444,7 @@ public partial class HudController : CanvasLayer
         return FreeOfficerMovement.IsFreeOfficer(world, officer) || IsFactionRuler(world, officer);
     }
 
-    private void PopulateCityInventoryOption(OptionButton? option)
+    private void PopulateFactionInventoryOption(OptionButton? option)
     {
         if (option == null || _selectedCity == null || _turnManager?.World == null || _localization == null)
         {
@@ -1227,7 +1456,7 @@ public partial class HudController : CanvasLayer
         option.SetItemMetadata(0, 0);
 
         foreach (var item in _turnManager.World.Items
-                     .Where(item => item.OwnerFactionId == _selectedCity.OwnerFactionId && item.OwnerCityId == _selectedCity.Id && item.EquippedOfficerId <= 0)
+                     .Where(item => item.OwnerFactionId == _selectedCity.OwnerFactionId && item.EquippedOfficerId <= 0)
                      .OrderBy(item => _localization.GetItemName(item)))
         {
             var row = _localization.Format(

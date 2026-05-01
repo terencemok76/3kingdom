@@ -327,6 +327,7 @@ public class LocalizationService
             CommandType.Recruit => "status.recruit",
             CommandType.Move => "status.move",
             CommandType.Search => "status.search",
+            CommandType.CivilRelief => "status.civil_relief",
             CommandType.Attack => "status.attack",
             _ => "status.idle"
         };

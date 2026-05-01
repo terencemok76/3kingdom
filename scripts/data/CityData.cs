@@ -24,6 +24,8 @@ public class CityData
     public int LastRecruitMonth { get; set; } = -1;
     public int LastSearchYear { get; set; } = -1;
     public int LastSearchMonth { get; set; } = -1;
+    public int LastCivilReliefYear { get; set; } = -1;
+    public int LastCivilReliefMonth { get; set; } = -1;
 
     public List<int> OfficerIds { get; set; } = new();
     public List<int> ConnectedCityIds { get; set; } = new();

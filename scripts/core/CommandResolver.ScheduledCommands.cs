@@ -223,7 +223,7 @@ public partial class CommandResolver
         var hiddenItem = TryFindDiscoverableItem(world, city.Id);
         if (hiddenItem != null && _random.NextDouble() < 0.45)
         {
-            MoveItemToCityInventory(hiddenItem, city.OwnerFactionId, city.Id);
+            MoveItemToFactionInventory(hiddenItem, city.OwnerFactionId);
             return LocalizedResult(
                 true,
                 "cmd.search.found_item",
@@ -249,6 +249,67 @@ public partial class CommandResolver
             "cmd.search.found_food",
             new object[] { GetCityName(city, GameLanguage.TraditionalChinese), foundFood },
             new object[] { GetCityName(city, GameLanguage.English), foundFood });
+    }
+
+    private CommandResult ScheduleCivilRelief(WorldState world, CityData city, CommandRequest request)
+    {
+        if (HasUsedCivilRelief(world, city))
+        {
+            return LocalizedResult(false, "cmd.civil_relief.already_used", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        var assignedOfficer = GetSingleAvailableOfficer(world, city, request.OfficerIds);
+        if (assignedOfficer == null)
+        {
+            return request.OfficerIds.Count == 0
+                ? LocalizedResult(false, "cmd.civil_relief.officer_required", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English))
+                : LocalizedResult(false, "cmd.civil_relief.officer_unavailable", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        if (request.GoldToSend <= 0 && request.FoodToSend <= 0)
+        {
+            return LocalizedResult(false, "cmd.civil_relief.empty");
+        }
+
+        if (request.GoldToSend < 0 || request.FoodToSend < 0 || city.Gold < request.GoldToSend || city.Food < request.FoodToSend)
+        {
+            return LocalizedResult(false, "cmd.civil_relief.not_enough_resources", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        var loyaltyGain = request.GoldToSend / CivilReliefGoldPerTenLoyalty * 10 + request.FoodToSend / CivilReliefFoodPerTenLoyalty * 10;
+        if (loyaltyGain <= 0)
+        {
+            return LocalizedResult(false, "cmd.civil_relief.too_small");
+        }
+
+        city.Gold -= request.GoldToSend;
+        city.Food -= request.FoodToSend;
+        MarkCivilReliefUsed(world, city);
+        MarkOfficerAssigned(world, assignedOfficer, CommandType.CivilRelief);
+        UpsertPendingCommand(world, new PendingCommandData
+        {
+            Type = CommandType.CivilRelief,
+            ActorFactionId = request.ActorFactionId,
+            SourceCityId = city.Id,
+            GoldToSend = request.GoldToSend,
+            FoodToSend = request.FoodToSend,
+            OfficerIds = new List<int> { assignedOfficer.Id }
+        });
+
+        return LocalizedResult(true, "cmd.civil_relief.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+    }
+
+    private CommandResult ResolveCivilRelief(WorldState world, CityData city, PendingCommandData pendingCommand)
+    {
+        var loyaltyGain = pendingCommand.GoldToSend / CivilReliefGoldPerTenLoyalty * 10 +
+                          pendingCommand.FoodToSend / CivilReliefFoodPerTenLoyalty * 10;
+        city.Loyalty = ClampStat(city.Loyalty + loyaltyGain);
+
+        return LocalizedResult(
+            true,
+            "cmd.civil_relief.resolved",
+            new object[] { GetCityName(city, GameLanguage.TraditionalChinese), pendingCommand.GoldToSend, pendingCommand.FoodToSend, loyaltyGain },
+            new object[] { GetCityName(city, GameLanguage.English), pendingCommand.GoldToSend, pendingCommand.FoodToSend, loyaltyGain });
     }
 
     private CommandResult ExecuteMerchant(WorldState world, CityData city, CommandRequest request)
