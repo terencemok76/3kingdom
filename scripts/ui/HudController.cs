@@ -93,7 +93,7 @@ public partial class HudController : CanvasLayer
     private Label? _playerFactionLabel;
     private Label? _storyLabel;
     private Label? _cityNameLabel;
-    private Label? _cityStatsLabel;
+    private RichTextLabel? _cityStatsLabel;
     private Label? _commandsTitle;
     private Label? _cityOfficerListTitle;
     private RichTextLabel? _cityOfficerListText;
@@ -156,6 +156,7 @@ public partial class HudController : CanvasLayer
     private SpinBox? _moveTroopsSpinBox;
     private SpinBox? _moveGoldSpinBox;
     private SpinBox? _moveFoodSpinBox;
+    private SpinBox? _moveHorseSpinBox;
     private Tree? _moveOfficerList;
     private AcceptDialog? _attackDialog;
     private OptionButton? _attackTargetCityOption;
@@ -170,6 +171,9 @@ public partial class HudController : CanvasLayer
     private Label? _officerListHeaderLabel;
     private Button? _officerListCloseButton;
     private HBoxContainer? _officerListToolbar;
+    private HBoxContainer? _officerListAuxRow;
+    private Label? _officerListAuxLabel;
+    private OptionButton? _officerListAuxOption;
     private Button? _viewCityOfficersDialogButton;
     private Button? _viewFactionOfficersDialogButton;
     private Button? _viewFactionItemsDialogButton;
@@ -221,6 +225,7 @@ public partial class HudController : CanvasLayer
     private HireOfficerSortField _hireOfficerSortField = HireOfficerSortField.Loyalty;
     private bool _hireOfficerSortAscending = true;
     private CommandType _pendingOfficerCommand = CommandType.Pass;
+    private TroopType _pendingRecruitTroopType = TroopType.Infantry;
 
     public override void _Ready()
     {
@@ -231,7 +236,7 @@ public partial class HudController : CanvasLayer
         _endTurnButton = GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
 
         _cityNameLabel = GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");
-        _cityStatsLabel = GetNodeOrNull<Label>("Root/LeftPanel/CityStatsLabel");
+        _cityStatsLabel = GetNodeOrNull<RichTextLabel>("Root/LeftPanel/CityStatsLabel");
         _commandsTitle = GetNodeOrNull<Label>("Root/LeftPanel/CommandsTitle");
         var leftPanel = GetNodeOrNull<VBoxContainer>("Root/LeftPanel");
         if (leftPanel != null)
@@ -452,6 +457,31 @@ public partial class HudController : CanvasLayer
         };
         _officerListToolbar.AddThemeConstantOverride("separation", 8);
         officerListContent.AddChild(_officerListToolbar);
+
+        _officerListAuxRow = new HBoxContainer
+        {
+            Name = "OfficerListAuxRow",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            Visible = false
+        };
+        _officerListAuxRow.AddThemeConstantOverride("separation", 8);
+        officerListContent.AddChild(_officerListAuxRow);
+
+        _officerListAuxLabel = new Label
+        {
+            Name = "OfficerListAuxLabel",
+            CustomMinimumSize = new Vector2(84.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        _officerListAuxRow.AddChild(_officerListAuxLabel);
+
+        _officerListAuxOption = new OptionButton
+        {
+            Name = "OfficerListAuxOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _officerListAuxOption.ItemSelected += OnOfficerListAuxOptionSelected;
+        _officerListAuxRow.AddChild(_officerListAuxOption);
 
         _viewCityOfficersDialogButton = new Button
         {
@@ -903,6 +933,10 @@ public partial class HudController : CanvasLayer
 
         _officerListMode = OfficerListMode.View;
         ConfigureOfficerListDialogLayout(isCommandSelection: false);
+        if (_officerListAuxRow != null)
+        {
+            _officerListAuxRow.Visible = false;
+        }
         _officerListContentMode = OfficerListContentMode.Officers;
         _officerListScope = OfficerListScope.City;
         _officerListDialog.OkButtonText = _localization?.T("ui.confirm_officer_selection") ?? "Confirm Selection";
@@ -1073,6 +1107,7 @@ public partial class HudController : CanvasLayer
             _moveTroopsSpinBox != null ? (int)_moveTroopsSpinBox.Value : 0,
             _moveGoldSpinBox != null ? (int)_moveGoldSpinBox.Value : 0,
             _moveFoodSpinBox != null ? (int)_moveFoodSpinBox.Value : 0,
+            _moveHorseSpinBox != null ? (int)_moveHorseSpinBox.Value : 0,
             selectedOfficerIds);
     }
 
@@ -1089,14 +1124,12 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var tradeMode = GetSelectedMerchantTradeMode();
         ExecutePlayerCommand(
             CommandType.Merchant,
-            null,
-            0,
-            0,
-            _merchantFoodSpinBox != null ? (int)_merchantFoodSpinBox.Value : 0,
-            null,
-            selectedIndex == 1);
+            foodToSend: _merchantFoodSpinBox != null ? (int)_merchantFoodSpinBox.Value : 0,
+            sellFood: tradeMode == MerchantTradeMode.SellFood,
+            merchantTradeMode: tradeMode);
     }
 
     private void OnAttackDialogConfirmed()
@@ -1144,11 +1177,11 @@ public partial class HudController : CanvasLayer
 
         var result = ExecutePlayerCommand(
             CommandType.Attack,
-            targetMetadata.AsInt32(),
-            attackTroops,
-            _attackGoldSpinBox != null ? (int)_attackGoldSpinBox.Value : 0,
-            _attackFoodSpinBox != null ? (int)_attackFoodSpinBox.Value : 0,
-            selectedOfficerIds);
+            targetCityId: targetMetadata.AsInt32(),
+            troopsToSend: attackTroops,
+            goldToSend: _attackGoldSpinBox != null ? (int)_attackGoldSpinBox.Value : 0,
+            foodToSend: _attackFoodSpinBox != null ? (int)_attackFoodSpinBox.Value : 0,
+            officerIds: selectedOfficerIds);
 
         if (result.Success)
         {

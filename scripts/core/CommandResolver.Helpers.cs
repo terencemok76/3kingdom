@@ -93,6 +93,121 @@ public partial class CommandResolver
         return transferAmount < 0 ? 0 : transferAmount;
     }
 
+    private static TroopAllocationData CreateTroopAllocationFromTotal(CityData city, int requestedTroops)
+    {
+        var allocation = new TroopAllocationData();
+        var remaining = GetTransferAmount(requestedTroops, city.Troops);
+        if (remaining <= 0)
+        {
+            return allocation;
+        }
+
+        foreach (var troopType in new[]
+                 {
+                     TroopType.Infantry,
+                     TroopType.Spearman,
+                     TroopType.Archer,
+                     TroopType.Cavalry,
+                     TroopType.Crossbow,
+                     TroopType.Siege
+                 })
+        {
+            if (remaining <= 0)
+            {
+                break;
+            }
+
+            var available = city.GetTroops(troopType);
+            if (available <= 0)
+            {
+                continue;
+            }
+
+            var toTake = Math.Min(available, remaining);
+            SetTroopAllocationValue(allocation, troopType, toTake);
+            remaining -= toTake;
+        }
+
+        return allocation;
+    }
+
+    private static void SetTroopAllocationValue(TroopAllocationData allocation, TroopType troopType, int value)
+    {
+        switch (troopType)
+        {
+            case TroopType.Infantry:
+                allocation.Infantry = value;
+                break;
+            case TroopType.Spearman:
+                allocation.Spearman = value;
+                break;
+            case TroopType.Cavalry:
+                allocation.Cavalry = value;
+                break;
+            case TroopType.Archer:
+                allocation.Archer = value;
+                break;
+            case TroopType.Crossbow:
+                allocation.Crossbow = value;
+                break;
+            case TroopType.Siege:
+                allocation.Siege = value;
+                break;
+        }
+    }
+
+    private static int GetTroopTypeRecruitGoldCost(TroopType troopType)
+    {
+        return troopType switch
+        {
+            TroopType.Cavalry => RecruitGoldCost + 40,
+            TroopType.Crossbow => RecruitGoldCost + 20,
+            TroopType.Siege => RecruitGoldCost + 80,
+            _ => RecruitGoldCost
+        };
+    }
+
+    private static int GetTroopTypeRecruitFoodCost(TroopType troopType)
+    {
+        return troopType switch
+        {
+            TroopType.Cavalry => RecruitFoodCost + 40,
+            TroopType.Siege => RecruitFoodCost + 60,
+            _ => RecruitFoodCost
+        };
+    }
+
+    private static string GetTroopTypeLocaleKey(TroopType troopType)
+    {
+        return troopType switch
+        {
+            TroopType.Infantry => "troop_type.infantry",
+            TroopType.Spearman => "troop_type.spearman",
+            TroopType.Cavalry => "troop_type.cavalry",
+            TroopType.Archer => "troop_type.archer",
+            TroopType.Crossbow => "troop_type.crossbow",
+            TroopType.Siege => "troop_type.siege",
+            _ => "troop_type.infantry"
+        };
+    }
+
+    private string GetTroopTypeName(TroopType troopType, GameLanguage language)
+    {
+        var key = GetTroopTypeLocaleKey(troopType);
+        return _localization?.TForLanguage(language, key) ?? troopType.ToString();
+    }
+
+    private static bool CanRecruitTroopType(CityData city, TroopType troopType)
+    {
+        return troopType switch
+        {
+            TroopType.Cavalry => city.Horses > 0,
+            TroopType.Crossbow => city.HasBowWorkshop,
+            TroopType.Siege => city.HasSiegeWorkshop,
+            _ => true
+        };
+    }
+
     private static List<int> GetMovableOfficerIds(CityData sourceCity, List<int> requestedOfficerIds)
     {
         var result = new List<int>();
@@ -212,7 +327,7 @@ public partial class CommandResolver
             : world.InternalAffairsSchedules.Max(schedule => schedule.Id) + 1;
     }
 
-    private static (int Farm, int Commercial, int Defense, int Loyalty) ApplyInternalAffairsJob(
+    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty) ApplyInternalAffairsJob(
         WorldState world,
         CityData city,
         OfficerData officer,
@@ -224,20 +339,21 @@ public partial class CommandResolver
         var officerBonus = Math.Max(0, (intelligence + politics + charm) / 90);
         var primaryGain = 2 + officerBonus;
         var secondaryGain = 1;
-        var gains = jobType switch
+        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty) gains = jobType switch
         {
-            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0),
-            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0),
-            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0),
-            InternalAffairsJobType.WaterControl => (secondaryGain, 0, 0, secondaryGain),
-            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, 0),
-            _ => (0, 0, 0, 0)
+            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0),
+            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0),
+            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0),
+            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain),
+            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0),
+            _ => (0, 0, 0, 0, 0)
         };
 
-        city.Farm = ClampStat(city.Farm + gains.Item1);
-        city.Commercial = ClampStat(city.Commercial + gains.Item2);
-        city.Defense = ClampStat(city.Defense + gains.Item3);
-        city.Loyalty = ClampStat(city.Loyalty + gains.Item4);
+        city.Farm = ClampStat(city.Farm + gains.Farm);
+        city.Commercial = ClampStat(city.Commercial + gains.Commercial);
+        city.Defense = ClampStat(city.Defense + gains.Defense);
+        city.DisasterPrevention = ClampStat(city.DisasterPrevention + gains.DisasterPrevention);
+        city.Loyalty = ClampStat(city.Loyalty + gains.Loyalty);
         return gains;
     }
 

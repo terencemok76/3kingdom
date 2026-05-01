@@ -14,7 +14,16 @@ public class CityStartData
     public int OwnerFactionId { get; set; }
     public int Gold { get; set; }
     public int Food { get; set; }
+    public int Horses { get; set; }
     public int Troops { get; set; }
+    public int InfantryTroops { get; set; }
+    public int SpearmanTroops { get; set; }
+    public int CavalryTroops { get; set; }
+    public int ArcherTroops { get; set; }
+    public int CrossbowTroops { get; set; }
+    public int SiegeTroops { get; set; }
+    public bool HasBowWorkshop { get; set; }
+    public bool HasSiegeWorkshop { get; set; }
     public List<int> OfficerIds { get; set; } = new();
 }
 

@@ -348,6 +348,11 @@ public partial class HudController : CanvasLayer
             _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
         }
 
+        if (_officerListAuxRow?.Visible == true && _pendingOfficerCommand == CommandType.Recruit)
+        {
+            ConfigureOfficerListAuxRow(CommandType.Recruit);
+        }
+
         UpdateOfficerListToolbar();
         UpdateOfficerListDialogTitle();
 
@@ -425,10 +430,7 @@ public partial class HudController : CanvasLayer
 
             if (_cityStatsLabel != null)
             {
-                _cityStatsLabel.Text =
-                    _localization.FormatOwnerLine("-") +
-                    "\n" +
-                    _localization.FormatEmptyCityStats();
+                _cityStatsLabel.Text = BuildCityStatsTwoColumnText("-", null, 0);
             }
 
             if (_cityOfficerListText != null)
@@ -451,10 +453,7 @@ public partial class HudController : CanvasLayer
             var freeOfficerCount = _turnManager.World.Officers.Count(officer =>
                 officer.CityId == _selectedCity.Id &&
                 FreeOfficerMovement.IsVisibleFreeOfficer(_turnManager.World, officer));
-            _cityStatsLabel.Text =
-                _localization.FormatOwnerLine(ownerName) +
-                "\n" +
-                _localization.FormatCityStats(_selectedCity, freeOfficerCount);
+            _cityStatsLabel.Text = BuildCityStatsTwoColumnText(ownerName, _selectedCity, freeOfficerCount);
         }
 
         if (_cityOfficerListText != null)
@@ -643,6 +642,75 @@ public partial class HudController : CanvasLayer
         }
 
         return $"{officerName} | {roleName} | {BuildOfficerStatusText(officer)}{cityText} | {_localization?.T("ui.strength") ?? "STR"} {officer.Strength} | {_localization?.T("ui.intelligence") ?? "INT"} {officer.Intelligence}";
+    }
+
+    private string BuildCityStatsTwoColumnText(string ownerName, CityData? city, int freeOfficerCount)
+    {
+        if (_localization == null)
+        {
+            return string.Empty;
+        }
+
+        var stats = city == null
+            ? new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
+            {
+                (_localization.T("ui.owner"), ownerName, string.Empty, string.Empty),
+                (_localization.T("ui.gold"), "0", _localization.T("ui.food"), "0"),
+                (_localization.T("ui.horse"), "0", string.Empty, string.Empty),
+                (_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
+                (_localization.T("ui.defense"), "0", _localization.T("ui.disaster_prevention"), "0"),
+                (_localization.T("ui.loyalty"), "0", string.Empty, string.Empty),
+                (_localization.T("ui.officers"), "0", _localization.T("ui.free_officers"), "0"),
+                (_localization.T("ui.troops"), "0", string.Empty, string.Empty),
+                (_localization.T("troop_type.infantry"), "0", _localization.T("troop_type.spearman"), "0"),
+                (_localization.T("troop_type.cavalry"), "0", _localization.T("troop_type.archer"), "0"),
+                (_localization.T("troop_type.crossbow"), "0", _localization.T("troop_type.siege"), "0")
+            }
+            : new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
+            {
+                (_localization.T("ui.owner"), ownerName, string.Empty, string.Empty),
+                (_localization.T("ui.gold"), city.Gold.ToString(), _localization.T("ui.food"), city.Food.ToString()),
+                (_localization.T("ui.horse"), city.Horses.ToString(), string.Empty, string.Empty),
+                (_localization.T("ui.farm"), city.Farm.ToString(), _localization.T("ui.commercial"), city.Commercial.ToString()),
+                (_localization.T("ui.defense"), city.Defense.ToString(), _localization.T("ui.disaster_prevention"), city.DisasterPrevention.ToString()),
+                (_localization.T("ui.loyalty"), city.Loyalty.ToString(), string.Empty, string.Empty),
+                (_localization.T("ui.officers"), city.OfficerIds.Count.ToString(), _localization.T("ui.free_officers"), freeOfficerCount.ToString()),
+                (_localization.T("ui.troops"), city.Troops.ToString(), string.Empty, string.Empty),
+                (_localization.T("troop_type.infantry"), city.InfantryTroops.ToString(), _localization.T("troop_type.spearman"), city.SpearmanTroops.ToString()),
+                (_localization.T("troop_type.cavalry"), city.CavalryTroops.ToString(), _localization.T("troop_type.archer"), city.ArcherTroops.ToString()),
+                (_localization.T("troop_type.crossbow"), city.CrossbowTroops.ToString(), _localization.T("troop_type.siege"), city.SiegeTroops.ToString())
+            };
+
+        var bb = new System.Text.StringBuilder();
+        bb.Append("[table=4]");
+        foreach (var statRow in stats)
+        {
+            AppendCityStatCells(bb, statRow.LeftLabel, statRow.LeftValue);
+            var rightLabel = string.IsNullOrWhiteSpace(statRow.RightLabel)
+                ? string.Empty
+                : $"    {statRow.RightLabel}";
+            AppendCityStatCells(bb, rightLabel, statRow.RightValue);
+        }
+
+        bb.Append("[/table]");
+        return bb.ToString();
+    }
+
+    private static void AppendCityStatCells(System.Text.StringBuilder bb, string label, string value)
+    {
+        bb.Append("[cell]");
+        if (!string.IsNullOrWhiteSpace(label))
+        {
+            bb.Append(label);
+            bb.Append(":");
+        }
+        bb.Append("[/cell]");
+        bb.Append("[cell]");
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            bb.Append(value);
+        }
+        bb.Append("[/cell]");
     }
 
     private string BuildOfficerItemSummary(OfficerData officer)

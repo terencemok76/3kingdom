@@ -162,6 +162,7 @@ public partial class CommandResolver
                     gains.Farm,
                     gains.Commercial,
                     gains.Defense,
+                    gains.DisasterPrevention,
                     gains.Loyalty,
                     Math.Max(schedule.RemainingMonths, 0)
                 },
@@ -173,6 +174,7 @@ public partial class CommandResolver
                     gains.Farm,
                     gains.Commercial,
                     gains.Defense,
+                    gains.DisasterPrevention,
                     gains.Loyalty,
                     Math.Max(schedule.RemainingMonths, 0)
                 }));

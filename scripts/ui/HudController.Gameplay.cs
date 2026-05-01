@@ -17,8 +17,11 @@ public partial class HudController : CanvasLayer
         int troopsToSend = 0,
         int goldToSend = 0,
         int foodToSend = 0,
+        int horsesToSend = 0,
         List<int>? officerIds = null,
-        bool sellFood = false)
+        bool sellFood = false,
+        MerchantTradeMode merchantTradeMode = MerchantTradeMode.BuyFood,
+        TroopType recruitTroopType = TroopType.Infantry)
     {
         if (_gameEnded || _turnManager?.World == null || _commandResolver == null || _selectedCity == null)
         {
@@ -40,7 +43,10 @@ public partial class HudController : CanvasLayer
             TroopsToSend = troopsToSend,
             GoldToSend = type is CommandType.Move or CommandType.Attack ? goldToSend : 0,
             FoodToSend = type is CommandType.Move or CommandType.Attack or CommandType.Merchant ? foodToSend : 0,
+            HorsesToSend = type == CommandType.Move ? horsesToSend : 0,
             SellFood = type == CommandType.Merchant && sellFood,
+            MerchantTradeMode = merchantTradeMode,
+            RecruitTroopType = recruitTroopType,
             OfficerIds = type is CommandType.Merchant or CommandType.Pass ? new List<int>() : (officerIds ?? new List<int>())
         };
 
@@ -116,6 +122,21 @@ public partial class HudController : CanvasLayer
         var economyMonth = world.Month;
         var economyResult = _turnManager.ApplyMonthlyEconomy();
         AddLog(_localization.T("log.monthly_economy"));
+        if (economyMonth == 1)
+        {
+            AddLog(_localization.T("log.player_city_horse_birth_header"));
+            foreach (var entry in economyResult.PlayerCityHorseBirths)
+            {
+                var city = world.GetCity(entry.CityId);
+                if (city == null)
+                {
+                    continue;
+                }
+
+                AddLog(_localization.Format("log.player_city_income_line", _localization.GetCityName(city), entry.Amount));
+            }
+        }
+
         if (economyMonth == 4)
         {
             AddLog(_localization.T("log.player_city_gold_income_header"));
@@ -144,6 +165,22 @@ public partial class HudController : CanvasLayer
 
                 AddLog(_localization.Format("log.player_city_income_line", _localization.GetCityName(city), entry.Amount));
             }
+        }
+
+        foreach (var disaster in economyResult.PlayerCityDisasters)
+        {
+            var city = world.GetCity(disaster.CityId);
+            if (city == null)
+            {
+                continue;
+            }
+
+            AddLog(_localization.Format(
+                "log.city_disaster",
+                _localization.GetCityName(city),
+                disaster.GoldLoss,
+                disaster.FoodLoss,
+                disaster.LoyaltyLoss));
         }
 
         AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month));

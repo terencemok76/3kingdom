@@ -12,6 +12,8 @@ public partial class CommandResolver
     private const int RecruitFoodCost = 80;
     private const int MerchantFoodPerTrade = 100;
     private const int MerchantGoldPerTrade = 10;
+    private const int MerchantHorsePerTrade = 10;
+    private const int MerchantGoldPerHorseTrade = 20;
     private const int PersonnelBonusGoldPerLoyalty = 100;
     private const int PersonnelBonusFoodPerLoyalty = 500;
     private const int HireOfficerGoldCost = 200;

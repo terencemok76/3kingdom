@@ -25,6 +25,7 @@ public partial class HudController : CanvasLayer
             _moveTroopsSpinBox = existingRoot.GetNodeOrNull<SpinBox>("TroopsSpinBox");
             _moveGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldSpinBox");
             _moveFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
+            _moveHorseSpinBox = existingRoot.GetNodeOrNull<SpinBox>("HorseSpinBox");
             _moveOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
             return;
         }
@@ -58,6 +59,10 @@ public partial class HudController : CanvasLayer
         root.AddChild(CreateMoveFieldLabel("FoodLabel"));
         _moveFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
         root.AddChild(_moveFoodSpinBox);
+
+        root.AddChild(CreateMoveFieldLabel("HorseLabel"));
+        _moveHorseSpinBox = CreateMoveSpinBox("HorseSpinBox");
+        root.AddChild(_moveHorseSpinBox);
 
         root.AddChild(CreateMoveFieldLabel("OfficerListLabel"));
         _moveOfficerList = new Tree
@@ -176,6 +181,7 @@ public partial class HudController : CanvasLayer
         ConfigureMoveSpinBox(_moveTroopsSpinBox, _selectedCity.Troops, _selectedCity.Troops / 2);
         ConfigureMoveSpinBox(_moveGoldSpinBox, _selectedCity.Gold, _selectedCity.Gold / 2);
         ConfigureMoveSpinBox(_moveFoodSpinBox, _selectedCity.Food, _selectedCity.Food / 2);
+        ConfigureMoveSpinBox(_moveHorseSpinBox, _selectedCity.Horses, _selectedCity.Horses / 2);
 
         var availableOfficerIds = GetAvailableOfficerIdsForOrder();
         if (_moveOfficerList != null)
@@ -203,7 +209,7 @@ public partial class HudController : CanvasLayer
             }
         }
 
-        _moveDialog.PopupCentered(new Vector2I(460, 520));
+        _moveDialog.PopupCentered(new Vector2I(460, 560));
     }
 
     private void EnsureAttackDialogWidgets()
@@ -404,7 +410,11 @@ public partial class HudController : CanvasLayer
 
         _merchantModeOption.Clear();
         _merchantModeOption.AddItem(_localization?.T("ui.buy_food") ?? "Buy Food");
+        _merchantModeOption.SetItemMetadata(0, (int)MerchantTradeMode.BuyFood);
         _merchantModeOption.AddItem(_localization?.T("ui.sell_food") ?? "Sell Food");
+        _merchantModeOption.SetItemMetadata(1, (int)MerchantTradeMode.SellFood);
+        _merchantModeOption.AddItem(_localization?.T("ui.buy_horse") ?? "Buy Horse");
+        _merchantModeOption.SetItemMetadata(2, (int)MerchantTradeMode.BuyHorse);
         _merchantModeOption.Select(0);
 
         UpdateMerchantFoodSpinBoxRange();
@@ -426,6 +436,7 @@ public partial class HudController : CanvasLayer
         SetMoveDialogLabelText("TroopsLabel", _localization.T("ui.transfer_troops"));
         SetMoveDialogLabelText("GoldLabel", _localization.T("ui.transfer_gold"));
         SetMoveDialogLabelText("FoodLabel", _localization.T("ui.transfer_food"));
+        SetMoveDialogLabelText("HorseLabel", _localization.T("ui.transfer_horse"));
         SetMoveDialogLabelText("OfficerListLabel", _localization.T("ui.transfer_officers"));
     }
 
@@ -439,7 +450,7 @@ public partial class HudController : CanvasLayer
         _merchantDialog.Title = _localization.T("ui.merchant");
         _merchantDialog.OkButtonText = _localization.T("ui.confirm_merchant");
         SetMerchantDialogLabelText("TradeModeLabel", _localization.T("ui.trade_mode"));
-        SetMerchantDialogLabelText("FoodLabel", _localization.T("ui.food_amount"));
+        SetMerchantDialogLabelText("FoodLabel", _localization.T("ui.trade_amount"));
         UpdateMerchantTradeSummary();
     }
 
@@ -602,10 +613,15 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var isSell = _merchantModeOption.Selected == 1;
-        var maxFood = isSell ? _selectedCity.Food : (_selectedCity.Gold / 10) * 100;
-        ConfigureMoveSpinBox(_merchantFoodSpinBox, maxFood, maxFood > 0 ? 100 : 0);
-        _merchantFoodSpinBox.Step = 100;
+        var tradeMode = GetSelectedMerchantTradeMode();
+        var maxAmount = tradeMode switch
+        {
+            MerchantTradeMode.SellFood => _selectedCity.Food,
+            MerchantTradeMode.BuyHorse => (_selectedCity.Gold / 20) * 10,
+            _ => (_selectedCity.Gold / 10) * 100
+        };
+        ConfigureMoveSpinBox(_merchantFoodSpinBox, maxAmount, maxAmount > 0 ? (tradeMode == MerchantTradeMode.BuyHorse ? 10 : 100) : 0);
+        _merchantFoodSpinBox.Step = tradeMode == MerchantTradeMode.BuyHorse ? 10 : 100;
     }
 
     private void UpdateMerchantTradeSummary()
@@ -615,15 +631,37 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var foodAmount = (int)_merchantFoodSpinBox.Value;
-        var goldAmount = foodAmount / 100 * 10;
-        if (_merchantModeOption.Selected == 1)
+        var amount = (int)_merchantFoodSpinBox.Value;
+        var tradeMode = GetSelectedMerchantTradeMode();
+        if (tradeMode == MerchantTradeMode.SellFood)
         {
-            _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_sell_preview", foodAmount, goldAmount);
+            var goldAmount = amount / 100 * 10;
+            _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_sell_preview", amount, goldAmount);
             return;
         }
 
-        _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_buy_preview", goldAmount, foodAmount);
+        if (tradeMode == MerchantTradeMode.BuyHorse)
+        {
+            var goldCost = amount / 10 * 20;
+            _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_buy_horse_preview", goldCost, amount);
+            return;
+        }
+
+        var buyGoldAmount = amount / 100 * 10;
+        _merchantSummaryLabel.Text = _localization.Format("fmt.merchant_buy_preview", buyGoldAmount, amount);
+    }
+
+    private MerchantTradeMode GetSelectedMerchantTradeMode()
+    {
+        if (_merchantModeOption == null)
+        {
+            return MerchantTradeMode.BuyFood;
+        }
+
+        var metadata = _merchantModeOption.GetItemMetadata(_merchantModeOption.Selected);
+        return metadata.VariantType == Variant.Type.Int
+            ? (MerchantTradeMode)metadata.AsInt32()
+            : MerchantTradeMode.BuyFood;
     }
 
 

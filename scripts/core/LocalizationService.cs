@@ -111,11 +111,21 @@ public class LocalizationService
         return
             $"{T("ui.gold")}: {city.Gold}\n" +
             $"{T("ui.food")}: {city.Food}\n" +
+            $"{T("ui.horse")}: {city.Horses}\n" +
             $"{T("ui.troops")}: {city.Troops}\n" +
+            $"{T("troop_type.infantry")}: {city.InfantryTroops}\n" +
+            $"{T("troop_type.spearman")}: {city.SpearmanTroops}\n" +
+            $"{T("troop_type.cavalry")}: {city.CavalryTroops}\n" +
+            $"{T("troop_type.archer")}: {city.ArcherTroops}\n" +
+            $"{T("troop_type.crossbow")}: {city.CrossbowTroops}\n" +
+            $"{T("troop_type.siege")}: {city.SiegeTroops}\n" +
             $"{T("ui.officers")}: {city.OfficerIds.Count}\n" +
             $"{T("ui.free_officers")}: {freeOfficerCount}\n" +
             $"{T("ui.farm")}: {city.Farm}\n" +
             $"{T("ui.commercial")}: {city.Commercial}\n" +
+            $"{T("ui.disaster_prevention")}: {city.DisasterPrevention}\n" +
+            $"{T("ui.bow_workshop")}: {(city.HasBowWorkshop ? T("ui.yes") : T("ui.no"))}\n" +
+            $"{T("ui.siege_workshop")}: {(city.HasSiegeWorkshop ? T("ui.yes") : T("ui.no"))}\n" +
             $"{T("ui.defense")}: {city.Defense}\n" +
             $"{T("ui.loyalty")}: {city.Loyalty}";
     }
@@ -125,11 +135,21 @@ public class LocalizationService
         return
             $"{T("ui.gold")}: 0\n" +
             $"{T("ui.food")}: 0\n" +
+            $"{T("ui.horse")}: 0\n" +
             $"{T("ui.troops")}: 0\n" +
+            $"{T("troop_type.infantry")}: 0\n" +
+            $"{T("troop_type.spearman")}: 0\n" +
+            $"{T("troop_type.cavalry")}: 0\n" +
+            $"{T("troop_type.archer")}: 0\n" +
+            $"{T("troop_type.crossbow")}: 0\n" +
+            $"{T("troop_type.siege")}: 0\n" +
             $"{T("ui.officers")}: 0\n" +
             $"{T("ui.free_officers")}: 0\n" +
             $"{T("ui.farm")}: 0\n" +
             $"{T("ui.commercial")}: 0\n" +
+            $"{T("ui.disaster_prevention")}: 0\n" +
+            $"{T("ui.bow_workshop")}: {T("ui.no")}\n" +
+            $"{T("ui.siege_workshop")}: {T("ui.no")}\n" +
             $"{T("ui.defense")}: 0\n" +
             $"{T("ui.loyalty")}: 0";
     }

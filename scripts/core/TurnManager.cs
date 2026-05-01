@@ -8,13 +8,25 @@ public class MonthlyEconomyResult
     // Keep both world totals and player-city breakdown so HUD can choose the right summary.
     public int AnnualGoldCollected { get; set; }
     public int AnnualFoodCollected { get; set; }
+    public List<(int CityId, int Amount)> PlayerCityHorseBirths { get; } = new();
     public List<(int CityId, int Amount)> PlayerCityGoldIncome { get; } = new();
     public List<(int CityId, int Amount)> PlayerCityFoodIncome { get; } = new();
+    public List<MonthlyDisasterEvent> PlayerCityDisasters { get; } = new();
+}
+
+public class MonthlyDisasterEvent
+{
+    public int CityId { get; set; }
+    public int GoldLoss { get; set; }
+    public int FoodLoss { get; set; }
+    public int LoyaltyLoss { get; set; }
 }
 
 public class TurnManager
 {
     private const int MonthlyUpkeepDivisor = 40;
+    private const double BaseDisasterChance = 0.08;
+    private const double BaseHorseBirthRate = 0.10;
 
     public WorldState? World { get; private set; }
     public int ActiveFactionId { get; private set; }
@@ -78,6 +90,19 @@ public class TurnManager
             var goldIncome = (int)((30 + city.Commercial * 2.0f) * loyaltyFactor);
             var foodIncome = (int)((40 + city.Farm * 3.0f) * loyaltyFactor);
 
+            if (World.Month == 1)
+            {
+                var horseBirths = CalculateHorseBirths(city);
+                if (horseBirths > 0)
+                {
+                    city.Horses += horseBirths;
+                    if (city.OwnerFactionId == playerFactionId)
+                    {
+                        result.PlayerCityHorseBirths.Add((city.Id, horseBirths));
+                    }
+                }
+            }
+
             // Seasonal income is paid when the game enters April/August, not after those months end.
             if (World.Month == 4)
             {
@@ -114,10 +139,15 @@ public class TurnManager
                     deserters = city.Troops;
                 }
 
-                city.Troops -= deserters;
+                if (city.Troops > 0 && deserters > 0)
+                {
+                    city.RemoveTroopAllocation(CreateDeserterAllocation(city, deserters));
+                }
                 city.Food = 0;
                 city.Loyalty = city.Loyalty > 2 ? city.Loyalty - 2 : 0;
             }
+
+            ApplyMonthlyDisaster(city, playerFactionId, result);
         }
 
         return result;
@@ -159,5 +189,118 @@ public class TurnManager
 
             results.Add(resolver.ResolvePendingCommand(pendingCommand));
         }
+    }
+
+    private static TroopAllocationData CreateDeserterAllocation(CityData city, int deserters)
+    {
+        var allocation = new TroopAllocationData();
+        var remaining = deserters;
+        foreach (var troopType in new[]
+                 {
+                     TroopType.Infantry,
+                     TroopType.Spearman,
+                     TroopType.Archer,
+                     TroopType.Cavalry,
+                     TroopType.Crossbow,
+                     TroopType.Siege
+                 })
+        {
+            if (remaining <= 0)
+            {
+                break;
+            }
+
+            var available = city.GetTroops(troopType);
+            if (available <= 0)
+            {
+                continue;
+            }
+
+            var loss = System.Math.Min(available, remaining);
+            switch (troopType)
+            {
+                case TroopType.Infantry:
+                    allocation.Infantry = loss;
+                    break;
+                case TroopType.Spearman:
+                    allocation.Spearman = loss;
+                    break;
+                case TroopType.Cavalry:
+                    allocation.Cavalry = loss;
+                    break;
+                case TroopType.Archer:
+                    allocation.Archer = loss;
+                    break;
+                case TroopType.Crossbow:
+                    allocation.Crossbow = loss;
+                    break;
+                case TroopType.Siege:
+                    allocation.Siege = loss;
+                    break;
+            }
+
+            remaining -= loss;
+        }
+
+        return allocation;
+    }
+
+    private void ApplyMonthlyDisaster(CityData city, int playerFactionId, MonthlyEconomyResult result)
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        var disasterPrevention = System.Math.Max(0, city.DisasterPrevention);
+        var chanceMultiplier = System.Math.Max(0.2, 1.0 - disasterPrevention / 150.0);
+        var random = new System.Random(System.HashCode.Combine(World.RandomSeed, World.Year, World.Month, city.Id, 991));
+        if (random.NextDouble() >= BaseDisasterChance * chanceMultiplier)
+        {
+            return;
+        }
+
+        var severityMultiplier = System.Math.Max(0.25, 1.0 - disasterPrevention / 120.0);
+        var goldLoss = System.Math.Min(city.Gold, (int)System.Math.Round((20 + random.Next(0, 61)) * severityMultiplier));
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((40 + random.Next(0, 121)) * severityMultiplier));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 4)) * severityMultiplier)));
+
+        if (goldLoss <= 0 && foodLoss <= 0 && loyaltyLoss <= 0)
+        {
+            return;
+        }
+
+        city.Gold -= goldLoss;
+        city.Food -= foodLoss;
+        city.Loyalty = System.Math.Max(0, city.Loyalty - loyaltyLoss);
+
+        if (city.OwnerFactionId == playerFactionId)
+        {
+            result.PlayerCityDisasters.Add(new MonthlyDisasterEvent
+            {
+                CityId = city.Id,
+                GoldLoss = goldLoss,
+                FoodLoss = foodLoss,
+                LoyaltyLoss = loyaltyLoss
+            });
+        }
+    }
+
+    private static int CalculateHorseBirths(CityData city)
+    {
+        if (city.Horses <= 0)
+        {
+            return 0;
+        }
+
+        var birthRate = GetHorseBirthRate(city);
+        var births = (int)System.Math.Floor(city.Horses * birthRate);
+        return births <= 0 ? 1 : births;
+    }
+
+    private static double GetHorseBirthRate(CityData city)
+    {
+        var facilityBonus = 0.0;
+        return BaseHorseBirthRate + facilityBonus;
     }
 }

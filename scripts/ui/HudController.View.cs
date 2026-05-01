@@ -186,7 +186,10 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var result = ExecutePlayerCommand(_pendingOfficerCommand, officerIds: new List<int> { metadata.AsInt32() });
+        var result = ExecutePlayerCommand(
+            _pendingOfficerCommand,
+            officerIds: new List<int> { metadata.AsInt32() },
+            recruitTroopType: _pendingOfficerCommand == CommandType.Recruit ? _pendingRecruitTroopType : TroopType.Infantry);
         if (result.Success)
         {
             _officerListDialog?.Hide();

@@ -95,7 +95,10 @@ public class WorldRepository
                 OwnerFactionId = 0,
                 Gold = 700,
                 Food = 1300,
+                Horses = 120,
                 Troops = 1400,
+                HasBowWorkshop = false,
+                HasSiegeWorkshop = false,
                 Farm = 60,
                 Commercial = 60,
                 Defense = 55,
@@ -197,6 +200,10 @@ public class WorldRepository
         }
 
         ApplyCityStarts(world, world.CityStarts);
+        foreach (var city in world.Cities)
+        {
+            city.EnsureTroopTypesInitialized();
+        }
 
         foreach (var faction in world.Factions)
         {
@@ -240,7 +247,17 @@ public class WorldRepository
             city.OwnerFactionId = cityStart.OwnerFactionId;
             city.Gold = cityStart.Gold;
             city.Food = cityStart.Food;
+            city.Horses = cityStart.Horses;
             city.Troops = cityStart.Troops;
+            city.InfantryTroops = cityStart.InfantryTroops;
+            city.SpearmanTroops = cityStart.SpearmanTroops;
+            city.CavalryTroops = cityStart.CavalryTroops;
+            city.ArcherTroops = cityStart.ArcherTroops;
+            city.CrossbowTroops = cityStart.CrossbowTroops;
+            city.SiegeTroops = cityStart.SiegeTroops;
+            city.HasBowWorkshop = cityStart.HasBowWorkshop;
+            city.HasSiegeWorkshop = cityStart.HasSiegeWorkshop;
+            city.EnsureTroopTypesInitialized();
 
             foreach (var officerId in cityStart.OfficerIds)
             {

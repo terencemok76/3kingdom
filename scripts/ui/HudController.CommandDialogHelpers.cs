@@ -246,6 +246,7 @@ public partial class HudController : CanvasLayer
         }
 
         _pendingOfficerCommand = commandType;
+        _pendingRecruitTroopType = TroopType.Infantry;
         _officerListMode = OfficerListMode.CommandSelection;
         ConfigureOfficerListDialogLayout(isCommandSelection: true);
         SetOfficerListDialogTitle(_localization.Format("fmt.select_officer_for_command", GetCommandName(commandType)));
@@ -256,6 +257,7 @@ public partial class HudController : CanvasLayer
         }
         UpdateOfficerListToolbar();
         _officerListTable.Visible = true;
+        ConfigureOfficerListAuxRow(commandType);
         _officerListTable.Clear();
         var isRecruitCommand = commandType == CommandType.Recruit;
         if (isRecruitCommand)
@@ -301,8 +303,74 @@ public partial class HudController : CanvasLayer
         }
 
         var visibleRows = Math.Clamp(rowIndex, 1, 6);
-        var popupHeight = 220 + visibleRows * 28;
+        var popupHeight = 220 + visibleRows * 28 + (commandType == CommandType.Recruit ? 40 : 0);
         _officerListDialog.PopupCentered(new Vector2I(620, popupHeight));
+    }
+
+    private void ConfigureOfficerListAuxRow(CommandType commandType)
+    {
+        if (_officerListAuxRow == null || _officerListAuxLabel == null || _officerListAuxOption == null || _localization == null)
+        {
+            return;
+        }
+
+        var isRecruit = commandType == CommandType.Recruit;
+        _officerListAuxRow.Visible = isRecruit;
+        if (!isRecruit)
+        {
+            return;
+        }
+
+        _officerListAuxLabel.Text = _localization.T("ui.recruit_troop_type");
+        _officerListAuxOption.Clear();
+        foreach (var troopType in new[]
+                 {
+                     TroopType.Infantry,
+                     TroopType.Spearman,
+                     TroopType.Cavalry,
+                     TroopType.Archer,
+                     TroopType.Crossbow,
+                     TroopType.Siege
+                 })
+        {
+            _officerListAuxOption.AddItem(GetTroopTypeDisplayName(troopType));
+            _officerListAuxOption.SetItemMetadata(_officerListAuxOption.ItemCount - 1, (int)troopType);
+        }
+
+        _officerListAuxOption.Select(0);
+    }
+
+    private string GetTroopTypeDisplayName(TroopType troopType)
+    {
+        if (_localization == null)
+        {
+            return troopType.ToString();
+        }
+
+        return troopType switch
+        {
+            TroopType.Infantry => _localization.T("troop_type.infantry"),
+            TroopType.Spearman => _localization.T("troop_type.spearman"),
+            TroopType.Cavalry => _localization.T("troop_type.cavalry"),
+            TroopType.Archer => _localization.T("troop_type.archer"),
+            TroopType.Crossbow => _localization.T("troop_type.crossbow"),
+            TroopType.Siege => _localization.T("troop_type.siege"),
+            _ => troopType.ToString()
+        };
+    }
+
+    private void OnOfficerListAuxOptionSelected(long index)
+    {
+        if (_officerListAuxOption == null)
+        {
+            return;
+        }
+
+        var metadata = _officerListAuxOption.GetItemMetadata((int)index);
+        if (metadata.VariantType == Variant.Type.Int)
+        {
+            _pendingRecruitTroopType = (TroopType)metadata.AsInt32();
+        }
     }
 
     private void ConfigureRecruitOfficerTableColumns()

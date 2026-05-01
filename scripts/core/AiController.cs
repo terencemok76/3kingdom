@@ -81,7 +81,8 @@ public class AiController
                         TargetCityId = targetId,
                         TroopsToSend = city.Troops / 2,
                         GoldToSend = city.Gold / 3,
-                        FoodToSend = city.Food / 3
+                        FoodToSend = city.Food / 3,
+                        HorsesToSend = city.Horses / 3
                     });
                     break;
                 }
@@ -314,7 +315,7 @@ public class AiController
             (InternalAffairsJobType.Farm, city.Farm),
             (InternalAffairsJobType.Commercial, city.Commercial),
             (InternalAffairsJobType.Defend, city.Defense),
-            (InternalAffairsJobType.WaterControl, city.Farm + city.Loyalty),
+            (InternalAffairsJobType.WaterControl, city.DisasterPrevention),
             (InternalAffairsJobType.Construction, city.Commercial + city.Defense)
         };
 

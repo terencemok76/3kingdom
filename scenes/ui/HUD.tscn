@@ -132,8 +132,11 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "City: -"
 
-[node name="CityStatsLabel" type="Label" parent="Root/LeftPanel" unique_id=1764531722]
+[node name="CityStatsLabel" type="RichTextLabel" parent="Root/LeftPanel" unique_id=1764531722]
 layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 text = "Owner: -
 Gold: 0
 Food: 0

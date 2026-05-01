@@ -93,7 +93,7 @@
 - `Farm`：農業。
 - `Commercial`：商業。
 - `Defend`：防衛。
-- `WaterControl`：治水。
+- `WaterControl`：防災。主要提升城市 `防災`，並少量提升 `忠誠`。
 - `Construction`：建設。
 
 ## 3.2 Phase 1.5：道具系統
@@ -260,6 +260,13 @@
 - 弓兵 / `Archer`
 - 弩兵 / `Crossbow`
 - 投石車 / `Siege`
+- 城市儲存六兵種數量，不再只用單一 `Troops`。
+- `Troops` 可作為總兵力相容欄位，但實際兵力結算以六兵種合計為準。
+- 騎兵徵募需要城市持有馬匹，並受現有馬匹數量上限限制。
+- 弩兵徵募需要 `弓坊`。
+- 投石車 / 攻城兵徵募需要 `工坊`。
+- 城市之間移動兵力時，可同時移動金、糧、馬與武將。
+- 每年 1 月城市馬匹會自然繁殖；目前基礎出生率為 10%，後續可由養馬設施追加加成。
 
 ### 4.5.1 基礎相剋
 - 步兵 vs 弓兵。
@@ -456,11 +463,21 @@
 - `OwnerFactionId`
 - `Gold`
 - `Food`
+- `Horses`
 - `Troops`
+- `InfantryTroops`
+- `SpearmanTroops`
+- `CavalryTroops`
+- `ArcherTroops`
+- `CrossbowTroops`
+- `SiegeTroops`
 - `Farm`
 - `Commercial`
 - `Defense`
+- `DisasterPrevention`
 - `Loyalty`
+- `HasBowWorkshop`
+- `HasSiegeWorkshop`
 - `OfficerIds`
 - `ConnectedCityIds`
 
@@ -492,6 +509,9 @@
 - `OfficerId`
 - `JobType`
 - `RemainingMonths`
+- `TotalMonths`
+- `StartedYear`
+- `StartedMonth`
 - `State`
 
 ### 7.5 ItemData（Phase 1.5）
@@ -651,6 +671,8 @@ tools/
 - 多月排程每月底正確扣月份。
 - UI 可中止排程。
 - 城市屬性提升正確。
+- `防災` 內政會提升城市防災值，並降低後續災害發生率與損失幅度。
+- 月底可能發生災害事件；高 `防災` 城市的副作用較小。
 
 ### Phase 1.5 人事 / 民事
 - 賞賜不能選君主。
@@ -661,18 +683,25 @@ tools/
 - 高忠誠武將會拒絕登用。
 - 救濟消耗資源並提升城市忠誠。
 - 訪察民情可產生隨機正面結果。
+- 訪察民情與救濟皆需指派武將，且同城每月各只能執行一次。
+- 訪察民情找到的名物直接收入勢力道具庫存。
 
 ### Phase 1.5 兵種
 - 兵種資料可載入。
 - 招募可指定兵種。
 - 戰鬥公式可套用兵種相剋。
 - 投石車對城防有特殊效果。
+- 城市可持有並顯示六兵種與馬匹資源。
+- 騎兵招募會消耗馬匹，且成軍數量不會超過現有馬匹。
+- 商人可購買馬匹。
+- 移動指令可轉移馬匹。
 
 ### Phase 1.5 道具
 - 道具資料可載入。
-- 道具可歸屬城市、勢力或武將。
+- 道具可歸屬勢力或武將；搜索 / 訪察民情取得的道具先進入勢力庫存。
 - 裝備後屬性加成正確。
 - 勢力滅亡後道具歸屬處理正確。
+- 賞賜道具來源為勢力庫存；索回道具後回到勢力庫存。
 
 ## 16. 固定規則
 - 中文 UI 必須走 `locale.json`。
