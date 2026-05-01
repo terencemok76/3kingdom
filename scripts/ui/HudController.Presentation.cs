@@ -448,10 +448,13 @@ public partial class HudController : CanvasLayer
         if (_cityStatsLabel != null)
         {
             var ownerName = _localization.GetFactionName(_turnManager.World, _selectedCity.OwnerFactionId);
+            var freeOfficerCount = _turnManager.World.Officers.Count(officer =>
+                officer.CityId == _selectedCity.Id &&
+                FreeOfficerMovement.IsVisibleFreeOfficer(_turnManager.World, officer));
             _cityStatsLabel.Text =
                 _localization.FormatOwnerLine(ownerName) +
                 "\n" +
-                _localization.FormatCityStats(_selectedCity);
+                _localization.FormatCityStats(_selectedCity, freeOfficerCount);
         }
 
         if (_cityOfficerListText != null)
@@ -523,6 +526,7 @@ public partial class HudController : CanvasLayer
         var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
         var currentYear = _turnManager?.World?.Year ?? 0;
         var officerAge = CalculateOfficerAge(officer, currentYear);
+        var itemSummary = BuildOfficerItemSummary(officer);
         return
             $"{officerName}\n" +
             $"{_localization?.T("ui.role") ?? "Role"}: {roleName}\n" +
@@ -535,7 +539,8 @@ public partial class HudController : CanvasLayer
             $"{_localization?.T("ui.politics") ?? "POL"}: {officer.Politics}\n" +
             $"{_localization?.T("ui.combat") ?? "COM"}: {officer.Combat}\n" +
             $"{_localization?.T("ui.loyalty_short") ?? "LOY"}: {officer.Loyalty}\n" +
-            $"{_localization?.T("ui.ambition") ?? "AMB"}: {officer.Ambition}";
+            $"{_localization?.T("ui.ambition") ?? "AMB"}: {officer.Ambition}\n" +
+            $"{itemSummary}";
     }
 
     private static int CalculateOfficerAge(OfficerData officer, int currentYear)
@@ -638,6 +643,21 @@ public partial class HudController : CanvasLayer
         }
 
         return $"{officerName} | {roleName} | {BuildOfficerStatusText(officer)}{cityText} | {_localization?.T("ui.strength") ?? "STR"} {officer.Strength} | {_localization?.T("ui.intelligence") ?? "INT"} {officer.Intelligence}";
+    }
+
+    private string BuildOfficerItemSummary(OfficerData officer)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return $"{_localization?.T("ui.officer_items") ?? "Equipped Items"}: -";
+        }
+
+        var items = _turnManager.World.Items
+            .Where(item => item.EquippedOfficerId == officer.Id)
+            .Select(item => _localization.GetItemName(item))
+            .ToList();
+        var names = items.Count == 0 ? "-" : string.Join(", ", items);
+        return _localization.Format("fmt.officer_items", _localization.T("ui.officer_items"), names);
     }
 
     private string BuildCityListRowText(CityData city)

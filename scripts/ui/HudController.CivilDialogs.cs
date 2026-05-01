@@ -140,8 +140,8 @@ public partial class HudController : CanvasLayer
         var existingRoot = _civilReliefDialog.GetNodeOrNull<VBoxContainer>("CivilReliefDialogRoot");
         if (existingRoot != null)
         {
-            _civilReliefGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldSpinBox");
-            _civilReliefFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
+            _civilReliefGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
+            _civilReliefFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
             _civilReliefSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
             return;
         }
@@ -154,17 +154,19 @@ public partial class HudController : CanvasLayer
         root.AddThemeConstantOverride("separation", 8);
         _civilReliefDialog.AddChild(root);
 
-        root.AddChild(new Label { Name = "GoldLabel" });
+        var goldRow = CreateCivilReliefFormRow("GoldRow", "GoldLabel");
         _civilReliefGoldSpinBox = CreateMoveSpinBox("GoldSpinBox");
         _civilReliefGoldSpinBox.Step = 100;
         _civilReliefGoldSpinBox.ValueChanged += _ => UpdateCivilReliefSummary();
-        root.AddChild(_civilReliefGoldSpinBox);
+        goldRow.AddChild(_civilReliefGoldSpinBox);
+        root.AddChild(goldRow);
 
-        root.AddChild(new Label { Name = "FoodLabel" });
+        var foodRow = CreateCivilReliefFormRow("FoodRow", "FoodLabel");
         _civilReliefFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
         _civilReliefFoodSpinBox.Step = 1000;
         _civilReliefFoodSpinBox.ValueChanged += _ => UpdateCivilReliefSummary();
-        root.AddChild(_civilReliefFoodSpinBox);
+        foodRow.AddChild(_civilReliefFoodSpinBox);
+        root.AddChild(foodRow);
 
         _civilReliefSummaryLabel = new Label
         {
@@ -223,11 +225,32 @@ public partial class HudController : CanvasLayer
 
     private void SetCivilReliefDialogLabelText(string nodeName, string text)
     {
-        var label = _civilReliefDialog?.GetNodeOrNull<Label>($"CivilReliefDialogRoot/{nodeName}");
+        var label = _civilReliefDialog?.GetNodeOrNull<Label>($"CivilReliefDialogRoot/{nodeName}") ??
+                    _civilReliefDialog?.GetNodeOrNull<Label>($"CivilReliefDialogRoot/GoldRow/{nodeName}") ??
+                    _civilReliefDialog?.GetNodeOrNull<Label>($"CivilReliefDialogRoot/FoodRow/{nodeName}");
         if (label != null)
         {
             label.Text = text;
         }
+    }
+
+    private static HBoxContainer CreateCivilReliefFormRow(string rowName, string labelName)
+    {
+        var row = new HBoxContainer
+        {
+            Name = rowName,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        row.AddThemeConstantOverride("separation", 10);
+
+        var label = new Label
+        {
+            Name = labelName,
+            CustomMinimumSize = new Vector2(84.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.AddChild(label);
+        return row;
     }
 
     private void UpdateCivilReliefSummary()

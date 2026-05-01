@@ -19,11 +19,14 @@ internal static class Program
         RunSeasonalFoodTest();
         RunUpkeepShortageTest();
         RunInternalAffairsScheduleTest();
+        RunInternalAffairsOfficerLockTest();
         RunPersonnelBonusTest();
         RunAssignOfficerRoleTest();
         RunHireOfficerTest();
         RunCivilReliefTest();
         RunCivilInvestigationTest();
+        RunCivilInvestigationFindsOfficerTest();
+        RunFreeOfficerMovementTest();
         RunMultiMonthSoakTest();
 
         Console.WriteLine($"AI TEST SUMMARY: PASS={Passes.Count} FAIL={Failures.Count}");
@@ -89,15 +92,15 @@ internal static class Program
         _ = services.Ai.RunSingleCityDecision(2, 2);
 
         var recruitPending = world.PendingCommands.Count(x => x.Type == CommandType.Recruit);
-        var developPending = world.PendingCommands.Count(x => x.Type == CommandType.Develop);
+        var internalAffairsCount = world.InternalAffairsSchedules.Count(x => x.State == InternalAffairsScheduleState.Active);
         var searchPending = world.PendingCommands.Count(x => x.Type == CommandType.Search);
         var city = world.GetCity(2)!;
         Assert(recruitPending == 1, "AI recruit scheduling", $"pending={recruitPending}");
-        Assert(developPending == 1, "AI develop scheduling", $"pending={developPending}");
+        Assert(internalAffairsCount == 1, "AI internal affairs scheduling", $"active={internalAffairsCount}");
         Assert(searchPending == 1, "AI search scheduling", $"pending={searchPending}");
         Assert(city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month, "AI search marked used", $"lastSearch={city.LastSearchYear}/{city.LastSearchMonth}");
-        // Search now resolves at month end, so only immediate recruit/develop costs should be visible here.
-        Assert(city.Gold == 280 && city.Food == 420, "AI core action immediate costs", $"gold={city.Gold}, food={city.Food}");
+        // Search resolves at month end, and internal affairs does not consume resources immediately.
+        Assert(city.Gold == 380 && city.Food == 420, "AI core action immediate costs", $"gold={city.Gold}, food={city.Food}");
     }
 
     private static void RunAttackResolutionTest()
@@ -187,6 +190,38 @@ internal static class Program
         Assert(terminated.Success && world.InternalAffairsSchedules.First().State == InternalAffairsScheduleState.Terminated, "Internal affairs termination", $"state={world.InternalAffairsSchedules.First().State}");
     }
 
+    private static void RunInternalAffairsOfficerLockTest()
+    {
+        var world = TestHelpers.World(month: 3);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1500, new[] { 101, 102 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "FriendlyCity", 1, 1000, 1000, 1000, Array.Empty<int>(), new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(101, "Worker", 1, intelligence: 85, charm: 75));
+        world.Officers.Add(TestHelpers.Officer(102, "Reserve", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.ScheduleInternalAffairs(1, 1, 101, InternalAffairsJobType.Farm, 3);
+        var recruitBlocked = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Recruit,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            OfficerIds = new List<int> { 101 }
+        });
+        var moveBlocked = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            OfficerIds = new List<int> { 101 }
+        });
+
+        Assert(scheduled.Success, "Internal affairs lock setup", $"success={scheduled.Success}");
+        Assert(!recruitBlocked.Success, "Internal affairs blocks recruit reuse", $"success={recruitBlocked.Success}");
+        Assert(!moveBlocked.Success, "Internal affairs blocks move reuse", $"success={moveBlocked.Success}");
+    }
+
     private static void RunPersonnelBonusTest()
     {
         var world = TestHelpers.World(month: 2);
@@ -249,6 +284,19 @@ internal static class Program
         Assert(world.GetFaction(1)!.OfficerIds.Contains(201) && !world.GetFaction(2)!.OfficerIds.Contains(201), "Hire officer moves faction", $"playerFactionHas={world.GetFaction(1)!.OfficerIds.Contains(201)}");
         Assert(!refused.Success, "Hire officer blocks high loyalty", $"success={refused.Success}");
         Assert(!rulerBlocked.Success, "Hire officer blocks ruler", $"success={rulerBlocked.Success}");
+
+        var freeWorld = TestHelpers.World(year: 200, month: 2);
+        freeWorld.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        freeWorld.Cities.Add(TestHelpers.City(3, "PlayerFreeCity", 1, 1000, 1000, 1000, Array.Empty<int>(), Array.Empty<int>()));
+        freeWorld.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        freeWorld.Officers.Add(TestHelpers.Officer(301, "FreeOfficerInPlayerCity", 3));
+        freeWorld.GetOfficer(301)!.BirthYear = 170;
+        freeWorld.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var freeServices = CreateServices(freeWorld);
+        var freeResult = freeServices.Resolver.ExecuteHireOfficer(1, 1, 301);
+
+        Assert(freeResult.Success, "Hire free officer from player city resolves", $"success={freeResult.Success}");
+        Assert(freeWorld.GetCity(1)!.OfficerIds.Contains(301), "Hire free officer from player city joins target", $"targetHas={freeWorld.GetCity(1)!.OfficerIds.Contains(301)}");
     }
 
     private static void RunCivilReliefTest()
@@ -285,6 +333,85 @@ internal static class Program
 
         Assert(result.Success, "Civil investigation resolves", $"success={result.Success}");
         Assert(changed, "Civil investigation changes city", $"gold={city.Gold}, food={city.Food}, farm={city.Farm}, loyalty={city.Loyalty}");
+    }
+
+    private static void RunCivilInvestigationFindsOfficerTest()
+    {
+        var world = TestHelpers.World(year: 200, month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        world.Officers.Add(TestHelpers.Officer(150, "FreeOfficer", 1));
+        world.GetOfficer(150)!.Belongs = "Shu";
+        world.GetOfficer(150)!.BirthYear = 170;
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.ExecuteCivilInvestigation(1, 1);
+        var city = world.GetCity(1)!;
+        var faction = world.GetFaction(1)!;
+        var officer = world.GetOfficer(150)!;
+
+        Assert(result.Success, "Civil investigation finds free officer", $"success={result.Success}");
+        Assert(!city.OfficerIds.Contains(150), "Civil investigation does not recruit free officer", $"cityHas={city.OfficerIds.Contains(150)}");
+        Assert(!faction.OfficerIds.Contains(150), "Civil investigation does not add free officer to faction", $"factionHas={faction.OfficerIds.Contains(150)}");
+        Assert(officer.CityId == 1, "Civil investigation reveals officer city", $"cityId={officer.CityId}");
+    }
+
+    private static void RunFreeOfficerMovementTest()
+    {
+        var world = TestHelpers.World(year: 200, month: 1);
+        world.Cities.Add(TestHelpers.City(1, "FreeStart", 0, 1000, 1000, 1000, Array.Empty<int>(), new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "FreeNext", 0, 1000, 1000, 1000, Array.Empty<int>(), new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(150, "FreeOfficer", 1));
+        var officer = world.GetOfficer(150)!;
+        officer.BirthYear = 170;
+        officer.FreeOfficerStayMonths = 1;
+        var services = CreateServices(world);
+
+        services.Turn.AdvanceMonth();
+
+        Assert(officer.CityId == 0 || officer.CityId == 2, "Free officer moves or hides after stay", $"cityId={officer.CityId}");
+        Assert(officer.FreeOfficerStayMonths > 0, "Free officer resets stay months", $"stay={officer.FreeOfficerStayMonths}");
+
+        var hiddenWorld = TestHelpers.World(year: 200, month: 2);
+        hiddenWorld.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        hiddenWorld.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        hiddenWorld.Officers.Add(TestHelpers.Officer(151, "HiddenFreeOfficer", 0));
+        hiddenWorld.GetOfficer(151)!.BirthYear = 170;
+        hiddenWorld.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var hiddenServices = CreateServices(hiddenWorld);
+        var result = hiddenServices.Resolver.ExecuteCivilInvestigation(1, 1);
+
+        Assert(result.Success, "Civil investigation can discover hidden free officer", $"success={result.Success}");
+        Assert(!hiddenWorld.GetCity(1)!.OfficerIds.Contains(151), "Hidden free officer is revealed but not recruited", $"cityHas={hiddenWorld.GetCity(1)!.OfficerIds.Contains(151)}");
+        Assert(hiddenWorld.GetOfficer(151)!.CityId == 1, "Hidden free officer appears in investigated city", $"cityId={hiddenWorld.GetOfficer(151)!.CityId}");
+
+        var rejectWorld = TestHelpers.World(year: 200, month: 2);
+        rejectWorld.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        rejectWorld.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        rejectWorld.Officers.Add(TestHelpers.Officer(152, "UnwillingFreeOfficer", 1, charm: 20));
+        rejectWorld.GetOfficer(152)!.BirthYear = 170;
+        rejectWorld.GetOfficer(152)!.Ambition = 100;
+        rejectWorld.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var rejectServices = CreateServices(rejectWorld);
+        var rejectResult = rejectServices.Resolver.ExecuteHireOfficer(1, 1, 152);
+
+        Assert(!rejectResult.Success, "Hire free officer can be refused", $"success={rejectResult.Success}");
+        Assert(!rejectWorld.GetCity(1)!.OfficerIds.Contains(152), "Refused free officer does not join city", $"cityHas={rejectWorld.GetCity(1)!.OfficerIds.Contains(152)}");
+
+        var offerWorld = TestHelpers.World(year: 200, month: 2);
+        offerWorld.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 3000, 2000, 1000, new[] { 101 }, Array.Empty<int>()));
+        offerWorld.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        offerWorld.Officers.Add(TestHelpers.Officer(153, "GiftedFreeOfficer", 1, charm: 20));
+        offerWorld.GetOfficer(153)!.BirthYear = 170;
+        offerWorld.GetOfficer(153)!.Ambition = 100;
+        offerWorld.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var offerServices = CreateServices(offerWorld);
+        var offerResult = offerServices.Resolver.ExecuteHireOfficer(1, 1, 153, goldOffer: 2500, foodOffer: 0);
+
+        Assert(offerResult.Success, "Hire free officer can accept generous offer", $"success={offerResult.Success}");
+        Assert(offerWorld.GetCity(1)!.Gold == 300, "Hire offer deducts base cost plus gift", $"gold={offerWorld.GetCity(1)!.Gold}");
+        Assert(offerWorld.GetCity(1)!.OfficerIds.Contains(153), "Accepted offer joins city", $"cityHas={offerWorld.GetCity(1)!.OfficerIds.Contains(153)}");
     }
 
     private static void RunMultiMonthSoakTest()

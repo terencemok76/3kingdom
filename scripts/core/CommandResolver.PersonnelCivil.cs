@@ -7,7 +7,7 @@ namespace ThreeKingdom.Core;
 
 public partial class CommandResolver
 {
-    public CommandResult ExecutePersonnelBonus(int actorFactionId, int cityId, int officerId, int goldAmount, int foodAmount)
+    public CommandResult ExecutePersonnelBonus(int actorFactionId, int cityId, int officerId, int goldAmount, int foodAmount, int itemId = 0)
     {
         if (_turnManager?.World == null)
         {
@@ -32,7 +32,17 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.personnel_bonus.officer_required");
         }
 
-        if (goldAmount <= 0 && foodAmount <= 0)
+        ItemData? giftedItem = null;
+        if (itemId > 0)
+        {
+            giftedItem = world.GetItem(itemId);
+            if (giftedItem == null || !IsItemOwnedByFactionAtCity(giftedItem, actorFactionId, city.Id))
+            {
+                return LocalizedResult(false, "cmd.item.invalid_bonus_item");
+            }
+        }
+
+        if (goldAmount <= 0 && foodAmount <= 0 && giftedItem == null)
         {
             return LocalizedResult(false, "cmd.personnel_bonus.empty");
         }
@@ -43,19 +53,29 @@ public partial class CommandResolver
         }
 
         var loyaltyGain = goldAmount / PersonnelBonusGoldPerLoyalty + foodAmount / PersonnelBonusFoodPerLoyalty;
-        if (loyaltyGain <= 0)
+        var itemLoyaltyGain = giftedItem != null ? Math.Max(1, giftedItem.LoyaltyBonus) : 0;
+        if (loyaltyGain <= 0 && itemLoyaltyGain <= 0)
         {
             return LocalizedResult(false, "cmd.personnel_bonus.too_small");
         }
 
         city.Gold -= goldAmount;
         city.Food -= foodAmount;
-        officer.Loyalty = ClampStat(officer.Loyalty + loyaltyGain);
+        officer.Loyalty = ClampStat(officer.Loyalty + loyaltyGain + itemLoyaltyGain);
+        if (giftedItem != null)
+        {
+            AssignItemToOfficer(world, giftedItem, actorFactionId, city.Id, officer.Id);
+        }
+
         return LocalizedResult(
             true,
-            "cmd.personnel_bonus.resolved",
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), goldAmount, foodAmount, loyaltyGain },
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), goldAmount, foodAmount, loyaltyGain });
+            giftedItem == null ? "cmd.personnel_bonus.resolved" : "cmd.personnel_bonus.resolved_with_item",
+            giftedItem == null
+                ? new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), goldAmount, foodAmount, loyaltyGain }
+                : new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), goldAmount, foodAmount, loyaltyGain, GetItemDisplayName(giftedItem, GameLanguage.TraditionalChinese) },
+            giftedItem == null
+                ? new object[] { GetOfficerDisplayName(officer, GameLanguage.English), goldAmount, foodAmount, loyaltyGain }
+                : new object[] { GetOfficerDisplayName(officer, GameLanguage.English), goldAmount, foodAmount, loyaltyGain, GetItemDisplayName(giftedItem, GameLanguage.English) });
     }
 
     public CommandResult ExecuteCivilRelief(int actorFactionId, int cityId, int goldAmount, int foodAmount)
@@ -120,6 +140,28 @@ public partial class CommandResolver
         if (city.OwnerFactionId != actorFactionId)
         {
             return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        var hiddenOfficer = TryFindDiscoverableOfficer(world, city.OwnerFactionId, city.Id);
+        if (hiddenOfficer != null)
+        {
+            RevealFreeOfficerAtCity(city, hiddenOfficer);
+            return LocalizedResult(
+                true,
+                "cmd.civil_investigate.officer_discovered",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetOfficerDisplayName(hiddenOfficer, GameLanguage.TraditionalChinese) },
+                new object[] { GetCityName(city, GameLanguage.English), GetOfficerDisplayName(hiddenOfficer, GameLanguage.English) });
+        }
+
+        var hiddenItem = TryFindDiscoverableItem(world, city.Id);
+        if (hiddenItem != null)
+        {
+            MoveItemToCityInventory(hiddenItem, actorFactionId, city.Id);
+            return LocalizedResult(
+                true,
+                "cmd.civil_investigate.item_discovered",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetItemDisplayName(hiddenItem, GameLanguage.TraditionalChinese) },
+                new object[] { GetCityName(city, GameLanguage.English), GetItemDisplayName(hiddenItem, GameLanguage.English) });
         }
 
         var roll = _random.Next(0, 100);
@@ -208,7 +250,7 @@ public partial class CommandResolver
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetOfficerRoleName(role, GameLanguage.English) });
     }
 
-    public CommandResult ExecuteHireOfficer(int actorFactionId, int cityId, int officerId)
+    public CommandResult ExecuteHireOfficer(int actorFactionId, int cityId, int officerId, int goldOffer = 0, int foodOffer = 0, int itemId = 0)
     {
         if (_turnManager?.World == null)
         {
@@ -244,13 +286,44 @@ public partial class CommandResolver
         }
 
         var sourceCity = officer.CityId > 0 ? world.GetCity(officer.CityId) : null;
-        var sourceFactionId = sourceCity?.OwnerFactionId ?? 0;
+        var isFreeOfficer = FreeOfficerMovement.IsFreeOfficer(world, officer);
+        var sourceFactionId = isFreeOfficer ? 0 : sourceCity?.OwnerFactionId ?? 0;
+        if (isFreeOfficer && !FreeOfficerMovement.IsVisibleFreeOfficer(world, officer))
+        {
+            return LocalizedResult(false, "cmd.hire_officer.not_visible");
+        }
+
         if (sourceFactionId == actorFactionId)
         {
             return LocalizedResult(false, "cmd.hire_officer.same_faction");
         }
 
-        if (sourceFactionId > 0 && officer.Loyalty > HireOfficerMaxLoyalty)
+        ItemData? giftedItem = null;
+        if (itemId > 0)
+        {
+            giftedItem = world.GetItem(itemId);
+            if (giftedItem == null || !IsItemOwnedByFactionAtCity(giftedItem, actorFactionId, city.Id))
+            {
+                return LocalizedResult(false, "cmd.item.invalid_hire_item");
+            }
+        }
+
+        if (goldOffer < 0 || foodOffer < 0 || city.Gold < HireOfficerGoldCost + goldOffer || city.Food < foodOffer)
+        {
+            return LocalizedResult(false, "cmd.hire_officer.not_enough_offer_resources", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        var rulerCharm = GetRulerCharm(world, actorFactionId);
+        if (isFreeOfficer && !DoesFreeOfficerAcceptHire(city, officer, rulerCharm, goldOffer, foodOffer, giftedItem))
+        {
+            return LocalizedResult(
+                false,
+                "cmd.hire_officer.free_refused",
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese) },
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.English) });
+        }
+
+        if (sourceFactionId > 0 && !DoesEmployedOfficerAcceptHire(officer, rulerCharm, goldOffer, foodOffer, giftedItem))
         {
             return LocalizedResult(
                 false,
@@ -259,12 +332,8 @@ public partial class CommandResolver
                 new object[] { GetOfficerDisplayName(officer, GameLanguage.English), officer.Loyalty });
         }
 
-        if (city.Gold < HireOfficerGoldCost)
-        {
-            return LocalizedResult(false, "cmd.hire_officer.not_enough_gold", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
-        }
-
-        city.Gold -= HireOfficerGoldCost;
+        city.Gold -= HireOfficerGoldCost + goldOffer;
+        city.Food -= foodOffer;
         sourceCity?.OfficerIds.Remove(officer.Id);
         if (!city.OfficerIds.Contains(officer.Id))
         {
@@ -280,16 +349,26 @@ public partial class CommandResolver
         }
 
         officer.CityId = city.Id;
+        officer.FreeOfficerStayMonths = 0;
         if (officer.Loyalty <= 0 || sourceFactionId == 0)
         {
             officer.Loyalty = HireOfficerDefaultLoyalty;
         }
 
+        if (giftedItem != null)
+        {
+            AssignItemToOfficer(world, giftedItem, actorFactionId, city.Id, officer.Id);
+        }
+
         return LocalizedResult(
             true,
-            "cmd.hire_officer.resolved",
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese), HireOfficerGoldCost },
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English), HireOfficerGoldCost });
+            giftedItem == null ? "cmd.hire_officer.resolved" : "cmd.hire_officer.resolved_with_item",
+            giftedItem == null
+                ? new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese), HireOfficerGoldCost + goldOffer, foodOffer }
+                : new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese), HireOfficerGoldCost + goldOffer, foodOffer, GetItemDisplayName(giftedItem, GameLanguage.TraditionalChinese) },
+            giftedItem == null
+                ? new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English), HireOfficerGoldCost + goldOffer, foodOffer }
+                : new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English), HireOfficerGoldCost + goldOffer, foodOffer, GetItemDisplayName(giftedItem, GameLanguage.English) });
     }
 
 

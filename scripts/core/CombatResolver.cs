@@ -14,9 +14,9 @@ public class CombatResolver
     public CombatResult Resolve(WorldState world, CityData attacker, CityData defender, int attackingTroops, System.Collections.Generic.List<int>? attackingOfficerIds = null)
     {
         var clampedAttackTroops = attackingTroops < 0 ? 0 : attackingTroops;
-        var attackerStrength = GetAverageOfficerStat(world, attacker, officer => officer.Strength, attackingOfficerIds);
-        var attackerCombat = GetAverageOfficerStat(world, attacker, officer => officer.Combat, attackingOfficerIds);
-        var defenderCombat = GetAverageOfficerStat(world, defender, officer => officer.Combat);
+        var attackerStrength = GetAverageOfficerStat(world, attacker, officer => officer.Strength, item => item.StrengthBonus, attackingOfficerIds);
+        var attackerCombat = GetAverageOfficerStat(world, attacker, officer => officer.Combat, item => item.CombatBonus, attackingOfficerIds);
+        var defenderCombat = GetAverageOfficerStat(world, defender, officer => officer.Combat, item => item.CombatBonus);
 
         var attackStat = attackerStrength * 0.6f + attackerCombat * 0.4f;
         var attackMultiplier = 1.0f + attackStat / 200.0f;
@@ -38,6 +38,7 @@ public class CombatResolver
         WorldState world,
         CityData city,
         System.Func<OfficerData, int> selector,
+        System.Func<ItemData, int> itemBonusSelector,
         System.Collections.Generic.List<int>? officerIdsOverride = null)
     {
         var total = 0;
@@ -55,7 +56,16 @@ public class CombatResolver
                 continue;
             }
 
-            total += selector(officer);
+            var itemBonus = 0;
+            foreach (var item in world.Items)
+            {
+                if (item.EquippedOfficerId == officer.Id)
+                {
+                    itemBonus += itemBonusSelector(item);
+                }
+            }
+
+            total += selector(officer) + itemBonus;
             count += 1;
         }
 

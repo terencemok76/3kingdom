@@ -1,3 +1,4 @@
+using System.Linq;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
@@ -89,7 +90,7 @@ public class AiController
 
         var coreResults = new System.Collections.Generic.List<CommandResult>();
         var recruitOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Charm + officer.Leadership);
-        var developOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics);
+        var internalAffairsOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics + officer.Charm);
         var searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
         if (city.Troops < 2200 &&
             city.Gold >= 120 &&
@@ -105,9 +106,9 @@ public class AiController
                 OfficerIds = new System.Collections.Generic.List<int> { recruitOfficerId }
             }));
             availableOfficerIds.Remove(recruitOfficerId);
-            if (developOfficerId == recruitOfficerId)
+            if (internalAffairsOfficerId == recruitOfficerId)
             {
-                developOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics);
+                internalAffairsOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics + officer.Charm);
             }
 
             if (searchOfficerId == recruitOfficerId)
@@ -116,19 +117,17 @@ public class AiController
             }
         }
 
-        if (city.Gold >= 100 &&
-            developOfficerId > 0 &&
-            !(city.LastDevelopYear == world.Year && city.LastDevelopMonth == world.Month))
+        var internalAffairsJob = ChooseInternalAffairsJob(world, city);
+        if (internalAffairsJob.HasValue && internalAffairsOfficerId > 0)
         {
-            coreResults.Add(_commandResolver.Execute(new CommandRequest
-            {
-                Type = CommandType.Develop,
-                ActorFactionId = factionId,
-                SourceCityId = cityId,
-                OfficerIds = new System.Collections.Generic.List<int> { developOfficerId }
-            }));
-            availableOfficerIds.Remove(developOfficerId);
-            if (searchOfficerId == developOfficerId)
+            coreResults.Add(_commandResolver.ScheduleInternalAffairs(
+                factionId,
+                cityId,
+                internalAffairsOfficerId,
+                internalAffairsJob.Value,
+                3));
+            availableOfficerIds.Remove(internalAffairsOfficerId);
+            if (searchOfficerId == internalAffairsOfficerId)
             {
                 searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
             }
@@ -290,10 +289,41 @@ public class AiController
                 continue;
             }
 
+            if (world.InternalAffairsSchedules.Any(schedule =>
+                    schedule.State == InternalAffairsScheduleState.Active &&
+                    schedule.OfficerId == officerId))
+            {
+                continue;
+            }
+
             result.Add(officerId);
         }
 
         return result;
+    }
+
+    private static InternalAffairsJobType? ChooseInternalAffairsJob(WorldState world, CityData city)
+    {
+        var activeJobs = new System.Collections.Generic.HashSet<InternalAffairsJobType>(
+            world.InternalAffairsSchedules
+                .Where(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.CityId == city.Id)
+                .Select(schedule => schedule.JobType));
+
+        var candidates = new (InternalAffairsJobType JobType, int Score)[]
+        {
+            (InternalAffairsJobType.Farm, city.Farm),
+            (InternalAffairsJobType.Commercial, city.Commercial),
+            (InternalAffairsJobType.Defend, city.Defense),
+            (InternalAffairsJobType.WaterControl, city.Farm + city.Loyalty),
+            (InternalAffairsJobType.Construction, city.Commercial + city.Defense)
+        };
+
+        return candidates
+            .Where(candidate => !activeJobs.Contains(candidate.JobType))
+            .OrderBy(candidate => candidate.Score)
+            .ThenBy(candidate => (int)candidate.JobType)
+            .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
+            .FirstOrDefault();
     }
 
     private static int GetBestOfficerId(

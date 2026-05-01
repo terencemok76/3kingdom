@@ -64,6 +64,20 @@ public partial class HudController : CanvasLayer
         Loyalty
     }
 
+    private enum HireOfficerSortField
+    {
+        Name,
+        Role,
+        City,
+        Owner,
+        Loyalty,
+        Strength,
+        Intelligence,
+        Charm,
+        Leadership,
+        Combat
+    }
+
     private const string PortraitSheetPath = "res://assets/portrait/100.png";
     private const string PortraitMappingPath = "res://data/person/portraits_names.json";
     private const int HireOfficerGoldCost = 200;
@@ -98,16 +112,21 @@ public partial class HudController : CanvasLayer
     private AcceptDialog? _personnelDialog;
     private OptionButton? _personnelCommandOption;
     private AcceptDialog? _personnelBonusDialog;
-    private ItemList? _personnelBonusOfficerList;
+    private Tree? _personnelBonusOfficerList;
     private SpinBox? _personnelBonusGoldSpinBox;
     private SpinBox? _personnelBonusFoodSpinBox;
+    private OptionButton? _personnelBonusItemOption;
     private Label? _personnelBonusSummaryLabel;
     private AcceptDialog? _assignRoleDialog;
-    private ItemList? _assignRoleOfficerList;
+    private Tree? _assignRoleOfficerList;
     private OptionButton? _assignRoleOption;
-    private AcceptDialog? _hireOfficerDialog;
-    private ItemList? _hireOfficerList;
+    private Window? _hireOfficerDialog;
+    private Tree? _hireOfficerList;
+    private SpinBox? _hireOfficerGoldSpinBox;
+    private SpinBox? _hireOfficerFoodSpinBox;
+    private OptionButton? _hireOfficerItemOption;
     private Label? _hireOfficerSummaryLabel;
+    private Button? _hireOfficerConfirmButton;
     private AcceptDialog? _civilDialog;
     private OptionButton? _civilCommandOption;
     private AcceptDialog? _civilReliefDialog;
@@ -117,7 +136,7 @@ public partial class HudController : CanvasLayer
     private AcceptDialog? _internalAffairsDialog;
     private OptionButton? _internalAffairsJobOption;
     private SpinBox? _internalAffairsDurationSpinBox;
-    private ItemList? _internalAffairsOfficerList;
+    private Tree? _internalAffairsOfficerList;
     private ItemList? _internalAffairsScheduleList;
     private Button? _internalAffairsTerminateButton;
     private Label? _internalAffairsWarningLabel;
@@ -126,13 +145,13 @@ public partial class HudController : CanvasLayer
     private SpinBox? _moveTroopsSpinBox;
     private SpinBox? _moveGoldSpinBox;
     private SpinBox? _moveFoodSpinBox;
-    private ItemList? _moveOfficerList;
+    private Tree? _moveOfficerList;
     private AcceptDialog? _attackDialog;
     private OptionButton? _attackTargetCityOption;
     private SpinBox? _attackTroopsSpinBox;
     private SpinBox? _attackGoldSpinBox;
     private SpinBox? _attackFoodSpinBox;
-    private ItemList? _attackOfficerList;
+    private Tree? _attackOfficerList;
     private Label? _attackWarningLabel;
     private AcceptDialog? _officerListDialog;
     private PanelContainer? _officerListTitlebarFill;
@@ -147,7 +166,6 @@ public partial class HudController : CanvasLayer
     private OptionButton? _cityListFilterOption;
     private OptionButton? _officerSortOption;
     private Tree? _officerListTable;
-    private ItemList? _officerListView;
     private AcceptDialog? _officerDetailDialog;
     private TextureRect? _officerPortraitRect;
     private Label? _officerPortraitPlaceholderLabel;
@@ -188,6 +206,8 @@ public partial class HudController : CanvasLayer
     private OfficerSortMode _officerSortMode = OfficerSortMode.Strength;
     private ViewTableSortField _viewTableSortField = ViewTableSortField.Name;
     private bool _viewTableSortAscending = true;
+    private HireOfficerSortField _hireOfficerSortField = HireOfficerSortField.Loyalty;
+    private bool _hireOfficerSortAscending = true;
     private CommandType _pendingOfficerCommand = CommandType.Pass;
 
     public override void _Ready()
@@ -215,6 +235,10 @@ public partial class HudController : CanvasLayer
             _moveButton.Visible = false;
         }
         _searchButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/SearchButton");
+        if (_searchButton != null)
+        {
+            _searchButton.Visible = false;
+        }
         _merchantButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MerchantButton");
         _personnelButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/PersonnelButton");
         _civilButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/CivilButton");
@@ -270,12 +294,13 @@ public partial class HudController : CanvasLayer
         AddChild(_assignRoleDialog);
         EnsureAssignRoleDialogWidgets();
 
-        _hireOfficerDialog = new AcceptDialog();
+        _hireOfficerDialog = new Window();
         _hireOfficerDialog.Exclusive = false;
-        _hireOfficerDialog.Unfocusable = false;
-        _hireOfficerDialog.Confirmed += OnHireOfficerDialogConfirmed;
+        _hireOfficerDialog.Unresizable = true;
+        _hireOfficerDialog.CloseRequested += () => _hireOfficerDialog?.Hide();
         AddChild(_hireOfficerDialog);
         EnsureHireOfficerDialogWidgets();
+        _hireOfficerDialog.Hide();
 
         _civilDialog = new AcceptDialog();
         _civilDialog.Exclusive = false;
@@ -463,16 +488,6 @@ public partial class HudController : CanvasLayer
         _officerListTable.ItemActivated += OnOfficerListTableActivated;
         _officerListTable.ColumnTitleClicked += OnOfficerListTableColumnTitleClicked;
         officerListContent.AddChild(_officerListTable);
-
-        _officerListView = new ItemList
-        {
-            SelectMode = ItemList.SelectModeEnum.Single,
-            CustomMinimumSize = new Vector2(320.0f, 220.0f),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        _officerListView.ItemSelected += OnOfficerListItemSelected;
-        officerListContent.AddChild(_officerListView);
 
         var officerListConfirmRow = new CenterContainer
         {
@@ -854,12 +869,13 @@ public partial class HudController : CanvasLayer
 
     private void OnViewPressed()
     {
-        if (_selectedCity == null || _turnManager?.World == null || _officerListDialog == null || _officerListView == null)
+        if (_selectedCity == null || _turnManager?.World == null || _officerListDialog == null || _officerListTable == null)
         {
             return;
         }
 
         _officerListMode = OfficerListMode.View;
+        ConfigureOfficerListDialogLayout(isCommandSelection: false);
         _officerListContentMode = OfficerListContentMode.Officers;
         _officerListScope = OfficerListScope.City;
         _officerListDialog.OkButtonText = _localization?.T("ui.confirm_officer_selection") ?? "Confirm Selection";
@@ -1022,23 +1038,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = new List<int>();
-        if (_moveOfficerList != null)
-        {
-            for (var index = 0; index < _moveOfficerList.ItemCount; index += 1)
-            {
-                if (!_moveOfficerList.IsSelected(index))
-                {
-                    continue;
-                }
-
-                var metadata = _moveOfficerList.GetItemMetadata(index);
-                if (metadata.VariantType == Variant.Type.Int)
-                {
-                    selectedOfficerIds.Add(metadata.AsInt32());
-                }
-            }
-        }
+        var selectedOfficerIds = GetCheckedTreeMetadataIds(_moveOfficerList);
 
         ExecutePlayerCommand(
             CommandType.Move,
@@ -1079,7 +1079,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = GetSelectedItemMetadataIds(_attackOfficerList);
+        var selectedOfficerIds = GetCheckedTreeMetadataIds(_attackOfficerList);
         if (selectedOfficerIds.Count == 0)
         {
             SetAttackDialogWarning(_localization?.T("ui.attack_officer_required_warning") ?? "Select at least one officer.");

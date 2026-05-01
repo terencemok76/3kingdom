@@ -144,7 +144,7 @@ public partial class CommandResolver
                 continue;
             }
 
-            var gains = ApplyInternalAffairsJob(city, officer, schedule.JobType);
+            var gains = ApplyInternalAffairsJob(world, city, officer, schedule.JobType);
             schedule.RemainingMonths -= 1;
             if (schedule.RemainingMonths <= 0)
             {

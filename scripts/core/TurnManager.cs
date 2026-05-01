@@ -51,12 +51,12 @@ public class TurnManager
             return results;
         }
 
+        results.AddRange(resolver.ResolveInternalAffairsSchedules());
         ResolvePendingCommandsOfType(resolver, CommandType.Develop, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Recruit, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Search, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
-        results.AddRange(resolver.ResolveInternalAffairsSchedules());
         World.PendingCommands.Clear();
         return results;
     }
@@ -135,6 +135,8 @@ public class TurnManager
             World.Month = 1;
             World.Year += 1;
         }
+
+        FreeOfficerMovement.Advance(World);
     }
 
     private void ResolvePendingCommandsOfType(

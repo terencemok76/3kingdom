@@ -27,6 +27,8 @@ public class OfficerData
     [JsonPropertyName("relationship_type")]
     public Dictionary<string, string> RelationshipType { get; set; } = new();
     public int CityId { get; set; }
+    [JsonIgnore]
+    public int FreeOfficerStayMonths { get; set; }
     public int LastAssignedYear { get; set; } = -1;
     public int LastAssignedMonth { get; set; } = -1;
     public CommandType LastAssignedCommand { get; set; } = CommandType.Pass;

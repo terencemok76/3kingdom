@@ -13,6 +13,7 @@ public class WorldState
     public int RandomSeed { get; set; }
     public List<CityData> Cities { get; set; } = new();
     public List<OfficerData> Officers { get; set; } = new();
+    public List<ItemData> Items { get; set; } = new();
     public List<FactionData> Factions { get; set; } = new();
     public List<CityStartData> CityStarts { get; set; } = new();
     public List<FactionStartData> FactionStarts { get; set; } = new();
@@ -32,5 +33,10 @@ public class WorldState
     public OfficerData? GetOfficer(int officerId)
     {
         return Officers.FirstOrDefault(o => o.Id == officerId);
+    }
+
+    public ItemData? GetItem(int itemId)
+    {
+        return Items.FirstOrDefault(item => item.Id == itemId);
     }
 }

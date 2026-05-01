@@ -11,80 +11,6 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
-    private void OnOfficerListItemSelected(long index)
-    {
-        if (_turnManager?.World == null || _officerListView == null)
-        {
-            return;
-        }
-
-        var metadata = _officerListView.GetItemMetadata((int)index);
-        if (metadata.VariantType != Variant.Type.Int)
-        {
-            return;
-        }
-
-        if (_officerListMode == OfficerListMode.View && _officerListContentMode == OfficerListContentMode.Cities)
-        {
-            var city = _turnManager.World.GetCity(metadata.AsInt32());
-            if (city == null)
-            {
-                return;
-            }
-
-            _selectedCity = city;
-            RefreshSelectedCity();
-            _mapController?.SelectCityById(city.Id);
-            _officerListDialog?.Hide();
-            return;
-        }
-
-        var officer = _turnManager.World.GetOfficer(metadata.AsInt32());
-        if (officer == null)
-        {
-            return;
-        }
-
-        if (_officerListMode == OfficerListMode.CommandSelection)
-        {
-            return;
-        }
-
-        if (_officerDetailDialog == null)
-        {
-            return;
-        }
-
-        _officerDetailDialog.Title = _localization?.T("ui.officer_detail") ?? "Officer Details";
-        if (_officerDetailText != null)
-        {
-            _officerDetailText.Text = BuildOfficerDetailText(officer);
-        }
-
-        if (_officerPortraitRect != null)
-        {
-            _officerPortraitRect.Texture = BuildOfficerPortraitTexture(officer.Id);
-        }
-
-        if (_officerPortraitPlaceholderLabel != null)
-        {
-            var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
-            var hasPortrait = _officerPortraitRect?.Texture != null;
-            _officerPortraitPlaceholderLabel.Visible = !hasPortrait;
-            _officerPortraitPlaceholderLabel.Text = $"{(_localization?.T("ui.portrait") ?? "Portrait")}\n{officerName}";
-        }
-
-        _officerDetailDialog.DialogText = string.Empty;
-        if (_officerDetailDialog.Visible)
-        {
-            _officerDetailDialog.Show();
-        }
-        else
-        {
-            _officerDetailDialog.PopupCentered(new Vector2I(520, 340));
-        }
-    }
-
     private void OnOfficerListClosePressed()
     {
         _officerListDialog?.Hide();
@@ -136,6 +62,11 @@ public partial class HudController : CanvasLayer
         }
 
         if (_officerListContentMode == OfficerListContentMode.Cities)
+        {
+            return;
+        }
+
+        if (_officerListMode == OfficerListMode.CommandSelection)
         {
             return;
         }
@@ -235,20 +166,20 @@ public partial class HudController : CanvasLayer
 
     private void OnOfficerListDialogConfirmed()
     {
-        if (_officerListMode != OfficerListMode.CommandSelection || _officerListView == null)
+        if (_officerListMode != OfficerListMode.CommandSelection)
         {
             _officerListDialog?.Hide();
             return;
         }
 
-        var selectedItems = _officerListView.GetSelectedItems();
-        if (selectedItems.Length == 0)
+        var selectedItem = _officerListTable?.GetSelected();
+        if (selectedItem == null)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? "Select one officer first.");
             return;
         }
 
-        var metadata = _officerListView.GetItemMetadata(selectedItems[0]);
+        var metadata = selectedItem.GetMetadata(0);
         if (metadata.VariantType != Variant.Type.Int)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? "Select one officer first.");
@@ -265,30 +196,8 @@ public partial class HudController : CanvasLayer
 
     private void PopulateOfficerListDialog()
     {
-        if (_selectedCity == null || _turnManager?.World == null || _officerListView == null || _officerListTable == null)
+        if (_selectedCity == null || _turnManager?.World == null || _officerListTable == null)
         {
-            return;
-        }
-
-        var isViewTable = _officerListMode == OfficerListMode.View;
-        _officerListTable.Visible = isViewTable;
-        _officerListView.Visible = !isViewTable;
-
-        if (!isViewTable)
-        {
-            _officerListView.Clear();
-            foreach (var officerId in _selectedCity.OfficerIds)
-            {
-                var officer = _turnManager.World.GetOfficer(officerId);
-                if (officer == null)
-                {
-                    continue;
-                }
-
-                var itemIndex = _officerListView.AddItem(BuildOfficerListRowText(officer));
-                _officerListView.SetItemMetadata(itemIndex, officer.Id);
-            }
-
             return;
         }
 
@@ -340,6 +249,14 @@ public partial class HudController : CanvasLayer
                 {
                     var officer = _turnManager.World.GetOfficer(officerId);
                     if (officer != null)
+                    {
+                        officers.Add(officer);
+                    }
+                }
+
+                foreach (var officer in _turnManager.World.Officers)
+                {
+                    if (officer.CityId == _selectedCity.Id && FreeOfficerMovement.IsVisibleFreeOfficer(_turnManager.World, officer))
                     {
                         officers.Add(officer);
                     }
@@ -560,7 +477,7 @@ public partial class HudController : CanvasLayer
         row.SetText(0, _localization.GetOfficerName(officer));
         row.SetText(1, _localization.GetOfficerRole(officer));
         var world = _turnManager!.World!;
-        row.SetText(2, _localization.GetOfficerStatus(world, officer));
+        row.SetText(2, FreeOfficerMovement.IsFreeOfficer(world, officer) ? _localization.T("ui.free_officer") : _localization.GetOfficerStatus(world, officer));
         var officerAge = CalculateOfficerAge(officer, world.Year);
         var loyaltyText = BuildOfficerLoyaltyTableText(world, officer);
         if (includeCityName)
@@ -583,7 +500,7 @@ public partial class HudController : CanvasLayer
 
     private static string BuildOfficerLoyaltyTableText(WorldState world, OfficerData officer)
     {
-        return IsFactionRuler(world, officer) ? "-" : officer.Loyalty.ToString();
+        return IsFactionRuler(world, officer) || FreeOfficerMovement.IsFreeOfficer(world, officer) ? "-" : officer.Loyalty.ToString();
     }
 
     private static bool IsFactionRuler(WorldState world, OfficerData officer)
@@ -817,6 +734,11 @@ public partial class HudController : CanvasLayer
         if (_turnManager?.World == null)
         {
             return 0;
+        }
+
+        if (FreeOfficerMovement.IsFreeOfficer(_turnManager.World, officer))
+        {
+            return -1;
         }
 
         if (officer.LastAssignedYear != _turnManager.World.Year || officer.LastAssignedMonth != _turnManager.World.Month)

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Godot;
 using ThreeKingdom.Data;
 
@@ -13,7 +14,11 @@ public class WorldRepository
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters =
+        {
+            new JsonStringEnumConverter()
+        }
     };
 
     public WorldState? LoadScenario(string path)
@@ -200,6 +205,7 @@ public class WorldRepository
 
         ApplyFactionStarts(world, world.FactionStarts);
         EnsureFactionRulersAssigned(world);
+        FreeOfficerMovement.InitializeLocations(world);
     }
 
     private static void LoadOfficerData(WorldState world)

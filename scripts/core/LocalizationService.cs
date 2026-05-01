@@ -106,13 +106,14 @@ public class LocalizationService
         return Format("fmt.player_faction", T("ui.player"), factionName);
     }
 
-    public string FormatCityStats(CityData city)
+    public string FormatCityStats(CityData city, int freeOfficerCount = 0)
     {
         return
             $"{T("ui.gold")}: {city.Gold}\n" +
             $"{T("ui.food")}: {city.Food}\n" +
             $"{T("ui.troops")}: {city.Troops}\n" +
             $"{T("ui.officers")}: {city.OfficerIds.Count}\n" +
+            $"{T("ui.free_officers")}: {freeOfficerCount}\n" +
             $"{T("ui.farm")}: {city.Farm}\n" +
             $"{T("ui.commercial")}: {city.Commercial}\n" +
             $"{T("ui.defense")}: {city.Defense}\n" +
@@ -126,6 +127,7 @@ public class LocalizationService
             $"{T("ui.food")}: 0\n" +
             $"{T("ui.troops")}: 0\n" +
             $"{T("ui.officers")}: 0\n" +
+            $"{T("ui.free_officers")}: 0\n" +
             $"{T("ui.farm")}: 0\n" +
             $"{T("ui.commercial")}: 0\n" +
             $"{T("ui.defense")}: 0\n" +
@@ -135,6 +137,55 @@ public class LocalizationService
     public string FormatOwnerLine(string ownerName)
     {
         return Format("fmt.owner_line", T("ui.owner"), ownerName);
+    }
+
+    public string GetItemName(ItemData item)
+    {
+        if (IsTraditionalChinese)
+        {
+            return !string.IsNullOrWhiteSpace(item.NameZhHant) ? item.NameZhHant : item.NameEn;
+        }
+
+        return !string.IsNullOrWhiteSpace(item.NameEn) ? item.NameEn : item.NameZhHant;
+    }
+
+    public string GetItemType(ItemData item)
+    {
+        var key = item.ItemType switch
+        {
+            ItemType.Weapon => "item_type.weapon",
+            ItemType.Horse => "item_type.horse",
+            ItemType.Book => "item_type.book",
+            ItemType.Treasure => "item_type.treasure",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return item.ItemType.ToString();
+        }
+
+        var localized = T(key);
+        return string.Equals(localized, key, StringComparison.Ordinal) ? item.ItemType.ToString() : localized;
+    }
+
+    public string GetItemRarity(ItemData item)
+    {
+        var key = item.Rarity.ToLowerInvariant() switch
+        {
+            "common" => "item_rarity.common",
+            "rare" => "item_rarity.rare",
+            "epic" => "item_rarity.epic",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return item.Rarity;
+        }
+
+        var localized = T(key);
+        return string.Equals(localized, key, StringComparison.Ordinal) ? item.Rarity : localized;
     }
 
     public string FormatCitySelected(string cityName)

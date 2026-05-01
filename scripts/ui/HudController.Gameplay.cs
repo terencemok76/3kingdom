@@ -149,18 +149,42 @@ public partial class HudController : CanvasLayer
         AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month));
         RefreshMonth();
 
-        if (_selectedCity != null)
-        {
-            var refreshed = world.GetCity(_selectedCity.Id);
-            if (refreshed != null)
-            {
-                _selectedCity = refreshed;
-            }
-        }
+        AutoSelectPlayerCityForNewRound();
 
         RefreshSelectedCity();
         EvaluateWinLose();
         _mapController?.RefreshVisuals();
+    }
+
+    private void AutoSelectPlayerCityForNewRound()
+    {
+        if (_turnManager?.World == null)
+        {
+            return;
+        }
+
+        var world = _turnManager.World;
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        var refreshedSelectedCity = _selectedCity != null ? world.GetCity(_selectedCity.Id) : null;
+        if (refreshedSelectedCity != null && refreshedSelectedCity.OwnerFactionId == playerFactionId)
+        {
+            _selectedCity = refreshedSelectedCity;
+            return;
+        }
+
+        var fallbackCity = world.Cities.FirstOrDefault(city =>
+            city.OwnerFactionId == playerFactionId &&
+            city.OfficerIds.Count > 0)
+            ?? world.Cities.FirstOrDefault(city => city.OwnerFactionId == playerFactionId);
+
+        if (fallbackCity == null)
+        {
+            _selectedCity = refreshedSelectedCity;
+            return;
+        }
+
+        _selectedCity = fallbackCity;
+        _mapController?.SelectCityById(fallbackCity.Id);
     }
 
     private void EvaluateWinLose()

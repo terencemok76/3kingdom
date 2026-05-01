@@ -93,7 +93,7 @@ public partial class CommandResolver
 
     private CommandResult ResolveRecruit(WorldState world, CityData city, PendingCommandData pendingCommand)
     {
-        var charm = GetAverageStat(world, city, officer => officer.Charm);
+        var charm = GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus);
         var recruits = 80 + charm / 2 + _random.Next(0, 41);
 
         city.Troops += recruits;
@@ -195,8 +195,12 @@ public partial class CommandResolver
     private CommandResult ResolveSearch(WorldState world, CityData city, PendingCommandData pendingCommand)
     {
         var assignedOfficer = pendingCommand.OfficerIds.Count > 0 ? world.GetOfficer(pendingCommand.OfficerIds[0]) : null;
-        var intelligence = assignedOfficer?.Intelligence ?? GetAverageStat(world, city, officer => officer.Intelligence);
-        var charm = assignedOfficer?.Charm ?? GetAverageStat(world, city, officer => officer.Charm);
+        var intelligence = assignedOfficer != null
+            ? GetEffectiveStat(world, assignedOfficer, officer => officer.Intelligence, item => item.IntelligenceBonus)
+            : GetAverageEffectiveStat(world, city, officer => officer.Intelligence, item => item.IntelligenceBonus);
+        var charm = assignedOfficer != null
+            ? GetEffectiveStat(world, assignedOfficer, officer => officer.Charm, item => item.CharmBonus)
+            : GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus);
         var chance = 0.25f + intelligence / 250.0f + charm / 300.0f;
 
         if (_random.NextDouble() > chance)
@@ -204,28 +208,27 @@ public partial class CommandResolver
             return LocalizedResult(true, "cmd.search.nothing_found", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
-        var hiddenOfficer = TryFindDiscoverableOfficer(world, city.OwnerFactionId);
+        var hiddenOfficer = TryFindDiscoverableOfficer(world, city.OwnerFactionId, city.Id);
         if (hiddenOfficer != null && _random.NextDouble() < 0.35)
         {
-            hiddenOfficer.CityId = city.Id;
-            hiddenOfficer.Loyalty = ClampStat(65 + _random.Next(0, 16));
-
-            if (!city.OfficerIds.Contains(hiddenOfficer.Id))
-            {
-                city.OfficerIds.Add(hiddenOfficer.Id);
-            }
-
-            var faction = world.GetFaction(city.OwnerFactionId);
-            if (faction != null && !faction.OfficerIds.Contains(hiddenOfficer.Id))
-            {
-                faction.OfficerIds.Add(hiddenOfficer.Id);
-            }
+            RecruitFreeOfficerToCity(world, city, hiddenOfficer);
 
             return LocalizedResult(
                 true,
                 "cmd.search.officer_joined",
                 new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetOfficerDisplayName(hiddenOfficer, GameLanguage.TraditionalChinese) },
                 new object[] { GetCityName(city, GameLanguage.English), GetOfficerDisplayName(hiddenOfficer, GameLanguage.English) });
+        }
+
+        var hiddenItem = TryFindDiscoverableItem(world, city.Id);
+        if (hiddenItem != null && _random.NextDouble() < 0.45)
+        {
+            MoveItemToCityInventory(hiddenItem, city.OwnerFactionId, city.Id);
+            return LocalizedResult(
+                true,
+                "cmd.search.found_item",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetItemDisplayName(hiddenItem, GameLanguage.TraditionalChinese) },
+                new object[] { GetCityName(city, GameLanguage.English), GetItemDisplayName(hiddenItem, GameLanguage.English) });
         }
 
         if (_random.NextDouble() < 0.5)

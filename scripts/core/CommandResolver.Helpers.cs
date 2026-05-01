@@ -63,6 +63,25 @@ public partial class CommandResolver
         return count == 0 ? 50 : total / count;
     }
 
+    private static int GetAverageEffectiveStat(WorldState world, CityData city, Func<OfficerData, int> selector, Func<ItemData, int> bonusSelector)
+    {
+        var count = 0;
+        var total = 0;
+        foreach (var officerId in city.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            total += GetEffectiveStat(world, officer, selector, bonusSelector);
+            count += 1;
+        }
+
+        return count == 0 ? 50 : total / count;
+    }
+
     private static int GetTransferAmount(int requestedAmount, int availableAmount)
     {
         var transferAmount = requestedAmount > 0 ? requestedAmount : availableAmount / 2;
@@ -102,7 +121,9 @@ public partial class CommandResolver
         foreach (var officerId in requestedOfficerIds)
         {
             var officer = world.GetOfficer(officerId);
-            if (officer == null || IsOfficerAssignedThisMonth(world, officer))
+            if (officer == null ||
+                IsOfficerAssignedThisMonth(world, officer) ||
+                HasActiveInternalAffairsSchedule(world, officerId))
             {
                 return false;
             }
@@ -125,7 +146,9 @@ public partial class CommandResolver
         }
 
         var officer = world.GetOfficer(officerId);
-        if (officer == null || IsOfficerAssignedThisMonth(world, officer))
+        if (officer == null ||
+            IsOfficerAssignedThisMonth(world, officer) ||
+            HasActiveInternalAffairsSchedule(world, officerId))
         {
             return null;
         }
@@ -190,11 +213,15 @@ public partial class CommandResolver
     }
 
     private static (int Farm, int Commercial, int Defense, int Loyalty) ApplyInternalAffairsJob(
+        WorldState world,
         CityData city,
         OfficerData officer,
         InternalAffairsJobType jobType)
     {
-        var officerBonus = Math.Max(0, (officer.Intelligence + officer.Politics + officer.Charm) / 90);
+        var intelligence = GetEffectiveStat(world, officer, data => data.Intelligence, item => item.IntelligenceBonus);
+        var politics = GetEffectiveStat(world, officer, data => data.Politics, item => item.PoliticsBonus);
+        var charm = GetEffectiveStat(world, officer, data => data.Charm, item => item.CharmBonus);
+        var officerBonus = Math.Max(0, (intelligence + politics + charm) / 90);
         var primaryGain = 2 + officerBonus;
         var secondaryGain = 1;
         var gains = jobType switch
@@ -285,17 +312,137 @@ public partial class CommandResolver
         return movedOfficerCount;
     }
 
-    private OfficerData? TryFindDiscoverableOfficer(WorldState world, int factionId)
+    private static int GetEffectiveStat(
+        WorldState world,
+        OfficerData officer,
+        Func<OfficerData, int> selector,
+        Func<ItemData, int> bonusSelector)
+    {
+        var baseValue = selector(officer);
+        var itemBonus = 0;
+        foreach (var item in GetEquippedItems(world, officer.Id))
+        {
+            itemBonus += bonusSelector(item);
+        }
+
+        return ClampStat(baseValue + itemBonus);
+    }
+
+    private static IEnumerable<ItemData> GetEquippedItems(WorldState world, int officerId)
+    {
+        return world.Items.Where(item => item.EquippedOfficerId == officerId);
+    }
+
+    private static ItemData? GetEquippedItemInSlot(WorldState world, int officerId, ItemType itemType)
+    {
+        return world.Items.FirstOrDefault(item =>
+            item.EquippedOfficerId == officerId &&
+            AreItemsInSameSlot(item.ItemType, itemType));
+    }
+
+    private static bool AreItemsInSameSlot(ItemType a, ItemType b)
+    {
+        return GetItemSlotKey(a) == GetItemSlotKey(b);
+    }
+
+    private static string GetItemSlotKey(ItemType itemType)
+    {
+        return itemType switch
+        {
+            ItemType.Weapon => "weapon",
+            ItemType.Horse => "horse",
+            ItemType.Book => "special",
+            ItemType.Treasure => "special",
+            _ => "special"
+        };
+    }
+
+    private static bool IsItemOwnedByFactionAtCity(ItemData item, int factionId, int cityId)
+    {
+        return item.OwnerFactionId == factionId &&
+               item.OwnerCityId == cityId &&
+               item.EquippedOfficerId <= 0;
+    }
+
+    private static void MoveItemToCityInventory(ItemData item, int factionId, int cityId)
+    {
+        item.OwnerFactionId = factionId;
+        item.OwnerCityId = cityId;
+        item.EquippedOfficerId = 0;
+    }
+
+    private static void EquipItemToOfficer(ItemData item, int factionId, int cityId, int officerId)
+    {
+        item.OwnerFactionId = factionId;
+        item.OwnerCityId = cityId;
+        item.EquippedOfficerId = officerId;
+    }
+
+    private static void AssignItemToOfficer(WorldState world, ItemData item, int factionId, int cityId, int officerId)
+    {
+        var existingItem = GetEquippedItemInSlot(world, officerId, item.ItemType);
+        if (existingItem != null && existingItem.Id != item.Id)
+        {
+            MoveItemToCityInventory(existingItem, factionId, cityId);
+        }
+
+        EquipItemToOfficer(item, factionId, cityId, officerId);
+    }
+
+    private ItemData? TryFindDiscoverableItem(WorldState world, int cityId)
+    {
+        var candidates = world.Items
+            .Where(item => item.OwnerFactionId <= 0 && item.OwnerCityId == cityId && item.EquippedOfficerId <= 0)
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
+        return candidates[_random.Next(candidates.Count)];
+    }
+
+    private static int GetItemGiftAcceptanceBonus(ItemData? item)
+    {
+        if (item == null)
+        {
+            return 0;
+        }
+
+        var rarityBonus = item.Rarity.ToLowerInvariant() switch
+        {
+            "epic" => 10,
+            "rare" => 6,
+            _ => 3
+        };
+
+        return rarityBonus +
+               item.CharmBonus +
+               item.LoyaltyBonus +
+               (item.StrengthBonus + item.IntelligenceBonus + item.LeadershipBonus + item.PoliticsBonus + item.CombatBonus) / 2;
+    }
+
+    private string GetItemDisplayName(ItemData item, GameLanguage language)
+    {
+        if (language == GameLanguage.TraditionalChinese)
+        {
+            return !string.IsNullOrWhiteSpace(item.NameZhHant) ? item.NameZhHant : item.NameEn;
+        }
+
+        return !string.IsNullOrWhiteSpace(item.NameEn) ? item.NameEn : item.NameZhHant;
+    }
+
+    private OfficerData? TryFindDiscoverableOfficer(WorldState world, int factionId, int cityId)
     {
         var candidates = new List<OfficerData>();
         foreach (var officer in world.Officers)
         {
-            if (officer.CityId > 0)
+            if (!FreeOfficerMovement.IsFreeOfficer(world, officer))
             {
                 continue;
             }
 
-            if (!IsOfficerOldEnoughToJoin(world, officer))
+            if (officer.CityId > 0 && officer.CityId != cityId)
             {
                 continue;
             }
@@ -319,6 +466,54 @@ public partial class CommandResolver
 
         var pool = preferred.Count > 0 ? preferred : candidates;
         return pool[_random.Next(pool.Count)];
+    }
+
+    private void RevealFreeOfficerAtCity(CityData city, OfficerData officer)
+    {
+        officer.CityId = city.Id;
+        officer.FreeOfficerStayMonths = Math.Max(officer.FreeOfficerStayMonths, 1);
+    }
+
+    private void RecruitFreeOfficerToCity(WorldState world, CityData city, OfficerData officer)
+    {
+        officer.CityId = city.Id;
+        officer.FreeOfficerStayMonths = 0;
+        officer.Loyalty = ClampStat(65 + _random.Next(0, 16));
+
+        if (!city.OfficerIds.Contains(officer.Id))
+        {
+            city.OfficerIds.Add(officer.Id);
+        }
+
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction != null && !faction.OfficerIds.Contains(officer.Id))
+        {
+            faction.OfficerIds.Add(officer.Id);
+        }
+    }
+
+    private static bool DoesFreeOfficerAcceptHire(CityData city, OfficerData officer, int rulerCharm, int goldOffer, int foodOffer, ItemData? giftedItem)
+    {
+        var offerBonus = goldOffer / 50 + foodOffer / 250;
+        return city.Loyalty + officer.Charm + rulerCharm / 2 + offerBonus + GetItemGiftAcceptanceBonus(giftedItem) - officer.Ambition >= 80;
+    }
+
+    private static bool DoesEmployedOfficerAcceptHire(OfficerData officer, int rulerCharm, int goldOffer, int foodOffer, ItemData? giftedItem)
+    {
+        var offerBonus = goldOffer / 40 + foodOffer / 200;
+        return rulerCharm + officer.Charm + offerBonus + GetItemGiftAcceptanceBonus(giftedItem) - officer.Loyalty - officer.Ambition / 2 >= 40;
+    }
+
+    private static int GetRulerCharm(WorldState world, int factionId)
+    {
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return 50;
+        }
+
+        var ruler = world.GetOfficer(faction.RulerOfficerId);
+        return ruler?.Charm ?? 50;
     }
 
     private static bool MatchesFaction(string belongs, int factionId)

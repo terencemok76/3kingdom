@@ -98,5 +98,59 @@
 	  "cityIds": [6, 4],
 	  "officerIds": [67, 68, 77]
 	}
+  ],
+  "items": [
+	{
+	  "id": 1,
+	  "nameEn": "Green Dragon Crescent Blade",
+	  "nameZhHant": "青龍偃月刀",
+	  "itemType": "Weapon",
+	  "strengthBonus": 4,
+	  "leadershipBonus": 2,
+	  "combatBonus": 3,
+	  "ownerFactionId": 1,
+	  "ownerCityId": 8,
+	  "equippedOfficerId": 2,
+	  "rarity": "Epic"
+	},
+	{
+	  "id": 2,
+	  "nameEn": "Red Hare",
+	  "nameZhHant": "赤兔馬",
+	  "itemType": "Horse",
+	  "strengthBonus": 1,
+	  "leadershipBonus": 3,
+	  "combatBonus": 2,
+	  "ownerFactionId": 2,
+	  "ownerCityId": 12,
+	  "equippedOfficerId": 0,
+	  "rarity": "Epic"
+	},
+	{
+	  "id": 3,
+	  "nameEn": "Art of War",
+	  "nameZhHant": "孫子兵法",
+	  "itemType": "Book",
+	  "intelligenceBonus": 3,
+	  "leadershipBonus": 1,
+	  "politicsBonus": 2,
+	  "ownerFactionId": 0,
+	  "ownerCityId": 12,
+	  "equippedOfficerId": 0,
+	  "rarity": "Rare"
+	},
+	{
+	  "id": 4,
+	  "nameEn": "Imperial Seal",
+	  "nameZhHant": "傳國玉璽",
+	  "itemType": "Treasure",
+	  "charmBonus": 4,
+	  "leadershipBonus": 2,
+	  "loyaltyBonus": 3,
+	  "ownerFactionId": 0,
+	  "ownerCityId": 6,
+	  "equippedOfficerId": 0,
+	  "rarity": "Epic"
+	}
   ]
 }

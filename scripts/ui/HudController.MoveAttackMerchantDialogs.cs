@@ -25,7 +25,7 @@ public partial class HudController : CanvasLayer
             _moveTroopsSpinBox = existingRoot.GetNodeOrNull<SpinBox>("TroopsSpinBox");
             _moveGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldSpinBox");
             _moveFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
-            _moveOfficerList = existingRoot.GetNodeOrNull<ItemList>("OfficerList");
+            _moveOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
             return;
         }
 
@@ -60,11 +60,12 @@ public partial class HudController : CanvasLayer
         root.AddChild(_moveFoodSpinBox);
 
         root.AddChild(CreateMoveFieldLabel("OfficerListLabel"));
-        _moveOfficerList = new ItemList
+        _moveOfficerList = new Tree
         {
-            Name = "OfficerList",
-            SelectMode = ItemList.SelectModeEnum.Multi,
-            AllowReselect = true,
+            Name = "OfficerTable",
+            HideRoot = true,
+            ColumnTitlesVisible = true,
+            SelectMode = Tree.SelectModeEnum.Row,
             CustomMinimumSize = new Vector2(0.0f, 180.0f),
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
@@ -81,8 +82,8 @@ public partial class HudController : CanvasLayer
         var existingRoot = _merchantDialog.GetNodeOrNull<VBoxContainer>("MerchantDialogRoot");
         if (existingRoot != null)
         {
-            _merchantModeOption = existingRoot.GetNodeOrNull<OptionButton>("TradeModeOption");
-            _merchantFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
+            _merchantModeOption = existingRoot.GetNodeOrNull<OptionButton>("TradeModeRow/TradeModeOption");
+            _merchantFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
             _merchantSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
             ConnectMerchantDialogSignals();
             return;
@@ -98,18 +99,20 @@ public partial class HudController : CanvasLayer
         root.AddThemeConstantOverride("separation", 10);
         _merchantDialog.AddChild(root);
 
-        root.AddChild(CreateMoveFieldLabel("TradeModeLabel"));
+        var tradeModeRow = CreateMerchantFieldRow("TradeModeRow", "TradeModeLabel");
         _merchantModeOption = new OptionButton
         {
             Name = "TradeModeOption",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        root.AddChild(_merchantModeOption);
+        tradeModeRow.AddChild(_merchantModeOption);
+        root.AddChild(tradeModeRow);
 
-        root.AddChild(CreateMoveFieldLabel("FoodLabel"));
+        var foodRow = CreateMerchantFieldRow("FoodRow", "FoodLabel");
         _merchantFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
         _merchantFoodSpinBox.Step = 100;
-        root.AddChild(_merchantFoodSpinBox);
+        foodRow.AddChild(_merchantFoodSpinBox);
+        root.AddChild(foodRow);
 
         _merchantSummaryLabel = new Label
         {
@@ -178,6 +181,9 @@ public partial class HudController : CanvasLayer
         if (_moveOfficerList != null)
         {
             _moveOfficerList.Clear();
+            ConfigureCompactOfficerTableColumns(_moveOfficerList, includeCheck: true);
+            var tableRoot = _moveOfficerList.CreateItem();
+            var rowIndex = 0;
             foreach (var officerId in _selectedCity.OfficerIds)
             {
                 if (!availableOfficerIds.Contains(officerId))
@@ -191,8 +197,9 @@ public partial class HudController : CanvasLayer
                     continue;
                 }
 
-                var itemIndex = _moveOfficerList.AddItem(BuildOfficerListRowText(officer));
-                _moveOfficerList.SetItemMetadata(itemIndex, officer.Id);
+                var row = _moveOfficerList.CreateItem(tableRoot);
+                PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+                rowIndex += 1;
             }
         }
 
@@ -209,11 +216,11 @@ public partial class HudController : CanvasLayer
         var existingRoot = _attackDialog.GetNodeOrNull<VBoxContainer>("AttackDialogRoot");
         if (existingRoot != null)
         {
-            _attackTargetCityOption = existingRoot.GetNodeOrNull<OptionButton>("TargetCityOption");
-            _attackTroopsSpinBox = existingRoot.GetNodeOrNull<SpinBox>("TroopsSpinBox");
-            _attackGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldSpinBox");
-            _attackFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodSpinBox");
-            _attackOfficerList = existingRoot.GetNodeOrNull<ItemList>("OfficerList");
+            _attackTargetCityOption = existingRoot.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
+            _attackTroopsSpinBox = existingRoot.GetNodeOrNull<SpinBox>("TroopsRow/TroopsSpinBox");
+            _attackGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
+            _attackFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
+            _attackOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
             _attackWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
             return;
         }
@@ -228,32 +235,37 @@ public partial class HudController : CanvasLayer
         root.AddThemeConstantOverride("separation", 10);
         _attackDialog.AddChild(root);
 
-        root.AddChild(CreateMoveFieldLabel("TargetCityLabel"));
+        var targetCityRow = CreateAttackFieldRow("TargetCityRow", "TargetCityLabel");
         _attackTargetCityOption = new OptionButton
         {
             Name = "TargetCityOption",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        root.AddChild(_attackTargetCityOption);
+        targetCityRow.AddChild(_attackTargetCityOption);
+        root.AddChild(targetCityRow);
 
-        root.AddChild(CreateMoveFieldLabel("TroopsLabel"));
+        var troopsRow = CreateAttackFieldRow("TroopsRow", "TroopsLabel");
         _attackTroopsSpinBox = CreateMoveSpinBox("TroopsSpinBox");
-        root.AddChild(_attackTroopsSpinBox);
+        troopsRow.AddChild(_attackTroopsSpinBox);
+        root.AddChild(troopsRow);
 
-        root.AddChild(CreateMoveFieldLabel("GoldLabel"));
+        var goldRow = CreateAttackFieldRow("GoldRow", "GoldLabel");
         _attackGoldSpinBox = CreateMoveSpinBox("GoldSpinBox");
-        root.AddChild(_attackGoldSpinBox);
+        goldRow.AddChild(_attackGoldSpinBox);
+        root.AddChild(goldRow);
 
-        root.AddChild(CreateMoveFieldLabel("FoodLabel"));
+        var foodRow = CreateAttackFieldRow("FoodRow", "FoodLabel");
         _attackFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
-        root.AddChild(_attackFoodSpinBox);
+        foodRow.AddChild(_attackFoodSpinBox);
+        root.AddChild(foodRow);
 
         root.AddChild(CreateMoveFieldLabel("OfficerListLabel"));
-        _attackOfficerList = new ItemList
+        _attackOfficerList = new Tree
         {
-            Name = "OfficerList",
-            SelectMode = ItemList.SelectModeEnum.Multi,
-            AllowReselect = true,
+            Name = "OfficerTable",
+            HideRoot = true,
+            ColumnTitlesVisible = true,
+            SelectMode = Tree.SelectModeEnum.Row,
             CustomMinimumSize = new Vector2(0.0f, 180.0f),
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
@@ -355,6 +367,9 @@ public partial class HudController : CanvasLayer
         if (_attackOfficerList != null)
         {
             _attackOfficerList.Clear();
+            ConfigureCompactOfficerTableColumns(_attackOfficerList, includeCheck: true);
+            var tableRoot = _attackOfficerList.CreateItem();
+            var rowIndex = 0;
             foreach (var officerId in _selectedCity.OfficerIds)
             {
                 if (!availableOfficerIds.Contains(officerId))
@@ -368,8 +383,9 @@ public partial class HudController : CanvasLayer
                     continue;
                 }
 
-                var itemIndex = _attackOfficerList.AddItem(BuildOfficerListRowText(officer));
-                _attackOfficerList.SetItemMetadata(itemIndex, officer.Id);
+                var row = _attackOfficerList.CreateItem(tableRoot);
+                PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+                rowIndex += 1;
             }
         }
 
@@ -455,11 +471,31 @@ public partial class HudController : CanvasLayer
 
     private void SetAttackDialogLabelText(string nodeName, string text)
     {
-        var label = _attackDialog?.GetNodeOrNull<Label>($"AttackDialogRoot/{nodeName}");
+        var root = _attackDialog?.GetNodeOrNull<Control>("AttackDialogRoot");
+        var label = root?.FindChild(nodeName, recursive: true, owned: false) as Label;
         if (label != null)
         {
             label.Text = text;
         }
+    }
+
+    private static HBoxContainer CreateAttackFieldRow(string rowName, string labelName)
+    {
+        var row = new HBoxContainer
+        {
+            Name = rowName,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        row.AddThemeConstantOverride("separation", 8);
+
+        var label = new Label
+        {
+            Name = labelName,
+            CustomMinimumSize = new Vector2(84.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.AddChild(label);
+        return row;
     }
 
     private void SetAttackDialogWarning(string text)
@@ -501,11 +537,31 @@ public partial class HudController : CanvasLayer
 
     private void SetMerchantDialogLabelText(string nodeName, string text)
     {
-        var label = _merchantDialog?.GetNodeOrNull<Label>($"MerchantDialogRoot/{nodeName}");
+        var root = _merchantDialog?.GetNodeOrNull<Control>("MerchantDialogRoot");
+        var label = root?.FindChild(nodeName, recursive: true, owned: false) as Label;
         if (label != null)
         {
             label.Text = text;
         }
+    }
+
+    private static HBoxContainer CreateMerchantFieldRow(string rowName, string labelName)
+    {
+        var row = new HBoxContainer
+        {
+            Name = rowName,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        row.AddThemeConstantOverride("separation", 8);
+
+        var label = new Label
+        {
+            Name = labelName,
+            CustomMinimumSize = new Vector2(84.0f, 0.0f),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        row.AddChild(label);
+        return row;
     }
 
     private void ConnectMerchantDialogSignals()
