@@ -11,8 +11,16 @@ public enum CommandType
     Search,
     CivilRelief,
     Merchant,
+    Diplomacy,
     Attack,
     Pass
+}
+
+public enum DiplomacyActionType
+{
+    Alliance,
+    Truce,
+    Gift
 }
 
 public enum TroopType
@@ -64,8 +72,11 @@ public class CommandRequest
     public bool SellFood { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public MerchantTradeMode MerchantTradeMode { get; set; } = MerchantTradeMode.BuyFood;
+    public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
+    public int? TargetFactionId { get; set; }
+    public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();
 }
 
@@ -80,8 +91,11 @@ public class PendingCommandData
     public int FoodToSend { get; set; }
     public int HorsesToSend { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
+    public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
+    public int TargetFactionId { get; set; }
+    public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();
 }
 

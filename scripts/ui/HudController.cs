@@ -106,6 +106,7 @@ public partial class HudController : CanvasLayer
     private Button? _moveButton;
     private Button? _searchButton;
     private Button? _merchantButton;
+    private Button? _diplomacyButton;
     private Button? _personnelButton;
     private Button? _civilButton;
     private Button? _attackButton;
@@ -170,6 +171,15 @@ public partial class HudController : CanvasLayer
     private Label? _attackDeploymentSummaryLabel;
     private Label? _attackWarningLabel;
     private Button? _attackConfirmButton;
+    private Window? _diplomacyDialog;
+    private OptionButton? _diplomacyActionOption;
+    private OptionButton? _diplomacyTargetFactionOption;
+    private SpinBox? _diplomacyDurationSpinBox;
+    private SpinBox? _diplomacyGoldSpinBox;
+    private Tree? _diplomacyOfficerList;
+    private Label? _diplomacySummaryLabel;
+    private Label? _diplomacyWarningLabel;
+    private Button? _diplomacyConfirmButton;
     private AcceptDialog? _officerListDialog;
     private PanelContainer? _officerListTitlebarFill;
     private PanelContainer? _officerListHeaderPanel;
@@ -208,6 +218,7 @@ public partial class HudController : CanvasLayer
     private bool _isMoveButtonConnected;
     private bool _isSearchButtonConnected;
     private bool _isMerchantButtonConnected;
+    private bool _isDiplomacyButtonConnected;
     private bool _isPersonnelButtonConnected;
     private bool _isCivilButtonConnected;
     private bool _isAttackButtonConnected;
@@ -266,6 +277,7 @@ public partial class HudController : CanvasLayer
             _searchButton.Visible = false;
         }
         _merchantButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MerchantButton");
+        _diplomacyButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/DiplomacyButton");
         _personnelButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/PersonnelButton");
         _civilButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/CivilButton");
         _attackButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
@@ -348,6 +360,14 @@ public partial class HudController : CanvasLayer
         _civilReliefDialog.Confirmed += OnCivilReliefDialogConfirmed;
         AddChild(_civilReliefDialog);
         EnsureCivilReliefDialogWidgets();
+
+        _diplomacyDialog = new Window();
+        _diplomacyDialog.Exclusive = false;
+        _diplomacyDialog.Unresizable = true;
+        _diplomacyDialog.CloseRequested += () => _diplomacyDialog?.Hide();
+        AddChild(_diplomacyDialog);
+        EnsureDiplomacyDialogWidgets();
+        _diplomacyDialog.Hide();
 
         _internalAffairsDialog = new AcceptDialog();
         _internalAffairsDialog.Exclusive = false;
@@ -729,6 +749,12 @@ public partial class HudController : CanvasLayer
             _isMerchantButtonConnected = true;
         }
 
+        if (_diplomacyButton != null && !_isDiplomacyButtonConnected)
+        {
+            _diplomacyButton.Pressed += OnDiplomacyPressed;
+            _isDiplomacyButtonConnected = true;
+        }
+
         if (_personnelButton != null && !_isPersonnelButtonConnected)
         {
             _personnelButton.Pressed += OnPersonnelPressed;
@@ -796,6 +822,12 @@ public partial class HudController : CanvasLayer
         {
             _merchantButton.Pressed -= OnMerchantPressed;
             _isMerchantButtonConnected = false;
+        }
+
+        if (_diplomacyButton != null && _isDiplomacyButtonConnected)
+        {
+            _diplomacyButton.Pressed -= OnDiplomacyPressed;
+            _isDiplomacyButtonConnected = false;
         }
 
         if (_personnelButton != null && _isPersonnelButtonConnected)
@@ -884,6 +916,16 @@ public partial class HudController : CanvasLayer
         }
 
         ShowMerchantDialog();
+    }
+
+    private void OnDiplomacyPressed()
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ShowDiplomacyDialog();
     }
 
     private void OnPersonnelPressed()

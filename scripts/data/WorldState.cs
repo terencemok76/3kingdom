@@ -15,6 +15,7 @@ public class WorldState
     public List<OfficerData> Officers { get; set; } = new();
     public List<ItemData> Items { get; set; } = new();
     public List<FactionData> Factions { get; set; } = new();
+    public List<DiplomacyRelationData> DiplomacyRelations { get; set; } = new();
     public List<CityStartData> CityStarts { get; set; } = new();
     public List<FactionStartData> FactionStarts { get; set; } = new();
     public List<PendingCommandData> PendingCommands { get; set; } = new();
@@ -38,5 +39,14 @@ public class WorldState
     public ItemData? GetItem(int itemId)
     {
         return Items.FirstOrDefault(item => item.Id == itemId);
+    }
+
+    public DiplomacyRelationData? GetDiplomacyRelation(int factionAId, int factionBId)
+    {
+        var low = factionAId < factionBId ? factionAId : factionBId;
+        var high = factionAId < factionBId ? factionBId : factionAId;
+        return DiplomacyRelations.FirstOrDefault(relation =>
+            relation.FactionAId == low &&
+            relation.FactionBId == high);
     }
 }

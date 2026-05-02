@@ -44,6 +44,14 @@ public partial class CommandResolver
         };
     }
 
+    private object[] GetFactionArgs(FactionData faction, GameLanguage language)
+    {
+        return new object[]
+        {
+            GetFactionName(faction, language)
+        };
+    }
+
     private static int GetAverageStat(WorldState world, CityData city, Func<OfficerData, int> selector)
     {
         var count = 0;
@@ -423,6 +431,49 @@ public partial class CommandResolver
     private static bool IsFactionRuler(WorldState world, int officerId)
     {
         return world.Factions.Any(faction => faction.RulerOfficerId == officerId);
+    }
+
+    private static bool IsFactionAlive(WorldState world, int factionId)
+    {
+        return world.Cities.Any(city => city.OwnerFactionId == factionId);
+    }
+
+    private static DiplomacyRelationData GetOrCreateDiplomacyRelation(WorldState world, int factionAId, int factionBId)
+    {
+        var low = Math.Min(factionAId, factionBId);
+        var high = Math.Max(factionAId, factionBId);
+        var existing = world.DiplomacyRelations.FirstOrDefault(relation =>
+            relation.FactionAId == low &&
+            relation.FactionBId == high);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        var relation = new DiplomacyRelationData
+        {
+            FactionAId = low,
+            FactionBId = high
+        };
+        world.DiplomacyRelations.Add(relation);
+        return relation;
+    }
+
+    private static DiplomacyRelationData? FindDiplomacyRelation(WorldState world, int factionAId, int factionBId)
+    {
+        var low = Math.Min(factionAId, factionBId);
+        var high = Math.Max(factionAId, factionBId);
+        return world.DiplomacyRelations.FirstOrDefault(relation =>
+            relation.FactionAId == low &&
+            relation.FactionBId == high);
+    }
+
+    private static bool HasActiveDiplomacyBlock(WorldState world, int factionAId, int factionBId)
+    {
+        var relation = FindDiplomacyRelation(world, factionAId, factionBId);
+        return relation != null &&
+               relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance &&
+               relation.RemainingMonths > 0;
     }
 
     private static bool IsAssignableRole(string role)
@@ -839,6 +890,20 @@ public partial class CommandResolver
         return city.NameZhHant;
     }
 
+    private static string GetFactionName(FactionData faction, GameLanguage language)
+    {
+        if (language == GameLanguage.TraditionalChinese)
+        {
+            return !string.IsNullOrWhiteSpace(faction.NameZhHant)
+                ? faction.NameZhHant
+                : faction.NameEn;
+        }
+
+        return !string.IsNullOrWhiteSpace(faction.NameEn)
+            ? faction.NameEn
+            : faction.NameZhHant;
+    }
+
     private static string GetOfficerDisplayName(OfficerData officer, GameLanguage language)
     {
         if (language == GameLanguage.TraditionalChinese)
@@ -852,6 +917,18 @@ public partial class CommandResolver
         }
 
         return !string.IsNullOrWhiteSpace(officer.Name) ? officer.Name : officer.NameZhHant;
+    }
+
+    private string GetDiplomacyActionName(DiplomacyActionType actionType, GameLanguage language)
+    {
+        var key = actionType switch
+        {
+            DiplomacyActionType.Alliance => "command.diplomacy.alliance",
+            DiplomacyActionType.Truce => "command.diplomacy.truce",
+            DiplomacyActionType.Gift => "command.diplomacy.gift",
+            _ => "command.diplomacy.alliance"
+        };
+        return _localization?.TForLanguage(language, key) ?? actionType.ToString();
     }
 
     private static string GetRulerDisplayName(WorldState world, int factionId, GameLanguage language)

@@ -46,5 +46,37 @@
 	"ui.trade_mode":  {
 						  "zhHant":  "交易類型",
 						  "en":  "Trade Mode"
-					  }
+					  },
+	"ui.diplomacy_action":  {
+								"zhHant":  "外交行動",
+								"en":  "Diplomacy Action"
+							},
+	"ui.diplomacy_target_faction":  {
+										"zhHant":  "目標勢力",
+										"en":  "Target Faction"
+									},
+	"ui.diplomacy_duration":  {
+								  "zhHant":  "條約月數",
+								  "en":  "Treaty Months"
+							  },
+	"ui.diplomacy_gift_gold":  {
+								   "zhHant":  "贈禮金",
+								   "en":  "Gift Gold"
+							   },
+	"ui.diplomacy_officer":  {
+								 "zhHant":  "外交使者",
+								 "en":  "Diplomatic Officer"
+							 },
+	"ui.diplomacy_target_required_warning":  {
+												  "zhHant":  "請選擇目標勢力。",
+												  "en":  "Select a target faction."
+											  },
+	"ui.diplomacy_gift_gold_required_warning":  {
+													 "zhHant":  "贈禮至少需要輸入金額。",
+													 "en":  "Enter a gold amount for the gift."
+												 },
+	"ui.diplomacy_officer_hint":  {
+									  "zhHant":  "請選擇一位使者執行外交。",
+									  "en":  "Select one officer to handle diplomacy."
+								  }
 }

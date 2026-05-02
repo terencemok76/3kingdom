@@ -31,6 +31,10 @@
                            "zhHant":  "開發",
                            "en":  "Develop"
                        },
+    "status.diplomacy":  {
+                             "zhHant":  "外交",
+                             "en":  "Diplomacy"
+                         },
     "status.idle":  {
                         "zhHant":  "待命",
                         "en":  "Idle"

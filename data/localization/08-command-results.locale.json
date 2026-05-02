@@ -23,6 +23,14 @@
                                           "zhHant":  "君主不需指派此類官職。",
                                           "en":  "The ruler does not need this type of assigned title."
                                       },
+    "cmd.attack.blocked_by_diplomacy":  {
+                                            "zhHant":  "目前與目標勢力存在同盟或停戰，不能發動攻擊。",
+                                            "en":  "An active alliance or truce blocks this attack."
+                                        },
+    "cmd.attack.blocked_by_diplomacy_resolution":  {
+                                                       "zhHant":  "攻擊在月底結算時被外交條約阻止，已返還出征兵力與資源。",
+                                                       "en":  "The attack was blocked by a diplomatic treaty at month end, and deployed resources were returned."
+                                                   },
     "cmd.attack.cancelled":  {
                                  "zhHant":  "「{0}」的攻擊命令已取消，目標「{1}」已不符合條件。兵力返還 +{2}，金返還 +{3}，糧返還 +{4}。",
                                  "en":  "\"{0}\" attack order against \"{1}\" was cancelled. Returned troops +{2}, gold +{3}, food +{4}."
@@ -167,6 +175,66 @@
                                   "zhHant":  "「{0}」已排定開發命令，將於月末執行。",
                                   "en":  "Develop scheduled for \"{0}\" at month end."
                               },
+    "cmd.diplomacy.alliance_already_active":  {
+                                                  "zhHant":  "與「{0}」的同盟已經生效中。",
+                                                  "en":  "An alliance with \"{0}\" is already active."
+                                              },
+    "cmd.diplomacy.cancelled":  {
+                                    "zhHant":  "外交命令在月底結算時已失效，必要資源已返還。",
+                                    "en":  "The diplomacy order became invalid at month end, and reserved resources were returned."
+                                },
+    "cmd.diplomacy.failed":  {
+                                 "zhHant":  "「{0}」對「{2}」執行「{1}」失敗。",
+                                 "en":  "\"{0}\" failed to perform \"{1}\" on \"{2}\"."
+                             },
+    "cmd.diplomacy.gift_gold_required":  {
+                                             "zhHant":  "贈禮至少需要支付一些金。",
+                                             "en":  "A gift action requires some gold."
+                                         },
+    "cmd.diplomacy.gift_resolved":  {
+                                        "zhHant":  "「{0}」向「{1}」贈禮。金 -{2}，關係 +{3}。",
+                                        "en":  "\"{0}\" sent a gift to \"{1}\". Gold -{2}, relation +{3}."
+                                    },
+    "cmd.diplomacy.invalid_duration":  {
+                                           "zhHant":  "外交條約月數必須大於 0。",
+                                           "en":  "Diplomacy treaty duration must be greater than 0."
+                                       },
+    "cmd.diplomacy.not_enough_gold":  {
+                                          "zhHant":  "「{0}」金不足，無法支付外交贈禮。",
+                                          "en":  "\"{0}\" does not have enough gold for a diplomatic gift."
+                                      },
+    "cmd.diplomacy.officer_required":  {
+                                           "zhHant":  "「{0}」外交需要指派一位本城武將。",
+                                           "en":  "\"{0}\" requires one local officer for diplomacy."
+                                       },
+    "cmd.diplomacy.resolved":  {
+                                   "zhHant":  "「{0}」與「{2}」的「{1}」成功，效期 {3} 月。",
+                                   "en":  "\"{0}\" succeeded in \"{1}\" with \"{2}\" for {3} months."
+                               },
+    "cmd.diplomacy.ruler_blocked":  {
+                                        "zhHant":  "君主不可直接執行外交使命，請指派使者。",
+                                        "en":  "The ruler cannot directly handle diplomacy; assign an envoy instead."
+                                    },
+    "cmd.diplomacy.same_faction":  {
+                                       "zhHant":  "不能對本勢力執行外交命令。",
+                                       "en":  "Cannot perform diplomacy against your own faction."
+                                   },
+    "cmd.diplomacy.scheduled":  {
+                                    "zhHant":  "「{0}」已排定外交命令：「{1}」->「{2}」，將於月底結算。",
+                                    "en":  "\"{0}\" scheduled diplomacy: \"{1}\" -> \"{2}\", to resolve at month end."
+                                },
+    "cmd.diplomacy.target_not_found":  {
+                                           "zhHant":  "找不到可交涉的目標勢力。",
+                                           "en":  "Target faction not found for diplomacy."
+                                       },
+    "cmd.diplomacy.target_required":  {
+                                         "zhHant":  "外交需要指定目標勢力。",
+                                         "en":  "Diplomacy requires a target faction."
+                                     },
+    "cmd.diplomacy.truce_already_active":  {
+                                               "zhHant":  "與「{0}」的停戰或同盟已經生效中。",
+                                               "en":  "A truce or alliance with \"{0}\" is already active."
+                                           },
     "cmd.hire_officer.free_refused":  {
                                           "zhHant":  "「{0}」尚未願意出仕。",
                                           "en":  "\"{0}\" is not yet willing to serve."

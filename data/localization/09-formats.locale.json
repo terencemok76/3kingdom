@@ -23,6 +23,14 @@
                                         "zhHant":  "{0}（本月已執行）",
                                         "en":  "{0} (Used This Month)"
                                     },
+    "fmt.diplomacy_summary_gift":  {
+                                       "zhHant":  "預覽：{0} -> {1}，贈金 -{2}",
+                                       "en":  "Preview: {0} -> {1}, Gift Gold -{2}"
+                                   },
+    "fmt.diplomacy_summary_treaty":  {
+                                         "zhHant":  "預覽：{0} -> {1}，條約 {2} 月",
+                                         "en":  "Preview: {0} -> {1}, Treaty {2} months"
+                                     },
     "fmt.experience_title":  {
                                  "zhHant":  "{0}（{1}）",
                                  "en":  "{0} ({1})"

@@ -317,6 +317,11 @@ public partial class HudController : CanvasLayer
             _merchantButton.Text = _localization.T("ui.merchant");
         }
 
+        if (_diplomacyButton != null)
+        {
+            _diplomacyButton.Text = _localization.T("ui.diplomacy");
+        }
+
         if (_personnelButton != null)
         {
             _personnelButton.Text = _localization.T("ui.personnel");
@@ -357,6 +362,7 @@ public partial class HudController : CanvasLayer
         UpdateOfficerListDialogTitle();
 
         UpdateMerchantDialogText();
+        UpdateDiplomacyDialogText();
         UpdateMilitaryDialogText();
         UpdatePersonnelDialogText();
         UpdatePersonnelBonusDialogText();

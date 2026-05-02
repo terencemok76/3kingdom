@@ -453,6 +453,7 @@ public class LocalizationService
             CommandType.Move => "status.move",
             CommandType.Search => "status.search",
             CommandType.CivilRelief => "status.civil_relief",
+            CommandType.Diplomacy => "status.diplomacy",
             CommandType.Attack => "status.attack",
             _ => "status.idle"
         };

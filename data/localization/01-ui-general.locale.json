@@ -454,5 +454,13 @@
 	"ui.yes":  {
 				   "zhHant":  "有",
 				   "en":  "Yes"
-			   }
+			   },
+	"ui.diplomacy":  {
+						 "zhHant":  "外交",
+						 "en":  "Diplomacy"
+					 },
+	"ui.confirm_diplomacy":  {
+								   "zhHant":  "確認外交",
+								   "en":  "Confirm Diplomacy"
+							   }
 }

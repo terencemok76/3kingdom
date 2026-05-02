@@ -68,6 +68,7 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Recruit, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Search, results);
         ResolvePendingCommandsOfType(resolver, CommandType.CivilRelief, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Diplomacy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
         World.PendingCommands.Clear();
@@ -167,7 +168,33 @@ public class TurnManager
             World.Year += 1;
         }
 
+        AdvanceDiplomacyRelations();
         FreeOfficerMovement.Advance(World);
+    }
+
+    private void AdvanceDiplomacyRelations()
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        foreach (var relation in World.DiplomacyRelations)
+        {
+            if (relation.Status == DiplomacyStatusType.Neutral || relation.RemainingMonths <= 0)
+            {
+                continue;
+            }
+
+            relation.RemainingMonths -= 1;
+            if (relation.RemainingMonths > 0)
+            {
+                continue;
+            }
+
+            relation.RemainingMonths = 0;
+            relation.Status = DiplomacyStatusType.Neutral;
+        }
     }
 
     private void ResolvePendingCommandsOfType(
