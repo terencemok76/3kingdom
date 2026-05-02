@@ -94,26 +94,31 @@ public partial class HudController : CanvasLayer
         {
             tree.SetColumnTitle(column, string.Empty);
             tree.SetColumnCustomMinimumWidth(column, 32);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
             column += 1;
         }
 
         tree.SetColumnTitle(column, _localization.T("ui.officers"));
         tree.SetColumnCustomMinimumWidth(column, 130);
+        tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
         column += 1;
         tree.SetColumnTitle(column, _localization.T("ui.role"));
         tree.SetColumnCustomMinimumWidth(column, 90);
+        tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
         column += 1;
 
         if (includeStatus)
         {
             tree.SetColumnTitle(column, _localization.T("ui.status"));
             tree.SetColumnCustomMinimumWidth(column, 90);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
             column += 1;
         }
         else if (includeCity)
         {
             tree.SetColumnTitle(column, _localization.T("ui.city"));
             tree.SetColumnCustomMinimumWidth(column, 100);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
             column += 1;
         }
 
@@ -121,6 +126,7 @@ public partial class HudController : CanvasLayer
         {
             tree.SetColumnTitle(column, _localization.T("ui.loyalty"));
             tree.SetColumnCustomMinimumWidth(column, 70);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
             column += 1;
         }
 
@@ -128,12 +134,15 @@ public partial class HudController : CanvasLayer
         {
             tree.SetColumnTitle(column, _localization.T("ui.strength"));
             tree.SetColumnCustomMinimumWidth(column, 70);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
             column += 1;
             tree.SetColumnTitle(column, _localization.T("ui.intelligence"));
             tree.SetColumnCustomMinimumWidth(column, 70);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
             column += 1;
             tree.SetColumnTitle(column, _localization.T("ui.charm"));
             tree.SetColumnCustomMinimumWidth(column, 70);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
         }
     }
 
@@ -393,12 +402,16 @@ public partial class HudController : CanvasLayer
         _officerListTable.Columns = 4;
         _officerListTable.SetColumnTitle(0, _localization.T("ui.officers"));
         _officerListTable.SetColumnCustomMinimumWidth(0, 150);
+        _officerListTable.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
         _officerListTable.SetColumnTitle(1, _localization.T("ui.role"));
         _officerListTable.SetColumnCustomMinimumWidth(1, 100);
+        _officerListTable.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
         _officerListTable.SetColumnTitle(2, _localization.T("ui.status"));
         _officerListTable.SetColumnCustomMinimumWidth(2, 100);
+        _officerListTable.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
         _officerListTable.SetColumnTitle(3, _localization.T("ui.charm"));
         _officerListTable.SetColumnCustomMinimumWidth(3, 80);
+        _officerListTable.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
     }
 
     private void PopulateRecruitOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex)

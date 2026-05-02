@@ -11,6 +11,15 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
+    private sealed class DiplomacyRelationViewRow
+    {
+        public int TargetFactionId { get; init; }
+        public string TargetFactionName { get; init; } = string.Empty;
+        public DiplomacyStatusType Status { get; init; } = DiplomacyStatusType.Neutral;
+        public int RemainingMonths { get; init; }
+        public int RelationScore { get; init; }
+    }
+
     private void OnOfficerListClosePressed()
     {
         _officerListDialog?.Hide();
@@ -61,7 +70,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        if (_officerListContentMode is OfficerListContentMode.Cities or OfficerListContentMode.Items)
+        if (_officerListContentMode is OfficerListContentMode.Cities or OfficerListContentMode.Items or OfficerListContentMode.DiplomacyRelations)
         {
             return;
         }
@@ -238,6 +247,21 @@ public partial class HudController : CanvasLayer
                 AddLog(_localization?.T("ui.no_item_in_faction") ?? "No items available in this faction.");
             }
         }
+        else if (_officerListMode == OfficerListMode.View && _officerListContentMode == OfficerListContentMode.DiplomacyRelations)
+        {
+            var relations = GetSortedDiplomacyRelations();
+            for (var index = 0; index < relations.Count; index += 1)
+            {
+                var row = _officerListTable.CreateItem(root);
+                PopulateDiplomacyRelationTableRow(row, relations[index]);
+                ApplyViewTableRowStriping(row, index, _officerListTable.Columns);
+            }
+
+            if (relations.Count == 0)
+            {
+                AddLog(_localization?.T("ui.no_diplomacy_relation_in_faction") ?? "No diplomacy relations available in this faction.");
+            }
+        }
         else
         {
             var officers = new List<OfficerData>();
@@ -401,6 +425,16 @@ public partial class HudController : CanvasLayer
             SetViewTableColumn(8, _localization.T("ui.politics"), 70, ViewTableSortField.Politics);
             SetViewTableColumn(9, _localization.T("ui.combat"), 70, ViewTableSortField.Combat);
             SetViewTableColumn(10, _localization.T("ui.loyalty"), 70, ViewTableSortField.OfficerLoyalty);
+            return;
+        }
+
+        if (_officerListContentMode == OfficerListContentMode.DiplomacyRelations)
+        {
+            _officerListTable.Columns = 4;
+            SetViewTableColumn(0, _localization.T("ui.target_faction"), 160, ViewTableSortField.Name);
+            SetViewTableColumn(1, _localization.T("ui.relation_status"), 120, ViewTableSortField.RelationStatus);
+            SetViewTableColumn(2, _localization.T("ui.remaining_months"), 120, ViewTableSortField.RemainingMonths);
+            SetViewTableColumn(3, _localization.T("ui.relation_score"), 110, ViewTableSortField.RelationScore);
             return;
         }
 
@@ -584,6 +618,20 @@ public partial class HudController : CanvasLayer
         row.SetText(10, item.LoyaltyBonus.ToString());
     }
 
+    private void PopulateDiplomacyRelationTableRow(TreeItem row, DiplomacyRelationViewRow relation)
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        row.SetMetadata(0, relation.TargetFactionId);
+        row.SetText(0, relation.TargetFactionName);
+        row.SetText(1, GetDiplomacyStatusText(relation.Status));
+        row.SetText(2, relation.Status == DiplomacyStatusType.Neutral ? "-" : relation.RemainingMonths.ToString());
+        row.SetText(3, relation.RelationScore.ToString());
+    }
+
     private ViewTableSortField GetViewTableSortFieldForColumn(int column)
     {
         if (_officerListContentMode == OfficerListContentMode.Cities)
@@ -621,6 +669,17 @@ public partial class HudController : CanvasLayer
             };
         }
 
+        if (_officerListContentMode == OfficerListContentMode.DiplomacyRelations)
+        {
+            return column switch
+            {
+                1 => ViewTableSortField.RelationStatus,
+                2 => ViewTableSortField.RemainingMonths,
+                3 => ViewTableSortField.RelationScore,
+                _ => ViewTableSortField.Name
+            };
+        }
+
         if (_officerListScope == OfficerListScope.Faction)
         {
             return column switch
@@ -650,12 +709,12 @@ public partial class HudController : CanvasLayer
 
     private static bool IsAscendingDefaultSortField(ViewTableSortField field)
     {
-        return field is ViewTableSortField.Name or ViewTableSortField.Role or ViewTableSortField.Status or ViewTableSortField.City or ViewTableSortField.Owner or ViewTableSortField.Holder or ViewTableSortField.ItemType or ViewTableSortField.Rarity;
+        return field is ViewTableSortField.Name or ViewTableSortField.Role or ViewTableSortField.Status or ViewTableSortField.City or ViewTableSortField.Owner or ViewTableSortField.Holder or ViewTableSortField.ItemType or ViewTableSortField.Rarity or ViewTableSortField.RelationStatus;
     }
 
     private void UpdateOfficerListToolbar()
     {
-        if (_officerListToolbar == null || _viewCityOfficersDialogButton == null || _viewFactionOfficersDialogButton == null || _viewFactionItemsDialogButton == null || _viewCitiesDialogButton == null || _cityListFilterOption == null || _officerSortOption == null || _selectedCity == null || _turnManager?.World == null || _localization == null)
+        if (_officerListToolbar == null || _viewCityOfficersDialogButton == null || _viewFactionOfficersDialogButton == null || _viewFactionItemsDialogButton == null || _viewDiplomacyRelationsDialogButton == null || _viewCitiesDialogButton == null || _cityListFilterOption == null || _officerSortOption == null || _selectedCity == null || _turnManager?.World == null || _localization == null)
         {
             return;
         }
@@ -670,6 +729,7 @@ public partial class HudController : CanvasLayer
         _viewCityOfficersDialogButton.Text = _localization.T("ui.view_city_officers");
         _viewFactionOfficersDialogButton.Text = _localization.T("ui.view_faction_officers");
         _viewFactionItemsDialogButton.Text = _localization.T("ui.view_faction_items");
+        _viewDiplomacyRelationsDialogButton.Text = _localization.T("ui.view_diplomacy_relations");
         _viewCitiesDialogButton.Text = _localization.T("ui.view_cities");
         if (_cityListFilterOption.ItemCount == 0)
         {
@@ -714,9 +774,11 @@ public partial class HudController : CanvasLayer
         var hasFaction = _selectedCity.OwnerFactionId > 0 && _turnManager.World.GetFaction(_selectedCity.OwnerFactionId) != null;
         _viewFactionOfficersDialogButton.Visible = hasFaction;
         _viewFactionItemsDialogButton.Visible = hasFaction;
+        _viewDiplomacyRelationsDialogButton.Visible = hasFaction;
         _viewCityOfficersDialogButton.Disabled = _officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.City;
         _viewFactionOfficersDialogButton.Disabled = !hasFaction || (_officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.Faction);
         _viewFactionItemsDialogButton.Disabled = !hasFaction || _officerListContentMode == OfficerListContentMode.Items;
+        _viewDiplomacyRelationsDialogButton.Disabled = !hasFaction || _officerListContentMode == OfficerListContentMode.DiplomacyRelations;
         _viewCitiesDialogButton.Disabled = _officerListContentMode == OfficerListContentMode.Cities;
         _cityListFilterOption.Visible = _officerListContentMode == OfficerListContentMode.Cities;
         _officerSortOption.Visible = false;
@@ -751,6 +813,12 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        if (_officerListContentMode == OfficerListContentMode.DiplomacyRelations)
+        {
+            SetOfficerListDialogTitle(_localization.T("ui.view_title.diplomacy_faction"));
+            return;
+        }
+
         SetOfficerListDialogTitle(_officerListScope == OfficerListScope.Faction
             ? _localization.T("ui.view_title.officers_faction")
             : _localization.Format("fmt.view_title.officers_city_name", _selectedCity != null ? _localization.GetCityName(_selectedCity) : _localization.T("ui.view_title.officers_city")));
@@ -765,6 +833,19 @@ public partial class HudController : CanvasLayer
 
         _officerListScope = OfficerListScope.Faction;
         _officerListContentMode = OfficerListContentMode.Items;
+        UpdateOfficerListToolbar();
+        PopulateOfficerListDialog();
+    }
+
+    private void OnViewDiplomacyRelationsDialogPressed()
+    {
+        if (_officerListMode != OfficerListMode.View)
+        {
+            return;
+        }
+
+        _officerListScope = OfficerListScope.Faction;
+        _officerListContentMode = OfficerListContentMode.DiplomacyRelations;
         UpdateOfficerListToolbar();
         PopulateOfficerListDialog();
     }
@@ -867,6 +948,56 @@ public partial class HudController : CanvasLayer
             .ToList();
     }
 
+    private List<DiplomacyRelationViewRow> GetSortedDiplomacyRelations()
+    {
+        if (_turnManager?.World == null || _selectedCity == null || _localization == null)
+        {
+            return new List<DiplomacyRelationViewRow>();
+        }
+
+        var factionId = _selectedCity.OwnerFactionId;
+        if (factionId <= 0)
+        {
+            return new List<DiplomacyRelationViewRow>();
+        }
+
+        var relations = _turnManager.World.Factions
+            .Where(faction => faction.Id != factionId)
+            .Select(faction =>
+            {
+                var relation = _turnManager.World.GetDiplomacyRelation(factionId, faction.Id);
+                return new DiplomacyRelationViewRow
+                {
+                    TargetFactionId = faction.Id,
+                    TargetFactionName = _localization.GetFactionName(_turnManager.World, faction.Id),
+                    Status = relation?.Status ?? DiplomacyStatusType.Neutral,
+                    RemainingMonths = relation?.RemainingMonths ?? 0,
+                    RelationScore = relation?.RelationScore ?? 0
+                };
+            })
+            .ToList();
+
+        IOrderedEnumerable<DiplomacyRelationViewRow> ordered = _viewTableSortField switch
+        {
+            ViewTableSortField.RelationStatus => _viewTableSortAscending
+                ? relations.OrderBy(item => GetDiplomacyStatusSortKey(item.Status))
+                : relations.OrderByDescending(item => GetDiplomacyStatusSortKey(item.Status)),
+            ViewTableSortField.RemainingMonths => _viewTableSortAscending
+                ? relations.OrderBy(item => item.RemainingMonths)
+                : relations.OrderByDescending(item => item.RemainingMonths),
+            ViewTableSortField.RelationScore => _viewTableSortAscending
+                ? relations.OrderBy(item => item.RelationScore)
+                : relations.OrderByDescending(item => item.RelationScore),
+            _ => _viewTableSortAscending
+                ? relations.OrderBy(item => item.TargetFactionName)
+                : relations.OrderByDescending(item => item.TargetFactionName)
+        };
+
+        return ordered
+            .ThenBy(item => item.TargetFactionId)
+            .ToList();
+    }
+
     private string BuildItemHolderText(ItemData item)
     {
         if (_turnManager?.World == null || _localization == null)
@@ -890,6 +1021,33 @@ public partial class HudController : CanvasLayer
     {
         var holder = BuildItemHolderText(item);
         return holder == (_localization?.T("ui.none") ?? "None") ? "zzzz" : holder;
+    }
+
+    private string GetDiplomacyStatusText(DiplomacyStatusType status)
+    {
+        if (_localization == null)
+        {
+            return status.ToString();
+        }
+
+        var key = status switch
+        {
+            DiplomacyStatusType.Alliance => "ui.diplomacy_status_alliance",
+            DiplomacyStatusType.Truce => "ui.diplomacy_status_truce",
+            _ => "ui.diplomacy_status_neutral"
+        };
+
+        return _localization.T(key);
+    }
+
+    private static int GetDiplomacyStatusSortKey(DiplomacyStatusType status)
+    {
+        return status switch
+        {
+            DiplomacyStatusType.Alliance => 2,
+            DiplomacyStatusType.Truce => 1,
+            _ => 0
+        };
     }
 
     private static int GetItemRaritySortKey(ItemData item)

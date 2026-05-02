@@ -292,12 +292,16 @@ public partial class HudController : CanvasLayer
         _internalAffairsOfficerList.Columns = 4;
         _internalAffairsOfficerList.SetColumnTitle(0, _localization.T("ui.officers"));
         _internalAffairsOfficerList.SetColumnCustomMinimumWidth(0, 130);
+        _internalAffairsOfficerList.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
         _internalAffairsOfficerList.SetColumnTitle(1, _localization.T("ui.role"));
         _internalAffairsOfficerList.SetColumnCustomMinimumWidth(1, 100);
+        _internalAffairsOfficerList.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
         _internalAffairsOfficerList.SetColumnTitle(2, _localization.T("ui.status"));
         _internalAffairsOfficerList.SetColumnCustomMinimumWidth(2, 100);
+        _internalAffairsOfficerList.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
         _internalAffairsOfficerList.SetColumnTitle(3, _localization.T("ui.politics"));
         _internalAffairsOfficerList.SetColumnCustomMinimumWidth(3, 80);
+        _internalAffairsOfficerList.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
     }
 
     private void PopulateInternalAffairsOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex)

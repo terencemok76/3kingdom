@@ -27,7 +27,8 @@ public partial class HudController : CanvasLayer
     {
         Officers,
         Cities,
-        Items
+        Items,
+        DiplomacyRelations
     }
 
     private enum CityListFilterMode
@@ -62,6 +63,9 @@ public partial class HudController : CanvasLayer
         Combat,
         OfficerLoyalty,
         Owner,
+        RelationStatus,
+        RemainingMonths,
+        RelationScore,
         Gold,
         Food,
         Troops,
@@ -192,6 +196,7 @@ public partial class HudController : CanvasLayer
     private Button? _viewCityOfficersDialogButton;
     private Button? _viewFactionOfficersDialogButton;
     private Button? _viewFactionItemsDialogButton;
+    private Button? _viewDiplomacyRelationsDialogButton;
     private Button? _viewCitiesDialogButton;
     private Button? _officerListConfirmButton;
     private OptionButton? _cityListFilterOption;
@@ -536,6 +541,14 @@ public partial class HudController : CanvasLayer
         };
         _viewFactionItemsDialogButton.Pressed += OnViewFactionItemsDialogPressed;
         _officerListToolbar.AddChild(_viewFactionItemsDialogButton);
+
+        _viewDiplomacyRelationsDialogButton = new Button
+        {
+            Name = "ViewDiplomacyRelationsButton",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _viewDiplomacyRelationsDialogButton.Pressed += OnViewDiplomacyRelationsDialogPressed;
+        _officerListToolbar.AddChild(_viewDiplomacyRelationsDialogButton);
 
         _viewCitiesDialogButton = new Button
         {

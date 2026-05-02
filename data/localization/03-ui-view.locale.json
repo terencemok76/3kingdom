@@ -1,26 +1,66 @@
-﻿{
-    "ui.city_officer_list":  {
-                                 "zhHant":  "城市武將",
-                                 "en":  "City Officers"
-                             },
-    "ui.no_city_in_scope":  {
-                                "zhHant":  "此檢視範圍內沒有可查看的城市。",
-                                "en":  "No cities available in this view."
-                            },
-    "ui.no_item_in_faction":  {
-                                  "zhHant":  "此勢力沒有可查看的道具。",
-                                  "en":  "No items available in this faction."
-                              },
-    "ui.no_officer_in_city":  {
-                                  "zhHant":  "此城市沒有可查看的武將。",
-                                  "en":  "No officers available in this city."
-                              },
-    "ui.no_officer_in_faction":  {
-                                     "zhHant":  "此勢力沒有可查看的武將。",
-                                     "en":  "No officers available in this faction."
-                                 },
-    "ui.view_cities":  {
-                           "zhHant":  "城市",
-                           "en":  "Cities"
-                       }
+{
+    "ui.city_officer_list": {
+        "zhHant": "城市武將",
+        "en": "City Officers"
+    },
+    "ui.diplomacy_status_alliance": {
+        "zhHant": "同盟",
+        "en": "Alliance"
+    },
+    "ui.diplomacy_status_neutral": {
+        "zhHant": "中立",
+        "en": "Neutral"
+    },
+    "ui.diplomacy_status_truce": {
+        "zhHant": "休戰",
+        "en": "Truce"
+    },
+    "ui.no_city_in_scope": {
+        "zhHant": "此檢視範圍內沒有可查看的城市。",
+        "en": "No cities available in this view."
+    },
+    "ui.no_diplomacy_relation_in_faction": {
+        "zhHant": "此勢力沒有可查看的外交關係。",
+        "en": "No diplomacy relations available in this faction."
+    },
+    "ui.no_item_in_faction": {
+        "zhHant": "此勢力沒有可查看的道具。",
+        "en": "No items available in this faction."
+    },
+    "ui.no_officer_in_city": {
+        "zhHant": "此城市沒有可查看的武將。",
+        "en": "No officers available in this city."
+    },
+    "ui.no_officer_in_faction": {
+        "zhHant": "此勢力沒有可查看的武將。",
+        "en": "No officers available in this faction."
+    },
+    "ui.relation_score": {
+        "zhHant": "關係值",
+        "en": "Relation Score"
+    },
+    "ui.relation_status": {
+        "zhHant": "關係",
+        "en": "Status"
+    },
+    "ui.remaining_months": {
+        "zhHant": "剩餘月數",
+        "en": "Months Left"
+    },
+    "ui.target_faction": {
+        "zhHant": "對象勢力",
+        "en": "Target Faction"
+    },
+    "ui.view_cities": {
+        "zhHant": "城市",
+        "en": "Cities"
+    },
+    "ui.view_diplomacy_relations": {
+        "zhHant": "外交關係",
+        "en": "Diplomacy"
+    },
+    "ui.view_title.diplomacy_faction": {
+        "zhHant": "查看外交關係（勢力）",
+        "en": "View Diplomacy (Faction)"
+    }
 }

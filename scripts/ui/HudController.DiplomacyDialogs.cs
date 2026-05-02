@@ -98,11 +98,12 @@ public partial class HudController : CanvasLayer
             Name = "OfficerList",
             Columns = 6,
             HideRoot = true,
+            ColumnTitlesVisible = true,
             SelectMode = Tree.SelectModeEnum.Row,
             CustomMinimumSize = new Vector2(0.0f, 170.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyOfficerList.ItemSelected += () => UpdateDiplomacyConfirmButtonState();
+        _diplomacyOfficerList.ItemSelected += OnDiplomacyOfficerTableSelected;
         root.AddChild(_diplomacyOfficerList);
 
         _diplomacySummaryLabel = new Label
@@ -280,14 +281,19 @@ public partial class HudController : CanvasLayer
         _diplomacyOfficerList.Columns = 5;
         _diplomacyOfficerList.SetColumnTitle(0, _localization.T("ui.officers"));
         _diplomacyOfficerList.SetColumnCustomMinimumWidth(0, 130);
+        _diplomacyOfficerList.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
         _diplomacyOfficerList.SetColumnTitle(1, _localization.T("ui.role"));
         _diplomacyOfficerList.SetColumnCustomMinimumWidth(1, 90);
+        _diplomacyOfficerList.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
         _diplomacyOfficerList.SetColumnTitle(2, _localization.T("ui.charm"));
         _diplomacyOfficerList.SetColumnCustomMinimumWidth(2, 70);
+        _diplomacyOfficerList.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
         _diplomacyOfficerList.SetColumnTitle(3, _localization.T("ui.politics"));
         _diplomacyOfficerList.SetColumnCustomMinimumWidth(3, 70);
+        _diplomacyOfficerList.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
         _diplomacyOfficerList.SetColumnTitle(4, _localization.T("ui.intelligence"));
         _diplomacyOfficerList.SetColumnCustomMinimumWidth(4, 70);
+        _diplomacyOfficerList.SetColumnTitleAlignment(4, HorizontalAlignment.Left);
     }
 
     private void PopulateDiplomacyOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex)
@@ -315,6 +321,46 @@ public partial class HudController : CanvasLayer
         }
 
         row.Select(0);
+        OnDiplomacyOfficerTableSelected();
+    }
+
+    private void OnDiplomacyOfficerTableSelected()
+    {
+        if (_diplomacyOfficerList == null)
+        {
+            return;
+        }
+
+        var selectedItem = _diplomacyOfficerList.GetSelected();
+        if (selectedItem == null)
+        {
+            return;
+        }
+
+        var root = _diplomacyOfficerList.GetRoot();
+        if (root == null)
+        {
+            return;
+        }
+
+        var row = root.GetFirstChild();
+        var rowIndex = 0;
+        while (row != null)
+        {
+            if (row == selectedItem)
+            {
+                ApplyViewTableSelectedRowStyle(row, _diplomacyOfficerList.Columns);
+            }
+            else
+            {
+                ApplyViewTableRowStriping(row, rowIndex, _diplomacyOfficerList.Columns);
+            }
+
+            row = row.GetNext();
+            rowIndex += 1;
+        }
+
+        UpdateDiplomacyConfirmButtonState();
     }
 
     private DiplomacyActionType GetSelectedDiplomacyActionType()

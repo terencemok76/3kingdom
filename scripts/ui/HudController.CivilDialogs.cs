@@ -329,12 +329,16 @@ public partial class HudController : CanvasLayer
         _civilReliefOfficerList.Columns = 4;
         _civilReliefOfficerList.SetColumnTitle(0, _localization.T("ui.officers"));
         _civilReliefOfficerList.SetColumnCustomMinimumWidth(0, 130);
+        _civilReliefOfficerList.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
         _civilReliefOfficerList.SetColumnTitle(1, _localization.T("ui.role"));
         _civilReliefOfficerList.SetColumnCustomMinimumWidth(1, 100);
+        _civilReliefOfficerList.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
         _civilReliefOfficerList.SetColumnTitle(2, _localization.T("ui.status"));
         _civilReliefOfficerList.SetColumnCustomMinimumWidth(2, 100);
+        _civilReliefOfficerList.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
         _civilReliefOfficerList.SetColumnTitle(3, _localization.T("ui.charm"));
         _civilReliefOfficerList.SetColumnCustomMinimumWidth(3, 80);
+        _civilReliefOfficerList.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
     }
 
     private void PopulateCivilReliefOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex)
