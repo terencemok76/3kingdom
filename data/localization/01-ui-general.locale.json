@@ -1,0 +1,458 @@
+{
+	"ui.assign_role_officer":  {
+								   "zhHant":  "指派武將",
+								   "en":  "Officer To Assign"
+							   },
+	"ui.assign_role_title":  {
+								 "zhHant":  "官職",
+								 "en":  "Official Title"
+							 },
+	"ui.attack":  {
+					  "zhHant":  "攻擊",
+					  "en":  "Attack"
+				  },
+	"ui.attack_deployment_empty_hint":  {
+											"zhHant":  "目前沒有可出征武將。",
+											"en":  "No officers are available to attack right now."
+										},
+	"ui.attack_deployment_exceed_warning":  {
+												"zhHant":  "出征配兵超過城市現有兵種數量。",
+												"en":  "Officer deployments exceed the city\u0027s available troop types."
+											},
+	"ui.attack_deployment_required_warning":  {
+												  "zhHant":  "請為每位出征武將設定兵種與兵數。",
+												  "en":  "Configure troop type and troop count for each deployed officer."
+											  },
+	"ui.attack_deployments":  {
+								  "zhHant":  "武將配兵",
+								  "en":  "Officer Deployments"
+							  },
+	"ui.attack_food":  {
+						   "zhHant":  "出征糧",
+						   "en":  "Food To Carry"
+					   },
+	"ui.attack_gold":  {
+						   "zhHant":  "出征金",
+						   "en":  "Gold To Carry"
+					   },
+	"ui.attack_officer_required_warning":  {
+											   "zhHant":  "請至少選擇一位出征武將。",
+											   "en":  "Select at least one officer to deploy."
+										   },
+	"ui.attack_officers":  {
+							   "zhHant":  "出征武將",
+							   "en":  "Officers To Deploy"
+						   },
+	"ui.attack_select_officers_hint":  {
+										   "zhHant":  "請先勾選上方出征武將。",
+										   "en":  "Select officers above first."
+									   },
+	"ui.attack_troop_type":  {
+								 "zhHant":  "出征兵種",
+								 "en":  "Attack Troop Type"
+							 },
+	"ui.attack_troops":  {
+							 "zhHant":  "出兵數",
+							 "en":  "Troops To Attack"
+						 },
+	"ui.attack_troops_exceed_warning":  {
+											"zhHant":  "出兵數量不可超過城市現有兵力。",
+											"en":  "Troops to deploy cannot exceed the city\u0027s available troops."
+										},
+	"ui.attack_troops_required_warning":  {
+											  "zhHant":  "請輸入出兵數量。",
+											  "en":  "Enter the number of troops to deploy."
+										  },
+	"ui.available_short":  {
+							   "zhHant":  "可用",
+							   "en":  "Avail"
+						   },
+	"ui.bow_workshop":  {
+							"zhHant":  "弓坊",
+							"en":  "Bow Workshop"
+						},
+	"ui.city":  {
+					"zhHant":  "城市",
+					"en":  "City"
+				},
+	"ui.city_filter_all":  {
+							   "zhHant":  "全部城市",
+							   "en":  "All Cities"
+						   },
+	"ui.city_filter_other":  {
+								 "zhHant":  "他方城市",
+								 "en":  "Other Faction Cities"
+							 },
+	"ui.city_filter_self":  {
+								"zhHant":  "我方城市",
+								"en":  "Self Faction Cities"
+							},
+	"ui.civil":  {
+					 "zhHant":  "民事",
+					 "en":  "Civil Affairs"
+				 },
+	"ui.civil_relief_food":  {
+								 "zhHant":  "救濟糧",
+								 "en":  "Relief Food"
+							 },
+	"ui.civil_relief_gold":  {
+								 "zhHant":  "救濟金",
+								 "en":  "Relief Gold"
+							 },
+	"ui.civil_relief_officer":  {
+									"zhHant":  "執行武將",
+									"en":  "Assigned Officer"
+								},
+	"ui.commands":  {
+						"zhHant":  "指令",
+						"en":  "Commands"
+					},
+	"ui.commercial":  {
+						  "zhHant":  "商業",
+						  "en":  "Commercial"
+					  },
+	"ui.confirm_assign_role":  {
+								   "zhHant":  "確認官職",
+								   "en":  "Confirm Title"
+							   },
+	"ui.confirm_attack":  {
+							  "zhHant":  "確認攻擊",
+							  "en":  "Confirm Attack"
+						  },
+	"ui.confirm_civil":  {
+							 "zhHant":  "確認民事",
+							 "en":  "Confirm Civil Affairs"
+						 },
+	"ui.confirm_civil_relief":  {
+									"zhHant":  "確認救濟",
+									"en":  "Confirm Relief"
+								},
+	"ui.confirm_hire_officer":  {
+									"zhHant":  "確認登用",
+									"en":  "Confirm Hire"
+								},
+	"ui.confirm_internal_affairs":  {
+										"zhHant":  "確認內政",
+										"en":  "Confirm Internal Affairs"
+									},
+	"ui.confirm_merchant":  {
+								"zhHant":  "確認交易",
+								"en":  "Confirm Trade"
+							},
+	"ui.confirm_military":  {
+								"zhHant":  "確認軍事",
+								"en":  "Confirm Military"
+							},
+	"ui.confirm_move":  {
+							"zhHant":  "確認移動",
+							"en":  "Confirm Move"
+						},
+	"ui.confirm_personnel":  {
+								 "zhHant":  "確認人事",
+								 "en":  "Confirm Personnel"
+							 },
+	"ui.confirm_personnel_bonus":  {
+									   "zhHant":  "確認賞賜",
+									   "en":  "Confirm Bonus"
+								   },
+	"ui.confirm_request_item":  {
+									"zhHant":  "確認索回",
+									"en":  "Confirm Recall"
+								},
+	"ui.defense":  {
+					   "zhHant":  "防禦",
+					   "en":  "Defense"
+				   },
+	"ui.develop":  {
+					   "zhHant":  "開發",
+					   "en":  "Develop"
+				   },
+	"ui.disaster_prevention":  {
+								   "zhHant":  "防災",
+								   "en":  "Disaster Prevention"
+							   },
+	"ui.end_turn":  {
+						"zhHant":  "結束回合",
+						"en":  "End Turn"
+					},
+	"ui.faction_owner":  {
+							 "zhHant":  "君主",
+							 "en":  "Owner"
+						 },
+	"ui.farm":  {
+					"zhHant":  "農業",
+					"en":  "Farm"
+				},
+	"ui.food":  {
+					"zhHant":  "糧",
+					"en":  "Food"
+				},
+	"ui.free_officer":  {
+							"zhHant":  "在野",
+							"en":  "Free Officer"
+						},
+	"ui.free_officers":  {
+							 "zhHant":  "在野武將",
+							 "en":  "Free Officers"
+						 },
+	"ui.gold":  {
+					"zhHant":  "金",
+					"en":  "Gold"
+				},
+	"ui.hire_officer_food_offer":  {
+									   "zhHant":  "贈送糧",
+									   "en":  "Gift Food"
+								   },
+	"ui.hire_officer_gold_offer":  {
+									   "zhHant":  "贈送金",
+									   "en":  "Gift Gold"
+								   },
+	"ui.hire_officer_item_offer":  {
+									   "zhHant":  "贈送道具",
+									   "en":  "Gift Item"
+								   },
+	"ui.hire_officer_target":  {
+								   "zhHant":  "登用對象",
+								   "en":  "Officer To Hire"
+							   },
+	"ui.horse":  {
+					 "zhHant":  "馬",
+					 "en":  "Horse"
+				 },
+	"ui.internal_affairs":  {
+								"zhHant":  "內政",
+								"en":  "Internal Affairs"
+							},
+	"ui.internal_affairs_active_schedules":  {
+												 "zhHant":  "進行中內政",
+												 "en":  "Active Internal Affairs"
+											 },
+	"ui.internal_affairs_duration":  {
+										 "zhHant":  "執行月數",
+										 "en":  "Duration Months"
+									 },
+	"ui.internal_affairs_job":  {
+									"zhHant":  "內政項目",
+									"en":  "Internal Affairs Job"
+								},
+	"ui.internal_affairs_officer":  {
+										"zhHant":  "指派武將",
+										"en":  "Assigned Officer"
+									},
+	"ui.lang_btn_en":  {
+						   "zhHant":  "English",
+						   "en":  "English"
+					   },
+	"ui.lang_btn_zh":  {
+						   "zhHant":  "繁體中文",
+						   "en":  "繁體中文"
+					   },
+	"ui.loyalty":  {
+					   "zhHant":  "忠誠",
+					   "en":  "Loyalty"
+				   },
+	"ui.merchant":  {
+						"zhHant":  "商人",
+						"en":  "Merchant"
+					},
+	"ui.military":  {
+						"zhHant":  "軍事",
+						"en":  "Military"
+					},
+	"ui.military_attack":  {
+							   "zhHant":  "攻擊",
+							   "en":  "Attack"
+						   },
+	"ui.military_move":  {
+							 "zhHant":  "移動",
+							 "en":  "Move"
+						 },
+	"ui.military_recruit":  {
+								"zhHant":  "徵兵",
+								"en":  "Recruit"
+							},
+	"ui.move":  {
+					"zhHant":  "移動",
+					"en":  "Move"
+				},
+	"ui.neutral":  {
+					   "zhHant":  "中立",
+					   "en":  "Neutral"
+				   },
+	"ui.no":  {
+				  "zhHant":  "無",
+				  "en":  "No"
+			  },
+	"ui.no_available_officer_for_command":  {
+												"zhHant":  "此城市本月沒有可執行「{0}」的武將。",
+												"en":  "No available officer in this city can perform {0} this month."
+											},
+	"ui.no_connected_enemy_city":  {
+									   "zhHant":  "沒有可以攻擊的相連敵方城市。",
+									   "en":  "No connected enemy city to attack."
+								   },
+	"ui.no_connected_friendly_city":  {
+										  "zhHant":  "沒有可以移動兵力、資源或武將的相連友方城市。",
+										  "en":  "No connected friendly city to move troops, resources, or officers."
+									  },
+	"ui.no_hireable_officer":  {
+								   "zhHant":  "目前沒有可登用的在野／他地武將。",
+								   "en":  "No hireable free or outside officers are available."
+							   },
+	"ui.none":  {
+					"zhHant":  "無",
+					"en":  "None"
+				},
+	"ui.officers":  {
+						"zhHant":  "武將",
+						"en":  "Officers"
+					},
+	"ui.personnel":  {
+						 "zhHant":  "人事",
+						 "en":  "Personnel"
+					 },
+	"ui.personnel_bonus_food":  {
+									"zhHant":  "賞賜糧",
+									"en":  "Bonus Food"
+								},
+	"ui.personnel_bonus_gold":  {
+									"zhHant":  "賞賜金",
+									"en":  "Bonus Gold"
+								},
+	"ui.personnel_bonus_item":  {
+									"zhHant":  "賞賜道具",
+									"en":  "Bonus Item"
+								},
+	"ui.personnel_bonus_officer":  {
+									   "zhHant":  "賞賜武將",
+									   "en":  "Officer To Reward"
+								   },
+	"ui.player":  {
+					  "zhHant":  "玩家",
+					  "en":  "Player"
+				  },
+	"ui.recruit":  {
+					   "zhHant":  "徵兵",
+					   "en":  "Recruit"
+				   },
+	"ui.recruit_troop_type":  {
+								  "zhHant":  "徵兵兵種",
+								  "en":  "Recruit Type"
+							  },
+	"ui.request_item":  {
+							"zhHant":  "索回道具",
+							"en":  "Recall Item"
+						},
+	"ui.request_item_officer":  {
+									"zhHant":  "持有武將",
+									"en":  "Officer Holding Item"
+								},
+	"ui.search":  {
+					  "zhHant":  "搜索",
+					  "en":  "Search"
+				  },
+	"ui.select_internal_affairs_schedule_warning":  {
+														"zhHant":  "請先選擇一個內政排程。",
+														"en":  "Select an internal affairs schedule first."
+													},
+	"ui.select_item_warning":  {
+								   "zhHant":  "請先選擇一個道具。",
+								   "en":  "Select one item first."
+							   },
+	"ui.select_officer_warning":  {
+									  "zhHant":  "請先選擇一位武將。",
+									  "en":  "Select one officer first."
+								  },
+	"ui.siege_workshop":  {
+							  "zhHant":  "工坊",
+							  "en":  "Siege Workshop"
+						  },
+	"ui.sort_intelligence":  {
+								 "zhHant":  "排序：智力",
+								 "en":  "Sort: INT"
+							 },
+	"ui.sort_status":  {
+						   "zhHant":  "排序：狀態",
+						   "en":  "Sort: Status"
+					   },
+	"ui.sort_strength":  {
+							 "zhHant":  "排序：武力",
+							 "en":  "Sort: STR"
+						 },
+	"ui.terminate_internal_affairs":  {
+										  "zhHant":  "中止內政",
+										  "en":  "Terminate Schedule"
+									  },
+	"ui.transfer_food":  {
+							 "zhHant":  "移動糧",
+							 "en":  "Food To Send"
+						 },
+	"ui.transfer_gold":  {
+							 "zhHant":  "移動金",
+							 "en":  "Gold To Send"
+						 },
+	"ui.transfer_horse":  {
+							  "zhHant":  "移動馬",
+							  "en":  "Horse To Send"
+						  },
+	"ui.transfer_officers":  {
+								 "zhHant":  "移動武將",
+								 "en":  "Officers To Send"
+							 },
+	"ui.transfer_troops":  {
+							   "zhHant":  "移動兵力",
+							   "en":  "Troops To Send"
+						   },
+	"ui.troops":  {
+					  "zhHant":  "兵力",
+					  "en":  "Troops"
+				  },
+	"ui.unknown":  {
+					   "zhHant":  "未知",
+					   "en":  "Unknown"
+				   },
+	"ui.view":  {
+					"zhHant":  "查看",
+					"en":  "View"
+				},
+	"ui.view_city_officers":  {
+								  "zhHant":  "本城武將",
+								  "en":  "City Officers"
+							  },
+	"ui.view_faction_items":  {
+								  "zhHant":  "勢力道具",
+								  "en":  "Faction Items"
+							  },
+	"ui.view_faction_officers":  {
+									 "zhHant":  "全勢力武將",
+									 "en":  "Faction Officers"
+								 },
+	"ui.view_title.cities_all":  {
+									 "zhHant":  "查看城市（全部）",
+									 "en":  "View Cities (All)"
+								 },
+	"ui.view_title.cities_other":  {
+									   "zhHant":  "查看城市（他方）",
+									   "en":  "View Cities (Other Factions)"
+								   },
+	"ui.view_title.cities_self":  {
+									  "zhHant":  "查看城市（我方）",
+									  "en":  "View Cities (Self Faction)"
+								  },
+	"ui.view_title.items_faction":  {
+										"zhHant":  "查看道具（全勢力）",
+										"en":  "View Items (Faction)"
+									},
+	"ui.view_title.officers_city":  {
+										"zhHant":  "查看武將（本城）",
+										"en":  "View Officers (City)"
+									},
+	"ui.view_title.officers_faction":  {
+										   "zhHant":  "查看武將（全勢力）",
+										   "en":  "View Officers (Faction)"
+									   },
+	"ui.yes":  {
+				   "zhHant":  "有",
+				   "en":  "Yes"
+			   }
+}

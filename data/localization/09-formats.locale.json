@@ -1,0 +1,102 @@
+﻿{
+    "fmt.ai_city_action":  {
+                               "zhHant":  "[{0}] {1}: {2}",
+                               "en":  "[{0}] {1}: {2}"
+                           },
+    "fmt.attack_deployment_summary":  {
+                                          "zhHant":  "配兵摘要：{0} | 總兵力 {1}",
+                                          "en":  "Deployment Summary: {0} | Total Troops {1}"
+                                      },
+    "fmt.city_header":  {
+                            "zhHant":  "{0}: {1}",
+                            "en":  "{0}: {1}"
+                        },
+    "fmt.city_selected":  {
+                              "zhHant":  "已選擇城市：{0}",
+                              "en":  "Selected city: {0}"
+                          },
+    "fmt.civil_relief_preview":  {
+                                     "zhHant":  "預覽：城市忠誠 +{0}",
+                                     "en":  "Preview: City Loyalty +{0}"
+                                 },
+    "fmt.command_used_this_month":  {
+                                        "zhHant":  "{0}（本月已執行）",
+                                        "en":  "{0} (Used This Month)"
+                                    },
+    "fmt.experience_title":  {
+                                 "zhHant":  "{0}（{1}）",
+                                 "en":  "{0} ({1})"
+                             },
+    "fmt.faction_destroyed":  {
+                                  "zhHant":  "勢力滅亡：{0}",
+                                  "en":  "Faction destroyed: {0}"
+                              },
+    "fmt.hire_officer_preview":  {
+                                     "zhHant":  "預覽：基本金 -{0}，贈金 -{1}，贈糧 -{2}",
+                                     "en":  "Preview: Base Gold -{0}, Gift Gold -{1}, Gift Food -{2}"
+                                 },
+    "fmt.hire_officer_preview_with_item":  {
+                                               "zhHant":  "預覽：基本金 -{0}，贈金 -{1}，贈糧 -{2}，道具：{3}",
+                                               "en":  "Preview: Base Gold -{0}, Gift Gold -{1}, Gift Food -{2}, Item: {3}"
+                                           },
+    "fmt.hire_officer_row":  {
+                                 "zhHant":  "{0} | {1} | 忠誠 {2} | {3} | {4}",
+                                 "en":  "{0} | {1} | Loyalty {2} | {3} | {4}"
+                             },
+    "fmt.internal_affairs_schedule_row":  {
+                                              "zhHant":  "{0} | {1} | 剩餘 {2} 月",
+                                              "en":  "{0} | {1} | {2} months left"
+                                          },
+    "fmt.item_bonus_compact":  {
+                                   "zhHant":  "武{0} 智{1} 魅{2} 統{3} 政{4} 戰{5} 忠{6}",
+                                   "en":  "STR{0} INT{1} CHA{2} LEA{3} POL{4} COM{5} LOY{6}"
+                               },
+    "fmt.item_option":  {
+                            "zhHant":  "{0} | {1} | {2}",
+                            "en":  "{0} | {1} | {2}"
+                        },
+    "fmt.label_value":  {
+                            "zhHant":  "{0}: {1}",
+                            "en":  "{0}: {1}"
+                        },
+    "fmt.merchant_buy_horse_preview":  {
+                                           "zhHant":  "預覽：金 -{0}，馬 +{1}",
+                                           "en":  "Preview: Gold -{0}, Horse +{1}"
+                                       },
+    "fmt.merchant_buy_preview":  {
+                                     "zhHant":  "預覽：金 -{0}，糧 +{1}",
+                                     "en":  "Preview: Gold -{0}, Food +{1}"
+                                 },
+    "fmt.merchant_sell_preview":  {
+                                      "zhHant":  "預覽：糧 -{0}，金 +{1}",
+                                      "en":  "Preview: Food -{0}, Gold +{1}"
+                                  },
+    "fmt.month_advanced":  {
+                               "zhHant":  "新月份：{0}年 {1}月",
+                               "en":  "New month: Year {0} Month {1}"
+                           },
+    "fmt.officer_items":  {
+                              "zhHant":  "{0}：{1}",
+                              "en":  "{0}: {1}"
+                          },
+    "fmt.personnel_bonus_preview":  {
+                                        "zhHant":  "預覽：武將忠誠 +{0}",
+                                        "en":  "Preview: Officer Loyalty +{0}"
+                                    },
+    "fmt.personnel_bonus_preview_with_item":  {
+                                                  "zhHant":  "預覽：武將忠誠 +{0}，道具：{1}",
+                                                  "en":  "Preview: Officer Loyalty +{0}, Item: {1}"
+                                              },
+    "fmt.select_officer_for_command":  {
+                                           "zhHant":  "選擇執行「{0}」的武將",
+                                           "en":  "Select Officer for {0}"
+                                       },
+    "fmt.view_title.officers_city_name":  {
+                                              "zhHant":  "查看武將（{0}）",
+                                              "en":  "View Officers ({0})"
+                                          },
+    "fmt.year_month":  {
+                           "zhHant":  "{0}年 {1}月",
+                           "en":  "Year {0}  Month {1}"
+                       }
+}

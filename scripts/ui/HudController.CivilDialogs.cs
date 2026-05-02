@@ -66,8 +66,8 @@ public partial class HudController : CanvasLayer
         var reliefUsed = _selectedCity.LastCivilReliefYear == world.Year && _selectedCity.LastCivilReliefMonth == world.Month;
         var investigateUsed = _selectedCity.LastSearchYear == world.Year && _selectedCity.LastSearchMonth == world.Month;
 
-        AddCivilCommandOption("civil.command.relief", reliefUsed);
-        AddCivilCommandOption("civil.command.investigate_people", investigateUsed);
+        AddCivilCommandOption("command.civil.relief", reliefUsed);
+        AddCivilCommandOption("command.civil.investigate_people", investigateUsed);
         SelectFirstEnabledCivilCommandOption();
     }
 
@@ -131,13 +131,13 @@ public partial class HudController : CanvasLayer
 
         var metadata = _civilCommandOption.GetItemMetadata(_civilCommandOption.Selected);
         var commandKey = metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
-        if (commandKey == "civil.command.relief")
+        if (commandKey == "command.civil.relief")
         {
             ShowCivilReliefDialog();
             return;
         }
 
-        if (commandKey == "civil.command.investigate_people")
+        if (commandKey == "command.civil.investigate_people")
         {
             ShowOfficerCommandDialog(CommandType.Search);
             return;
@@ -282,7 +282,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        _civilReliefDialog.Title = _localization.T("civil.command.relief");
+        _civilReliefDialog.Title = _localization.T("command.civil.relief");
         _civilReliefDialog.OkButtonText = _localization.T("ui.confirm_civil_relief");
         SetCivilReliefDialogLabelText("OfficerListLabel", _localization.T("ui.civil_relief_officer"));
         SetCivilReliefDialogLabelText("GoldLabel", _localization.T("ui.civil_relief_gold"));

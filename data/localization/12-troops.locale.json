@@ -1,0 +1,26 @@
+{
+	"troop_type.archer":  {
+							  "zhHant":  "弓兵",
+							  "en":  "Archer"
+						  },
+	"troop_type.cavalry":  {
+							   "zhHant":  "騎兵",
+							   "en":  "Cavalry"
+						   },
+	"troop_type.crossbow":  {
+								"zhHant":  "弩兵",
+								"en":  "Crossbow"
+							},
+	"troop_type.infantry":  {
+								"zhHant":  "步兵",
+								"en":  "Infantry"
+							},
+	"troop_type.siege":  {
+							 "zhHant":  "攻城兵",
+							 "en":  "Siege"
+						 },
+	"troop_type.spearman":  {
+								"zhHant":  "槍兵",
+								"en":  "Spearman"
+							}
+}

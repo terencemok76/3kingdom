@@ -1,0 +1,454 @@
+﻿{
+    "cmd.ai_city_not_found":  {
+                                  "zhHant":  "找不到 AI 城市。",
+                                  "en":  "AI city not found."
+                              },
+    "cmd.ai_not_initialized":  {
+                                   "zhHant":  "AI 尚未初始化。",
+                                   "en":  "AI not initialized."
+                               },
+    "cmd.assign_role.invalid_role":  {
+                                         "zhHant":  "無效的官職。",
+                                         "en":  "Invalid official title."
+                                     },
+    "cmd.assign_role.officer_required":  {
+                                             "zhHant":  "請選擇要指派官職的本城武將。",
+                                             "en":  "Select a local officer to assign a title."
+                                         },
+    "cmd.assign_role.resolved":  {
+                                     "zhHant":  "已指派「{0}」為「{1}」。",
+                                     "en":  "Assigned \"{0}\" as \"{1}\"."
+                                 },
+    "cmd.assign_role.ruler_blocked":  {
+                                          "zhHant":  "君主不需指派此類官職。",
+                                          "en":  "The ruler does not need this type of assigned title."
+                                      },
+    "cmd.attack.cancelled":  {
+                                 "zhHant":  "「{0}」的攻擊命令已取消，目標「{1}」已不符合條件。兵力返還 +{2}，金返還 +{3}，糧返還 +{4}。",
+                                 "en":  "\"{0}\" attack order against \"{1}\" was cancelled. Returned troops +{2}, gold +{3}, food +{4}."
+                             },
+    "cmd.attack.failed":  {
+                              "zhHant":  "【{0}】「{1}」攻擊【{2}】「{3}」失敗。出征武將已返回原城，返還兵力 +{4}，金返還 +{5}，糧返還 +{6}。",
+                              "en":  "[{0}] \"{1}\" attack against [{2}] \"{3}\" failed. Deployed officers returned to the source city. Returned troops +{4}, gold +{5}, food +{6}."
+                          },
+    "cmd.attack.no_troops":  {
+                                 "zhHant":  "沒有可用於攻擊的兵力。",
+                                 "en":  "No troops available for attack."
+                             },
+    "cmd.attack.no_troops_resolution":  {
+                                            "zhHant":  "攻擊結算時沒有可用兵力。",
+                                            "en":  "No troops available when attack resolved."
+                                        },
+    "cmd.attack.officer_already_assigned":  {
+                                                "zhHant":  "「{0}」所選武將本月已被指派至其他命令。",
+                                                "en":  "\"{0}\" has selected officers already assigned to another command this month."
+                                            },
+    "cmd.attack.officer_required":  {
+                                        "zhHant":  "「{0}」攻擊時至少需要一位出征武將。",
+                                        "en":  "\"{0}\" needs at least one deployed officer to attack."
+                                    },
+    "cmd.attack.same_faction":  {
+                                    "zhHant":  "不能攻擊同勢力城市。",
+                                    "en":  "Cannot attack same faction city."
+                                },
+    "cmd.attack.scheduled":  {
+                                 "zhHant":  "「{0}」已排定攻擊命令，月末將進攻「{1}」。",
+                                 "en":  "\"{0}\" scheduled an Attack against \"{1}\"."
+                             },
+    "cmd.attack.success":  {
+                               "zhHant":  "【{0}】「{1}」攻擊成功，已攻下【{2}】「{3}」。留守兵力 {4}，帶入金 +{5}，帶入糧 +{6}。",
+                               "en":  "[{0}] \"{1}\" attack succeeded and captured [{2}] \"{3}\". Garrison troops {4}, carried gold +{5}, carried food +{6}."
+                           },
+    "cmd.attack.target_not_found_resolution":  {
+                                                   "zhHant":  "攻擊結算時找不到目標城市。",
+                                                   "en":  "Attack target city not found at resolution."
+                                               },
+    "cmd.attack.target_required":  {
+                                       "zhHant":  "攻擊需要指定目標城市。",
+                                       "en":  "Attack needs a target city."
+                                   },
+    "cmd.attack.too_many_troops":  {
+                                       "zhHant":  "「{0}」的出兵數量不可超過現有兵力。",
+                                       "en":  "\"{0}\" cannot deploy more troops than currently available."
+                                   },
+    "cmd.city_not_controlled":  {
+                                    "zhHant":  "此城市不屬於當前勢力。",
+                                    "en":  "City is not controlled by actor faction."
+                                },
+    "cmd.civil_investigate.farm_tip":  {
+                                           "zhHant":  "「{0}」訪察民情：採納老農建議，農業 +1，城市忠誠 +1。",
+                                           "en":  "\"{0}\" investigated the people: farmers\u0027 advice was adopted. Farm +1, City Loyalty +1."
+                                       },
+    "cmd.civil_investigate.food":  {
+                                       "zhHant":  "「{0}」訪察民情：發現民間餘糧，糧 +{1}。",
+                                       "en":  "\"{0}\" investigated the people: surplus food was found. Food +{1}."
+                                   },
+    "cmd.civil_investigate.gold":  {
+                                       "zhHant":  "「{0}」訪察民情：民間上繳税金，金 +{1}。",
+                                       "en":  "\"{0}\" investigated the people: local tax contribution received. Gold +{1}."
+                                   },
+    "cmd.civil_investigate.item_discovered":  {
+                                                  "zhHant":  "「{0}」訪察民情：尋得名物「{1}」，已收入勢力庫存。",
+                                                  "en":  "\"{0}\" investigated the people: found the famous item \"{1}\" and stored it in the faction inventory."
+                                              },
+    "cmd.civil_investigate.loyalty":  {
+                                          "zhHant":  "「{0}」訪察民情：安撫民心，城市忠誠 +{1}。",
+                                          "en":  "\"{0}\" investigated the people: public sentiment improved. City Loyalty +{1}."
+                                      },
+    "cmd.civil_investigate.officer_discovered":  {
+                                                     "zhHant":  "「{0}」訪察民情：發現在野人士「{1}」的行蹤。",
+                                                     "en":  "\"{0}\" investigated the people: discovered traces of free officer \"{1}\"."
+                                                 },
+    "cmd.civil_investigate.officer_joined":  {
+                                                 "zhHant":  "「{0}」訪察民情：發現在野武將「{1}」，並邀其出仕。",
+                                                 "en":  "\"{0}\" investigated the people: found free officer \"{1}\" and invited them to serve."
+                                             },
+    "cmd.civil_relief.already_used":  {
+                                          "zhHant":  "「{0}」本月已執行過救濟。",
+                                          "en":  "\"{0}\" has already used Relief this month."
+                                      },
+    "cmd.civil_relief.empty":  {
+                                   "zhHant":  "請輸入要救濟的金或糧。",
+                                   "en":  "Enter gold or food for relief."
+                               },
+    "cmd.civil_relief.not_enough_resources":  {
+                                                  "zhHant":  "「{0}」資源不足，無法救濟。",
+                                                  "en":  "\"{0}\" does not have enough resources for relief."
+                                              },
+    "cmd.civil_relief.officer_required":  {
+                                              "zhHant":  "「{0}」救濟需要指派一位武將。",
+                                              "en":  "\"{0}\" requires one assigned officer for Relief."
+                                          },
+    "cmd.civil_relief.officer_unavailable":  {
+                                                 "zhHant":  "「{0}」所選武將本月已被指派至其他命令。",
+                                                 "en":  "\"{0}\" has selected an officer already assigned to another command this month."
+                                             },
+    "cmd.civil_relief.resolved":  {
+                                      "zhHant":  "「{0}」已進行救濟：金 -{1}，糧 -{2}，城市忠誠 +{3}。",
+                                      "en":  "\"{0}\" relief completed: Gold -{1}, Food -{2}, City Loyalty +{3}."
+                                  },
+    "cmd.civil_relief.scheduled":  {
+                                       "zhHant":  "「{0}」已排定救濟命令，將於月末執行。",
+                                       "en":  "Relief scheduled for \"{0}\" at month end."
+                                   },
+    "cmd.civil_relief.too_small":  {
+                                       "zhHant":  "救濟數量不足以提升城市忠誠。",
+                                       "en":  "Relief amount is too small to increase city loyalty."
+                                   },
+    "cmd.combat_not_initialized":  {
+                                       "zhHant":  "戰鬥解析器尚未初始化。",
+                                       "en":  "Combat resolver not initialized."
+                                   },
+    "cmd.develop.already_used":  {
+                                     "zhHant":  "「{0}」本月已執行過開發。",
+                                     "en":  "\"{0}\" has already used Develop this month."
+                                 },
+    "cmd.develop.failed_month_end":  {
+                                         "zhHant":  "月末開發失敗：金不足。",
+                                         "en":  "Develop failed at month end: not enough gold."
+                                     },
+    "cmd.develop.not_enough_gold":  {
+                                        "zhHant":  "「{0}」金不足，無法執行開發。",
+                                        "en":  "\"{0}\" does not have enough gold for Develop."
+                                    },
+    "cmd.develop.officer_required":  {
+                                         "zhHant":  "「{0}」開發需要指派一位武將。",
+                                         "en":  "\"{0}\" requires one assigned officer for Develop."
+                                     },
+    "cmd.develop.officer_unavailable":  {
+                                            "zhHant":  "「{0}」所選武將本月已被指派至其他命令。",
+                                            "en":  "\"{0}\" has selected an officer already assigned to another command this month."
+                                        },
+    "cmd.develop.resolved":  {
+                                 "zhHant":  "「{0}」開發完成。農業 +{1}，商業 +{2}，防禦 +{3}，忠誠 +{4}。",
+                                 "en":  "\"{0}\" completed Develop. Farm+{1}, Commercial+{2}, Defense+{3}, Loyalty+{4}."
+                             },
+    "cmd.develop.scheduled":  {
+                                  "zhHant":  "「{0}」已排定開發命令，將於月末執行。",
+                                  "en":  "Develop scheduled for \"{0}\" at month end."
+                              },
+    "cmd.hire_officer.free_refused":  {
+                                          "zhHant":  "「{0}」尚未願意出仕。",
+                                          "en":  "\"{0}\" is not yet willing to serve."
+                                      },
+    "cmd.hire_officer.not_enough_gold":  {
+                                             "zhHant":  "「{0}」金不足，無法登用武將。",
+                                             "en":  "\"{0}\" does not have enough gold to hire an officer."
+                                         },
+    "cmd.hire_officer.not_enough_offer_resources":  {
+                                                        "zhHant":  "「{0}」資源不足，無法支付登用費用與贈禮。",
+                                                        "en":  "\"{0}\" does not have enough resources to pay the hire cost and gifts."
+                                                    },
+    "cmd.hire_officer.not_visible":  {
+                                         "zhHant":  "此在野人士尚未現身，需先訪察找出來。",
+                                         "en":  "This free officer has not appeared yet; investigate first to find them."
+                                     },
+    "cmd.hire_officer.officer_required":  {
+                                              "zhHant":  "請選擇要登用的武將。",
+                                              "en":  "Select an officer to hire."
+                                          },
+    "cmd.hire_officer.refused":  {
+                                     "zhHant":  "「{0}」忠誠 {1}，拒絕登用。",
+                                     "en":  "\"{0}\" has Loyalty {1} and refused recruitment."
+                                 },
+    "cmd.hire_officer.resolved":  {
+                                      "zhHant":  "已登用「{0}」至「{1}」，金 -{2}，糧 -{3}。",
+                                      "en":  "Hired \"{0}\" to \"{1}\". Gold -{2}, Food -{3}."
+                                  },
+    "cmd.hire_officer.resolved_with_item":  {
+                                                "zhHant":  "已登用「{0}」至「{1}」，金 -{2}，糧 -{3}，並贈與「{4}」。",
+                                                "en":  "Hired \"{0}\" to \"{1}\". Gold -{2}, Food -{3}, and gifted \"{4}\"."
+                                            },
+    "cmd.hire_officer.ruler_blocked":  {
+                                           "zhHant":  "不能登用其他勢力的君主。",
+                                           "en":  "Cannot hire another faction\u0027s ruler."
+                                       },
+    "cmd.hire_officer.same_faction":  {
+                                          "zhHant":  "此武將已屬於我方，請使用移動指令調動。",
+                                          "en":  "This officer already belongs to your faction; use Move to transfer them."
+                                      },
+    "cmd.hire_officer.too_young":  {
+                                       "zhHant":  "此武將年齡未滿 18，尚不能出仕。",
+                                       "en":  "This officer is under 18 and cannot join yet."
+                                   },
+    "cmd.internal_affairs.interrupted":  {
+                                             "zhHant":  "內政因城市或武將狀態變更而中斷。",
+                                             "en":  "Internal affairs was interrupted by city or officer state changes."
+                                         },
+    "cmd.internal_affairs.invalid_duration":  {
+                                                  "zhHant":  "內政執行月數必須大於 0。",
+                                                  "en":  "Internal affairs duration must be greater than 0."
+                                              },
+    "cmd.internal_affairs.job_already_active":  {
+                                                    "zhHant":  "「{0}」已有「{1}」內政進行中。",
+                                                    "en":  "\"{0}\" already has active \"{1}\" internal affairs."
+                                                },
+    "cmd.internal_affairs.officer_required":  {
+                                                  "zhHant":  "「{0}」內政需要指派一位本城武將。",
+                                                  "en":  "\"{0}\" requires one local officer for Internal Affairs."
+                                              },
+    "cmd.internal_affairs.officer_unavailable":  {
+                                                     "zhHant":  "武將「{0}」已有命令或內政排程。",
+                                                     "en":  "Officer \"{0}\" already has an order or internal affairs schedule."
+                                                 },
+    "cmd.internal_affairs.resolved":  {
+                                          "zhHant":  "「{0}」內政進度：「{1}」執行「{2}」。農業 +{3}，商業 +{4}，防衛 +{5}，防災 +{6}，忠誠 +{7}，剩餘 {8} 月。",
+                                          "en":  "\"{0}\" internal affairs: \"{1}\" worked on \"{2}\". Farm +{3}, Commercial +{4}, Defense +{5}, Disaster Prevention +{6}, Loyalty +{7}, {8} months left."
+                                      },
+    "cmd.internal_affairs.schedule_not_found":  {
+                                                    "zhHant":  "找不到可中止的內政排程。",
+                                                    "en":  "No active internal affairs schedule found to terminate."
+                                                },
+    "cmd.internal_affairs.scheduled":  {
+                                           "zhHant":  "「{0}」已指派「{1}」執行「{2}」，期間 {3} 個月。",
+                                           "en":  "\"{0}\" assigned \"{1}\" to \"{2}\" for {3} months."
+                                       },
+    "cmd.internal_affairs.terminated":  {
+                                            "zhHant":  "「{0}」已中止「{1}」內政。",
+                                            "en":  "\"{0}\" terminated \"{1}\" internal affairs."
+                                        },
+    "cmd.item.invalid_bonus_item":  {
+                                        "zhHant":  "此道具不在本勢力庫存中，無法用於賞賜。",
+                                        "en":  "This item is not in the current faction inventory and cannot be used for bonus."
+                                    },
+    "cmd.item.invalid_hire_item":  {
+                                       "zhHant":  "此道具不在本勢力庫存中，無法作為登用贈禮。",
+                                       "en":  "This item is not in the current faction inventory and cannot be used as a hiring gift."
+                                   },
+    "cmd.merchant.buy_horse_success":  {
+                                           "zhHant":  "「{0}」買馬成功。金 -{1}，馬 +{2}。",
+                                           "en":  "\"{0}\" bought horses. Gold-{1}, Horse+{2}."
+                                       },
+    "cmd.merchant.buy_success":  {
+                                     "zhHant":  "「{0}」買糧成功。金 -{1}，糧 +{2}。",
+                                     "en":  "\"{0}\" bought food. Gold-{1}, Food+{2}."
+                                 },
+    "cmd.merchant.invalid_amount":  {
+                                        "zhHant":  "「{0}」的交易數量無效。",
+                                        "en":  "\"{0}\" has an invalid trade amount."
+                                    },
+    "cmd.merchant.not_enough_food":  {
+                                         "zhHant":  "「{0}」糧不足，無法賣糧。",
+                                         "en":  "\"{0}\" does not have enough food to sell."
+                                     },
+    "cmd.merchant.not_enough_gold":  {
+                                         "zhHant":  "「{0}」金不足，無法買糧。",
+                                         "en":  "\"{0}\" does not have enough gold to buy food."
+                                     },
+    "cmd.merchant.sell_success":  {
+                                      "zhHant":  "「{0}」賣糧成功。糧 -{1}，金 +{2}。",
+                                      "en":  "\"{0}\" sold food. Food-{1}, Gold+{2}."
+                                  },
+    "cmd.move.cancelled":  {
+                               "zhHant":  "「{0}」的移動命令已取消，目標「{1}」已不符合條件。",
+                               "en":  "\"{0}\" move order to \"{1}\" was cancelled."
+                           },
+    "cmd.move.must_be_same_faction":  {
+                                          "zhHant":  "移動目標必須是同勢力城市。",
+                                          "en":  "Move target must be same faction city."
+                                      },
+    "cmd.move.no_effect":  {
+                               "zhHant":  "「{0}」的移動命令未生效，目標為「{1}」。",
+                               "en":  "\"{0}\" move order to \"{1}\" had no effect."
+                           },
+    "cmd.move.nothing_to_move":  {
+                                     "zhHant":  "沒有可移動的兵力、金、糧、馬或武將。",
+                                     "en":  "No troops, gold, food, horses, or officers available to move."
+                                 },
+    "cmd.move.officer_already_assigned":  {
+                                              "zhHant":  "「{0}」所選武將本月已被指派至其他命令。",
+                                              "en":  "\"{0}\" has selected officers already assigned to another command this month."
+                                          },
+    "cmd.move.resolved":  {
+                              "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、武將 +{5} 已轉移至「{6}」。",
+                              "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Officers+{5} moved to \"{6}\"."
+                          },
+    "cmd.move.scheduled":  {
+                               "zhHant":  "「{0}」已排定移動命令，月末將轉移至「{1}」。",
+                               "en":  "\"{0}\" scheduled a Move to \"{1}\"."
+                           },
+    "cmd.move.target_not_found_resolution":  {
+                                                 "zhHant":  "移動結算時找不到目標城市。",
+                                                 "en":  "Move target city not found at resolution."
+                                             },
+    "cmd.move.target_required":  {
+                                     "zhHant":  "移動需要指定目標城市。",
+                                     "en":  "Move needs a target city."
+                                 },
+    "cmd.pass":  {
+                     "zhHant":  "待命",
+                     "en":  "Pass"
+                 },
+    "cmd.pending_source_city_not_found":  {
+                                              "zhHant":  "找不到待結算的來源城市。",
+                                              "en":  "Pending source city not found."
+                                          },
+    "cmd.personnel_bonus.empty":  {
+                                      "zhHant":  "請輸入要賞賜的金、糧或道具。",
+                                      "en":  "Enter gold, food, or an item to give as a bonus."
+                                  },
+    "cmd.personnel_bonus.not_enough_resources":  {
+                                                     "zhHant":  "「{0}」資源不足，無法賞賜。",
+                                                     "en":  "\"{0}\" does not have enough resources for bonus."
+                                                 },
+    "cmd.personnel_bonus.officer_required":  {
+                                                 "zhHant":  "請選擇要賞賜的本城武將。",
+                                                 "en":  "Select a local officer to reward."
+                                             },
+    "cmd.personnel_bonus.resolved":  {
+                                         "zhHant":  "已賞賜「{0}」：金 -{1}，糧 -{2}，武將忠誠 +{3}。",
+                                         "en":  "Rewarded \"{0}\": Gold -{1}, Food -{2}, Officer Loyalty +{3}."
+                                     },
+    "cmd.personnel_bonus.resolved_with_item":  {
+                                                   "zhHant":  "已賞賜「{0}」：金 -{1}，糧 -{2}，武將忠誠 +{3}，並賜予「{4}」。",
+                                                   "en":  "Rewarded \"{0}\": Gold -{1}, Food -{2}, Officer Loyalty +{3}, and granted \"{4}\"."
+                                               },
+    "cmd.personnel_bonus.too_small":  {
+                                          "zhHant":  "賞賜數量不足以提升忠誠。",
+                                          "en":  "Bonus amount is too small to increase loyalty."
+                                      },
+    "cmd.recruit.already_used":  {
+                                     "zhHant":  "「{0}」本月已執行過徵兵。",
+                                     "en":  "\"{0}\" has already used Recruit this month."
+                                 },
+    "cmd.recruit.failed_month_end":  {
+                                         "zhHant":  "月末徵兵失敗：資源不足。",
+                                         "en":  "Recruit failed at month end: not enough resources."
+                                     },
+    "cmd.recruit.not_enough_resources":  {
+                                             "zhHant":  "「{0}」資源不足，無法徵兵。",
+                                             "en":  "\"{0}\" does not have enough resources for Recruit."
+                                         },
+    "cmd.recruit.officer_required":  {
+                                         "zhHant":  "「{0}」徵兵需要指派一位武將。",
+                                         "en":  "\"{0}\" requires one assigned officer for Recruit."
+                                     },
+    "cmd.recruit.officer_unavailable":  {
+                                            "zhHant":  "「{0}」所選武將本月已被指派至其他命令。",
+                                            "en":  "\"{0}\" has selected an officer already assigned to another command this month."
+                                        },
+    "cmd.recruit.requirement_not_met":  {
+                                            "zhHant":  "「{0}」缺少徵募「{1}」所需條件。",
+                                            "en":  "\"{0}\" does not meet the requirement to recruit {1}."
+                                        },
+    "cmd.recruit.resolved":  {
+                                 "zhHant":  "「{0}」徵兵完成。{1} +{2}，忠誠 -{3}。",
+                                 "en":  "\"{0}\" completed Recruit. {1}+{2}, Loyalty-{3}."
+                             },
+    "cmd.recruit.scheduled":  {
+                                  "zhHant":  "「{0}」已排定徵兵命令，將於月末執行。",
+                                  "en":  "Recruit scheduled for \"{0}\" at month end."
+                              },
+    "cmd.request_item.item_required":  {
+                                           "zhHant":  "請選擇要索回的道具。",
+                                           "en":  "Select an item to recall."
+                                       },
+    "cmd.request_item.officer_required":  {
+                                              "zhHant":  "請選擇要索回道具的本城武將。",
+                                              "en":  "Select a local officer to recall an item from."
+                                          },
+    "cmd.request_item.resolved":  {
+                                      "zhHant":  "已從「{0}」索回「{1}」，並收入勢力庫存。",
+                                      "en":  "Recalled \"{1}\" from \"{0}\" and returned it to faction inventory."
+                                  },
+    "cmd.search.already_used":  {
+                                    "zhHant":  "「{0}」本月已執行過搜索。",
+                                    "en":  "\"{0}\" has already used Search this month."
+                                },
+    "cmd.search.found_food":  {
+                                  "zhHant":  "「{0}」搜索成功。糧 +{1}。",
+                                  "en":  "\"{0}\" search succeeded. Food+{1}."
+                              },
+    "cmd.search.found_gold":  {
+                                  "zhHant":  "「{0}」搜索成功。金 +{1}。",
+                                  "en":  "\"{0}\" search succeeded. Gold+{1}."
+                              },
+    "cmd.search.found_item":  {
+                                  "zhHant":  "「{0}」搜索成功。發現名物「{1}」，已收入勢力庫存。",
+                                  "en":  "\"{0}\" search succeeded. Found the famous item \"{1}\" and stored it in the faction inventory."
+                              },
+    "cmd.search.nothing_found":  {
+                                     "zhHant":  "「{0}」搜索沒有發現任何成果。",
+                                     "en":  "\"{0}\" searched but found nothing."
+                                 },
+    "cmd.search.officer_joined":  {
+                                      "zhHant":  "「{0}」搜索成功。武將「{1}」加入了城市。",
+                                      "en":  "\"{0}\" search succeeded. Officer \"{1}\" joined the city."
+                                  },
+    "cmd.search.officer_required":  {
+                                        "zhHant":  "「{0}」搜索需要指派一位武將。",
+                                        "en":  "\"{0}\" requires one assigned officer for Search."
+                                    },
+    "cmd.search.officer_unavailable":  {
+                                           "zhHant":  "「{0}」所選武將本月已被指派至其他命令。",
+                                           "en":  "\"{0}\" has selected an officer already assigned to another command this month."
+                                       },
+    "cmd.search.scheduled":  {
+                                 "zhHant":  "「{0}」已排定搜索命令，將於月末執行。",
+                                 "en":  "Search scheduled for \"{0}\" at month end."
+                             },
+    "cmd.source_city_not_found":  {
+                                      "zhHant":  "找不到來源城市。",
+                                      "en":  "Source city not found."
+                                  },
+    "cmd.target_city_not_connected":  {
+                                          "zhHant":  "目標城市與當前城市不相連。",
+                                          "en":  "Target city is not connected."
+                                      },
+    "cmd.target_city_not_found":  {
+                                      "zhHant":  "找不到目標城市。",
+                                      "en":  "Target city not found."
+                                  },
+    "cmd.unknown_command":  {
+                                "zhHant":  "未知指令。",
+                                "en":  "Unknown command."
+                            },
+    "cmd.unsupported_pending_command":  {
+                                            "zhHant":  "不支援的待結算指令。",
+                                            "en":  "Unsupported pending command."
+                                        },
+    "cmd.world_not_initialized":  {
+                                      "zhHant":  "世界狀態尚未初始化。",
+                                      "en":  "World not initialized."
+                                  }
+}

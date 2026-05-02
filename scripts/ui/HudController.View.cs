@@ -108,7 +108,7 @@ public partial class HudController : CanvasLayer
         }
         else
         {
-            _officerDetailDialog.PopupCentered(new Vector2I(520, 340));
+            _officerDetailDialog.PopupCentered(new Vector2I(700, 360));
         }
     }
 
@@ -375,7 +375,7 @@ public partial class HudController : CanvasLayer
         {
             _officerListTable.Columns = 10;
             SetViewTableColumn(0, _localization.T("ui.city"), 130, ViewTableSortField.Name);
-            SetViewTableColumn(1, _localization.T("ui.owner"), 140, ViewTableSortField.Owner);
+            SetViewTableColumn(1, _localization.T("ui.faction_owner"), 140, ViewTableSortField.Owner);
             SetViewTableColumn(2, _localization.T("ui.gold"), 90, ViewTableSortField.Gold);
             SetViewTableColumn(3, _localization.T("ui.food"), 90, ViewTableSortField.Food);
             SetViewTableColumn(4, _localization.T("ui.troops"), 90, ViewTableSortField.Troops);
@@ -389,17 +389,18 @@ public partial class HudController : CanvasLayer
 
         if (_officerListContentMode == OfficerListContentMode.Items)
         {
-            _officerListTable.Columns = 10;
+            _officerListTable.Columns = 11;
             SetViewTableColumn(0, _localization.T("ui.items"), 170, ViewTableSortField.Name);
-            SetViewTableColumn(1, _localization.T("ui.item_type"), 110, ViewTableSortField.ItemType);
-            SetViewTableColumn(2, _localization.T("ui.rarity"), 90, ViewTableSortField.Rarity);
-            SetViewTableColumn(3, _localization.T("ui.strength"), 70, ViewTableSortField.Strength);
-            SetViewTableColumn(4, _localization.T("ui.intelligence"), 70, ViewTableSortField.Intelligence);
-            SetViewTableColumn(5, _localization.T("ui.charm"), 70, ViewTableSortField.Charm);
-            SetViewTableColumn(6, _localization.T("ui.leadership"), 70, ViewTableSortField.Leadership);
-            SetViewTableColumn(7, _localization.T("ui.politics"), 70, ViewTableSortField.Politics);
-            SetViewTableColumn(8, _localization.T("ui.combat"), 70, ViewTableSortField.Combat);
-            SetViewTableColumn(9, _localization.T("ui.loyalty"), 70, ViewTableSortField.OfficerLoyalty);
+            SetViewTableColumn(1, _localization.T("ui.holder"), 130, ViewTableSortField.Holder);
+            SetViewTableColumn(2, _localization.T("ui.item_type"), 110, ViewTableSortField.ItemType);
+            SetViewTableColumn(3, _localization.T("ui.rarity"), 90, ViewTableSortField.Rarity);
+            SetViewTableColumn(4, _localization.T("ui.strength"), 70, ViewTableSortField.Strength);
+            SetViewTableColumn(5, _localization.T("ui.intelligence"), 70, ViewTableSortField.Intelligence);
+            SetViewTableColumn(6, _localization.T("ui.charm"), 70, ViewTableSortField.Charm);
+            SetViewTableColumn(7, _localization.T("ui.leadership"), 70, ViewTableSortField.Leadership);
+            SetViewTableColumn(8, _localization.T("ui.politics"), 70, ViewTableSortField.Politics);
+            SetViewTableColumn(9, _localization.T("ui.combat"), 70, ViewTableSortField.Combat);
+            SetViewTableColumn(10, _localization.T("ui.loyalty"), 70, ViewTableSortField.OfficerLoyalty);
             return;
         }
 
@@ -571,15 +572,16 @@ public partial class HudController : CanvasLayer
 
         row.SetMetadata(0, item.Id);
         row.SetText(0, _localization.GetItemName(item));
-        row.SetText(1, _localization.GetItemType(item));
-        row.SetText(2, _localization.GetItemRarity(item));
-        row.SetText(3, item.StrengthBonus.ToString());
-        row.SetText(4, item.IntelligenceBonus.ToString());
-        row.SetText(5, item.CharmBonus.ToString());
-        row.SetText(6, item.LeadershipBonus.ToString());
-        row.SetText(7, item.PoliticsBonus.ToString());
-        row.SetText(8, item.CombatBonus.ToString());
-        row.SetText(9, item.LoyaltyBonus.ToString());
+        row.SetText(1, BuildItemHolderText(item));
+        row.SetText(2, _localization.GetItemType(item));
+        row.SetText(3, _localization.GetItemRarity(item));
+        row.SetText(4, item.StrengthBonus.ToString());
+        row.SetText(5, item.IntelligenceBonus.ToString());
+        row.SetText(6, item.CharmBonus.ToString());
+        row.SetText(7, item.LeadershipBonus.ToString());
+        row.SetText(8, item.PoliticsBonus.ToString());
+        row.SetText(9, item.CombatBonus.ToString());
+        row.SetText(10, item.LoyaltyBonus.ToString());
     }
 
     private ViewTableSortField GetViewTableSortFieldForColumn(int column)
@@ -605,15 +607,16 @@ public partial class HudController : CanvasLayer
         {
             return column switch
             {
-                1 => ViewTableSortField.ItemType,
-                2 => ViewTableSortField.Rarity,
-                3 => ViewTableSortField.Strength,
-                4 => ViewTableSortField.Intelligence,
-                5 => ViewTableSortField.Charm,
-                6 => ViewTableSortField.Leadership,
-                7 => ViewTableSortField.Politics,
-                8 => ViewTableSortField.Combat,
-                9 => ViewTableSortField.OfficerLoyalty,
+                1 => ViewTableSortField.Holder,
+                2 => ViewTableSortField.ItemType,
+                3 => ViewTableSortField.Rarity,
+                4 => ViewTableSortField.Strength,
+                5 => ViewTableSortField.Intelligence,
+                6 => ViewTableSortField.Charm,
+                7 => ViewTableSortField.Leadership,
+                8 => ViewTableSortField.Politics,
+                9 => ViewTableSortField.Combat,
+                10 => ViewTableSortField.OfficerLoyalty,
                 _ => ViewTableSortField.Name
             };
         }
@@ -647,7 +650,7 @@ public partial class HudController : CanvasLayer
 
     private static bool IsAscendingDefaultSortField(ViewTableSortField field)
     {
-        return field is ViewTableSortField.Name or ViewTableSortField.Role or ViewTableSortField.Status or ViewTableSortField.City or ViewTableSortField.Owner or ViewTableSortField.ItemType or ViewTableSortField.Rarity;
+        return field is ViewTableSortField.Name or ViewTableSortField.Role or ViewTableSortField.Status or ViewTableSortField.City or ViewTableSortField.Owner or ViewTableSortField.Holder or ViewTableSortField.ItemType or ViewTableSortField.Rarity;
     }
 
     private void UpdateOfficerListToolbar()
@@ -735,22 +738,22 @@ public partial class HudController : CanvasLayer
         {
             SetOfficerListDialogTitle(_cityListFilterMode switch
             {
-                CityListFilterMode.OtherFactions => _localization.T("ui.view_dialog_title_other_cities"),
-                CityListFilterMode.AllCities => _localization.T("ui.view_dialog_title_all_cities"),
-                _ => _localization.T("ui.view_dialog_title_self_cities")
+                CityListFilterMode.OtherFactions => _localization.T("ui.view_title.cities_other"),
+                CityListFilterMode.AllCities => _localization.T("ui.view_title.cities_all"),
+                _ => _localization.T("ui.view_title.cities_self")
             });
             return;
         }
 
         if (_officerListContentMode == OfficerListContentMode.Items)
         {
-            SetOfficerListDialogTitle(_localization.T("ui.view_dialog_title_faction_items"));
+            SetOfficerListDialogTitle(_localization.T("ui.view_title.items_faction"));
             return;
         }
 
         SetOfficerListDialogTitle(_officerListScope == OfficerListScope.Faction
-            ? _localization.T("ui.view_dialog_title_faction")
-            : _localization.Format("fmt.view_dialog_title_city_name", _selectedCity != null ? _localization.GetCityName(_selectedCity) : _localization.T("ui.view_dialog_title_city")));
+            ? _localization.T("ui.view_title.officers_faction")
+            : _localization.Format("fmt.view_title.officers_city_name", _selectedCity != null ? _localization.GetCityName(_selectedCity) : _localization.T("ui.view_title.officers_city")));
     }
 
     private void OnViewFactionItemsDialogPressed()
@@ -819,11 +822,14 @@ public partial class HudController : CanvasLayer
         }
 
         var items = _turnManager.World.Items
-            .Where(item => item.OwnerFactionId == _selectedCity.OwnerFactionId && item.EquippedOfficerId <= 0)
+            .Where(item => item.OwnerFactionId == _selectedCity.OwnerFactionId)
             .ToList();
 
         IOrderedEnumerable<ItemData> ordered = _viewTableSortField switch
         {
+            ViewTableSortField.Holder => _viewTableSortAscending
+                ? items.OrderBy(BuildItemHolderSortText)
+                : items.OrderByDescending(BuildItemHolderSortText),
             ViewTableSortField.ItemType => _viewTableSortAscending
                 ? items.OrderBy(item => _localization?.GetItemType(item) ?? item.ItemType.ToString())
                 : items.OrderByDescending(item => _localization?.GetItemType(item) ?? item.ItemType.ToString()),
@@ -859,6 +865,31 @@ public partial class HudController : CanvasLayer
         return ordered
             .ThenBy(item => item.Id)
             .ToList();
+    }
+
+    private string BuildItemHolderText(ItemData item)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return "-";
+        }
+
+        if (item.EquippedOfficerId > 0)
+        {
+            var officer = _turnManager.World.GetOfficer(item.EquippedOfficerId);
+            if (officer != null)
+            {
+                return _localization.GetOfficerName(officer);
+            }
+        }
+
+        return _localization.T("ui.none");
+    }
+
+    private string BuildItemHolderSortText(ItemData item)
+    {
+        var holder = BuildItemHolderText(item);
+        return holder == (_localization?.T("ui.none") ?? "None") ? "zzzz" : holder;
     }
 
     private static int GetItemRaritySortKey(ItemData item)

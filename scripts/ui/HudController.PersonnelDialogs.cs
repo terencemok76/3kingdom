@@ -62,10 +62,10 @@ public partial class HudController : CanvasLayer
         }
 
         _personnelCommandOption.Clear();
-        AddPersonnelCommandOption("personnel.command.give_bonus");
-        AddPersonnelCommandOption("personnel.command.assign_title");
-        AddPersonnelCommandOption("personnel.command.request_item");
-        AddPersonnelCommandOption("personnel.command.hire_officer");
+        AddPersonnelCommandOption("command.personnel.give_bonus");
+        AddPersonnelCommandOption("command.personnel.assign_title");
+        AddPersonnelCommandOption("command.personnel.request_item");
+        AddPersonnelCommandOption("command.personnel.hire_officer");
     }
 
     private void AddPersonnelCommandOption(string localeKey)
@@ -104,25 +104,25 @@ public partial class HudController : CanvasLayer
 
         var metadata = _personnelCommandOption.GetItemMetadata(_personnelCommandOption.Selected);
         var commandKey = metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
-        if (commandKey == "personnel.command.give_bonus")
+        if (commandKey == "command.personnel.give_bonus")
         {
             ShowPersonnelBonusDialog();
             return;
         }
 
-        if (commandKey == "personnel.command.assign_title")
+        if (commandKey == "command.personnel.assign_title")
         {
             ShowAssignRoleDialog();
             return;
         }
 
-        if (commandKey == "personnel.command.request_item")
+        if (commandKey == "command.personnel.request_item")
         {
             ShowRequestItemDialog();
             return;
         }
 
-        if (commandKey == "personnel.command.hire_officer")
+        if (commandKey == "command.personnel.hire_officer")
         {
             ShowHireOfficerDialog();
             return;
@@ -303,7 +303,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        _personnelBonusDialog.Title = _localization.T("personnel.command.give_bonus");
+        _personnelBonusDialog.Title = _localization.T("command.personnel.give_bonus");
         _personnelBonusDialog.OkButtonText = _localization.T("ui.confirm_personnel_bonus");
         SetPersonnelBonusDialogLabelText("OfficerListLabel", _localization.T("ui.personnel_bonus_officer"));
         SetPersonnelBonusDialogLabelText("GoldLabel", _localization.T("ui.personnel_bonus_gold"));
@@ -545,7 +545,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        _assignRoleDialog.Title = _localization.T("personnel.command.assign_title");
+        _assignRoleDialog.Title = _localization.T("command.personnel.assign_title");
         _assignRoleDialog.OkButtonText = _localization.T("ui.confirm_assign_role");
         SetAssignRoleDialogLabelText("OfficerListLabel", _localization.T("ui.assign_role_officer"));
         SetAssignRoleDialogLabelText("RoleLabel", _localization.T("ui.assign_role_title"));
@@ -711,7 +711,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        _requestItemDialog.Title = _localization.T("personnel.command.request_item");
+        _requestItemDialog.Title = _localization.T("command.personnel.request_item");
         _requestItemDialog.OkButtonText = _localization.T("ui.confirm_request_item");
         SetRequestItemDialogLabelText("OfficerListLabel", _localization.T("ui.request_item_officer"));
         SetRequestItemDialogLabelText("ItemLabel", _localization.T("ui.request_item"));
@@ -770,7 +770,7 @@ public partial class HudController : CanvasLayer
         }
 
         _requestItemOption.Clear();
-        _requestItemOption.AddItem(_localization.T("ui.none_item"));
+        _requestItemOption.AddItem(_localization.T("ui.no_item"));
         _requestItemOption.SetItemMetadata(0, 0);
 
         var officerId = GetSelectedTreeMetadataIds(_requestItemOfficerList).FirstOrDefault();
@@ -997,7 +997,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        _hireOfficerDialog.Title = _localization.T("personnel.command.hire_officer");
+        _hireOfficerDialog.Title = _localization.T("command.personnel.hire_officer");
         var label = _hireOfficerDialog.GetNodeOrNull<Label>("HireOfficerDialogRoot/OfficerListLabel");
         if (label != null)
         {
@@ -1336,7 +1336,7 @@ public partial class HudController : CanvasLayer
         SetHireOfficerTableColumn(0, _localization.T("ui.officers"), 150, HireOfficerSortField.Name);
         SetHireOfficerTableColumn(1, _localization.T("ui.role"), 110, HireOfficerSortField.Role);
         SetHireOfficerTableColumn(2, _localization.T("ui.city"), 140, HireOfficerSortField.City);
-        SetHireOfficerTableColumn(3, _localization.T("ui.owner"), 140, HireOfficerSortField.Owner);
+        SetHireOfficerTableColumn(3, _localization.T("ui.faction_owner"), 140, HireOfficerSortField.Owner);
         SetHireOfficerTableColumn(4, _localization.T("ui.loyalty"), 80, HireOfficerSortField.Loyalty);
         SetHireOfficerTableColumn(5, _localization.T("ui.strength"), 80, HireOfficerSortField.Strength);
         SetHireOfficerTableColumn(6, _localization.T("ui.intelligence"), 80, HireOfficerSortField.Intelligence);
@@ -1452,7 +1452,7 @@ public partial class HudController : CanvasLayer
         }
 
         option.Clear();
-        option.AddItem(_localization.T("ui.none_item"));
+        option.AddItem(_localization.T("ui.no_item"));
         option.SetItemMetadata(0, 0);
 
         foreach (var item in _turnManager.World.Items

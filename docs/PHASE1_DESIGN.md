@@ -1106,3 +1106,97 @@ res://
 - All required commands functional
 - AI factions take full monthly turns
 - Code organized by structure above, with clear separation between data, core logic, map, and UI
+
+## 16.1 Phase 1.5+ Diplomacy and Spy System
+
+### Diplomacy
+- Diplomacy is a strategic-layer faction-to-faction system and is resolved on the campaign map, not in a separate scene.
+- Diplomacy actions are intended to be issued from a dedicated `Diplomacy` command category in a later phase.
+- Each diplomacy action requires one assigned officer (`diplomat`, `strategist`, or another valid envoy).
+- Assigned diplomacy officers should be unavailable for other month-based actions during the same active diplomacy order.
+- Diplomacy can be either:
+- `single-month`: one negotiation resolved at the coming month-end
+- `multi-month`: a sustained mission such as maintaining alliance talks, tribute exchange, pressure, or mediation over multiple months
+- Baseline diplomacy actions:
+- `Alliance`: both factions enter a friendly state and should strongly reduce direct attacks for a fixed duration.
+- `Ceasefire`: both factions temporarily stop attacks without becoming full allies.
+- `Tribute / Gift`: transfer `Gold`, `Food`, `Horse`, or items to improve relations.
+- `Demand / Threat`: pressure a weaker faction for resources, surrender, or political concession.
+- `Break Pact`: explicitly cancel alliance or ceasefire, usually with a relation penalty.
+- Diplomacy success should mainly depend on:
+- ruler `Charm`
+- assigned diplomat or strategist `Intelligence` / `Charm`
+- civil rank / strategist rank bonuses
+- current relation state
+- faction relative power
+- recent war history
+- Diplomacy should be resolved at month-end, so accepted or rejected treaties become part of the same monthly command flow as other strategy actions.
+- Diplomacy state should track at least:
+- current relation tier (`Hostile`, `Neutral`, `Friendly`, `Allied`)
+- treaty type
+- remaining duration
+- recent betrayal or trust penalty
+- active assigned officer id if the diplomatic action is still in progress
+- remaining action months for multi-month diplomacy
+
+### Spy System
+- Spy actions are a strategic-layer covert command set and should be separated from open diplomacy.
+- A spy mission requires one assigned officer and resolves at month-end.
+- Some spy missions should support multi-month preparation or infiltration time instead of resolving immediately in one month.
+- Assigned spy officers should be unavailable for other month-based actions while the infiltration / operation is active.
+- Ruler officers should not be valid spy candidates in the baseline rules.
+- Spy mission success should mainly depend on:
+- assigned officer `Intelligence`
+- assigned officer `Charm`
+- strategist rank bonuses
+- target city loyalty
+- target ruler / target officer vigilance
+- relation state between factions
+- Each mission carries detection risk.
+- On detection, the acting faction should suffer relation damage and the assigned spy may be exposed, captured, executed, or returned with loyalty loss.
+
+### Spy Mission Types
+- `Reconnaissance`:
+- reveal target city `Gold`, `Food`, total troops, troop-type counts, officers, city defense, disaster prevention, active internal-affairs schedules, and hidden/free officer clues for a limited duration.
+- `Sabotage`:
+- damage a target city's `Food`, `Gold`, `Defense`, `DisasterPrevention`, troop reserves, workshop availability, or current internal-affairs progress.
+- `Defection / Incitement`:
+- lower target officer loyalty or city loyalty and attempt to flip a low-loyalty officer, hidden officer, or local population sentiment to the acting faction.
+- `Assassination`:
+- attempt to wound or kill a target officer or ruler.
+- assassination should have the highest failure and exposure risk and must be heavily limited by loyalty, security, and target status.
+
+### Mission Timing Model
+- `Reconnaissance` may be either single-month or multi-month, with longer missions giving deeper information.
+- `Sabotage` should usually require at least one preparation month before resolution.
+- `Defection / Incitement` should usually be a multi-month influence mission and may improve success rate over time.
+- `Assassination` may be resolved as a high-risk single strike or as a multi-month setup followed by an execution month.
+- Multi-month diplomacy and spy actions should reuse the same scheduling model concept already used by internal affairs.
+
+### Design Constraints
+- Diplomacy and spy actions should use existing month-end scheduling and log systems where possible.
+- Complex diplomacy and spy UIs should use `Window`, not `AcceptDialog`, following the project's current UI direction.
+- All visible diplomacy and spy text must remain in `data/localization/locale.json`.
+
+### Information Visibility and Development God Mode
+- In normal gameplay, information about `other factions`, `other cities`, and `other officers` is hidden by default.
+- Without successful reconnaissance or spy intelligence, the player should only see limited public information or placeholder values such as:
+- `??` for hidden numeric or textual data
+- unknown troop composition
+- unknown food / gold stockpile
+- unknown officer loyalty, rank, title, or item ownership
+- partially hidden city development data such as `Defense`, `DisasterPrevention`, workshops, and active schedules
+- Basic public information may still remain visible, such as:
+- city name
+- owning faction
+- rough relation state
+- whether a city exists and is connected
+- whether a known officer is physically present if already discovered by prior intelligence or story setup
+- `Reconnaissance` should be the main system used to reveal hidden information for enemy or foreign cities.
+- Spy information should have duration and staleness rules:
+- revealed information may remain visible for a fixed number of months
+- old intelligence may become outdated if not refreshed
+- stronger or longer spy actions may reveal more detail
+- The game should support a development/testing-only `God Mode` or `View All Information` toggle.
+- When enabled, all city, faction, officer, troop, item, and schedule information becomes visible regardless of reconnaissance state.
+- This mode is for development, testing, balancing, debugging, and UI verification only, and should not be treated as the default gameplay rule.

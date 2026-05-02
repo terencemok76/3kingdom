@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Godot;
 using ThreeKingdom.Data;
+using IOFile = System.IO.File;
+using IODirectory = System.IO.Directory;
+using IOPath = System.IO.Path;
 
 namespace ThreeKingdom.Core;
 
@@ -15,7 +19,8 @@ public enum GameLanguage
 
 public class LocalizationService
 {
-    private const string LocalePath = "res://data/localization/locale.json";
+    private const string LocaleDirectoryPath = "res://data/localization";
+    private const string LocaleFilePattern = "*.locale.json";
 
     private readonly Dictionary<string, LocaleTextEntry> _textTable = new(StringComparer.OrdinalIgnoreCase);
 
@@ -28,41 +33,108 @@ public class LocalizationService
     public void Load()
     {
         _textTable.Clear();
-
-        if (!FileAccess.FileExists(LocalePath))
+        foreach (var filePath in GetResourceLocaleFiles())
         {
-            GD.PushWarning($"Locale file missing: {LocalePath}");
-            return;
-        }
-
-        using var file = FileAccess.Open(LocalePath, FileAccess.ModeFlags.Read);
-        var json = file.GetAsText();
-        var document = JsonSerializer.Deserialize<Dictionary<string, LocaleTextEntry>>(json);
-        if (document == null)
-        {
-            GD.PushWarning($"Locale file could not be parsed: {LocalePath}");
-            return;
-        }
-
-        foreach (var pair in document)
-        {
-            _textTable[pair.Key] = pair.Value;
+            MergeLocaleFile(filePath);
         }
     }
 
     public void LoadFromFileSystem(string filePath)
     {
         _textTable.Clear();
+        foreach (var path in GetFileSystemLocaleFiles(filePath))
+        {
+            MergeLocaleFileFromFileSystem(path);
+        }
+    }
 
-        if (!System.IO.File.Exists(filePath))
+    private static List<string> GetResourceLocaleFiles()
+    {
+        var files = new List<string>();
+        var directory = DirAccess.Open(LocaleDirectoryPath);
+        if (directory != null)
+        {
+            directory.ListDirBegin();
+            while (true)
+            {
+                var fileName = directory.GetNext();
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    break;
+                }
+
+                if (directory.CurrentIsDir())
+                {
+                    continue;
+                }
+
+                if (!fileName.EndsWith(".locale.json", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                files.Add($"{LocaleDirectoryPath}/{fileName}");
+            }
+
+            directory.ListDirEnd();
+        }
+
+        files.Sort(StringComparer.OrdinalIgnoreCase);
+        return files;
+    }
+
+    private static List<string> GetFileSystemLocaleFiles(string path)
+    {
+        var files = new List<string>();
+        if (IODirectory.Exists(path))
+        {
+            files.AddRange(IODirectory.GetFiles(path, LocaleFilePattern).OrderBy(static x => x, StringComparer.OrdinalIgnoreCase));
+            return files;
+        }
+
+        if (!IOFile.Exists(path))
+        {
+            return files;
+        }
+
+        files.Add(path);
+        return files;
+    }
+
+    private void MergeLocaleFile(string filePath)
+    {
+        if (!FileAccess.FileExists(filePath))
+        {
+            GD.PushWarning($"Locale file missing: {filePath}");
+            return;
+        }
+
+        using var file = FileAccess.Open(filePath, FileAccess.ModeFlags.Read);
+        var json = file.GetAsText();
+        MergeLocaleJson(json, filePath, true);
+    }
+
+    private void MergeLocaleFileFromFileSystem(string path)
+    {
+        if (!IOFile.Exists(path))
         {
             return;
         }
 
-        var json = System.IO.File.ReadAllText(filePath);
+        var json = IOFile.ReadAllText(path);
+        MergeLocaleJson(json, path, false);
+    }
+
+    private void MergeLocaleJson(string json, string source, bool pushGodotWarning)
+    {
         var document = JsonSerializer.Deserialize<Dictionary<string, LocaleTextEntry>>(json);
         if (document == null)
         {
+            if (pushGodotWarning)
+            {
+                GD.PushWarning($"Locale file could not be parsed: {source}");
+            }
+
             return;
         }
 
@@ -125,7 +197,7 @@ public class LocalizationService
 
     public string FormatPlayerFaction(string factionName)
     {
-        return Format("fmt.player_faction", T("ui.player"), factionName);
+        return Format("fmt.label_value", T("ui.player"), factionName);
     }
 
     public string FormatCityStats(CityData city, int freeOfficerCount = 0)
@@ -178,7 +250,7 @@ public class LocalizationService
 
     public string FormatOwnerLine(string ownerName)
     {
-        return Format("fmt.owner_line", T("ui.owner"), ownerName);
+        return Format("fmt.label_value", T("ui.faction_owner"), ownerName);
     }
 
     public string GetItemName(ItemData item)

@@ -1,0 +1,30 @@
+﻿{
+    "item_rarity.common":  {
+                               "zhHant":  "普通",
+                               "en":  "Common"
+                           },
+    "item_rarity.epic":  {
+                             "zhHant":  "傳奇",
+                             "en":  "Epic"
+                         },
+    "item_rarity.rare":  {
+                             "zhHant":  "稀有",
+                             "en":  "Rare"
+                         },
+    "item_type.book":  {
+                           "zhHant":  "書籍",
+                           "en":  "Book"
+                       },
+    "item_type.horse":  {
+                            "zhHant":  "名馬",
+                            "en":  "Horse"
+                        },
+    "item_type.treasure":  {
+                               "zhHant":  "寶物",
+                               "en":  "Treasure"
+                           },
+    "item_type.weapon":  {
+                             "zhHant":  "武器",
+                             "en":  "Weapon"
+                         }
+}

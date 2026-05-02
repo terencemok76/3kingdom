@@ -1,0 +1,202 @@
+﻿{
+    "progression.civil.rank1":  {
+                                    "zhHant":  "縣令",
+                                    "en":  "County Magistrate"
+                                },
+    "progression.civil.rank2":  {
+                                    "zhHant":  "太守",
+                                    "en":  "Governor"
+                                },
+    "progression.civil.rank3":  {
+                                    "zhHant":  "刺史",
+                                    "en":  "Inspector"
+                                },
+    "progression.civil.rank4":  {
+                                    "zhHant":  "州牧",
+                                    "en":  "Provincial Governor"
+                                },
+    "progression.civil.rank5":  {
+                                    "zhHant":  "丞相",
+                                    "en":  "Chancellor"
+                                },
+    "progression.diplomacy.rank1":  {
+                                        "zhHant":  "使者",
+                                        "en":  "Envoy"
+                                    },
+    "progression.diplomacy.rank2":  {
+                                        "zhHant":  "主簿使",
+                                        "en":  "Senior Envoy"
+                                    },
+    "progression.diplomacy.rank3":  {
+                                        "zhHant":  "行人令",
+                                        "en":  "Diplomatic Officer"
+                                    },
+    "progression.diplomacy.rank4":  {
+                                        "zhHant":  "大鴻臚",
+                                        "en":  "Grand Herald"
+                                    },
+    "progression.diplomacy.rank5":  {
+                                        "zhHant":  "司邦上卿",
+                                        "en":  "Minister of State Relations"
+                                    },
+    "progression.general.rank1":  {
+                                      "zhHant":  "中郎將",
+                                      "en":  "General of the Household"
+                                  },
+    "progression.general.rank2":  {
+                                      "zhHant":  "牙門將軍",
+                                      "en":  "Gate Guard General"
+                                  },
+    "progression.general.rank3":  {
+                                      "zhHant":  "前將軍",
+                                      "en":  "General of the Vanguard"
+                                  },
+    "progression.general.rank4":  {
+                                      "zhHant":  "衛將軍",
+                                      "en":  "General of the Guards"
+                                  },
+    "progression.general.rank5":  {
+                                      "zhHant":  "大將軍",
+                                      "en":  "General-in-Chief"
+                                  },
+    "progression.job.commercial.rank1":  {
+                                             "zhHant":  "商政官",
+                                             "en":  "Commerce Officer"
+                                         },
+    "progression.job.commercial.rank2":  {
+                                             "zhHant":  "市監",
+                                             "en":  "Market Supervisor"
+                                         },
+    "progression.job.commercial.rank3":  {
+                                             "zhHant":  "商政監",
+                                             "en":  "Market Director"
+                                         },
+    "progression.job.commercial.rank4":  {
+                                             "zhHant":  "商政都督",
+                                             "en":  "Commerce Commissioner"
+                                         },
+    "progression.job.commercial.rank5":  {
+                                             "zhHant":  "大司農",
+                                             "en":  "Minister of Finance"
+                                         },
+    "progression.job.construction.rank1":  {
+                                               "zhHant":  "營造官",
+                                               "en":  "Construction Officer"
+                                           },
+    "progression.job.construction.rank2":  {
+                                               "zhHant":  "築城監",
+                                               "en":  "Construction Director"
+                                           },
+    "progression.job.construction.rank3":  {
+                                               "zhHant":  "工官都尉",
+                                               "en":  "Chief Engineer"
+                                           },
+    "progression.job.construction.rank4":  {
+                                               "zhHant":  "將作監",
+                                               "en":  "Minister of Works"
+                                           },
+    "progression.job.construction.rank5":  {
+                                               "zhHant":  "大匠",
+                                               "en":  "Grand Architect"
+                                           },
+    "progression.job.defend.rank1":  {
+                                         "zhHant":  "守備官",
+                                         "en":  "Garrison Officer"
+                                     },
+    "progression.job.defend.rank2":  {
+                                         "zhHant":  "戍衛將軍",
+                                         "en":  "Defensive General"
+                                     },
+    "progression.job.defend.rank3":  {
+                                         "zhHant":  "護軍",
+                                         "en":  "Protector-General"
+                                     },
+    "progression.job.defend.rank4":  {
+                                         "zhHant":  "鎮軍將軍",
+                                         "en":  "General Who Pacifies the Army"
+                                     },
+    "progression.job.defend.rank5":  {
+                                         "zhHant":  "鎮軍大將",
+                                         "en":  "Grand Garrison General"
+                                     },
+    "progression.job.disaster_prevention.rank1":  {
+                                                      "zhHant":  "防災官",
+                                                      "en":  "Disaster Prevention Officer"
+                                                  },
+    "progression.job.disaster_prevention.rank2":  {
+                                                      "zhHant":  "防災監",
+                                                      "en":  "Disaster Prevention Director"
+                                                  },
+    "progression.job.disaster_prevention.rank3":  {
+                                                      "zhHant":  "防災都督",
+                                                      "en":  "Disaster Prevention Commissioner"
+                                                  },
+    "progression.job.disaster_prevention.rank4":  {
+                                                      "zhHant":  "都防災使",
+                                                      "en":  "Chief of Disaster Prevention"
+                                                  },
+    "progression.job.disaster_prevention.rank5":  {
+                                                      "zhHant":  "大司防災",
+                                                      "en":  "Grand Minister of Disaster Prevention"
+                                                  },
+    "progression.job.farm.rank1":  {
+                                       "zhHant":  "農政官",
+                                       "en":  "Agriculture Officer"
+                                   },
+    "progression.job.farm.rank2":  {
+                                       "zhHant":  "農政監",
+                                       "en":  "Farm Director"
+                                   },
+    "progression.job.farm.rank3":  {
+                                       "zhHant":  "典農都尉",
+                                       "en":  "Agricultural Commander"
+                                   },
+    "progression.job.farm.rank4":  {
+                                       "zhHant":  "農政都督",
+                                       "en":  "Agriculture Commissioner"
+                                   },
+    "progression.job.farm.rank5":  {
+                                       "zhHant":  "大司農",
+                                       "en":  "Minister of Agriculture"
+                                   },
+    "progression.spy.rank1":  {
+                                  "zhHant":  "探子",
+                                  "en":  "Scout"
+                              },
+    "progression.spy.rank2":  {
+                                  "zhHant":  "細作",
+                                  "en":  "Infiltrator"
+                              },
+    "progression.spy.rank3":  {
+                                  "zhHant":  "密探",
+                                  "en":  "Secret Agent"
+                              },
+    "progression.spy.rank4":  {
+                                  "zhHant":  "暗探都督",
+                                  "en":  "Spy Master"
+                              },
+    "progression.spy.rank5":  {
+                                  "zhHant":  "大司諜",
+                                  "en":  "Grand Spymaster"
+                              },
+    "progression.strategist.rank1":  {
+                                         "zhHant":  "謀士",
+                                         "en":  "Advisor"
+                                     },
+    "progression.strategist.rank2":  {
+                                         "zhHant":  "軍師",
+                                         "en":  "Strategist"
+                                     },
+    "progression.strategist.rank3":  {
+                                         "zhHant":  "軍師中郎將",
+                                         "en":  "Chief Strategist"
+                                     },
+    "progression.strategist.rank4":  {
+                                         "zhHant":  "大軍師",
+                                         "en":  "Grand Strategist"
+                                     },
+    "progression.strategist.rank5":  {
+                                         "zhHant":  "大軍師",
+                                         "en":  "Grand Strategist"
+                                     }
+}

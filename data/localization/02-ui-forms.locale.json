@@ -1,0 +1,50 @@
+{
+	"ui.buy_food":  {
+						"zhHant":  "買糧",
+						"en":  "Buy Food"
+					},
+	"ui.buy_horse":  {
+						 "zhHant":  "買馬",
+						 "en":  "Buy Horse"
+					 },
+	"ui.civil_command":  {
+							 "zhHant":  "民事指令",
+							 "en":  "Civil Command"
+						 },
+	"ui.confirm_officer_selection":  {
+										 "zhHant":  "確認選擇",
+										 "en":  "Confirm Selection"
+									 },
+	"ui.food_amount":  {
+						   "zhHant":  "糧食數量",
+						   "en":  "Food Amount"
+					   },
+	"ui.military_command":  {
+								"zhHant":  "軍事指令",
+								"en":  "Military Command"
+							},
+	"ui.personnel_command":  {
+								 "zhHant":  "人事指令",
+								 "en":  "Personnel Command"
+							 },
+	"ui.select_officer":  {
+							  "zhHant":  "選擇武將",
+							  "en":  "Select Officer"
+						  },
+	"ui.sell_food":  {
+						 "zhHant":  "賣糧",
+						 "en":  "Sell Food"
+					 },
+	"ui.target_city":  {
+						   "zhHant":  "目標城市",
+						   "en":  "Target City"
+					   },
+	"ui.trade_amount":  {
+							"zhHant":  "交易數量",
+							"en":  "Trade Amount"
+						},
+	"ui.trade_mode":  {
+						  "zhHant":  "交易類型",
+						  "en":  "Trade Mode"
+					  }
+}

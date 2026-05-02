@@ -1,0 +1,54 @@
+﻿{
+    "role.advisor":  {
+                         "zhHant":  "謀士",
+                         "en":  "Advisor"
+                     },
+    "role.general":  {
+                         "zhHant":  "將軍",
+                         "en":  "General"
+                     },
+    "role.governor":  {
+                          "zhHant":  "太守",
+                          "en":  "Governor"
+                      },
+    "role.lord":  {
+                      "zhHant":  "君主",
+                      "en":  "Lord"
+                  },
+    "role.strategist":  {
+                            "zhHant":  "軍師",
+                            "en":  "Strategist"
+                        },
+    "status.attack":  {
+                          "zhHant":  "攻擊",
+                          "en":  "Attack"
+                      },
+    "status.civil_relief":  {
+                                "zhHant":  "救濟",
+                                "en":  "Relief"
+                            },
+    "status.develop":  {
+                           "zhHant":  "開發",
+                           "en":  "Develop"
+                       },
+    "status.idle":  {
+                        "zhHant":  "待命",
+                        "en":  "Idle"
+                    },
+    "status.internal_affairs":  {
+                                    "zhHant":  "內政",
+                                    "en":  "Internal Affairs"
+                                },
+    "status.move":  {
+                        "zhHant":  "移動",
+                        "en":  "Move"
+                    },
+    "status.recruit":  {
+                           "zhHant":  "徵兵",
+                           "en":  "Recruit"
+                       },
+    "status.search":  {
+                          "zhHant":  "訪察民情",
+                          "en":  "Investigate People"
+                      }
+}

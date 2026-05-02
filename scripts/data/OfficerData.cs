@@ -33,9 +33,9 @@ public class OfficerData
     public int DefendExperience { get; set; }
     public int DefendRank { get; set; }
     public string DefendTitle { get; set; } = string.Empty;
-    public int WaterExperience { get; set; }
-    public int WaterRank { get; set; }
-    public string WaterTitle { get; set; } = string.Empty;
+    public int DisasterPreventionExperience { get; set; }
+    public int DisasterPreventionRank { get; set; }
+    public string DisasterPreventionTitle { get; set; } = string.Empty;
     public int ConstructionExperience { get; set; }
     public int ConstructionRank { get; set; }
     public string ConstructionTitle { get; set; } = string.Empty;
@@ -45,6 +45,12 @@ public class OfficerData
     public int StrategistExperience { get; set; }
     public int StrategistRank { get; set; }
     public string StrategistTitle { get; set; } = string.Empty;
+    public int SpyExperience { get; set; }
+    public int SpyRank { get; set; }
+    public string SpyTitle { get; set; } = string.Empty;
+    public int DiplomacyExperience { get; set; }
+    public int DiplomacyRank { get; set; }
+    public string DiplomacyTitle { get; set; } = string.Empty;
     public int CivilExperience { get; set; }
     public int CivilRank { get; set; }
     public string CivilTitle { get; set; } = string.Empty;

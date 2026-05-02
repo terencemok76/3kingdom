@@ -386,11 +386,11 @@ public partial class HudController : CanvasLayer
 
         return jobType switch
         {
-            InternalAffairsJobType.Farm => _localization.T("internal_affairs.job.farm"),
-            InternalAffairsJobType.Commercial => _localization.T("internal_affairs.job.commercial"),
-            InternalAffairsJobType.Defend => _localization.T("internal_affairs.job.defend"),
-            InternalAffairsJobType.WaterControl => _localization.T("internal_affairs.job.water_control"),
-            InternalAffairsJobType.Construction => _localization.T("internal_affairs.job.construction"),
+            InternalAffairsJobType.Farm => _localization.T("command.internal_affairs.farm"),
+            InternalAffairsJobType.Commercial => _localization.T("command.internal_affairs.commercial"),
+            InternalAffairsJobType.Defend => _localization.T("command.internal_affairs.defend"),
+            InternalAffairsJobType.WaterControl => _localization.T("command.internal_affairs.disaster_prevention"),
+            InternalAffairsJobType.Construction => _localization.T("command.internal_affairs.construction"),
             _ => jobType.ToString()
         };
     }

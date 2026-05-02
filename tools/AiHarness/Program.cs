@@ -770,12 +770,29 @@ internal static class Program
         var turn = new TurnManager();
         turn.Initialize(world);
         var localization = new LocalizationService();
-        localization.LoadFromFileSystem(Path.Combine(Directory.GetCurrentDirectory(), "data", "localization", "locale.json"));
+        localization.LoadFromFileSystem(GetLocalizationDirectoryPath());
         var resolver = new CommandResolver();
         resolver.Initialize(turn, new CombatResolver(), localization);
         var ai = new AiController();
         ai.Initialize(resolver, turn, localization);
         return (turn, resolver, ai);
+    }
+
+    private static string GetLocalizationDirectoryPath()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current != null)
+        {
+            var candidate = Path.Combine(current.FullName, "data", "localization");
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        return Path.Combine(Directory.GetCurrentDirectory(), "data", "localization");
     }
 }
 

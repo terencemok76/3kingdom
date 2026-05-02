@@ -1,0 +1,58 @@
+﻿{
+    "log.boot":  {
+                     "zhHant":  "M1 初始化完成：服務已接線。",
+                     "en":  "M1 initialized: services wired."
+                 },
+    "log.city_disaster":  {
+                              "zhHant":  "「{0}」遭遇災害：金 -{1}，糧 -{2}，忠誠 -{3}。",
+                              "en":  "\"{0}\" suffered a disaster: Gold -{1}, Food -{2}, Loyalty -{3}."
+                          },
+    "log.civil_command_selected":  {
+                                       "zhHant":  "已選擇民事指令：{0}。",
+                                       "en":  "Civil command selected: {0}."
+                                   },
+    "log.defeat_all_cities":  {
+                                  "zhHant":  "失敗：你已失去所有城市。",
+                                  "en":  "Defeat: You have lost all cities."
+                              },
+    "log.monthly_economy":  {
+                                "zhHant":  "已完成每月城市經濟結算。",
+                                "en":  "Monthly city economy resolved."
+                            },
+    "log.personnel_command_selected":  {
+                                           "zhHant":  "已選擇人事指令：{0}。",
+                                           "en":  "Personnel command selected: {0}."
+                                       },
+    "log.player_city_food_income_header":  {
+                                               "zhHant":  "秋季糧收入（玩家勢力各城）：",
+                                               "en":  "Autumn food income (player cities):"
+                                           },
+    "log.player_city_gold_income_header":  {
+                                               "zhHant":  "春季金收入（玩家勢力各城）：",
+                                               "en":  "Spring gold income (player cities):"
+                                           },
+    "log.player_city_horse_birth_header":  {
+                                               "zhHant":  "年初馬匹自然繁殖（玩家勢力各城）：",
+                                               "en":  "New year horse births (player cities):"
+                                           },
+    "log.player_city_income_line":  {
+                                        "zhHant":  "「{0}」：+{1}",
+                                        "en":  "\"{0}\": +{1}"
+                                    },
+    "log.player_end_turn":  {
+                                "zhHant":  "玩家回合結束，AI 勢力開始行動。",
+                                "en":  "Player turn ended. AI factions are taking actions..."
+                            },
+    "log.seasonal_food_collected":  {
+                                        "zhHant":  "已收取秋季糧收入（全部城市總計）：+{0}。",
+                                        "en":  "Seasonal food collected (all cities total): +{0}."
+                                    },
+    "log.seasonal_gold_collected":  {
+                                        "zhHant":  "已收取春季金收入（全部城市總計）：+{0}。",
+                                        "en":  "Seasonal gold collected (all cities total): +{0}."
+                                    },
+    "log.victory_all_cities":  {
+                                   "zhHant":  "勝利：你已控制所有城市。",
+                                   "en":  "Victory: You control all cities."
+                               }
+}

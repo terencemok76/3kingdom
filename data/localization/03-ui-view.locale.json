@@ -1,0 +1,26 @@
+﻿{
+    "ui.city_officer_list":  {
+                                 "zhHant":  "城市武將",
+                                 "en":  "City Officers"
+                             },
+    "ui.no_city_in_scope":  {
+                                "zhHant":  "此檢視範圍內沒有可查看的城市。",
+                                "en":  "No cities available in this view."
+                            },
+    "ui.no_item_in_faction":  {
+                                  "zhHant":  "此勢力沒有可查看的道具。",
+                                  "en":  "No items available in this faction."
+                              },
+    "ui.no_officer_in_city":  {
+                                  "zhHant":  "此城市沒有可查看的武將。",
+                                  "en":  "No officers available in this city."
+                              },
+    "ui.no_officer_in_faction":  {
+                                     "zhHant":  "此勢力沒有可查看的武將。",
+                                     "en":  "No officers available in this faction."
+                                 },
+    "ui.view_cities":  {
+                           "zhHant":  "城市",
+                           "en":  "Cities"
+                       }
+}

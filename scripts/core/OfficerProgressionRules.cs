@@ -20,6 +20,8 @@ public static class OfficerProgressionRules
         var roleBonus = GetRoleStatBonus(officer.Role, stat);
         var titleBonus = GetTitleStatBonus(officer.GeneralTitle, stat) +
                          GetTitleStatBonus(officer.StrategistTitle, stat) +
+                         GetTitleStatBonus(officer.SpyTitle, stat) +
+                         GetTitleStatBonus(officer.DiplomacyTitle, stat) +
                          GetTitleStatBonus(officer.CivilTitle, stat);
         return roleBonus + titleBonus;
     }
@@ -54,9 +56,9 @@ public static class OfficerProgressionRules
                 officer.DefendTitle = GetJobTitleKey(jobType, officer.DefendRank);
                 break;
             case InternalAffairsJobType.WaterControl:
-                officer.WaterExperience += amount;
-                officer.WaterRank = CalculateRank(officer.WaterExperience);
-                officer.WaterTitle = GetJobTitleKey(jobType, officer.WaterRank);
+                officer.DisasterPreventionExperience += amount;
+                officer.DisasterPreventionRank = CalculateRank(officer.DisasterPreventionExperience);
+                officer.DisasterPreventionTitle = GetJobTitleKey(jobType, officer.DisasterPreventionRank);
                 break;
             case InternalAffairsJobType.Construction:
                 officer.ConstructionExperience += amount;
@@ -90,6 +92,30 @@ public static class OfficerProgressionRules
         officer.StrategistTitle = GetStrategistTitleKey(officer.StrategistRank);
     }
 
+    public static void AwardSpyExperience(OfficerData officer, int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        officer.SpyExperience += amount;
+        officer.SpyRank = CalculateRank(officer.SpyExperience);
+        officer.SpyTitle = GetSpyTitleKey(officer.SpyRank);
+    }
+
+    public static void AwardDiplomacyExperience(OfficerData officer, int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        officer.DiplomacyExperience += amount;
+        officer.DiplomacyRank = CalculateRank(officer.DiplomacyExperience);
+        officer.DiplomacyTitle = GetDiplomacyTitleKey(officer.DiplomacyRank);
+    }
+
     public static void AwardCivilExperience(OfficerData officer, int amount)
     {
         if (amount <= 0)
@@ -109,7 +135,7 @@ public static class OfficerProgressionRules
             InternalAffairsJobType.Farm => officer.FarmRank,
             InternalAffairsJobType.Commercial => officer.CommercialRank,
             InternalAffairsJobType.Defend => officer.DefendRank,
-            InternalAffairsJobType.WaterControl => officer.WaterRank,
+            InternalAffairsJobType.WaterControl => officer.DisasterPreventionRank,
             InternalAffairsJobType.Construction => officer.ConstructionRank,
             _ => 0
         };
@@ -122,7 +148,7 @@ public static class OfficerProgressionRules
             InternalAffairsJobType.Farm => officer.FarmTitle,
             InternalAffairsJobType.Commercial => officer.CommercialTitle,
             InternalAffairsJobType.Defend => officer.DefendTitle,
-            InternalAffairsJobType.WaterControl => officer.WaterTitle,
+            InternalAffairsJobType.WaterControl => officer.DisasterPreventionTitle,
             InternalAffairsJobType.Construction => officer.ConstructionTitle,
             _ => string.Empty
         };
@@ -165,6 +191,28 @@ public static class OfficerProgressionRules
             "progression.strategist.rank4" when stat == OfficerProgressionStat.Charm => 2,
             "progression.strategist.rank5" when stat == OfficerProgressionStat.Intelligence => 6,
             "progression.strategist.rank5" when stat == OfficerProgressionStat.Charm => 3,
+
+            "progression.spy.rank1" when stat == OfficerProgressionStat.Intelligence => 1,
+            "progression.spy.rank1" when stat == OfficerProgressionStat.Charm => 1,
+            "progression.spy.rank2" when stat == OfficerProgressionStat.Intelligence => 2,
+            "progression.spy.rank2" when stat == OfficerProgressionStat.Charm => 1,
+            "progression.spy.rank3" when stat == OfficerProgressionStat.Intelligence => 3,
+            "progression.spy.rank3" when stat == OfficerProgressionStat.Charm => 2,
+            "progression.spy.rank4" when stat == OfficerProgressionStat.Intelligence => 4,
+            "progression.spy.rank4" when stat == OfficerProgressionStat.Charm => 2,
+            "progression.spy.rank5" when stat == OfficerProgressionStat.Intelligence => 5,
+            "progression.spy.rank5" when stat == OfficerProgressionStat.Charm => 3,
+
+            "progression.diplomacy.rank1" when stat == OfficerProgressionStat.Charm => 1,
+            "progression.diplomacy.rank1" when stat == OfficerProgressionStat.Politics => 1,
+            "progression.diplomacy.rank2" when stat == OfficerProgressionStat.Charm => 2,
+            "progression.diplomacy.rank2" when stat == OfficerProgressionStat.Politics => 1,
+            "progression.diplomacy.rank3" when stat == OfficerProgressionStat.Charm => 3,
+            "progression.diplomacy.rank3" when stat == OfficerProgressionStat.Politics => 2,
+            "progression.diplomacy.rank4" when stat == OfficerProgressionStat.Charm => 4,
+            "progression.diplomacy.rank4" when stat == OfficerProgressionStat.Politics => 2,
+            "progression.diplomacy.rank5" when stat == OfficerProgressionStat.Charm => 5,
+            "progression.diplomacy.rank5" when stat == OfficerProgressionStat.Politics => 3,
 
             "progression.civil.rank1" when stat == OfficerProgressionStat.Politics => 2,
             "progression.civil.rank2" when stat == OfficerProgressionStat.Politics => 3,
@@ -222,6 +270,26 @@ public static class OfficerProgressionRules
         return $"progression.civil.rank{ClampRank(rank)}";
     }
 
+    private static string GetSpyTitleKey(int rank)
+    {
+        if (rank <= 0)
+        {
+            return string.Empty;
+        }
+
+        return $"progression.spy.rank{ClampRank(rank)}";
+    }
+
+    private static string GetDiplomacyTitleKey(int rank)
+    {
+        if (rank <= 0)
+        {
+            return string.Empty;
+        }
+
+        return $"progression.diplomacy.rank{ClampRank(rank)}";
+    }
+
     private static string GetJobTitleKey(InternalAffairsJobType jobType, int rank)
     {
         if (rank <= 0)
@@ -235,7 +303,7 @@ public static class OfficerProgressionRules
             InternalAffairsJobType.Farm => $"progression.job.farm.{suffix}",
             InternalAffairsJobType.Commercial => $"progression.job.commercial.{suffix}",
             InternalAffairsJobType.Defend => $"progression.job.defend.{suffix}",
-            InternalAffairsJobType.WaterControl => $"progression.job.water.{suffix}",
+            InternalAffairsJobType.WaterControl => $"progression.job.disaster_prevention.{suffix}",
             InternalAffairsJobType.Construction => $"progression.job.construction.{suffix}",
             _ => string.Empty
         };

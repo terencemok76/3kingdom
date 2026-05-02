@@ -50,6 +50,7 @@ public partial class HudController : CanvasLayer
         Role,
         Status,
         City,
+        Holder,
         ItemType,
         Rarity,
         Age,

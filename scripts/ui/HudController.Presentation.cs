@@ -283,7 +283,7 @@ public partial class HudController : CanvasLayer
 
         if (_cityOfficerListTitle != null)
         {
-            _cityOfficerListTitle.Text = _localization.T("ui.officer_list");
+            _cityOfficerListTitle.Text = _localization.T("ui.city_officer_list");
         }
 
         if (_endTurnButton != null)
@@ -525,56 +525,131 @@ public partial class HudController : CanvasLayer
         var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
         var generalTitle = _localization?.GetProgressionTitle(officer.GeneralTitle) ?? officer.GeneralTitle;
         var strategistTitle = _localization?.GetProgressionTitle(officer.StrategistTitle) ?? officer.StrategistTitle;
+        var spyTitle = _localization?.GetProgressionTitle(officer.SpyTitle) ?? officer.SpyTitle;
+        var diplomacyTitle = _localization?.GetProgressionTitle(officer.DiplomacyTitle) ?? officer.DiplomacyTitle;
         var civilTitle = _localization?.GetProgressionTitle(officer.CivilTitle) ?? officer.CivilTitle;
+        var farmTitle = _localization?.GetProgressionTitle(officer.FarmTitle) ?? officer.FarmTitle;
+        var commercialTitle = _localization?.GetProgressionTitle(officer.CommercialTitle) ?? officer.CommercialTitle;
+        var defendTitle = _localization?.GetProgressionTitle(officer.DefendTitle) ?? officer.DefendTitle;
+        var disasterPreventionTitle = _localization?.GetProgressionTitle(officer.DisasterPreventionTitle) ?? officer.DisasterPreventionTitle;
+        var constructionTitle = _localization?.GetProgressionTitle(officer.ConstructionTitle) ?? officer.ConstructionTitle;
         var currentYear = _turnManager?.World?.Year ?? 0;
         var officerAge = CalculateOfficerAge(officer, currentYear);
         var itemSummary = BuildOfficerItemSummary(officer);
         var statusValue = _turnManager?.World != null && _localization != null
             ? _localization.GetOfficerStatus(_turnManager.World, officer)
             : "Idle";
-        var rows = new List<(string LeftLabel, string LeftValue, string RightLabel, string RightValue)>
+        var entries = new List<(string Label, string Value)>
         {
-            (_localization?.T("ui.role") ?? "Role", roleName, _localization?.T("ui.status") ?? "Status", statusValue),
-            (_localization?.T("ui.age") ?? "Age", officerAge.ToString(), _localization?.T("ui.loyalty_short") ?? "LOY", officer.Loyalty.ToString()),
-            (_localization?.T("ui.strength") ?? "STR", officer.Strength.ToString(), _localization?.T("ui.intelligence") ?? "INT", officer.Intelligence.ToString()),
-            (_localization?.T("ui.charm") ?? "CHA", officer.Charm.ToString(), _localization?.T("ui.leadership") ?? "LEA", officer.Leadership.ToString()),
-            (_localization?.T("ui.politics") ?? "POL", officer.Politics.ToString(), _localization?.T("ui.combat") ?? "COM", officer.Combat.ToString())
+            (_localization?.T("ui.role") ?? "Role", roleName),
+            (_localization?.T("ui.status") ?? "Status", statusValue),
+            (_localization?.T("ui.age") ?? "Age", officerAge.ToString()),
+            (_localization?.T("ui.loyalty_short") ?? "LOY", officer.Loyalty.ToString()),
+            (_localization?.T("ui.strength") ?? "STR", officer.Strength.ToString()),
+            (_localization?.T("ui.intelligence") ?? "INT", officer.Intelligence.ToString()),
+            (_localization?.T("ui.charm") ?? "CHA", officer.Charm.ToString()),
+            (_localization?.T("ui.leadership") ?? "LEA", officer.Leadership.ToString()),
+            (_localization?.T("ui.politics") ?? "POL", officer.Politics.ToString()),
+            (_localization?.T("ui.combat") ?? "COM", officer.Combat.ToString())
         };
 
         if (HasBattleProgression(officer))
         {
-            rows.Add((_localization?.T("ui.military_rank") ?? "Military Rank", officer.MilitaryRank.ToString(), _localization?.T("ui.general_title") ?? "General Title", generalTitle));
+            entries.Add((_localization?.T("ui.military_rank") ?? "Military Rank", officer.MilitaryRank.ToString()));
+            entries.Add((_localization?.T("ui.general_title") ?? "General Title", generalTitle));
         }
 
         if (HasStrategistProgression(officer))
         {
-            rows.Add((_localization?.T("ui.strategist_rank") ?? "Strategist Rank", officer.StrategistRank.ToString(), _localization?.T("ui.strategist_title") ?? "Strategist Title", strategistTitle));
+            entries.Add((_localization?.T("ui.strategist_rank") ?? "Strategist Rank", officer.StrategistRank.ToString()));
+            entries.Add((_localization?.T("ui.strategist_title") ?? "Strategist Title", strategistTitle));
+        }
+
+        if (HasSpyProgression(officer))
+        {
+            entries.Add((_localization?.T("ui.spy_rank") ?? "Spy Rank", officer.SpyRank.ToString()));
+            entries.Add((_localization?.T("ui.spy_title") ?? "Spy Title", spyTitle));
+        }
+
+        if (HasDiplomacyProgression(officer))
+        {
+            entries.Add((_localization?.T("ui.diplomacy_rank") ?? "Diplomacy Rank", officer.DiplomacyRank.ToString()));
+            entries.Add((_localization?.T("ui.diplomacy_title") ?? "Diplomacy Title", diplomacyTitle));
         }
 
         if (HasCivilProgression(officer))
         {
-            rows.Add((_localization?.T("ui.civil_rank") ?? "Civil Rank", officer.CivilRank.ToString(), _localization?.T("ui.civil_title") ?? "Civil Title", civilTitle));
+            entries.Add((_localization?.T("ui.civil_rank") ?? "Civil Rank", officer.CivilRank.ToString()));
+            entries.Add((_localization?.T("ui.civil_title") ?? "Civil Title", civilTitle));
         }
 
-        rows.Add((_localization?.T("ui.ambition") ?? "AMB", officer.Ambition.ToString(), string.Empty, string.Empty));
+        entries.Add((_localization?.T("ui.ambition") ?? "AMB", officer.Ambition.ToString()));
+        var internalAffairsEntries = new List<(string Label, string Value)>
+        {
+            (_localization?.T("ui.battle_experience") ?? "Battle Experience", officer.BattleExperience.ToString()),
+            (_localization?.T("ui.farm_experience") ?? "Farm Experience", FormatOfficerProgressionValue(officer.FarmExperience, officer.FarmRank, farmTitle)),
+            (_localization?.T("ui.commercial_experience") ?? "Commercial Experience", FormatOfficerProgressionValue(officer.CommercialExperience, officer.CommercialRank, commercialTitle)),
+            (_localization?.T("ui.defend_experience") ?? "Defend Experience", FormatOfficerProgressionValue(officer.DefendExperience, officer.DefendRank, defendTitle)),
+            (_localization?.T("ui.disaster_prevention_experience") ?? "Disaster Prevention Experience", FormatOfficerProgressionValue(officer.DisasterPreventionExperience, officer.DisasterPreventionRank, disasterPreventionTitle)),
+            (_localization?.T("ui.construction_experience") ?? "Construction Experience", FormatOfficerProgressionValue(officer.ConstructionExperience, officer.ConstructionRank, constructionTitle))
+        };
 
         var bb = new System.Text.StringBuilder();
         bb.Append(officerName);
         bb.Append('\n');
-        bb.Append("[table=4]");
-        foreach (var row in rows)
+        bb.Append("[table=6]");
+        for (var index = 0; index < entries.Count; index += 3)
         {
-            AppendOfficerDetailCells(bb, row.LeftLabel, row.LeftValue);
-            var rightLabel = string.IsNullOrWhiteSpace(row.RightLabel)
-                ? string.Empty
-                : $"    {row.RightLabel}";
-            AppendOfficerDetailCells(bb, rightLabel, row.RightValue);
+            for (var offset = 0; offset < 3; offset += 1)
+            {
+                var entryIndex = index + offset;
+                if (entryIndex < entries.Count)
+                {
+                    var entry = entries[entryIndex];
+                    var paddedLabel = offset == 0 ? entry.Label : $"      {entry.Label}";
+                    AppendOfficerDetailCells(bb, paddedLabel, entry.Value);
+                    continue;
+                }
+
+                AppendOfficerDetailCells(bb, string.Empty, string.Empty);
+            }
+        }
+
+        bb.Append("[/table]");
+        bb.Append('\n');
+        bb.Append("[table=6]");
+        for (var index = 0; index < internalAffairsEntries.Count; index += 3)
+        {
+            for (var offset = 0; offset < 3; offset += 1)
+            {
+                var entryIndex = index + offset;
+                if (entryIndex < internalAffairsEntries.Count)
+                {
+                    var entry = internalAffairsEntries[entryIndex];
+                    var paddedLabel = offset == 0 ? entry.Label : $"      {entry.Label}";
+                    AppendOfficerDetailCells(bb, paddedLabel, entry.Value);
+                    continue;
+                }
+
+                AppendOfficerDetailCells(bb, string.Empty, string.Empty);
+            }
         }
 
         bb.Append("[/table]");
         bb.Append('\n');
         bb.Append(itemSummary);
         return bb.ToString();
+    }
+
+    private string FormatOfficerProgressionValue(int experience, int rank, string title)
+    {
+        if (rank <= 0 || string.IsNullOrWhiteSpace(title))
+        {
+            return experience.ToString();
+        }
+
+        return _localization?.Format("fmt.experience_title", experience, title)
+            ?? $"{experience} ({title})";
     }
 
     private static int CalculateOfficerAge(OfficerData officer, int currentYear)
@@ -602,6 +677,16 @@ public partial class HudController : CanvasLayer
         return officer.CivilRank > 0;
     }
 
+    private static bool HasSpyProgression(OfficerData officer)
+    {
+        return officer.SpyRank > 0;
+    }
+
+    private static bool HasDiplomacyProgression(OfficerData officer)
+    {
+        return officer.DiplomacyRank > 0;
+    }
+
     private static bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer)
     {
         return officer.BirthYear <= 0 || world.Year - officer.BirthYear >= 18;
@@ -626,7 +711,7 @@ public partial class HudController : CanvasLayer
         var root = new HBoxContainer
         {
             Name = "OfficerDetailRoot",
-            CustomMinimumSize = new Vector2(460.0f, 240.0f),
+            CustomMinimumSize = new Vector2(680.0f, 240.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
@@ -671,7 +756,7 @@ public partial class HudController : CanvasLayer
             Name = "DetailText",
             FitContent = true,
             ScrollActive = true,
-            CustomMinimumSize = new Vector2(260.0f, 220.0f),
+            CustomMinimumSize = new Vector2(500.0f, 220.0f),
             BbcodeEnabled = true
         };
         root.AddChild(_officerDetailText);
@@ -704,7 +789,7 @@ public partial class HudController : CanvasLayer
         var stats = city == null
             ? new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
             {
-                (_localization.T("ui.owner"), ownerName, string.Empty, string.Empty),
+                (_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
                 (_localization.T("ui.gold"), "0", _localization.T("ui.food"), "0"),
                 (_localization.T("ui.horse"), "0", string.Empty, string.Empty),
                 (_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
@@ -718,7 +803,7 @@ public partial class HudController : CanvasLayer
             }
             : new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
             {
-                (_localization.T("ui.owner"), ownerName, string.Empty, string.Empty),
+                (_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
                 (_localization.T("ui.gold"), city.Gold.ToString(), _localization.T("ui.food"), city.Food.ToString()),
                 (_localization.T("ui.horse"), city.Horses.ToString(), string.Empty, string.Empty),
                 (_localization.T("ui.farm"), city.Farm.ToString(), _localization.T("ui.commercial"), city.Commercial.ToString()),
@@ -801,7 +886,7 @@ public partial class HudController : CanvasLayer
         var ownerName = _turnManager?.World != null && _localization != null
             ? _localization.GetFactionName(_turnManager.World, city.OwnerFactionId)
             : city.OwnerFactionId.ToString();
-        return $"{cityName} | {_localization?.T("ui.owner") ?? "Owner"} {ownerName} | {_localization?.T("ui.gold") ?? "Gold"} {city.Gold} | {_localization?.T("ui.food") ?? "Food"} {city.Food} | {_localization?.T("ui.troops") ?? "Troops"} {city.Troops} | {_localization?.T("ui.officers") ?? "Officers"} {city.OfficerIds.Count}";
+        return $"{cityName} | {_localization?.T("ui.faction_owner") ?? "Owner"} {ownerName} | {_localization?.T("ui.gold") ?? "Gold"} {city.Gold} | {_localization?.T("ui.food") ?? "Food"} {city.Food} | {_localization?.T("ui.troops") ?? "Troops"} {city.Troops} | {_localization?.T("ui.officers") ?? "Officers"} {city.OfficerIds.Count}";
     }
 
     private string BuildOfficerStatusText(OfficerData officer)

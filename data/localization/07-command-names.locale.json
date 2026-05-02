@@ -1,0 +1,46 @@
+﻿{
+    "command.civil.investigate_people":  {
+                                             "zhHant":  "訪察民情",
+                                             "en":  "Investigate / Talk To People"
+                                         },
+    "command.civil.relief":  {
+                                 "zhHant":  "施政救濟（糧、金）",
+                                 "en":  "Relief (Food, Gold)"
+                             },
+    "command.internal_affairs.commercial":  {
+                                                "zhHant":  "商業",
+                                                "en":  "Commercial"
+                                            },
+    "command.internal_affairs.construction":  {
+                                                  "zhHant":  "建設",
+                                                  "en":  "Construction"
+                                              },
+    "command.internal_affairs.defend":  {
+                                            "zhHant":  "防衛",
+                                            "en":  "Defend"
+                                        },
+    "command.internal_affairs.disaster_prevention":  {
+                                                         "zhHant":  "防災",
+                                                         "en":  "Disaster Prevention"
+                                                     },
+    "command.internal_affairs.farm":  {
+                                          "zhHant":  "農業",
+                                          "en":  "Farm"
+                                      },
+    "command.personnel.assign_title":  {
+                                           "zhHant":  "指派官職",
+                                           "en":  "Assign Official Title"
+                                       },
+    "command.personnel.give_bonus":  {
+                                         "zhHant":  "賞賜（金、糧、道具）",
+                                         "en":  "Give Bonus (Gold, Food, Item)"
+                                     },
+    "command.personnel.hire_officer":  {
+                                           "zhHant":  "登用人士",
+                                           "en":  "Hire Officer"
+                                       },
+    "command.personnel.request_item":  {
+                                           "zhHant":  "索回道具",
+                                           "en":  "Recall Item"
+                                       }
+}

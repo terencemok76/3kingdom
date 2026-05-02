@@ -493,11 +493,11 @@ public partial class CommandResolver
     {
         var key = jobType switch
         {
-            InternalAffairsJobType.Farm => "internal_affairs.job.farm",
-            InternalAffairsJobType.Commercial => "internal_affairs.job.commercial",
-            InternalAffairsJobType.Defend => "internal_affairs.job.defend",
-            InternalAffairsJobType.WaterControl => "internal_affairs.job.water_control",
-            InternalAffairsJobType.Construction => "internal_affairs.job.construction",
+            InternalAffairsJobType.Farm => "command.internal_affairs.farm",
+            InternalAffairsJobType.Commercial => "command.internal_affairs.commercial",
+            InternalAffairsJobType.Defend => "command.internal_affairs.defend",
+            InternalAffairsJobType.WaterControl => "command.internal_affairs.disaster_prevention",
+            InternalAffairsJobType.Construction => "command.internal_affairs.construction",
             _ => string.Empty
         };
 

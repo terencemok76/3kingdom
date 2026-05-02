@@ -1,0 +1,146 @@
+﻿{
+    "ui.age":  {
+                   "zhHant":  "年齡",
+                   "en":  "Age"
+               },
+    "ui.ambition":  {
+                        "zhHant":  "野心",
+                        "en":  "AMB"
+                    },
+    "ui.battle_experience":  {
+                                  "zhHant":  "戰鬥經驗",
+                                  "en":  "Battle Experience"
+                              },
+    "ui.charm":  {
+                     "zhHant":  "魅力",
+                     "en":  "CHA"
+                 },
+    "ui.civil_rank":  {
+                          "zhHant":  "文官階",
+                          "en":  "Civil Rank"
+                      },
+    "ui.civil_title":  {
+                           "zhHant":  "文官號",
+                           "en":  "Civil Title"
+                       },
+    "ui.combat":  {
+                      "zhHant":  "戰鬥",
+                      "en":  "COM"
+                  },
+    "ui.commercial_experience":  {
+                                     "zhHant":  "商業經驗",
+                                     "en":  "Commercial Experience"
+                                 },
+    "ui.construction_experience":  {
+                                       "zhHant":  "建設經驗",
+                                       "en":  "Construction Experience"
+                                   },
+    "ui.defend_experience":  {
+                                 "zhHant":  "防衛經驗",
+                                 "en":  "Defend Experience"
+                             },
+    "ui.diplomacy_rank":  {
+                              "zhHant":  "外交階",
+                              "en":  "Diplomacy Rank"
+                          },
+    "ui.diplomacy_title":  {
+                               "zhHant":  "外交號",
+                               "en":  "Diplomacy Title"
+                           },
+    "ui.disaster_prevention_experience":  {
+                                              "zhHant":  "防災經驗",
+                                              "en":  "Disaster Prevention Experience"
+                                          },
+    "ui.farm_experience":  {
+                               "zhHant":  "農業經驗",
+                               "en":  "Farm Experience"
+                           },
+    "ui.general_title":  {
+                             "zhHant":  "將號",
+                             "en":  "General Title"
+                         },
+    "ui.holder":  {
+                      "zhHant":  "持有者",
+                      "en":  "Holder"
+                  },
+    "ui.intelligence":  {
+                            "zhHant":  "智力",
+                            "en":  "INT"
+                        },
+    "ui.item_type":  {
+                         "zhHant":  "種類",
+                         "en":  "Type"
+                     },
+    "ui.items":  {
+                     "zhHant":  "道具",
+                     "en":  "Items"
+                 },
+    "ui.leadership":  {
+                          "zhHant":  "統率",
+                          "en":  "LEA"
+                      },
+    "ui.loyalty_short":  {
+                             "zhHant":  "忠誠",
+                             "en":  "LOY"
+                         },
+    "ui.military_rank":  {
+                             "zhHant":  "軍事階",
+                             "en":  "Military Rank"
+                         },
+    "ui.no_item":  {
+                       "zhHant":  "無道具",
+                       "en":  "No Item"
+                   },
+    "ui.officer_detail":  {
+                              "zhHant":  "武將資料",
+                              "en":  "Officer Details"
+                          },
+    "ui.officer_items":  {
+                             "zhHant":  "隨身道具",
+                             "en":  "Equipped Items"
+                         },
+    "ui.politics":  {
+                        "zhHant":  "政治",
+                        "en":  "POL"
+                    },
+    "ui.portrait":  {
+                        "zhHant":  "頭像",
+                        "en":  "Portrait"
+                    },
+    "ui.portrait_pending_asset":  {
+                                      "zhHant":  "頭像\n待素材",
+                                      "en":  "Portrait\nPending Asset"
+                                  },
+    "ui.rarity":  {
+                      "zhHant":  "稀有度",
+                      "en":  "Rarity"
+                  },
+    "ui.role":  {
+                    "zhHant":  "官職",
+                    "en":  "Role"
+                },
+    "ui.spy_rank":  {
+                        "zhHant":  "間諜階",
+                        "en":  "Spy Rank"
+                    },
+    "ui.spy_title":  {
+                         "zhHant":  "間諜號",
+                         "en":  "Spy Title"
+                     },
+    "ui.status":  {
+                      "zhHant":  "狀態",
+                      "en":  "Status"
+                  },
+    "ui.strategist_rank":  {
+                               "zhHant":  "軍師階",
+                               "en":  "Strategist Rank"
+                           },
+    "ui.strategist_title":  {
+                                "zhHant":  "軍師號",
+                                "en":  "Strategist Title"
+                            },
+    "ui.strength":  {
+                        "zhHant":  "武力",
+                        "en":  "STR"
+                    }
+}
