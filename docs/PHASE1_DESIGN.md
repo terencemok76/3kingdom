@@ -13,7 +13,7 @@
 - Design lock tag: `Phase1.5-Design-Locked-v1`
 - Design lock date: `April 28, 2026`
 - Purpose: freeze the Phase 1.5 feature design before implementation begins
-- Status: design locked, implementation not started
+- Status: design locked, implementation in progress
 - Locked feature areas:
 - `Internal Affairs` / `內政` system replacing Phase 1 `Develop`
 - Five internal affairs jobs: `Farm`, `Commercial`, `Defend`, `WaterControl`, `Construction`
@@ -31,6 +31,11 @@
 - Troop costs, upkeep, and matchup multipliers
 - Item rarity, ownership, location, and stat bonuses
 - AI priority weights and balancing constants
+- Current implemented subset after design lock:
+- `Internal Affairs` baseline UI, schedules, and month-end resolution
+- Faction inventory item model, item assignment/removal flow, and officer item bonuses
+- Baseline `Diplomacy` command with `Alliance`, `Truce`, and `Gift`
+- `View` dialog tabs for city officers, faction officers, faction items, cities, and diplomacy relations
 
 ### In Scope (Phase 1 Locked)
 - 2D desktop playable map loop
@@ -45,7 +50,8 @@
 
 ### Deferred (Phase 1.5+ Backlog)
 - Officer job assignment system and titles/rank
-- Item/equipment system (`SpecialWeapon`, `SpecialItem`, `SpecialHorse`)
+- Advanced item/equipment balance and content expansion (`SpecialWeapon`, `SpecialItem`, `SpecialHorse`)
+- Advanced diplomacy systems (`Demand`, `Break Pact`, marriage, pressure, mediation) and spy gameplay
 - Officer age/body status/blood relationship systems
 - Population-capacity depth (city upgrade and full balancing)
 - Succession, defection, riot full event chains and advanced stability simulation
@@ -79,7 +85,7 @@
 - Win/lose conditions for basic campaign flow
 
 ## 3. Out of Scope (Phase 1)
-- Diplomacy systems (alliances, treaties, marriage)
+- Advanced diplomacy systems (marriage, pressure, complex pact chains, spy gameplay)
 - Detailed battles/tactics maps
 - Weather/disaster/random world events beyond basic search
 - Officer skills/perks/equipment
@@ -96,6 +102,21 @@
 - Adds officer equipment and special item assignment
 - Item assignment affects officer attributes and therefore city/job/combat outcomes
 - Item system is strategic-layer only in this phase (no battle scene equipment UI)
+- Current implementation also includes:
+- faction inventory ownership in `WorldState.Items`
+- assigning item to faction officer from personnel UI
+- recalling equipped item back into faction inventory
+- faction item list in `View`
+
+## 3.3 Phase 1.5 Extension (Diplomacy Baseline)
+- Adds a dedicated `Diplomacy` command category on the campaign HUD
+- Current baseline actions:
+- `Alliance`
+- `Truce`
+- `Gift`
+- Diplomacy is issued from one source city, requires one assigned envoy officer, and is resolved at month-end
+- Accepted alliance/truce results are stored as faction-to-faction relation records with remaining months and relation score
+- Current implementation also exposes diplomacy state through the `View -> Diplomacy` faction tab
 
 ## 4. Core Gameplay Model
 ### 4.1 Time System
@@ -508,7 +529,39 @@
 - `Sell Food`: spend `Food`, gain `Gold`
 - Merchant is currently not blocked by the city core-action limit
 
-## 5.6 Attack
+## 5.6 Diplomacy (Phase 1.5 Baseline)
+- Purpose: issue city-based faction diplomacy orders against another alive faction
+- Flow:
+- Player opens `Diplomacy` window from HUD
+- Player chooses one action:
+- `Alliance`
+- `Truce`
+- `Gift`
+- Player chooses one target faction
+- Player chooses one envoy officer from the current city
+- Player sets treaty duration for `Alliance` / `Truce`
+- Player sets gift `Gold` amount for `Gift`
+- Dialog shows a summary preview before confirmation
+- Diplomacy order does **not** resolve immediately in the same command step
+- At end-of-month resolution, diplomacy is validated and then either:
+- creates or refreshes an `Alliance`
+- creates or refreshes a `Truce`
+- applies a relation-score improvement from `Gift`
+- Current implementation constraints:
+- ruler cannot be assigned as envoy
+- envoy officer becomes unavailable for other same-month commands
+- diplomacy target must be another alive faction
+- `Gift` requires `Gold > 0`
+- relation state is stored as `DiplomacyRelationData` with:
+- `FactionAId`
+- `FactionBId`
+- `Status`
+- `RemainingMonths`
+- `RelationScore`
+- `LastUpdatedYear`
+- `LastUpdatedMonth`
+
+## 5.7 Attack
 - Purpose: Invade connected enemy/neutral city
 - Flow:
 - During command phase, player/AI assigns an `Attack` order from source city to connected target city
@@ -542,7 +595,7 @@
 - Current implementation: `50%` returned, `50%` lost
 - Winner/holder applies casualties to both sides
 
-## 5.6 Assign Job (Phase 1.5)
+## 5.8 Assign Job (Phase 1.5)
 - Purpose: assign or reassign officer to one city job
 - Constraints:
 - Officer must belong to selected city
@@ -551,7 +604,7 @@
 - Effect:
 - Monthly city output and command effectiveness update based on officer job performance
 
-## 5.7 Assign Item (Phase 1.5)
+## 5.9 Assign Item (Phase 1.5)
 - Purpose: assign faction-owned item to officer in same faction
 - Constraints:
 - Officer must be alive/active and in faction roster
@@ -806,6 +859,8 @@ res://
 9. When all player cities have acted or player ends turn, AI turns run automatically
 10. End-of-month develop, recruit, move, attack, upkeep, and month advance apply
 11. Invalid `Attack` input keeps the attack dialog open and displays an inline warning instead of submitting the order
+12. `View` opens a shared sortable table dialog for city/faction information
+13. `Diplomacy` opens a dedicated `Window` with target faction, envoy selection, and summary preview
 
 ## 10.1 UI Additions for Jobs (Phase 1.5)
 1. `Develop` button becomes `Internal Affairs` / `內政`
@@ -821,6 +876,18 @@ res://
 2. Item inventory panel lists owned items with stat bonuses and rarity
 3. Assign/Remove item actions show before/after effective stat preview
 4. City/officer tooltip can show active item bonuses in compact form
+5. Current implementation exposes faction item inventory from `View -> Faction Items`
+6. Item list columns currently include item name, holder, type, rarity, and stat bonus fields
+
+## 10.2.1 View Dialog Tabs
+1. `City Officers`
+2. `Faction Officers`
+3. `Faction Items`
+4. `Cities`
+5. `Diplomacy`
+6. All tabs use the same table dialog shell, row striping, and column-header sorting
+7. `Faction Items` is faction-scoped and shows inventory plus current equipped holder
+8. `Diplomacy` is faction-scoped and shows target faction, status, remaining months, and relation score
 
 ## 10.3 UI Additions for Officer Profile (Phase 1.5)
 1. Officer card shows calculated age, `BodyStatus`, and relationship summary
@@ -1028,6 +1095,19 @@ res://
 - Unclaimed item city locations can be searched/discovered if configured
 - AI does not equip duplicate item to multiple officers
 - Save/load preserves item ownership and equipment state
+- `View -> Faction Items` shows faction inventory correctly
+- Item holder column reflects equipped officer or `None`
+
+## 14.2.1 Testing Checklist (Phase 1.5 Diplomacy Baseline)
+- Player can open `Diplomacy` from HUD for an owned city
+- Diplomacy window lists only valid target factions
+- Ruler cannot be selected as envoy
+- Assigned envoy cannot be reused for another same-month command
+- `Alliance` and `Truce` create or refresh diplomacy relation data at month-end
+- `Gift` requires positive gold and improves relation score
+- Diplomacy failure keeps the dialog open and shows localized inline warning text
+- `View -> Diplomacy` shows relation status, remaining months, and relation score for the selected faction
+- Neutral relations display correctly even when no explicit treaty record exists
 
 ## 14.3 Testing Checklist (Phase 1.5 Officer Profile)
 - Officer `BirthYear`, `DeathYear`, `BodyStatus`, and relationship data load correctly
@@ -1111,7 +1191,9 @@ res://
 
 ### Diplomacy
 - Diplomacy is a strategic-layer faction-to-faction system and is resolved on the campaign map, not in a separate scene.
-- Diplomacy actions are intended to be issued from a dedicated `Diplomacy` command category in a later phase.
+- Current implementation already exposes diplomacy from a dedicated `Diplomacy` command category on the HUD.
+- Current baseline actions are `Alliance`, `Truce`, and `Gift`.
+- More advanced diplomacy actions remain a later-phase expansion.
 - Each diplomacy action requires one assigned officer (`diplomat`, `strategist`, or another valid envoy).
 - Assigned diplomacy officers should be unavailable for other month-based actions during the same active diplomacy order.
 - Diplomacy can be either:
