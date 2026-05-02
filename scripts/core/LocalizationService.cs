@@ -50,6 +50,28 @@ public class LocalizationService
         }
     }
 
+    public void LoadFromFileSystem(string filePath)
+    {
+        _textTable.Clear();
+
+        if (!System.IO.File.Exists(filePath))
+        {
+            return;
+        }
+
+        var json = System.IO.File.ReadAllText(filePath);
+        var document = JsonSerializer.Deserialize<Dictionary<string, LocaleTextEntry>>(json);
+        if (document == null)
+        {
+            return;
+        }
+
+        foreach (var pair in document)
+        {
+            _textTable[pair.Key] = pair.Value;
+        }
+    }
+
     public void ToggleLanguage()
     {
         SetLanguage(IsTraditionalChinese ? GameLanguage.English : GameLanguage.TraditionalChinese);
@@ -323,6 +345,17 @@ public class LocalizationService
 
         var localized = T(key);
         return string.Equals(localized, key, StringComparison.Ordinal) ? officer.Role : localized;
+    }
+
+    public string GetProgressionTitle(string titleKey)
+    {
+        if (string.IsNullOrWhiteSpace(titleKey))
+        {
+            return T("ui.none");
+        }
+
+        var localized = T(titleKey);
+        return string.Equals(localized, titleKey, StringComparison.Ordinal) ? titleKey : localized;
     }
 
     public string GetOfficerStatus(WorldState world, OfficerData officer)

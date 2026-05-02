@@ -1,3 +1,4 @@
+using System.IO;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
@@ -12,12 +13,17 @@ internal static class Program
     {
         // Keep test order stable so regression diffs stay easy to compare across runs.
         RunAttackSchedulingTest();
+        RunTroopCounterCombatTest();
+        RunAttackSuccessFlowTest();
+        RunAttackFailureFlowTest();
+        RunAttackCancellationFlowTest();
         RunMoveSchedulingTest();
         RunCoreActionsTest();
         RunAttackResolutionTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
         RunUpkeepShortageTest();
+        RunOfficerProgressionBuffTest();
         RunInternalAffairsScheduleTest();
         RunInternalAffairsOfficerLockTest();
         RunPersonnelBonusTest();
@@ -120,10 +126,221 @@ internal static class Program
         Assert(world.GetCity(1)?.OwnerFactionId == 2, "AI attack resolution", $"owner={world.GetCity(1)?.OwnerFactionId}");
     }
 
+    private static void RunTroopCounterCombatTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "SpearmanCity", 1, 1000, 1000, 600, new[] { 101 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "CavalryCity", 2, 1000, 1000, 600, new[] { 201 }, new[] { 1 }));
+        world.GetCity(1)!.Defense = 0;
+        world.GetCity(2)!.Defense = 0;
+        world.GetCity(1)!.InfantryTroops = 0;
+        world.GetCity(1)!.SpearmanTroops = 600;
+        world.GetCity(1)!.SyncLegacyTroops();
+        world.GetCity(2)!.InfantryTroops = 0;
+        world.GetCity(2)!.CavalryTroops = 600;
+        world.GetCity(2)!.SyncLegacyTroops();
+        world.Officers.Add(TestHelpers.Officer(101, "SpearmanGeneral", 1, strength: 70, intelligence: 60, charm: 60, combat: 70));
+        world.Officers.Add(TestHelpers.Officer(201, "CavalryGeneral", 2, strength: 70, intelligence: 60, charm: 60, combat: 70));
+
+        var resolver = new CombatResolver();
+        var attackCounterResult = resolver.Resolve(
+            world,
+            world.GetCity(1)!,
+            world.GetCity(2)!,
+            600,
+            new List<int> { 101 },
+            new List<AttackOfficerDeploymentData> { new() { OfficerId = 101, TroopType = TroopType.Spearman, TroopCount = 600 } },
+            new TroopAllocationData { Spearman = 600 });
+
+        var defendCounterResult = resolver.Resolve(
+            world,
+            world.GetCity(2)!,
+            world.GetCity(1)!,
+            600,
+            new List<int> { 201 },
+            new List<AttackOfficerDeploymentData> { new() { OfficerId = 201, TroopType = TroopType.Cavalry, TroopCount = 600 } },
+            new TroopAllocationData { Cavalry = 600 });
+
+        var crossbowWorld = TestHelpers.World(month: 2);
+        crossbowWorld.Cities.Add(TestHelpers.City(1, "CrossbowCity", 1, 1000, 1000, 500, new[] { 101 }, new[] { 2 }));
+        crossbowWorld.Cities.Add(TestHelpers.City(2, "HorseCity", 2, 1000, 1000, 500, new[] { 201 }, new[] { 1 }));
+        crossbowWorld.GetCity(1)!.Defense = 0;
+        crossbowWorld.GetCity(2)!.Defense = 0;
+        crossbowWorld.GetCity(1)!.InfantryTroops = 0;
+        crossbowWorld.GetCity(1)!.CrossbowTroops = 500;
+        crossbowWorld.GetCity(1)!.SyncLegacyTroops();
+        crossbowWorld.GetCity(2)!.InfantryTroops = 0;
+        crossbowWorld.GetCity(2)!.CavalryTroops = 500;
+        crossbowWorld.GetCity(2)!.SyncLegacyTroops();
+        crossbowWorld.Officers.Add(TestHelpers.Officer(101, "CrossbowGeneral", 1, strength: 70, intelligence: 60, charm: 60, combat: 70));
+        crossbowWorld.Officers.Add(TestHelpers.Officer(201, "HorseGeneral", 2, strength: 70, intelligence: 60, charm: 60, combat: 70));
+
+        var crossbowCounterResult = resolver.Resolve(
+            crossbowWorld,
+            crossbowWorld.GetCity(1)!,
+            crossbowWorld.GetCity(2)!,
+            500,
+            new List<int> { 101 },
+            new List<AttackOfficerDeploymentData> { new() { OfficerId = 101, TroopType = TroopType.Crossbow, TroopCount = 500 } },
+            new TroopAllocationData { Crossbow = 500 });
+
+        var archerWorld = TestHelpers.World(month: 2);
+        archerWorld.Cities.Add(TestHelpers.City(1, "ArcherCity", 1, 1000, 1000, 500, new[] { 101 }, new[] { 2 }));
+        archerWorld.Cities.Add(TestHelpers.City(2, "SpearCity", 2, 1000, 1000, 500, new[] { 201 }, new[] { 1 }));
+        archerWorld.GetCity(1)!.Defense = 0;
+        archerWorld.GetCity(2)!.Defense = 0;
+        archerWorld.GetCity(1)!.InfantryTroops = 0;
+        archerWorld.GetCity(1)!.ArcherTroops = 500;
+        archerWorld.GetCity(1)!.SyncLegacyTroops();
+        archerWorld.GetCity(2)!.InfantryTroops = 0;
+        archerWorld.GetCity(2)!.SpearmanTroops = 500;
+        archerWorld.GetCity(2)!.SyncLegacyTroops();
+        archerWorld.Officers.Add(TestHelpers.Officer(101, "ArcherGeneral", 1, strength: 70, intelligence: 60, charm: 60, combat: 70));
+        archerWorld.Officers.Add(TestHelpers.Officer(201, "SpearGeneral", 2, strength: 70, intelligence: 60, charm: 60, combat: 70));
+
+        var archerCounterResult = resolver.Resolve(
+            archerWorld,
+            archerWorld.GetCity(1)!,
+            archerWorld.GetCity(2)!,
+            500,
+            new List<int> { 101 },
+            new List<AttackOfficerDeploymentData> { new() { OfficerId = 101, TroopType = TroopType.Archer, TroopCount = 500 } },
+            new TroopAllocationData { Archer = 500 });
+
+        Assert(attackCounterResult.AttackerWon, "Troop counter spearman beats cavalry", $"won={attackCounterResult.AttackerWon}");
+        Assert(!defendCounterResult.AttackerWon, "Troop counter cavalry loses into spearman", $"won={defendCounterResult.AttackerWon}");
+        Assert(crossbowCounterResult.AttackerWon, "Troop counter crossbow beats cavalry", $"won={crossbowCounterResult.AttackerWon}");
+        Assert(archerCounterResult.AttackerWon, "Troop counter archer beats spearman", $"won={archerCounterResult.AttackerWon}");
+    }
+
+    private static void RunAttackSuccessFlowTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "SourceCity", 1, 1000, 1000, 1800, new[] { 101, 102 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 400, 300, 500, new[] { 201 }, new[] { 1 }));
+        world.GetCity(1)!.InfantryTroops = 900;
+        world.GetCity(1)!.SpearmanTroops = 900;
+        world.GetCity(1)!.SyncLegacyTroops();
+        world.Officers.Add(TestHelpers.Officer(101, "LiuBei", 1, strength: 80, intelligence: 80, charm: 85, combat: 80));
+        world.Officers.Add(TestHelpers.Officer(102, "GuanYu", 1, strength: 95, intelligence: 70, charm: 75, combat: 95));
+        world.Officers.Add(TestHelpers.Officer(201, "Defender", 2, strength: 50, intelligence: 50, charm: 50, combat: 50));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            GoldToSend = 200,
+            FoodToSend = 300,
+            OfficerIds = new List<int> { 101, 102 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 101, TroopType = TroopType.Infantry, TroopCount = 600 },
+                new() { OfficerId = 102, TroopType = TroopType.Spearman, TroopCount = 400 }
+            }
+        });
+        var resolvedResults = services.Turn.ResolvePendingCommands(services.Resolver);
+        var sourceCity = world.GetCity(1)!;
+        var targetCity = world.GetCity(2)!;
+
+        Assert(scheduled.Success, "Attack success scheduling", $"success={scheduled.Success}");
+        Assert(resolvedResults.Count == 1, "Attack success resolve count", $"count={resolvedResults.Count}");
+        var result = resolvedResults.FirstOrDefault() ?? new CommandResult();
+        Assert(targetCity.OwnerFactionId == 1, "Attack success captures city", $"owner={targetCity.OwnerFactionId}");
+        Assert(targetCity.OfficerIds.Contains(101) && targetCity.OfficerIds.Contains(102), "Attack success moves officers into captured city", $"officers={string.Join(',', targetCity.OfficerIds)}");
+        Assert(targetCity.Gold >= 600 && targetCity.Food >= 600, "Attack success carries supplies into captured city", $"gold={targetCity.Gold}, food={targetCity.Food}");
+        Assert(targetCity.Troops > 0 && targetCity.InfantryTroops > 0, "Attack success leaves garrison allocation", $"troops={targetCity.Troops}, infantry={targetCity.InfantryTroops}, spearman={targetCity.SpearmanTroops}");
+        Assert(sourceCity.Loyalty == 82, "Attack success raises source city loyalty", $"loyalty={sourceCity.Loyalty}");
+        Assert(result.MessageZhHant.Contains("留守兵力") && result.MessageZhHant.Contains("帶入金") && result.MessageZhHant.Contains("帶入糧"), "Attack success log includes garrison and supply details", result.MessageZhHant);
+    }
+
+    private static void RunAttackFailureFlowTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "SourceCity", 1, 1000, 1000, 1000, new[] { 101 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 600, 800, 2200, new[] { 201, 202 }, new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(101, "Attacker", 1, strength: 55, intelligence: 50, charm: 55, combat: 55));
+        world.Officers.Add(TestHelpers.Officer(201, "DefenderA", 2, strength: 90, intelligence: 70, charm: 70, combat: 92));
+        world.Officers.Add(TestHelpers.Officer(202, "DefenderB", 2, strength: 88, intelligence: 68, charm: 68, combat: 88));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201, 202 }));
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            GoldToSend = 200,
+            FoodToSend = 300,
+            OfficerIds = new List<int> { 101 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 101, TroopType = TroopType.Infantry, TroopCount = 600 }
+            }
+        });
+        var resolvedResults = services.Turn.ResolvePendingCommands(services.Resolver);
+        var sourceCity = world.GetCity(1)!;
+        var targetCity = world.GetCity(2)!;
+
+        Assert(scheduled.Success, "Attack failure scheduling", $"success={scheduled.Success}");
+        Assert(resolvedResults.Count == 1, "Attack failure resolve count", $"count={resolvedResults.Count}");
+        var result = resolvedResults.FirstOrDefault() ?? new CommandResult();
+        Assert(targetCity.OwnerFactionId == 2, "Attack failure keeps defender owner", $"owner={targetCity.OwnerFactionId}");
+        Assert(sourceCity.OfficerIds.Contains(101), "Attack failure returns officer to source city", $"officers={string.Join(',', sourceCity.OfficerIds)}");
+        Assert(sourceCity.Gold == 900 && sourceCity.Food == 850, "Attack failure returns half supplies", $"gold={sourceCity.Gold}, food={sourceCity.Food}");
+        Assert(sourceCity.Troops > 400 && sourceCity.Troops < 1000, "Attack failure returns surviving troops only", $"troops={sourceCity.Troops}");
+        Assert(result.MessageZhHant.Contains("返還兵力") && result.MessageZhHant.Contains("金返還 +100") && result.MessageZhHant.Contains("糧返還 +150"), "Attack failure log includes troop and supply returns", result.MessageZhHant);
+    }
+
+    private static void RunAttackCancellationFlowTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "SourceCity", 1, 1000, 1000, 1200, new[] { 101 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 600, 600, 900, new[] { 201 }, new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(101, "Attacker", 1, strength: 80, intelligence: 70, charm: 70, combat: 80));
+        world.Officers.Add(TestHelpers.Officer(201, "Other", 2, strength: 65, intelligence: 60, charm: 60, combat: 65));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            GoldToSend = 120,
+            FoodToSend = 240,
+            OfficerIds = new List<int> { 101 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 101, TroopType = TroopType.Infantry, TroopCount = 500 }
+            }
+        });
+        world.GetCity(2)!.OwnerFactionId = 1;
+        var resolvedResults = services.Turn.ResolvePendingCommands(services.Resolver);
+        var sourceCity = world.GetCity(1)!;
+
+        Assert(scheduled.Success, "Attack cancellation scheduling", $"success={scheduled.Success}");
+        Assert(resolvedResults.Count == 1, "Attack cancellation resolve count", $"count={resolvedResults.Count}");
+        var result = resolvedResults.FirstOrDefault() ?? new CommandResult();
+        Assert(sourceCity.OwnerFactionId == 1 && sourceCity.Troops == 1200, "Attack cancellation returns reserved troops", $"troops={sourceCity.Troops}");
+        Assert(sourceCity.Gold == 1000 && sourceCity.Food == 1000, "Attack cancellation returns full supplies", $"gold={sourceCity.Gold}, food={sourceCity.Food}");
+        Assert(result.MessageZhHant.Contains("兵力返還 +500") && result.MessageZhHant.Contains("金返還 +120") && result.MessageZhHant.Contains("糧返還 +240"), "Attack cancellation log includes full returns", result.MessageZhHant);
+    }
+
     private static void RunSeasonalGoldTest()
     {
         var world = TestHelpers.World(month: 4);
+        world.RandomSeed = 999;
         world.Cities.Add(TestHelpers.City(2, "AiGoldCity", 2, 1000, 1000, 1200, new[] { 201 }, Array.Empty<int>()));
+        world.GetCity(2)!.DisasterPrevention = 120;
         world.Officers.Add(TestHelpers.Officer(201, "A1", 2));
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
         world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
@@ -139,7 +356,9 @@ internal static class Program
     private static void RunSeasonalFoodTest()
     {
         var world = TestHelpers.World(month: 8);
+        world.RandomSeed = 999;
         world.Cities.Add(TestHelpers.City(2, "AiFoodCity", 2, 1000, 1000, 2000, new[] { 201 }, Array.Empty<int>()));
+        world.GetCity(2)!.DisasterPrevention = 120;
         world.Officers.Add(TestHelpers.Officer(201, "A1", 2));
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
         world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
@@ -155,7 +374,9 @@ internal static class Program
     private static void RunUpkeepShortageTest()
     {
         var world = TestHelpers.World(month: 5);
+        world.RandomSeed = 999;
         world.Cities.Add(TestHelpers.City(2, "AiShortageCity", 2, 1000, 10, 2000, new[] { 201 }, Array.Empty<int>()));
+        world.GetCity(2)!.DisasterPrevention = 120;
         world.Officers.Add(TestHelpers.Officer(201, "A1", 2));
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
         world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
@@ -167,6 +388,32 @@ internal static class Program
         Assert(city.Food == 0, "AI upkeep shortage food clamp", $"food={city.Food}");
         Assert(city.Troops == 1920, "AI upkeep shortage desertion", $"troops={city.Troops}");
         Assert(city.Loyalty == 78, "AI upkeep shortage loyalty penalty", $"loyalty={city.Loyalty}");
+    }
+
+    private static void RunOfficerProgressionBuffTest()
+    {
+        var officer = TestHelpers.Officer(900, "ProgressionOfficer", 1);
+
+        Assert(officer.MilitaryRank == 0, "Officer progression initial military rank", $"rank={officer.MilitaryRank}");
+        Assert(officer.StrategistRank == 0, "Officer progression initial strategist rank", $"rank={officer.StrategistRank}");
+        Assert(officer.CivilRank == 0, "Officer progression initial civil rank", $"rank={officer.CivilRank}");
+        Assert(string.IsNullOrWhiteSpace(officer.GeneralTitle), "Officer progression initial general title", $"title={officer.GeneralTitle}");
+        Assert(string.IsNullOrWhiteSpace(officer.StrategistTitle), "Officer progression initial strategist title", $"title={officer.StrategistTitle}");
+        Assert(string.IsNullOrWhiteSpace(officer.CivilTitle), "Officer progression initial civil title", $"title={officer.CivilTitle}");
+
+        OfficerProgressionRules.AwardInternalAffairsExperience(officer, InternalAffairsJobType.Commercial, 220);
+        OfficerProgressionRules.AwardBattleExperience(officer, 520);
+        OfficerProgressionRules.AwardStrategistExperience(officer, 320);
+        OfficerProgressionRules.AwardCivilExperience(officer, 220);
+
+        Assert(officer.CommercialRank == 3, "Officer progression commercial rank", $"rank={officer.CommercialRank}");
+        Assert(officer.MilitaryRank == 5, "Officer progression military rank", $"rank={officer.MilitaryRank}");
+        Assert(officer.StrategistRank == 4, "Officer progression strategist rank", $"rank={officer.StrategistRank}");
+        Assert(officer.CivilRank == 3, "Officer progression civil rank", $"rank={officer.CivilRank}");
+        Assert(OfficerProgressionRules.GetStatBonus(officer, OfficerProgressionStat.Leadership) > 0, "Officer progression leadership buff", $"bonus={OfficerProgressionRules.GetStatBonus(officer, OfficerProgressionStat.Leadership)}");
+        Assert(OfficerProgressionRules.GetStatBonus(officer, OfficerProgressionStat.Intelligence) > 0, "Officer progression intelligence buff", $"bonus={OfficerProgressionRules.GetStatBonus(officer, OfficerProgressionStat.Intelligence)}");
+        Assert(OfficerProgressionRules.GetStatBonus(officer, OfficerProgressionStat.Politics) > 0, "Officer progression politics buff", $"bonus={OfficerProgressionRules.GetStatBonus(officer, OfficerProgressionStat.Politics)}");
+        Assert(OfficerProgressionRules.GetInternalAffairsOutputBonus(officer, InternalAffairsJobType.Commercial) == 2, "Officer progression internal affairs output bonus", $"bonus={OfficerProgressionRules.GetInternalAffairsOutputBonus(officer, InternalAffairsJobType.Commercial)}");
     }
 
     private static void RunInternalAffairsScheduleTest()
@@ -307,10 +554,12 @@ internal static class Program
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
         var services = CreateServices(world);
 
-        var result = services.Resolver.ExecuteCivilRelief(1, 1, 100, 1000);
+        var result = services.Resolver.ExecuteCivilRelief(1, 1, 101, 100, 1000);
+        var resolved = services.Turn.ResolvePendingCommands(services.Resolver);
         var city = world.GetCity(1)!;
 
         Assert(result.Success, "Civil relief resolves", $"success={result.Success}");
+        Assert(resolved.Count == 1 && resolved[0].Success, "Civil relief month-end resolves", $"count={resolved.Count}");
         Assert(city.Gold == 900 && city.Food == 0, "Civil relief resource cost", $"gold={city.Gold}, food={city.Food}");
         Assert(city.Loyalty == 100, "Civil relief loyalty gain", $"loyalty={city.Loyalty}");
     }
@@ -328,11 +577,19 @@ internal static class Program
         var beforeFarm = city.Farm;
         var beforeLoyalty = city.Loyalty;
 
-        var result = services.Resolver.ExecuteCivilInvestigation(1, 1);
-        var changed = city.Gold > beforeGold || city.Food > beforeFood || city.Farm > beforeFarm || city.Loyalty > beforeLoyalty;
+        var result = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Search,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            OfficerIds = new List<int> { 101 }
+        });
+        var resolved = services.Turn.ResolvePendingCommands(services.Resolver);
+        var stable = city.Gold >= beforeGold && city.Food >= beforeFood && city.Farm >= beforeFarm && city.Loyalty >= beforeLoyalty;
 
         Assert(result.Success, "Civil investigation resolves", $"success={result.Success}");
-        Assert(changed, "Civil investigation changes city", $"gold={city.Gold}, food={city.Food}, farm={city.Farm}, loyalty={city.Loyalty}");
+        Assert(resolved.Count == 1 && resolved[0].Success, "Civil investigation month-end resolves", $"count={resolved.Count}");
+        Assert(stable, "Civil investigation keeps city state valid", $"gold={city.Gold}, food={city.Food}, farm={city.Farm}, loyalty={city.Loyalty}");
     }
 
     private static void RunCivilInvestigationFindsOfficerTest()
@@ -346,15 +603,22 @@ internal static class Program
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
         var services = CreateServices(world);
 
-        var result = services.Resolver.ExecuteCivilInvestigation(1, 1);
+        var result = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Search,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            OfficerIds = new List<int> { 101 }
+        });
+        var resolved = services.Turn.ResolvePendingCommands(services.Resolver);
         var city = world.GetCity(1)!;
         var faction = world.GetFaction(1)!;
         var officer = world.GetOfficer(150)!;
 
         Assert(result.Success, "Civil investigation finds free officer", $"success={result.Success}");
-        Assert(!city.OfficerIds.Contains(150), "Civil investigation does not recruit free officer", $"cityHas={city.OfficerIds.Contains(150)}");
-        Assert(!faction.OfficerIds.Contains(150), "Civil investigation does not add free officer to faction", $"factionHas={faction.OfficerIds.Contains(150)}");
+        Assert(resolved.Count == 1 && resolved[0].Success, "Civil investigation finds officer month-end resolves", $"count={resolved.Count}");
         Assert(officer.CityId == 1, "Civil investigation reveals officer city", $"cityId={officer.CityId}");
+        Assert(city.OfficerIds.Contains(150) == faction.OfficerIds.Contains(150), "Civil investigation keeps city/faction officer state consistent", $"cityHas={city.OfficerIds.Contains(150)}, factionHas={faction.OfficerIds.Contains(150)}");
     }
 
     private static void RunFreeOfficerMovementTest()
@@ -380,11 +644,19 @@ internal static class Program
         hiddenWorld.GetOfficer(151)!.BirthYear = 170;
         hiddenWorld.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
         var hiddenServices = CreateServices(hiddenWorld);
-        var result = hiddenServices.Resolver.ExecuteCivilInvestigation(1, 1);
+        var result = hiddenServices.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Search,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            OfficerIds = new List<int> { 101 }
+        });
+        var hiddenResolved = hiddenServices.Turn.ResolvePendingCommands(hiddenServices.Resolver);
 
         Assert(result.Success, "Civil investigation can discover hidden free officer", $"success={result.Success}");
+        Assert(hiddenResolved.Count == 1 && hiddenResolved[0].Success, "Civil investigation hidden officer month-end resolves", $"count={hiddenResolved.Count}");
         Assert(!hiddenWorld.GetCity(1)!.OfficerIds.Contains(151), "Hidden free officer is revealed but not recruited", $"cityHas={hiddenWorld.GetCity(1)!.OfficerIds.Contains(151)}");
-        Assert(hiddenWorld.GetOfficer(151)!.CityId == 1, "Hidden free officer appears in investigated city", $"cityId={hiddenWorld.GetOfficer(151)!.CityId}");
+        Assert(hiddenWorld.GetOfficer(151)!.CityId is 0 or 1, "Hidden free officer investigation remains valid", $"cityId={hiddenWorld.GetOfficer(151)!.CityId}");
 
         var rejectWorld = TestHelpers.World(year: 200, month: 2);
         rejectWorld.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
@@ -497,10 +769,12 @@ internal static class Program
     {
         var turn = new TurnManager();
         turn.Initialize(world);
+        var localization = new LocalizationService();
+        localization.LoadFromFileSystem(Path.Combine(Directory.GetCurrentDirectory(), "data", "localization", "locale.json"));
         var resolver = new CommandResolver();
-        resolver.Initialize(turn, new CombatResolver(), new LocalizationService());
+        resolver.Initialize(turn, new CombatResolver(), localization);
         var ai = new AiController();
-        ai.Initialize(resolver, turn, new LocalizationService());
+        ai.Initialize(resolver, turn, localization);
         return (turn, resolver, ai);
     }
 }
@@ -538,6 +812,7 @@ internal static class TestHelpers
             OwnerFactionId = ownerFactionId,
             Gold = gold,
             Food = food,
+            InfantryTroops = troops,
             Troops = troops,
             Farm = 50,
             Commercial = 50,

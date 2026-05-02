@@ -63,7 +63,7 @@ public partial class CommandResolver
         return count == 0 ? 50 : total / count;
     }
 
-    private static int GetAverageEffectiveStat(WorldState world, CityData city, Func<OfficerData, int> selector, Func<ItemData, int> bonusSelector)
+    private static int GetAverageEffectiveStat(WorldState world, CityData city, Func<OfficerData, int> selector, Func<ItemData, int> bonusSelector, OfficerProgressionStat progressionStat)
     {
         var count = 0;
         var total = 0;
@@ -75,7 +75,7 @@ public partial class CommandResolver
                 continue;
             }
 
-            total += GetEffectiveStat(world, officer, selector, bonusSelector);
+            total += GetEffectiveStat(world, officer, selector, bonusSelector, progressionStat);
             count += 1;
         }
 
@@ -185,6 +185,104 @@ public partial class CommandResolver
                 allocation.Siege = value;
                 break;
         }
+    }
+
+    private static int GetTroopAllocationValue(TroopAllocationData allocation, TroopType troopType)
+    {
+        return troopType switch
+        {
+            TroopType.Infantry => allocation.Infantry,
+            TroopType.Spearman => allocation.Spearman,
+            TroopType.Cavalry => allocation.Cavalry,
+            TroopType.Archer => allocation.Archer,
+            TroopType.Crossbow => allocation.Crossbow,
+            TroopType.Siege => allocation.Siege,
+            _ => 0
+        };
+    }
+
+    private static TroopAllocationData ScaleTroopAllocationToTotal(TroopAllocationData source, int targetTotal)
+    {
+        var allocation = new TroopAllocationData();
+        var sourceTotal = source.Total;
+        if (sourceTotal <= 0 || targetTotal <= 0)
+        {
+            return allocation;
+        }
+
+        if (targetTotal >= sourceTotal)
+        {
+            allocation.Infantry = source.Infantry;
+            allocation.Spearman = source.Spearman;
+            allocation.Cavalry = source.Cavalry;
+            allocation.Archer = source.Archer;
+            allocation.Crossbow = source.Crossbow;
+            allocation.Siege = source.Siege;
+            return allocation;
+        }
+
+        var troopTypes = new[]
+        {
+            TroopType.Infantry,
+            TroopType.Spearman,
+            TroopType.Cavalry,
+            TroopType.Archer,
+            TroopType.Crossbow,
+            TroopType.Siege
+        };
+        var remainders = new List<(TroopType TroopType, double Fraction)>();
+        var allocated = 0;
+        foreach (var troopType in troopTypes)
+        {
+            var current = GetTroopAllocationValue(source, troopType);
+            if (current <= 0)
+            {
+                SetTroopAllocationValue(allocation, troopType, 0);
+                continue;
+            }
+
+            var scaled = current * targetTotal / (double)sourceTotal;
+            var whole = (int)Math.Floor(scaled);
+            SetTroopAllocationValue(allocation, troopType, whole);
+            allocated += whole;
+            remainders.Add((troopType, scaled - whole));
+        }
+
+        var remaining = targetTotal - allocated;
+        foreach (var (troopType, _) in remainders
+                     .OrderByDescending(item => item.Fraction)
+                     .ThenByDescending(item => GetTroopAllocationValue(source, item.TroopType)))
+        {
+            if (remaining <= 0)
+            {
+                break;
+            }
+
+            var current = GetTroopAllocationValue(allocation, troopType);
+            var sourceValue = GetTroopAllocationValue(source, troopType);
+            if (current >= sourceValue)
+            {
+                continue;
+            }
+
+            SetTroopAllocationValue(allocation, troopType, current + 1);
+            remaining -= 1;
+        }
+
+        return allocation;
+    }
+
+    private static TroopAllocationData CreateTroopAllocationFromCityProportion(CityData city, int targetTotal)
+    {
+        return ScaleTroopAllocationToTotal(new TroopAllocationData
+        {
+            Infantry = city.InfantryTroops,
+            Spearman = city.SpearmanTroops,
+            Cavalry = city.CavalryTroops,
+            Archer = city.ArcherTroops,
+            Crossbow = city.CrossbowTroops,
+            Siege = city.SiegeTroops
+        }, targetTotal);
     }
 
     private static int GetTroopTypeRecruitGoldCost(TroopType troopType)
@@ -364,12 +462,13 @@ public partial class CommandResolver
         OfficerData officer,
         InternalAffairsJobType jobType)
     {
-        var intelligence = GetEffectiveStat(world, officer, data => data.Intelligence, item => item.IntelligenceBonus);
-        var politics = GetEffectiveStat(world, officer, data => data.Politics, item => item.PoliticsBonus);
-        var charm = GetEffectiveStat(world, officer, data => data.Charm, item => item.CharmBonus);
+        var intelligence = GetEffectiveStat(world, officer, data => data.Intelligence, item => item.IntelligenceBonus, OfficerProgressionStat.Intelligence);
+        var politics = GetEffectiveStat(world, officer, data => data.Politics, item => item.PoliticsBonus, OfficerProgressionStat.Politics);
+        var charm = GetEffectiveStat(world, officer, data => data.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm);
         var officerBonus = Math.Max(0, (intelligence + politics + charm) / 90);
-        var primaryGain = 2 + officerBonus;
-        var secondaryGain = 1;
+        var progressionBonus = OfficerProgressionRules.GetInternalAffairsOutputBonus(officer, jobType);
+        var primaryGain = 2 + officerBonus + progressionBonus;
+        var secondaryGain = 1 + Math.Max(0, progressionBonus / 2);
         (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty) gains = jobType switch
         {
             InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0),
@@ -385,6 +484,8 @@ public partial class CommandResolver
         city.Defense = ClampStat(city.Defense + gains.Defense);
         city.DisasterPrevention = ClampStat(city.DisasterPrevention + gains.DisasterPrevention);
         city.Loyalty = ClampStat(city.Loyalty + gains.Loyalty);
+        OfficerProgressionRules.AwardInternalAffairsExperience(officer, jobType, 40);
+        OfficerProgressionRules.AwardCivilExperience(officer, 12);
         return gains;
     }
 
@@ -463,7 +564,8 @@ public partial class CommandResolver
         WorldState world,
         OfficerData officer,
         Func<OfficerData, int> selector,
-        Func<ItemData, int> bonusSelector)
+        Func<ItemData, int> bonusSelector,
+        OfficerProgressionStat progressionStat)
     {
         var baseValue = selector(officer);
         var itemBonus = 0;
@@ -472,7 +574,7 @@ public partial class CommandResolver
             itemBonus += bonusSelector(item);
         }
 
-        return ClampStat(baseValue + itemBonus);
+        return ClampStat(baseValue + itemBonus + OfficerProgressionRules.GetStatBonus(officer, progressionStat));
     }
 
     private static IEnumerable<ItemData> GetEquippedItems(WorldState world, int officerId)
@@ -541,6 +643,20 @@ public partial class CommandResolver
         {
             item.OwnerFactionId = factionId;
             item.OwnerCityId = 0;
+        }
+    }
+
+    private static void AwardBattleExperience(WorldState world, IEnumerable<int> officerIds, int amount)
+    {
+        foreach (var officerId in officerIds.Distinct())
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            OfficerProgressionRules.AwardBattleExperience(officer, amount);
         }
     }
 

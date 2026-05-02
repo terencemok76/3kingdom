@@ -24,6 +24,30 @@ public class OfficerData
     public int Loyalty { get; set; }
     public int Ambition { get; set; }
     public int Combat { get; set; }
+    public int FarmExperience { get; set; }
+    public int FarmRank { get; set; }
+    public string FarmTitle { get; set; } = string.Empty;
+    public int CommercialExperience { get; set; }
+    public int CommercialRank { get; set; }
+    public string CommercialTitle { get; set; } = string.Empty;
+    public int DefendExperience { get; set; }
+    public int DefendRank { get; set; }
+    public string DefendTitle { get; set; } = string.Empty;
+    public int WaterExperience { get; set; }
+    public int WaterRank { get; set; }
+    public string WaterTitle { get; set; } = string.Empty;
+    public int ConstructionExperience { get; set; }
+    public int ConstructionRank { get; set; }
+    public string ConstructionTitle { get; set; } = string.Empty;
+    public int BattleExperience { get; set; }
+    public int MilitaryRank { get; set; }
+    public string GeneralTitle { get; set; } = string.Empty;
+    public int StrategistExperience { get; set; }
+    public int StrategistRank { get; set; }
+    public string StrategistTitle { get; set; } = string.Empty;
+    public int CivilExperience { get; set; }
+    public int CivilRank { get; set; }
+    public string CivilTitle { get; set; } = string.Empty;
     [JsonPropertyName("relationship_type")]
     public Dictionary<string, string> RelationshipType { get; set; } = new();
     public int CityId { get; set; }

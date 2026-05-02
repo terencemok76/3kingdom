@@ -110,7 +110,7 @@ public partial class CommandResolver
 
     private CommandResult ResolveRecruit(WorldState world, CityData city, PendingCommandData pendingCommand)
     {
-        var charm = GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus);
+        var charm = GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm);
         var recruits = 80 + charm / 2 + _random.Next(0, 41);
         if (pendingCommand.RecruitTroopType == TroopType.Cavalry)
         {
@@ -222,15 +222,19 @@ public partial class CommandResolver
     {
         var assignedOfficer = pendingCommand.OfficerIds.Count > 0 ? world.GetOfficer(pendingCommand.OfficerIds[0]) : null;
         var intelligence = assignedOfficer != null
-            ? GetEffectiveStat(world, assignedOfficer, officer => officer.Intelligence, item => item.IntelligenceBonus)
-            : GetAverageEffectiveStat(world, city, officer => officer.Intelligence, item => item.IntelligenceBonus);
+            ? GetEffectiveStat(world, assignedOfficer, officer => officer.Intelligence, item => item.IntelligenceBonus, OfficerProgressionStat.Intelligence)
+            : GetAverageEffectiveStat(world, city, officer => officer.Intelligence, item => item.IntelligenceBonus, OfficerProgressionStat.Intelligence);
         var charm = assignedOfficer != null
-            ? GetEffectiveStat(world, assignedOfficer, officer => officer.Charm, item => item.CharmBonus)
-            : GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus);
+            ? GetEffectiveStat(world, assignedOfficer, officer => officer.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm)
+            : GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm);
         var chance = 0.25f + intelligence / 250.0f + charm / 300.0f;
 
         if (_random.NextDouble() > chance)
         {
+            if (assignedOfficer != null)
+            {
+                OfficerProgressionRules.AwardStrategistExperience(assignedOfficer, 8);
+            }
             return LocalizedResult(true, "cmd.search.nothing_found", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
@@ -238,6 +242,10 @@ public partial class CommandResolver
         if (hiddenOfficer != null && _random.NextDouble() < 0.35)
         {
             RecruitFreeOfficerToCity(world, city, hiddenOfficer);
+            if (assignedOfficer != null)
+            {
+                OfficerProgressionRules.AwardStrategistExperience(assignedOfficer, 18);
+            }
 
             return LocalizedResult(
                 true,
@@ -250,6 +258,10 @@ public partial class CommandResolver
         if (hiddenItem != null && _random.NextDouble() < 0.45)
         {
             MoveItemToFactionInventory(hiddenItem, city.OwnerFactionId);
+            if (assignedOfficer != null)
+            {
+                OfficerProgressionRules.AwardStrategistExperience(assignedOfficer, 15);
+            }
             return LocalizedResult(
                 true,
                 "cmd.search.found_item",
@@ -261,6 +273,10 @@ public partial class CommandResolver
         {
             var foundGold = 40 + _random.Next(0, 81);
             city.Gold += foundGold;
+            if (assignedOfficer != null)
+            {
+                OfficerProgressionRules.AwardStrategistExperience(assignedOfficer, 12);
+            }
             return LocalizedResult(
                 true,
                 "cmd.search.found_gold",
@@ -270,6 +286,10 @@ public partial class CommandResolver
 
         var foundFood = 60 + _random.Next(0, 121);
         city.Food += foundFood;
+        if (assignedOfficer != null)
+        {
+            OfficerProgressionRules.AwardStrategistExperience(assignedOfficer, 12);
+        }
         return LocalizedResult(
             true,
             "cmd.search.found_food",
@@ -562,14 +582,30 @@ public partial class CommandResolver
 
         if (!IsConnected(sourceCity, targetCity.Id) || targetCity.OwnerFactionId == sourceCity.OwnerFactionId)
         {
-            // If the target becomes invalid before month end, return the reserved troops to the source city.
+            // If the target becomes invalid before month end, return all reserved troops and supplies.
             sourceCity.AddTroopAllocation(pendingCommand.TroopAllocation);
+            sourceCity.Gold += pendingCommand.GoldToSend;
+            sourceCity.Food += pendingCommand.FoodToSend;
 
             return LocalizedResult(
                 false,
                 "cmd.attack.cancelled",
-                new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese) },
-                new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
+                new object[]
+                {
+                    GetCityName(sourceCity, GameLanguage.TraditionalChinese),
+                    GetCityName(targetCity, GameLanguage.TraditionalChinese),
+                    pendingCommand.TroopsToSend,
+                    pendingCommand.GoldToSend,
+                    pendingCommand.FoodToSend
+                },
+                new object[]
+                {
+                    GetCityName(sourceCity, GameLanguage.English),
+                    GetCityName(targetCity, GameLanguage.English),
+                    pendingCommand.TroopsToSend,
+                    pendingCommand.GoldToSend,
+                    pendingCommand.FoodToSend
+                });
         }
 
         var attackingTroops = pendingCommand.TroopsToSend;
@@ -579,7 +615,8 @@ public partial class CommandResolver
         }
 
         var defendingFactionId = targetCity.OwnerFactionId;
-        var combat = _combatResolver.Resolve(world, sourceCity, targetCity, attackingTroops, pendingCommand.OfficerIds, pendingCommand.AttackOfficerDeployments);
+        var defendingOfficerIds = new List<int>(targetCity.OfficerIds);
+        var combat = _combatResolver.Resolve(world, sourceCity, targetCity, attackingTroops, pendingCommand.OfficerIds, pendingCommand.AttackOfficerDeployments, pendingCommand.TroopAllocation);
 
         var effectiveAttackerLoss = combat.AttackerLosses;
         if (effectiveAttackerLoss > attackingTroops)
@@ -593,55 +630,20 @@ public partial class CommandResolver
             defenderLoss = targetCity.Troops;
         }
 
-        targetCity.RemoveTroopAllocation(CreateTroopAllocationFromTotal(targetCity, defenderLoss));
+        var defenderLossAllocation = CreateTroopAllocationFromCityProportion(targetCity, defenderLoss);
+        targetCity.RemoveTroopAllocation(defenderLossAllocation);
 
         if (!combat.AttackerWon)
         {
+            AwardBattleExperience(world, pendingCommand.OfficerIds, 16);
+            AwardBattleExperience(world, defendingOfficerIds, 22);
             var returnedGold = (int)(pendingCommand.GoldToSend * FailedAttackSupplyReturnRatio);
             var returnedFood = (int)(pendingCommand.FoodToSend * FailedAttackSupplyReturnRatio);
             // Only surviving attackers return; carried supply refund stays partial to preserve expedition risk.
             var returningTroops = attackingTroops - effectiveAttackerLoss;
             if (returningTroops > 0)
             {
-                var survivors = new TroopAllocationData
-                {
-                    Infantry = pendingCommand.TroopAllocation.Infantry,
-                    Spearman = pendingCommand.TroopAllocation.Spearman,
-                    Cavalry = pendingCommand.TroopAllocation.Cavalry,
-                    Archer = pendingCommand.TroopAllocation.Archer,
-                    Crossbow = pendingCommand.TroopAllocation.Crossbow,
-                    Siege = pendingCommand.TroopAllocation.Siege
-                };
-                var losses = effectiveAttackerLoss;
-                foreach (var troopType in new[]
-                         {
-                             TroopType.Siege,
-                             TroopType.Crossbow,
-                             TroopType.Cavalry,
-                             TroopType.Archer,
-                             TroopType.Spearman,
-                             TroopType.Infantry
-                         })
-                {
-                    if (losses <= 0)
-                    {
-                        break;
-                    }
-
-                    var current = troopType switch
-                    {
-                        TroopType.Infantry => survivors.Infantry,
-                        TroopType.Spearman => survivors.Spearman,
-                        TroopType.Cavalry => survivors.Cavalry,
-                        TroopType.Archer => survivors.Archer,
-                        TroopType.Crossbow => survivors.Crossbow,
-                        TroopType.Siege => survivors.Siege,
-                        _ => 0
-                    };
-                    var loss = Math.Min(current, losses);
-                    SetTroopAllocationValue(survivors, troopType, current - loss);
-                    losses -= loss;
-                }
+                var survivors = ScaleTroopAllocationToTotal(pendingCommand.TroopAllocation, returningTroops);
                 sourceCity.AddTroopAllocation(survivors);
             }
 
@@ -657,6 +659,7 @@ public partial class CommandResolver
                     GetCityName(sourceCity, GameLanguage.TraditionalChinese),
                     GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.TraditionalChinese),
                     GetCityName(targetCity, GameLanguage.TraditionalChinese),
+                    returningTroops,
                     returnedGold,
                     returnedFood
                 },
@@ -666,12 +669,15 @@ public partial class CommandResolver
                     GetCityName(sourceCity, GameLanguage.English),
                     GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.English),
                     GetCityName(targetCity, GameLanguage.English),
+                    returningTroops,
                     returnedGold,
                     returnedFood
                 });
         }
 
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
+        AwardBattleExperience(world, pendingCommand.OfficerIds, 26);
+        AwardBattleExperience(world, defendingOfficerIds, 12);
         ResolveCapturedCityOfficers(world, targetCity, defendingFactionId);
         var garrison = attackingTroops - effectiveAttackerLoss;
         if (garrison < 100)
@@ -679,11 +685,8 @@ public partial class CommandResolver
             garrison = 100;
         }
 
-        targetCity.AddTroopAllocation(pendingCommand.TroopAllocation);
-        if (garrison < pendingCommand.TroopAllocation.Total)
-        {
-            targetCity.RemoveTroopAllocation(CreateTroopAllocationFromTotal(targetCity, pendingCommand.TroopAllocation.Total - garrison));
-        }
+        var garrisonAllocation = ScaleTroopAllocationToTotal(pendingCommand.TroopAllocation, garrison);
+        targetCity.AddTroopAllocation(garrisonAllocation);
         targetCity.Gold += pendingCommand.GoldToSend;
         targetCity.Food += pendingCommand.FoodToSend;
         TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds);
@@ -697,14 +700,20 @@ public partial class CommandResolver
                 GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.TraditionalChinese),
                 GetCityName(sourceCity, GameLanguage.TraditionalChinese),
                 GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.TraditionalChinese),
-                GetCityName(targetCity, GameLanguage.TraditionalChinese)
+                GetCityName(targetCity, GameLanguage.TraditionalChinese),
+                garrison,
+                pendingCommand.GoldToSend,
+                pendingCommand.FoodToSend
             },
             new object[]
             {
                 GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.English),
                 GetCityName(sourceCity, GameLanguage.English),
                 GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.English),
-                GetCityName(targetCity, GameLanguage.English)
+                GetCityName(targetCity, GameLanguage.English),
+                garrison,
+                pendingCommand.GoldToSend,
+                pendingCommand.FoodToSend
             });
     }
 

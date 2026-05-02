@@ -344,10 +344,40 @@
 - `Infantry` counters `Archer`
 - `Spearman` counters `Cavalry`
 - `Cavalry` counters `Archer`
-- `Archer` counters `Infantry`
+- `Archer` counters `Spearman`
 - `Crossbow` counters `Cavalry`
 - `Siege` counters city defense
 - Matchup multipliers should be configured in data or balance constants, not hardcoded in UI
+
+### 4.4.2 Battle Types
+- Phase 1.5 battle resolution distinguishes between `Field Battle` and `Siege Battle`.
+- Both remain strategic-layer numeric resolution in this phase; there is no separate tactical battle scene.
+
+#### Field Battle
+- Intended for future interception, sally, marching encounter, or out-of-city engagements.
+- Core rules:
+  - No city `Defense` bonus applies.
+  - `Siege` units do not gain city-defense suppression here and behave as slow heavy support troops.
+  - Troop matchup, officer `Leadership / Combat / Strength`, and troop composition are the primary outcome drivers.
+  - Cavalry, Archer, and Crossbow value should be relatively stronger here than in siege combat.
+
+#### Siege Battle
+- Used by default when `Attack` targets an enemy-held city.
+- Core rules:
+  - City `Defense` and defending troop composition apply.
+  - `Siege` units suppress city defense and reduce defender effective defense multiplier.
+  - Defenders fight as city garrison forces and keep the usual fortification advantage.
+  - On attacker victory, city ownership changes and surviving attackers become the new garrison.
+  - On attacker defeat, surviving troops and officers return to the source city, while only part of carried supplies are refunded.
+
+#### Current Implementation Mapping
+- The current project treats all `Attack` resolution as `Siege Battle`.
+- `CombatResolver` currently applies:
+  - city `Defense`
+  - siege pressure against defense
+  - six troop-type counters
+  - troop ratios from per-officer attack deployments
+- `Field Battle` is not yet a separately triggerable battle type, but the design should preserve room for it.
 
 ### 4.5 Item Categories
 - Item types:
@@ -981,7 +1011,7 @@ res://
 - Infantry counter against Archer is applied
 - Spearman counter against Cavalry is applied
 - Cavalry counter against Archer is applied
-- Archer counter against Infantry is applied
+- Archer counter against Spearman is applied
 - Crossbow counter against Cavalry is applied
 - Siege counter against city defense is applied
 - Siege units contribute strongly to city attack but are weak outside that role
