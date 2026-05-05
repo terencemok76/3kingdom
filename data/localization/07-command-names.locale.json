@@ -19,6 +19,18 @@
                                    "zhHant":  "提出停戰",
                                    "en":  "Offer Truce"
                                },
+    "command.spy.incite":  {
+                              "zhHant":  "煽動民心",
+                              "en":  "Incite Unrest"
+                          },
+    "command.spy.reconnaissance":  {
+                                       "zhHant":  "偵查敵情",
+                                       "en":  "Reconnaissance"
+                                   },
+    "command.spy.sabotage":  {
+                                "zhHant":  "擾亂破壞",
+                                "en":  "Sabotage"
+                               },
     "command.internal_affairs.commercial":  {
                                                 "zhHant":  "商業",
                                                 "en":  "Commercial"

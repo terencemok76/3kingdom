@@ -931,6 +931,18 @@ public partial class CommandResolver
         return _localization?.TForLanguage(language, key) ?? actionType.ToString();
     }
 
+    private string GetSpyActionName(SpyActionType actionType, GameLanguage language)
+    {
+        var key = actionType switch
+        {
+            SpyActionType.Reconnaissance => "command.spy.reconnaissance",
+            SpyActionType.Sabotage => "command.spy.sabotage",
+            SpyActionType.Incite => "command.spy.incite",
+            _ => "command.spy.reconnaissance"
+        };
+        return _localization?.TForLanguage(language, key) ?? actionType.ToString();
+    }
+
     private static string GetRulerDisplayName(WorldState world, int factionId, GameLanguage language)
     {
         var faction = world.GetFaction(factionId);

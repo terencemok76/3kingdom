@@ -235,6 +235,58 @@
                                                "zhHant":  "與「{0}」的停戰或同盟已經生效中。",
                                                "en":  "A truce or alliance with \"{0}\" is already active."
                                            },
+    "cmd.spy.cancelled":  {
+                              "zhHant":  "間諜命令在月底結算時已失效。",
+                              "en":  "The spy order became invalid at month end."
+                          },
+    "cmd.spy.exposed_suffix":  {
+                                   "zhHant":  "但行蹤已暴露。",
+                                   "en":  "But the operative was exposed."
+                               },
+    "cmd.spy.failed":  {
+                           "zhHant":  "「{0}」對「{2}」執行「{1}」失敗。",
+                           "en":  "\"{0}\" failed to perform \"{1}\" on \"{2}\"."
+                       },
+    "cmd.spy.failed_exposed":  {
+                                   "zhHant":  "「{0}」對「{2}」執行「{1}」失敗，且身份暴露。",
+                                   "en":  "\"{0}\" failed to perform \"{1}\" on \"{2}\" and was exposed."
+                               },
+    "cmd.spy.incite_success":  {
+                                   "zhHant":  "「{0}」在「{1}」煽動民心成功，忠誠 -{2}。",
+                                   "en":  "\"{0}\" incited unrest in \"{1}\" successfully. Loyalty -{2}."
+                               },
+    "cmd.spy.officer_required":  {
+                                     "zhHant":  "「{0}」間諜任務需要指派一位本城武將。",
+                                     "en":  "\"{0}\" requires one local officer for a spy mission."
+                                 },
+    "cmd.spy.recon_success":  {
+                                  "zhHant":  "「{0}」偵查「{1}」成功：主事者「{2}」，金 {3}，糧 {4}，兵 {5}，防 {6}，忠 {7}，武將 {8}。",
+                                  "en":  "\"{0}\" recon succeeded on \"{1}\": leader \"{2}\", Gold {3}, Food {4}, Troops {5}, Defense {6}, Loyalty {7}, Officers {8}."
+                              },
+    "cmd.spy.ruler_blocked":  {
+                                 "zhHant":  "君主不可直接執行間諜任務，請指派其他武將。",
+                                 "en":  "The ruler cannot directly perform spy missions; assign another officer."
+                             },
+    "cmd.spy.sabotage_success":  {
+                                     "zhHant":  "「{0}」對「{1}」破壞成功：金 -{2}，糧 -{3}，防 -{4}。",
+                                     "en":  "\"{0}\" sabotaged \"{1}\" successfully: Gold -{2}, Food -{3}, Defense -{4}."
+                                 },
+    "cmd.spy.same_faction":  {
+                                "zhHant":  "不能對本勢力城市執行間諜任務。",
+                                "en":  "Cannot perform spy missions against your own faction city."
+                            },
+    "cmd.spy.scheduled":  {
+                              "zhHant":  "「{0}」已排定間諜命令：「{1}」->「{2}」，將於月底結算。",
+                              "en":  "\"{0}\" scheduled a spy mission: \"{1}\" -> \"{2}\", to resolve at month end."
+                          },
+    "cmd.spy.target_not_found":  {
+                                    "zhHant":  "找不到間諜目標城市。",
+                                    "en":  "Spy target city not found."
+                                },
+    "cmd.spy.target_required":  {
+                                   "zhHant":  "間諜任務需要指定目標城市。",
+                                   "en":  "Spy missions require a target city."
+                                           },
     "cmd.hire_officer.free_refused":  {
                                           "zhHant":  "「{0}」尚未願意出仕。",
                                           "en":  "\"{0}\" is not yet willing to serve."

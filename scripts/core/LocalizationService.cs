@@ -454,6 +454,7 @@ public class LocalizationService
             CommandType.Search => "status.search",
             CommandType.CivilRelief => "status.civil_relief",
             CommandType.Diplomacy => "status.diplomacy",
+            CommandType.Spy => "status.spy",
             CommandType.Attack => "status.attack",
             _ => "status.idle"
         };

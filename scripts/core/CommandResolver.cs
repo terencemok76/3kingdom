@@ -64,6 +64,7 @@ public partial class CommandResolver
             CommandType.CivilRelief => ScheduleCivilRelief(world, sourceCity, request),
             CommandType.Merchant => ExecuteMerchant(world, sourceCity, request),
             CommandType.Diplomacy => ScheduleDiplomacy(world, sourceCity, request),
+            CommandType.Spy => ScheduleSpy(world, sourceCity, request),
             CommandType.Attack => ScheduleAttack(world, sourceCity, request),
             CommandType.Pass => LocalizedResult(true, "cmd.pass"),
             _ => LocalizedResult(false, "cmd.unknown_command")
@@ -92,6 +93,7 @@ public partial class CommandResolver
             CommandType.CivilRelief => ResolveCivilRelief(world, sourceCity, pendingCommand),
             CommandType.Move => ResolveMove(world, sourceCity, pendingCommand),
             CommandType.Diplomacy => ResolveDiplomacy(world, sourceCity, pendingCommand),
+            CommandType.Spy => ResolveSpy(world, sourceCity, pendingCommand),
             CommandType.Attack => ResolveAttack(world, sourceCity, pendingCommand),
             _ => LocalizedResult(false, "cmd.unsupported_pending_command")
         };

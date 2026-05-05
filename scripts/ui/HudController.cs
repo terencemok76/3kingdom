@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
@@ -11,6 +12,24 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
+    private sealed class PortraitMappingEntry
+    {
+        [JsonPropertyName("charId")]
+        public int CharId { get; set; }
+
+        [JsonPropertyName("x")]
+        public float X { get; set; }
+
+        [JsonPropertyName("y")]
+        public float Y { get; set; }
+
+        [JsonPropertyName("width")]
+        public float Width { get; set; }
+
+        [JsonPropertyName("height")]
+        public float Height { get; set; }
+    }
+
     private enum OfficerListMode
     {
         View,
@@ -90,8 +109,13 @@ public partial class HudController : CanvasLayer
         Combat
     }
 
-    private const string PortraitSheetPath = "res://assets/portrait/100.png";
-    private const string PortraitMappingPath = "res://data/person/portraits_names.json";
+    private static readonly (string SheetPath, string MappingPath)[] PortraitSources =
+    {
+        ("res://assets/portrait/team1.png", "res://data/person/person_image_1.json"),
+        ("res://assets/portrait/team2.png", "res://data/person/person_image_2.json"),
+        ("res://assets/portrait/team3.png", "res://data/person/person_image_3.json"),
+        ("res://assets/portrait/team4.png", "res://data/person/person_image_4.json")
+    };
     private const int HireOfficerGoldCost = 200;
 
     private Label? _monthLabel;
@@ -111,6 +135,7 @@ public partial class HudController : CanvasLayer
     private Button? _searchButton;
     private Button? _merchantButton;
     private Button? _diplomacyButton;
+    private Button? _spyButton;
     private Button? _personnelButton;
     private Button? _civilButton;
     private Button? _attackButton;
@@ -184,6 +209,13 @@ public partial class HudController : CanvasLayer
     private Label? _diplomacySummaryLabel;
     private Label? _diplomacyWarningLabel;
     private Button? _diplomacyConfirmButton;
+    private Window? _spyDialog;
+    private OptionButton? _spyActionOption;
+    private OptionButton? _spyTargetCityOption;
+    private Tree? _spyOfficerList;
+    private Label? _spySummaryLabel;
+    private Label? _spyWarningLabel;
+    private Button? _spyConfirmButton;
     private AcceptDialog? _officerListDialog;
     private PanelContainer? _officerListTitlebarFill;
     private PanelContainer? _officerListHeaderPanel;
@@ -224,6 +256,7 @@ public partial class HudController : CanvasLayer
     private bool _isSearchButtonConnected;
     private bool _isMerchantButtonConnected;
     private bool _isDiplomacyButtonConnected;
+    private bool _isSpyButtonConnected;
     private bool _isPersonnelButtonConnected;
     private bool _isCivilButtonConnected;
     private bool _isAttackButtonConnected;
@@ -235,8 +268,7 @@ public partial class HudController : CanvasLayer
     private Vector2I _officerListDialogDragOffset;
     private readonly HashSet<int> _aliveFactionIds = new();
     private CommandType _pendingTargetCommand = CommandType.Pass;
-    private Texture2D? _portraitSheetTexture;
-    private readonly Dictionary<int, Rect2> _portraitRegions = new();
+    private readonly Dictionary<int, Texture2D> _officerPortraitTextures = new();
     private OfficerListMode _officerListMode = OfficerListMode.View;
     private OfficerListScope _officerListScope = OfficerListScope.City;
     private OfficerListContentMode _officerListContentMode = OfficerListContentMode.Officers;
@@ -283,6 +315,7 @@ public partial class HudController : CanvasLayer
         }
         _merchantButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/MerchantButton");
         _diplomacyButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/DiplomacyButton");
+        _spyButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/SpyButton");
         _personnelButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/PersonnelButton");
         _civilButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/CivilButton");
         _attackButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
@@ -373,6 +406,14 @@ public partial class HudController : CanvasLayer
         AddChild(_diplomacyDialog);
         EnsureDiplomacyDialogWidgets();
         _diplomacyDialog.Hide();
+
+        _spyDialog = new Window();
+        _spyDialog.Exclusive = false;
+        _spyDialog.Unresizable = true;
+        _spyDialog.CloseRequested += () => _spyDialog?.Hide();
+        AddChild(_spyDialog);
+        EnsureSpyDialogWidgets();
+        _spyDialog.Hide();
 
         _internalAffairsDialog = new AcceptDialog();
         _internalAffairsDialog.Exclusive = false;
@@ -645,6 +686,7 @@ public partial class HudController : CanvasLayer
         _internalAffairsDialog?.Hide();
         _merchantDialog?.Hide();
         _moveDialog?.Hide();
+        _spyDialog?.Hide();
         _attackDialog?.Hide();
     }
 
@@ -768,6 +810,12 @@ public partial class HudController : CanvasLayer
             _isDiplomacyButtonConnected = true;
         }
 
+        if (_spyButton != null && !_isSpyButtonConnected)
+        {
+            _spyButton.Pressed += OnSpyPressed;
+            _isSpyButtonConnected = true;
+        }
+
         if (_personnelButton != null && !_isPersonnelButtonConnected)
         {
             _personnelButton.Pressed += OnPersonnelPressed;
@@ -841,6 +889,12 @@ public partial class HudController : CanvasLayer
         {
             _diplomacyButton.Pressed -= OnDiplomacyPressed;
             _isDiplomacyButtonConnected = false;
+        }
+
+        if (_spyButton != null && _isSpyButtonConnected)
+        {
+            _spyButton.Pressed -= OnSpyPressed;
+            _isSpyButtonConnected = false;
         }
 
         if (_personnelButton != null && _isPersonnelButtonConnected)
@@ -939,6 +993,16 @@ public partial class HudController : CanvasLayer
         }
 
         ShowDiplomacyDialog();
+    }
+
+    private void OnSpyPressed()
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ShowSpyDialog();
     }
 
     private void OnPersonnelPressed()

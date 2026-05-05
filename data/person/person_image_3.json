@@ -1,0 +1,25 @@
+[
+  { "charId": 41, "x": 5, "y": 7, "width": 284, "height": 254 },
+  { "charId": 42, "x": 295, "y": 7, "width": 296, "height": 254 },
+  { "charId": 43, "x": 596, "y": 7, "width": 292, "height": 254 },
+  { "charId": 44, "x": 894, "y": 7, "width": 298, "height": 254 },
+  { "charId": 45, "x": 1200, "y": 7, "width": 328, "height": 254 },
+
+  { "charId": 46, "x": 5, "y": 266, "width": 284, "height": 242 },
+  { "charId": 47, "x": 295, "y": 266, "width": 296, "height": 242 },
+  { "charId": 48, "x": 596, "y": 266, "width": 292, "height": 242 },
+  { "charId": 49, "x": 894, "y": 266, "width": 298, "height": 242 },
+  { "charId": 50, "x": 1200, "y": 266, "width": 328, "height": 242 },
+
+  { "charId": 51, "x": 5, "y": 513, "width": 284, "height": 236 },
+  { "charId": 52, "x": 295, "y": 513, "width": 296, "height": 236 },
+  { "charId": 53, "x": 596, "y": 513, "width": 292, "height": 236 },
+  { "charId": 54, "x": 894, "y": 513, "width": 298, "height": 236 },
+  { "charId": 55, "x": 1200, "y": 513, "width": 328, "height": 236 },
+
+  { "charId": 56, "x": 5, "y": 755, "width": 284, "height": 260 },
+  { "charId": 57, "x": 295, "y": 755, "width": 296, "height": 260 },
+  { "charId": 58, "x": 596, "y": 755, "width": 292, "height": 260 },
+  { "charId": 59, "x": 894, "y": 755, "width": 298, "height": 260 },
+  { "charId": 60, "x": 1200, "y": 755, "width": 328, "height": 260 }
+]

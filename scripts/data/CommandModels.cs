@@ -12,6 +12,7 @@ public enum CommandType
     CivilRelief,
     Merchant,
     Diplomacy,
+    Spy,
     Attack,
     Pass
 }
@@ -21,6 +22,13 @@ public enum DiplomacyActionType
     Alliance,
     Truce,
     Gift
+}
+
+public enum SpyActionType
+{
+    Reconnaissance,
+    Sabotage,
+    Incite
 }
 
 public enum TroopType
@@ -73,6 +81,7 @@ public class CommandRequest
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public MerchantTradeMode MerchantTradeMode { get; set; } = MerchantTradeMode.BuyFood;
     public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
+    public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public int? TargetFactionId { get; set; }
@@ -92,6 +101,7 @@ public class PendingCommandData
     public int HorsesToSend { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
+    public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public int TargetFactionId { get; set; }

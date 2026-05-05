@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
@@ -322,6 +323,11 @@ public partial class HudController : CanvasLayer
             _diplomacyButton.Text = _localization.T("ui.diplomacy");
         }
 
+        if (_spyButton != null)
+        {
+            _spyButton.Text = _localization.T("ui.spy");
+        }
+
         if (_personnelButton != null)
         {
             _personnelButton.Text = _localization.T("ui.personnel");
@@ -363,6 +369,7 @@ public partial class HudController : CanvasLayer
 
         UpdateMerchantDialogText();
         UpdateDiplomacyDialogText();
+        UpdateSpyDialogText();
         UpdateMilitaryDialogText();
         UpdatePersonnelDialogText();
         UpdatePersonnelBonusDialogText();
@@ -907,33 +914,55 @@ public partial class HudController : CanvasLayer
 
     private void LoadPortraitData()
     {
-        _portraitRegions.Clear();
-        _portraitSheetTexture = ResourceLoader.Load<Texture2D>(PortraitSheetPath);
-        if (_portraitSheetTexture == null || !FileAccess.FileExists(PortraitMappingPath))
+        _officerPortraitTextures.Clear();
+        foreach (var portraitSource in PortraitSources)
         {
-            return;
+            var portraitSheetTexture = ResourceLoader.Load<Texture2D>(portraitSource.SheetPath);
+            if (portraitSheetTexture == null || !FileAccess.FileExists(portraitSource.MappingPath))
+            {
+                continue;
+            }
+
+            using var file = FileAccess.Open(portraitSource.MappingPath, FileAccess.ModeFlags.Read);
+            var rawText = file.GetAsText();
+            if (string.IsNullOrWhiteSpace(rawText))
+            {
+                continue;
+            }
+
+            foreach (var entry in ParsePortraitMappingEntries(rawText))
+            {
+                _officerPortraitTextures[entry.CharId] = BuildPortraitAtlasTexture(portraitSheetTexture, entry);
+            }
+        }
+    }
+
+    private IEnumerable<PortraitMappingEntry> ParsePortraitMappingEntries(string rawText)
+    {
+        try
+        {
+            var parsedEntries = JsonSerializer.Deserialize<List<PortraitMappingEntry>>(rawText);
+            if (parsedEntries != null && parsedEntries.Count > 0)
+            {
+                return parsedEntries.Where(static entry => entry.CharId > 0 && entry.Width > 0 && entry.Height > 0);
+            }
+        }
+        catch (JsonException)
+        {
+            // Fallback to tolerant regex parsing for hand-edited mapping files.
         }
 
-        using var file = FileAccess.Open(PortraitMappingPath, FileAccess.ModeFlags.Read);
-        var rawText = file.GetAsText();
-        if (string.IsNullOrWhiteSpace(rawText))
-        {
-            return;
-        }
+        return ParsePortraitMappingEntriesWithRegex(rawText);
+    }
 
+    private static IEnumerable<PortraitMappingEntry> ParsePortraitMappingEntriesWithRegex(string rawText)
+    {
         var matches = Regex.Matches(
             rawText,
-            "\\{\\s*\"id\"\\s*:\\s*(\\d+)\\s*,.*?\"filename\"\\s*:\\s*\"([^\"]+)\"\\s*,.*?\"row\"\\s*:\\s*(\\d+)\\s*,.*?\"col\"\\s*:\\s*(\\d+)",
+            "\\{\\s*\"charId\"\\s*:\\s*(\\d+)\\s*,\\s*\"x\"\\s*:\\s*(\\d+)\\s*,\\s*\"y\"\\s*:\\s*(\\d+)\\s*,?\\s*\"width\"\\s*:\\s*(\\d+)\\s*,\\s*\"height\"\\s*:\\s*(\\d+)",
             RegexOptions.Singleline);
 
-        if (matches.Count == 0)
-        {
-            return;
-        }
-
-        var entries = new List<(int Id, int Row, int Col)>();
-        var maxRow = 0;
-        var maxCol = 0;
+        var entries = new List<PortraitMappingEntry>(matches.Count);
         foreach (Match match in matches)
         {
             if (!match.Success)
@@ -941,52 +970,33 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
-            var id = int.Parse(match.Groups[1].Value);
-            var row = int.Parse(match.Groups[3].Value);
-            var col = int.Parse(match.Groups[4].Value);
-            entries.Add((id, row, col));
-            if (row > maxRow)
+            entries.Add(new PortraitMappingEntry
             {
-                maxRow = row;
-            }
-
-            if (col > maxCol)
-            {
-                maxCol = col;
-            }
+                CharId = int.Parse(match.Groups[1].Value),
+                X = float.Parse(match.Groups[2].Value),
+                Y = float.Parse(match.Groups[3].Value),
+                Width = float.Parse(match.Groups[4].Value),
+                Height = float.Parse(match.Groups[5].Value)
+            });
         }
 
-        if (entries.Count == 0 || maxRow <= 0 || maxCol <= 0)
+        return entries;
+    }
+
+    private static Texture2D BuildPortraitAtlasTexture(Texture2D portraitSheetTexture, PortraitMappingEntry entry)
+    {
+        return new AtlasTexture
         {
-            return;
-        }
-
-        var tileWidth = _portraitSheetTexture.GetWidth() / (float)maxCol;
-        var tileHeight = _portraitSheetTexture.GetHeight() / (float)maxRow;
-        foreach (var entry in entries)
-        {
-            var region = new Rect2(
-                (entry.Col - 1) * tileWidth,
-                (entry.Row - 1) * tileHeight,
-                tileWidth,
-                tileHeight);
-            _portraitRegions[entry.Id] = region;
-        }
+            Atlas = portraitSheetTexture,
+            Region = new Rect2(entry.X, entry.Y, entry.Width, entry.Height)
+        };
     }
 
     private Texture2D? BuildOfficerPortraitTexture(int officerId)
     {
-        if (_portraitSheetTexture == null || !_portraitRegions.TryGetValue(officerId, out var region))
-        {
-            return null;
-        }
-
-        var atlasTexture = new AtlasTexture
-        {
-            Atlas = _portraitSheetTexture,
-            Region = region
-        };
-        return atlasTexture;
+        return _officerPortraitTextures.TryGetValue(officerId, out var portraitTexture)
+            ? portraitTexture
+            : null;
     }
 
 }

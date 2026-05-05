@@ -345,6 +345,16 @@ public partial class HudController : CanvasLayer
             _merchantButton.Disabled = !enabled;
         }
 
+        if (_diplomacyButton != null)
+        {
+            _diplomacyButton.Disabled = !enabled;
+        }
+
+        if (_spyButton != null)
+        {
+            _spyButton.Disabled = !enabled;
+        }
+
         if (_personnelButton != null)
         {
             _personnelButton.Disabled = !enabled;
@@ -414,6 +424,11 @@ public partial class HudController : CanvasLayer
         if (_diplomacyButton != null)
         {
             _diplomacyButton.Disabled = !baseEnabled || !isPlayerCity;
+        }
+
+        if (_spyButton != null)
+        {
+            _spyButton.Disabled = !baseEnabled || !isPlayerCity;
         }
 
         if (_personnelButton != null)

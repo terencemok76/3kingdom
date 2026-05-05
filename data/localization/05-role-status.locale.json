@@ -54,5 +54,9 @@
     "status.search":  {
                           "zhHant":  "訪察民情",
                           "en":  "Investigate People"
-                      }
+                      },
+    "status.spy":  {
+                       "zhHant":  "間諜",
+                       "en":  "Spy"
+                   }
 }

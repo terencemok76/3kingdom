@@ -442,6 +442,7 @@ public partial class HudController : CanvasLayer
             CommandType.Recruit => _localization.T("ui.recruit"),
             CommandType.Search => _localization.T("command.civil.investigate_people"),
             CommandType.CivilRelief => _localization.T("command.civil.relief"),
+            CommandType.Spy => _localization.T("ui.spy"),
             _ => commandType.ToString()
         };
     }

@@ -31,6 +31,10 @@
                                          "zhHant":  "預覽：{0} -> {1}，條約 {2} 月",
                                          "en":  "Preview: {0} -> {1}, Treaty {2} months"
                                      },
+    "fmt.spy_summary":  {
+                            "zhHant":  "預覽：{0} -> {1}，將於月底結算",
+                            "en":  "Preview: {0} -> {1}, resolves at month end"
+                                     },
     "fmt.experience_title":  {
                                  "zhHant":  "{0}（{1}）",
                                  "en":  "{0} ({1})"

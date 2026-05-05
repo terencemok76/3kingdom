@@ -79,4 +79,25 @@
 									  "zhHant":  "請選擇一位使者執行外交。",
 									  "en":  "Select one officer to handle diplomacy."
 								  }
+		,
+		"ui.spy_action":  {
+							  "zhHant":  "間諜行動",
+							  "en":  "Spy Action"
+						  },
+		"ui.spy_target_city":  {
+								   "zhHant":  "目標城市",
+								   "en":  "Target City"
+							   },
+		"ui.spy_officer":  {
+							   "zhHant":  "執行間諜",
+							   "en":  "Assigned Spy"
+						   },
+		"ui.spy_target_required_warning":  {
+											   "zhHant":  "請選擇目標城市。",
+											   "en":  "Select a target city."
+										   },
+		"ui.spy_officer_hint":  {
+									"zhHant":  "請選擇一位武將執行間諜任務。",
+									"en":  "Select one officer to perform the spy mission."
+								}
 }

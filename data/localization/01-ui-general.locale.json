@@ -463,4 +463,13 @@
 								   "zhHant":  "確認外交",
 								   "en":  "Confirm Diplomacy"
 							   }
+		,
+		"ui.spy":  {
+					   "zhHant":  "間諜",
+					   "en":  "Spy"
+				   },
+		"ui.confirm_spy":  {
+							   "zhHant":  "確認間諜",
+							   "en":  "Confirm Spy"
+						   }
 }
