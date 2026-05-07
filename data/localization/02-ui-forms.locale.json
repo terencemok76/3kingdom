@@ -63,6 +63,10 @@
 								   "zhHant":  "贈禮金",
 								   "en":  "Gift Gold"
 							   },
+	"ui.diplomacy_demand_gold":  {
+									 "zhHant":  "索貢金",
+									 "en":  "Demand Gold"
+								 },
 	"ui.diplomacy_officer":  {
 								 "zhHant":  "外交使者",
 								 "en":  "Diplomatic Officer"
@@ -71,10 +75,10 @@
 												  "zhHant":  "請選擇目標勢力。",
 												  "en":  "Select a target faction."
 											  },
-	"ui.diplomacy_gift_gold_required_warning":  {
-													 "zhHant":  "贈禮至少需要輸入金額。",
-													 "en":  "Enter a gold amount for the gift."
-												 },
+	"ui.diplomacy_gold_required_warning":  {
+											 "zhHant":  "請輸入金額。",
+											 "en":  "Enter a gold amount."
+										 },
 	"ui.diplomacy_officer_hint":  {
 									  "zhHant":  "請選擇一位使者執行外交。",
 									  "en":  "Select one officer to handle diplomacy."

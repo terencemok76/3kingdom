@@ -57,6 +57,8 @@
   - `Alliance`
   - `Truce`
   - `Gift`
+  - `Demand`
+  - `Break Pact`
 - 已完成：
   - HUD 外交指令入口
   - 單武將指派
@@ -219,9 +221,10 @@
 
 ### 4.1 進階外交動作
 
-- 目前仍未正式實作：
+- 已進入第一批進階外交動作：
   - `Demand`
   - `Break Pact`
+- 目前仍未正式實作：
   - `Marriage`
   - `Pressure`
 - 也尚未建立更深層的多月外交模型。

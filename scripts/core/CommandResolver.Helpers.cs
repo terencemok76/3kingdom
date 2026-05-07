@@ -926,6 +926,8 @@ public partial class CommandResolver
             DiplomacyActionType.Alliance => "command.diplomacy.alliance",
             DiplomacyActionType.Truce => "command.diplomacy.truce",
             DiplomacyActionType.Gift => "command.diplomacy.gift",
+            DiplomacyActionType.Demand => "command.diplomacy.demand",
+            DiplomacyActionType.BreakPact => "command.diplomacy.break_pact",
             _ => "command.diplomacy.alliance"
         };
         return _localization?.TForLanguage(language, key) ?? actionType.ToString();

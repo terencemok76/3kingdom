@@ -15,6 +15,14 @@
                                   "zhHant":  "贈禮示好",
                                   "en":  "Send Gift"
                               },
+    "command.diplomacy.demand":  {
+                                    "zhHant":  "索取歲貢",
+                                    "en":  "Demand Tribute"
+                                },
+    "command.diplomacy.break_pact":  {
+                                        "zhHant":  "毀約絕交",
+                                        "en":  "Break Pact"
+                                    },
     "command.diplomacy.truce":  {
                                    "zhHant":  "提出停戰",
                                    "en":  "Offer Truce"

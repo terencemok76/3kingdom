@@ -46,6 +46,7 @@ public partial class HudController : CanvasLayer
         };
         _diplomacyActionOption.ItemSelected += _ =>
         {
+            UpdateDiplomacyDialogInputState();
             UpdateDiplomacySummary();
             UpdateDiplomacyConfirmButtonState();
         };
@@ -160,6 +161,8 @@ public partial class HudController : CanvasLayer
         AddDiplomacyActionOption(DiplomacyActionType.Alliance);
         AddDiplomacyActionOption(DiplomacyActionType.Truce);
         AddDiplomacyActionOption(DiplomacyActionType.Gift);
+        AddDiplomacyActionOption(DiplomacyActionType.Demand);
+        AddDiplomacyActionOption(DiplomacyActionType.BreakPact);
 
         _diplomacyTargetFactionOption.Clear();
         foreach (var faction in _turnManager.World.Factions.Where(faction =>
@@ -204,6 +207,7 @@ public partial class HudController : CanvasLayer
 
         SelectFirstDiplomacyOfficerRow();
         SetDiplomacyWarning(string.Empty);
+        UpdateDiplomacyDialogInputState();
         UpdateDiplomacySummary();
         UpdateDiplomacyConfirmButtonState();
     }
@@ -265,6 +269,8 @@ public partial class HudController : CanvasLayer
             DiplomacyActionType.Alliance => "command.diplomacy.alliance",
             DiplomacyActionType.Truce => "command.diplomacy.truce",
             DiplomacyActionType.Gift => "command.diplomacy.gift",
+            DiplomacyActionType.Demand => "command.diplomacy.demand",
+            DiplomacyActionType.BreakPact => "command.diplomacy.break_pact",
             _ => "command.diplomacy.alliance"
         };
         _diplomacyActionOption.AddItem(_localization.T(key));
@@ -405,14 +411,24 @@ public partial class HudController : CanvasLayer
             DiplomacyActionType.Alliance => "command.diplomacy.alliance",
             DiplomacyActionType.Truce => "command.diplomacy.truce",
             DiplomacyActionType.Gift => "command.diplomacy.gift",
+            DiplomacyActionType.Demand => "command.diplomacy.demand",
+            DiplomacyActionType.BreakPact => "command.diplomacy.break_pact",
             _ => "command.diplomacy.alliance"
         });
-        var summaryKey = actionType == DiplomacyActionType.Gift
-            ? "fmt.diplomacy_summary_gift"
-            : "fmt.diplomacy_summary_treaty";
-        _diplomacySummaryLabel.Text = actionType == DiplomacyActionType.Gift
-            ? _localization.Format(summaryKey, actionName, targetFactionName, gold)
-            : _localization.Format(summaryKey, actionName, targetFactionName, duration);
+        var summaryKey = actionType switch
+        {
+            DiplomacyActionType.Gift => "fmt.diplomacy_summary_gift",
+            DiplomacyActionType.Demand => "fmt.diplomacy_summary_demand",
+            DiplomacyActionType.BreakPact => "fmt.diplomacy_summary_break_pact",
+            _ => "fmt.diplomacy_summary_treaty"
+        };
+        _diplomacySummaryLabel.Text = actionType switch
+        {
+            DiplomacyActionType.Gift => _localization.Format(summaryKey, actionName, targetFactionName, gold),
+            DiplomacyActionType.Demand => _localization.Format(summaryKey, actionName, targetFactionName, gold),
+            DiplomacyActionType.BreakPact => _localization.Format(summaryKey, actionName, targetFactionName),
+            _ => _localization.Format(summaryKey, actionName, targetFactionName, duration)
+        };
     }
 
     private void UpdateDiplomacyConfirmButtonState()
@@ -425,8 +441,36 @@ public partial class HudController : CanvasLayer
         var actionType = GetSelectedDiplomacyActionType();
         var hasOfficer = GetSelectedTreeMetadataIds(_diplomacyOfficerList).Count > 0;
         var hasTarget = GetSelectedDiplomacyTargetFactionId() > 0;
-        var hasGold = actionType != DiplomacyActionType.Gift || (_diplomacyGoldSpinBox?.Value ?? 0) > 0;
+        var hasGold = actionType is not (DiplomacyActionType.Gift or DiplomacyActionType.Demand) ||
+                      (_diplomacyGoldSpinBox?.Value ?? 0) > 0;
         _diplomacyConfirmButton.Disabled = !hasOfficer || !hasTarget || !hasGold;
+    }
+
+    private void UpdateDiplomacyDialogInputState()
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        var actionType = GetSelectedDiplomacyActionType();
+        SetDiplomacyRowVisible("DurationRow", actionType is DiplomacyActionType.Alliance or DiplomacyActionType.Truce);
+        SetDiplomacyRowVisible("GoldRow", actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand);
+        SetDiplomacyDialogLabelText(
+            "GoldLabel",
+            actionType == DiplomacyActionType.Demand
+                ? _localization.T("ui.diplomacy_demand_gold")
+                : _localization.T("ui.diplomacy_gift_gold"));
+    }
+
+    private void SetDiplomacyRowVisible(string rowName, bool visible)
+    {
+        var root = _diplomacyDialog?.GetNodeOrNull<Control>("DiplomacyDialogRoot");
+        var row = root?.FindChild(rowName, true, false) as Control;
+        if (row != null)
+        {
+            row.Visible = visible;
+        }
     }
 
     private void SetDiplomacyWarning(string text)
@@ -460,9 +504,9 @@ public partial class HudController : CanvasLayer
 
         var actionType = GetSelectedDiplomacyActionType();
         var gold = Math.Max(0, (int)Math.Round(_diplomacyGoldSpinBox?.Value ?? 0));
-        if (actionType == DiplomacyActionType.Gift && gold <= 0)
+        if (actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand && gold <= 0)
         {
-            SetDiplomacyWarning(_localization.T("ui.diplomacy_gift_gold_required_warning"));
+            SetDiplomacyWarning(_localization.T("ui.diplomacy_gold_required_warning"));
             return;
         }
 

@@ -21,7 +21,9 @@ public enum DiplomacyActionType
 {
     Alliance,
     Truce,
-    Gift
+    Gift,
+    Demand,
+    BreakPact
 }
 
 public enum SpyActionType

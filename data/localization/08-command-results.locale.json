@@ -187,6 +187,26 @@
                                  "zhHant":  "「{0}」對「{2}」執行「{1}」失敗。",
                                  "en":  "\"{0}\" failed to perform \"{1}\" on \"{2}\"."
                              },
+    "cmd.diplomacy.break_pact_not_active":  {
+                                                "zhHant":  "與「{0}」目前沒有可解除的同盟或停戰。",
+                                                "en":  "There is no active alliance or truce with \"{0}\" to break."
+                                            },
+    "cmd.diplomacy.break_pact_resolved":  {
+                                              "zhHant":  "「{0}」對「{1}」正式毀約，現有條約已解除。",
+                                              "en":  "\"{0}\" formally broke the pact with \"{1}\". The active treaty has ended."
+                                          },
+    "cmd.diplomacy.demand_gold_required":  {
+                                               "zhHant":  "索貢至少需要輸入一些金額。",
+                                               "en":  "A demand action requires a gold amount."
+                                           },
+    "cmd.diplomacy.demand_no_gold":  {
+                                         "zhHant":  "「{0}」向「{1}」索貢成功，但對方目前無金可付。",
+                                         "en":  "\"{0}\" succeeded in demanding tribute from \"{1}\", but they had no gold to pay."
+                                     },
+    "cmd.diplomacy.demand_resolved":  {
+                                          "zhHant":  "「{0}」向「{1}」索得歲貢，金 +{2}。",
+                                          "en":  "\"{0}\" extracted tribute from \"{1}\". Gold +{2}."
+                                      },
     "cmd.diplomacy.gift_gold_required":  {
                                              "zhHant":  "贈禮至少需要支付一些金。",
                                              "en":  "A gift action requires some gold."

@@ -25,6 +25,8 @@ internal static class Program
         RunAiSpyReconPriorityTest();
         RunAiDiplomacyGiftTest();
         RunAiDiplomacyAllianceTest();
+        RunDiplomacyDemandScheduleTest();
+        RunDiplomacyBreakPactResolutionTest();
         RunAttackResolutionTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
@@ -209,6 +211,76 @@ internal static class Program
             command.ActorFactionId == 1 &&
             command.TargetFactionId == 2);
         Assert(pending != null, "AI diplomacy alliance baseline", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunDiplomacyDemandScheduleTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 600, 700, 900, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 900, 800, 1000, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1, charm: 80, intelligence: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Envoy", 1, charm: 92, intelligence: 78));
+        world.Officers.Add(TestHelpers.Officer(201, "TargetRuler", 2, charm: 70));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Target", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Diplomacy,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetFactionId = 2,
+            DiplomacyActionType = DiplomacyActionType.Demand,
+            GoldToSend = 200,
+            OfficerIds = new List<int> { 102 }
+        });
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Diplomacy &&
+            command.DiplomacyActionType == DiplomacyActionType.Demand &&
+            command.ActorFactionId == 1 &&
+            command.TargetFactionId == 2 &&
+            command.GoldToSend == 200);
+        Assert(result.Success, "Diplomacy demand schedules", $"success={result.Success}");
+        Assert(pending != null, "Diplomacy demand pending command", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunDiplomacyBreakPactResolutionTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 600, 700, 900, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 900, 800, 1000, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1, charm: 80, intelligence: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Envoy", 1, charm: 92, intelligence: 78));
+        world.Officers.Add(TestHelpers.Officer(201, "TargetRuler", 2, charm: 70));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Target", false, 201, new[] { 201 }));
+        world.DiplomacyRelations.Add(new DiplomacyRelationData
+        {
+            FactionAId = 1,
+            FactionBId = 2,
+            Status = DiplomacyStatusType.Alliance,
+            RemainingMonths = 4,
+            RelationScore = 40
+        });
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Diplomacy,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetFactionId = 2,
+            DiplomacyActionType = DiplomacyActionType.BreakPact,
+            OfficerIds = new List<int> { 102 }
+        });
+        var resolved = services.Turn.ResolvePendingCommands(services.Resolver).Single();
+        var relation = world.GetDiplomacyRelation(1, 2)!;
+
+        Assert(scheduled.Success, "Diplomacy break pact schedules", $"success={scheduled.Success}");
+        Assert(resolved.Success, "Diplomacy break pact resolves", $"success={resolved.Success}");
+        Assert(relation.Status == DiplomacyStatusType.Neutral && relation.RemainingMonths == 0, "Diplomacy break pact clears treaty", $"status={relation.Status}, months={relation.RemainingMonths}");
     }
 
     private static void RunAttackResolutionTest()
