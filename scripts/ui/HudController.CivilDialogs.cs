@@ -143,7 +143,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        AddLog(_localization.Format("log.civil_command_selected", _civilCommandOption.GetItemText(_civilCommandOption.Selected)));
+        AddLog(_localization.Format("log.civil_command_selected", _civilCommandOption.GetItemText(_civilCommandOption.Selected)), isPlayerRelated: true);
     }
 
     private void EnsureCivilReliefDialogWidgets()
@@ -445,7 +445,7 @@ public partial class HudController : CanvasLayer
             selectedOfficerIds[0],
             (int)(_civilReliefGoldSpinBox?.Value ?? 0),
             (int)(_civilReliefFoodSpinBox?.Value ?? 0));
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
     }

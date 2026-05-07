@@ -13,6 +13,8 @@ internal static class Program
     {
         // Keep test order stable so regression diffs stay easy to compare across runs.
         RunAttackSchedulingTest();
+        RunDefensePromptEligibilityTest();
+        RunDefenseDeploymentAffectsCombatOutcomeTest();
         RunTroopCounterCombatTest();
         RunAttackSuccessFlowTest();
         RunAttackFailureFlowTest();
@@ -124,6 +126,121 @@ internal static class Program
         _ = services.Turn.ResolvePendingCommands(services.Resolver);
 
         Assert(world.GetCity(1)?.OwnerFactionId == 2, "AI attack resolution", $"owner={world.GetCity(1)?.OwnerFactionId}");
+    }
+
+    private static void RunDefensePromptEligibilityTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1400, new[] { 101, 102 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "AiAttackCity", 2, 1200, 1200, 2600, new[] { 201 }, new[] { 1 }));
+        world.GetCity(2)!.InfantryTroops = 0;
+        world.GetCity(2)!.CavalryTroops = 1200;
+        world.GetCity(2)!.Troops = 1200;
+        world.GetCity(2)!.SyncLegacyTroops();
+        world.Officers.Add(TestHelpers.Officer(101, "PlayerRuler", 1, strength: 70, intelligence: 65, charm: 70, combat: 72));
+        world.Officers.Add(TestHelpers.Officer(102, "PlayerGeneral", 1, strength: 78, intelligence: 55, charm: 60, combat: 80));
+        world.Officers.Add(TestHelpers.Officer(201, "AiGeneral", 2, strength: 84, intelligence: 60, charm: 60, combat: 84));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 2,
+            SourceCityId = 2,
+            TargetCityId = 1,
+            OfficerIds = new List<int> { 201 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 201, TroopType = TroopType.Cavalry, TroopCount = 1200 }
+            }
+        });
+
+        var pendingAttack = world.PendingCommands.FirstOrDefault(command =>
+            command.Type == CommandType.Attack &&
+            command.SourceCityId == 2 &&
+            command.TargetCityId == 1);
+
+        var shouldPromptDefense = pendingAttack != null &&
+                                  world.GetCity(1)!.OwnerFactionId == services.Turn.GetPlayerFactionId() &&
+                                  world.GetCity(1)!.Troops > 0 &&
+                                  world.GetCity(1)!.OfficerIds.Count > 0 &&
+                                  pendingAttack.DefenderOfficerDeployments.Count == 0;
+
+        Assert(scheduled.Success, "Defense prompt eligibility scheduling", $"success={scheduled.Success}");
+        Assert(pendingAttack != null, "Defense prompt eligibility attack exists", $"pending={(pendingAttack != null ? 1 : 0)}");
+        Assert(shouldPromptDefense, "Defense prompt eligibility conditions", $"targetTroops={world.GetCity(1)!.Troops}, defenders={world.GetCity(1)!.OfficerIds.Count}, defenderDeployments={pendingAttack?.DefenderOfficerDeployments.Count ?? -1}");
+    }
+
+    private static void RunDefenseDeploymentAffectsCombatOutcomeTest()
+    {
+        var baseWorld = TestHelpers.World(month: 2);
+        baseWorld.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1600, new[] { 101, 102 }, new[] { 2 }));
+        baseWorld.Cities.Add(TestHelpers.City(2, "AiAttackCity", 2, 1200, 1200, 2100, new[] { 201 }, new[] { 1 }));
+        baseWorld.GetCity(1)!.InfantryTroops = 0;
+        baseWorld.GetCity(1)!.SpearmanTroops = 1600;
+        baseWorld.GetCity(1)!.Defense = 55;
+        baseWorld.GetCity(1)!.SyncLegacyTroops();
+        baseWorld.GetCity(2)!.InfantryTroops = 0;
+        baseWorld.GetCity(2)!.CavalryTroops = 2100;
+        baseWorld.GetCity(2)!.SyncLegacyTroops();
+        baseWorld.Officers.Add(TestHelpers.Officer(101, "PlayerRuler", 1, strength: 72, intelligence: 65, charm: 70, combat: 75));
+        baseWorld.Officers.Add(TestHelpers.Officer(102, "PlayerSpearGeneral", 1, strength: 85, intelligence: 58, charm: 62, combat: 88));
+        baseWorld.Officers.Add(TestHelpers.Officer(201, "AiCavalryGeneral", 2, strength: 86, intelligence: 60, charm: 60, combat: 86));
+        baseWorld.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        baseWorld.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+
+        var fullDefenseWorld = CloneWorld(baseWorld);
+        var fullDefenseServices = CreateServices(fullDefenseWorld);
+        var fullDefenseSchedule = fullDefenseServices.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 2,
+            SourceCityId = 2,
+            TargetCityId = 1,
+            OfficerIds = new List<int> { 201 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 201, TroopType = TroopType.Cavalry, TroopCount = 2100 }
+            }
+        });
+        var fullDefensePending = fullDefenseWorld.PendingCommands.Single(command => command.Type == CommandType.Attack);
+        fullDefensePending.DefenderOfficerDeployments = new List<AttackOfficerDeploymentData>
+        {
+            new() { OfficerId = 102, TroopType = TroopType.Spearman, TroopCount = 1600 }
+        };
+        var fullDefenseResolved = fullDefenseServices.Turn.ResolvePendingCommands(fullDefenseServices.Resolver).Single();
+
+        var weakDefenseWorld = CloneWorld(baseWorld);
+        var weakDefenseServices = CreateServices(weakDefenseWorld);
+        var weakDefenseSchedule = weakDefenseServices.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 2,
+            SourceCityId = 2,
+            TargetCityId = 1,
+            OfficerIds = new List<int> { 201 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 201, TroopType = TroopType.Cavalry, TroopCount = 2100 }
+            }
+        });
+        var weakDefensePending = weakDefenseWorld.PendingCommands.Single(command => command.Type == CommandType.Attack);
+        weakDefensePending.DefenderOfficerDeployments = new List<AttackOfficerDeploymentData>
+        {
+            new() { OfficerId = 101, TroopType = TroopType.Infantry, TroopCount = 100 }
+        };
+        var weakDefenseResolved = weakDefenseServices.Turn.ResolvePendingCommands(weakDefenseServices.Resolver).Single();
+
+        Assert(fullDefenseSchedule.Success, "Defense deployment scheduling baseline", $"success={fullDefenseSchedule.Success}");
+        Assert(weakDefenseSchedule.Success, "Defense deployment scheduling weak defense", $"success={weakDefenseSchedule.Success}");
+        Assert(fullDefenseResolved.Success &&
+               fullDefenseWorld.GetCity(1)!.OwnerFactionId == 1 &&
+               fullDefenseResolved.MessageEn.Contains("attack against"),
+            "Defense deployment holds player city",
+            $"owner={fullDefenseWorld.GetCity(1)!.OwnerFactionId}, message={fullDefenseResolved.MessageEn}");
+        Assert(weakDefenseResolved.Success && weakDefenseWorld.GetCity(1)!.OwnerFactionId == 2, "Defense deployment affects attack outcome", $"owner={weakDefenseWorld.GetCity(1)!.OwnerFactionId}, message={weakDefenseResolved.MessageEn}");
     }
 
     private static void RunTroopCounterCombatTest()
@@ -793,6 +910,133 @@ internal static class Program
         }
 
         return Path.Combine(Directory.GetCurrentDirectory(), "data", "localization");
+    }
+
+    private static WorldState CloneWorld(WorldState source)
+    {
+        var clone = new WorldState
+        {
+            Year = source.Year,
+            Month = source.Month,
+            RandomSeed = source.RandomSeed,
+            ViewAllInformationEnabled = source.ViewAllInformationEnabled
+        };
+
+        clone.Cities.AddRange(source.Cities.Select(city => new CityData
+        {
+            Id = city.Id,
+            Name = city.Name,
+            NameEn = city.NameEn,
+            NameZhHant = city.NameZhHant,
+            OwnerFactionId = city.OwnerFactionId,
+            Gold = city.Gold,
+            Food = city.Food,
+            Horses = city.Horses,
+            Troops = city.Troops,
+            InfantryTroops = city.InfantryTroops,
+            SpearmanTroops = city.SpearmanTroops,
+            CavalryTroops = city.CavalryTroops,
+            ArcherTroops = city.ArcherTroops,
+            CrossbowTroops = city.CrossbowTroops,
+            SiegeTroops = city.SiegeTroops,
+            Farm = city.Farm,
+            Commercial = city.Commercial,
+            Defense = city.Defense,
+            DisasterPrevention = city.DisasterPrevention,
+            Loyalty = city.Loyalty,
+            HasBowWorkshop = city.HasBowWorkshop,
+            HasSiegeWorkshop = city.HasSiegeWorkshop,
+            OfficerIds = new List<int>(city.OfficerIds),
+            ConnectedCityIds = new List<int>(city.ConnectedCityIds),
+            LastSearchYear = city.LastSearchYear,
+            LastSearchMonth = city.LastSearchMonth
+        }));
+
+        clone.Officers.AddRange(source.Officers.Select(officer => new OfficerData
+        {
+            Id = officer.Id,
+            Name = officer.Name,
+            NameZhHant = officer.NameZhHant,
+            Role = officer.Role,
+            Belongs = officer.Belongs,
+            BirthYear = officer.BirthYear,
+            DeathYear = officer.DeathYear,
+            Strength = officer.Strength,
+            Intelligence = officer.Intelligence,
+            Charm = officer.Charm,
+            Leadership = officer.Leadership,
+            Politics = officer.Politics,
+            Loyalty = officer.Loyalty,
+            Ambition = officer.Ambition,
+            Combat = officer.Combat,
+            RelationshipType = officer.RelationshipType,
+            CityId = officer.CityId,
+            LastAssignedYear = officer.LastAssignedYear,
+            LastAssignedMonth = officer.LastAssignedMonth,
+            LastAssignedCommand = officer.LastAssignedCommand,
+            MilitaryRank = officer.MilitaryRank,
+            StrategistRank = officer.StrategistRank,
+            CivilRank = officer.CivilRank,
+            SpyRank = officer.SpyRank,
+            DiplomacyRank = officer.DiplomacyRank,
+            FarmRank = officer.FarmRank,
+            CommercialRank = officer.CommercialRank,
+            DefendRank = officer.DefendRank,
+            DisasterPreventionRank = officer.DisasterPreventionRank,
+            ConstructionRank = officer.ConstructionRank,
+            BattleExperience = officer.BattleExperience,
+            StrategistExperience = officer.StrategistExperience,
+            CivilExperience = officer.CivilExperience,
+            SpyExperience = officer.SpyExperience,
+            DiplomacyExperience = officer.DiplomacyExperience,
+            FarmExperience = officer.FarmExperience,
+            CommercialExperience = officer.CommercialExperience,
+            DefendExperience = officer.DefendExperience,
+            DisasterPreventionExperience = officer.DisasterPreventionExperience,
+            ConstructionExperience = officer.ConstructionExperience,
+            GeneralTitle = officer.GeneralTitle,
+            StrategistTitle = officer.StrategistTitle,
+            CivilTitle = officer.CivilTitle,
+            SpyTitle = officer.SpyTitle,
+            DiplomacyTitle = officer.DiplomacyTitle,
+            FarmTitle = officer.FarmTitle,
+            CommercialTitle = officer.CommercialTitle,
+            DefendTitle = officer.DefendTitle,
+            DisasterPreventionTitle = officer.DisasterPreventionTitle,
+            ConstructionTitle = officer.ConstructionTitle,
+            FreeOfficerStayMonths = officer.FreeOfficerStayMonths
+        }));
+
+        clone.Factions.AddRange(source.Factions.Select(faction => new FactionData
+        {
+            Id = faction.Id,
+            NameEn = faction.NameEn,
+            NameZhHant = faction.NameZhHant,
+            IsPlayer = faction.IsPlayer,
+            RulerOfficerId = faction.RulerOfficerId,
+            OfficerIds = new List<int>(faction.OfficerIds)
+        }));
+
+        clone.Items.AddRange(source.Items.Select(item => new ItemData
+        {
+            Id = item.Id,
+            NameEn = item.NameEn,
+            NameZhHant = item.NameZhHant,
+            ItemType = item.ItemType,
+            StrengthBonus = item.StrengthBonus,
+            IntelligenceBonus = item.IntelligenceBonus,
+            CharmBonus = item.CharmBonus,
+            LeadershipBonus = item.LeadershipBonus,
+            PoliticsBonus = item.PoliticsBonus,
+            CombatBonus = item.CombatBonus,
+            LoyaltyBonus = item.LoyaltyBonus,
+            OwnerFactionId = item.OwnerFactionId,
+            OwnerCityId = item.OwnerCityId,
+            EquippedOfficerId = item.EquippedOfficerId,
+            Rarity = item.Rarity
+        }));
+
+        return clone;
     }
 }
 

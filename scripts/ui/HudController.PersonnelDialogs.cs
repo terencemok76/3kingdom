@@ -128,7 +128,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        AddLog(_localization.Format("log.personnel_command_selected", _personnelCommandOption.GetItemText(_personnelCommandOption.Selected)));
+        AddLog(_localization.Format("log.personnel_command_selected", _personnelCommandOption.GetItemText(_personnelCommandOption.Selected)), isPlayerRelated: true);
     }
 
     private void EnsurePersonnelBonusDialogWidgets()
@@ -380,7 +380,7 @@ public partial class HudController : CanvasLayer
             (int)(_personnelBonusGoldSpinBox?.Value ?? 0),
             (int)(_personnelBonusFoodSpinBox?.Value ?? 0),
             GetSelectedItemFromOption(_personnelBonusItemOption)?.Id ?? 0);
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
     }
@@ -599,7 +599,7 @@ public partial class HudController : CanvasLayer
             _selectedCity.Id,
             selectedOfficerIds[0],
             role);
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
     }
 
@@ -820,7 +820,7 @@ public partial class HudController : CanvasLayer
         }
 
         var result = _commandResolver.ExecuteRecallOfficerItem(_turnManager.GetPlayerFactionId(), _selectedCity.Id, officerId, item.Id);
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
     }
@@ -1143,7 +1143,7 @@ public partial class HudController : CanvasLayer
             (int)(_hireOfficerGoldSpinBox?.Value ?? 0),
             (int)(_hireOfficerFoodSpinBox?.Value ?? 0),
             GetSelectedItemFromOption(_hireOfficerItemOption)?.Id ?? 0);
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         _hireOfficerDialog?.Hide();
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
