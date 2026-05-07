@@ -1,14 +1,18 @@
 # AI Regression Harness
 
-This tool is the project's logic-level regression test harness for current Phase 1 AI behavior.
+This tool is the project's logic-level regression test harness for current Phase 1 / Phase 1.5 AI behavior.
 
 ## What it tests
 - AI attack scheduling
 - AI attack immediate troop reservation
+- AI defensive diplomacy (`Truce`)
+- AI spy priority (`Reconnaissance`)
+- AI diplomacy baseline (`Gift / Alliance`)
 - AI move scheduling
 - AI `Recruit / Develop / Search`
 - AI immediate resource cost application
 - AI attack month-end capture flow
+- player defense deployment combat wiring
 - April annual gold settlement
 - August annual food settlement
 - upkeep shortage handling
@@ -33,7 +37,7 @@ powershell -ExecutionPolicy Bypass -File tools\AiHarness\run-ai-regression.ps1
 Successful run example:
 
 ```text
-AI TEST SUMMARY: PASS=16 FAIL=0
+AI TEST SUMMARY: PASS=<n> FAIL=0
 ```
 
 If any test fails, the process exits with code `1`.

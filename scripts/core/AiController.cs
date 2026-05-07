@@ -7,6 +7,10 @@ public class AiController
 {
     private const int BlindAttackTroopThreshold = 3000;
     private const int BlindSpyTroopThreshold = 1800;
+    private const int DiplomacyThreatTroopGap = 500;
+    private const int DiplomacyGiftGoldThreshold = 500;
+    private const int DiplomacyGiftAmount = 200;
+    private const int DiplomacyAllianceRelationThreshold = 30;
     private const int SpySabotageDefenseThreshold = 65;
     private const int SpySabotageGoldThreshold = 260;
     private const int SpySabotageFoodThreshold = 700;
@@ -105,10 +109,21 @@ public class AiController
             }
         }
 
+        CommandResult? diplomacyResult = null;
+        if (militaryResult == null)
+        {
+            diplomacyResult = TryIssueDiplomacyCommand(world, city, factionId, availableOfficerIds, defensiveOnly: true);
+        }
+
         CommandResult? spyResult = null;
         if (militaryResult == null)
         {
             spyResult = TryIssueSpyCommand(world, city, factionId, availableOfficerIds);
+        }
+
+        if (militaryResult == null && spyResult == null)
+        {
+            diplomacyResult ??= TryIssueDiplomacyCommand(world, city, factionId, availableOfficerIds, defensiveOnly: false);
         }
 
         var coreResults = new System.Collections.Generic.List<CommandResult>();
@@ -171,6 +186,11 @@ public class AiController
         if (spyResult != null)
         {
             coreResults.Insert(0, spyResult);
+        }
+
+        if (diplomacyResult != null)
+        {
+            coreResults.Insert(0, diplomacyResult);
         }
 
         if (coreResults.Count == 0)
@@ -384,6 +404,131 @@ public class AiController
         return bestOfficerId;
     }
 
+    private CommandResult? TryIssueDiplomacyCommand(
+        WorldState world,
+        CityData city,
+        int factionId,
+        System.Collections.Generic.List<int> availableOfficerIds,
+        bool defensiveOnly)
+    {
+        if (_commandResolver == null || availableOfficerIds.Count == 0)
+        {
+            return null;
+        }
+
+        var diplomacyOfficerId = GetBestDiplomacyOfficerId(world, city, factionId, availableOfficerIds);
+        if (diplomacyOfficerId <= 0)
+        {
+            return null;
+        }
+
+        var threatenedNeighbor = city.ConnectedCityIds
+            .Select(world.GetCity)
+            .Where(target => target != null && target.OwnerFactionId != factionId)
+            .Cast<CityData>()
+            .Where(target => !HasActiveDiplomacyBlock(world, factionId, target.OwnerFactionId))
+            .OrderByDescending(target => target.Troops - city.Troops)
+            .FirstOrDefault(target => target.Troops >= city.Troops + DiplomacyThreatTroopGap);
+        if (threatenedNeighbor != null)
+        {
+            var truceResult = _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Diplomacy,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                TargetFactionId = threatenedNeighbor.OwnerFactionId,
+                DiplomacyActionType = DiplomacyActionType.Truce,
+                DurationMonths = 3,
+                OfficerIds = new System.Collections.Generic.List<int> { diplomacyOfficerId }
+            });
+
+            if (truceResult.Success)
+            {
+                availableOfficerIds.Remove(diplomacyOfficerId);
+            }
+
+            return truceResult;
+        }
+
+        if (defensiveOnly)
+        {
+            return null;
+        }
+
+        var allianceTargetFactionId = world.DiplomacyRelations
+            .Where(relation =>
+                relation.RelationScore >= DiplomacyAllianceRelationThreshold &&
+                relation.RemainingMonths <= 0 &&
+                relation.Status == DiplomacyStatusType.Neutral &&
+                (relation.FactionAId == factionId || relation.FactionBId == factionId))
+            .Select(relation => relation.FactionAId == factionId ? relation.FactionBId : relation.FactionAId)
+            .FirstOrDefault(targetFactionId =>
+                targetFactionId > 0 &&
+                targetFactionId != factionId &&
+                !HasActiveDiplomacyBlock(world, factionId, targetFactionId) &&
+                world.GetFaction(targetFactionId) != null &&
+                world.Cities.Any(targetCity => targetCity.OwnerFactionId == targetFactionId));
+        if (allianceTargetFactionId > 0)
+        {
+            var allianceResult = _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Diplomacy,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                TargetFactionId = allianceTargetFactionId,
+                DiplomacyActionType = DiplomacyActionType.Alliance,
+                DurationMonths = 4,
+                OfficerIds = new System.Collections.Generic.List<int> { diplomacyOfficerId }
+            });
+
+            if (allianceResult.Success)
+            {
+                availableOfficerIds.Remove(diplomacyOfficerId);
+            }
+
+            return allianceResult;
+        }
+
+        if (city.Gold < DiplomacyGiftGoldThreshold)
+        {
+            return null;
+        }
+
+        var giftTargetFactionId = world.Factions
+            .Where(faction => faction.Id != factionId && world.Cities.Any(targetCity => targetCity.OwnerFactionId == faction.Id))
+            .Select(faction => new
+            {
+                FactionId = faction.Id,
+                Relation = world.GetDiplomacyRelation(factionId, faction.Id)
+            })
+            .Where(item => item.Relation == null || item.Relation.RemainingMonths <= 0)
+            .OrderBy(item => item.Relation?.RelationScore ?? 0)
+            .ThenBy(item => item.FactionId)
+            .FirstOrDefault();
+        if (giftTargetFactionId == null)
+        {
+            return null;
+        }
+
+        var giftResult = _commandResolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Diplomacy,
+            ActorFactionId = factionId,
+            SourceCityId = city.Id,
+            TargetFactionId = giftTargetFactionId.FactionId,
+            DiplomacyActionType = DiplomacyActionType.Gift,
+            GoldToSend = System.Math.Min(DiplomacyGiftAmount, city.Gold),
+            OfficerIds = new System.Collections.Generic.List<int> { diplomacyOfficerId }
+        });
+
+        if (giftResult.Success)
+        {
+            availableOfficerIds.Remove(diplomacyOfficerId);
+        }
+
+        return giftResult;
+    }
+
     private CommandResult? TryIssueSpyCommand(
         WorldState world,
         CityData city,
@@ -534,5 +679,35 @@ public class AiController
             city,
             availableOfficerIds,
             officer => (officer.Intelligence * 2) + officer.Charm + officer.Politics + (officer.SpyRank * 20));
+    }
+
+    private static int GetBestDiplomacyOfficerId(
+        WorldState world,
+        CityData city,
+        int factionId,
+        System.Collections.Generic.List<int> availableOfficerIds)
+    {
+        var rulerOfficerId = world.GetFaction(factionId)?.RulerOfficerId ?? -1;
+        var candidateIds = availableOfficerIds
+            .Where(officerId => officerId != rulerOfficerId)
+            .ToList();
+        if (candidateIds.Count == 0)
+        {
+            return -1;
+        }
+
+        return GetBestOfficerId(
+            world,
+            city,
+            candidateIds,
+            officer => (officer.Charm * 2) + officer.Politics + officer.Intelligence + (officer.DiplomacyRank * 20));
+    }
+
+    private static bool HasActiveDiplomacyBlock(WorldState world, int factionAId, int factionBId)
+    {
+        var relation = world.GetDiplomacyRelation(factionAId, factionBId);
+        return relation != null &&
+               relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance &&
+               relation.RemainingMonths > 0;
     }
 }

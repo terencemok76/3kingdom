@@ -21,6 +21,10 @@ internal static class Program
         RunAttackCancellationFlowTest();
         RunMoveSchedulingTest();
         RunCoreActionsTest();
+        RunAiDefensiveDiplomacyTruceTest();
+        RunAiSpyReconPriorityTest();
+        RunAiDiplomacyGiftTest();
+        RunAiDiplomacyAllianceTest();
         RunAttackResolutionTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
@@ -109,6 +113,102 @@ internal static class Program
         Assert(city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month, "AI search marked used", $"lastSearch={city.LastSearchYear}/{city.LastSearchMonth}");
         // Search resolves at month end, and internal affairs does not consume resources immediately.
         Assert(city.Gold == 380 && city.Food == 420, "AI core action immediate costs", $"gold={city.Gold}, food={city.Food}");
+    }
+
+    private static void RunAiDefensiveDiplomacyTruceTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiBorderCity", 1, 900, 900, 1400, new[] { 101, 102 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "ThreatCity", 2, 1000, 1000, 2300, new[] { 201 }, new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(101, "AiRuler", 1, charm: 80, intelligence: 72));
+        world.Officers.Add(TestHelpers.Officer(102, "Diplomat", 1, charm: 92, intelligence: 78));
+        world.Officers.Add(TestHelpers.Officer(201, "Enemy", 2, combat: 85));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(1, 1);
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Diplomacy &&
+            command.DiplomacyActionType == DiplomacyActionType.Truce &&
+            command.ActorFactionId == 1 &&
+            command.TargetFactionId == 2);
+        Assert(pending != null, "AI defensive diplomacy truce", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunAiSpyReconPriorityTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiScoutCity", 1, 500, 800, 2000, new[] { 101 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "HiddenEnemyCity", 2, 1000, 1000, 1500, new[] { 201 }, new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(101, "SpyOfficer", 1, intelligence: 92, charm: 82));
+        world.Officers.Add(TestHelpers.Officer(201, "Enemy", 2, combat: 70));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(1, 1);
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Spy &&
+            command.SpyActionType == SpyActionType.Reconnaissance &&
+            command.ActorFactionId == 1 &&
+            command.TargetCityId == 2);
+        Assert(pending != null, "AI spy recon hidden target first", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunAiDiplomacyGiftTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiRichCity", 1, 800, 800, 900, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "OtherCity", 2, 1000, 1000, 1100, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "AiRuler", 1, charm: 80, intelligence: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Diplomat", 1, charm: 95, intelligence: 82));
+        world.Officers.Add(TestHelpers.Officer(201, "Other", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Other", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(1, 1);
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Diplomacy &&
+            command.DiplomacyActionType == DiplomacyActionType.Gift &&
+            command.ActorFactionId == 1 &&
+            command.TargetFactionId == 2 &&
+            command.GoldToSend == 200);
+        Assert(pending != null, "AI diplomacy gift baseline", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunAiDiplomacyAllianceTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiCity", 1, 450, 700, 900, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "FriendlyOtherCity", 2, 1000, 1000, 1000, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "AiRuler", 1, charm: 80, intelligence: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Diplomat", 1, charm: 94, intelligence: 84));
+        world.Officers.Add(TestHelpers.Officer(201, "OtherRuler", 2, charm: 75));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Other", false, 201, new[] { 201 }));
+        world.DiplomacyRelations.Add(new DiplomacyRelationData
+        {
+            FactionAId = 1,
+            FactionBId = 2,
+            Status = DiplomacyStatusType.Neutral,
+            RemainingMonths = 0,
+            RelationScore = 36
+        });
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(1, 1);
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Diplomacy &&
+            command.DiplomacyActionType == DiplomacyActionType.Alliance &&
+            command.ActorFactionId == 1 &&
+            command.TargetFactionId == 2);
+        Assert(pending != null, "AI diplomacy alliance baseline", $"pending={(pending != null ? 1 : 0)}");
     }
 
     private static void RunAttackResolutionTest()
