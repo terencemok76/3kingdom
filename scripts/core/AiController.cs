@@ -5,6 +5,13 @@ namespace ThreeKingdom.Core;
 
 public class AiController
 {
+    private const int BlindAttackTroopThreshold = 3000;
+    private const int BlindSpyTroopThreshold = 1800;
+    private const int SpySabotageDefenseThreshold = 65;
+    private const int SpySabotageGoldThreshold = 260;
+    private const int SpySabotageFoodThreshold = 700;
+    private const int SpyInciteLoyaltyThreshold = 78;
+
     private CommandResolver? _commandResolver;
     private TurnManager? _turnManager;
     private LocalizationService? _localization;
@@ -46,7 +53,16 @@ public class AiController
                 continue;
             }
 
-            if (city.Troops > target.Troops + 300 && availableOfficerIds.Count > 0)
+            if (availableOfficerIds.Count == 0)
+            {
+                continue;
+            }
+
+            var canInspectTarget = world.CanFactionViewCity(factionId, target.Id);
+            var shouldAttack = canInspectTarget
+                ? city.Troops > target.Troops + 300
+                : city.Troops >= BlindAttackTroopThreshold;
+            if (shouldAttack)
             {
                 militaryResult = _commandResolver.Execute(new CommandRequest
                 {
@@ -87,6 +103,12 @@ public class AiController
                     break;
                 }
             }
+        }
+
+        CommandResult? spyResult = null;
+        if (militaryResult == null)
+        {
+            spyResult = TryIssueSpyCommand(world, city, factionId, availableOfficerIds);
         }
 
         var coreResults = new System.Collections.Generic.List<CommandResult>();
@@ -144,6 +166,11 @@ public class AiController
                 SourceCityId = cityId,
                 OfficerIds = new System.Collections.Generic.List<int> { searchOfficerId }
             }));
+        }
+
+        if (spyResult != null)
+        {
+            coreResults.Insert(0, spyResult);
         }
 
         if (coreResults.Count == 0)
@@ -355,5 +382,157 @@ public class AiController
         }
 
         return bestOfficerId;
+    }
+
+    private CommandResult? TryIssueSpyCommand(
+        WorldState world,
+        CityData city,
+        int factionId,
+        System.Collections.Generic.List<int> availableOfficerIds)
+    {
+        if (_commandResolver == null || availableOfficerIds.Count == 0)
+        {
+            return null;
+        }
+
+        var spyOfficerId = GetBestSpyOfficerId(world, city, availableOfficerIds);
+        if (spyOfficerId <= 0)
+        {
+            return null;
+        }
+
+        var spyOfficer = world.GetOfficer(spyOfficerId);
+        if (spyOfficer == null)
+        {
+            return null;
+        }
+
+        var hiddenTarget = city.ConnectedCityIds
+            .Select(world.GetCity)
+            .FirstOrDefault(target =>
+                target != null &&
+                target.OwnerFactionId != factionId &&
+                !world.CanFactionViewCity(factionId, target.Id));
+        if (hiddenTarget != null && city.Troops >= BlindSpyTroopThreshold)
+        {
+            var reconResult = _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Spy,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                TargetCityId = hiddenTarget.Id,
+                SpyActionType = SpyActionType.Reconnaissance,
+                OfficerIds = new System.Collections.Generic.List<int> { spyOfficerId }
+            });
+
+            if (reconResult.Success)
+            {
+                availableOfficerIds.Remove(spyOfficerId);
+            }
+
+            return reconResult;
+        }
+
+        var visibleTargets = city.ConnectedCityIds
+            .Select(world.GetCity)
+            .Where(target =>
+                target != null &&
+                target.OwnerFactionId != factionId &&
+                world.CanFactionViewCity(factionId, target.Id))
+            .Cast<CityData>()
+            .ToList();
+        if (visibleTargets.Count == 0)
+        {
+            return null;
+        }
+
+        var sabotageTarget = visibleTargets
+            .Where(target =>
+                target.Defense >= SpySabotageDefenseThreshold ||
+                target.Gold >= SpySabotageGoldThreshold ||
+                target.Food >= SpySabotageFoodThreshold)
+            .OrderByDescending(target => target.Defense + (target.Gold / 15) + (target.Food / 60))
+            .FirstOrDefault();
+        if (sabotageTarget != null)
+        {
+            var sabotageResult = _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Spy,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                TargetCityId = sabotageTarget.Id,
+                SpyActionType = SpyActionType.Sabotage,
+                OfficerIds = new System.Collections.Generic.List<int> { spyOfficerId }
+            });
+
+            if (sabotageResult.Success)
+            {
+                availableOfficerIds.Remove(spyOfficerId);
+            }
+
+            return sabotageResult;
+        }
+
+        var inciteTarget = visibleTargets
+            .Where(target => target.Loyalty >= SpyInciteLoyaltyThreshold)
+            .OrderByDescending(target => target.Loyalty)
+            .ThenByDescending(target => target.OfficerIds.Count)
+            .FirstOrDefault();
+        if (inciteTarget == null)
+        {
+            var expiringIntelTarget = visibleTargets
+                .OrderBy(recordTarget => world.GetCityIntel(factionId, recordTarget.Id)?.RemainingMonths ?? 0)
+                .FirstOrDefault();
+            if (expiringIntelTarget == null)
+            {
+                return null;
+            }
+
+            var refreshResult = _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Spy,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                TargetCityId = expiringIntelTarget.Id,
+                SpyActionType = SpyActionType.Reconnaissance,
+                OfficerIds = new System.Collections.Generic.List<int> { spyOfficerId }
+            });
+
+            if (refreshResult.Success)
+            {
+                availableOfficerIds.Remove(spyOfficerId);
+            }
+
+            return refreshResult;
+        }
+
+        var inciteResult = _commandResolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Spy,
+            ActorFactionId = factionId,
+            SourceCityId = city.Id,
+            TargetCityId = inciteTarget.Id,
+            SpyActionType = SpyActionType.Incite,
+            OfficerIds = new System.Collections.Generic.List<int> { spyOfficerId }
+        });
+
+        if (inciteResult.Success)
+        {
+            availableOfficerIds.Remove(spyOfficerId);
+        }
+
+        return inciteResult;
+    }
+
+    private static int GetBestSpyOfficerId(
+        WorldState world,
+        CityData city,
+        System.Collections.Generic.List<int> availableOfficerIds)
+    {
+        return GetBestOfficerId(
+            world,
+            city,
+            availableOfficerIds,
+            officer => (officer.Intelligence * 2) + officer.Charm + officer.Politics + (officer.SpyRank * 20));
     }
 }

@@ -30,11 +30,6 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.spy.officer_required", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
-        if (IsFactionRuler(world, officer.Id))
-        {
-            return LocalizedResult(false, "cmd.spy.ruler_blocked");
-        }
-
         MarkOfficerAssigned(world, officer, CommandType.Spy);
         UpsertPendingCommand(world, new PendingCommandData
         {
@@ -85,7 +80,7 @@ public partial class CommandResolver
 
         if (success)
         {
-            var result = ResolveSuccessfulSpyAction(world, targetCity, officer, pendingCommand.SpyActionType);
+            var result = ResolveSuccessfulSpyAction(world, pendingCommand.ActorFactionId, targetCity, officer, pendingCommand.SpyActionType);
             if (exposed)
             {
                 ApplySpyExposurePenalty(world, pendingCommand.ActorFactionId, officer, targetCity.OwnerFactionId, 6, 3);
@@ -135,12 +130,14 @@ public partial class CommandResolver
             });
     }
 
-    private CommandResult ResolveSuccessfulSpyAction(WorldState world, CityData targetCity, OfficerData officer, SpyActionType actionType)
+    private CommandResult ResolveSuccessfulSpyAction(WorldState world, int actorFactionId, CityData targetCity, OfficerData officer, SpyActionType actionType)
     {
         switch (actionType)
         {
             case SpyActionType.Reconnaissance:
             {
+                // The turn advances immediately after month-end resolution, so store one extra month here.
+                world.UpsertCityIntel(actorFactionId, targetCity.Id, 4);
                 OfficerProgressionRules.AwardSpyExperience(officer, 18);
                 return LocalizedResult(
                     true,

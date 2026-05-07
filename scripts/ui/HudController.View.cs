@@ -99,12 +99,16 @@ public partial class HudController : CanvasLayer
 
         if (_officerPortraitRect != null)
         {
-            _officerPortraitRect.Texture = BuildOfficerPortraitTexture(officer.Id);
+            _officerPortraitRect.Texture = CanViewOfficerFullInformation(officer)
+                ? BuildOfficerPortraitTexture(officer.Id)
+                : null;
         }
 
         if (_officerPortraitPlaceholderLabel != null)
         {
-            var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+            var officerName = CanViewOfficerFullInformation(officer)
+                ? (_localization?.GetOfficerName(officer) ?? officer.Name)
+                : UnknownInfoText;
             var hasPortrait = _officerPortraitRect?.Texture != null;
             _officerPortraitPlaceholderLabel.Visible = !hasPortrait;
             _officerPortraitPlaceholderLabel.Text = $"{(_localization?.T("ui.portrait") ?? "Portrait")}\n{officerName}";
@@ -287,6 +291,12 @@ public partial class HudController : CanvasLayer
             }
             else
             {
+                if (!CanViewCityFullInformation(_selectedCity))
+                {
+                    UpdateOfficerListDialogTitle();
+                    return;
+                }
+
                 foreach (var officerId in _selectedCity.OfficerIds)
                 {
                     var officer = _turnManager.World.GetOfficer(officerId);
@@ -355,29 +365,29 @@ public partial class HudController : CanvasLayer
                 ? result.OrderBy(city => _localization?.GetFactionName(_turnManager.World, city.OwnerFactionId) ?? city.OwnerFactionId.ToString())
                 : result.OrderByDescending(city => _localization?.GetFactionName(_turnManager.World, city.OwnerFactionId) ?? city.OwnerFactionId.ToString()),
             ViewTableSortField.Gold => _viewTableSortAscending
-                ? result.OrderBy(city => city.Gold)
-                : result.OrderByDescending(city => city.Gold),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Gold : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Gold : int.MinValue),
             ViewTableSortField.Food => _viewTableSortAscending
-                ? result.OrderBy(city => city.Food)
-                : result.OrderByDescending(city => city.Food),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Food : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Food : int.MinValue),
             ViewTableSortField.Troops => _viewTableSortAscending
-                ? result.OrderBy(city => city.Troops)
-                : result.OrderByDescending(city => city.Troops),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Troops : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Troops : int.MinValue),
             ViewTableSortField.OfficerCount => _viewTableSortAscending
-                ? result.OrderBy(city => city.OfficerIds.Count)
-                : result.OrderByDescending(city => city.OfficerIds.Count),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.OfficerIds.Count : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.OfficerIds.Count : int.MinValue),
             ViewTableSortField.Farm => _viewTableSortAscending
-                ? result.OrderBy(city => city.Farm)
-                : result.OrderByDescending(city => city.Farm),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Farm : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Farm : int.MinValue),
             ViewTableSortField.Commercial => _viewTableSortAscending
-                ? result.OrderBy(city => city.Commercial)
-                : result.OrderByDescending(city => city.Commercial),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Commercial : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Commercial : int.MinValue),
             ViewTableSortField.Defense => _viewTableSortAscending
-                ? result.OrderBy(city => city.Defense)
-                : result.OrderByDescending(city => city.Defense),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Defense : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Defense : int.MinValue),
             ViewTableSortField.Loyalty => _viewTableSortAscending
-                ? result.OrderBy(city => city.Loyalty)
-                : result.OrderByDescending(city => city.Loyalty),
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue),
             _ => _viewTableSortAscending
                 ? result.OrderBy(city => _localization?.GetCityName(city) ?? city.NameEn)
                 : result.OrderByDescending(city => _localization?.GetCityName(city) ?? city.NameEn)
@@ -542,28 +552,29 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var canViewOfficer = CanViewOfficerFullInformation(officer);
         row.SetMetadata(0, officer.Id);
-        row.SetText(0, _localization.GetOfficerName(officer));
-        row.SetText(1, _localization.GetOfficerRole(officer));
+        row.SetText(0, BuildMaskedOfficerName(officer));
+        row.SetText(1, BuildMaskedOfficerRole(officer));
         var world = _turnManager!.World!;
-        row.SetText(2, FreeOfficerMovement.IsFreeOfficer(world, officer) ? _localization.T("ui.free_officer") : _localization.GetOfficerStatus(world, officer));
+        row.SetText(2, BuildMaskedOfficerStatus(world, officer));
         var officerAge = CalculateOfficerAge(officer, world.Year);
-        var loyaltyText = BuildOfficerLoyaltyTableText(world, officer);
+        var loyaltyText = BuildMaskedOfficerLoyalty(world, officer);
         if (includeCityName)
         {
             var city = _turnManager?.World?.GetCity(officer.CityId);
-            row.SetText(3, city != null ? _localization.GetCityName(city) : "-");
-            row.SetText(4, officerAge.ToString());
+            row.SetText(3, canViewOfficer && city != null ? _localization.GetCityName(city) : UnknownInfoText);
+            row.SetText(4, MaskedNumberText(canViewOfficer, officerAge));
             row.SetText(5, loyaltyText);
-            row.SetText(6, officer.Strength.ToString());
-            row.SetText(7, officer.Intelligence.ToString());
+            row.SetText(6, MaskedNumberText(canViewOfficer, officer.Strength));
+            row.SetText(7, MaskedNumberText(canViewOfficer, officer.Intelligence));
         }
         else
         {
-            row.SetText(3, officerAge.ToString());
+            row.SetText(3, MaskedNumberText(canViewOfficer, officerAge));
             row.SetText(4, loyaltyText);
-            row.SetText(5, officer.Strength.ToString());
-            row.SetText(6, officer.Intelligence.ToString());
+            row.SetText(5, MaskedNumberText(canViewOfficer, officer.Strength));
+            row.SetText(6, MaskedNumberText(canViewOfficer, officer.Intelligence));
         }
     }
 
@@ -584,17 +595,22 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var canViewCity = CanViewCityFullInformation(city);
         row.SetMetadata(0, city.Id);
         row.SetText(0, _localization.GetCityName(city));
-        row.SetText(1, _localization.GetFactionName(_turnManager.World, city.OwnerFactionId));
-        row.SetText(2, city.Gold.ToString());
-        row.SetText(3, city.Food.ToString());
-        row.SetText(4, city.Troops.ToString());
-        row.SetText(5, city.OfficerIds.Count.ToString());
-        row.SetText(6, city.Farm.ToString());
-        row.SetText(7, city.Commercial.ToString());
-        row.SetText(8, city.Defense.ToString());
-        row.SetText(9, city.Loyalty.ToString());
+        var ownerName = _localization.GetFactionName(_turnManager.World, city.OwnerFactionId);
+        var intelDurationText = BuildCityIntelDurationText(city);
+        row.SetText(1, string.IsNullOrWhiteSpace(intelDurationText)
+            ? ownerName
+            : $"{ownerName} | {intelDurationText}");
+        row.SetText(2, MaskedNumberText(canViewCity, city.Gold));
+        row.SetText(3, MaskedNumberText(canViewCity, city.Food));
+        row.SetText(4, MaskedNumberText(canViewCity, city.Troops));
+        row.SetText(5, MaskedNumberText(canViewCity, city.OfficerIds.Count));
+        row.SetText(6, MaskedNumberText(canViewCity, city.Farm));
+        row.SetText(7, MaskedNumberText(canViewCity, city.Commercial));
+        row.SetText(8, MaskedNumberText(canViewCity, city.Defense));
+        row.SetText(9, MaskedNumberText(canViewCity, city.Loyalty));
     }
 
     private void PopulateItemTableRow(TreeItem row, ItemData item)
@@ -772,13 +788,14 @@ public partial class HudController : CanvasLayer
         });
 
         var hasFaction = _selectedCity.OwnerFactionId > 0 && _turnManager.World.GetFaction(_selectedCity.OwnerFactionId) != null;
-        _viewFactionOfficersDialogButton.Visible = hasFaction;
-        _viewFactionItemsDialogButton.Visible = hasFaction;
-        _viewDiplomacyRelationsDialogButton.Visible = hasFaction;
+        var canInspectFaction = hasFaction && CanInspectSelectedFaction();
+        _viewFactionOfficersDialogButton.Visible = canInspectFaction;
+        _viewFactionItemsDialogButton.Visible = canInspectFaction;
+        _viewDiplomacyRelationsDialogButton.Visible = canInspectFaction;
         _viewCityOfficersDialogButton.Disabled = _officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.City;
-        _viewFactionOfficersDialogButton.Disabled = !hasFaction || (_officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.Faction);
-        _viewFactionItemsDialogButton.Disabled = !hasFaction || _officerListContentMode == OfficerListContentMode.Items;
-        _viewDiplomacyRelationsDialogButton.Disabled = !hasFaction || _officerListContentMode == OfficerListContentMode.DiplomacyRelations;
+        _viewFactionOfficersDialogButton.Disabled = !canInspectFaction || (_officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.Faction);
+        _viewFactionItemsDialogButton.Disabled = !canInspectFaction || _officerListContentMode == OfficerListContentMode.Items;
+        _viewDiplomacyRelationsDialogButton.Disabled = !canInspectFaction || _officerListContentMode == OfficerListContentMode.DiplomacyRelations;
         _viewCitiesDialogButton.Disabled = _officerListContentMode == OfficerListContentMode.Cities;
         _cityListFilterOption.Visible = _officerListContentMode == OfficerListContentMode.Cities;
         _officerSortOption.Visible = false;
@@ -878,20 +895,20 @@ public partial class HudController : CanvasLayer
                 ? officers.OrderBy(officer => GetOfficerCityNameForSort(officer))
                 : officers.OrderByDescending(officer => GetOfficerCityNameForSort(officer)),
             ViewTableSortField.Age => _viewTableSortAscending
-                ? officers.OrderBy(officer => CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0))
-                : officers.OrderByDescending(officer => CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0)),
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0) : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0) : int.MinValue),
             ViewTableSortField.OfficerLoyalty => _viewTableSortAscending
-                ? officers.OrderBy(officer => officer.Loyalty)
-                : officers.OrderByDescending(officer => officer.Loyalty),
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Loyalty : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Loyalty : int.MinValue),
             ViewTableSortField.Strength => _viewTableSortAscending
-                ? officers.OrderBy(officer => officer.Strength)
-                : officers.OrderByDescending(officer => officer.Strength),
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Strength : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Strength : int.MinValue),
             ViewTableSortField.Intelligence => _viewTableSortAscending
-                ? officers.OrderBy(officer => officer.Intelligence)
-                : officers.OrderByDescending(officer => officer.Intelligence),
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Intelligence : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Intelligence : int.MinValue),
             _ => _viewTableSortAscending
-                ? officers.OrderBy(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
-                : officers.OrderByDescending(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
+                ? officers.OrderBy(BuildMaskedOfficerName)
+                : officers.OrderByDescending(BuildMaskedOfficerName)
         };
     }
 
@@ -1063,9 +1080,9 @@ public partial class HudController : CanvasLayer
 
     private string GetOfficerCityNameForSort(OfficerData officer)
     {
-        if (_turnManager?.World == null || _localization == null)
+        if (_turnManager?.World == null || _localization == null || !CanViewOfficerFullInformation(officer))
         {
-            return string.Empty;
+            return UnknownInfoText;
         }
 
         var city = _turnManager.World.GetCity(officer.CityId);
@@ -1074,7 +1091,7 @@ public partial class HudController : CanvasLayer
 
     private int GetOfficerStatusSortKey(OfficerData officer)
     {
-        if (_turnManager?.World == null)
+        if (_turnManager?.World == null || !CanViewOfficerFullInformation(officer))
         {
             return 0;
         }

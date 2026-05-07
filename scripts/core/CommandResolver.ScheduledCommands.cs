@@ -629,7 +629,25 @@ public partial class CommandResolver
 
         var defendingFactionId = targetCity.OwnerFactionId;
         var defendingOfficerIds = new List<int>(targetCity.OfficerIds);
-        var combat = _combatResolver.Resolve(world, sourceCity, targetCity, attackingTroops, pendingCommand.OfficerIds, pendingCommand.AttackOfficerDeployments, pendingCommand.TroopAllocation);
+        var selectedDefendingOfficerIds = pendingCommand.DefenderOfficerDeployments
+            .Select(item => item.OfficerId)
+            .Distinct()
+            .Where(targetCity.OfficerIds.Contains)
+            .ToList();
+        var defenderAllocation = pendingCommand.DefenderOfficerDeployments.Count > 0
+            ? CreateTroopAllocationFromAttackDeployments(pendingCommand.DefenderOfficerDeployments)
+            : null;
+        var combat = _combatResolver.Resolve(
+            world,
+            sourceCity,
+            targetCity,
+            attackingTroops,
+            pendingCommand.OfficerIds,
+            pendingCommand.AttackOfficerDeployments,
+            pendingCommand.TroopAllocation,
+            selectedDefendingOfficerIds,
+            pendingCommand.DefenderOfficerDeployments,
+            defenderAllocation);
 
         var effectiveAttackerLoss = combat.AttackerLosses;
         if (effectiveAttackerLoss > attackingTroops)

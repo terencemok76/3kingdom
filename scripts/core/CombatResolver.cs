@@ -24,23 +24,27 @@ public class CombatResolver
         int attackingTroops,
         List<int>? attackingOfficerIds = null,
         List<AttackOfficerDeploymentData>? attackOfficerDeployments = null,
-        TroopAllocationData? attackingAllocation = null)
+        TroopAllocationData? attackingAllocation = null,
+        List<int>? defendingOfficerIds = null,
+        List<AttackOfficerDeploymentData>? defenderOfficerDeployments = null,
+        TroopAllocationData? defendingAllocation = null)
     {
         var clampedAttackTroops = attackingTroops < 0 ? 0 : attackingTroops;
         var attackerStrength = GetAverageOfficerStat(world, attacker, officer => officer.Strength, item => item.StrengthBonus, OfficerProgressionStat.Strength, attackingOfficerIds);
         var attackerLeadership = GetAverageOfficerStat(world, attacker, officer => officer.Leadership, item => item.LeadershipBonus, OfficerProgressionStat.Leadership, attackingOfficerIds);
         var attackerCombat = GetAverageOfficerStat(world, attacker, officer => officer.Combat, item => item.CombatBonus, OfficerProgressionStat.Combat, attackingOfficerIds);
-        var defenderLeadership = GetAverageOfficerStat(world, defender, officer => officer.Leadership, item => item.LeadershipBonus, OfficerProgressionStat.Leadership);
-        var defenderCombat = GetAverageOfficerStat(world, defender, officer => officer.Combat, item => item.CombatBonus, OfficerProgressionStat.Combat);
-        var effectiveAttackAllocation = GetAttackAllocation(attackingAllocation, attackOfficerDeployments);
+        var defenderLeadership = GetAverageOfficerStat(world, defender, officer => officer.Leadership, item => item.LeadershipBonus, OfficerProgressionStat.Leadership, defendingOfficerIds);
+        var defenderCombat = GetAverageOfficerStat(world, defender, officer => officer.Combat, item => item.CombatBonus, OfficerProgressionStat.Combat, defendingOfficerIds);
+        var effectiveAttackAllocation = GetDeploymentAllocation(attackingAllocation, attackOfficerDeployments);
+        var effectiveDefenseAllocation = GetEffectiveDefenseAllocation(defender, defendingAllocation, defenderOfficerDeployments);
 
         var attackStat = attackerStrength * 0.3f + attackerLeadership * 0.4f + attackerCombat * 0.3f;
         var deploymentModifier = GetAttackDeploymentModifier(effectiveAttackAllocation);
         var siegePressure = GetSiegePressureModifier(effectiveAttackAllocation);
-        var troopCounterAttackModifier = GetAttackCounterModifier(effectiveAttackAllocation, defender);
-        var troopCounterDefenseModifier = GetDefenseCounterModifier(effectiveAttackAllocation, defender);
+        var troopCounterAttackModifier = GetAttackCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
+        var troopCounterDefenseModifier = GetDefenseCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
         var attackMultiplier = 1.0f + attackStat / 220.0f + deploymentModifier + troopCounterAttackModifier;
-        var defenseMultiplier = 1.0f + (defender.Defense * 0.006f) + (defenderLeadership / 260.0f) + (defenderCombat / 550.0f) + GetDefenderTroopModifier(defender) + troopCounterDefenseModifier - siegePressure;
+        var defenseMultiplier = 1.0f + (defender.Defense * 0.006f) + (defenderLeadership / 260.0f) + (defenderCombat / 550.0f) + GetDefenderTroopModifier(effectiveDefenseAllocation) + troopCounterDefenseModifier - siegePressure;
         if (defenseMultiplier < 0.75f)
         {
             defenseMultiplier = 0.75f;
@@ -58,13 +62,13 @@ public class CombatResolver
         };
     }
 
-    private static TroopAllocationData GetAttackAllocation(
-        TroopAllocationData? attackingAllocation,
+    private static TroopAllocationData GetDeploymentAllocation(
+        TroopAllocationData? allocationOverride,
         List<AttackOfficerDeploymentData>? deployments)
     {
-        if (attackingAllocation != null && attackingAllocation.Total > 0)
+        if (allocationOverride != null && allocationOverride.Total > 0)
         {
-            return attackingAllocation;
+            return allocationOverride;
         }
 
         var allocation = new TroopAllocationData();
@@ -99,6 +103,28 @@ public class CombatResolver
         }
 
         return allocation;
+    }
+
+    private static TroopAllocationData GetEffectiveDefenseAllocation(
+        CityData defender,
+        TroopAllocationData? defendingAllocation,
+        List<AttackOfficerDeploymentData>? defenderDeployments)
+    {
+        var allocation = GetDeploymentAllocation(defendingAllocation, defenderDeployments);
+        if (allocation.Total > 0)
+        {
+            return allocation;
+        }
+
+        return new TroopAllocationData
+        {
+            Infantry = defender.InfantryTroops,
+            Spearman = defender.SpearmanTroops,
+            Cavalry = defender.CavalryTroops,
+            Archer = defender.ArcherTroops,
+            Crossbow = defender.CrossbowTroops,
+            Siege = defender.SiegeTroops
+        };
     }
 
     private static int GetAverageOfficerStat(
@@ -188,63 +214,51 @@ public class CombatResolver
         return Math.Min(0.12f, siegeTroops / (float)totalTroops * 0.20f);
     }
 
-    private static float GetAttackCounterModifier(TroopAllocationData attackerAllocation, CityData defender)
+    private static float GetAttackCounterModifier(TroopAllocationData attackerAllocation, TroopAllocationData defenderAllocation)
     {
         return
-            GetCounterPressure(attackerAllocation, defender, TroopType.Infantry, TroopType.Archer, LightCounterBonus) +
-            GetCounterPressure(attackerAllocation, defender, TroopType.Spearman, TroopType.Cavalry, StrongCounterBonus) +
-            GetCounterPressure(attackerAllocation, defender, TroopType.Cavalry, TroopType.Archer, StrongCounterBonus) +
-            GetCounterPressure(attackerAllocation, defender, TroopType.Archer, TroopType.Spearman, LightCounterBonus) +
-            GetCounterPressure(attackerAllocation, defender, TroopType.Crossbow, TroopType.Cavalry, StrongCounterBonus);
+            GetCounterPressure(attackerAllocation, defenderAllocation, TroopType.Infantry, TroopType.Archer, LightCounterBonus) +
+            GetCounterPressure(attackerAllocation, defenderAllocation, TroopType.Spearman, TroopType.Cavalry, StrongCounterBonus) +
+            GetCounterPressure(attackerAllocation, defenderAllocation, TroopType.Cavalry, TroopType.Archer, StrongCounterBonus) +
+            GetCounterPressure(attackerAllocation, defenderAllocation, TroopType.Archer, TroopType.Spearman, LightCounterBonus) +
+            GetCounterPressure(attackerAllocation, defenderAllocation, TroopType.Crossbow, TroopType.Cavalry, StrongCounterBonus);
     }
 
-    private static float GetDefenseCounterModifier(TroopAllocationData attackerAllocation, CityData defender)
+    private static float GetDefenseCounterModifier(TroopAllocationData attackerAllocation, TroopAllocationData defenderAllocation)
     {
         return
-            GetCounterPressure(defender, attackerAllocation, TroopType.Infantry, TroopType.Archer, LightCounterBonus) +
-            GetCounterPressure(defender, attackerAllocation, TroopType.Spearman, TroopType.Cavalry, StrongCounterBonus) +
-            GetCounterPressure(defender, attackerAllocation, TroopType.Cavalry, TroopType.Archer, StrongCounterBonus) +
-            GetCounterPressure(defender, attackerAllocation, TroopType.Archer, TroopType.Spearman, LightCounterBonus) +
-            GetCounterPressure(defender, attackerAllocation, TroopType.Crossbow, TroopType.Cavalry, StrongCounterBonus);
+            GetCounterPressure(defenderAllocation, attackerAllocation, TroopType.Infantry, TroopType.Archer, LightCounterBonus) +
+            GetCounterPressure(defenderAllocation, attackerAllocation, TroopType.Spearman, TroopType.Cavalry, StrongCounterBonus) +
+            GetCounterPressure(defenderAllocation, attackerAllocation, TroopType.Cavalry, TroopType.Archer, StrongCounterBonus) +
+            GetCounterPressure(defenderAllocation, attackerAllocation, TroopType.Archer, TroopType.Spearman, LightCounterBonus) +
+            GetCounterPressure(defenderAllocation, attackerAllocation, TroopType.Crossbow, TroopType.Cavalry, StrongCounterBonus);
     }
 
     private static float GetCounterPressure(
         TroopAllocationData attackerAllocation,
-        CityData defender,
-        TroopType attackerType,
-        TroopType counteredType,
-        float bonus)
-    {
-        var attackerShare = GetTroopShare(attackerAllocation, attackerType);
-        var defenderShare = GetTroopShare(defender, counteredType);
-        return attackerShare * defenderShare * bonus;
-    }
-
-    private static float GetCounterPressure(
-        CityData attacker,
         TroopAllocationData defenderAllocation,
-        TroopType attackerType,
+        TroopType activeType,
         TroopType counteredType,
         float bonus)
     {
-        var attackerShare = GetTroopShare(attacker, attackerType);
+        var attackerShare = GetTroopShare(attackerAllocation, activeType);
         var defenderShare = GetTroopShare(defenderAllocation, counteredType);
         return attackerShare * defenderShare * bonus;
     }
 
-    private static float GetDefenderTroopModifier(CityData defender)
+    private static float GetDefenderTroopModifier(TroopAllocationData defenderAllocation)
     {
-        var totalTroops = defender.Troops;
+        var totalTroops = defenderAllocation.Total;
         if (totalTroops <= 0)
         {
             return 0.0f;
         }
 
         return
-            (defender.SpearmanTroops * 0.03f +
-             defender.ArcherTroops * 0.02f +
-             defender.CrossbowTroops * 0.05f +
-             defender.SiegeTroops * 0.04f) / totalTroops;
+            (defenderAllocation.Spearman * 0.03f +
+             defenderAllocation.Archer * 0.02f +
+             defenderAllocation.Crossbow * 0.05f +
+             defenderAllocation.Siege * 0.04f) / totalTroops;
     }
 
     private static float GetTroopShare(TroopAllocationData allocation, TroopType troopType)
@@ -255,16 +269,6 @@ public class CombatResolver
         }
 
         return GetTroopCount(allocation, troopType) / (float)allocation.Total;
-    }
-
-    private static float GetTroopShare(CityData city, TroopType troopType)
-    {
-        if (city.Troops <= 0)
-        {
-            return 0.0f;
-        }
-
-        return city.GetTroops(troopType) / (float)city.Troops;
     }
 
     private static int GetTroopCount(TroopAllocationData allocation, TroopType troopType)

@@ -104,6 +104,7 @@ public class PendingCommandData
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
+    public List<AttackOfficerDeploymentData> DefenderOfficerDeployments { get; set; } = new();
     public int TargetFactionId { get; set; }
     public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();

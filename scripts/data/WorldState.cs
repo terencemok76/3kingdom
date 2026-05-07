@@ -5,6 +5,13 @@ namespace ThreeKingdom.Data;
 
 public class WorldState
 {
+    public class CityIntelData
+    {
+        public int ViewerFactionId { get; set; }
+        public int TargetCityId { get; set; }
+        public int RemainingMonths { get; set; }
+    }
+
     public string StoryId { get; set; } = string.Empty;
     public string StoryNameEn { get; set; } = string.Empty;
     public string StoryNameZhHant { get; set; } = string.Empty;
@@ -20,6 +27,8 @@ public class WorldState
     public List<FactionStartData> FactionStarts { get; set; } = new();
     public List<PendingCommandData> PendingCommands { get; set; } = new();
     public List<InternalAffairsScheduleData> InternalAffairsSchedules { get; set; } = new();
+    public List<CityIntelData> CityIntelRecords { get; set; } = new();
+    public bool ViewAllInformationEnabled { get; set; }
 
     public CityData? GetCity(int cityId)
     {
@@ -48,5 +57,59 @@ public class WorldState
         return DiplomacyRelations.FirstOrDefault(relation =>
             relation.FactionAId == low &&
             relation.FactionBId == high);
+    }
+
+    public CityIntelData? GetCityIntel(int viewerFactionId, int cityId)
+    {
+        return CityIntelRecords.FirstOrDefault(record =>
+            record.ViewerFactionId == viewerFactionId &&
+            record.TargetCityId == cityId &&
+            record.RemainingMonths > 0);
+    }
+
+    public bool HasActiveCityIntel(int viewerFactionId, int cityId)
+    {
+        return GetCityIntel(viewerFactionId, cityId) != null;
+    }
+
+    public bool CanFactionViewCity(int viewerFactionId, int cityId)
+    {
+        if (viewerFactionId <= 0 || cityId <= 0)
+        {
+            return false;
+        }
+
+        var city = GetCity(cityId);
+        if (city == null)
+        {
+            return false;
+        }
+
+        return city.OwnerFactionId == viewerFactionId ||
+               HasActiveCityIntel(viewerFactionId, cityId);
+    }
+
+    public void UpsertCityIntel(int viewerFactionId, int cityId, int durationMonths)
+    {
+        if (viewerFactionId <= 0 || cityId <= 0 || durationMonths <= 0)
+        {
+            return;
+        }
+
+        var existing = GetCityIntel(viewerFactionId, cityId);
+        if (existing != null)
+        {
+            existing.RemainingMonths = existing.RemainingMonths < durationMonths
+                ? durationMonths
+                : existing.RemainingMonths;
+            return;
+        }
+
+        CityIntelRecords.Add(new CityIntelData
+        {
+            ViewerFactionId = viewerFactionId,
+            TargetCityId = cityId,
+            RemainingMonths = durationMonths
+        });
     }
 }

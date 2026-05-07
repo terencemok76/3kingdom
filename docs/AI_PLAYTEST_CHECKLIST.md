@@ -1,173 +1,406 @@
-# AI Playtest Checklist
+# AI 實機測試清單
 
-## 1. Purpose
-- Verify current Phase 1 AI behavior works end-to-end across multiple months.
-- Focus on AI command validity, month-end resolution, economy flow, and stability.
+## 1. 目的
 
-## 2. Current AI Rules Under Test
-- If adjacent enemy city is weaker and current city has `target.Troops + 300` or more, AI schedules `Attack`.
-- If no attack is chosen and adjacent friendly city is much weaker, AI schedules `Move`.
-- AI may also perform these core actions in the same month:
-- `Recruit` if troops are low enough and resources allow it
-- `Develop` if gold allows it
-- `Search` if not already used this month
-- AI can do a military/logistics order plus core city actions in the same month.
+- 驗證目前 AI 基線行為能否跨多個回合穩定執行。
+- 重點覆蓋：AI 指令合法性、月末結算、外交與諜報、戰爭迷霧、玩家防守彈窗、日誌表現與狀態一致性。
+- 本清單用於「目前版本可玩性與穩定性驗證」，不是 AI 智能程度或數值平衡評估。
 
-## 3. Test Setup
-- Start from a fresh game state.
-- Use default scenario setup unless a specific edge case needs a custom setup.
-- Keep log panel visible during all tests.
-- Record results with:
-- `Test`
-- `Expected`
-- `Actual`
-- `PASS/FAIL`
-- `Notes`
+## 2. 目前測試範圍
 
-## 4. Core AI Tests
+### 2.1 已實作且應重點驗證
 
-### 4.1 Basic Turn Execution
-- End player turn once.
-- Confirm each AI city produces one combined AI log entry.
-- Expected:
-- No freeze
-- No empty/null command output
-- No runtime error
+- AI 基礎城市行為：
+  - `Recruit`
+  - `Develop / Internal Affairs`
+  - `Search`
+  - `Move`
+  - `Attack`
+- AI 外交基線：
+  - `Alliance`
+  - `Truce`
+  - `Gift`
+- AI 諜報基線：
+  - `Reconnaissance`
+  - `Sabotage`
+  - `Incite`
+- 戰爭迷霧 / 情報可見性：
+  - 未偵察的敵方城市 / 武將 / 物品資訊遮罩為 `??`
+  - 偵察成功後取得暫時城市情報
+  - 城市情報會按月遞減並過期
+- God Mode：
+  - 只影響玩家 / Debug UI 的顯示
+  - 不影響 AI 決策作弊
+- 玩家被攻擊防守彈窗：
+  - AI 月末攻擊玩家城市時觸發
+  - 玩家可配置守軍武將與兵種兵力
+  - 配置結果會進入戰鬥結算
+- 日誌顏色：
+  - 玩家相關結果應盡量顯示為藍色
 
-### 4.2 AI Attack Scheduling
-- Find an AI city adjacent to a weaker enemy city.
-- End turn.
-- Expected:
-- AI schedules `Attack`
-- Source city troops reduce immediately when attack is assigned
-- Selected officers become unavailable for other pending `Move/Attack`
+### 2.2 目前尚未納入本輪通過標準
 
-### 4.3 AI Move Scheduling
-- Find an AI city with much higher troops than a connected friendly city.
-- End turn.
-- Expected:
-- AI schedules `Move`
-- Order appears to resolve only at month end
-- Source and target city values update correctly after resolution
+- 進階外交動作：
+  - `Demand`
+  - `Break Pact`
+  - `Marriage`
+  - `Pressure`
+- 進階諜報動作：
+  - `Assassination`
+  - 多月潛伏 / 滲透
+  - 更複雜的抓捕 / 處決 / 歸還分支
+- 更深層的情報成長與長期偵察系統
 
-### 4.4 AI Recruit
-- Use a state where AI city has:
-- troops below threshold
-- enough gold
-- enough food
-- End turn.
-- Expected:
-- AI schedules `Recruit`
-- gold/food reduce immediately
-- troops increase only at month end
+## 3. 測試記錄格式
 
-### 4.5 AI Develop
-- Use a state where AI city has enough gold.
-- End turn.
-- Expected:
-- AI schedules `Develop`
-- gold reduces immediately
-- farm/commercial/defense/loyalty effects apply at month end
+- 每條測試記錄建議寫：
+  - `測試項`
+  - `前置條件`
+  - `操作步驟`
+  - `預期結果`
+  - `實際結果`
+  - `PASS / FAIL`
+  - `備註`
 
-### 4.6 AI Search
-- End turn with an AI city that has not searched this month.
-- Expected:
-- AI can run `Search`
-- result is immediate
-- same AI city does not search twice in same month
+## 4. 建議測試環境
 
-## 5. Month-End Resolution Tests
+- 使用新開局進行基線測試。
+- 若需驗證邊界情況，可使用更接近目標狀態的存檔。
+- 測試期間保持：
+  - HUD 可見
+  - Log 面板可見
+  - `View` 相關分頁可隨時開啟
+- 若要驗證戰爭迷霧，先確認未開啟 God Mode。
 
-### 5.1 AI Attack Success
-- Create or observe a case where AI attack should win.
-- End turn.
-- Expected:
-- target city ownership changes
-- attack officers stay in captured city
-- carried gold/food enter captured city
-- source city has already paid troops/gold/food at assignment time
+## 5. 核心 AI 回合測試
 
-### 5.2 AI Attack Failure
-- Create or observe a case where AI attack should fail.
-- End turn.
-- Expected:
-- target city remains with defender
-- deployed officers return to source city
-- surviving troops return to source city
-- only partial gold/food refund occurs
+### 5.1 單月正常執行
 
-### 5.3 AI Move Resolution
-- End turn after AI has scheduled a move.
-- Expected:
-- move resolves after `Develop/Recruit`
-- before `Attack`
-- troops/gold/food/officers arrive at target city correctly
+- 操作：
+  - 玩家不額外下達複雜指令，直接結束回合一次。
+- 預期：
+  - 每個 AI 城市都能完成合法決策
+  - 無卡死
+  - 無空白 / null 日誌
+  - 無執行期錯誤
+  - 月末能順利推進到下一月
 
-## 6. Economy Tests
+### 5.2 多月連續推進
 
-### 6.1 April Gold
-- Advance until entering `April`.
-- Expected:
-- annual gold settlement is applied
-- AI cities receive gold correctly
-- log remains valid
+- 操作：
+  - 連續結束回合 6 到 12 個月。
+- 預期：
+  - 無 crash
+  - 無城市所有權異常
+  - 無武將參照遺失
+  - 無資源異常暴量或明顯負值失控
+  - 已滅亡勢力不會繼續行動
+  - 勝敗判定仍能正常觸發
 
-### 6.2 August Food
-- Advance until entering `August`.
-- Expected:
-- annual food settlement is applied
-- AI cities receive food correctly
-- log remains valid
+## 6. AI 城市行動測試
 
-### 6.3 Upkeep and Desertion
-- Observe an AI city with low food over multiple months.
-- Expected:
-- monthly upkeep reduces food
-- if food is insufficient, troop desertion occurs
-- loyalty penalty applies
+### 6.1 Recruit
 
-## 7. Validity / Constraint Tests
+- 前置：
+  - AI 城市兵力偏低，且 Gold / Food 足夠。
+- 預期：
+  - AI 會下達 `Recruit`
+  - 指派時即時扣除對應資源
+  - 兵力在正確階段結算
+  - 同月不出現重複占用同一武將的非法指令
 
-### 7.1 Officer Locking
-- After AI schedules `Move` or `Attack`, inspect same city next month if possible.
-- Expected:
-- assigned officers are not double-booked into another pending military order
+### 6.2 Develop / Internal Affairs
 
-### 7.2 Connected-City Constraint
-- Observe AI decisions near disconnected or invalid targets.
-- Expected:
-- AI does not create invalid `Move`/`Attack` orders to non-connected cities
+- 前置：
+  - AI 城市資源足夠，且有可用武將。
+- 預期：
+  - AI 能安排內政類行動
+  - 月末正確提升對應數值
+  - 已被內政占用的武將狀態正確
+  - 日誌可讀且無重複錯亂
 
-### 7.3 Same-Faction Attack Block
-- Observe AI around friendly borders.
-- Expected:
-- AI never attacks same-faction city
+### 6.3 Search
 
-## 8. Stability Tests
+- 前置：
+  - AI 城市本月尚未搜尋。
+- 預期：
+  - AI 可執行 `Search`
+  - 結果即時生效
+  - 同城同月不會重複搜尋
+  - 若搜得物品 / 武將，狀態寫入正確
 
-### 8.1 Multi-Month Soak
-- Run 6 to 12 months by repeatedly ending player turn.
-- Expected:
-- no crash
-- no invalid city ownership state
-- no missing officer references
-- no negative resource explosion outside intended rules
+### 6.4 Move
 
-### 8.2 Faction Elimination
-- Let one AI faction lose all cities.
-- Expected:
-- elimination log appears
-- eliminated faction stops acting on later turns
+- 前置：
+  - AI 有相鄰友方城市，且兵力或資源分布不均。
+- 預期：
+  - AI 只會對連通且同勢力城市執行 `Move`
+  - 月末結算後兵力 / 資源 / 武將正確轉移
+  - 已派遣武將不會被重複分配給其他軍事指令
 
-### 8.3 Victory / Defeat Integrity
-- Continue until strong domination state.
-- Expected:
-- win/lose conditions still trigger correctly after repeated AI turns
+### 6.5 Attack
 
-## 9. Known Current Scope
-- This checklist tests current heuristic AI, not advanced strategy quality.
-- A PASS means:
-- AI acts legally
-- AI resolves commands correctly
-- AI does not corrupt state
-- It does not mean AI is smart or balanced.
+- 前置：
+  - AI 城市鄰接敵方城市且具備足夠軍力。
+- 預期：
+  - AI 只攻擊合法敵方目標
+  - 指派後源城市即時扣除出征兵力 / 資源
+  - 月末戰鬥後結果正確寫回
+  - 攻勝時城市歸屬、駐守武將、資源轉移合理
+  - 攻敗時倖存兵力 / 武將回流合理
+
+## 7. 外交基線測試
+
+### 7.1 Alliance / Truce / Gift 指派與結算
+
+- 前置：
+  - 至少存在可互動的其他勢力，且 AI 有可用武將。
+- 預期：
+  - AI 可合法使用 `Alliance / Truce / Gift`
+  - 指派武將狀態正確鎖定
+  - 月末完成外交結算
+  - `View -> Diplomacy Relations` 能看到更新後的關係資料
+
+### 7.2 外交關係顯示
+
+- 操作：
+  - 在多回合後查看外交關係表。
+- 預期：
+  - 表頭可見
+  - 選中列高亮清楚
+  - 標題左對齊
+  - 狀態、剩餘月數、關係分數顯示合理
+
+### 7.3 諜報曝光對外交影響
+
+- 前置：
+  - 發生 AI 或玩家諜報曝光事件。
+- 預期：
+  - 對應勢力外交關係會下降
+  - 結果能在外交關係分頁中反映
+  - 日誌內容與數值變化一致
+
+## 8. 諜報基線測試
+
+### 8.1 Reconnaissance
+
+- 前置：
+  - AI 鄰接敵方城市，且該城市目前情報不足。
+- 預期：
+  - AI 優先偵察隱藏或即將過期的重要目標
+  - 成功後目標城市取得暫時可見情報
+  - `View` 與城市資訊顯示會解除對應遮罩
+  - 情報剩餘月數會正確顯示
+
+### 8.2 Sabotage
+
+- 前置：
+  - 目標城市已可見，且較富或防禦較高。
+- 預期：
+  - AI 會優先選擇較有價值的破壞目標
+  - 月末正確結算破壞效果
+  - 若曝光，相關懲罰會生效
+
+### 8.3 Incite
+
+- 前置：
+  - 目標城市存在高忠誠武將或適合煽動對象。
+- 預期：
+  - AI 可下達 `Incite`
+  - 月末產生忠誠變化或相應結果
+  - 曝光時會附帶忠誠 / 外交懲罰
+
+### 8.4 諜報經驗
+
+- 操作：
+  - 連續觀察數次 AI 或玩家諜報結算。
+- 預期：
+  - 參與諜報的武將會獲得 `SpyExperience`
+  - 對應 rank / title 資料持續累積
+  - UI 顯示與實際資料一致
+
+### 8.5 君主 / 太守可執行諜報
+
+- 操作：
+  - 開啟諜報對話框並查看可選武將。
+- 預期：
+  - 君主 / 太守會出現在可選名單中
+  - AI 或玩家都可合法指派
+  - 不會因身分特殊而造成異常狀態
+
+## 9. 戰爭迷霧 / 情報測試
+
+### 9.1 預設遮罩
+
+- 前置：
+  - God Mode 關閉。
+- 預期：
+  - 未取得情報的敵方城市 / 武將 / 物品資料顯示為 `??`
+  - 遮罩行為同時出現在 HUD、View、相關列表與詳情區
+
+### 9.2 情報生效與到期
+
+- 操作：
+  - 對目標城市執行偵察並連續推進數月。
+- 預期：
+  - 成功後城市情報生效
+  - 左側城市資訊與 `View -> Cities` 能顯示剩餘月數
+  - 到期後重新恢復遮罩
+
+### 9.3 AI 遵守可見性
+
+- 操作：
+  - 觀察 AI 在敵方情報不足時的出兵行為。
+- 預期：
+  - AI 不會把未知資訊當成完全公開來決策
+  - AI 會先嘗試偵察，再決定是否攻擊較合理
+
+## 10. God Mode 測試
+
+### 10.1 玩家 UI 生效
+
+- 操作：
+  - 在 HUD 切換 God Mode 開 / 關。
+- 預期：
+  - 開啟後，玩家 / Debug UI 能查看完整資訊
+  - 關閉後恢復戰爭迷霧遮罩
+  - 不影響基礎資料本身
+
+### 10.2 AI 不受 God Mode 影響
+
+- 操作：
+  - 開啟 God Mode 後連續觀察 AI 數個月。
+- 預期：
+  - AI 行為與可見性規則仍保持一致
+  - 不會因玩家開啟 God Mode 而獲得額外情報作弊
+
+## 11. 玩家被攻擊防守彈窗測試
+
+### 11.1 觸發條件
+
+- 前置：
+  - AI 在月末攻擊玩家城市。
+- 預期：
+  - 防守彈窗會出現
+  - 只在玩家城市被攻擊時觸發
+  - 不會重複彈出或漏彈
+
+### 11.2 防守配置
+
+- 操作：
+  - 在彈窗中選擇防守武將、兵種與兵力。
+- 預期：
+  - 可選名單正確
+  - 兵種與兵力輸入合法
+  - 確認後配置被寫入戰鬥資料
+
+### 11.3 戰鬥結算接線
+
+- 操作：
+  - 完成防守配置並繼續月末戰鬥。
+- 預期：
+  - 戰鬥使用玩家選定的防守部署
+  - 結算結果與配置方向一致
+  - 攻防雙方日誌完整
+  - 無因 dual mode 對話框重用造成的錯位或舊資料殘留
+
+## 12. View / UI 視覺化測試
+
+### 12.1 View 分頁完整性
+
+- 操作：
+  - 開啟 `View` 對話框。
+- 預期：
+  - 可查看：
+	- 城市 / 武將
+	- 勢力武將
+	- 勢力物品
+	- 城市
+	- 外交關係
+  - 各分頁切換穩定，無空白異常
+
+### 12.2 城市情報剩餘月數顯示
+
+- 預期：
+  - 左側選中城市資訊可見剩餘情報月數
+  - `View -> Cities` 相關欄位也能看見對應文字
+
+### 12.3 外交與諜報對話框名單
+
+- 預期：
+  - 君主也會出現在外交 / 諜報名單中
+  - 無重複列
+  - 無錯列或空白列
+
+## 13. 日誌與顏色測試
+
+### 13.1 玩家相關日誌應為藍色
+
+- 建議逐項確認：
+  - 玩家下達指令結果
+  - 玩家結束回合
+  - 玩家相關攻防結果
+  - 玩家城市收入 / 災害 / 月份推進
+  - 玩家諜報日誌
+  - 玩家城市內政指派日誌
+  - 玩家城市外交指派日誌
+  - 玩家城市內政月進度日誌
+  - 勝利 / 失敗
+
+### 13.2 遺漏藍色覆蓋檢查
+
+- 操作：
+  - 若發現明顯屬於玩家城市的日誌仍非藍色，記錄具體文字與觸發條件。
+- 預期：
+  - 可回查 `AddLog` call site 與命令結算映射補齊
+  - 不應出現同類玩家日誌顏色不一致的情況
+
+## 14. 經濟與月度結算測試
+
+### 14.1 四月金收入
+
+- 操作：
+  - 推進到 `4 月`。
+- 預期：
+  - 年度金收入正確結算
+  - AI 城市與玩家城市都能正常套用
+  - 日誌無異常
+
+### 14.2 八月糧收入
+
+- 操作：
+  - 推進到 `8 月`。
+- 預期：
+  - 年度糧收入正確結算
+  - 城市資源變化合理
+  - 日誌無異常
+
+### 14.3 維持費與兵力流失
+
+- 前置：
+  - 觀察糧食不足城市數月。
+- 預期：
+  - 每月維持費正常扣除
+  - 缺糧時會發生兵力流失
+  - 忠誠懲罰正常生效
+
+## 15. 通過標準
+
+- 本輪測試通過代表：
+  - AI 能合法下達現階段已實作的主要指令
+  - 月末能穩定結算
+  - 外交 / 諜報 / 戰爭迷霧 / God Mode / 防守彈窗彼此接線正確
+  - UI 與日誌能正確反映狀態
+  - 多月推進不會明顯破壞存檔狀態
+
+- 本輪測試通過不代表：
+  - AI 已具備高階策略
+  - 外交與諜報系統已 Phase 1.5 完整收尾
+  - 數值平衡已經完成
+
+## 16. 建議下一輪補測重點
+
+- 找出仍未變藍的玩家城市相關日誌。
+- 重點回歸一次「AI 攻城 -> 防守彈窗 -> 配置守軍 -> 戰鬥結算」全鏈路。
+- 觀察 AI 是否會穩定刷新即將到期的情報。
+- 補做外交 / 諜報長時程 soak test，確認關係值、忠誠、情報到期與日誌不會漂移。

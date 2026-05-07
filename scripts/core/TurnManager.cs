@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
@@ -74,6 +75,75 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
         World.PendingCommands.Clear();
         return results;
+    }
+
+    public List<CommandResult> ResolvePendingCommandsExceptAttack(CommandResolver resolver)
+    {
+        var results = new List<CommandResult>();
+        if (World == null)
+        {
+            return results;
+        }
+
+        results.AddRange(resolver.ResolveInternalAffairsSchedules());
+        ResolvePendingCommandsOfType(resolver, CommandType.Develop, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Recruit, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Search, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.CivilRelief, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Diplomacy, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Spy, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
+        World.PendingCommands.RemoveAll(command => command.Type != CommandType.Attack);
+        return results;
+    }
+
+    public List<PendingCommandData> GetPendingCommandsOfType(CommandType commandType)
+    {
+        if (World == null)
+        {
+            return new List<PendingCommandData>();
+        }
+
+        return World.PendingCommands
+            .Where(command => command.Type == commandType)
+            .ToList();
+    }
+
+    public List<PendingCommandData> GetPendingCommandsExceptAttackInResolutionOrder()
+    {
+        if (World == null)
+        {
+            return new List<PendingCommandData>();
+        }
+
+        var orderedTypes = new[]
+        {
+            CommandType.Develop,
+            CommandType.Recruit,
+            CommandType.Search,
+            CommandType.CivilRelief,
+            CommandType.Diplomacy,
+            CommandType.Spy,
+            CommandType.Move
+        };
+
+        var results = new List<PendingCommandData>();
+        foreach (var commandType in orderedTypes)
+        {
+            results.AddRange(World.PendingCommands.Where(command => command.Type == commandType));
+        }
+
+        return results;
+    }
+
+    public void RemovePendingCommandsOfType(CommandType commandType)
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        World.PendingCommands.RemoveAll(command => command.Type == commandType);
     }
 
     public MonthlyEconomyResult ApplyMonthlyEconomy()
@@ -170,6 +240,7 @@ public class TurnManager
         }
 
         AdvanceDiplomacyRelations();
+        AdvanceCityIntel();
         FreeOfficerMovement.Advance(World);
     }
 
@@ -196,6 +267,26 @@ public class TurnManager
             relation.RemainingMonths = 0;
             relation.Status = DiplomacyStatusType.Neutral;
         }
+    }
+
+    private void AdvanceCityIntel()
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        foreach (var record in World.CityIntelRecords)
+        {
+            if (record.RemainingMonths <= 0)
+            {
+                continue;
+            }
+
+            record.RemainingMonths -= 1;
+        }
+
+        World.CityIntelRecords.RemoveAll(record => record.RemainingMonths <= 0);
     }
 
     private void ResolvePendingCommandsOfType(

@@ -87,6 +87,10 @@
 								"zhHant":  "我方城市",
 								"en":  "Self Faction Cities"
 							},
+	"ui.city_intel":  {
+						  "zhHant":  "情報",
+						  "en":  "Intel"
+					  },
 	"ui.civil":  {
 					 "zhHant":  "民事",
 					 "en":  "Civil Affairs"
@@ -119,6 +123,10 @@
 							  "zhHant":  "確認攻擊",
 							  "en":  "Confirm Attack"
 						  },
+	"ui.confirm_defense":  {
+							   "zhHant":  "確認守城",
+							   "en":  "Confirm Defense"
+						   },
 	"ui.confirm_civil":  {
 							 "zhHant":  "確認民事",
 							 "en":  "Confirm Civil Affairs"
@@ -163,6 +171,14 @@
 					   "zhHant":  "防禦",
 					   "en":  "Defense"
 				   },
+	"ui.defense_deployments":  {
+								   "zhHant":  "守軍配兵",
+								   "en":  "Defense Deployments"
+							   },
+	"ui.defense_officers":  {
+							   "zhHant":  "守城武將",
+							   "en":  "Defending Officers"
+						   },
 	"ui.develop":  {
 					   "zhHant":  "開發",
 					   "en":  "Develop"

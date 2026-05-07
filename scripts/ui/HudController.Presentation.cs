@@ -292,6 +292,11 @@ public partial class HudController : CanvasLayer
             _endTurnButton.Text = _localization.T("ui.end_turn");
         }
 
+        if (_godModeButton != null)
+        {
+            _godModeButton.Text = BuildGodModeButtonText();
+        }
+
         if (_developButton != null)
         {
             _developButton.Text = _localization.T("ui.internal_affairs");
@@ -510,6 +515,11 @@ public partial class HudController : CanvasLayer
             return string.Empty;
         }
 
+        if (!CanViewCityFullInformation(city))
+        {
+            return UnknownInfoText;
+        }
+
         if (city.OfficerIds.Count == 0)
         {
             return _localization.T("ui.none");
@@ -534,8 +544,9 @@ public partial class HudController : CanvasLayer
 
     private string BuildOfficerDetailText(OfficerData officer)
     {
-        var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
-        var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
+        var canViewOfficer = CanViewOfficerFullInformation(officer);
+        var officerName = canViewOfficer ? (_localization?.GetOfficerName(officer) ?? officer.Name) : UnknownInfoText;
+        var roleName = canViewOfficer ? (_localization?.GetOfficerRole(officer) ?? officer.Role) : UnknownInfoText;
         var generalTitle = _localization?.GetProgressionTitle(officer.GeneralTitle) ?? officer.GeneralTitle;
         var strategistTitle = _localization?.GetProgressionTitle(officer.StrategistTitle) ?? officer.StrategistTitle;
         var spyTitle = _localization?.GetProgressionTitle(officer.SpyTitle) ?? officer.SpyTitle;
@@ -550,61 +561,61 @@ public partial class HudController : CanvasLayer
         var officerAge = CalculateOfficerAge(officer, currentYear);
         var itemSummary = BuildOfficerItemSummary(officer);
         var statusValue = _turnManager?.World != null && _localization != null
-            ? _localization.GetOfficerStatus(_turnManager.World, officer)
-            : "Idle";
+            ? BuildMaskedOfficerStatus(_turnManager.World, officer)
+            : UnknownInfoText;
         var entries = new List<(string Label, string Value)>
         {
             (_localization?.T("ui.role") ?? "Role", roleName),
             (_localization?.T("ui.status") ?? "Status", statusValue),
-            (_localization?.T("ui.age") ?? "Age", officerAge.ToString()),
-            (_localization?.T("ui.loyalty_short") ?? "LOY", officer.Loyalty.ToString()),
-            (_localization?.T("ui.strength") ?? "STR", officer.Strength.ToString()),
-            (_localization?.T("ui.intelligence") ?? "INT", officer.Intelligence.ToString()),
-            (_localization?.T("ui.charm") ?? "CHA", officer.Charm.ToString()),
-            (_localization?.T("ui.leadership") ?? "LEA", officer.Leadership.ToString()),
-            (_localization?.T("ui.politics") ?? "POL", officer.Politics.ToString()),
-            (_localization?.T("ui.combat") ?? "COM", officer.Combat.ToString())
+            (_localization?.T("ui.age") ?? "Age", MaskedNumberText(canViewOfficer, officerAge)),
+            (_localization?.T("ui.loyalty_short") ?? "LOY", MaskedNumberText(canViewOfficer, officer.Loyalty)),
+            (_localization?.T("ui.strength") ?? "STR", MaskedNumberText(canViewOfficer, officer.Strength)),
+            (_localization?.T("ui.intelligence") ?? "INT", MaskedNumberText(canViewOfficer, officer.Intelligence)),
+            (_localization?.T("ui.charm") ?? "CHA", MaskedNumberText(canViewOfficer, officer.Charm)),
+            (_localization?.T("ui.leadership") ?? "LEA", MaskedNumberText(canViewOfficer, officer.Leadership)),
+            (_localization?.T("ui.politics") ?? "POL", MaskedNumberText(canViewOfficer, officer.Politics)),
+            (_localization?.T("ui.combat") ?? "COM", MaskedNumberText(canViewOfficer, officer.Combat))
         };
 
-        if (HasBattleProgression(officer))
+        if (canViewOfficer && HasBattleProgression(officer))
         {
             entries.Add((_localization?.T("ui.military_rank") ?? "Military Rank", officer.MilitaryRank.ToString()));
             entries.Add((_localization?.T("ui.general_title") ?? "General Title", generalTitle));
         }
 
-        if (HasStrategistProgression(officer))
+        if (canViewOfficer && HasStrategistProgression(officer))
         {
             entries.Add((_localization?.T("ui.strategist_rank") ?? "Strategist Rank", officer.StrategistRank.ToString()));
             entries.Add((_localization?.T("ui.strategist_title") ?? "Strategist Title", strategistTitle));
         }
 
-        if (HasSpyProgression(officer))
+        if (canViewOfficer && HasSpyProgression(officer))
         {
             entries.Add((_localization?.T("ui.spy_rank") ?? "Spy Rank", officer.SpyRank.ToString()));
             entries.Add((_localization?.T("ui.spy_title") ?? "Spy Title", spyTitle));
         }
 
-        if (HasDiplomacyProgression(officer))
+        if (canViewOfficer && HasDiplomacyProgression(officer))
         {
             entries.Add((_localization?.T("ui.diplomacy_rank") ?? "Diplomacy Rank", officer.DiplomacyRank.ToString()));
             entries.Add((_localization?.T("ui.diplomacy_title") ?? "Diplomacy Title", diplomacyTitle));
         }
 
-        if (HasCivilProgression(officer))
+        if (canViewOfficer && HasCivilProgression(officer))
         {
             entries.Add((_localization?.T("ui.civil_rank") ?? "Civil Rank", officer.CivilRank.ToString()));
             entries.Add((_localization?.T("ui.civil_title") ?? "Civil Title", civilTitle));
         }
 
-        entries.Add((_localization?.T("ui.ambition") ?? "AMB", officer.Ambition.ToString()));
+        entries.Add((_localization?.T("ui.ambition") ?? "AMB", MaskedNumberText(canViewOfficer, officer.Ambition)));
         var internalAffairsEntries = new List<(string Label, string Value)>
         {
-            (_localization?.T("ui.battle_experience") ?? "Battle Experience", officer.BattleExperience.ToString()),
-            (_localization?.T("ui.farm_experience") ?? "Farm Experience", FormatOfficerProgressionValue(officer.FarmExperience, officer.FarmRank, farmTitle)),
-            (_localization?.T("ui.commercial_experience") ?? "Commercial Experience", FormatOfficerProgressionValue(officer.CommercialExperience, officer.CommercialRank, commercialTitle)),
-            (_localization?.T("ui.defend_experience") ?? "Defend Experience", FormatOfficerProgressionValue(officer.DefendExperience, officer.DefendRank, defendTitle)),
-            (_localization?.T("ui.disaster_prevention_experience") ?? "Disaster Prevention Experience", FormatOfficerProgressionValue(officer.DisasterPreventionExperience, officer.DisasterPreventionRank, disasterPreventionTitle)),
-            (_localization?.T("ui.construction_experience") ?? "Construction Experience", FormatOfficerProgressionValue(officer.ConstructionExperience, officer.ConstructionRank, constructionTitle))
+            (_localization?.T("ui.battle_experience") ?? "Battle Experience", MaskedNumberText(canViewOfficer, officer.BattleExperience)),
+            (_localization?.T("ui.farm_experience") ?? "Farm Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.FarmExperience, officer.FarmRank, farmTitle) : UnknownInfoText),
+            (_localization?.T("ui.commercial_experience") ?? "Commercial Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.CommercialExperience, officer.CommercialRank, commercialTitle) : UnknownInfoText),
+            (_localization?.T("ui.defend_experience") ?? "Defend Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.DefendExperience, officer.DefendRank, defendTitle) : UnknownInfoText),
+            (_localization?.T("ui.disaster_prevention_experience") ?? "Disaster Prevention Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.DisasterPreventionExperience, officer.DisasterPreventionRank, disasterPreventionTitle) : UnknownInfoText),
+            (_localization?.T("ui.construction_experience") ?? "Construction Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.ConstructionExperience, officer.ConstructionRank, constructionTitle) : UnknownInfoText)
         };
 
         var bb = new System.Text.StringBuilder();
@@ -799,6 +810,12 @@ public partial class HudController : CanvasLayer
             return string.Empty;
         }
 
+        var canViewCity = CanViewCityFullInformation(city);
+        var intelDurationText = BuildCityIntelDurationText(city);
+        var ownerValue = string.IsNullOrWhiteSpace(intelDurationText)
+            ? ownerName
+            : $"{ownerName} | {intelDurationText}";
+
         var stats = city == null
             ? new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
             {
@@ -816,17 +833,17 @@ public partial class HudController : CanvasLayer
             }
             : new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
             {
-                (_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
-                (_localization.T("ui.gold"), city.Gold.ToString(), _localization.T("ui.food"), city.Food.ToString()),
-                (_localization.T("ui.horse"), city.Horses.ToString(), string.Empty, string.Empty),
-                (_localization.T("ui.farm"), city.Farm.ToString(), _localization.T("ui.commercial"), city.Commercial.ToString()),
-                (_localization.T("ui.defense"), city.Defense.ToString(), _localization.T("ui.disaster_prevention"), city.DisasterPrevention.ToString()),
-                (_localization.T("ui.loyalty"), city.Loyalty.ToString(), string.Empty, string.Empty),
-                (_localization.T("ui.officers"), city.OfficerIds.Count.ToString(), _localization.T("ui.free_officers"), freeOfficerCount.ToString()),
-                (_localization.T("ui.troops"), city.Troops.ToString(), string.Empty, string.Empty),
-                (_localization.T("troop_type.infantry"), city.InfantryTroops.ToString(), _localization.T("troop_type.spearman"), city.SpearmanTroops.ToString()),
-                (_localization.T("troop_type.cavalry"), city.CavalryTroops.ToString(), _localization.T("troop_type.archer"), city.ArcherTroops.ToString()),
-                (_localization.T("troop_type.crossbow"), city.CrossbowTroops.ToString(), _localization.T("troop_type.siege"), city.SiegeTroops.ToString())
+                (_localization.T("ui.faction_owner"), ownerValue, string.Empty, string.Empty),
+                (_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
+                (_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), string.Empty, string.Empty),
+                (_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
+                (_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
+                (_localization.T("ui.loyalty"), MaskedNumberText(canViewCity, city.Loyalty), string.Empty, string.Empty),
+                (_localization.T("ui.officers"), MaskedNumberText(canViewCity, city.OfficerIds.Count), _localization.T("ui.free_officers"), MaskedNumberText(canViewCity, freeOfficerCount)),
+                (_localization.T("ui.troops"), MaskedNumberText(canViewCity, city.Troops), string.Empty, string.Empty),
+                (_localization.T("troop_type.infantry"), MaskedNumberText(canViewCity, city.InfantryTroops), _localization.T("troop_type.spearman"), MaskedNumberText(canViewCity, city.SpearmanTroops)),
+                (_localization.T("troop_type.cavalry"), MaskedNumberText(canViewCity, city.CavalryTroops), _localization.T("troop_type.archer"), MaskedNumberText(canViewCity, city.ArcherTroops)),
+                (_localization.T("troop_type.crossbow"), MaskedNumberText(canViewCity, city.CrossbowTroops), _localization.T("troop_type.siege"), MaskedNumberText(canViewCity, city.SiegeTroops))
             };
 
         var bb = new System.Text.StringBuilder();
@@ -885,6 +902,11 @@ public partial class HudController : CanvasLayer
             return $"{_localization?.T("ui.officer_items") ?? "Equipped Items"}: -";
         }
 
+        if (!CanViewOfficerFullInformation(officer))
+        {
+            return _localization.Format("fmt.officer_items", _localization.T("ui.officer_items"), UnknownInfoText);
+        }
+
         var items = _turnManager.World.Items
             .Where(item => item.EquippedOfficerId == officer.Id)
             .Select(item => _localization.GetItemName(item))
@@ -899,7 +921,12 @@ public partial class HudController : CanvasLayer
         var ownerName = _turnManager?.World != null && _localization != null
             ? _localization.GetFactionName(_turnManager.World, city.OwnerFactionId)
             : city.OwnerFactionId.ToString();
-        return $"{cityName} | {_localization?.T("ui.faction_owner") ?? "Owner"} {ownerName} | {_localization?.T("ui.gold") ?? "Gold"} {city.Gold} | {_localization?.T("ui.food") ?? "Food"} {city.Food} | {_localization?.T("ui.troops") ?? "Troops"} {city.Troops} | {_localization?.T("ui.officers") ?? "Officers"} {city.OfficerIds.Count}";
+        var canViewCity = CanViewCityFullInformation(city);
+        var intelDurationText = BuildCityIntelDurationText(city);
+        var ownerText = string.IsNullOrWhiteSpace(intelDurationText)
+            ? ownerName
+            : $"{ownerName} | {intelDurationText}";
+        return $"{cityName} | {_localization?.T("ui.faction_owner") ?? "Owner"} {ownerText} | {_localization?.T("ui.gold") ?? "Gold"} {MaskedNumberText(canViewCity, city.Gold)} | {_localization?.T("ui.food") ?? "Food"} {MaskedNumberText(canViewCity, city.Food)} | {_localization?.T("ui.troops") ?? "Troops"} {MaskedNumberText(canViewCity, city.Troops)} | {_localization?.T("ui.officers") ?? "Officers"} {MaskedNumberText(canViewCity, city.OfficerIds.Count)}";
     }
 
     private string BuildOfficerStatusText(OfficerData officer)
@@ -909,7 +936,7 @@ public partial class HudController : CanvasLayer
             return "Status: Idle";
         }
 
-        return $"{_localization.T("ui.status")}: {_localization.GetOfficerStatus(_turnManager.World, officer)}";
+        return $"{_localization.T("ui.status")}: {BuildMaskedOfficerStatus(_turnManager.World, officer)}";
     }
 
     private void LoadPortraitData()

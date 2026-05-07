@@ -108,6 +108,10 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "English"
 
+[node name="GodModeButton" type="Button" parent="Root/TopBar"]
+layout_mode = 2
+text = "God Mode: Off"
+
 [node name="EndTurnButton" type="Button" parent="Root/TopBar" unique_id=580274708]
 layout_mode = 2
 text = "End Turn"

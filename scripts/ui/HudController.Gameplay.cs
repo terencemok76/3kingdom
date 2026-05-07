@@ -53,7 +53,7 @@ public partial class HudController : CanvasLayer
         };
 
         var result = _commandResolver.Execute(request);
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
 
         var refreshed = _turnManager.World.GetCity(_selectedCity.Id);
         if (refreshed != null)
@@ -77,7 +77,7 @@ public partial class HudController : CanvasLayer
         }
 
         var world = _turnManager.World;
-        AddLog(_localization.T("log.player_end_turn"));
+        AddLog(_localization.T("log.player_end_turn"), isPlayerRelated: true);
 
         foreach (var faction in world.Factions)
         {
@@ -111,88 +111,7 @@ public partial class HudController : CanvasLayer
             }
         }
 
-        if (_commandResolver != null)
-        {
-            foreach (var result in _turnManager.ResolvePendingCommands(_commandResolver))
-            {
-                AddLog(GetLocalizedResultMessage(result));
-                CheckFactionEliminations();
-            }
-        }
-
-        _turnManager.AdvanceMonth();
-        var economyMonth = world.Month;
-        var economyResult = _turnManager.ApplyMonthlyEconomy();
-        AddLog(_localization.T("log.monthly_economy"));
-        if (economyMonth == 1)
-        {
-            AddLog(_localization.T("log.player_city_horse_birth_header"));
-            foreach (var entry in economyResult.PlayerCityHorseBirths)
-            {
-                var city = world.GetCity(entry.CityId);
-                if (city == null)
-                {
-                    continue;
-                }
-
-                AddLog(_localization.Format("log.player_city_income_line", _localization.GetCityName(city), entry.Amount));
-            }
-        }
-
-        if (economyMonth == 4)
-        {
-            AddLog(_localization.T("log.player_city_gold_income_header"));
-            foreach (var entry in economyResult.PlayerCityGoldIncome)
-            {
-                var city = world.GetCity(entry.CityId);
-                if (city == null)
-                {
-                    continue;
-                }
-
-                AddLog(_localization.Format("log.player_city_income_line", _localization.GetCityName(city), entry.Amount));
-            }
-        }
-
-        if (economyMonth == 8)
-        {
-            AddLog(_localization.T("log.player_city_food_income_header"));
-            foreach (var entry in economyResult.PlayerCityFoodIncome)
-            {
-                var city = world.GetCity(entry.CityId);
-                if (city == null)
-                {
-                    continue;
-                }
-
-                AddLog(_localization.Format("log.player_city_income_line", _localization.GetCityName(city), entry.Amount));
-            }
-        }
-
-        foreach (var disaster in economyResult.PlayerCityDisasters)
-        {
-            var city = world.GetCity(disaster.CityId);
-            if (city == null)
-            {
-                continue;
-            }
-
-            AddLog(_localization.Format(
-                "log.city_disaster",
-                _localization.GetCityName(city),
-                disaster.GoldLoss,
-                disaster.FoodLoss,
-                disaster.LoyaltyLoss));
-        }
-
-        AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month));
-        RefreshMonth();
-
-        AutoSelectPlayerCityForNewRound();
-
-        RefreshSelectedCity();
-        EvaluateWinLose();
-        _mapController?.RefreshVisuals();
+        ResolveEndTurnPendingCommands();
     }
 
     private void AutoSelectPlayerCityForNewRound()
@@ -248,7 +167,7 @@ public partial class HudController : CanvasLayer
         if (playerCityCount == 0)
         {
             _gameEnded = true;
-            AddLog(_localization?.T("log.defeat_all_cities") ?? "Defeat: You have lost all cities.");
+            AddLog(_localization?.T("log.defeat_all_cities") ?? "Defeat: You have lost all cities.", isPlayerRelated: true);
             SetGameplayButtonsEnabled(false);
             return;
         }
@@ -256,7 +175,7 @@ public partial class HudController : CanvasLayer
         if (playerCityCount == world.Cities.Count)
         {
             _gameEnded = true;
-            AddLog(_localization?.T("log.victory_all_cities") ?? "Victory: You control all cities.");
+            AddLog(_localization?.T("log.victory_all_cities") ?? "Victory: You control all cities.", isPlayerRelated: true);
             SetGameplayButtonsEnabled(false);
         }
     }

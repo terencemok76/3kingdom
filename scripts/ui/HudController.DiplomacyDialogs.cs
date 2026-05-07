@@ -478,7 +478,7 @@ public partial class HudController : CanvasLayer
             DiplomacyActionType = actionType
         });
 
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         if (result.Success)
         {
             _diplomacyDialog?.Hide();

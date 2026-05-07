@@ -150,11 +150,6 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
-            if (officer.Id == _turnManager.World.GetFaction(_selectedCity.OwnerFactionId)?.RulerOfficerId)
-            {
-                continue;
-            }
-
             if (officer.LastAssignedYear == _turnManager.World.Year &&
                 officer.LastAssignedMonth == _turnManager.World.Month)
             {
@@ -405,7 +400,7 @@ public partial class HudController : CanvasLayer
             SpyActionType = GetSelectedSpyActionType()
         });
 
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         if (result.Success)
         {
             _spyDialog?.Hide();

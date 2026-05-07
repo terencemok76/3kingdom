@@ -4,6 +4,51 @@
 - 目的：快速追蹤 Phase 1.5 已完成、部分完成、尚未完成項目
 - 依據：目前 codebase、`PHASE1_DESIGN_ZH.md`、`MILESTONES.md`
 
+## 2026-05-07 Sync Update
+
+- This section overrides older checklist lines that still mark `Diplomacy` and `Spy` as fully missing.
+- `Diplomacy` is no longer `Missing`.
+- Current status: `Partial / Baseline Implemented`
+- Implemented:
+- HUD `Diplomacy` command category
+- `Alliance / Truce / Gift`
+- one-officer assignment from current city
+- month-end resolution
+- diplomacy relation state and `View -> 外交關係`
+- diplomacy progression now has gameplay-backed experience sources
+- Still missing:
+- advanced diplomacy actions such as `Demand / Break Pact / Marriage / Pressure`
+- multi-month advanced diplomacy model beyond the current baseline
+
+- `Spy` is no longer `Missing`.
+- Current status: `Partial / Baseline Implemented`
+- Implemented:
+- HUD `Spy` command category
+- `Reconnaissance / Sabotage / Incite`
+- one-officer assignment from current city
+- ruler blocked from spy assignment
+- month-end resolution
+- exposure risk
+- relation penalty and officer loyalty penalty on exposure
+- `SpyExperience` now has gameplay-backed experience sources
+- Still missing:
+- `Assassination`
+- multi-month infiltration / lurking
+- intelligence fog-of-war and reveal-duration system
+- advanced capture / execution / return-state outcomes
+
+- `View` expansion is no longer missing.
+- Implemented:
+- `View -> 勢力道具`
+- `View -> 外交關係`
+
+- Recommended next checklist focus:
+- attack / troop-type UX polish
+- intelligence fog-of-war
+- advanced diplomacy actions
+- advanced spy outcomes
+- AI Phase 1.5 follow-up
+
 ## Done
 
 ### 內政 / 多月排程

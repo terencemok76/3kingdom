@@ -413,6 +413,9 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        _attackDialogMode = AttackDialogMode.Attack;
+        _attackDialogContextCity = _selectedCity;
+        _pendingDefenseCommand = null;
         EnsureAttackDialogWidgets();
         if (_attackTargetCityOption == null)
         {
@@ -423,6 +426,7 @@ public partial class HudController : CanvasLayer
         SetAttackDialogWarning(string.Empty);
 
         _attackTargetCityOption.Clear();
+        _attackTargetCityOption.Disabled = false;
         foreach (var cityId in candidateIds)
         {
             var city = _turnManager.World.GetCity(cityId);
@@ -465,6 +469,72 @@ public partial class HudController : CanvasLayer
                 }
 
                 var officer = _turnManager.World.GetOfficer(officerId);
+                if (officer == null)
+                {
+                    continue;
+                }
+
+                var row = _attackOfficerList.CreateItem(tableRoot);
+                PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+                rowIndex += 1;
+            }
+        }
+
+        RefreshAttackDeploymentEditor();
+        _attackDialog.ResetSize();
+        _attackDialog.PopupCentered(GetAttackDialogSize());
+    }
+
+    private void ShowDefenseAttackDialog(PendingCommandData pendingCommand, CityData defendingCity, CityData attackingCity)
+    {
+        if (_attackDialog == null)
+        {
+            return;
+        }
+
+        _attackDialogMode = AttackDialogMode.Defense;
+        _attackDialogContextCity = defendingCity;
+        _pendingDefenseCommand = pendingCommand;
+        EnsureAttackDialogWidgets();
+        if (_attackTargetCityOption == null)
+        {
+            return;
+        }
+
+        UpdateAttackDialogText();
+        SetAttackDialogWarning(string.Empty);
+
+        _attackTargetCityOption.Clear();
+        var attackerLabel = _localization?.GetCityName(attackingCity) ?? attackingCity.NameEn;
+        _attackTargetCityOption.AddItem(attackerLabel);
+        _attackTargetCityOption.SetItemMetadata(0, attackingCity.Id);
+        _attackTargetCityOption.Select(0);
+        _attackTargetCityOption.Disabled = true;
+
+        ConfigureAttackTroopsSpinBox(_attackTroopsSpinBox, defendingCity.Troops);
+        ConfigureMoveSpinBox(_attackGoldSpinBox, 0, 0);
+        ConfigureMoveSpinBox(_attackFoodSpinBox, 0, 0);
+        _lastAttackDeploymentSelectionSignature = string.Empty;
+        _attackOfficerDeployments.Clear();
+        _attackDeploymentOfficerOrder.Clear();
+
+        var defendingOfficerIds = new HashSet<int>(defendingCity.OfficerIds);
+        if (_attackOfficerList != null)
+        {
+            _attackOfficerList.Clear();
+            ConfigureCompactOfficerTableColumns(_attackOfficerList, includeCheck: true);
+            _attackOfficerList.CustomMinimumSize = new Vector2(0.0f, 150.0f);
+            _attackOfficerList.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+            var tableRoot = _attackOfficerList.CreateItem();
+            var rowIndex = 0;
+            foreach (var officerId in defendingCity.OfficerIds)
+            {
+                if (!defendingOfficerIds.Contains(officerId))
+                {
+                    continue;
+                }
+
+                var officer = _turnManager?.World?.GetOfficer(officerId);
                 if (officer == null)
                 {
                     continue;
@@ -544,18 +614,29 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        _attackDialog.Title = _localization.T("ui.attack");
+        var isDefenseMode = _attackDialogMode == AttackDialogMode.Defense;
+        _attackDialog.Title = isDefenseMode
+            ? (_localization.T("ui.defense") ?? "Defense")
+            : _localization.T("ui.attack");
         if (_attackConfirmButton != null)
         {
-            _attackConfirmButton.Text = _localization.T("ui.confirm_attack");
+            _attackConfirmButton.Text = isDefenseMode
+                ? (_localization.T("ui.confirm_defense") ?? "Confirm Defense")
+                : _localization.T("ui.confirm_attack");
         }
 
-        SetAttackDialogLabelText("TargetCityLabel", _localization.T("ui.target_city"));
+        SetAttackDialogLabelText("TargetCityLabel", isDefenseMode ? _localization.T("ui.attack") : _localization.T("ui.target_city"));
         SetAttackDialogLabelText("TroopsLabel", _localization.T("ui.attack_troops"));
         SetAttackDialogLabelText("GoldLabel", _localization.T("ui.attack_gold"));
         SetAttackDialogLabelText("FoodLabel", _localization.T("ui.attack_food"));
-        SetAttackDialogLabelText("OfficerListLabel", _localization.T("ui.attack_officers"));
-        SetAttackDialogLabelText("DeploymentListLabel", _localization.T("ui.attack_deployments"));
+        SetAttackDialogLabelText("OfficerListLabel", isDefenseMode
+            ? (_localization.T("ui.defense_officers") ?? "Defending Officers")
+            : _localization.T("ui.attack_officers"));
+        SetAttackDialogLabelText("DeploymentListLabel", isDefenseMode
+            ? (_localization.T("ui.defense_deployments") ?? "Defense Deployments")
+            : _localization.T("ui.attack_deployments"));
+        SetAttackFieldRowVisible("GoldRow", !isDefenseMode);
+        SetAttackFieldRowVisible("FoodRow", !isDefenseMode);
         UpdateAttackDeploymentSummary();
     }
 
@@ -606,6 +687,16 @@ public partial class HudController : CanvasLayer
 
         _attackWarningLabel.Text = text;
         _attackWarningLabel.Visible = !string.IsNullOrWhiteSpace(text);
+    }
+
+    private void SetAttackFieldRowVisible(string rowName, bool visible)
+    {
+        var root = _attackDialog?.GetNodeOrNull<Control>("AttackDialogRoot");
+        var row = root?.FindChild(rowName, recursive: true, owned: false) as Control;
+        if (row != null)
+        {
+            row.Visible = visible;
+        }
     }
 
     private void ConnectAttackDialogSignals()
@@ -787,7 +878,8 @@ public partial class HudController : CanvasLayer
 
     private void UpdateAttackDeploymentSummary()
     {
-        if (_attackDeploymentSummaryLabel == null || _selectedCity == null || _localization == null)
+        var dialogCity = GetAttackDialogCityContext();
+        if (_attackDeploymentSummaryLabel == null || dialogCity == null || _localization == null)
         {
             return;
         }
@@ -796,12 +888,12 @@ public partial class HudController : CanvasLayer
         var allocation = BuildTroopAllocationFromAttackDeployments(activeDeployments);
         var summary = string.Join(" | ", new[]
         {
-            FormatAttackDeploymentSummaryPart(TroopType.Infantry, allocation.Infantry, _selectedCity.InfantryTroops),
-            FormatAttackDeploymentSummaryPart(TroopType.Spearman, allocation.Spearman, _selectedCity.SpearmanTroops),
-            FormatAttackDeploymentSummaryPart(TroopType.Cavalry, allocation.Cavalry, _selectedCity.CavalryTroops),
-            FormatAttackDeploymentSummaryPart(TroopType.Archer, allocation.Archer, _selectedCity.ArcherTroops),
-            FormatAttackDeploymentSummaryPart(TroopType.Crossbow, allocation.Crossbow, _selectedCity.CrossbowTroops),
-            FormatAttackDeploymentSummaryPart(TroopType.Siege, allocation.Siege, _selectedCity.SiegeTroops)
+            FormatAttackDeploymentSummaryPart(TroopType.Infantry, allocation.Infantry, dialogCity.InfantryTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Spearman, allocation.Spearman, dialogCity.SpearmanTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Cavalry, allocation.Cavalry, dialogCity.CavalryTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Archer, allocation.Archer, dialogCity.ArcherTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Crossbow, allocation.Crossbow, dialogCity.CrossbowTroops),
+            FormatAttackDeploymentSummaryPart(TroopType.Siege, allocation.Siege, dialogCity.SiegeTroops)
         });
         _attackDeploymentSummaryLabel.Text = _localization.Format("fmt.attack_deployment_summary", summary, allocation.Total);
     }
@@ -844,7 +936,8 @@ public partial class HudController : CanvasLayer
 
     private List<TroopType> GetAvailableAttackTroopTypes()
     {
-        if (_selectedCity == null)
+        var dialogCity = GetAttackDialogCityContext();
+        if (dialogCity == null)
         {
             return new List<TroopType> { TroopType.Infantry };
         }
@@ -879,7 +972,7 @@ public partial class HudController : CanvasLayer
 
     private int GetAttackTroopTypeAvailableCount(TroopType troopType)
     {
-        return _selectedCity?.GetTroops(troopType) ?? 0;
+        return GetAttackDialogCityContext()?.GetTroops(troopType) ?? 0;
     }
 
     private string GetAttackTroopTypeDisplayName(TroopType troopType)
@@ -960,6 +1053,11 @@ public partial class HudController : CanvasLayer
         }
 
         return new Vector2I(620, 720);
+    }
+
+    private CityData? GetAttackDialogCityContext()
+    {
+        return _attackDialogContextCity ?? _selectedCity;
     }
 
     private void SetMerchantDialogLabelText(string nodeName, string text)

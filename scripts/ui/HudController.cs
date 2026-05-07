@@ -36,6 +36,12 @@ public partial class HudController : CanvasLayer
         CommandSelection
     }
 
+    private enum AttackDialogMode
+    {
+        Attack,
+        Defense
+    }
+
     private enum OfficerListScope
     {
         City,
@@ -128,6 +134,7 @@ public partial class HudController : CanvasLayer
     private RichTextLabel? _cityOfficerListText;
 
     private Button? _languageButton;
+    private Button? _godModeButton;
     private Button? _endTurnButton;
     private Button? _developButton;
     private Button? _recruitButton;
@@ -249,6 +256,7 @@ public partial class HudController : CanvasLayer
     private CityData? _selectedCity;
 
     private bool _isLanguageButtonConnected;
+    private bool _isGodModeButtonConnected;
     private bool _isEndTurnButtonConnected;
     private bool _isDevelopButtonConnected;
     private bool _isRecruitButtonConnected;
@@ -283,6 +291,12 @@ public partial class HudController : CanvasLayer
     private readonly Dictionary<int, AttackOfficerDeploymentData> _attackOfficerDeployments = new();
     private readonly List<int> _attackDeploymentOfficerOrder = new();
     private string _lastAttackDeploymentSelectionSignature = string.Empty;
+    private bool _hasLogEntries;
+    private AttackDialogMode _attackDialogMode = AttackDialogMode.Attack;
+    private CityData? _attackDialogContextCity;
+    private PendingCommandData? _pendingDefenseCommand;
+    private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
+    private bool _isResolvingEndTurn;
 
     public override void _Ready()
     {
@@ -290,6 +304,7 @@ public partial class HudController : CanvasLayer
         _playerFactionLabel = GetNodeOrNull<Label>("Root/TopBar/PlayerFactionLabel");
         _storyLabel = GetNodeOrNull<Label>("Root/TopBar/StoryLabel");
         _languageButton = GetNodeOrNull<Button>("Root/TopBar/LanguageButton");
+        _godModeButton = GetNodeOrNull<Button>("Root/TopBar/GodModeButton");
         _endTurnButton = GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
 
         _cityNameLabel = GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");
@@ -432,7 +447,7 @@ public partial class HudController : CanvasLayer
         _attackDialog = new Window();
         _attackDialog.Exclusive = false;
         _attackDialog.Unresizable = true;
-        _attackDialog.CloseRequested += () => _attackDialog?.Hide();
+        _attackDialog.CloseRequested += OnAttackDialogCloseRequested;
         AddChild(_attackDialog);
         EnsureAttackDialogWidgets();
         _attackDialog.Hide();
@@ -738,14 +753,31 @@ public partial class HudController : CanvasLayer
         _monthLabel.Text = _localization.FormatYearMonth(world.Year, world.Month);
     }
 
-    public void AddLog(string message)
+    public void AddLog(string message, bool isPlayerRelated = false)
     {
-        if (_logText == null)
+        if (_logText == null || string.IsNullOrWhiteSpace(message))
         {
             return;
         }
 
-        _logText.AppendText($"\n{message}");
+        if (_hasLogEntries)
+        {
+            _logText.Newline();
+        }
+
+        if (isPlayerRelated)
+        {
+            _logText.PushColor(new Color(0.24f, 0.43f, 0.82f, 1.0f));
+        }
+
+        _logText.AddText(message);
+
+        if (isPlayerRelated)
+        {
+            _logText.Pop();
+        }
+
+        _hasLogEntries = true;
         CallDeferred(nameof(ScrollLogToBottom));
     }
 
@@ -766,6 +798,12 @@ public partial class HudController : CanvasLayer
         {
             _languageButton.Pressed += OnLanguageButtonPressed;
             _isLanguageButtonConnected = true;
+        }
+
+        if (_godModeButton != null && !_isGodModeButtonConnected)
+        {
+            _godModeButton.Pressed += OnGodModePressed;
+            _isGodModeButtonConnected = true;
         }
 
         if (_endTurnButton != null && !_isEndTurnButtonConnected)
@@ -849,6 +887,12 @@ public partial class HudController : CanvasLayer
             _isLanguageButtonConnected = false;
         }
 
+        if (_godModeButton != null && _isGodModeButtonConnected)
+        {
+            _godModeButton.Pressed -= OnGodModePressed;
+            _isGodModeButtonConnected = false;
+        }
+
         if (_endTurnButton != null && _isEndTurnButtonConnected)
         {
             _endTurnButton.Pressed -= OnEndTurnPressed;
@@ -925,6 +969,20 @@ public partial class HudController : CanvasLayer
     private void OnLanguageButtonPressed()
     {
         _localization?.ToggleLanguage();
+    }
+
+    private void OnGodModePressed()
+    {
+        if (_turnManager?.World == null)
+        {
+            return;
+        }
+
+        _turnManager.World.ViewAllInformationEnabled = !_turnManager.World.ViewAllInformationEnabled;
+        RefreshAllText();
+        AddLog(_turnManager.World.ViewAllInformationEnabled
+            ? "God Mode enabled."
+            : "God Mode disabled.");
     }
 
     private void OnDevelopPressed()
@@ -1268,7 +1326,8 @@ public partial class HudController : CanvasLayer
 
     private void OnAttackDialogConfirmed()
     {
-        if (_attackTargetCityOption == null)
+        var dialogCity = GetAttackDialogCityContext();
+        if (_attackTargetCityOption == null || dialogCity == null)
         {
             return;
         }
@@ -1299,16 +1358,29 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        if (_selectedCity != null &&
-            (attackAllocation.Infantry > _selectedCity.InfantryTroops ||
-             attackAllocation.Spearman > _selectedCity.SpearmanTroops ||
-             attackAllocation.Cavalry > _selectedCity.CavalryTroops ||
-             attackAllocation.Archer > _selectedCity.ArcherTroops ||
-             attackAllocation.Crossbow > _selectedCity.CrossbowTroops ||
-             attackAllocation.Siege > _selectedCity.SiegeTroops))
+        if (attackAllocation.Infantry > dialogCity.InfantryTroops ||
+            attackAllocation.Spearman > dialogCity.SpearmanTroops ||
+            attackAllocation.Cavalry > dialogCity.CavalryTroops ||
+            attackAllocation.Archer > dialogCity.ArcherTroops ||
+            attackAllocation.Crossbow > dialogCity.CrossbowTroops ||
+            attackAllocation.Siege > dialogCity.SiegeTroops)
         {
             SetAttackDialogWarning(_localization?.T("ui.attack_deployment_exceed_warning") ?? "Troop deployment exceeds the city's available troop types.");
             ReopenAttackDialog();
+            return;
+        }
+
+        if (_attackDialogMode == AttackDialogMode.Defense)
+        {
+            if (_pendingDefenseCommand == null)
+            {
+                return;
+            }
+
+            _pendingDefenseCommand.DefenderOfficerDeployments = attackDeployments;
+            SetAttackDialogWarning(string.Empty);
+            _attackDialog?.Hide();
+            ContinuePendingAttackResolution();
             return;
         }
 
@@ -1337,11 +1409,28 @@ public partial class HudController : CanvasLayer
         {
             SetAttackDialogWarning(string.Empty);
             _attackDialog?.Hide();
+            _attackDialogContextCity = null;
+            _pendingDefenseCommand = null;
+            _attackDialogMode = AttackDialogMode.Attack;
             return;
         }
 
         SetAttackDialogWarning(GetLocalizedResultMessage(result));
         ReopenAttackDialog();
+    }
+
+    private void OnAttackDialogCloseRequested()
+    {
+        if (_attackDialogMode == AttackDialogMode.Defense)
+        {
+            ReopenAttackDialog();
+            return;
+        }
+
+        _attackDialog?.Hide();
+        _attackDialogContextCity = null;
+        _pendingDefenseCommand = null;
+        _attackDialogMode = AttackDialogMode.Attack;
     }
 
 

@@ -15,6 +15,10 @@
                               "zhHant":  "已選擇城市：{0}",
                               "en":  "Selected city: {0}"
                           },
+    "fmt.city_intel_duration":  {
+                                    "zhHant":  "{0} {1} 月",
+                                    "en":  "{0} {1} months"
+                                },
     "fmt.civil_relief_preview":  {
                                      "zhHant":  "預覽：城市忠誠 +{0}",
                                      "en":  "Preview: City Loyalty +{0}"

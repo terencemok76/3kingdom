@@ -342,7 +342,7 @@ public partial class HudController : CanvasLayer
             selectedOfficerIds[0],
             jobType,
             months);
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         RefreshInternalAffairsScheduleList();
         _mapController?.RefreshVisuals();
@@ -363,7 +363,7 @@ public partial class HudController : CanvasLayer
         }
 
         var result = _commandResolver.TerminateInternalAffairsSchedule(_turnManager.GetPlayerFactionId(), selectedIds[0]);
-        AddLog(GetLocalizedResultMessage(result));
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         PopulateInternalAffairsDialog();
     }
