@@ -424,6 +424,7 @@ public partial class HudController : CanvasLayer
 
         UpdateAttackDialogText();
         SetAttackDialogWarning(string.Empty);
+        _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
 
         _attackTargetCityOption.Clear();
         _attackTargetCityOption.Disabled = false;
@@ -503,6 +504,7 @@ public partial class HudController : CanvasLayer
 
         UpdateAttackDialogText();
         SetAttackDialogWarning(string.Empty);
+        _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
 
         _attackTargetCityOption.Clear();
         var attackerLabel = _localization?.GetCityName(attackingCity) ?? attackingCity.NameEn;
@@ -1043,6 +1045,26 @@ public partial class HudController : CanvasLayer
         }
 
         _attackDialog.PopupCentered(size);
+    }
+
+    private bool ShouldWarnAttackBreakPact(int targetCityId)
+    {
+        if (_attackDialogMode != AttackDialogMode.Attack || _turnManager?.World == null)
+        {
+            return false;
+        }
+
+        var sourceCity = GetAttackDialogCityContext();
+        var targetCity = _turnManager.World.GetCity(targetCityId);
+        if (sourceCity == null || targetCity == null || sourceCity.OwnerFactionId == targetCity.OwnerFactionId)
+        {
+            return false;
+        }
+
+        var relation = _turnManager.World.GetDiplomacyRelation(sourceCity.OwnerFactionId, targetCity.OwnerFactionId);
+        return relation != null &&
+               relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance &&
+               relation.RemainingMonths > 0;
     }
 
     private Vector2I GetAttackDialogSize()

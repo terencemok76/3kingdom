@@ -13,6 +13,7 @@ internal static class Program
     {
         // Keep test order stable so regression diffs stay easy to compare across runs.
         RunAttackSchedulingTest();
+        RunAttackAutoBreakPactTest();
         RunDefensePromptEligibilityTest();
         RunDefenseDeploymentAffectsCombatOutcomeTest();
         RunTroopCounterCombatTest();
@@ -25,6 +26,8 @@ internal static class Program
         RunAiSpyReconPriorityTest();
         RunAiDiplomacyGiftTest();
         RunAiDiplomacyAllianceTest();
+        RunAiDiplomacyDemandTest();
+        RunAiDiplomacyBreakPactTest();
         RunDiplomacyDemandScheduleTest();
         RunDiplomacyBreakPactResolutionTest();
         RunAttackResolutionTest();
@@ -91,6 +94,42 @@ internal static class Program
 
         var pending = world.PendingCommands.Where(x => x.Type == CommandType.Move && x.SourceCityId == 2 && x.TargetCityId == 3).ToList();
         Assert(pending.Count == 1, "AI move scheduling", $"pending={pending.Count}");
+    }
+
+    private static void RunAttackAutoBreakPactTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 2400, new[] { 101 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "AllyCity", 2, 900, 900, 800, new[] { 201 }, new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(101, "Attacker", 1, strength: 84, combat: 88));
+        world.Officers.Add(TestHelpers.Officer(201, "Defender", 2, strength: 50, combat: 50));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Ally", false, 201, new[] { 201 }));
+        world.DiplomacyRelations.Add(new DiplomacyRelationData
+        {
+            FactionAId = 1,
+            FactionBId = 2,
+            Status = DiplomacyStatusType.Alliance,
+            RemainingMonths = 4,
+            RelationScore = 36
+        });
+        var services = CreateServices(world);
+
+        var schedule = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            TroopsToSend = 1200,
+            OfficerIds = new List<int> { 101 }
+        });
+        var relation = world.GetDiplomacyRelation(1, 2)!;
+        _ = services.Turn.ResolvePendingCommands(services.Resolver);
+
+        Assert(schedule.Success, "Attack auto breaks pact schedules", $"success={schedule.Success}");
+        Assert(relation.Status == DiplomacyStatusType.Neutral && relation.RemainingMonths == 0, "Attack auto breaks pact clears relation", $"status={relation.Status}, months={relation.RemainingMonths}");
+        Assert(world.GetCity(2)?.OwnerFactionId == 1, "Attack after auto break pact resolves", $"owner={world.GetCity(2)?.OwnerFactionId}");
     }
 
     private static void RunCoreActionsTest()
@@ -212,6 +251,59 @@ internal static class Program
             command.ActorFactionId == 1 &&
             command.TargetFactionId == 2);
         Assert(pending != null, "AI diplomacy alliance baseline", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunAiDiplomacyDemandTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiCity", 1, 700, 700, 2600, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "WeakTargetCity", 2, 900, 900, 800, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "AiRuler", 1, charm: 80, intelligence: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Diplomat", 1, charm: 95, intelligence: 84));
+        world.Officers.Add(TestHelpers.Officer(201, "WeakRuler", 2, charm: 65));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "WeakTarget", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(1, 1);
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Diplomacy &&
+            command.DiplomacyActionType == DiplomacyActionType.Demand &&
+            command.ActorFactionId == 1 &&
+            command.TargetFactionId == 2 &&
+            command.GoldToSend == 200);
+        Assert(pending != null, "AI diplomacy demand baseline", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunAiDiplomacyBreakPactTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiCity", 1, 450, 700, 2600, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "FormerAllyCity", 2, 900, 900, 900, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "AiRuler", 1, charm: 80, intelligence: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Diplomat", 1, charm: 94, intelligence: 84));
+        world.Officers.Add(TestHelpers.Officer(201, "FormerAllyRuler", 2, charm: 75));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "FormerAlly", false, 201, new[] { 201 }));
+        world.DiplomacyRelations.Add(new DiplomacyRelationData
+        {
+            FactionAId = 1,
+            FactionBId = 2,
+            Status = DiplomacyStatusType.Alliance,
+            RemainingMonths = 4,
+            RelationScore = 0
+        });
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(1, 1);
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Diplomacy &&
+            command.DiplomacyActionType == DiplomacyActionType.BreakPact &&
+            command.ActorFactionId == 1 &&
+            command.TargetFactionId == 2);
+        Assert(pending != null, "AI diplomacy break pact baseline", $"pending={(pending != null ? 1 : 0)}");
     }
 
     private static void RunDiplomacyDemandScheduleTest()

@@ -300,6 +300,7 @@ public partial class HudController : CanvasLayer
     private readonly Dictionary<int, AttackOfficerDeploymentData> _attackOfficerDeployments = new();
     private readonly List<int> _attackDeploymentOfficerOrder = new();
     private string _lastAttackDeploymentSelectionSignature = string.Empty;
+    private int _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
     private bool _hasLogEntries;
     private AttackDialogMode _attackDialogMode = AttackDialogMode.Attack;
     private CityData? _attackDialogContextCity;
@@ -443,7 +444,7 @@ public partial class HudController : CanvasLayer
         _diplomacyProposalDialog = new Window();
         _diplomacyProposalDialog.Exclusive = false;
         _diplomacyProposalDialog.Unresizable = true;
-        _diplomacyProposalDialog.CloseRequested += OnDiplomacyProposalRejectPressed;
+        _diplomacyProposalDialog.CloseRequested += OnDiplomacyProposalCloseRequested;
         AddChild(_diplomacyProposalDialog);
         EnsureDiplomacyProposalDialogWidgets();
         _diplomacyProposalDialog.Hide();
@@ -1422,9 +1423,19 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var targetCityId = targetMetadata.AsInt32();
+        if (ShouldWarnAttackBreakPact(targetCityId) &&
+            _attackDiplomacyWarningAcknowledgedTargetCityId != targetCityId)
+        {
+            _attackDiplomacyWarningAcknowledgedTargetCityId = targetCityId;
+            SetAttackDialogWarning(_localization?.T("ui.attack_break_pact_warning") ?? "This attack will automatically break the current alliance or truce. Confirm again to proceed.");
+            ReopenAttackDialog();
+            return;
+        }
+
         var result = ExecutePlayerCommand(
             CommandType.Attack,
-            targetCityId: targetMetadata.AsInt32(),
+            targetCityId: targetCityId,
             troopsToSend: attackTroops,
             goldToSend: _attackGoldSpinBox != null ? (int)_attackGoldSpinBox.Value : 0,
             foodToSend: _attackFoodSpinBox != null ? (int)_attackFoodSpinBox.Value : 0,
@@ -1435,6 +1446,7 @@ public partial class HudController : CanvasLayer
         {
             SetAttackDialogWarning(string.Empty);
             _attackDialog?.Hide();
+            _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
             _attackDialogContextCity = null;
             _pendingDefenseCommand = null;
             _attackDialogMode = AttackDialogMode.Attack;
@@ -1454,6 +1466,7 @@ public partial class HudController : CanvasLayer
         }
 
         _attackDialog?.Hide();
+        _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
         _attackDialogContextCity = null;
         _pendingDefenseCommand = null;
         _attackDialogMode = AttackDialogMode.Attack;

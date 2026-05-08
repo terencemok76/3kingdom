@@ -74,12 +74,15 @@ public partial class HudController
         _diplomacyProposalDialog.Title = _localization.T("ui.diplomacy_proposal");
         if (_diplomacyProposalAcceptButton != null)
         {
-            _diplomacyProposalAcceptButton.Text = _localization.T("ui.accept");
+            _diplomacyProposalAcceptButton.Text = IsDiplomacyProposalNotificationOnly()
+                ? _localization.T("ui.confirm_diplomacy")
+                : _localization.T("ui.accept");
         }
 
         if (_diplomacyProposalRejectButton != null)
         {
             _diplomacyProposalRejectButton.Text = _localization.T("ui.reject");
+            _diplomacyProposalRejectButton.Visible = !IsDiplomacyProposalNotificationOnly();
         }
 
         if (_diplomacyProposalDialog.Visible)
@@ -127,9 +130,29 @@ public partial class HudController
         var envoyName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unknown");
         var actionName = _localization.T(GetDiplomacyActionLocaleKey(pendingCommand.DiplomacyActionType));
 
-        return pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift
-            ? _localization.Format("fmt.diplomacy_proposal_gift", envoyName, sourceCityName, pendingCommand.GoldToSend)
-            : _localization.Format("fmt.diplomacy_proposal_treaty", envoyName, sourceCityName, actionName, pendingCommand.DurationMonths);
+        return pendingCommand.DiplomacyActionType switch
+        {
+            DiplomacyActionType.Gift => _localization.Format("fmt.diplomacy_proposal_gift", envoyName, sourceCityName, pendingCommand.GoldToSend),
+            DiplomacyActionType.Demand => _localization.Format("fmt.diplomacy_proposal_demand", envoyName, sourceCityName, pendingCommand.GoldToSend),
+            DiplomacyActionType.BreakPact => _localization.Format("fmt.diplomacy_proposal_break_pact_notice", envoyName, sourceCityName, actionName),
+            _ => _localization.Format("fmt.diplomacy_proposal_treaty", envoyName, sourceCityName, actionName, pendingCommand.DurationMonths)
+        };
+    }
+
+    private bool IsDiplomacyProposalNotificationOnly()
+    {
+        return _pendingDiplomacyProposalCommand?.DiplomacyActionType == DiplomacyActionType.BreakPact;
+    }
+
+    private void OnDiplomacyProposalCloseRequested()
+    {
+        if (IsDiplomacyProposalNotificationOnly())
+        {
+            OnDiplomacyProposalAcceptPressed();
+            return;
+        }
+
+        OnDiplomacyProposalRejectPressed();
     }
 
     private void OnDiplomacyProposalAcceptPressed()
@@ -200,9 +223,13 @@ public partial class HudController
         var actionKey = GetDiplomacyActionLocaleKey(pendingCommand.DiplomacyActionType);
         var actionZh = _localization.TForLanguage(GameLanguage.TraditionalChinese, actionKey);
         var actionEn = _localization.TForLanguage(GameLanguage.English, actionKey);
-        var key = pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift
-            ? "cmd.diplomacy.player_rejected_gift"
-            : "cmd.diplomacy.player_rejected_treaty";
+        var key = pendingCommand.DiplomacyActionType switch
+        {
+            DiplomacyActionType.Gift => "cmd.diplomacy.player_rejected_gift",
+            DiplomacyActionType.Demand => "cmd.diplomacy.player_rejected_demand",
+            DiplomacyActionType.BreakPact => "cmd.diplomacy.player_rejected_break_pact",
+            _ => "cmd.diplomacy.player_rejected_treaty"
+        };
 
         return new CommandResult
         {

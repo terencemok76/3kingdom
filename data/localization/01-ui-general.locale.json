@@ -19,6 +19,10 @@
 												"zhHant":  "出征配兵超過城市現有兵種數量。",
 												"en":  "Officer deployments exceed the city\u0027s available troop types."
 											},
+	"ui.attack_break_pact_warning":  {
+										 "zhHant":  "此次攻擊將自動解除目前的同盟或停戰。若要進攻，請再次確認。",
+										 "en":  "This attack will automatically break the current alliance or truce. Confirm again to proceed."
+									 },
 	"ui.attack_deployment_required_warning":  {
 												  "zhHant":  "請為每位出征武將設定兵種與兵數。",
 												  "en":  "Configure troop type and troop count for each deployed officer."

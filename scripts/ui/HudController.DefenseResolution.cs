@@ -75,7 +75,7 @@ public partial class HudController
         return pendingCommand.Type == CommandType.Diplomacy &&
                pendingCommand.ActorFactionId != _turnManager.GetPlayerFactionId() &&
                pendingCommand.TargetFactionId == _turnManager.GetPlayerFactionId() &&
-               pendingCommand.DiplomacyActionType is DiplomacyActionType.Alliance or DiplomacyActionType.Truce or DiplomacyActionType.Gift;
+               pendingCommand.DiplomacyActionType is DiplomacyActionType.Alliance or DiplomacyActionType.Truce or DiplomacyActionType.Gift or DiplomacyActionType.Demand or DiplomacyActionType.BreakPact;
     }
 
     private void ContinuePendingAttackResolution()
@@ -149,6 +149,7 @@ public partial class HudController
         _pendingNonAttackResolutionQueue.Clear();
         _pendingDefenseCommand = null;
         _pendingDiplomacyProposalCommand = null;
+        _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
         _attackDialogContextCity = null;
         _attackDialogMode = AttackDialogMode.Attack;
 

@@ -443,11 +443,6 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.attack.same_faction");
         }
 
-        if (HasActiveDiplomacyBlock(world, sourceCity.OwnerFactionId, targetCity.OwnerFactionId))
-        {
-            return LocalizedResult(false, "cmd.attack.blocked_by_diplomacy");
-        }
-
         if (!AreOfficerIdsAvailableForPendingOrder(world, request.OfficerIds))
         {
             return LocalizedResult(false, "cmd.attack.officer_already_assigned", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
@@ -496,6 +491,7 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.attack.too_many_troops", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
+        var autoBrokePact = TryBreakDiplomacyBlockForAttack(world, sourceCity.OwnerFactionId, targetCity.OwnerFactionId);
         MarkOfficersAssigned(world, selectedOfficerIds, CommandType.Attack);
         // Reserve attack resources immediately so same-month orders see the reduced stock.
         sourceCity.RemoveTroopAllocation(troopAllocation);
@@ -518,7 +514,7 @@ public partial class CommandResolver
 
         return LocalizedResult(
             true,
-            "cmd.attack.scheduled",
+            autoBrokePact ? "cmd.attack.scheduled_break_pact" : "cmd.attack.scheduled",
             new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese) },
             new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
     }
@@ -583,14 +579,6 @@ public partial class CommandResolver
         if (targetCity == null)
         {
             return LocalizedResult(false, "cmd.attack.target_not_found_resolution");
-        }
-
-        if (HasActiveDiplomacyBlock(world, sourceCity.OwnerFactionId, targetCity.OwnerFactionId))
-        {
-            sourceCity.AddTroopAllocation(pendingCommand.TroopAllocation);
-            sourceCity.Gold += pendingCommand.GoldToSend;
-            sourceCity.Food += pendingCommand.FoodToSend;
-            return LocalizedResult(false, "cmd.attack.blocked_by_diplomacy_resolution");
         }
 
         if (!IsConnected(sourceCity, targetCity.Id) || targetCity.OwnerFactionId == sourceCity.OwnerFactionId)

@@ -11,6 +11,12 @@ public class AiController
     private const int DiplomacyGiftGoldThreshold = 500;
     private const int DiplomacyGiftAmount = 200;
     private const int DiplomacyAllianceRelationThreshold = 30;
+    private const int DiplomacyDemandGoldThreshold = 300;
+    private const int DiplomacyDemandAmount = 200;
+    private const int DiplomacyDemandTroopAdvantage = 1000;
+    private const int DiplomacyDemandMaxRelationScore = 15;
+    private const int DiplomacyBreakPactTroopAdvantage = 700;
+    private const int DiplomacyBreakPactMaxRelationScore = 10;
     private const int SpySabotageDefenseThreshold = 65;
     private const int SpySabotageGoldThreshold = 260;
     private const int SpySabotageFoodThreshold = 700;
@@ -455,6 +461,79 @@ public class AiController
             return null;
         }
 
+        var breakPactTargetFactionId = world.DiplomacyRelations
+            .Where(relation =>
+                relation.RemainingMonths > 0 &&
+                relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance &&
+                relation.RelationScore <= DiplomacyBreakPactMaxRelationScore &&
+                (relation.FactionAId == factionId || relation.FactionBId == factionId))
+            .Select(relation => relation.FactionAId == factionId ? relation.FactionBId : relation.FactionAId)
+            .FirstOrDefault(targetFactionId =>
+                targetFactionId > 0 &&
+                targetFactionId != factionId &&
+                world.GetFaction(targetFactionId) != null &&
+                world.Cities.Any(targetCity => targetCity.OwnerFactionId == targetFactionId) &&
+                GetFactionTroopTotal(world, factionId) >= GetFactionTroopTotal(world, targetFactionId) + DiplomacyBreakPactTroopAdvantage);
+        if (breakPactTargetFactionId > 0)
+        {
+            var breakPactResult = _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Diplomacy,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                TargetFactionId = breakPactTargetFactionId,
+                DiplomacyActionType = DiplomacyActionType.BreakPact,
+                OfficerIds = new System.Collections.Generic.List<int> { diplomacyOfficerId }
+            });
+
+            if (breakPactResult.Success)
+            {
+                availableOfficerIds.Remove(diplomacyOfficerId);
+            }
+
+            return breakPactResult;
+        }
+
+        if (city.Gold >= DiplomacyDemandGoldThreshold)
+        {
+            var demandTargetFactionId = world.Factions
+                .Where(faction => faction.Id != factionId && world.Cities.Any(targetCity => targetCity.OwnerFactionId == faction.Id))
+                .Select(faction => new
+                {
+                    FactionId = faction.Id,
+                    Relation = world.GetDiplomacyRelation(factionId, faction.Id),
+                    Troops = GetFactionTroopTotal(world, faction.Id)
+                })
+                .Where(item =>
+                    (item.Relation == null || item.Relation.RemainingMonths <= 0) &&
+                    (item.Relation?.RelationScore ?? 0) <= DiplomacyDemandMaxRelationScore &&
+                    GetFactionTroopTotal(world, factionId) >= item.Troops + DiplomacyDemandTroopAdvantage)
+                .OrderBy(item => item.Relation?.RelationScore ?? 0)
+                .ThenBy(item => item.Troops)
+                .Select(item => item.FactionId)
+                .FirstOrDefault();
+            if (demandTargetFactionId > 0)
+            {
+                var demandResult = _commandResolver.Execute(new CommandRequest
+                {
+                    Type = CommandType.Diplomacy,
+                    ActorFactionId = factionId,
+                    SourceCityId = city.Id,
+                    TargetFactionId = demandTargetFactionId,
+                    DiplomacyActionType = DiplomacyActionType.Demand,
+                    GoldToSend = System.Math.Min(DiplomacyDemandAmount, city.Gold),
+                    OfficerIds = new System.Collections.Generic.List<int> { diplomacyOfficerId }
+                });
+
+                if (demandResult.Success)
+                {
+                    availableOfficerIds.Remove(diplomacyOfficerId);
+                }
+
+                return demandResult;
+            }
+        }
+
         var allianceTargetFactionId = world.DiplomacyRelations
             .Where(relation =>
                 relation.RelationScore >= DiplomacyAllianceRelationThreshold &&
@@ -709,5 +788,12 @@ public class AiController
         return relation != null &&
                relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance &&
                relation.RemainingMonths > 0;
+    }
+
+    private static int GetFactionTroopTotal(WorldState world, int factionId)
+    {
+        return world.Cities
+            .Where(city => city.OwnerFactionId == factionId)
+            .Sum(city => city.Troops);
     }
 }

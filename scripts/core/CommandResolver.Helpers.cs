@@ -476,6 +476,24 @@ public partial class CommandResolver
                relation.RemainingMonths > 0;
     }
 
+    private static bool TryBreakDiplomacyBlockForAttack(WorldState world, int attackerFactionId, int defenderFactionId)
+    {
+        var relation = FindDiplomacyRelation(world, attackerFactionId, defenderFactionId);
+        if (relation == null ||
+            relation.Status is not (DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance) ||
+            relation.RemainingMonths <= 0)
+        {
+            return false;
+        }
+
+        relation.Status = DiplomacyStatusType.Neutral;
+        relation.RemainingMonths = 0;
+        relation.RelationScore = Math.Clamp(relation.RelationScore - 18, -100, 100);
+        relation.LastUpdatedYear = world.Year;
+        relation.LastUpdatedMonth = world.Month;
+        return true;
+    }
+
     private static bool IsAssignableRole(string role)
     {
         return role.Equals("General", StringComparison.OrdinalIgnoreCase) ||

@@ -63,6 +63,10 @@
                                  "zhHant":  "「{0}」已排定攻擊命令，月末將進攻「{1}」。",
                                  "en":  "\"{0}\" scheduled an Attack against \"{1}\"."
                              },
+    "cmd.attack.scheduled_break_pact":  {
+                                            "zhHant":  "「{0}」已排定攻擊命令，並自動解除與「{1}」的同盟或停戰。月末將進攻該城。",
+                                            "en":  "\"{0}\" scheduled an Attack against \"{1}\" and automatically broke the active alliance or truce."
+                                        },
     "cmd.attack.success":  {
                                "zhHant":  "【{0}】「{1}」攻擊成功，已攻下【{2}】「{3}」。留守兵力 {4}，帶入金 +{5}，帶入糧 +{6}。",
                                "en":  "[{0}] \"{1}\" attack succeeded and captured [{2}] \"{3}\". Garrison troops {4}, carried gold +{5}, carried food +{6}."
