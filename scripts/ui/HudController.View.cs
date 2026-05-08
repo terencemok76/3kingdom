@@ -906,6 +906,12 @@ public partial class HudController : CanvasLayer
             ViewTableSortField.Intelligence => _viewTableSortAscending
                 ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Intelligence : int.MinValue)
                 : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Intelligence : int.MinValue),
+            ViewTableSortField.SpyExperience => _viewTableSortAscending
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.SpyExperience : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.SpyExperience : int.MinValue),
+            ViewTableSortField.DiplomacyExperience => _viewTableSortAscending
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.DiplomacyExperience : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.DiplomacyExperience : int.MinValue),
             _ => _viewTableSortAscending
                 ? officers.OrderBy(BuildMaskedOfficerName)
                 : officers.OrderByDescending(BuildMaskedOfficerName)

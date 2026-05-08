@@ -92,7 +92,7 @@ public partial class CommandResolver
             return result;
         }
 
-        OfficerProgressionRules.AwardSpyExperience(officer, 6);
+        OfficerProgressionRules.AwardSpyExperience(officer, GetSpyExperienceReward(pendingCommand.SpyActionType, success: false));
         if (exposed)
         {
             ApplySpyExposurePenalty(world, pendingCommand.ActorFactionId, officer, targetCity.OwnerFactionId, 10, 6);
@@ -138,7 +138,7 @@ public partial class CommandResolver
             {
                 // The turn advances immediately after month-end resolution, so store one extra month here.
                 world.UpsertCityIntel(actorFactionId, targetCity.Id, 4);
-                OfficerProgressionRules.AwardSpyExperience(officer, 18);
+                OfficerProgressionRules.AwardSpyExperience(officer, GetSpyExperienceReward(actionType, success: true));
                 return LocalizedResult(
                     true,
                     "cmd.spy.recon_success",
@@ -175,7 +175,7 @@ public partial class CommandResolver
                 targetCity.Gold -= goldLoss;
                 targetCity.Food -= foodLoss;
                 targetCity.Defense = Math.Max(0, targetCity.Defense - defenseLoss);
-                OfficerProgressionRules.AwardSpyExperience(officer, 22);
+                OfficerProgressionRules.AwardSpyExperience(officer, GetSpyExperienceReward(actionType, success: true));
                 return LocalizedResult(
                     true,
                     "cmd.spy.sabotage_success",
@@ -200,7 +200,7 @@ public partial class CommandResolver
             {
                 var loyaltyLoss = Math.Min(targetCity.Loyalty, 5 + _random.Next(2, 7));
                 targetCity.Loyalty = Math.Max(0, targetCity.Loyalty - loyaltyLoss);
-                OfficerProgressionRules.AwardSpyExperience(officer, 20);
+                OfficerProgressionRules.AwardSpyExperience(officer, GetSpyExperienceReward(actionType, success: true));
                 return LocalizedResult(
                     true,
                     "cmd.spy.incite_success",
@@ -280,5 +280,21 @@ public partial class CommandResolver
         relation.RelationScore = Math.Clamp(relation.RelationScore - relationPenalty, -100, 100);
         relation.LastUpdatedYear = world.Year;
         relation.LastUpdatedMonth = world.Month;
+    }
+
+    private static int GetSpyExperienceReward(SpyActionType actionType, bool success)
+    {
+        if (!success)
+        {
+            return 6;
+        }
+
+        return actionType switch
+        {
+            SpyActionType.Reconnaissance => 18,
+            SpyActionType.Sabotage => 22,
+            SpyActionType.Incite => 20,
+            _ => 18
+        };
     }
 }

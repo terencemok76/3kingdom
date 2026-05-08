@@ -150,7 +150,7 @@ public partial class CommandResolver
         {
             var gain = Math.Clamp(pendingCommand.GoldToSend / 100, 3, 25);
             relation.RelationScore = Math.Clamp(relation.RelationScore + gain, -100, 100);
-            OfficerProgressionRules.AwardDiplomacyExperience(officer, 12);
+            OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
                 true,
                 "cmd.diplomacy.gift_resolved",
@@ -175,7 +175,7 @@ public partial class CommandResolver
             relation.Status = DiplomacyStatusType.Neutral;
             relation.RemainingMonths = 0;
             relation.RelationScore = Math.Clamp(relation.RelationScore - 18, -100, 100);
-            OfficerProgressionRules.AwardDiplomacyExperience(officer, 10);
+            OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
                 true,
                 "cmd.diplomacy.break_pact_resolved",
@@ -198,7 +198,7 @@ public partial class CommandResolver
             if (!success)
             {
                 relation.RelationScore = Math.Clamp(relation.RelationScore - 8, -100, 100);
-                OfficerProgressionRules.AwardDiplomacyExperience(officer, 8);
+                OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: false));
                 return LocalizedResult(
                     false,
                     "cmd.diplomacy.failed",
@@ -243,7 +243,7 @@ public partial class CommandResolver
             tributeCity.Gold -= tributeGold;
             sourceCity.Gold += tributeGold;
             relation.RelationScore = Math.Clamp(relation.RelationScore - 14, -100, 100);
-            OfficerProgressionRules.AwardDiplomacyExperience(officer, 16);
+            OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
                 true,
                 "cmd.diplomacy.demand_resolved",
@@ -266,7 +266,7 @@ public partial class CommandResolver
         if (!treatySuccess)
         {
             relation.RelationScore = Math.Clamp(relation.RelationScore - 6, -100, 100);
-            OfficerProgressionRules.AwardDiplomacyExperience(officer, 6);
+            OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: false));
             return LocalizedResult(
                 false,
                 "cmd.diplomacy.failed",
@@ -289,7 +289,7 @@ public partial class CommandResolver
             : DiplomacyStatusType.Truce;
         relation.RemainingMonths = Math.Max(relation.RemainingMonths, pendingCommand.DurationMonths + 1);
         relation.RelationScore = Math.Clamp(relation.RelationScore + (pendingCommand.DiplomacyActionType == DiplomacyActionType.Alliance ? 25 : 15), -100, 100);
-        OfficerProgressionRules.AwardDiplomacyExperience(officer, pendingCommand.DiplomacyActionType == DiplomacyActionType.Alliance ? 24 : 18);
+        OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
 
         return LocalizedResult(
             true,
@@ -345,5 +345,29 @@ public partial class CommandResolver
         return world.Cities
             .Where(city => city.OwnerFactionId == factionId)
             .Sum(city => city.Troops);
+    }
+
+    private static int GetDiplomacyExperienceReward(DiplomacyActionType actionType, bool success)
+    {
+        if (success)
+        {
+            return actionType switch
+            {
+                DiplomacyActionType.Alliance => 24,
+                DiplomacyActionType.Truce => 18,
+                DiplomacyActionType.Gift => 12,
+                DiplomacyActionType.Demand => 16,
+                DiplomacyActionType.BreakPact => 10,
+                _ => 12
+            };
+        }
+
+        return actionType switch
+        {
+            DiplomacyActionType.Demand => 8,
+            DiplomacyActionType.Alliance => 6,
+            DiplomacyActionType.Truce => 6,
+            _ => 6
+        };
     }
 }

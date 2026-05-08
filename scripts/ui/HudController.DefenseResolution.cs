@@ -23,30 +23,59 @@ public partial class HudController
         var activeSchedules = world.InternalAffairsSchedules
             .Where(schedule => schedule.State == InternalAffairsScheduleState.Active)
             .ToList();
-        var pendingCommands = _turnManager.GetPendingCommandsExceptAttackInResolutionOrder();
-        var pendingResults = _turnManager.ResolvePendingCommandsExceptAttack(_commandResolver);
         var playerFactionId = _turnManager.GetPlayerFactionId();
-        var commandResultStartIndex = pendingResults.Count - pendingCommands.Count;
+        var pendingResults = _commandResolver.ResolveInternalAffairsSchedules();
         for (var index = 0; index < pendingResults.Count; index += 1)
         {
-            var isPlayerRelated = false;
-            if (index < activeSchedules.Count)
+            AddLog(GetLocalizedResultMessage(pendingResults[index]), index < activeSchedules.Count && IsPlayerRelatedInternalAffairsSchedule(activeSchedules[index], playerFactionId));
+            CheckFactionEliminations();
+        }
+
+        _pendingNonAttackResolutionQueue.Clear();
+        _pendingNonAttackResolutionQueue.AddRange(_turnManager.GetPendingCommandsExceptAttackInResolutionOrder());
+        ContinuePendingNonAttackResolution();
+    }
+
+    private void ContinuePendingNonAttackResolution()
+    {
+        if (!_isResolvingEndTurn || _turnManager?.World == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        while (_pendingNonAttackResolutionQueue.Count > 0)
+        {
+            var pendingCommand = _pendingNonAttackResolutionQueue[0];
+            _pendingNonAttackResolutionQueue.RemoveAt(0);
+            if (ShouldPromptForPlayerDiplomacyProposal(pendingCommand))
             {
-                isPlayerRelated = IsPlayerRelatedInternalAffairsSchedule(activeSchedules[index], playerFactionId);
-            }
-            else if (index >= commandResultStartIndex &&
-                     index - commandResultStartIndex < pendingCommands.Count)
-            {
-                isPlayerRelated = IsPlayerRelatedPendingCommand(pendingCommands[index - commandResultStartIndex], playerFactionId);
+                ShowDiplomacyProposalDialog(pendingCommand);
+                return;
             }
 
-            AddLog(GetLocalizedResultMessage(pendingResults[index]), isPlayerRelated);
+            var result = _commandResolver.ResolvePendingCommand(pendingCommand);
+            _turnManager.World.PendingCommands.Remove(pendingCommand);
+            AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
             CheckFactionEliminations();
         }
 
         _pendingAttackResolutionQueue.Clear();
         _pendingAttackResolutionQueue.AddRange(_turnManager.GetPendingCommandsOfType(CommandType.Attack));
         ContinuePendingAttackResolution();
+    }
+
+    private bool ShouldPromptForPlayerDiplomacyProposal(PendingCommandData pendingCommand)
+    {
+        if (_turnManager == null)
+        {
+            return false;
+        }
+
+        return pendingCommand.Type == CommandType.Diplomacy &&
+               pendingCommand.ActorFactionId != _turnManager.GetPlayerFactionId() &&
+               pendingCommand.TargetFactionId == _turnManager.GetPlayerFactionId() &&
+               pendingCommand.DiplomacyActionType is DiplomacyActionType.Alliance or DiplomacyActionType.Truce or DiplomacyActionType.Gift;
     }
 
     private void ContinuePendingAttackResolution()
@@ -117,7 +146,9 @@ public partial class HudController
         var world = _turnManager.World;
         _turnManager.RemovePendingCommandsOfType(CommandType.Attack);
         _isResolvingEndTurn = false;
+        _pendingNonAttackResolutionQueue.Clear();
         _pendingDefenseCommand = null;
+        _pendingDiplomacyProposalCommand = null;
         _attackDialogContextCity = null;
         _attackDialogMode = AttackDialogMode.Attack;
 

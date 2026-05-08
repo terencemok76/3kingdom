@@ -311,6 +311,22 @@
                                           "zhHant":  "「{0}」尚未願意出仕。",
                                           "en":  "\"{0}\" is not yet willing to serve."
                                       },
+    "cmd.fire_officer.officer_required":  {
+                                              "zhHant":  "請選擇要開除的武將。",
+                                              "en":  "Select an officer to dismiss."
+                                          },
+    "cmd.fire_officer.officer_unavailable":  {
+                                                 "zhHant":  "「{0}」目前不是待命狀態；只有待命、沒有任務的武將才可開除。",
+                                                 "en":  "\"{0}\" is not idle right now; only idle officers without active duties can be dismissed."
+                                             },
+    "cmd.fire_officer.resolved":  {
+                                      "zhHant":  "已將「{0}」自「{1}」開除，現為在野武將。",
+                                      "en":  "\"{0}\" was dismissed from \"{1}\" and is now a free officer."
+                                  },
+    "cmd.fire_officer.ruler_blocked":  {
+                                           "zhHant":  "不能開除本勢力君主。",
+                                           "en":  "Cannot dismiss your faction ruler."
+                                       },
     "cmd.hire_officer.not_enough_gold":  {
                                              "zhHant":  "「{0}」金不足，無法登用武將。",
                                              "en":  "\"{0}\" does not have enough gold to hire an officer."

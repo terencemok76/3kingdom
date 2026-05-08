@@ -22,6 +22,7 @@ public partial class HudController : CanvasLayer
             _diplomacyDurationSpinBox = existingRoot.GetNodeOrNull<SpinBox>("DurationRow/DurationSpinBox");
             _diplomacyGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
             _diplomacyOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerList");
+            _diplomacyRelationInfoLabel = existingRoot.GetNodeOrNull<Label>("RelationInfoLabel");
             _diplomacySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
             _diplomacyWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
             _diplomacyConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmButton");
@@ -58,7 +59,11 @@ public partial class HudController : CanvasLayer
             Name = "TargetFactionOption",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyTargetFactionOption.ItemSelected += _ => UpdateDiplomacySummary();
+        _diplomacyTargetFactionOption.ItemSelected += _ =>
+        {
+            UpdateDiplomacyRelationInfo();
+            UpdateDiplomacySummary();
+        };
         root.GetNode<HBoxContainer>("TargetFactionRow").AddChild(_diplomacyTargetFactionOption);
 
         root.AddChild(CreateDiplomacyFormRow("DurationRow", "DurationLabel"));
@@ -92,6 +97,13 @@ public partial class HudController : CanvasLayer
             UpdateDiplomacyConfirmButtonState();
         };
         root.GetNode<HBoxContainer>("GoldRow").AddChild(_diplomacyGoldSpinBox);
+
+        _diplomacyRelationInfoLabel = new Label
+        {
+            Name = "RelationInfoLabel",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        root.AddChild(_diplomacyRelationInfoLabel);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
         _diplomacyOfficerList = new Tree
@@ -208,6 +220,7 @@ public partial class HudController : CanvasLayer
         SelectFirstDiplomacyOfficerRow();
         SetDiplomacyWarning(string.Empty);
         UpdateDiplomacyDialogInputState();
+        UpdateDiplomacyRelationInfo();
         UpdateDiplomacySummary();
         UpdateDiplomacyConfirmButtonState();
     }
@@ -429,6 +442,27 @@ public partial class HudController : CanvasLayer
             DiplomacyActionType.BreakPact => _localization.Format(summaryKey, actionName, targetFactionName),
             _ => _localization.Format(summaryKey, actionName, targetFactionName, duration)
         };
+    }
+
+    private void UpdateDiplomacyRelationInfo()
+    {
+        if (_turnManager?.World == null || _localization == null || _diplomacyRelationInfoLabel == null || _selectedCity == null)
+        {
+            return;
+        }
+
+        var targetFactionId = GetSelectedDiplomacyTargetFactionId();
+        var relation = _turnManager.World.GetDiplomacyRelation(_selectedCity.OwnerFactionId, targetFactionId);
+        var status = relation?.Status ?? DiplomacyStatusType.Neutral;
+        var remainingMonths = status == DiplomacyStatusType.Neutral
+            ? "-"
+            : (relation?.RemainingMonths ?? 0).ToString();
+        var relationScore = relation?.RelationScore ?? 0;
+
+        _diplomacyRelationInfoLabel.Text =
+            $"{_localization.T("ui.relation_status")}: {GetDiplomacyStatusText(status)}\n" +
+            $"{_localization.T("ui.remaining_months")}: {remainingMonths}\n" +
+            $"{_localization.T("ui.relation_score")}: {relationScore}";
     }
 
     private void UpdateDiplomacyConfirmButtonState()

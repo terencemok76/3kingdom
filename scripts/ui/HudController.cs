@@ -91,6 +91,8 @@ public partial class HudController : CanvasLayer
         RelationStatus,
         RemainingMonths,
         RelationScore,
+        SpyExperience,
+        DiplomacyExperience,
         Gold,
         Food,
         Troops,
@@ -165,6 +167,8 @@ public partial class HudController : CanvasLayer
     private AcceptDialog? _assignRoleDialog;
     private Tree? _assignRoleOfficerList;
     private OptionButton? _assignRoleOption;
+    private AcceptDialog? _fireOfficerDialog;
+    private Tree? _fireOfficerList;
     private AcceptDialog? _requestItemDialog;
     private Tree? _requestItemOfficerList;
     private OptionButton? _requestItemOption;
@@ -213,9 +217,14 @@ public partial class HudController : CanvasLayer
     private SpinBox? _diplomacyDurationSpinBox;
     private SpinBox? _diplomacyGoldSpinBox;
     private Tree? _diplomacyOfficerList;
+    private Label? _diplomacyRelationInfoLabel;
     private Label? _diplomacySummaryLabel;
     private Label? _diplomacyWarningLabel;
     private Button? _diplomacyConfirmButton;
+    private Window? _diplomacyProposalDialog;
+    private Label? _diplomacyProposalSummaryLabel;
+    private Button? _diplomacyProposalAcceptButton;
+    private Button? _diplomacyProposalRejectButton;
     private Window? _spyDialog;
     private OptionButton? _spyActionOption;
     private OptionButton? _spyTargetCityOption;
@@ -295,6 +304,8 @@ public partial class HudController : CanvasLayer
     private AttackDialogMode _attackDialogMode = AttackDialogMode.Attack;
     private CityData? _attackDialogContextCity;
     private PendingCommandData? _pendingDefenseCommand;
+    private PendingCommandData? _pendingDiplomacyProposalCommand;
+    private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
     private bool _isResolvingEndTurn;
 
@@ -385,6 +396,13 @@ public partial class HudController : CanvasLayer
         AddChild(_assignRoleDialog);
         EnsureAssignRoleDialogWidgets();
 
+        _fireOfficerDialog = new AcceptDialog();
+        _fireOfficerDialog.Exclusive = false;
+        _fireOfficerDialog.Unfocusable = false;
+        _fireOfficerDialog.Confirmed += OnFireOfficerDialogConfirmed;
+        AddChild(_fireOfficerDialog);
+        EnsureFireOfficerDialogWidgets();
+
         _requestItemDialog = new AcceptDialog();
         _requestItemDialog.Exclusive = false;
         _requestItemDialog.Unfocusable = false;
@@ -421,6 +439,14 @@ public partial class HudController : CanvasLayer
         AddChild(_diplomacyDialog);
         EnsureDiplomacyDialogWidgets();
         _diplomacyDialog.Hide();
+
+        _diplomacyProposalDialog = new Window();
+        _diplomacyProposalDialog.Exclusive = false;
+        _diplomacyProposalDialog.Unresizable = true;
+        _diplomacyProposalDialog.CloseRequested += OnDiplomacyProposalRejectPressed;
+        AddChild(_diplomacyProposalDialog);
+        EnsureDiplomacyProposalDialogWidgets();
+        _diplomacyProposalDialog.Hide();
 
         _spyDialog = new Window();
         _spyDialog.Exclusive = false;

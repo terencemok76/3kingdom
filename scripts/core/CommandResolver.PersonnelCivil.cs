@@ -183,6 +183,70 @@ public partial class CommandResolver
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetOfficerRoleName(role, GameLanguage.English) });
     }
 
+    public CommandResult ExecuteFireOfficer(int actorFactionId, int cityId, int officerId)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return LocalizedResult(false, "cmd.source_city_not_found");
+        }
+
+        if (city.OwnerFactionId != actorFactionId)
+        {
+            return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        if (!city.OfficerIds.Contains(officerId))
+        {
+            return LocalizedResult(false, "cmd.fire_officer.officer_required");
+        }
+
+        var officer = world.GetOfficer(officerId);
+        if (officer == null || officer.CityId != city.Id)
+        {
+            return LocalizedResult(false, "cmd.fire_officer.officer_required");
+        }
+
+        if (IsFactionRuler(world, officer.Id))
+        {
+            return LocalizedResult(false, "cmd.fire_officer.ruler_blocked");
+        }
+
+        if (IsOfficerAssignedThisMonth(world, officer) || HasActiveInternalAffairsSchedule(world, officer.Id))
+        {
+            return LocalizedResult(
+                false,
+                "cmd.fire_officer.officer_unavailable",
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese) },
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.English) });
+        }
+
+        city.OfficerIds.Remove(officer.Id);
+        var faction = world.GetFaction(actorFactionId);
+        faction?.OfficerIds.Remove(officer.Id);
+
+        foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officer.Id))
+        {
+            MoveItemToFactionInventory(item, actorFactionId);
+        }
+
+        officer.CityId = city.Id;
+        officer.FreeOfficerStayMonths = 2;
+        officer.Loyalty = Math.Min(officer.Loyalty, HireOfficerDefaultLoyalty);
+
+        return LocalizedResult(
+            true,
+            "cmd.fire_officer.resolved",
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese) },
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English) });
+    }
+
     public CommandResult ExecuteHireOfficer(int actorFactionId, int cityId, int officerId, int goldOffer = 0, int foodOffer = 0, int itemId = 0)
     {
         if (_turnManager?.World == null)

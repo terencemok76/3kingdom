@@ -36,6 +36,7 @@ internal static class Program
         RunInternalAffairsOfficerLockTest();
         RunPersonnelBonusTest();
         RunAssignOfficerRoleTest();
+        RunFireOfficerTest();
         RunHireOfficerTest();
         RunCivilReliefTest();
         RunCivilInvestigationTest();
@@ -833,6 +834,39 @@ internal static class Program
 
         Assert(freeResult.Success, "Hire free officer from player city resolves", $"success={freeResult.Success}");
         Assert(freeWorld.GetCity(1)!.OfficerIds.Contains(301), "Hire free officer from player city joins target", $"targetHas={freeWorld.GetCity(1)!.OfficerIds.Contains(301)}");
+    }
+
+    private static void RunFireOfficerTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "Officer", 1));
+        world.Items.Add(new ItemData
+        {
+            Id = 1,
+            NameEn = "Sword",
+            NameZhHant = "寶劍",
+            ItemType = ItemType.Weapon,
+            OwnerFactionId = 1,
+            EquippedOfficerId = 102
+        });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.ExecuteFireOfficer(1, 1, 102);
+        var rulerBlocked = services.Resolver.ExecuteFireOfficer(1, 1, 101);
+        var city = world.GetCity(1)!;
+        var faction = world.GetFaction(1)!;
+        var officer = world.GetOfficer(102)!;
+        var item = world.GetItem(1)!;
+
+        Assert(result.Success, "Fire officer resolves", $"success={result.Success}");
+        Assert(!city.OfficerIds.Contains(102), "Fire officer removes city assignment", $"cityHas={city.OfficerIds.Contains(102)}");
+        Assert(!faction.OfficerIds.Contains(102), "Fire officer removes faction assignment", $"factionHas={faction.OfficerIds.Contains(102)}");
+        Assert(FreeOfficerMovement.IsVisibleFreeOfficer(world, officer), "Fire officer becomes visible free officer", $"cityId={officer.CityId}, stay={officer.FreeOfficerStayMonths}");
+        Assert(item.EquippedOfficerId == 0 && item.OwnerFactionId == 1, "Fire officer returns equipped item to faction inventory", $"equipped={item.EquippedOfficerId}, ownerFaction={item.OwnerFactionId}");
+        Assert(!rulerBlocked.Success, "Fire officer blocks ruler", $"success={rulerBlocked.Success}");
     }
 
     private static void RunCivilReliefTest()

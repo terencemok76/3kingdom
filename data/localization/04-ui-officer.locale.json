@@ -43,6 +43,10 @@
                               "zhHant":  "外交階",
                               "en":  "Diplomacy Rank"
                           },
+    "ui.diplomacy_experience":  {
+                                    "zhHant":  "外交經驗",
+                                    "en":  "Diplomacy EXP"
+                                },
     "ui.diplomacy_title":  {
                                "zhHant":  "外交號",
                                "en":  "Diplomacy Title"
@@ -123,6 +127,10 @@
                         "zhHant":  "間諜階",
                         "en":  "Spy Rank"
                     },
+    "ui.spy_experience":  {
+                              "zhHant":  "諜報經驗",
+                              "en":  "Spy EXP"
+                          },
     "ui.spy_title":  {
                          "zhHant":  "間諜號",
                          "en":  "Spy Title"

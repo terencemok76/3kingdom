@@ -1,0 +1,30 @@
+{
+    "ui.diplomacy_proposal": {
+        "zhHant": "外交提案",
+        "en": "Diplomacy Proposal"
+    },
+    "ui.accept": {
+        "zhHant": "接受",
+        "en": "Accept"
+    },
+    "ui.reject": {
+        "zhHant": "拒絕",
+        "en": "Reject"
+    },
+    "fmt.diplomacy_proposal_treaty": {
+        "zhHant": "「{0}」自「{1}」向我方提出「{2}」提案，期限 {3} 個月。是否接受？",
+        "en": "\"{0}\" from \"{1}\" proposes \"{2}\" with your faction for {3} months. Accept?"
+    },
+    "fmt.diplomacy_proposal_gift": {
+        "zhHant": "「{0}」自「{1}」向我方送出金 {2} 的贈禮。是否接受？",
+        "en": "\"{0}\" from \"{1}\" offers your faction a gift worth {2} gold. Accept?"
+    },
+    "cmd.diplomacy.player_rejected_treaty": {
+        "zhHant": "你拒絕了「{0}」自「{1}」提出的「{3}」外交提案。",
+        "en": "You rejected the \"{3}\" diplomacy proposal from \"{0}\" of \"{1}\"."
+    },
+    "cmd.diplomacy.player_rejected_gift": {
+        "zhHant": "你拒絕了「{0}」自「{1}」送出的金 {2} 贈禮。",
+        "en": "You rejected the gift of {2} gold from \"{0}\" of \"{1}\"."
+    }
+}

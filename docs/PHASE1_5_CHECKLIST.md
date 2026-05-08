@@ -65,6 +65,8 @@
   - 月末結算
   - 外交關係資料狀態
   - `View -> Diplomacy Relations`
+  - AI 對玩家 `Alliance / Truce / Gift` 提案彈窗
+  - 玩家可對 AI 的 `Alliance / Truce / Gift` 選擇 `接受 / 拒絕`
 - 外交關係表 UI 已完成一輪 polish：
   - table header 可見
   - selected row highlight 較清楚

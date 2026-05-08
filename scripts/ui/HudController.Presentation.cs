@@ -374,11 +374,13 @@ public partial class HudController : CanvasLayer
 
         UpdateMerchantDialogText();
         UpdateDiplomacyDialogText();
+        UpdateDiplomacyProposalDialogText();
         UpdateSpyDialogText();
         UpdateMilitaryDialogText();
         UpdatePersonnelDialogText();
         UpdatePersonnelBonusDialogText();
         UpdateAssignRoleDialogText();
+        UpdateFireOfficerDialogText();
         UpdateHireOfficerDialogText();
         UpdateCivilDialogText();
         UpdateCivilReliefDialogText();
@@ -615,7 +617,9 @@ public partial class HudController : CanvasLayer
             (_localization?.T("ui.commercial_experience") ?? "Commercial Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.CommercialExperience, officer.CommercialRank, commercialTitle) : UnknownInfoText),
             (_localization?.T("ui.defend_experience") ?? "Defend Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.DefendExperience, officer.DefendRank, defendTitle) : UnknownInfoText),
             (_localization?.T("ui.disaster_prevention_experience") ?? "Disaster Prevention Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.DisasterPreventionExperience, officer.DisasterPreventionRank, disasterPreventionTitle) : UnknownInfoText),
-            (_localization?.T("ui.construction_experience") ?? "Construction Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.ConstructionExperience, officer.ConstructionRank, constructionTitle) : UnknownInfoText)
+            (_localization?.T("ui.construction_experience") ?? "Construction Experience", canViewOfficer ? FormatOfficerProgressionValue(officer.ConstructionExperience, officer.ConstructionRank, constructionTitle) : UnknownInfoText),
+            (_localization?.T("ui.spy_experience") ?? "Spy EXP", MaskedNumberText(canViewOfficer, officer.SpyExperience)),
+            (_localization?.T("ui.diplomacy_experience") ?? "Diplomacy EXP", MaskedNumberText(canViewOfficer, officer.DiplomacyExperience))
         };
 
         var bb = new System.Text.StringBuilder();

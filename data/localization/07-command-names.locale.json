@@ -63,6 +63,10 @@
                                            "zhHant":  "指派官職",
                                            "en":  "Assign Official Title"
                                        },
+    "command.personnel.fire_officer":  {
+                                           "zhHant":  "開除武將",
+                                           "en":  "Dismiss Officer"
+                                       },
     "command.personnel.give_bonus":  {
                                          "zhHant":  "賞賜（金、糧、道具）",
                                          "en":  "Give Bonus (Gold, Food, Item)"

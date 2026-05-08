@@ -64,6 +64,7 @@ public partial class HudController : CanvasLayer
         _personnelCommandOption.Clear();
         AddPersonnelCommandOption("command.personnel.give_bonus");
         AddPersonnelCommandOption("command.personnel.assign_title");
+        AddPersonnelCommandOption("command.personnel.fire_officer");
         AddPersonnelCommandOption("command.personnel.request_item");
         AddPersonnelCommandOption("command.personnel.hire_officer");
     }
@@ -113,6 +114,12 @@ public partial class HudController : CanvasLayer
         if (commandKey == "command.personnel.assign_title")
         {
             ShowAssignRoleDialog();
+            return;
+        }
+
+        if (commandKey == "command.personnel.fire_officer")
+        {
+            ShowFireOfficerDialog();
             return;
         }
 
@@ -558,6 +565,185 @@ public partial class HudController : CanvasLayer
         {
             label.Text = text;
         }
+    }
+
+    private void EnsureFireOfficerDialogWidgets()
+    {
+        if (_fireOfficerDialog == null)
+        {
+            return;
+        }
+
+        var existingRoot = _fireOfficerDialog.GetNodeOrNull<VBoxContainer>("FireOfficerDialogRoot");
+        if (existingRoot != null)
+        {
+            _fireOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            return;
+        }
+
+        var root = new VBoxContainer
+        {
+            Name = "FireOfficerDialogRoot",
+            CustomMinimumSize = new Vector2(460.0f, 260.0f)
+        };
+        root.AddThemeConstantOverride("separation", 8);
+        _fireOfficerDialog.AddChild(root);
+
+        _fireOfficerList = new Tree
+        {
+            Name = "OfficerTable",
+            HideRoot = true,
+            ColumnTitlesVisible = true,
+            SelectMode = Tree.SelectModeEnum.Row,
+            CustomMinimumSize = new Vector2(0.0f, 190.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _fireOfficerList.ItemSelected += OnFireOfficerTableSelected;
+        root.AddChild(_fireOfficerList);
+    }
+
+    private void ShowFireOfficerDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _fireOfficerDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        if (GetFireOfficerCandidateIds().Count == 0)
+        {
+            AddLog(_localization.Format("ui.no_available_officer_for_command", _localization.T("command.personnel.fire_officer")));
+            return;
+        }
+
+        EnsureFireOfficerDialogWidgets();
+        UpdateFireOfficerDialogText();
+        PopulateFireOfficerDialog();
+        _fireOfficerDialog.PopupCentered(new Vector2I(480, 300));
+    }
+
+    private void PopulateFireOfficerDialog()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _fireOfficerList == null)
+        {
+            return;
+        }
+
+        _fireOfficerList.Clear();
+        ConfigureCompactOfficerTableColumns(_fireOfficerList, includeStatus: true, includeCity: false, includeLoyalty: true, includeStats: true);
+        var tableRoot = _fireOfficerList.CreateItem();
+        var rowIndex = 0;
+        foreach (var officerId in GetFireOfficerCandidateIds())
+        {
+            var officer = _turnManager.World.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            var row = _fireOfficerList.CreateItem(tableRoot);
+            PopulateCompactOfficerTableRow(row, officer, rowIndex, includeStatus: true, includeCity: false, includeLoyalty: true, includeStats: true);
+            rowIndex += 1;
+        }
+    }
+
+    private List<int> GetFireOfficerCandidateIds()
+    {
+        if (_selectedCity == null || _turnManager?.World == null)
+        {
+            return new List<int>();
+        }
+
+        var availableOfficerIds = GetAvailableOfficerIdsForOrder();
+        return _selectedCity.OfficerIds
+            .Where(officerId => availableOfficerIds.Contains(officerId))
+            .Where(officerId =>
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                return officer != null && !IsFactionRuler(_turnManager.World, officer);
+            })
+            .ToList();
+    }
+
+    private void OnFireOfficerTableSelected()
+    {
+        if (_fireOfficerList == null)
+        {
+            return;
+        }
+
+        var selectedItem = _fireOfficerList.GetSelected();
+        if (selectedItem == null)
+        {
+            return;
+        }
+
+        var root = _fireOfficerList.GetRoot();
+        if (root == null)
+        {
+            return;
+        }
+
+        var row = root.GetFirstChild();
+        var rowIndex = 0;
+        while (row != null)
+        {
+            if (row == selectedItem)
+            {
+                ApplyViewTableSelectedRowStyle(row, _fireOfficerList.Columns);
+            }
+            else
+            {
+                ApplyViewTableRowStriping(row, rowIndex, _fireOfficerList.Columns);
+            }
+
+            row = row.GetNext();
+            rowIndex += 1;
+        }
+    }
+
+    private void UpdateFireOfficerDialogText()
+    {
+        if (_fireOfficerDialog == null || _localization == null)
+        {
+            return;
+        }
+
+        _fireOfficerDialog.Title = _localization.T("command.personnel.fire_officer");
+        _fireOfficerDialog.OkButtonText = _localization.T("ui.confirm_personnel");
+    }
+
+    private void OnFireOfficerDialogConfirmed()
+    {
+        if (_selectedCity == null || _turnManager == null || _commandResolver == null)
+        {
+            return;
+        }
+
+        var selectedOfficerIds = GetSelectedTreeMetadataIds(_fireOfficerList);
+        if (selectedOfficerIds.Count == 0)
+        {
+            AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
+            ReopenFireOfficerDialog();
+            return;
+        }
+
+        var result = _commandResolver.ExecuteFireOfficer(
+            _turnManager.GetPlayerFactionId(),
+            _selectedCity.Id,
+            selectedOfficerIds[0]);
+        AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
+        RefreshSelectedCity();
+        _mapController?.RefreshVisuals();
+    }
+
+    private void ReopenFireOfficerDialog()
+    {
+        CallDeferred(nameof(ReopenFireOfficerDialogDeferred));
+    }
+
+    private void ReopenFireOfficerDialogDeferred()
+    {
+        _fireOfficerDialog?.PopupCentered(new Vector2I(480, 300));
     }
 
     private string GetRoleDisplayName(string role)
