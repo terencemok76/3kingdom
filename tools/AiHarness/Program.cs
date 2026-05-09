@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
@@ -28,13 +29,18 @@ internal static class Program
         RunAiDiplomacyAllianceTest();
         RunAiDiplomacyDemandTest();
         RunAiDiplomacyBreakPactTest();
+        RunDiplomacyGiftScheduleTest();
         RunDiplomacyDemandScheduleTest();
         RunDiplomacyBreakPactResolutionTest();
+        RunSpyAssassinationResolutionTest();
+        RunSpyAssassinationPlayerSuccessionPendingTest();
+        RunSpyAssassinationFactionCollapseTest();
         RunAttackResolutionTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
         RunUpkeepShortageTest();
         RunOfficerProgressionBuffTest();
+        RunSpyAndDiplomacyProgressionSuccessBuffTest();
         RunInternalAffairsScheduleTest();
         RunInternalAffairsOfficerLockTest();
         RunPersonnelBonusTest();
@@ -326,6 +332,8 @@ internal static class Program
             TargetFactionId = 2,
             DiplomacyActionType = DiplomacyActionType.Demand,
             GoldToSend = 200,
+            FoodToSend = 300,
+            HorsesToSend = 40,
             OfficerIds = new List<int> { 102 }
         });
 
@@ -334,9 +342,51 @@ internal static class Program
             command.DiplomacyActionType == DiplomacyActionType.Demand &&
             command.ActorFactionId == 1 &&
             command.TargetFactionId == 2 &&
-            command.GoldToSend == 200);
+            command.GoldToSend == 200 &&
+            command.FoodToSend == 300 &&
+            command.HorsesToSend == 40);
         Assert(result.Success, "Diplomacy demand schedules", $"success={result.Success}");
         Assert(pending != null, "Diplomacy demand pending command", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunDiplomacyGiftScheduleTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1200, 2200, 900, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 900, 800, 1000, new[] { 201 }, Array.Empty<int>()));
+        world.GetCity(1)!.Horses = 120;
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1, charm: 80, intelligence: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Envoy", 1, charm: 92, intelligence: 78));
+        world.Officers.Add(TestHelpers.Officer(201, "TargetRuler", 2, charm: 70));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Target", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        var result = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Diplomacy,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetFactionId = 2,
+            DiplomacyActionType = DiplomacyActionType.Gift,
+            GoldToSend = 200,
+            FoodToSend = 500,
+            HorsesToSend = 30,
+            OfficerIds = new List<int> { 102 }
+        });
+
+        var sourceCity = world.GetCity(1)!;
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Diplomacy &&
+            command.DiplomacyActionType == DiplomacyActionType.Gift &&
+            command.ActorFactionId == 1 &&
+            command.TargetFactionId == 2 &&
+            command.GoldToSend == 200 &&
+            command.FoodToSend == 500 &&
+            command.HorsesToSend == 30);
+        Assert(result.Success, "Diplomacy gift schedules", $"success={result.Success}");
+        Assert(pending != null, "Diplomacy gift pending command", $"pending={(pending != null ? 1 : 0)}");
+        Assert(sourceCity.Gold == 1000 && sourceCity.Food == 1700 && sourceCity.Horses == 90, "Diplomacy gift reserves resources", $"gold={sourceCity.Gold}, food={sourceCity.Food}, horses={sourceCity.Horses}");
     }
 
     private static void RunDiplomacyBreakPactResolutionTest()
@@ -374,6 +424,123 @@ internal static class Program
         Assert(scheduled.Success, "Diplomacy break pact schedules", $"success={scheduled.Success}");
         Assert(resolved.Success, "Diplomacy break pact resolves", $"success={resolved.Success}");
         Assert(relation.Status == DiplomacyStatusType.Neutral && relation.RemainingMonths == 0, "Diplomacy break pact clears treaty", $"status={relation.Status}, months={relation.RemainingMonths}");
+    }
+
+    private static void RunSpyAssassinationResolutionTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "SpyCity", 1, 800, 800, 1200, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 900, 900, 1000, new[] { 201, 202 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "SpyOfficer", 1, intelligence: 95, charm: 90));
+        world.Officers.Add(TestHelpers.Officer(201, "EnemyRuler", 2, strength: 85, intelligence: 75, charm: 80, combat: 85));
+        world.Officers.Add(TestHelpers.Officer(202, "EnemyGeneral", 2, strength: 80, intelligence: 70, charm: 65, combat: 82));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201, 202 }));
+        var services = CreateServices(world);
+        var targetCity = world.GetCity(2)!;
+
+        var schedule = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Spy,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            SpyActionType = SpyActionType.Assassination,
+            OfficerIds = new List<int> { 101 }
+        });
+        var result = InvokePrivateInstance<CommandResult>(
+            services.Resolver,
+            "ResolveSuccessfulSpyAction",
+            world,
+            1,
+            targetCity,
+            world.GetOfficer(101)!,
+            SpyActionType.Assassination);
+
+        Assert(schedule.Success, "Spy assassination schedules", $"success={schedule.Success}");
+        Assert(result.Success, "Spy assassination resolves", $"success={result.Success}");
+        Assert(!targetCity.OfficerIds.Contains(201), "Spy assassination removes ruler target from city", $"cityHas={targetCity.OfficerIds.Contains(201)}");
+        Assert(!world.GetFaction(2)!.OfficerIds.Contains(201), "Spy assassination removes ruler target from faction", $"factionHas={world.GetFaction(2)!.OfficerIds.Contains(201)}");
+        Assert(world.GetOfficer(201)!.DeathYear == world.Year, "Spy assassination marks ruler dead", $"deathYear={world.GetOfficer(201)!.DeathYear}");
+        Assert(world.GetFaction(2)!.RulerOfficerId == 202, "Spy assassination assigns AI successor", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
+        Assert(targetCity.OfficerIds.Contains(202), "Spy assassination keeps successor alive", $"cityHasSuccessor={targetCity.OfficerIds.Contains(202)}");
+    }
+
+    private static void RunSpyAssassinationPlayerSuccessionPendingTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "SpyCity", 1, 800, 800, 1200, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "PlayerCity", 2, 900, 900, 1000, new[] { 201, 202, 203 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "SpyOfficer", 1, intelligence: 95, charm: 90));
+        world.Officers.Add(TestHelpers.Officer(201, "PlayerRuler", 2, strength: 85, intelligence: 75, charm: 80, combat: 85));
+        world.Officers.Add(TestHelpers.Officer(202, "LordSuccessor", 2, strength: 70, intelligence: 72, charm: 74, combat: 70));
+        world.Officers.Add(TestHelpers.Officer(203, "GeneralSuccessor", 2, strength: 80, intelligence: 70, charm: 65, combat: 82));
+        world.GetOfficer(202)!.Role = "Lord";
+        world.Factions.Add(TestHelpers.Faction(1, "Enemy", false, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Player", true, 201, new[] { 201, 202, 203 }));
+        var services = CreateServices(world);
+
+        _ = InvokePrivateInstance<CommandResult>(
+            services.Resolver,
+            "ResolveSuccessfulSpyAction",
+            world,
+            1,
+            world.GetCity(2)!,
+            world.GetOfficer(101)!,
+            SpyActionType.Assassination);
+
+        var pending = world.GetPendingSuccession(2);
+        Assert(pending != null, "Spy assassination creates player succession prompt", $"pending={(pending != null ? 1 : 0)}");
+        Assert(world.GetFaction(2)!.RulerOfficerId == 0, "Spy assassination clears dead player ruler id", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
+        Assert(pending != null && pending.CandidateOfficerIds.SequenceEqual(new[] { 202, 203 }), "Spy assassination orders player succession candidates", pending == null ? "pending=null" : $"candidates={string.Join(',', pending.CandidateOfficerIds)}");
+
+        var resolveResult = services.Resolver.ResolvePlayerSuccession(2, 202);
+        Assert(resolveResult.Success, "Player succession resolves", $"success={resolveResult.Success}");
+        Assert(world.GetFaction(2)!.RulerOfficerId == 202, "Player succession assigns selected ruler", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
+        Assert(world.GetPendingSuccession(2) == null, "Player succession clears pending record", $"pending={(world.GetPendingSuccession(2) != null ? 1 : 0)}");
+    }
+
+    private static void RunSpyAssassinationFactionCollapseTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "SpyCity", 1, 800, 800, 1200, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "LastCity", 2, 900, 900, 1000, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "SpyOfficer", 1, intelligence: 95, charm: 90));
+        world.Officers.Add(TestHelpers.Officer(201, "LonelyRuler", 2, strength: 85, intelligence: 75, charm: 80, combat: 85));
+        world.Factions.Add(TestHelpers.Faction(1, "Enemy", false, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Collapsed", false, 201, new[] { 201 }));
+        world.DiplomacyRelations.Add(new DiplomacyRelationData
+        {
+            FactionAId = 1,
+            FactionBId = 2,
+            Status = DiplomacyStatusType.Truce,
+            RemainingMonths = 3,
+            RelationScore = 10
+        });
+        world.PendingCommands.Add(new PendingCommandData
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 2,
+            SourceCityId = 2,
+            TargetCityId = 1,
+            OfficerIds = new List<int> { 201 }
+        });
+        var services = CreateServices(world);
+
+        _ = InvokePrivateInstance<CommandResult>(
+            services.Resolver,
+            "ResolveSuccessfulSpyAction",
+            world,
+            1,
+            world.GetCity(2)!,
+            world.GetOfficer(101)!,
+            SpyActionType.Assassination);
+
+        Assert(world.GetFaction(2)!.RulerOfficerId == 0, "Faction collapse clears ruler id", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
+        Assert(world.GetFaction(2)!.OfficerIds.Count == 0, "Faction collapse clears faction officers", $"count={world.GetFaction(2)!.OfficerIds.Count}");
+        Assert(world.GetCity(2)!.OwnerFactionId == 0, "Faction collapse neutralizes cities", $"owner={world.GetCity(2)!.OwnerFactionId}");
+        Assert(world.DiplomacyRelations.Count == 0, "Faction collapse clears diplomacy relations", $"count={world.DiplomacyRelations.Count}");
+        Assert(world.PendingCommands.Count == 0, "Faction collapse cancels faction pending commands", $"count={world.PendingCommands.Count}");
     }
 
     private static void RunAttackResolutionTest()
@@ -798,6 +965,77 @@ internal static class Program
         Assert(OfficerProgressionRules.GetInternalAffairsOutputBonus(officer, InternalAffairsJobType.Commercial) == 2, "Officer progression internal affairs output bonus", $"bonus={OfficerProgressionRules.GetInternalAffairsOutputBonus(officer, InternalAffairsJobType.Commercial)}");
     }
 
+    private static void RunSpyAndDiplomacyProgressionSuccessBuffTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "SourceCity", 1, 1200, 1200, 1200, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 1000, 1000, 1000, new[] { 201 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "EnvoySpy", 1, strength: 70, intelligence: 78, charm: 78, combat: 70));
+        world.Officers.Add(TestHelpers.Officer(201, "TargetOfficer", 2, strength: 70, intelligence: 78, charm: 78, combat: 70));
+        world.Factions.Add(TestHelpers.Faction(1, "FactionA", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "FactionB", false, 201, new[] { 201 }));
+        var sourceCity = world.GetCity(1)!;
+        var targetCity = world.GetCity(2)!;
+        var officer = world.GetOfficer(101)!;
+        var targetFaction = world.GetFaction(2)!;
+        var relation = new DiplomacyRelationData
+        {
+            FactionAId = 1,
+            FactionBId = 2,
+            Status = DiplomacyStatusType.Neutral,
+            RemainingMonths = 0,
+            RelationScore = 0
+        };
+
+        var baseSpyChance = InvokePrivateStatic<int>(
+            typeof(CommandResolver),
+            "CalculateSpySuccessChance",
+            world,
+            sourceCity,
+            targetCity,
+            officer,
+            SpyActionType.Sabotage);
+        var baseDiplomacyChance = InvokePrivateStatic<int>(
+            typeof(CommandResolver),
+            "CalculateDiplomacySuccessChance",
+            world,
+            sourceCity,
+            officer,
+            targetFaction,
+            relation,
+            DiplomacyActionType.Alliance);
+
+        OfficerProgressionRules.AwardSpyExperience(officer, 180);
+        OfficerProgressionRules.AwardDiplomacyExperience(officer, 180);
+
+        var rankedSpyChance = InvokePrivateStatic<int>(
+            typeof(CommandResolver),
+            "CalculateSpySuccessChance",
+            world,
+            sourceCity,
+            targetCity,
+            officer,
+            SpyActionType.Sabotage);
+        var rankedDiplomacyChance = InvokePrivateStatic<int>(
+            typeof(CommandResolver),
+            "CalculateDiplomacySuccessChance",
+            world,
+            sourceCity,
+            officer,
+            targetFaction,
+            relation,
+            DiplomacyActionType.Alliance);
+
+        Assert(officer.SpyRank == 3, "Spy progression rank upgrade", $"rank={officer.SpyRank}");
+        Assert(officer.DiplomacyRank == 3, "Diplomacy progression rank upgrade", $"rank={officer.DiplomacyRank}");
+        Assert(!string.IsNullOrWhiteSpace(officer.SpyTitle), "Spy progression title upgrade", $"title={officer.SpyTitle}");
+        Assert(!string.IsNullOrWhiteSpace(officer.DiplomacyTitle), "Diplomacy progression title upgrade", $"title={officer.DiplomacyTitle}");
+        Assert(OfficerProgressionRules.GetSpySuccessBonus(officer) > 0, "Spy progression success bonus active", $"bonus={OfficerProgressionRules.GetSpySuccessBonus(officer)}");
+        Assert(OfficerProgressionRules.GetDiplomacySuccessBonus(officer) > 0, "Diplomacy progression success bonus active", $"bonus={OfficerProgressionRules.GetDiplomacySuccessBonus(officer)}");
+        Assert(rankedSpyChance > baseSpyChance, "Spy progression increases success chance", $"base={baseSpyChance}, ranked={rankedSpyChance}");
+        Assert(rankedDiplomacyChance > baseDiplomacyChance, "Diplomacy progression increases success chance", $"base={baseDiplomacyChance}, ranked={rankedDiplomacyChance}");
+    }
+
     private static void RunInternalAffairsScheduleTest()
     {
         var world = TestHelpers.World(month: 2);
@@ -1210,6 +1448,40 @@ internal static class Program
         return Path.Combine(Directory.GetCurrentDirectory(), "data", "localization");
     }
 
+    private static T InvokePrivateStatic<T>(Type targetType, string methodName, params object[] args)
+    {
+        var method = targetType.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static);
+        if (method == null)
+        {
+            throw new InvalidOperationException($"Method not found: {targetType.FullName}.{methodName}");
+        }
+
+        var result = method.Invoke(null, args);
+        if (result is not T typedResult)
+        {
+            throw new InvalidOperationException($"Unexpected result type from {targetType.FullName}.{methodName}");
+        }
+
+        return typedResult;
+    }
+
+    private static T InvokePrivateInstance<T>(object target, string methodName, params object[] args)
+    {
+        var method = target.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
+        if (method == null)
+        {
+            throw new InvalidOperationException($"Method not found: {target.GetType().FullName}.{methodName}");
+        }
+
+        var result = method.Invoke(target, args);
+        if (result is not T typedResult)
+        {
+            throw new InvalidOperationException($"Unexpected result type from {target.GetType().FullName}.{methodName}");
+        }
+
+        return typedResult;
+    }
+
     private static WorldState CloneWorld(WorldState source)
     {
         var clone = new WorldState
@@ -1332,6 +1604,12 @@ internal static class Program
             OwnerCityId = item.OwnerCityId,
             EquippedOfficerId = item.EquippedOfficerId,
             Rarity = item.Rarity
+        }));
+
+        clone.PendingSuccessionRecords.AddRange(source.PendingSuccessionRecords.Select(record => new WorldState.PendingSuccessionData
+        {
+            FactionId = record.FactionId,
+            CandidateOfficerIds = new List<int>(record.CandidateOfficerIds)
         }));
 
         return clone;

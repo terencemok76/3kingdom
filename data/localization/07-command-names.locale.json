@@ -31,6 +31,10 @@
                               "zhHant":  "煽動民心",
                               "en":  "Incite Unrest"
                           },
+    "command.spy.assassination":  {
+                                     "zhHant":  "暗殺要員",
+                                     "en":  "Assassination"
+                                 },
     "command.spy.reconnaissance":  {
                                        "zhHant":  "偵查敵情",
                                        "en":  "Reconnaissance"

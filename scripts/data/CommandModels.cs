@@ -30,7 +30,8 @@ public enum SpyActionType
 {
     Reconnaissance,
     Sabotage,
-    Incite
+    Incite,
+    Assassination
 }
 
 public enum TroopType

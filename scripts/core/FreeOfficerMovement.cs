@@ -131,6 +131,11 @@ public static class FreeOfficerMovement
 
     private static bool IsOldEnough(WorldState world, OfficerData officer)
     {
+        if (officer.DeathYear > 0 && world.Year >= officer.DeathYear)
+        {
+            return false;
+        }
+
         return officer.BirthYear <= 0 || world.Year - officer.BirthYear >= MinimumJoinAge;
     }
 

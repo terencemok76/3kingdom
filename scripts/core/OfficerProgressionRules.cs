@@ -116,6 +116,16 @@ public static class OfficerProgressionRules
         officer.DiplomacyTitle = GetDiplomacyTitleKey(officer.DiplomacyRank);
     }
 
+    public static int GetSpySuccessBonus(OfficerData officer)
+    {
+        return Math.Max(0, officer.SpyRank) * 4;
+    }
+
+    public static int GetDiplomacySuccessBonus(OfficerData officer)
+    {
+        return Math.Max(0, officer.DiplomacyRank) * 4;
+    }
+
     public static void AwardCivilExperience(OfficerData officer, int amount)
     {
         if (amount <= 0)

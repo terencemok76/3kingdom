@@ -59,14 +59,19 @@
   - `Gift`
   - `Demand`
   - `Break Pact`
+- `Gift / Demand` 均已升級為多資源版本：
+  - `Gold`
+  - `Food`
+  - `Horse`
 - 已完成：
   - HUD 外交指令入口
   - 單武將指派
   - 月末結算
   - 外交關係資料狀態
   - `View -> Diplomacy Relations`
-  - AI 對玩家 `Alliance / Truce / Gift` 提案彈窗
-  - 玩家可對 AI 的 `Alliance / Truce / Gift` 選擇 `接受 / 拒絕`
+  - AI 對玩家 `Alliance / Truce / Gift / Demand` 提案彈窗
+  - 玩家可對 AI 的 `Alliance / Truce / Gift / Demand` 選擇 `接受 / 拒絕`
+  - `Break Pact` 對玩家為通知制，不可拒絕
 - 外交關係表 UI 已完成一輪 polish：
   - table header 可見
   - selected row highlight 較清楚
@@ -226,6 +231,7 @@
 - 已進入第一批進階外交動作：
   - `Demand`
   - `Break Pact`
+- `Demand` 已不是單純索金，現況可要求 `金 / 糧 / 馬`。
 - 目前仍未正式實作：
   - `Marriage`
   - `Pressure`
@@ -283,3 +289,29 @@
 
 - 若要用一句話描述目前狀態：
   - `Phase 1.5 基線已成形，但仍未完整收尾。`
+## 6.1 2026-05-09 同步補記
+
+### 已完成
+- `Spy -> Assassination` 已實作。
+- `Assassination` 現在可刺殺君主。
+- `AI faction` 君主死亡後會依規則自動繼位：
+  - `Role == Lord / Ruler`
+  - 否則 `Leadership + Intelligence + Politics + Charm`
+  - 同分再比 `Loyalty`
+- `Player faction` 君主死亡後，會跳出候選列表由玩家手動選擇繼位者。
+- 若無其他可繼承武將，勢力會直接滅亡。
+- 勢力滅亡後目前已實作：
+  - 全城市轉中立
+  - 外交關係清除
+  - 該勢力 pending command 取消
+
+### 狀態調整
+- `Assassination` 不再列為純未實作項目，已進入可用基線版本。
+
+### 仍未完成 / 後續可擴充
+- `Assassination` 目前仍以「目標城市」為單位，不是手選目標武將。
+- 勢力滅亡後目前採 `全部轉中立`，尚未做「鄰近敵方自動接收城市」版本。
+- 君主死亡後的更深層事件鏈尚未擴充：
+  - 繼承合法性事件
+  - 忠誠波動
+  - 派系分裂 / 叛變

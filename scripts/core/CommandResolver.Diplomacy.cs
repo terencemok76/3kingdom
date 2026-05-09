@@ -65,28 +65,46 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.diplomacy.invalid_duration");
         }
 
-        var reservedGold = request.DiplomacyActionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand
+        var reservedGold = request.DiplomacyActionType == DiplomacyActionType.Gift
             ? Math.Max(0, request.GoldToSend)
             : 0;
-        if (request.DiplomacyActionType == DiplomacyActionType.Gift && reservedGold <= 0)
+        var reservedFood = request.DiplomacyActionType == DiplomacyActionType.Gift
+            ? Math.Max(0, request.FoodToSend)
+            : 0;
+        var reservedHorses = request.DiplomacyActionType == DiplomacyActionType.Gift
+            ? Math.Max(0, request.HorsesToSend)
+            : 0;
+        var demandGold = request.DiplomacyActionType == DiplomacyActionType.Demand ? Math.Max(0, request.GoldToSend) : 0;
+        var demandFood = request.DiplomacyActionType == DiplomacyActionType.Demand ? Math.Max(0, request.FoodToSend) : 0;
+        var demandHorses = request.DiplomacyActionType == DiplomacyActionType.Demand ? Math.Max(0, request.HorsesToSend) : 0;
+        if (request.DiplomacyActionType == DiplomacyActionType.Gift &&
+            reservedGold <= 0 &&
+            reservedFood <= 0 &&
+            reservedHorses <= 0)
         {
-            return LocalizedResult(false, "cmd.diplomacy.gift_gold_required");
+            return LocalizedResult(false, "cmd.diplomacy.gift_resource_required");
         }
 
-        if (request.DiplomacyActionType == DiplomacyActionType.Demand && reservedGold <= 0)
+        if (request.DiplomacyActionType == DiplomacyActionType.Demand &&
+            demandGold <= 0 &&
+            demandFood <= 0 &&
+            demandHorses <= 0)
         {
-            return LocalizedResult(false, "cmd.diplomacy.demand_gold_required");
+            return LocalizedResult(false, "cmd.diplomacy.demand_resource_required");
         }
 
-        if (request.DiplomacyActionType == DiplomacyActionType.Gift && reservedGold > sourceCity.Gold)
+        if (request.DiplomacyActionType == DiplomacyActionType.Gift &&
+            (reservedGold > sourceCity.Gold || reservedFood > sourceCity.Food || reservedHorses > sourceCity.Horses))
         {
-            return LocalizedResult(false, "cmd.diplomacy.not_enough_gold", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+            return LocalizedResult(false, "cmd.diplomacy.not_enough_resources", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
         MarkOfficerAssigned(world, officer, CommandType.Diplomacy);
-        if (request.DiplomacyActionType == DiplomacyActionType.Gift && reservedGold > 0)
+        if (request.DiplomacyActionType == DiplomacyActionType.Gift)
         {
             sourceCity.Gold -= reservedGold;
+            sourceCity.Food -= reservedFood;
+            sourceCity.Horses -= reservedHorses;
         }
 
         UpsertPendingCommand(world, new PendingCommandData
@@ -95,7 +113,9 @@ public partial class CommandResolver
             ActorFactionId = request.ActorFactionId,
             SourceCityId = sourceCity.Id,
             TargetFactionId = targetFaction.Id,
-            GoldToSend = reservedGold,
+            GoldToSend = request.DiplomacyActionType == DiplomacyActionType.Demand ? demandGold : reservedGold,
+            FoodToSend = request.DiplomacyActionType == DiplomacyActionType.Demand ? demandFood : reservedFood,
+            HorsesToSend = request.DiplomacyActionType == DiplomacyActionType.Demand ? demandHorses : reservedHorses,
             DurationMonths = duration,
             DiplomacyActionType = request.DiplomacyActionType,
             OfficerIds = new System.Collections.Generic.List<int> { officer.Id }
@@ -123,9 +143,11 @@ public partial class CommandResolver
         var targetFaction = world.GetFaction(pendingCommand.TargetFactionId);
         if (targetFaction == null || !IsFactionAlive(world, pendingCommand.TargetFactionId))
         {
-            if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift && pendingCommand.GoldToSend > 0)
+            if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift)
             {
                 sourceCity.Gold += pendingCommand.GoldToSend;
+                sourceCity.Food += pendingCommand.FoodToSend;
+                sourceCity.Horses += pendingCommand.HorsesToSend;
             }
 
             return LocalizedResult(false, "cmd.diplomacy.cancelled");
@@ -134,9 +156,11 @@ public partial class CommandResolver
         var officer = world.GetOfficer(pendingCommand.OfficerIds.FirstOrDefault());
         if (officer == null)
         {
-            if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift && pendingCommand.GoldToSend > 0)
+            if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift)
             {
                 sourceCity.Gold += pendingCommand.GoldToSend;
+                sourceCity.Food += pendingCommand.FoodToSend;
+                sourceCity.Horses += pendingCommand.HorsesToSend;
             }
 
             return LocalizedResult(false, "cmd.diplomacy.cancelled");
@@ -148,7 +172,10 @@ public partial class CommandResolver
 
         if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift)
         {
-            var gain = Math.Clamp(pendingCommand.GoldToSend / 100, 3, 25);
+            var giftValue = pendingCommand.GoldToSend +
+                            pendingCommand.FoodToSend * MerchantGoldPerTrade / MerchantFoodPerTrade +
+                            pendingCommand.HorsesToSend * MerchantGoldPerHorseTrade / MerchantHorsePerTrade;
+            var gain = Math.Clamp(giftValue / 100, 3, 25);
             relation.RelationScore = Math.Clamp(relation.RelationScore + gain, -100, 100);
             OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
@@ -159,6 +186,8 @@ public partial class CommandResolver
                     GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
                     GetFactionName(targetFaction, GameLanguage.TraditionalChinese),
                     pendingCommand.GoldToSend,
+                    pendingCommand.FoodToSend,
+                    pendingCommand.HorsesToSend,
                     gain
                 },
                 new object[]
@@ -166,6 +195,8 @@ public partial class CommandResolver
                     GetOfficerDisplayName(officer, GameLanguage.English),
                     GetFactionName(targetFaction, GameLanguage.English),
                     pendingCommand.GoldToSend,
+                    pendingCommand.FoodToSend,
+                    pendingCommand.HorsesToSend,
                     gain
                 });
         }
@@ -216,18 +247,28 @@ public partial class CommandResolver
                     });
             }
 
-            var tributeCity = world.Cities
+            var tributeGoldCity = world.Cities
                 .Where(city => city.OwnerFactionId == targetFaction.Id)
                 .OrderByDescending(city => city.Gold)
                 .FirstOrDefault();
-            var tributeGold = tributeCity == null ? 0 : Math.Min(tributeCity.Gold, pendingCommand.GoldToSend);
-            if (tributeCity == null || tributeGold <= 0)
+            var tributeFoodCity = world.Cities
+                .Where(city => city.OwnerFactionId == targetFaction.Id)
+                .OrderByDescending(city => city.Food)
+                .FirstOrDefault();
+            var tributeHorseCity = world.Cities
+                .Where(city => city.OwnerFactionId == targetFaction.Id)
+                .OrderByDescending(city => city.Horses)
+                .FirstOrDefault();
+            var tributeGold = tributeGoldCity == null ? 0 : Math.Min(tributeGoldCity.Gold, pendingCommand.GoldToSend);
+            var tributeFood = tributeFoodCity == null ? 0 : Math.Min(tributeFoodCity.Food, pendingCommand.FoodToSend);
+            var tributeHorses = tributeHorseCity == null ? 0 : Math.Min(tributeHorseCity.Horses, pendingCommand.HorsesToSend);
+            if (tributeGold <= 0 && tributeFood <= 0 && tributeHorses <= 0)
             {
                 relation.RelationScore = Math.Clamp(relation.RelationScore - 10, -100, 100);
                 OfficerProgressionRules.AwardDiplomacyExperience(officer, 10);
                 return LocalizedResult(
                     false,
-                    "cmd.diplomacy.demand_no_gold",
+                    "cmd.diplomacy.demand_no_resources",
                     new object[]
                     {
                         GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
@@ -240,8 +281,24 @@ public partial class CommandResolver
                     });
             }
 
-            tributeCity.Gold -= tributeGold;
-            sourceCity.Gold += tributeGold;
+            if (tributeGold > 0 && tributeGoldCity != null)
+            {
+                tributeGoldCity.Gold -= tributeGold;
+                sourceCity.Gold += tributeGold;
+            }
+
+            if (tributeFood > 0 && tributeFoodCity != null)
+            {
+                tributeFoodCity.Food -= tributeFood;
+                sourceCity.Food += tributeFood;
+            }
+
+            if (tributeHorses > 0 && tributeHorseCity != null)
+            {
+                tributeHorseCity.Horses -= tributeHorses;
+                sourceCity.Horses += tributeHorses;
+            }
+
             relation.RelationScore = Math.Clamp(relation.RelationScore - 14, -100, 100);
             OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
@@ -251,13 +308,17 @@ public partial class CommandResolver
                 {
                     GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
                     GetFactionName(targetFaction, GameLanguage.TraditionalChinese),
-                    tributeGold
+                    tributeGold,
+                    tributeFood,
+                    tributeHorses
                 },
                 new object[]
                 {
                     GetOfficerDisplayName(officer, GameLanguage.English),
                     GetFactionName(targetFaction, GameLanguage.English),
-                    tributeGold
+                    tributeGold,
+                    tributeFood,
+                    tributeHorses
                 });
         }
 
@@ -329,6 +390,7 @@ public partial class CommandResolver
         var relationBonus = relation.RelationScore / 4;
         var cityLoyaltyBonus = Math.Max(0, sourceCity.Loyalty - 70) / 10;
         var pressureBonus = GetFactionTroopTotal(world, sourceCity.OwnerFactionId) - GetFactionTroopTotal(world, targetFaction.Id);
+        var rankBonus = OfficerProgressionRules.GetDiplomacySuccessBonus(officer);
         var baseChance = actionType switch
         {
             DiplomacyActionType.Alliance => 42,
@@ -337,7 +399,7 @@ public partial class CommandResolver
             _ => 50
         };
         var extraPressure = actionType == DiplomacyActionType.Demand ? pressureBonus / 120 : 0;
-        return Math.Clamp(baseChance + (officerScore - targetScore) / 4 + relationBonus + cityLoyaltyBonus + extraPressure, 10, 90);
+        return Math.Clamp(baseChance + (officerScore - targetScore) / 4 + relationBonus + cityLoyaltyBonus + rankBonus + extraPressure, 10, 90);
     }
 
     private static int GetFactionTroopTotal(WorldState world, int factionId)

@@ -21,6 +21,8 @@ public partial class HudController : CanvasLayer
             _diplomacyTargetFactionOption = existingRoot.GetNodeOrNull<OptionButton>("TargetFactionRow/TargetFactionOption");
             _diplomacyDurationSpinBox = existingRoot.GetNodeOrNull<SpinBox>("DurationRow/DurationSpinBox");
             _diplomacyGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
+            _diplomacyFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
+            _diplomacyHorseSpinBox = existingRoot.GetNodeOrNull<SpinBox>("HorseRow/HorseSpinBox");
             _diplomacyOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerList");
             _diplomacyRelationInfoLabel = existingRoot.GetNodeOrNull<Label>("RelationInfoLabel");
             _diplomacySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
@@ -32,7 +34,7 @@ public partial class HudController : CanvasLayer
         var root = new VBoxContainer
         {
             Name = "DiplomacyDialogRoot",
-            CustomMinimumSize = new Vector2(760.0f, 500.0f),
+            CustomMinimumSize = new Vector2(760.0f, 0.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
@@ -98,6 +100,42 @@ public partial class HudController : CanvasLayer
         };
         root.GetNode<HBoxContainer>("GoldRow").AddChild(_diplomacyGoldSpinBox);
 
+        root.AddChild(CreateDiplomacyFormRow("FoodRow", "FoodLabel"));
+        _diplomacyFoodSpinBox = new SpinBox
+        {
+            Name = "FoodSpinBox",
+            MinValue = 0,
+            MaxValue = 99999,
+            Step = 100,
+            Value = 0,
+            Rounded = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _diplomacyFoodSpinBox.ValueChanged += _ =>
+        {
+            UpdateDiplomacySummary();
+            UpdateDiplomacyConfirmButtonState();
+        };
+        root.GetNode<HBoxContainer>("FoodRow").AddChild(_diplomacyFoodSpinBox);
+
+        root.AddChild(CreateDiplomacyFormRow("HorseRow", "HorseLabel"));
+        _diplomacyHorseSpinBox = new SpinBox
+        {
+            Name = "HorseSpinBox",
+            MinValue = 0,
+            MaxValue = 9999,
+            Step = 10,
+            Value = 0,
+            Rounded = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _diplomacyHorseSpinBox.ValueChanged += _ =>
+        {
+            UpdateDiplomacySummary();
+            UpdateDiplomacyConfirmButtonState();
+        };
+        root.GetNode<HBoxContainer>("HorseRow").AddChild(_diplomacyHorseSpinBox);
+
         _diplomacyRelationInfoLabel = new Label
         {
             Name = "RelationInfoLabel",
@@ -113,7 +151,7 @@ public partial class HudController : CanvasLayer
             HideRoot = true,
             ColumnTitlesVisible = true,
             SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 170.0f),
+            CustomMinimumSize = new Vector2(0.0f, 130.0f),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         _diplomacyOfficerList.ItemSelected += OnDiplomacyOfficerTableSelected;
@@ -157,7 +195,7 @@ public partial class HudController : CanvasLayer
         EnsureDiplomacyDialogWidgets();
         UpdateDiplomacyDialogText();
         PopulateDiplomacyDialog();
-        _diplomacyDialog.PopupCentered(new Vector2I(820, 560));
+        _diplomacyDialog.PopupCentered(new Vector2I(820, 620));
     }
 
     private void PopulateDiplomacyDialog()
@@ -188,6 +226,15 @@ public partial class HudController : CanvasLayer
         _diplomacyDurationSpinBox.Value = 3;
         _diplomacyGoldSpinBox.Value = 0;
         _diplomacyGoldSpinBox.MaxValue = _selectedCity.Gold;
+        if (_diplomacyFoodSpinBox != null)
+        {
+            _diplomacyFoodSpinBox.Value = 0;
+        }
+
+        if (_diplomacyHorseSpinBox != null)
+        {
+            _diplomacyHorseSpinBox.Value = 0;
+        }
 
         ConfigureDiplomacyOfficerTableColumns();
         _diplomacyOfficerList.Clear();
@@ -237,6 +284,8 @@ public partial class HudController : CanvasLayer
         SetDiplomacyDialogLabelText("TargetFactionLabel", _localization.T("ui.diplomacy_target_faction"));
         SetDiplomacyDialogLabelText("DurationLabel", _localization.T("ui.diplomacy_duration"));
         SetDiplomacyDialogLabelText("GoldLabel", _localization.T("ui.diplomacy_gift_gold"));
+        SetDiplomacyDialogLabelText("FoodLabel", _localization.T("ui.diplomacy_demand_food"));
+        SetDiplomacyDialogLabelText("HorseLabel", _localization.T("ui.diplomacy_demand_horse"));
         SetDiplomacyDialogLabelText("OfficerListLabel", _localization.T("ui.diplomacy_officer"));
         if (_diplomacyConfirmButton != null)
         {
@@ -419,6 +468,8 @@ public partial class HudController : CanvasLayer
         var targetFactionName = targetFaction != null ? _localization.GetFactionName(_turnManager.World, targetFaction.Id) : "-";
         var duration = Math.Max(1, (int)Math.Round(_diplomacyDurationSpinBox?.Value ?? 1));
         var gold = Math.Max(0, (int)Math.Round(_diplomacyGoldSpinBox?.Value ?? 0));
+        var food = Math.Max(0, (int)Math.Round(_diplomacyFoodSpinBox?.Value ?? 0));
+        var horses = Math.Max(0, (int)Math.Round(_diplomacyHorseSpinBox?.Value ?? 0));
         var actionName = _localization.T(actionType switch
         {
             DiplomacyActionType.Alliance => "command.diplomacy.alliance",
@@ -437,8 +488,8 @@ public partial class HudController : CanvasLayer
         };
         _diplomacySummaryLabel.Text = actionType switch
         {
-            DiplomacyActionType.Gift => _localization.Format(summaryKey, actionName, targetFactionName, gold),
-            DiplomacyActionType.Demand => _localization.Format(summaryKey, actionName, targetFactionName, gold),
+            DiplomacyActionType.Gift => _localization.Format(summaryKey, actionName, targetFactionName, BuildDiplomacyDemandResourceSummary(gold, food, horses)),
+            DiplomacyActionType.Demand => _localization.Format(summaryKey, actionName, targetFactionName, BuildDiplomacyDemandResourceSummary(gold, food, horses)),
             DiplomacyActionType.BreakPact => _localization.Format(summaryKey, actionName, targetFactionName),
             _ => _localization.Format(summaryKey, actionName, targetFactionName, duration)
         };
@@ -475,9 +526,17 @@ public partial class HudController : CanvasLayer
         var actionType = GetSelectedDiplomacyActionType();
         var hasOfficer = GetSelectedTreeMetadataIds(_diplomacyOfficerList).Count > 0;
         var hasTarget = GetSelectedDiplomacyTargetFactionId() > 0;
-        var hasGold = actionType is not (DiplomacyActionType.Gift or DiplomacyActionType.Demand) ||
-                      (_diplomacyGoldSpinBox?.Value ?? 0) > 0;
-        _diplomacyConfirmButton.Disabled = !hasOfficer || !hasTarget || !hasGold;
+        var hasRequiredResource = actionType switch
+        {
+            DiplomacyActionType.Gift => (_diplomacyGoldSpinBox?.Value ?? 0) > 0 ||
+                                        (_diplomacyFoodSpinBox?.Value ?? 0) > 0 ||
+                                        (_diplomacyHorseSpinBox?.Value ?? 0) > 0,
+            DiplomacyActionType.Demand => (_diplomacyGoldSpinBox?.Value ?? 0) > 0 ||
+                                          (_diplomacyFoodSpinBox?.Value ?? 0) > 0 ||
+                                          (_diplomacyHorseSpinBox?.Value ?? 0) > 0,
+            _ => true
+        };
+        _diplomacyConfirmButton.Disabled = !hasOfficer || !hasTarget || !hasRequiredResource;
     }
 
     private void UpdateDiplomacyDialogInputState()
@@ -490,11 +549,23 @@ public partial class HudController : CanvasLayer
         var actionType = GetSelectedDiplomacyActionType();
         SetDiplomacyRowVisible("DurationRow", actionType is DiplomacyActionType.Alliance or DiplomacyActionType.Truce);
         SetDiplomacyRowVisible("GoldRow", actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand);
+        SetDiplomacyRowVisible("FoodRow", actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand);
+        SetDiplomacyRowVisible("HorseRow", actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand);
         SetDiplomacyDialogLabelText(
             "GoldLabel",
             actionType == DiplomacyActionType.Demand
                 ? _localization.T("ui.diplomacy_demand_gold")
                 : _localization.T("ui.diplomacy_gift_gold"));
+        SetDiplomacyDialogLabelText(
+            "FoodLabel",
+            actionType == DiplomacyActionType.Demand
+                ? _localization.T("ui.diplomacy_demand_food")
+                : _localization.T("ui.diplomacy_gift_food"));
+        SetDiplomacyDialogLabelText(
+            "HorseLabel",
+            actionType == DiplomacyActionType.Demand
+                ? _localization.T("ui.diplomacy_demand_horse")
+                : _localization.T("ui.diplomacy_gift_horse"));
     }
 
     private void SetDiplomacyRowVisible(string rowName, bool visible)
@@ -538,9 +609,17 @@ public partial class HudController : CanvasLayer
 
         var actionType = GetSelectedDiplomacyActionType();
         var gold = Math.Max(0, (int)Math.Round(_diplomacyGoldSpinBox?.Value ?? 0));
-        if (actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand && gold <= 0)
+        var food = Math.Max(0, (int)Math.Round(_diplomacyFoodSpinBox?.Value ?? 0));
+        var horses = Math.Max(0, (int)Math.Round(_diplomacyHorseSpinBox?.Value ?? 0));
+        if (actionType == DiplomacyActionType.Gift && gold <= 0 && food <= 0 && horses <= 0)
         {
-            SetDiplomacyWarning(_localization.T("ui.diplomacy_gold_required_warning"));
+            SetDiplomacyWarning(_localization.T("ui.diplomacy_gift_resource_required_warning"));
+            return;
+        }
+
+        if (actionType == DiplomacyActionType.Demand && gold <= 0 && food <= 0 && horses <= 0)
+        {
+            SetDiplomacyWarning(_localization.T("ui.diplomacy_resource_required_warning"));
             return;
         }
 
@@ -552,6 +631,8 @@ public partial class HudController : CanvasLayer
             TargetFactionId = targetFactionId,
             OfficerIds = selectedOfficerIds,
             GoldToSend = gold,
+            FoodToSend = food,
+            HorsesToSend = horses,
             DurationMonths = Math.Max(1, (int)Math.Round(_diplomacyDurationSpinBox?.Value ?? 1)),
             DiplomacyActionType = actionType
         });
@@ -565,5 +646,31 @@ public partial class HudController : CanvasLayer
         }
 
         SetDiplomacyWarning(GetLocalizedResultMessage(result));
+    }
+
+    private string BuildDiplomacyDemandResourceSummary(int gold, int food, int horses)
+    {
+        if (_localization == null)
+        {
+            return string.Empty;
+        }
+
+        var parts = new System.Collections.Generic.List<string>();
+        if (gold > 0)
+        {
+            parts.Add($"{_localization.T("ui.gold")} {gold}");
+        }
+
+        if (food > 0)
+        {
+            parts.Add($"{_localization.T("ui.food")} {food}");
+        }
+
+        if (horses > 0)
+        {
+            parts.Add($"{_localization.T("ui.horse")} {horses}");
+        }
+
+        return parts.Count == 0 ? "-" : string.Join(" / ", parts);
     }
 }

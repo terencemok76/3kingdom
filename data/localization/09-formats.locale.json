@@ -28,12 +28,12 @@
                                         "en":  "{0} (Used This Month)"
                                     },
     "fmt.diplomacy_summary_gift":  {
-                                       "zhHant":  "預覽：{0} -> {1}，贈金 -{2}",
-                                       "en":  "Preview: {0} -> {1}, Gift Gold -{2}"
+                                       "zhHant":  "預覽：{0} -> {1}，贈禮 {2}",
+                                       "en":  "Preview: {0} -> {1}, Gift {2}"
                                    },
     "fmt.diplomacy_summary_demand":  {
                                          "zhHant":  "預覽：{0} -> {1}，索貢 {2}",
-                                         "en":  "Preview: {0} -> {1}, Demand Gold {2}"
+                                         "en":  "Preview: {0} -> {1}, Demand {2}"
                                      },
     "fmt.diplomacy_summary_break_pact":  {
                                              "zhHant":  "預覽：{0} -> {1}，將在月底解除現有條約",

@@ -58,6 +58,11 @@ public partial class HudController
             _turnManager.World.PendingCommands.Remove(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
             CheckFactionEliminations();
+            if (HasPendingPlayerSuccession())
+            {
+                ShowSuccessionDialog();
+                return;
+            }
         }
 
         _pendingAttackResolutionQueue.Clear();
@@ -110,6 +115,11 @@ public partial class HudController
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
             CheckFactionEliminations();
+            if (HasPendingPlayerSuccession())
+            {
+                ShowSuccessionDialog();
+                return;
+            }
         }
 
         FinishEndTurnResolution();
@@ -149,6 +159,7 @@ public partial class HudController
         _pendingNonAttackResolutionQueue.Clear();
         _pendingDefenseCommand = null;
         _pendingDiplomacyProposalCommand = null;
+        _pendingSuccessionFactionId = -1;
         _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
         _attackDialogContextCity = null;
         _attackDialogMode = AttackDialogMode.Attack;

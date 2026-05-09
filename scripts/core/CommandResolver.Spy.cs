@@ -196,6 +196,106 @@ public partial class CommandResolver
                         defenseLoss
                     });
             }
+            case SpyActionType.Assassination:
+            {
+                var targetOfficer = SelectAssassinationTarget(world, targetCity);
+                if (targetOfficer == null)
+                {
+                    OfficerProgressionRules.AwardSpyExperience(officer, 10);
+                    return LocalizedResult(
+                        false,
+                        "cmd.spy.assassination_no_target",
+                        new object[]
+                        {
+                            GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
+                            GetCityName(targetCity, GameLanguage.TraditionalChinese)
+                        },
+                        new object[]
+                        {
+                            GetOfficerDisplayName(officer, GameLanguage.English),
+                            GetCityName(targetCity, GameLanguage.English)
+                        });
+                }
+                var targetFactionId = targetCity.OwnerFactionId;
+                var wasRuler = IsFactionRuler(world, targetOfficer.Id);
+                var targetFactionBeforeDeath = world.GetFaction(targetFactionId);
+                var targetFactionNameZh = targetFactionBeforeDeath != null
+                    ? GetFactionName(targetFactionBeforeDeath, GameLanguage.TraditionalChinese)
+                    : targetFactionId.ToString();
+                var targetFactionNameEn = targetFactionBeforeDeath != null
+                    ? GetFactionName(targetFactionBeforeDeath, GameLanguage.English)
+                    : targetFactionId.ToString();
+                EliminateOfficer(world, targetOfficer);
+                if (wasRuler && targetFactionId > 0)
+                {
+                    ResolveRulerDeath(world, targetFactionId);
+                }
+
+                var targetFaction = world.GetFaction(targetFactionId);
+                OfficerProgressionRules.AwardSpyExperience(officer, GetSpyExperienceReward(actionType, success: true));
+                if (wasRuler && targetFactionId > 0)
+                {
+                    if (targetFaction == null || !IsFactionAlive(world, targetFactionId))
+                    {
+                        return LocalizedResult(
+                            true,
+                            "cmd.spy.assassination_success_faction_destroyed",
+                            new object[]
+                            {
+                                GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
+                                GetOfficerDisplayName(targetOfficer, GameLanguage.TraditionalChinese),
+                                targetFactionNameZh
+                            },
+                            new object[]
+                            {
+                                GetOfficerDisplayName(officer, GameLanguage.English),
+                                GetOfficerDisplayName(targetOfficer, GameLanguage.English),
+                                targetFactionNameEn
+                            });
+                    }
+
+                    if (!targetFaction.IsPlayer && targetFaction.RulerOfficerId > 0)
+                    {
+                        var successor = world.GetOfficer(targetFaction.RulerOfficerId);
+                        if (successor != null)
+                        {
+                            return LocalizedResult(
+                                true,
+                                "cmd.spy.assassination_success_ruler_succeeded",
+                                new object[]
+                                {
+                                    GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
+                                    GetOfficerDisplayName(targetOfficer, GameLanguage.TraditionalChinese),
+                                    GetOfficerDisplayName(successor, GameLanguage.TraditionalChinese),
+                                    GetFactionName(targetFaction, GameLanguage.TraditionalChinese)
+                                },
+                                new object[]
+                                {
+                                    GetOfficerDisplayName(officer, GameLanguage.English),
+                                    GetOfficerDisplayName(targetOfficer, GameLanguage.English),
+                                    GetOfficerDisplayName(successor, GameLanguage.English),
+                                    GetFactionName(targetFaction, GameLanguage.English)
+                                });
+                        }
+                    }
+                }
+
+                return LocalizedResult(
+                    true,
+                    "cmd.spy.assassination_success",
+                    new object[]
+                    {
+                        GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
+                        GetOfficerDisplayName(targetOfficer, GameLanguage.TraditionalChinese),
+                        GetCityName(targetCity, GameLanguage.TraditionalChinese)
+                    },
+                    new object[]
+                    {
+                        GetOfficerDisplayName(officer, GameLanguage.English),
+                        GetOfficerDisplayName(targetOfficer, GameLanguage.English),
+                        GetCityName(targetCity, GameLanguage.English)
+                    });
+            }
             default:
             {
                 var loyaltyLoss = Math.Min(targetCity.Loyalty, 5 + _random.Next(2, 7));
@@ -235,15 +335,17 @@ public partial class CommandResolver
         var defenseScore = (targetIntelligence * 2 + targetCharm) / 3;
         var sourceLoyaltyBonus = Math.Max(0, sourceCity.Loyalty - 60) / 8;
         var targetDefensePenalty = Math.Max(0, targetCity.Defense - 50) / 10;
+        var rankBonus = OfficerProgressionRules.GetSpySuccessBonus(officer);
         var baseChance = actionType switch
         {
             SpyActionType.Reconnaissance => 62,
             SpyActionType.Sabotage => 48,
             SpyActionType.Incite => 44,
+            SpyActionType.Assassination => 28,
             _ => 50
         };
 
-        return Math.Clamp(baseChance + (actingScore - defenseScore) / 4 + sourceLoyaltyBonus - targetDefensePenalty, 10, 92);
+        return Math.Clamp(baseChance + (actingScore - defenseScore) / 4 + sourceLoyaltyBonus + rankBonus - targetDefensePenalty, 10, 92);
     }
 
     private static int CalculateSpyExposureChance(
@@ -262,6 +364,7 @@ public partial class CommandResolver
             SpyActionType.Reconnaissance => 18,
             SpyActionType.Sabotage => 32,
             SpyActionType.Incite => 28,
+            SpyActionType.Assassination => 42,
             _ => 25
         };
 
@@ -294,7 +397,20 @@ public partial class CommandResolver
             SpyActionType.Reconnaissance => 18,
             SpyActionType.Sabotage => 22,
             SpyActionType.Incite => 20,
+            SpyActionType.Assassination => 28,
             _ => 18
         };
+    }
+
+    private static OfficerData? SelectAssassinationTarget(WorldState world, CityData targetCity)
+    {
+        return targetCity.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsOfficerAlive(world, officer))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => IsFactionRuler(world, officer.Id))
+            .ThenBy(officer => officer.Loyalty)
+            .ThenByDescending(officer => officer.Combat + officer.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
+            .FirstOrDefault();
     }
 }

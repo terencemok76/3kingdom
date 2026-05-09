@@ -17,11 +17,11 @@
     },
     "fmt.diplomacy_proposal_gift": {
         "zhHant": "「{0}」自「{1}」向我方送出金 {2} 的贈禮。是否接受？",
-        "en": "\"{0}\" from \"{1}\" offers your faction a gift worth {2} gold. Accept?"
+        "en": "\"{0}\" from \"{1}\" offers your faction a gift of {2}. Accept?"
     },
     "fmt.diplomacy_proposal_demand": {
         "zhHant": "「{0}」自「{1}」向我方提出「索取歲貢」要求金 {2}。是否接受？",
-        "en": "\"{0}\" from \"{1}\" demands tribute of {2} gold from your faction. Accept?"
+        "en": "\"{0}\" from \"{1}\" demands tribute of {2} from your faction. Accept?"
     },
     "fmt.diplomacy_proposal_break_pact": {
         "zhHant": "「{0}」自「{1}」向我方提出「{2}」。若接受，現有條約將立即解除。是否接受？",
@@ -37,11 +37,11 @@
     },
     "cmd.diplomacy.player_rejected_gift": {
         "zhHant": "你拒絕了「{0}」自「{1}」送出的金 {2} 贈禮。",
-        "en": "You rejected the gift of {2} gold from \"{0}\" of \"{1}\"."
+        "en": "You rejected the gift of {2} from \"{0}\" of \"{1}\"."
     },
     "cmd.diplomacy.player_rejected_demand": {
         "zhHant": "你拒絕了「{0}」自「{1}」提出的索取歲貢要求金 {2}。",
-        "en": "You rejected the demand for {2} gold from \"{0}\" of \"{1}\"."
+        "en": "You rejected the tribute demand of {2} from \"{0}\" of \"{1}\"."
     },
     "cmd.diplomacy.player_rejected_break_pact": {
         "zhHant": "你拒絕了「{0}」自「{1}」提出的「{3}」提案，現有條約維持不變。",

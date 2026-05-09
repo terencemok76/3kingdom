@@ -203,21 +203,33 @@
                                                "zhHant":  "索貢至少需要輸入一些金額。",
                                                "en":  "A demand action requires a gold amount."
                                            },
+    "cmd.diplomacy.demand_resource_required":  {
+                                                   "zhHant":  "索貢至少需要輸入金、糧、馬其中一項。",
+                                                   "en":  "A demand action requires at least one requested resource: gold, food, or horse."
+                                               },
     "cmd.diplomacy.demand_no_gold":  {
                                          "zhHant":  "「{0}」向「{1}」索貢成功，但對方目前無金可付。",
                                          "en":  "\"{0}\" succeeded in demanding tribute from \"{1}\", but they had no gold to pay."
                                      },
+    "cmd.diplomacy.demand_no_resources":  {
+                                              "zhHant":  "「{0}」向「{1}」索貢成功，但對方目前無可交付的金、糧、馬。",
+                                              "en":  "\"{0}\" succeeded in demanding tribute from \"{1}\", but they had no gold, food, or horse to pay."
+                                          },
     "cmd.diplomacy.demand_resolved":  {
-                                          "zhHant":  "「{0}」向「{1}」索得歲貢，金 +{2}。",
-                                          "en":  "\"{0}\" extracted tribute from \"{1}\". Gold +{2}."
+                                          "zhHant":  "「{0}」向「{1}」索得歲貢，金 +{2}，糧 +{3}，馬 +{4}。",
+                                          "en":  "\"{0}\" extracted tribute from \"{1}\". Gold +{2}, Food +{3}, Horse +{4}."
                                       },
     "cmd.diplomacy.gift_gold_required":  {
                                              "zhHant":  "贈禮至少需要支付一些金。",
                                              "en":  "A gift action requires some gold."
                                          },
+    "cmd.diplomacy.gift_resource_required":  {
+                                                 "zhHant":  "贈禮至少需要輸入金、糧、馬其中一項。",
+                                                 "en":  "A gift action requires at least one resource: gold, food, or horse."
+                                             },
     "cmd.diplomacy.gift_resolved":  {
-                                        "zhHant":  "「{0}」向「{1}」贈禮。金 -{2}，關係 +{3}。",
-                                        "en":  "\"{0}\" sent a gift to \"{1}\". Gold -{2}, relation +{3}."
+                                        "zhHant":  "「{0}」向「{1}」贈禮。金 -{2}，糧 -{3}，馬 -{4}，關係 +{5}。",
+                                        "en":  "\"{0}\" sent a gift to \"{1}\". Gold -{2}, Food -{3}, Horse -{4}, relation +{5}."
                                     },
     "cmd.diplomacy.invalid_duration":  {
                                            "zhHant":  "外交條約月數必須大於 0。",
@@ -227,6 +239,10 @@
                                           "zhHant":  "「{0}」金不足，無法支付外交贈禮。",
                                           "en":  "\"{0}\" does not have enough gold for a diplomatic gift."
                                       },
+    "cmd.diplomacy.not_enough_resources":  {
+                                               "zhHant":  "「{0}」資源不足，無法支付外交贈禮。",
+                                               "en":  "\"{0}\" does not have enough resources for a diplomatic gift."
+                                           },
     "cmd.diplomacy.officer_required":  {
                                            "zhHant":  "「{0}」外交需要指派一位本城武將。",
                                            "en":  "\"{0}\" requires one local officer for diplomacy."
@@ -275,6 +291,22 @@
                                    "zhHant":  "「{0}」對「{2}」執行「{1}」失敗，且身份暴露。",
                                    "en":  "\"{0}\" failed to perform \"{1}\" on \"{2}\" and was exposed."
                                },
+    "cmd.spy.assassination_no_target":  {
+                                            "zhHant":  "「{0}」潛入「{1}」，但未找到可下手的目標。",
+                                            "en":  "\"{0}\" infiltrated \"{1}\", but found no valid assassination target."
+                                        },
+    "cmd.spy.assassination_success":  {
+                                         "zhHant":  "「{0}」在「{2}」暗殺成功，目標「{1}」已被除去。",
+                                         "en":  "\"{0}\" succeeded in an assassination at \"{2}\". Target \"{1}\" was eliminated."
+                                     },
+    "cmd.spy.assassination_success_ruler_succeeded":  {
+                                                         "zhHant":  "「{0}」暗殺君主「{1}」成功，勢力「{3}」已由「{2}」繼位。",
+                                                         "en":  "\"{0}\" assassinated ruler \"{1}\". Faction \"{3}\" is now led by \"{2}\"."
+                                                     },
+    "cmd.spy.assassination_success_faction_destroyed":  {
+                                                            "zhHant":  "「{0}」暗殺君主「{1}」成功，勢力「{2}」已滅亡。",
+                                                            "en":  "\"{0}\" assassinated ruler \"{1}\". Faction \"{2}\" has collapsed."
+                                                        },
     "cmd.spy.incite_success":  {
                                    "zhHant":  "「{0}」在「{1}」煽動民心成功，忠誠 -{2}。",
                                    "en":  "\"{0}\" incited unrest in \"{1}\" successfully. Loyalty -{2}."
@@ -311,6 +343,22 @@
                                    "zhHant":  "間諜任務需要指定目標城市。",
                                    "en":  "Spy missions require a target city."
                                            },
+    "cmd.succession.invalid_faction":  {
+                                           "zhHant":  "找不到待繼承的勢力。",
+                                           "en":  "Succession faction not found."
+                                       },
+    "cmd.succession.not_pending":  {
+                                       "zhHant":  "目前沒有待處理的君主繼承。",
+                                       "en":  "There is no pending ruler succession."
+                                   },
+    "cmd.succession.invalid_successor":  {
+                                             "zhHant":  "所選武將不可繼位。",
+                                             "en":  "The selected officer cannot become the new ruler."
+                                         },
+    "cmd.succession.player_resolved":  {
+                                           "zhHant":  "勢力「{0}」已由「{1}」繼位。",
+                                           "en":  "Faction \"{0}\" is now led by \"{1}\"."
+                                       },
     "cmd.hire_officer.free_refused":  {
                                           "zhHant":  "「{0}」尚未願意出仕。",
                                           "en":  "\"{0}\" is not yet willing to serve."

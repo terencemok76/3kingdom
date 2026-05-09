@@ -67,6 +67,22 @@
 									 "zhHant":  "索貢金",
 									 "en":  "Demand Gold"
 								 },
+	"ui.diplomacy_demand_food":  {
+									 "zhHant":  "索糧",
+									 "en":  "Demand Food"
+								 },
+	"ui.diplomacy_demand_horse":  {
+									  "zhHant":  "索馬",
+									  "en":  "Demand Horse"
+								  },
+	"ui.diplomacy_gift_food":  {
+								   "zhHant":  "贈糧",
+								   "en":  "Gift Food"
+							   },
+	"ui.diplomacy_gift_horse":  {
+									"zhHant":  "贈馬",
+									"en":  "Gift Horse"
+								},
 	"ui.diplomacy_officer":  {
 								 "zhHant":  "外交使者",
 								 "en":  "Diplomatic Officer"
@@ -79,6 +95,14 @@
 											 "zhHant":  "請輸入金額。",
 											 "en":  "Enter a gold amount."
 										 },
+	"ui.diplomacy_resource_required_warning":  {
+												 "zhHant":  "請至少輸入金、糧、馬其中一項。",
+												 "en":  "Enter at least one demanded resource: gold, food, or horse."
+											 },
+	"ui.diplomacy_gift_resource_required_warning":  {
+													  "zhHant":  "請至少輸入金、糧、馬其中一項作為贈禮。",
+													  "en":  "Enter at least one gift resource: gold, food, or horse."
+												  },
 	"ui.diplomacy_officer_hint":  {
 									  "zhHant":  "請選擇一位使者執行外交。",
 									  "en":  "Select one officer to handle diplomacy."
@@ -104,4 +128,17 @@
 									"zhHant":  "請選擇一位武將執行間諜任務。",
 									"en":  "Select one officer to perform the spy mission."
 								}
+,
+		"ui.succession":  {
+							  "zhHant":  "君主繼承",
+							  "en":  "Ruler Succession"
+						  },
+		"ui.confirm_succession":  {
+									 "zhHant":  "確認繼位",
+									 "en":  "Confirm Successor"
+								 },
+		"ui.succession_summary":  {
+									 "zhHant":  "君主已死亡，請為勢力「{0}」選擇新的君主。",
+									 "en":  "The ruler has died. Choose a new ruler for faction \"{0}\"."
+								 }
 }

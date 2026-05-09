@@ -20,6 +20,8 @@ public class AiController
     private const int SpySabotageDefenseThreshold = 65;
     private const int SpySabotageGoldThreshold = 260;
     private const int SpySabotageFoodThreshold = 700;
+    private const int SpyAssassinationDefenseThreshold = 58;
+    private const int SpyAssassinationTargetValueThreshold = 320;
     private const int SpyInciteLoyaltyThreshold = 78;
 
     private CommandResolver? _commandResolver;
@@ -697,6 +699,32 @@ public class AiController
             return sabotageResult;
         }
 
+        var assassinationTarget = visibleTargets
+            .Where(target => target.Defense <= SpyAssassinationDefenseThreshold)
+            .Where(target => GetBestAssassinationTargetValue(world, target) >= SpyAssassinationTargetValueThreshold)
+            .OrderByDescending(target => GetBestAssassinationTargetValue(world, target))
+            .ThenBy(target => target.Defense)
+            .FirstOrDefault();
+        if (assassinationTarget != null)
+        {
+            var assassinationResult = _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Spy,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                TargetCityId = assassinationTarget.Id,
+                SpyActionType = SpyActionType.Assassination,
+                OfficerIds = new System.Collections.Generic.List<int> { spyOfficerId }
+            });
+
+            if (assassinationResult.Success)
+            {
+                availableOfficerIds.Remove(spyOfficerId);
+            }
+
+            return assassinationResult;
+        }
+
         var inciteTarget = visibleTargets
             .Where(target => target.Loyalty >= SpyInciteLoyaltyThreshold)
             .OrderByDescending(target => target.Loyalty)
@@ -758,6 +786,19 @@ public class AiController
             city,
             availableOfficerIds,
             officer => (officer.Intelligence * 2) + officer.Charm + officer.Politics + (officer.SpyRank * 20));
+    }
+
+    private static int GetBestAssassinationTargetValue(WorldState world, CityData city)
+    {
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .Select(officer =>
+                officer.Combat + officer.Leadership + officer.Intelligence + officer.Politics + officer.Charm - (officer.Loyalty / 2) +
+                (world.Factions.Any(faction => faction.RulerOfficerId == officer.Id) ? 1000 : 0))
+            .DefaultIfEmpty(0)
+            .Max();
     }
 
     private static int GetBestDiplomacyOfficerId(

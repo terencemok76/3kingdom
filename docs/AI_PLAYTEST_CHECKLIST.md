@@ -20,6 +20,10 @@
   - `Alliance`
   - `Truce`
   - `Gift`
+- `Gift` 現況需覆蓋多資源送禮：
+  - `Gold`
+  - `Food`
+  - `Horse`
 - AI 諜報基線：
   - `Reconnaissance`
   - `Sabotage`
@@ -43,6 +47,10 @@
 - 進階外交動作：
   - `Demand`
   - `Break Pact`
+- `Demand` 現況需覆蓋多資源索貢：
+  - `Gold`
+  - `Food`
+  - `Horse`
   - `Marriage`
   - `Pressure`
 - 進階諜報動作：
@@ -159,6 +167,8 @@
   - AI 可合法使用 `Alliance / Truce / Gift`
   - 指派武將狀態正確鎖定
   - 月末完成外交結算
+  - `Gift` 可正確攜帶 `Gold / Food / Horse`
+  - `Gift` 成功後，來源城市資源扣除與關係值提升正確
   - `View -> Diplomacy Relations` 能看到更新後的關係資料
 
 ### 7.2 外交關係顯示
@@ -174,14 +184,27 @@
 ### 7.3 AI 對玩家外交提案
 
 - 前置：
-  - AI 與玩家之間存在可成立的 `Alliance / Truce / Gift` 情境。
+  - AI 與玩家之間存在可成立的 `Alliance / Truce / Gift / Demand` 情境。
 - 預期：
-  - AI 不會對玩家直接自動生效 `Alliance / Truce / Gift`
+  - AI 不會對玩家直接自動生效 `Alliance / Truce / Gift / Demand`
   - 月底先跳出外交提案彈窗
   - 彈窗可顯示提案行動、使者、來源城市，以及金額或月數
   - 玩家可選擇 `接受 / 拒絕`
   - 接受後按原外交規則正確結算
-  - 拒絕 `Gift` 後，AI 城市金額正確返還
+  - 拒絕 `Gift` 後，AI 城市 `Gold / Food / Horse` 正確返還
+  - 拒絕 `Demand` 後，不會發生資源轉移
+  - `Break Pact` 為通知制，玩家無法拒絕
+
+### 7.3A Demand 多資源結算
+
+- 步驟：
+  - 玩家對 AI，或 AI 對玩家，發起 `Demand`
+  - 同時填入 `Gold / Food / Horse`
+- 預期：
+  - 任一資源大於 `0` 即可成立指派
+  - 月底成功時，三種資源會依項目分別結算
+  - `Gold / Food / Horse` 若部分不足，應允許部分支付
+  - 若三種都無可交付資源，應顯示無可支付結果
   - 相關結果會出現在玩家可見日誌中
 
 ### 7.4 諜報曝光對外交影響
@@ -417,3 +440,47 @@
 - 重點回歸一次「AI 攻城 -> 防守彈窗 -> 配置守軍 -> 戰鬥結算」全鏈路。
 - 觀察 AI 是否會穩定刷新即將到期的情報。
 - 補做外交 / 諜報長時程 soak test，確認關係值、忠誠、情報到期與日誌不會漂移。
+## 16.1 2026-05-09 補充測試
+
+### 16.1A `Assassination` 基線
+- 測試步驟：
+  - 玩家或 AI 對有武將駐守的敵城下達 `Spy -> Assassination`
+  - 推進到月末結算
+- 預期結果：
+  - 指令可正常排程
+  - 成功時會移除一名目標武將
+  - 該武將不會殘留在 `City.OfficerIds` 或 `Faction.OfficerIds`
+  - 該武將不會在後續自由武將流動中再次出現
+
+### 16.1B AI 勢力君主被刺殺
+- 測試步驟：
+  - 對 AI 勢力城市執行 `Assassination`
+  - 讓目標命中該勢力君主
+- 預期結果：
+  - 原君主死亡
+  - AI 勢力會立即自動選出新君主
+  - 新君主選擇順序符合：
+    - `Role == Lord / Ruler`
+    - 否則 `Leadership + Intelligence + Politics + Charm`
+    - 同分再比 `Loyalty`
+
+### 16.1C 玩家勢力君主被刺殺
+- 測試步驟：
+  - 讓 AI 或測試流程成功刺殺玩家君主
+  - 觀察月末中斷流程
+- 預期結果：
+  - 月末流程會暫停
+  - 跳出 `君主繼承` 視窗
+  - 候選武將名單順序符合設計規則
+  - 玩家確認後才會繼續後續結算
+
+### 16.1D 無繼承人時的勢力滅亡
+- 測試步驟：
+  - 讓某勢力只剩君主一人
+  - 對其成功執行 `Assassination`
+- 預期結果：
+  - 該勢力直接滅亡
+  - 所有城市轉為中立
+  - 既有外交關係清除
+  - 該勢力 pending command 取消
+  - 已滅亡勢力不會繼續行動

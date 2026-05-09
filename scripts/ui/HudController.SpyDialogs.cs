@@ -129,6 +129,7 @@ public partial class HudController : CanvasLayer
         AddSpyActionOption(SpyActionType.Reconnaissance);
         AddSpyActionOption(SpyActionType.Sabotage);
         AddSpyActionOption(SpyActionType.Incite);
+        AddSpyActionOption(SpyActionType.Assassination);
 
         _spyTargetCityOption.Clear();
         foreach (var city in _turnManager.World.Cities.Where(city => city.OwnerFactionId != _selectedCity.OwnerFactionId))
@@ -211,6 +212,7 @@ public partial class HudController : CanvasLayer
             SpyActionType.Reconnaissance => "command.spy.reconnaissance",
             SpyActionType.Sabotage => "command.spy.sabotage",
             SpyActionType.Incite => "command.spy.incite",
+            SpyActionType.Assassination => "command.spy.assassination",
             _ => "command.spy.reconnaissance"
         };
         _spyActionOption.AddItem(_localization.T(key));
@@ -344,6 +346,7 @@ public partial class HudController : CanvasLayer
             SpyActionType.Reconnaissance => "command.spy.reconnaissance",
             SpyActionType.Sabotage => "command.spy.sabotage",
             SpyActionType.Incite => "command.spy.incite",
+            SpyActionType.Assassination => "command.spy.assassination",
             _ => "command.spy.reconnaissance"
         });
         _spySummaryLabel.Text = _localization.Format("fmt.spy_summary", actionName, targetCityName);

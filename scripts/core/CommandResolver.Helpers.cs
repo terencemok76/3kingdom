@@ -438,6 +438,170 @@ public partial class CommandResolver
         return world.Cities.Any(city => city.OwnerFactionId == factionId);
     }
 
+    private void EliminateOfficer(WorldState world, OfficerData officer)
+    {
+        var city = officer.CityId > 0 ? world.GetCity(officer.CityId) : null;
+        city?.OfficerIds.Remove(officer.Id);
+
+        var faction = world.Factions.FirstOrDefault(item =>
+            item.RulerOfficerId == officer.Id ||
+            item.OfficerIds.Contains(officer.Id));
+        faction?.OfficerIds.Remove(officer.Id);
+
+        foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officer.Id))
+        {
+            if (city != null && city.OwnerFactionId > 0)
+            {
+                MoveItemToFactionInventory(item, city.OwnerFactionId);
+            }
+            else
+            {
+                item.EquippedOfficerId = 0;
+                item.OwnerFactionId = 0;
+                item.OwnerCityId = 0;
+            }
+        }
+
+        world.InternalAffairsSchedules.RemoveAll(schedule => schedule.OfficerId == officer.Id);
+        world.PendingCommands.RemoveAll(command => command.OfficerIds.Contains(officer.Id));
+
+        officer.CityId = 0;
+        officer.FreeOfficerStayMonths = 0;
+        officer.DeathYear = world.Year;
+
+        if (faction != null && faction.RulerOfficerId == officer.Id)
+        {
+            faction.RulerOfficerId = 0;
+        }
+    }
+
+    private void ResolveRulerDeath(WorldState world, int factionId)
+    {
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return;
+        }
+
+        var candidateIds = faction.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null && IsOfficerAlive(world, officer))
+            .OrderByDescending(officer => IsRulerRole(officer!.Role))
+            .ThenByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
+            .ThenByDescending(officer => officer!.Loyalty)
+            .Select(officer => officer!.Id)
+            .ToList();
+
+        if (candidateIds.Count == 0)
+        {
+            CollapseFaction(world, factionId);
+            return;
+        }
+
+        if (faction.IsPlayer)
+        {
+            world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == factionId);
+            world.PendingSuccessionRecords.Add(new WorldState.PendingSuccessionData
+            {
+                FactionId = factionId,
+                CandidateOfficerIds = candidateIds
+            });
+            return;
+        }
+
+        faction.RulerOfficerId = candidateIds[0];
+        if (!faction.OfficerIds.Contains(candidateIds[0]))
+        {
+            faction.OfficerIds.Add(candidateIds[0]);
+        }
+    }
+
+    private void CollapseFaction(WorldState world, int factionId)
+    {
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return;
+        }
+
+        var cityIds = world.Cities
+            .Where(city => city.OwnerFactionId == factionId)
+            .Select(city => city.Id)
+            .ToList();
+        var officerIds = faction.OfficerIds.ToList();
+
+        foreach (var cityId in cityIds)
+        {
+            var city = world.GetCity(cityId);
+            if (city == null)
+            {
+                continue;
+            }
+
+            city.OwnerFactionId = 0;
+            city.Loyalty = 50;
+            foreach (var officerId in city.OfficerIds.ToList())
+            {
+                var officer = world.GetOfficer(officerId);
+                if (officer == null)
+                {
+                    continue;
+                }
+
+                officer.CityId = city.Id;
+                officer.FreeOfficerStayMonths = Math.Max(officer.FreeOfficerStayMonths, 2);
+            }
+        }
+
+        foreach (var officerId in officerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            if (officer.CityId > 0)
+            {
+                officer.FreeOfficerStayMonths = Math.Max(officer.FreeOfficerStayMonths, 2);
+            }
+        }
+
+        faction.OfficerIds.Clear();
+        faction.RulerOfficerId = 0;
+        foreach (var item in world.Items.Where(item => item.OwnerFactionId == factionId).ToList())
+        {
+            item.OwnerFactionId = 0;
+            item.OwnerCityId = 0;
+            item.EquippedOfficerId = 0;
+        }
+
+        world.DiplomacyRelations.RemoveAll(relation => relation.FactionAId == factionId || relation.FactionBId == factionId);
+        world.PendingCommands.RemoveAll(command => command.ActorFactionId == factionId);
+        world.InternalAffairsSchedules.RemoveAll(schedule =>
+        {
+            var city = world.GetCity(schedule.CityId);
+            return city != null && cityIds.Contains(city.Id);
+        });
+        world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == factionId);
+    }
+
+    private static bool IsOfficerAlive(WorldState world, OfficerData? officer)
+    {
+        if (officer == null)
+        {
+            return false;
+        }
+
+        return officer.DeathYear <= 0 || world.Year < officer.DeathYear;
+    }
+
+    private static bool IsRulerRole(string role)
+    {
+        return role.Equals("Lord", StringComparison.OrdinalIgnoreCase) ||
+               role.Equals("Ruler", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static DiplomacyRelationData GetOrCreateDiplomacyRelation(WorldState world, int factionAId, int factionBId)
     {
         var low = Math.Min(factionAId, factionBId);
@@ -870,6 +1034,11 @@ public partial class CommandResolver
 
     private static bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer)
     {
+        if (officer.DeathYear > 0 && world.Year >= officer.DeathYear)
+        {
+            return false;
+        }
+
         if (officer.BirthYear <= 0)
         {
             return true;
@@ -958,6 +1127,7 @@ public partial class CommandResolver
             SpyActionType.Reconnaissance => "command.spy.reconnaissance",
             SpyActionType.Sabotage => "command.spy.sabotage",
             SpyActionType.Incite => "command.spy.incite",
+            SpyActionType.Assassination => "command.spy.assassination",
             _ => "command.spy.reconnaissance"
         };
         return _localization?.TForLanguage(language, key) ?? actionType.ToString();

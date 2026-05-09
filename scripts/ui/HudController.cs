@@ -216,6 +216,8 @@ public partial class HudController : CanvasLayer
     private OptionButton? _diplomacyTargetFactionOption;
     private SpinBox? _diplomacyDurationSpinBox;
     private SpinBox? _diplomacyGoldSpinBox;
+    private SpinBox? _diplomacyFoodSpinBox;
+    private SpinBox? _diplomacyHorseSpinBox;
     private Tree? _diplomacyOfficerList;
     private Label? _diplomacyRelationInfoLabel;
     private Label? _diplomacySummaryLabel;
@@ -232,6 +234,10 @@ public partial class HudController : CanvasLayer
     private Label? _spySummaryLabel;
     private Label? _spyWarningLabel;
     private Button? _spyConfirmButton;
+    private AcceptDialog? _successionDialog;
+    private Tree? _successionOfficerList;
+    private Label? _successionSummaryLabel;
+    private Label? _successionWarningLabel;
     private AcceptDialog? _officerListDialog;
     private PanelContainer? _officerListTitlebarFill;
     private PanelContainer? _officerListHeaderPanel;
@@ -306,6 +312,7 @@ public partial class HudController : CanvasLayer
     private CityData? _attackDialogContextCity;
     private PendingCommandData? _pendingDefenseCommand;
     private PendingCommandData? _pendingDiplomacyProposalCommand;
+    private int _pendingSuccessionFactionId = -1;
     private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
     private bool _isResolvingEndTurn;
@@ -456,6 +463,14 @@ public partial class HudController : CanvasLayer
         AddChild(_spyDialog);
         EnsureSpyDialogWidgets();
         _spyDialog.Hide();
+
+        _successionDialog = new AcceptDialog();
+        _successionDialog.Exclusive = false;
+        _successionDialog.Unfocusable = false;
+        _successionDialog.Confirmed += OnSuccessionDialogConfirmed;
+        _successionDialog.CloseRequested += OnSuccessionDialogCloseRequested;
+        AddChild(_successionDialog);
+        EnsureSuccessionDialogWidgets();
 
         _internalAffairsDialog = new AcceptDialog();
         _internalAffairsDialog.Exclusive = false;

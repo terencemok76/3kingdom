@@ -5,6 +5,12 @@ namespace ThreeKingdom.Data;
 
 public class WorldState
 {
+    public class PendingSuccessionData
+    {
+        public int FactionId { get; set; }
+        public List<int> CandidateOfficerIds { get; set; } = new();
+    }
+
     public class CityIntelData
     {
         public int ViewerFactionId { get; set; }
@@ -28,6 +34,7 @@ public class WorldState
     public List<PendingCommandData> PendingCommands { get; set; } = new();
     public List<InternalAffairsScheduleData> InternalAffairsSchedules { get; set; } = new();
     public List<CityIntelData> CityIntelRecords { get; set; } = new();
+    public List<PendingSuccessionData> PendingSuccessionRecords { get; set; } = new();
     public bool ViewAllInformationEnabled { get; set; }
 
     public CityData? GetCity(int cityId)
@@ -65,6 +72,11 @@ public class WorldState
             record.ViewerFactionId == viewerFactionId &&
             record.TargetCityId == cityId &&
             record.RemainingMonths > 0);
+    }
+
+    public PendingSuccessionData? GetPendingSuccession(int factionId)
+    {
+        return PendingSuccessionRecords.FirstOrDefault(record => record.FactionId == factionId);
     }
 
     public bool HasActiveCityIntel(int viewerFactionId, int cityId)

@@ -361,6 +361,11 @@ public class WorldRepository
             return false;
         }
 
+        if (officer.DeathYear > 0 && world.Year >= officer.DeathYear)
+        {
+            return false;
+        }
+
         if (officer.BirthYear <= 0)
         {
             return true;

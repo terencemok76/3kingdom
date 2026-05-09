@@ -23,7 +23,7 @@ public partial class CommandResolver
     private const int CivilReliefFoodPerTenLoyalty = 1000;
     private const float FailedAttackSupplyReturnRatio = 0.5f;
 
-    private readonly Random _random = new();
+    private Random _random = new();
 
     private TurnManager? _turnManager;
     private CombatResolver? _combatResolver;
@@ -34,6 +34,7 @@ public partial class CommandResolver
         _turnManager = turnManager;
         _combatResolver = combatResolver;
         _localization = localization;
+        ConfigureRandom(turnManager.World?.RandomSeed ?? 0);
     }
 
     public CommandResult Execute(CommandRequest request)
@@ -99,5 +100,64 @@ public partial class CommandResolver
         };
     }
 
+    public CommandResult ResolvePlayerSuccession(int factionId, int successorOfficerId)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
 
+        var world = _turnManager.World;
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return LocalizedResult(false, "cmd.succession.invalid_faction");
+        }
+
+        var pendingSuccession = world.GetPendingSuccession(factionId);
+        if (pendingSuccession == null)
+        {
+            return LocalizedResult(false, "cmd.succession.not_pending");
+        }
+
+        if (!pendingSuccession.CandidateOfficerIds.Contains(successorOfficerId))
+        {
+            return LocalizedResult(false, "cmd.succession.invalid_successor");
+        }
+
+        var successor = world.GetOfficer(successorOfficerId);
+        if (successor == null)
+        {
+            return LocalizedResult(false, "cmd.succession.invalid_successor");
+        }
+
+        faction.RulerOfficerId = successorOfficerId;
+        if (!faction.OfficerIds.Contains(successorOfficerId))
+        {
+            faction.OfficerIds.Add(successorOfficerId);
+        }
+
+        world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == factionId);
+        return LocalizedResult(
+            true,
+            "cmd.succession.player_resolved",
+            new object[]
+            {
+                GetFactionName(faction, GameLanguage.TraditionalChinese),
+                GetOfficerDisplayName(successor, GameLanguage.TraditionalChinese)
+            },
+            new object[]
+            {
+                GetFactionName(faction, GameLanguage.English),
+                GetOfficerDisplayName(successor, GameLanguage.English)
+            });
+    }
+
+
+    private void ConfigureRandom(int seed)
+    {
+        _random = seed != 0
+            ? new Random(HashCode.Combine(seed, 701))
+            : new Random();
+    }
 }

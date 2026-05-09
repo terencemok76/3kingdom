@@ -132,8 +132,16 @@ public partial class HudController
 
         return pendingCommand.DiplomacyActionType switch
         {
-            DiplomacyActionType.Gift => _localization.Format("fmt.diplomacy_proposal_gift", envoyName, sourceCityName, pendingCommand.GoldToSend),
-            DiplomacyActionType.Demand => _localization.Format("fmt.diplomacy_proposal_demand", envoyName, sourceCityName, pendingCommand.GoldToSend),
+            DiplomacyActionType.Gift => _localization.Format(
+                "fmt.diplomacy_proposal_gift",
+                envoyName,
+                sourceCityName,
+                BuildDiplomacyDemandResourceSummary(pendingCommand.GoldToSend, pendingCommand.FoodToSend, pendingCommand.HorsesToSend)),
+            DiplomacyActionType.Demand => _localization.Format(
+                "fmt.diplomacy_proposal_demand",
+                envoyName,
+                sourceCityName,
+                BuildDiplomacyDemandResourceSummary(pendingCommand.GoldToSend, pendingCommand.FoodToSend, pendingCommand.HorsesToSend)),
             DiplomacyActionType.BreakPact => _localization.Format("fmt.diplomacy_proposal_break_pact_notice", envoyName, sourceCityName, actionName),
             _ => _localization.Format("fmt.diplomacy_proposal_treaty", envoyName, sourceCityName, actionName, pendingCommand.DurationMonths)
         };
@@ -169,6 +177,11 @@ public partial class HudController
         _diplomacyProposalDialog?.Hide();
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         CheckFactionEliminations();
+        if (HasPendingPlayerSuccession())
+        {
+            ShowSuccessionDialog();
+            return;
+        }
         ContinuePendingNonAttackResolution();
     }
 
@@ -181,12 +194,14 @@ public partial class HudController
 
         var world = _turnManager.World;
         var pendingCommand = _pendingDiplomacyProposalCommand;
-        if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift && pendingCommand.GoldToSend > 0)
+        if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Gift)
         {
             var sourceCity = world.GetCity(pendingCommand.SourceCityId);
             if (sourceCity != null)
             {
                 sourceCity.Gold += pendingCommand.GoldToSend;
+                sourceCity.Food += pendingCommand.FoodToSend;
+                sourceCity.Horses += pendingCommand.HorsesToSend;
             }
         }
 
@@ -223,6 +238,9 @@ public partial class HudController
         var actionKey = GetDiplomacyActionLocaleKey(pendingCommand.DiplomacyActionType);
         var actionZh = _localization.TForLanguage(GameLanguage.TraditionalChinese, actionKey);
         var actionEn = _localization.TForLanguage(GameLanguage.English, actionKey);
+        object resourceArgument = pendingCommand.DiplomacyActionType == DiplomacyActionType.Demand
+            ? BuildDiplomacyDemandResourceSummary(pendingCommand.GoldToSend, pendingCommand.FoodToSend, pendingCommand.HorsesToSend)
+            : pendingCommand.GoldToSend;
         var key = pendingCommand.DiplomacyActionType switch
         {
             DiplomacyActionType.Gift => "cmd.diplomacy.player_rejected_gift",
@@ -234,9 +252,30 @@ public partial class HudController
         return new CommandResult
         {
             Success = true,
-            Message = _localization.FormatForLanguage(GameLanguage.English, key, envoyEn, cityEn, pendingCommand.GoldToSend, actionEn, pendingCommand.DurationMonths),
-            MessageZhHant = _localization.FormatForLanguage(GameLanguage.TraditionalChinese, key, envoyZh, cityZh, pendingCommand.GoldToSend, actionZh, pendingCommand.DurationMonths),
-            MessageEn = _localization.FormatForLanguage(GameLanguage.English, key, envoyEn, cityEn, pendingCommand.GoldToSend, actionEn, pendingCommand.DurationMonths)
+            Message = _localization.FormatForLanguage(
+                GameLanguage.English,
+                key,
+                envoyEn,
+                cityEn,
+                resourceArgument,
+                actionEn,
+                pendingCommand.DurationMonths),
+            MessageZhHant = _localization.FormatForLanguage(
+                GameLanguage.TraditionalChinese,
+                key,
+                envoyZh,
+                cityZh,
+                resourceArgument,
+                actionZh,
+                pendingCommand.DurationMonths),
+            MessageEn = _localization.FormatForLanguage(
+                GameLanguage.English,
+                key,
+                envoyEn,
+                cityEn,
+                resourceArgument,
+                actionEn,
+                pendingCommand.DurationMonths)
         };
     }
 
