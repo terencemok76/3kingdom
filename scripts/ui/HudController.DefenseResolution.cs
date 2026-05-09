@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
@@ -213,20 +214,40 @@ public partial class HudController
             }
         }
 
-        foreach (var disaster in economyResult.PlayerCityDisasters)
+        var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
+        foreach (var cityEvent in economyResult.AllCityEvents)
         {
-            var city = world.GetCity(disaster.CityId);
+            var city = world.GetCity(cityEvent.CityId);
             if (city == null)
             {
                 continue;
             }
 
+            var eventKey = cityEvent.EventType switch
+            {
+                MonthlyCityEventType.Flooding => "log.city_event_flooding",
+                MonthlyCityEventType.Drought => "log.city_event_drought",
+                MonthlyCityEventType.Earthquake => "log.city_event_earthquake",
+                MonthlyCityEventType.InsectDisaster => "log.city_event_insect_disaster",
+                MonthlyCityEventType.Plague => "log.city_event_plague",
+                MonthlyCityEventType.Rebellion => "log.city_event_rebellion",
+                MonthlyCityEventType.Bandit => "log.city_event_bandit",
+                MonthlyCityEventType.Snow => "log.city_event_snow",
+                MonthlyCityEventType.Typhoon => "log.city_event_typhoon",
+                MonthlyCityEventType.BumperHarvest => "log.city_event_bumper_harvest",
+                MonthlyCityEventType.Fire => "log.city_event_fire",
+                _ => "log.city_disaster"
+            };
             AddLog(_localization.Format(
-                "log.city_disaster",
+                eventKey,
                 _localization.GetCityName(city),
-                disaster.GoldLoss,
-                disaster.FoodLoss,
-                disaster.LoyaltyLoss), isPlayerRelated: true);
+                System.Math.Abs(cityEvent.GoldDelta),
+                System.Math.Abs(cityEvent.FoodDelta),
+                System.Math.Abs(cityEvent.LoyaltyDelta),
+                System.Math.Abs(cityEvent.FarmDelta),
+                System.Math.Abs(cityEvent.DefenseDelta),
+                System.Math.Abs(cityEvent.PopulationDelta),
+                System.Math.Abs(cityEvent.TroopDelta)), isPlayerRelated: city.OwnerFactionId == playerFactionId);
         }
 
         AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month), isPlayerRelated: true);

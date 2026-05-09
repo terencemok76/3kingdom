@@ -7,6 +7,50 @@
                               "zhHant":  "「{0}」遭遇災害：金 -{1}，糧 -{2}，忠誠 -{3}。",
                               "en":  "\"{0}\" suffered a disaster: Gold -{1}, Food -{2}, Loyalty -{3}."
                           },
+    "log.city_event_flooding":  {
+                                    "zhHant":  "「{0}」發生水災：糧 -{2}，忠誠 -{3}，農業 -{4}，人口 -{6}，兵力 -{7}。",
+                                    "en":  "\"{0}\" was hit by flooding: Food -{2}, Loyalty -{3}, Farm -{4}, Population -{6}, Troops -{7}."
+                                },
+    "log.city_event_drought":  {
+                                   "zhHant":  "「{0}」發生旱災：糧 -{2}，忠誠 -{3}，農業 -{4}，人口 -{6}，兵力 -{7}。",
+                                   "en":  "\"{0}\" suffered a drought: Food -{2}, Loyalty -{3}, Farm -{4}, Population -{6}, Troops -{7}."
+                               },
+    "log.city_event_earthquake":  {
+                                      "zhHant":  "「{0}」發生地震：金 -{1}，忠誠 -{3}，防禦 -{5}，人口 -{6}，兵力 -{7}。",
+                                      "en":  "\"{0}\" was struck by an earthquake: Gold -{1}, Loyalty -{3}, Defense -{5}, Population -{6}, Troops -{7}."
+                                  },
+    "log.city_event_insect_disaster":  {
+                                           "zhHant":  "「{0}」發生蟲災：糧 -{2}，忠誠 -{3}，農業 -{4}。",
+                                           "en":  "\"{0}\" suffered an insect disaster: Food -{2}, Loyalty -{3}, Farm -{4}."
+                                       },
+    "log.city_event_plague":  {
+                                  "zhHant":  "「{0}」爆發瘟疫：糧 -{2}，忠誠 -{3}，人口 -{6}，兵力 -{7}。",
+                                  "en":  "\"{0}\" was struck by plague: Food -{2}, Loyalty -{3}, Population -{6}, Troops -{7}."
+                              },
+    "log.city_event_rebellion":  {
+                                     "zhHant":  "「{0}」爆發叛亂：金 -{1}，糧 -{2}，忠誠 -{3}，防禦 -{5}。",
+                                     "en":  "\"{0}\" erupted in rebellion: Gold -{1}, Food -{2}, Loyalty -{3}, Defense -{5}."
+                                 },
+    "log.city_event_bandit":  {
+                                  "zhHant":  "「{0}」遭盜賊襲擾：金 -{1}，糧 -{2}，忠誠 -{3}。",
+                                  "en":  "\"{0}\" was raided by bandits: Gold -{1}, Food -{2}, Loyalty -{3}."
+                              },
+    "log.city_event_snow":  {
+                                "zhHant":  "「{0}」遭遇大雪：糧 -{2}，忠誠 -{3}，防禦 -{5}，人口 -{6}，兵力 -{7}。",
+                                "en":  "\"{0}\" was hit by heavy snow: Food -{2}, Loyalty -{3}, Defense -{5}, Population -{6}, Troops -{7}."
+                            },
+    "log.city_event_typhoon":  {
+                                   "zhHant":  "「{0}」遭遇颱風：糧 -{2}，忠誠 -{3}，農業 -{4}，防禦 -{5}，人口 -{6}，兵力 -{7}。",
+                                   "en":  "\"{0}\" was struck by a typhoon: Food -{2}, Loyalty -{3}, Farm -{4}, Defense -{5}, Population -{6}, Troops -{7}."
+                               },
+    "log.city_event_bumper_harvest":  {
+                                          "zhHant":  "「{0}」迎來豐收：糧 +{2}，忠誠 +{3}。",
+                                          "en":  "\"{0}\" enjoyed a bumper harvest: Food +{2}, Loyalty +{3}."
+                                      },
+    "log.city_event_fire":  {
+                                "zhHant":  "「{0}」發生火災：金 -{1}，糧 -{2}，忠誠 -{3}，防禦 -{5}，人口 -{6}，兵力 -{7}。",
+                                "en":  "\"{0}\" suffered a fire: Gold -{1}, Food -{2}, Loyalty -{3}, Defense -{5}, Population -{6}, Troops -{7}."
+                            },
     "log.civil_command_selected":  {
                                        "zhHant":  "已選擇民事指令：{0}。",
                                        "en":  "Civil command selected: {0}."

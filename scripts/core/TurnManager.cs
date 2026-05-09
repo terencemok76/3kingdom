@@ -12,22 +12,47 @@ public class MonthlyEconomyResult
     public List<(int CityId, int Amount)> PlayerCityHorseBirths { get; } = new();
     public List<(int CityId, int Amount)> PlayerCityGoldIncome { get; } = new();
     public List<(int CityId, int Amount)> PlayerCityFoodIncome { get; } = new();
-    public List<MonthlyDisasterEvent> PlayerCityDisasters { get; } = new();
+    public List<MonthlyCityEvent> AllCityEvents { get; } = new();
+    public List<MonthlyCityEvent> PlayerCityEvents { get; } = new();
 }
 
-public class MonthlyDisasterEvent
+public enum MonthlyCityEventType
+{
+    Flooding,
+    Drought,
+    Earthquake,
+    InsectDisaster,
+    Plague,
+    Rebellion,
+    Bandit,
+    Snow,
+    Typhoon,
+    BumperHarvest,
+    Fire
+}
+
+public class MonthlyCityEvent
 {
     public int CityId { get; set; }
-    public int GoldLoss { get; set; }
-    public int FoodLoss { get; set; }
-    public int LoyaltyLoss { get; set; }
+    public MonthlyCityEventType EventType { get; set; }
+    public int GoldDelta { get; set; }
+    public int FoodDelta { get; set; }
+    public int LoyaltyDelta { get; set; }
+    public int FarmDelta { get; set; }
+    public int DefenseDelta { get; set; }
+    public int PopulationDelta { get; set; }
+    public int TroopDelta { get; set; }
 }
 
 public class TurnManager
 {
     private const int MonthlyUpkeepDivisor = 40;
-    private const double BaseDisasterChance = 0.08;
     private const double BaseHorseBirthRate = 0.10;
+    private const double BaseDisasterChance = 0.08;
+    private const double BaseBumperHarvestChance = 0.05;
+    private const int RebellionLoyaltyThreshold = 55;
+    private const int BanditLoyaltyThreshold = 65;
+    private const int BanditDefenseThreshold = 45;
 
     public WorldState? World { get; private set; }
     public int ActiveFactionId { get; private set; }
@@ -219,7 +244,7 @@ public class TurnManager
                 city.Loyalty = city.Loyalty > 2 ? city.Loyalty - 2 : 0;
             }
 
-            ApplyMonthlyDisaster(city, playerFactionId, result);
+            ApplyMonthlyCityEvent(city, playerFactionId, result);
         }
 
         return result;
@@ -364,45 +389,453 @@ public class TurnManager
         return allocation;
     }
 
-    private void ApplyMonthlyDisaster(CityData city, int playerFactionId, MonthlyEconomyResult result)
+    private static void ApplyCityTroopEventLoss(CityData city, int troopDelta)
+    {
+        if (troopDelta >= 0)
+        {
+            return;
+        }
+
+        var losses = -troopDelta;
+        if (losses <= 0 || city.Troops <= 0)
+        {
+            return;
+        }
+
+        if (losses > city.Troops)
+        {
+            losses = city.Troops;
+        }
+
+        city.RemoveTroopAllocation(CreateDeserterAllocation(city, losses));
+    }
+
+    private static int CalculatePopulationLoss(CityData city, int baseAmount, int randomRange, System.Random random, double severityMultiplier)
+    {
+        return System.Math.Min(city.Population, (int)System.Math.Round((baseAmount + random.Next(0, randomRange + 1)) * severityMultiplier));
+    }
+
+    private static int CalculateTroopLoss(CityData city, int baseAmount, int randomRange, System.Random random, double severityMultiplier)
+    {
+        return System.Math.Min(city.Troops, (int)System.Math.Round((baseAmount + random.Next(0, randomRange + 1)) * severityMultiplier));
+    }
+
+    private void ApplyMonthlyCityEvent(CityData city, int playerFactionId, MonthlyEconomyResult result)
     {
         if (World == null)
         {
             return;
         }
 
+        var month = World.Month;
         var disasterPrevention = System.Math.Max(0, city.DisasterPrevention);
         var chanceMultiplier = System.Math.Max(0.2, 1.0 - disasterPrevention / 150.0);
         var random = new System.Random(System.HashCode.Combine(World.RandomSeed, World.Year, World.Month, city.Id, 991));
-        if (random.NextDouble() >= BaseDisasterChance * chanceMultiplier)
+        var harvestChance = IsBumperHarvestSeason(month)
+            ? BaseBumperHarvestChance * System.Math.Min(1.6, 0.7 + city.Farm / 120.0 + disasterPrevention / 400.0)
+            : 0.0;
+        var disasterRoll = random.NextDouble();
+        if (disasterRoll >= BaseDisasterChance * chanceMultiplier && random.NextDouble() >= harvestChance)
         {
             return;
         }
 
-        var severityMultiplier = System.Math.Max(0.25, 1.0 - disasterPrevention / 120.0);
-        var goldLoss = System.Math.Min(city.Gold, (int)System.Math.Round((20 + random.Next(0, 61)) * severityMultiplier));
-        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((40 + random.Next(0, 121)) * severityMultiplier));
-        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 4)) * severityMultiplier)));
+        var severityMultiplier = System.Math.Max(0.12, 1.0 - disasterPrevention / 90.0);
+        MonthlyCityEvent? cityEvent;
+        if (disasterRoll < BaseDisasterChance * chanceMultiplier)
+        {
+            cityEvent = CreateDisasterEvent(city, month, random, severityMultiplier);
+        }
+        else
+        {
+            cityEvent = CreateBumperHarvestEvent(city, random);
+        }
 
-        if (goldLoss <= 0 && foodLoss <= 0 && loyaltyLoss <= 0)
+        if (cityEvent == null)
         {
             return;
         }
 
-        city.Gold -= goldLoss;
-        city.Food -= foodLoss;
-        city.Loyalty = System.Math.Max(0, city.Loyalty - loyaltyLoss);
+        city.Gold = ClampCityStat(city.Gold + cityEvent.GoldDelta);
+        city.Food = ClampCityStat(city.Food + cityEvent.FoodDelta);
+        city.Loyalty = ClampCityStat(city.Loyalty + cityEvent.LoyaltyDelta);
+        city.Farm = ClampCityStat(city.Farm + cityEvent.FarmDelta);
+        city.Defense = ClampCityStat(city.Defense + cityEvent.DefenseDelta);
+        city.Population = ClampCityStat(city.Population + cityEvent.PopulationDelta);
+        ApplyCityTroopEventLoss(city, cityEvent.TroopDelta);
+
+        result.AllCityEvents.Add(cityEvent);
 
         if (city.OwnerFactionId == playerFactionId)
         {
-            result.PlayerCityDisasters.Add(new MonthlyDisasterEvent
-            {
-                CityId = city.Id,
-                GoldLoss = goldLoss,
-                FoodLoss = foodLoss,
-                LoyaltyLoss = loyaltyLoss
-            });
+            result.PlayerCityEvents.Add(cityEvent);
         }
+    }
+
+    private static MonthlyCityEvent? CreateDisasterEvent(CityData city, int month, System.Random random, double severityMultiplier)
+    {
+        var availableEvents = GetAvailableDisasterEvents(city, month);
+        if (availableEvents.Count == 0)
+        {
+            return null;
+        }
+
+        var eventType = availableEvents[random.Next(availableEvents.Count)];
+        return eventType switch
+        {
+            MonthlyCityEventType.Flooding => CreateFloodingEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Drought => CreateDroughtEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Earthquake => CreateEarthquakeEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.InsectDisaster => CreateInsectDisasterEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Plague => CreatePlagueEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Rebellion => CreateRebellionEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Bandit => CreateBanditEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Snow => CreateSnowEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Typhoon => CreateTyphoonEvent(city, random, severityMultiplier),
+            MonthlyCityEventType.Fire => CreateFireEvent(city, random, severityMultiplier),
+            _ => null
+        };
+    }
+
+    private static List<MonthlyCityEventType> GetAvailableDisasterEvents(CityData city, int month)
+    {
+        var events = new List<MonthlyCityEventType> { MonthlyCityEventType.Earthquake };
+        if (IsRainySeasonFloodMonth(month))
+        {
+            events.Add(MonthlyCityEventType.Flooding);
+        }
+
+        if (IsDroughtSeason(month))
+        {
+            events.Add(MonthlyCityEventType.Drought);
+        }
+
+        if (IsPlagueSeason(month))
+        {
+            events.Add(MonthlyCityEventType.Plague);
+        }
+
+        if (IsInsectSeason(month))
+        {
+            events.Add(MonthlyCityEventType.InsectDisaster);
+        }
+
+        if (IsSnowSeason(month))
+        {
+            events.Add(MonthlyCityEventType.Snow);
+        }
+
+        if (IsTyphoonSeason(month))
+        {
+            events.Add(MonthlyCityEventType.Typhoon);
+        }
+
+        if (IsDrySeasonFireMonth(month))
+        {
+            events.Add(MonthlyCityEventType.Fire);
+        }
+
+        if (city.Loyalty <= RebellionLoyaltyThreshold)
+        {
+            events.Add(MonthlyCityEventType.Rebellion);
+        }
+
+        if (city.Loyalty <= BanditLoyaltyThreshold && city.Defense <= BanditDefenseThreshold)
+        {
+            events.Add(MonthlyCityEventType.Bandit);
+        }
+
+        return events;
+    }
+
+    private static bool IsRainySeasonFloodMonth(int month)
+    {
+        return month is 6 or 7 or 8;
+    }
+
+    private static bool IsInsectSeason(int month)
+    {
+        return month is 5 or 6 or 7;
+    }
+
+    private static bool IsDroughtSeason(int month)
+    {
+        return month is 5 or 6 or 7 or 8;
+    }
+
+    private static bool IsDrySeasonFireMonth(int month)
+    {
+        return month is 11 or 12 or 1;
+    }
+
+    private static bool IsPlagueSeason(int month)
+    {
+        return month is 11 or 12 or 1 or 2 or 3;
+    }
+
+    private static bool IsSnowSeason(int month)
+    {
+        return month is 12 or 1 or 2;
+    }
+
+    private static bool IsTyphoonSeason(int month)
+    {
+        return month is 9 or 10 or 11;
+    }
+
+    private static bool IsBumperHarvestSeason(int month)
+    {
+        return month is 8 or 9 or 10;
+    }
+
+    private static MonthlyCityEvent? CreateFloodingEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((120 + random.Next(0, 181)) * severityMultiplier));
+        var farmLoss = System.Math.Min(city.Farm, System.Math.Max(1, (int)System.Math.Round((2 + random.Next(0, 5)) * severityMultiplier)));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 3)) * severityMultiplier)));
+        var populationLoss = CalculatePopulationLoss(city, 600, 900, random, severityMultiplier);
+        var troopLoss = CalculateTroopLoss(city, 40, 80, random, severityMultiplier);
+        if (foodLoss <= 0 && farmLoss <= 0 && loyaltyLoss <= 0 && populationLoss <= 0 && troopLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Flooding,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            FarmDelta = -farmLoss,
+            PopulationDelta = -populationLoss,
+            TroopDelta = -troopLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateDroughtEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((110 + random.Next(0, 171)) * severityMultiplier));
+        var farmLoss = System.Math.Min(city.Farm, System.Math.Max(1, (int)System.Math.Round((2 + random.Next(0, 4)) * severityMultiplier)));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 3)) * severityMultiplier)));
+        var populationLoss = CalculatePopulationLoss(city, 500, 800, random, severityMultiplier);
+        var troopLoss = CalculateTroopLoss(city, 35, 70, random, severityMultiplier);
+        if (foodLoss <= 0 && farmLoss <= 0 && loyaltyLoss <= 0 && populationLoss <= 0 && troopLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Drought,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            FarmDelta = -farmLoss,
+            PopulationDelta = -populationLoss,
+            TroopDelta = -troopLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreatePlagueEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((70 + random.Next(0, 121)) * severityMultiplier));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((2 + random.Next(0, 4)) * severityMultiplier)));
+        var populationLoss = CalculatePopulationLoss(city, 700, 1100, random, severityMultiplier);
+        var troopLoss = CalculateTroopLoss(city, 30, 60, random, severityMultiplier);
+        if (foodLoss <= 0 && loyaltyLoss <= 0 && populationLoss <= 0 && troopLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Plague,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            PopulationDelta = -populationLoss,
+            TroopDelta = -troopLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateEarthquakeEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var goldLoss = System.Math.Min(city.Gold, (int)System.Math.Round((80 + random.Next(0, 121)) * severityMultiplier));
+        var defenseLoss = System.Math.Min(city.Defense, System.Math.Max(1, (int)System.Math.Round((3 + random.Next(0, 6)) * severityMultiplier)));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 3)) * severityMultiplier)));
+        var populationLoss = CalculatePopulationLoss(city, 900, 1500, random, severityMultiplier);
+        var troopLoss = CalculateTroopLoss(city, 50, 110, random, severityMultiplier);
+        if (goldLoss <= 0 && defenseLoss <= 0 && loyaltyLoss <= 0 && populationLoss <= 0 && troopLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Earthquake,
+            GoldDelta = -goldLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            DefenseDelta = -defenseLoss,
+            PopulationDelta = -populationLoss,
+            TroopDelta = -troopLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateInsectDisasterEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((100 + random.Next(0, 161)) * severityMultiplier));
+        var farmLoss = System.Math.Min(city.Farm, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 4)) * severityMultiplier)));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 2)) * severityMultiplier)));
+        if (foodLoss <= 0 && farmLoss <= 0 && loyaltyLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.InsectDisaster,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            FarmDelta = -farmLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateFireEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var goldLoss = System.Math.Min(city.Gold, (int)System.Math.Round((60 + random.Next(0, 101)) * severityMultiplier));
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((50 + random.Next(0, 91)) * severityMultiplier));
+        var defenseLoss = System.Math.Min(city.Defense, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 4)) * severityMultiplier)));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 2)) * severityMultiplier)));
+        var populationLoss = CalculatePopulationLoss(city, 450, 850, random, severityMultiplier);
+        var troopLoss = CalculateTroopLoss(city, 25, 55, random, severityMultiplier);
+        if (goldLoss <= 0 && foodLoss <= 0 && defenseLoss <= 0 && loyaltyLoss <= 0 && populationLoss <= 0 && troopLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Fire,
+            GoldDelta = -goldLoss,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            DefenseDelta = -defenseLoss,
+            PopulationDelta = -populationLoss,
+            TroopDelta = -troopLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateRebellionEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var goldLoss = System.Math.Min(city.Gold, (int)System.Math.Round((90 + random.Next(0, 141)) * severityMultiplier));
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((60 + random.Next(0, 101)) * severityMultiplier));
+        var defenseLoss = System.Math.Min(city.Defense, System.Math.Max(1, (int)System.Math.Round((2 + random.Next(0, 4)) * severityMultiplier)));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(2, (int)System.Math.Round((3 + random.Next(0, 4)) * severityMultiplier)));
+        if (goldLoss <= 0 && foodLoss <= 0 && defenseLoss <= 0 && loyaltyLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Rebellion,
+            GoldDelta = -goldLoss,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            DefenseDelta = -defenseLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateBanditEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var goldLoss = System.Math.Min(city.Gold, (int)System.Math.Round((70 + random.Next(0, 111)) * severityMultiplier));
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((50 + random.Next(0, 81)) * severityMultiplier));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((2 + random.Next(0, 3)) * severityMultiplier)));
+        if (goldLoss <= 0 && foodLoss <= 0 && loyaltyLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Bandit,
+            GoldDelta = -goldLoss,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateSnowEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((80 + random.Next(0, 131)) * severityMultiplier));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 3)) * severityMultiplier)));
+        var defenseLoss = System.Math.Min(city.Defense, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 2)) * severityMultiplier)));
+        var populationLoss = CalculatePopulationLoss(city, 400, 700, random, severityMultiplier);
+        var troopLoss = CalculateTroopLoss(city, 20, 45, random, severityMultiplier);
+        if (foodLoss <= 0 && loyaltyLoss <= 0 && defenseLoss <= 0 && populationLoss <= 0 && troopLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Snow,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            DefenseDelta = -defenseLoss,
+            PopulationDelta = -populationLoss,
+            TroopDelta = -troopLoss
+        };
+    }
+
+    private static MonthlyCityEvent? CreateTyphoonEvent(CityData city, System.Random random, double severityMultiplier)
+    {
+        var foodLoss = System.Math.Min(city.Food, (int)System.Math.Round((90 + random.Next(0, 151)) * severityMultiplier));
+        var farmLoss = System.Math.Min(city.Farm, System.Math.Max(1, (int)System.Math.Round((2 + random.Next(0, 5)) * severityMultiplier)));
+        var defenseLoss = System.Math.Min(city.Defense, System.Math.Max(1, (int)System.Math.Round((2 + random.Next(0, 4)) * severityMultiplier)));
+        var loyaltyLoss = System.Math.Min(city.Loyalty, System.Math.Max(1, (int)System.Math.Round((1 + random.Next(0, 3)) * severityMultiplier)));
+        var populationLoss = CalculatePopulationLoss(city, 650, 1200, random, severityMultiplier);
+        var troopLoss = CalculateTroopLoss(city, 35, 85, random, severityMultiplier);
+        if (foodLoss <= 0 && farmLoss <= 0 && defenseLoss <= 0 && loyaltyLoss <= 0 && populationLoss <= 0 && troopLoss <= 0)
+        {
+            return null;
+        }
+
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.Typhoon,
+            FoodDelta = -foodLoss,
+            LoyaltyDelta = -loyaltyLoss,
+            FarmDelta = -farmLoss,
+            DefenseDelta = -defenseLoss,
+            PopulationDelta = -populationLoss,
+            TroopDelta = -troopLoss
+        };
+    }
+
+    private static MonthlyCityEvent CreateBumperHarvestEvent(CityData city, System.Random random)
+    {
+        var foodGain = 120 + random.Next(0, 181) + city.Farm;
+        var loyaltyGain = 1 + random.Next(0, 3);
+        return new MonthlyCityEvent
+        {
+            CityId = city.Id,
+            EventType = MonthlyCityEventType.BumperHarvest,
+            FoodDelta = foodGain,
+            LoyaltyDelta = loyaltyGain
+        };
+    }
+
+    private static int ClampCityStat(int value)
+    {
+        return value < 0 ? 0 : value;
     }
 
     private static int CalculateHorseBirths(CityData city)

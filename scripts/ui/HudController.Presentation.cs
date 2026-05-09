@@ -825,7 +825,7 @@ public partial class HudController : CanvasLayer
             {
                 (_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
                 (_localization.T("ui.gold"), "0", _localization.T("ui.food"), "0"),
-                (_localization.T("ui.horse"), "0", string.Empty, string.Empty),
+                (_localization.T("ui.horse"), "0", _localization.T("ui.population"), "0"),
                 (_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
                 (_localization.T("ui.defense"), "0", _localization.T("ui.disaster_prevention"), "0"),
                 (_localization.T("ui.loyalty"), "0", string.Empty, string.Empty),
@@ -839,7 +839,7 @@ public partial class HudController : CanvasLayer
             {
                 (_localization.T("ui.faction_owner"), ownerValue, string.Empty, string.Empty),
                 (_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
-                (_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), string.Empty, string.Empty),
+                (_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
                 (_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
                 (_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
                 (_localization.T("ui.loyalty"), MaskedNumberText(canViewCity, city.Loyalty), string.Empty, string.Empty),
@@ -930,7 +930,7 @@ public partial class HudController : CanvasLayer
         var ownerText = string.IsNullOrWhiteSpace(intelDurationText)
             ? ownerName
             : $"{ownerName} | {intelDurationText}";
-        return $"{cityName} | {_localization?.T("ui.faction_owner") ?? "Owner"} {ownerText} | {_localization?.T("ui.gold") ?? "Gold"} {MaskedNumberText(canViewCity, city.Gold)} | {_localization?.T("ui.food") ?? "Food"} {MaskedNumberText(canViewCity, city.Food)} | {_localization?.T("ui.troops") ?? "Troops"} {MaskedNumberText(canViewCity, city.Troops)} | {_localization?.T("ui.officers") ?? "Officers"} {MaskedNumberText(canViewCity, city.OfficerIds.Count)}";
+        return $"{cityName} | {_localization?.T("ui.faction_owner") ?? "Owner"} {ownerText} | {_localization?.T("ui.gold") ?? "Gold"} {MaskedNumberText(canViewCity, city.Gold)} | {_localization?.T("ui.food") ?? "Food"} {MaskedNumberText(canViewCity, city.Food)} | {_localization?.T("ui.population") ?? "Population"} {MaskedNumberText(canViewCity, city.Population)} | {_localization?.T("ui.troops") ?? "Troops"} {MaskedNumberText(canViewCity, city.Troops)} | {_localization?.T("ui.officers") ?? "Officers"} {MaskedNumberText(canViewCity, city.OfficerIds.Count)}";
     }
 
     private string BuildOfficerStatusText(OfficerData officer)

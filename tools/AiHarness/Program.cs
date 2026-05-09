@@ -41,6 +41,11 @@ internal static class Program
         RunAttackRulerDeathPlayerSuccessionPendingTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
+        RunMonthlyCityEventsTest();
+        RunMonthlyCityEventSeasonRulesTest();
+        RunMonthlyCityEventConditionRulesTest();
+        RunMonthlyCityEventPreventionSeverityTest();
+        RunMonthlyCityEventAllCitiesRecordedTest();
         RunUpkeepShortageTest();
         RunOfficerProgressionBuffTest();
         RunSpyAndDiplomacyProgressionSuccessBuffTest();
@@ -1004,12 +1009,12 @@ internal static class Program
     private static void RunSeasonalGoldTest()
     {
         var world = TestHelpers.World(month: 4);
-        world.RandomSeed = 999;
         world.Cities.Add(TestHelpers.City(2, "AiGoldCity", 2, 1000, 1000, 1200, new[] { 201 }, Array.Empty<int>()));
         world.GetCity(2)!.DisasterPrevention = 120;
         world.Officers.Add(TestHelpers.Officer(201, "A1", 2));
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
         world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+        world.RandomSeed = FindSeedForWorldWithoutMonthlyEvents(world);
         var services = CreateServices(world);
 
         var result = services.Turn.ApplyMonthlyEconomy();
@@ -1022,12 +1027,12 @@ internal static class Program
     private static void RunSeasonalFoodTest()
     {
         var world = TestHelpers.World(month: 8);
-        world.RandomSeed = 999;
         world.Cities.Add(TestHelpers.City(2, "AiFoodCity", 2, 1000, 1000, 2000, new[] { 201 }, Array.Empty<int>()));
         world.GetCity(2)!.DisasterPrevention = 120;
         world.Officers.Add(TestHelpers.Officer(201, "A1", 2));
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
         world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+        world.RandomSeed = FindSeedForWorldWithoutMonthlyEvents(world);
         var services = CreateServices(world);
 
         var result = services.Turn.ApplyMonthlyEconomy();
@@ -1035,6 +1040,157 @@ internal static class Program
 
         Assert(result.AnnualFoodCollected == 2736, "AI seasonal food total", $"annualFood={result.AnnualFoodCollected}");
         Assert(city.Food == 3686, "AI seasonal food applied with upkeep", $"food={city.Food}");
+    }
+
+    private static void RunMonthlyCityEventsTest()
+    {
+        foreach (var eventType in Enum.GetValues<MonthlyCityEventType>())
+        {
+            var seed = FindSeedForMonthlyCityEvent(eventType);
+            Assert(seed > 0, $"Monthly city event seed found for {eventType}", $"seed={seed}");
+            if (seed <= 0)
+            {
+                continue;
+            }
+
+            var world = CreateMonthlyEventTestWorldForEventType(eventType, seed, disasterPrevention: 0);
+            var services = CreateServices(world);
+
+            var result = services.Turn.ApplyMonthlyEconomy();
+            var cityEvent = result.PlayerCityEvents.SingleOrDefault();
+            Assert(cityEvent != null, $"Monthly city event resolves for {eventType}", $"count={result.PlayerCityEvents.Count}");
+            Assert(cityEvent != null && cityEvent.EventType == eventType, $"Monthly city event type matches {eventType}", cityEvent == null ? "event=null" : $"type={cityEvent.EventType}");
+            if (cityEvent == null)
+            {
+                continue;
+            }
+
+            switch (eventType)
+            {
+                case MonthlyCityEventType.Flooding:
+                    Assert(cityEvent.FoodDelta < 0 && cityEvent.FarmDelta < 0 && cityEvent.PopulationDelta < 0 && cityEvent.TroopDelta < 0, "Flooding lowers food farm population and troops", $"food={cityEvent.FoodDelta}, farm={cityEvent.FarmDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+                case MonthlyCityEventType.Drought:
+                    Assert(cityEvent.FoodDelta < 0 && cityEvent.FarmDelta < 0 && cityEvent.PopulationDelta < 0 && cityEvent.TroopDelta < 0, "Drought lowers food farm population and troops", $"food={cityEvent.FoodDelta}, farm={cityEvent.FarmDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+                case MonthlyCityEventType.Earthquake:
+                    Assert(cityEvent.GoldDelta < 0 && cityEvent.DefenseDelta < 0 && cityEvent.PopulationDelta < 0 && cityEvent.TroopDelta < 0, "Earthquake lowers gold defense population and troops", $"gold={cityEvent.GoldDelta}, defense={cityEvent.DefenseDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+                case MonthlyCityEventType.InsectDisaster:
+                    Assert(cityEvent.FoodDelta < 0 && cityEvent.FarmDelta < 0, "Insect disaster lowers food and farm", $"food={cityEvent.FoodDelta}, farm={cityEvent.FarmDelta}");
+                    break;
+                case MonthlyCityEventType.Plague:
+                    Assert(cityEvent.FoodDelta < 0 && cityEvent.LoyaltyDelta < 0 && cityEvent.PopulationDelta < 0 && cityEvent.TroopDelta < 0, "Plague lowers food loyalty population and troops", $"food={cityEvent.FoodDelta}, loyalty={cityEvent.LoyaltyDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+                case MonthlyCityEventType.Rebellion:
+                    Assert(cityEvent.GoldDelta < 0 && cityEvent.LoyaltyDelta < 0, "Rebellion lowers gold and loyalty", $"gold={cityEvent.GoldDelta}, loyalty={cityEvent.LoyaltyDelta}");
+                    break;
+                case MonthlyCityEventType.Bandit:
+                    Assert(cityEvent.GoldDelta < 0 && cityEvent.FoodDelta < 0, "Bandit lowers gold and food", $"gold={cityEvent.GoldDelta}, food={cityEvent.FoodDelta}");
+                    break;
+                case MonthlyCityEventType.Snow:
+                    Assert(cityEvent.FoodDelta < 0 && cityEvent.DefenseDelta < 0 && cityEvent.PopulationDelta < 0 && cityEvent.TroopDelta < 0, "Snow lowers food defense population and troops", $"food={cityEvent.FoodDelta}, defense={cityEvent.DefenseDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+                case MonthlyCityEventType.Typhoon:
+                    Assert(cityEvent.FoodDelta < 0 && cityEvent.FarmDelta < 0 && cityEvent.DefenseDelta < 0 && cityEvent.PopulationDelta < 0 && cityEvent.TroopDelta < 0, "Typhoon lowers food farm defense population and troops", $"food={cityEvent.FoodDelta}, farm={cityEvent.FarmDelta}, defense={cityEvent.DefenseDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+                case MonthlyCityEventType.BumperHarvest:
+                    Assert(cityEvent.FoodDelta > 0 && cityEvent.LoyaltyDelta > 0 && cityEvent.PopulationDelta == 0 && cityEvent.TroopDelta == 0, "Bumper harvest raises food and loyalty only", $"food={cityEvent.FoodDelta}, loyalty={cityEvent.LoyaltyDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+                case MonthlyCityEventType.Fire:
+                    Assert(cityEvent.GoldDelta < 0 && cityEvent.DefenseDelta < 0 && cityEvent.PopulationDelta < 0 && cityEvent.TroopDelta < 0, "Fire lowers gold defense population and troops", $"gold={cityEvent.GoldDelta}, defense={cityEvent.DefenseDelta}, population={cityEvent.PopulationDelta}, troops={cityEvent.TroopDelta}");
+                    break;
+            }
+        }
+    }
+
+    private static void RunMonthlyCityEventSeasonRulesTest()
+    {
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Flooding, 5), "Flooding blocked outside rainy season", "month=5");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Flooding, 6), "Flooding allowed in rainy season", "month=6");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Fire, 8), "Fire blocked outside dry season", "month=8");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Fire, 11), "Fire allowed in dry season", "month=11");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.BumperHarvest, 7), "Bumper harvest blocked before harvest season", "month=7");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.BumperHarvest, 9), "Bumper harvest allowed in harvest season", "month=9");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.InsectDisaster, 8), "Insect disaster blocked outside insect season", "month=8");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.InsectDisaster, 5), "Insect disaster allowed in insect season", "month=5");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Drought, 9), "Drought blocked outside drought season", "month=9");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Drought, 6), "Drought allowed in drought season", "month=6");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Plague, 10), "Plague blocked outside plague season", "month=10");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Plague, 12), "Plague allowed in plague season", "month=12");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Snow, 11), "Snow blocked outside snow season", "month=11");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Snow, 12), "Snow allowed in snow season", "month=12");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Typhoon, 8), "Typhoon blocked outside typhoon season", "month=8");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Typhoon, 10), "Typhoon allowed in typhoon season", "month=10");
+    }
+
+    private static void RunMonthlyCityEventPreventionSeverityTest()
+    {
+        var month = 6;
+        var seed = FindComparableMonthlyCityEventSeed(MonthlyCityEventType.Flooding, month, lowPrevention: 0, highPrevention: 60);
+        Assert(seed > 0, "Monthly city event prevention seed found", $"seed={seed}");
+        if (seed <= 0)
+        {
+            return;
+        }
+
+        var lowPrevention = CreateMonthlyEventTestWorld(month, seed, disasterPrevention: 0);
+        var highPrevention = CreateMonthlyEventTestWorld(month, seed, disasterPrevention: 60);
+
+        var lowServices = CreateServices(lowPrevention);
+        var highServices = CreateServices(highPrevention);
+        var lowEvent = lowServices.Turn.ApplyMonthlyEconomy().PlayerCityEvents.SingleOrDefault();
+        var highEvent = highServices.Turn.ApplyMonthlyEconomy().PlayerCityEvents.SingleOrDefault();
+
+        Assert(lowEvent != null && highEvent != null, "Monthly city event prevention produced comparable events", $"low={(lowEvent != null ? lowEvent.EventType : null)}, high={(highEvent != null ? highEvent.EventType : null)}");
+        Assert(lowEvent != null && highEvent != null && lowEvent.EventType == highEvent.EventType, "Monthly city event prevention keeps event type stable", $"low={(lowEvent != null ? lowEvent.EventType : null)}, high={(highEvent != null ? highEvent.EventType : null)}");
+        if (lowEvent == null || highEvent == null)
+        {
+            return;
+        }
+
+        var lowDamage = System.Math.Abs(lowEvent.FoodDelta) + System.Math.Abs(lowEvent.GoldDelta) + System.Math.Abs(lowEvent.FarmDelta) + System.Math.Abs(lowEvent.DefenseDelta) + System.Math.Abs(lowEvent.LoyaltyDelta);
+        var highDamage = System.Math.Abs(highEvent.FoodDelta) + System.Math.Abs(highEvent.GoldDelta) + System.Math.Abs(highEvent.FarmDelta) + System.Math.Abs(highEvent.DefenseDelta) + System.Math.Abs(highEvent.LoyaltyDelta);
+        Assert(highDamage < lowDamage, "Monthly city event prevention reduces damage", $"low={lowDamage}, high={highDamage}");
+    }
+
+    private static void RunMonthlyCityEventConditionRulesTest()
+    {
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Rebellion, 6, loyalty: 70), "Rebellion blocked when loyalty is not low", "loyalty=70");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Rebellion, 6, loyalty: 40), "Rebellion allowed when loyalty is low", "loyalty=40");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Bandit, 6, loyalty: 80, defense: 20), "Bandit blocked when loyalty is not low", "loyalty=80, defense=20");
+        Assert(!CanMonthlyCityEventOccur(MonthlyCityEventType.Bandit, 6, loyalty: 40, defense: 70), "Bandit blocked when defense is not low", "loyalty=40, defense=70");
+        Assert(CanMonthlyCityEventOccur(MonthlyCityEventType.Bandit, 6, loyalty: 40, defense: 20), "Bandit allowed when loyalty and defense are both low", "loyalty=40, defense=20");
+    }
+
+    private static void RunMonthlyCityEventAllCitiesRecordedTest()
+    {
+        var seed = FindSeedForSpecificCityMonthlyEvent(MonthlyCityEventType.Earthquake, month: 4, cityId: 2);
+        Assert(seed > 0, "Monthly all-city event seed found", $"seed={seed}");
+        if (seed <= 0)
+        {
+            return;
+        }
+
+        var world = TestHelpers.World(month: 4);
+        world.RandomSeed = seed;
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 0, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "NeutralCity", 0, 1000, 1000, 0, Array.Empty<int>(), Array.Empty<int>()));
+        world.GetCity(1)!.Farm = 80;
+        world.GetCity(1)!.Defense = 70;
+        world.GetCity(1)!.Loyalty = 85;
+        world.GetCity(1)!.DisasterPrevention = 120;
+        world.GetCity(2)!.Farm = 80;
+        world.GetCity(2)!.Defense = 70;
+        world.GetCity(2)!.Loyalty = 85;
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        var services = CreateServices(world);
+
+        var result = services.Turn.ApplyMonthlyEconomy();
+
+        Assert(result.AllCityEvents.Count >= result.PlayerCityEvents.Count, "Monthly all-city events include player subset", $"all={result.AllCityEvents.Count}, player={result.PlayerCityEvents.Count}");
+        Assert(result.AllCityEvents.Any(item => item.CityId == 2), "Monthly all-city events include neutral city", $"neutralCount={result.AllCityEvents.Count(item => item.CityId == 2)}");
     }
 
     private static void RunUpkeepShortageTest()
@@ -1735,6 +1891,165 @@ internal static class Program
 
         return clone;
     }
+
+    private static int FindSeedForMonthlyCityEvent(MonthlyCityEventType eventType)
+    {
+        for (var seed = 1; seed <= 5000; seed += 1)
+        {
+            var world = CreateMonthlyEventTestWorldForEventType(eventType, seed, disasterPrevention: 0);
+            var services = CreateServices(world);
+            var result = services.Turn.ApplyMonthlyEconomy();
+            if (result.PlayerCityEvents.Any(item => item.EventType == eventType))
+            {
+                return seed;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindSeedForNoMonthlyCityEvent(int month, int disasterPrevention)
+    {
+        for (var seed = 1; seed <= 5000; seed += 1)
+        {
+            var world = CreateMonthlyEventTestWorld(month, seed, disasterPrevention);
+            var result = CreateServices(world).Turn.ApplyMonthlyEconomy();
+            if (result.AllCityEvents.Count == 0)
+            {
+                return seed;
+            }
+        }
+
+        return 1;
+    }
+
+    private static int FindSeedForWorldWithoutMonthlyEvents(WorldState world)
+    {
+        for (var seed = 1; seed <= 5000; seed += 1)
+        {
+            var clone = CloneWorld(world);
+            clone.RandomSeed = seed;
+            var result = CreateServices(clone).Turn.ApplyMonthlyEconomy();
+            if (result.AllCityEvents.Count == 0)
+            {
+                return seed;
+            }
+        }
+
+        return 1;
+    }
+
+    private static int FindComparableMonthlyCityEventSeed(MonthlyCityEventType eventType, int month, int lowPrevention, int highPrevention)
+    {
+        for (var seed = 1; seed <= 5000; seed += 1)
+        {
+            var lowWorld = CreateMonthlyEventTestWorld(month, seed, lowPrevention);
+            var highWorld = CreateMonthlyEventTestWorld(month, seed, highPrevention);
+            var lowResult = CreateServices(lowWorld).Turn.ApplyMonthlyEconomy();
+            var highResult = CreateServices(highWorld).Turn.ApplyMonthlyEconomy();
+            var lowEvent = lowResult.PlayerCityEvents.SingleOrDefault();
+            var highEvent = highResult.PlayerCityEvents.SingleOrDefault();
+            if (lowEvent != null && highEvent != null && lowEvent.EventType == eventType && highEvent.EventType == eventType)
+            {
+                return seed;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindSeedForSpecificCityMonthlyEvent(MonthlyCityEventType eventType, int month, int cityId)
+    {
+        for (var seed = 1; seed <= 5000; seed += 1)
+        {
+            var world = TestHelpers.World(month: month);
+            world.RandomSeed = seed;
+            world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 0, new[] { 101 }, Array.Empty<int>()));
+            world.Cities.Add(TestHelpers.City(2, "NeutralCity", 0, 1000, 1000, 0, Array.Empty<int>(), Array.Empty<int>()));
+            world.GetCity(1)!.Farm = 80;
+            world.GetCity(1)!.Defense = 70;
+            world.GetCity(1)!.Loyalty = 85;
+            world.GetCity(1)!.DisasterPrevention = 120;
+            world.GetCity(2)!.Farm = 80;
+            world.GetCity(2)!.Defense = 70;
+            world.GetCity(2)!.Loyalty = 85;
+            world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+            world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+            var result = CreateServices(world).Turn.ApplyMonthlyEconomy();
+            if (result.AllCityEvents.Any(item => item.CityId == cityId && item.EventType == eventType))
+            {
+                return seed;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool CanMonthlyCityEventOccur(MonthlyCityEventType eventType, int month, int? loyalty = null, int? defense = null)
+    {
+        for (var seed = 1; seed <= 5000; seed += 1)
+        {
+            var world = CreateMonthlyEventTestWorld(month, seed, disasterPrevention: 0, loyalty: loyalty ?? 85, defense: defense ?? 70);
+            var services = CreateServices(world);
+            var result = services.Turn.ApplyMonthlyEconomy();
+            if (result.PlayerCityEvents.Any(item => item.EventType == eventType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static WorldState CreateMonthlyEventTestWorld(int month, int seed, int disasterPrevention)
+    {
+        return CreateMonthlyEventTestWorld(month, seed, disasterPrevention, loyalty: 85, defense: 70);
+    }
+
+    private static WorldState CreateMonthlyEventTestWorld(int month, int seed, int disasterPrevention, int loyalty, int defense)
+    {
+        var world = TestHelpers.World(month: month);
+        world.RandomSeed = seed;
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1200, new[] { 101 }, Array.Empty<int>()));
+        world.GetCity(1)!.Farm = 80;
+        world.GetCity(1)!.Defense = defense;
+        world.GetCity(1)!.Loyalty = loyalty;
+        world.GetCity(1)!.Population = 45000;
+        world.GetCity(1)!.DisasterPrevention = disasterPrevention;
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        return world;
+    }
+
+    private static WorldState CreateMonthlyEventTestWorldForEventType(MonthlyCityEventType eventType, int seed, int disasterPrevention)
+    {
+        var month = GetMonthlyCityEventTestMonth(eventType);
+        return eventType switch
+        {
+            MonthlyCityEventType.Rebellion => CreateMonthlyEventTestWorld(month, seed, disasterPrevention, loyalty: 35, defense: 60),
+            MonthlyCityEventType.Bandit => CreateMonthlyEventTestWorld(month, seed, disasterPrevention, loyalty: 40, defense: 20),
+            _ => CreateMonthlyEventTestWorld(month, seed, disasterPrevention)
+        };
+    }
+
+    private static int GetMonthlyCityEventTestMonth(MonthlyCityEventType eventType)
+    {
+        return eventType switch
+        {
+            MonthlyCityEventType.Flooding => 6,
+            MonthlyCityEventType.Drought => 6,
+            MonthlyCityEventType.Earthquake => 4,
+            MonthlyCityEventType.InsectDisaster => 5,
+            MonthlyCityEventType.Plague => 12,
+            MonthlyCityEventType.Rebellion => 6,
+            MonthlyCityEventType.Bandit => 6,
+            MonthlyCityEventType.Snow => 12,
+            MonthlyCityEventType.Typhoon => 10,
+            MonthlyCityEventType.BumperHarvest => 9,
+            MonthlyCityEventType.Fire => 11,
+            _ => 6
+        };
+    }
 }
 
 internal static class TestHelpers
@@ -1770,6 +2085,7 @@ internal static class TestHelpers
             OwnerFactionId = ownerFactionId,
             Gold = gold,
             Food = food,
+            Population = 45000,
             InfantryTroops = troops,
             Troops = troops,
             Farm = 50,

@@ -15,6 +15,7 @@ public class CityStartData
     public int Gold { get; set; }
     public int Food { get; set; }
     public int Horses { get; set; }
+    public int Population { get; set; }
     public int Troops { get; set; }
     public int InfantryTroops { get; set; }
     public int SpearmanTroops { get; set; }

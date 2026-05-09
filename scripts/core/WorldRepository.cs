@@ -96,6 +96,7 @@ public class WorldRepository
                 Gold = 700,
                 Food = 1300,
                 Horses = 120,
+                Population = 45000,
                 Troops = 1400,
                 HasBowWorkshop = false,
                 HasSiegeWorkshop = false,
@@ -248,6 +249,7 @@ public class WorldRepository
             city.Gold = cityStart.Gold;
             city.Food = cityStart.Food;
             city.Horses = cityStart.Horses;
+            city.Population = cityStart.Population > 0 ? cityStart.Population : city.Population;
             city.Troops = cityStart.Troops;
             city.InfantryTroops = cityStart.InfantryTroops;
             city.SpearmanTroops = cityStart.SpearmanTroops;

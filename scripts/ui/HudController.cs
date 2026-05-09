@@ -95,6 +95,7 @@ public partial class HudController : CanvasLayer
         DiplomacyExperience,
         Gold,
         Food,
+        Population,
         Troops,
         OfficerCount,
         Farm,

@@ -206,6 +206,7 @@ public class LocalizationService
             $"{T("ui.gold")}: {city.Gold}\n" +
             $"{T("ui.food")}: {city.Food}\n" +
             $"{T("ui.horse")}: {city.Horses}\n" +
+            $"{T("ui.population")}: {city.Population}\n" +
             $"{T("ui.troops")}: {city.Troops}\n" +
             $"{T("troop_type.infantry")}: {city.InfantryTroops}\n" +
             $"{T("troop_type.spearman")}: {city.SpearmanTroops}\n" +
@@ -230,6 +231,7 @@ public class LocalizationService
             $"{T("ui.gold")}: 0\n" +
             $"{T("ui.food")}: 0\n" +
             $"{T("ui.horse")}: 0\n" +
+            $"{T("ui.population")}: 0\n" +
             $"{T("ui.troops")}: 0\n" +
             $"{T("troop_type.infantry")}: 0\n" +
             $"{T("troop_type.spearman")}: 0\n" +

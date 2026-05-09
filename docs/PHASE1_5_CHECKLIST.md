@@ -338,3 +338,45 @@
 - 本輪 smoke run 不代表：
   - 已完成完整人工實機鏈路驗證
   - `AI 攻城 -> 玩家防守彈窗 -> 配兵 -> 戰鬥結算 -> 繼承 / 外交 / 日誌` 已逐步人工走完
+## 6.3 2026-05-09 文件同步：城市事件 / 人口
+
+### 已完成
+
+- 月末城市事件已擴充為：
+  - `Flooding`
+  - `Drought`
+  - `Earthquake`
+  - `InsectDisaster`
+  - `Plague`
+  - `Rebellion`
+  - `Bandit`
+  - `Snow`
+  - `Typhoon`
+  - `Fire`
+  - `BumperHarvest`
+- 事件已支援月份限制與城市條件限制。
+- `DisasterPrevention` 已同時影響：
+  - 發生率
+  - 傷害幅度
+- 所有城市都會判定事件：
+  - 玩家城
+  - AI 城
+  - 中立城
+- 所有城市事件都會寫入月末日誌。
+- `CityData` 已新增 `Population`。
+- `Flooding / Drought / Earthquake / Plague / Snow / Typhoon / Fire` 已會降低：
+  - `Population`
+  - `Troops`
+- `Population` 已顯示於：
+  - 城市資訊面板
+  - `View -> Cities`
+- `View -> Cities` 已可依 `Population` 排序。
+
+### 尚可延伸
+
+- `Population` 尚未加入更多系統連動：
+  - 徵兵上限
+  - 稅收 / 糧收公式
+  - 忠誠恢復速度
+  - 城市成長
+- 他城事件目前是直接寫入日誌，尚未做情報可見性過濾。

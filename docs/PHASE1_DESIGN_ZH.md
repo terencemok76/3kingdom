@@ -1117,3 +1117,72 @@ tools/
 - `AI faction` 君主死亡後會自動產生新君主。
 - `Player faction` 君主死亡後會出現候選列表供玩家選擇。
 - 無人可繼承時，勢力會正確滅亡，且城市、外交、pending command 狀態會同步清理。
+## 18.3 2026-05-09 文件同步：城市事件 / 人口 / 顯示
+
+### 18.3.1 月末城市事件現況
+
+- 月末城市事件已實作為「所有城市都會判定」，包含：
+  - 玩家城市
+  - AI 城市
+  - 中立 / 無勢力城市
+- 所有城市事件都會寫入月末日誌。
+- 玩家城市事件仍會標記為玩家相關；其他城市事件則以一般日誌顯示。
+
+### 18.3.2 事件清單與條件
+
+- `Flooding / 水災`
+  - 月份：`6, 7, 8`
+  - 影響：`Food - / Farm - / Loyalty - / Population - / Troops -`
+- `Drought / 旱災`
+  - 月份：`5, 6, 7, 8`
+  - 影響：`Food - / Farm - / Loyalty - / Population - / Troops -`
+- `Earthquake / 地震`
+  - 月份：全年
+  - 影響：`Gold - / Defense - / Loyalty - / Population - / Troops -`
+- `InsectDisaster / 蟲災`
+  - 月份：`5, 6, 7`
+  - 影響：`Food - / Farm - / Loyalty -`
+- `Plague / 瘟疫`
+  - 月份：`11, 12, 1, 2, 3`
+  - 影響：`Food - / Loyalty - / Population - / Troops -`
+- `Rebellion / 叛亂`
+  - 條件：`Loyalty <= 55`
+  - 影響：`Gold - / Food - / Defense - / Loyalty -`
+- `Bandit / 盜賊`
+  - 條件：`Loyalty <= 65` 且 `Defense <= 45`
+  - 影響：`Gold - / Food - / Loyalty -`
+- `Snow / 大雪`
+  - 月份：`12, 1, 2`
+  - 影響：`Food - / Defense - / Loyalty - / Population - / Troops -`
+- `Typhoon / 颱風`
+  - 月份：`9, 10, 11`
+  - 影響：`Food - / Farm - / Defense - / Loyalty - / Population - / Troops -`
+- `Fire / 火災`
+  - 月份：`11, 12, 1`
+  - 影響：`Gold - / Food - / Defense - / Loyalty - / Population - / Troops -`
+- `BumperHarvest / 豐收`
+  - 月份：`8, 9, 10`
+  - 影響：`Food + / Loyalty +`
+
+### 18.3.3 防災規則
+
+- `DisasterPrevention` 高時，會同時降低：
+  - 事件發生率
+  - 事件傷害幅度
+- 目前設計方向是高防災城市仍可能出事，但損失顯著較低。
+
+### 18.3.4 人口資料
+
+- `CityData` 已新增 `Population` 欄位。
+- 城市預設初始人口目前為 `45000`。
+- 若 scenario `CityStartData` 有提供 `Population`，則以 scenario 設定值為準。
+
+### 18.3.5 UI 顯示
+
+- `Population` 已顯示於：
+  - 城市資訊面板
+  - `View -> Cities` 城市列表
+- `View -> Cities` 已支援 `Population` 欄位排序。
+- 月末事件日誌已可顯示事件造成的：
+  - `Population` 損失
+  - `Troops` 損失

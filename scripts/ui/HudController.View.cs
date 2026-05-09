@@ -370,6 +370,9 @@ public partial class HudController : CanvasLayer
             ViewTableSortField.Food => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Food : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Food : int.MinValue),
+            ViewTableSortField.Population => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Population : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Population : int.MinValue),
             ViewTableSortField.Troops => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Troops : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Troops : int.MinValue),
@@ -407,17 +410,18 @@ public partial class HudController : CanvasLayer
 
         if (_officerListContentMode == OfficerListContentMode.Cities)
         {
-            _officerListTable.Columns = 10;
+            _officerListTable.Columns = 11;
             SetViewTableColumn(0, _localization.T("ui.city"), 130, ViewTableSortField.Name);
             SetViewTableColumn(1, _localization.T("ui.faction_owner"), 140, ViewTableSortField.Owner);
             SetViewTableColumn(2, _localization.T("ui.gold"), 90, ViewTableSortField.Gold);
             SetViewTableColumn(3, _localization.T("ui.food"), 90, ViewTableSortField.Food);
-            SetViewTableColumn(4, _localization.T("ui.troops"), 90, ViewTableSortField.Troops);
-            SetViewTableColumn(5, _localization.T("ui.officers"), 90, ViewTableSortField.OfficerCount);
-            SetViewTableColumn(6, _localization.T("ui.farm"), 90, ViewTableSortField.Farm);
-            SetViewTableColumn(7, _localization.T("ui.commercial"), 110, ViewTableSortField.Commercial);
-            SetViewTableColumn(8, _localization.T("ui.defense"), 90, ViewTableSortField.Defense);
-            SetViewTableColumn(9, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
+            SetViewTableColumn(4, _localization.T("ui.population"), 110, ViewTableSortField.Population);
+            SetViewTableColumn(5, _localization.T("ui.troops"), 90, ViewTableSortField.Troops);
+            SetViewTableColumn(6, _localization.T("ui.officers"), 90, ViewTableSortField.OfficerCount);
+            SetViewTableColumn(7, _localization.T("ui.farm"), 90, ViewTableSortField.Farm);
+            SetViewTableColumn(8, _localization.T("ui.commercial"), 110, ViewTableSortField.Commercial);
+            SetViewTableColumn(9, _localization.T("ui.defense"), 90, ViewTableSortField.Defense);
+            SetViewTableColumn(10, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
             return;
         }
 
@@ -605,12 +609,13 @@ public partial class HudController : CanvasLayer
             : $"{ownerName} | {intelDurationText}");
         row.SetText(2, MaskedNumberText(canViewCity, city.Gold));
         row.SetText(3, MaskedNumberText(canViewCity, city.Food));
-        row.SetText(4, MaskedNumberText(canViewCity, city.Troops));
-        row.SetText(5, MaskedNumberText(canViewCity, city.OfficerIds.Count));
-        row.SetText(6, MaskedNumberText(canViewCity, city.Farm));
-        row.SetText(7, MaskedNumberText(canViewCity, city.Commercial));
-        row.SetText(8, MaskedNumberText(canViewCity, city.Defense));
-        row.SetText(9, MaskedNumberText(canViewCity, city.Loyalty));
+        row.SetText(4, MaskedNumberText(canViewCity, city.Population));
+        row.SetText(5, MaskedNumberText(canViewCity, city.Troops));
+        row.SetText(6, MaskedNumberText(canViewCity, city.OfficerIds.Count));
+        row.SetText(7, MaskedNumberText(canViewCity, city.Farm));
+        row.SetText(8, MaskedNumberText(canViewCity, city.Commercial));
+        row.SetText(9, MaskedNumberText(canViewCity, city.Defense));
+        row.SetText(10, MaskedNumberText(canViewCity, city.Loyalty));
     }
 
     private void PopulateItemTableRow(TreeItem row, ItemData item)
@@ -657,12 +662,13 @@ public partial class HudController : CanvasLayer
                 1 => ViewTableSortField.Owner,
                 2 => ViewTableSortField.Gold,
                 3 => ViewTableSortField.Food,
-                4 => ViewTableSortField.Troops,
-                5 => ViewTableSortField.OfficerCount,
-                6 => ViewTableSortField.Farm,
-                7 => ViewTableSortField.Commercial,
-                8 => ViewTableSortField.Defense,
-                9 => ViewTableSortField.Loyalty,
+                4 => ViewTableSortField.Population,
+                5 => ViewTableSortField.Troops,
+                6 => ViewTableSortField.OfficerCount,
+                7 => ViewTableSortField.Farm,
+                8 => ViewTableSortField.Commercial,
+                9 => ViewTableSortField.Defense,
+                10 => ViewTableSortField.Loyalty,
                 _ => ViewTableSortField.Name
             };
         }

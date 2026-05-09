@@ -327,6 +327,10 @@
 						"zhHant":  "武將",
 						"en":  "Officers"
 					},
+	"ui.population":  {
+						  "zhHant":  "人口",
+						  "en":  "Population"
+					  },
 	"ui.personnel":  {
 						 "zhHant":  "人事",
 						 "en":  "Personnel"
