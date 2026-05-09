@@ -1,4 +1,8 @@
 using System.Collections.Generic;
+using File = System.IO.File;
+using Directory = System.IO.Directory;
+using Path = System.IO.Path;
+using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Godot;
@@ -40,6 +44,93 @@ public class WorldRepository
         LoadOfficerData(world);
         ApplyMapLocations(world);
         return world;
+    }
+
+    public bool SaveGame(string path, WorldState world, string description = "", int slotIndex = 0)
+    {
+        var resolvedPath = ResolveWritablePath(path);
+        if (string.IsNullOrWhiteSpace(resolvedPath))
+        {
+            return false;
+        }
+
+        var directory = Path.GetDirectoryName(resolvedPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var document = new SaveGameData
+        {
+            SlotIndex = slotIndex,
+            Description = description.Trim(),
+            SavedAtUtc = DateTime.UtcNow.ToString("O"),
+            World = world
+        };
+        var json = JsonSerializer.Serialize(document, JsonOptions);
+        File.WriteAllText(resolvedPath, json);
+        return true;
+    }
+
+    public WorldState? LoadSavedGame(string path)
+    {
+        return LoadSaveDocument(path)?.World;
+    }
+
+    public SaveGameData? LoadSaveDocument(string path)
+    {
+        var resolvedPath = ResolveWritablePath(path);
+        if (string.IsNullOrWhiteSpace(resolvedPath) || !File.Exists(resolvedPath))
+        {
+            return null;
+        }
+
+        var json = File.ReadAllText(resolvedPath);
+        var document = JsonSerializer.Deserialize<SaveGameData>(json, JsonOptions);
+        if (document?.World != null)
+        {
+            NormalizeLoadedWorld(document.World);
+            return document;
+        }
+
+        var legacyWorld = JsonSerializer.Deserialize<WorldState>(json, JsonOptions);
+        if (legacyWorld == null)
+        {
+            return null;
+        }
+
+        NormalizeLoadedWorld(legacyWorld);
+        return new SaveGameData
+        {
+            Description = string.Empty,
+            SavedAtUtc = string.Empty,
+            World = legacyWorld
+        };
+    }
+
+    public SaveSlotSummary LoadSaveSlotSummary(string path, int slotIndex)
+    {
+        var document = LoadSaveDocument(path);
+        if (document?.World == null)
+        {
+            return new SaveSlotSummary
+            {
+                SlotIndex = slotIndex,
+                Exists = false
+            };
+        }
+
+        return new SaveSlotSummary
+        {
+            SlotIndex = slotIndex,
+            Exists = true,
+            Description = document.Description,
+            SavedAtUtc = document.SavedAtUtc,
+            StoryNameEn = document.World.StoryNameEn,
+            StoryNameZhHant = document.World.StoryNameZhHant,
+            Year = document.World.Year,
+            Month = document.World.Month
+        };
     }
 
     private static void ApplyMapLocations(WorldState world)
@@ -214,6 +305,46 @@ public class WorldRepository
         ApplyFactionStarts(world, world.FactionStarts);
         EnsureFactionRulersAssigned(world);
         FreeOfficerMovement.InitializeLocations(world);
+    }
+
+    private static void NormalizeLoadedWorld(WorldState world)
+    {
+        world.Cities ??= new List<CityData>();
+        world.Officers ??= new List<OfficerData>();
+        world.Items ??= new List<ItemData>();
+        world.Factions ??= new List<FactionData>();
+        world.DiplomacyRelations ??= new List<DiplomacyRelationData>();
+        world.CityStarts ??= new List<CityStartData>();
+        world.FactionStarts ??= new List<FactionStartData>();
+        world.PendingCommands ??= new List<PendingCommandData>();
+        world.InternalAffairsSchedules ??= new List<InternalAffairsScheduleData>();
+        world.CityIntelRecords ??= new List<WorldState.CityIntelData>();
+        world.PendingSuccessionRecords ??= new List<WorldState.PendingSuccessionData>();
+
+        foreach (var city in world.Cities)
+        {
+            city.OfficerIds ??= new List<int>();
+            city.ConnectedCityIds ??= new List<int>();
+            city.EnsureTroopTypesInitialized();
+        }
+
+        foreach (var faction in world.Factions)
+        {
+            faction.OfficerIds ??= new List<int>();
+        }
+    }
+
+    private static string ResolveWritablePath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        return path.StartsWith("user://", System.StringComparison.OrdinalIgnoreCase) ||
+               path.StartsWith("res://", System.StringComparison.OrdinalIgnoreCase)
+            ? ProjectSettings.GlobalizePath(path)
+            : Path.GetFullPath(path);
     }
 
     private static void LoadOfficerData(WorldState world)

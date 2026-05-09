@@ -13,10 +13,13 @@ public partial class GameBootstrap : Node
     private readonly CombatResolver _combatResolver = new();
     private readonly AiController _aiController = new();
     private readonly LocalizationService _localization = new();
+    private GameAudioController? _audioController;
 
     public override void _Ready()
     {
         _localization.Load();
+        _audioController = new GameAudioController();
+        AddChild(_audioController);
 
         var world = _worldRepository.LoadScenario("res://data/scenarios/phase1_scenario.json");
         if (world == null)
@@ -31,7 +34,8 @@ public partial class GameBootstrap : Node
 
         var mapController = GetNodeOrNull<MapController>("MapScene");
         var hudController = GetNodeOrNull<HudController>("HUD");
-        hudController?.Initialize(_turnManager, _commandResolver, _aiController, _localization, mapController);
+        hudController?.Initialize(_turnManager, _commandResolver, _aiController, _localization, _worldRepository, mapController);
+        hudController?.ReapplyOptionSettings();
 
         if (mapController != null && hudController != null)
         {

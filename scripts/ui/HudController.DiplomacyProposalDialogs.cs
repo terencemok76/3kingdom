@@ -154,6 +154,8 @@ public partial class HudController
 
     private void OnDiplomacyProposalCloseRequested()
     {
+        PlayUiClickSfx();
+
         if (IsDiplomacyProposalNotificationOnly())
         {
             OnDiplomacyProposalAcceptPressed();

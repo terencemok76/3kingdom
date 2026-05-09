@@ -354,6 +354,9 @@ public partial class HudController : CanvasLayer
             _viewButton.Text = _localization.T("ui.view");
         }
 
+        RefreshOptionDialogText();
+        RefreshSaveLoadDialogText();
+
         if (_officerListDialog != null)
         {
             _officerListDialog.OkButtonText = _localization.T("ui.confirm_officer_selection");

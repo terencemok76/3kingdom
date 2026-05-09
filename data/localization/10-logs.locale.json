@@ -87,6 +87,22 @@
                                 "zhHant":  "玩家回合結束，AI 勢力開始行動。",
                                 "en":  "Player turn ended. AI factions are taking actions..."
                             },
+    "log.quick_load_missing":  {
+                                  "zhHant":  "找不到快速存檔。",
+                                  "en":  "Quick save file not found."
+                              },
+    "log.quick_load_success":  {
+                                  "zhHant":  "快速讀檔完成。",
+                                  "en":  "Quick load completed."
+                              },
+    "log.quick_save_failed":  {
+                                  "zhHant":  "快速存檔失敗。",
+                                  "en":  "Quick save failed."
+                              },
+    "log.quick_save_success":  {
+                                  "zhHant":  "快速存檔完成。",
+                                  "en":  "Quick save completed."
+                            },
     "log.seasonal_food_collected":  {
                                         "zhHant":  "已收取秋季糧收入（全部城市總計）：+{0}。",
                                         "en":  "Seasonal food collected (all cities total): +{0}."

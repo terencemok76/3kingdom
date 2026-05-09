@@ -39,6 +39,7 @@ internal static class Program
         RunSpyAssassinationFactionCollapseTest();
         RunAttackResolutionTest();
         RunAttackRulerDeathPlayerSuccessionPendingTest();
+        RunSaveLoadRoundTripTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
         RunMonthlyCityEventsTest();
@@ -1022,6 +1023,131 @@ internal static class Program
 
         Assert(result.AnnualGoldCollected == 1872, "AI seasonal gold total", $"annualGold={result.AnnualGoldCollected}");
         Assert(city.Gold == 2872, "AI seasonal gold applied", $"gold={city.Gold}");
+    }
+
+    private static void RunSaveLoadRoundTripTest()
+    {
+        var world = TestHelpers.World(year: 207, month: 9);
+        world.RandomSeed = 321;
+        world.ViewAllInformationEnabled = true;
+        world.StoryNameEn = "SaveLoad Story";
+        world.StoryNameZhHant = "存讀檔劇本";
+
+        var sourceCity = TestHelpers.City(1, "SaveCity", 1, 888, 1666, 1333, new[] { 101, 102 }, new[] { 2 });
+        sourceCity.Population = 54321;
+        sourceCity.Horses = 222;
+        sourceCity.Farm = 77;
+        sourceCity.Commercial = 66;
+        sourceCity.Defense = 55;
+        sourceCity.Loyalty = 44;
+        sourceCity.DisasterPrevention = 33;
+        sourceCity.InfantryTroops = 500;
+        sourceCity.SpearmanTroops = 200;
+        sourceCity.CavalryTroops = 150;
+        sourceCity.ArcherTroops = 180;
+        sourceCity.CrossbowTroops = 140;
+        sourceCity.SiegeTroops = 163;
+        sourceCity.Troops = 1333;
+        sourceCity.LastSearchYear = 207;
+        sourceCity.LastSearchMonth = 8;
+        world.Cities.Add(sourceCity);
+        world.Cities.Add(TestHelpers.City(2, "OtherCity", 2, 500, 700, 800, new[] { 201 }, new[] { 1 }));
+
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "General", 1, strength: 88, intelligence: 72, charm: 65, combat: 90));
+        world.Officers.Add(TestHelpers.Officer(201, "Enemy", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201 }));
+        world.Items.Add(new ItemData
+        {
+            Id = 1,
+            NameEn = "Seal",
+            NameZhHant = "玉璽",
+            ItemType = ItemType.Treasure,
+            OwnerFactionId = 1,
+            OwnerCityId = 1,
+            EquippedOfficerId = 101,
+            Rarity = "Legendary"
+        });
+        world.DiplomacyRelations.Add(new DiplomacyRelationData
+        {
+            FactionAId = 1,
+            FactionBId = 2,
+            Status = DiplomacyStatusType.Truce,
+            RemainingMonths = 4,
+            RelationScore = 28
+        });
+        world.PendingCommands.Add(new PendingCommandData
+        {
+            Type = CommandType.Spy,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            SpyActionType = SpyActionType.Assassination,
+            TargetOfficerId = 201,
+            OfficerIds = new List<int> { 102 }
+        });
+        world.InternalAffairsSchedules.Add(new InternalAffairsScheduleData
+        {
+            CityId = 1,
+            OfficerId = 102,
+            JobType = InternalAffairsJobType.Farm,
+            RemainingMonths = 2,
+            State = InternalAffairsScheduleState.Active
+        });
+        world.CityIntelRecords.Add(new WorldState.CityIntelData
+        {
+            ViewerFactionId = 1,
+            TargetCityId = 2,
+            RemainingMonths = 3
+        });
+        world.PendingSuccessionRecords.Add(new WorldState.PendingSuccessionData
+        {
+            FactionId = 1,
+            CandidateOfficerIds = new List<int> { 102 }
+        });
+
+        var repository = new WorldRepository();
+        var savePath = Path.Combine(Path.GetTempPath(), "3kingdom_save_load_test.json");
+        var saved = repository.SaveGame(savePath, world, "Regression Save", 3);
+        var loadedDocument = repository.LoadSaveDocument(savePath);
+        var loaded = repository.LoadSavedGame(savePath);
+
+        var loadedCity = loaded?.GetCity(1);
+        var loadedPending = loaded?.PendingCommands.SingleOrDefault();
+        var loadedRelation = loaded?.GetDiplomacyRelation(1, 2);
+        var ok = saved &&
+                 loaded != null &&
+                 loaded.Year == 207 &&
+                 loaded.Month == 9 &&
+                 loaded.RandomSeed == 321 &&
+                 loaded.ViewAllInformationEnabled &&
+                 loaded.StoryNameZhHant == "存讀檔劇本" &&
+                 loadedDocument != null &&
+                 loadedDocument.Description == "Regression Save" &&
+                 loadedDocument.SlotIndex == 3 &&
+                 loadedCity != null &&
+                 loadedCity.Population == 54321 &&
+                 loadedCity.Horses == 222 &&
+                 loadedCity.InfantryTroops == 500 &&
+                 loadedCity.SpearmanTroops == 200 &&
+                 loadedCity.CavalryTroops == 150 &&
+                 loadedCity.ArcherTroops == 180 &&
+                 loadedCity.CrossbowTroops == 140 &&
+                 loadedCity.SiegeTroops == 163 &&
+                 loadedCity.Troops == 1333 &&
+                 loadedCity.OfficerIds.SequenceEqual(new[] { 101, 102 }) &&
+                 loadedPending != null &&
+                 loadedPending.TargetOfficerId == 201 &&
+                 loadedPending.OfficerIds.SequenceEqual(new[] { 102 }) &&
+                 loadedRelation != null &&
+                 loadedRelation.Status == DiplomacyStatusType.Truce &&
+                 loadedRelation.RemainingMonths == 4 &&
+                 loaded.InternalAffairsSchedules.Count == 1 &&
+                 loaded.CityIntelRecords.Count == 1 &&
+                 loaded.PendingSuccessionRecords.Count == 1;
+
+        Assert(ok, "Save/load round trip", loaded == null ? "loaded=null" : $"cityPop={loadedCity?.Population}, pending={(loadedPending != null ? 1 : 0)}");
     }
 
     private static void RunSeasonalFoodTest()

@@ -150,6 +150,7 @@ public partial class HudController : CanvasLayer
     private Button? _civilButton;
     private Button? _attackButton;
     private Button? _viewButton;
+    private Button? _optionButton;
     private PopupMenu? _targetCityMenu;
     private AcceptDialog? _merchantDialog;
     private OptionButton? _merchantModeOption;
@@ -236,6 +237,26 @@ public partial class HudController : CanvasLayer
     private Label? _spySummaryLabel;
     private Label? _spyWarningLabel;
     private Button? _spyConfirmButton;
+    private Window? _optionDialog;
+    private Button? _optionSaveLoadButton;
+    private Button? _optionBgmToggleButton;
+    private Button? _optionSfxToggleButton;
+    private HSlider? _optionBgmVolumeSlider;
+    private Label? _optionBgmVolumeValueLabel;
+    private HSlider? _optionSfxVolumeSlider;
+    private Label? _optionSfxVolumeValueLabel;
+    private Button? _optionSaveSettingsButton;
+    private Window? _saveLoadDialog;
+    private ItemList? _saveSlotList;
+    private LineEdit? _saveDescriptionLineEdit;
+    private RichTextLabel? _saveSlotSummaryLabel;
+    private Button? _saveSlotSaveButton;
+    private Button? _saveSlotLoadButton;
+    private Button? _saveSlotCloseButton;
+    private Window? _saveLoadConfirmDialog;
+    private Label? _saveLoadConfirmLabel;
+    private Button? _saveLoadConfirmYesButton;
+    private Button? _saveLoadConfirmNoButton;
     private AcceptDialog? _successionDialog;
     private Tree? _successionOfficerList;
     private Label? _successionSummaryLabel;
@@ -269,6 +290,7 @@ public partial class HudController : CanvasLayer
     private CommandResolver? _commandResolver;
     private LocalizationService? _localization;
     private AiController? _aiController;
+    private WorldRepository? _worldRepository;
     private MapController? _mapController;
     private CityData? _selectedCity;
 
@@ -286,6 +308,7 @@ public partial class HudController : CanvasLayer
     private bool _isCivilButtonConnected;
     private bool _isAttackButtonConnected;
     private bool _isViewButtonConnected;
+    private bool _isOptionButtonConnected;
     private bool _merchantDialogSignalsConnected;
     private bool _attackOfficerListSignalsConnected;
     private bool _gameEnded;
@@ -318,6 +341,12 @@ public partial class HudController : CanvasLayer
     private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
     private bool _isResolvingEndTurn;
+    private bool _bgmEnabled = true;
+    private bool _sfxEnabled = true;
+    private float _bgmVolume = 1.0f;
+    private float _sfxVolume = 1.0f;
+    private int _selectedSaveSlotIndex;
+    private SaveLoadConfirmAction _pendingSaveLoadConfirmAction = SaveLoadConfirmAction.None;
 
     public override void _Ready()
     {
@@ -360,6 +389,7 @@ public partial class HudController : CanvasLayer
             _attackButton.Visible = false;
         }
         _viewButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton");
+        EnsureOptionButton();
 
         _logText = GetNodeOrNull<RichTextLabel>("Root/LogText");
         if (_logText != null)
@@ -375,6 +405,7 @@ public partial class HudController : CanvasLayer
         _merchantDialog.Exclusive = false;
         _merchantDialog.Unfocusable = false;
         _merchantDialog.Confirmed += OnMerchantDialogConfirmed;
+        _merchantDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_merchantDialog);
         EnsureMerchantDialogWidgets();
 
@@ -382,6 +413,7 @@ public partial class HudController : CanvasLayer
         _militaryDialog.Exclusive = false;
         _militaryDialog.Unfocusable = false;
         _militaryDialog.Confirmed += OnMilitaryDialogConfirmed;
+        _militaryDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_militaryDialog);
         EnsureMilitaryDialogWidgets();
 
@@ -389,6 +421,7 @@ public partial class HudController : CanvasLayer
         _personnelDialog.Exclusive = false;
         _personnelDialog.Unfocusable = false;
         _personnelDialog.Confirmed += OnPersonnelDialogConfirmed;
+        _personnelDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_personnelDialog);
         EnsurePersonnelDialogWidgets();
 
@@ -396,6 +429,7 @@ public partial class HudController : CanvasLayer
         _personnelBonusDialog.Exclusive = false;
         _personnelBonusDialog.Unfocusable = false;
         _personnelBonusDialog.Confirmed += OnPersonnelBonusDialogConfirmed;
+        _personnelBonusDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_personnelBonusDialog);
         EnsurePersonnelBonusDialogWidgets();
 
@@ -403,6 +437,7 @@ public partial class HudController : CanvasLayer
         _assignRoleDialog.Exclusive = false;
         _assignRoleDialog.Unfocusable = false;
         _assignRoleDialog.Confirmed += OnAssignRoleDialogConfirmed;
+        _assignRoleDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_assignRoleDialog);
         EnsureAssignRoleDialogWidgets();
 
@@ -410,6 +445,7 @@ public partial class HudController : CanvasLayer
         _fireOfficerDialog.Exclusive = false;
         _fireOfficerDialog.Unfocusable = false;
         _fireOfficerDialog.Confirmed += OnFireOfficerDialogConfirmed;
+        _fireOfficerDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_fireOfficerDialog);
         EnsureFireOfficerDialogWidgets();
 
@@ -417,13 +453,18 @@ public partial class HudController : CanvasLayer
         _requestItemDialog.Exclusive = false;
         _requestItemDialog.Unfocusable = false;
         _requestItemDialog.Confirmed += OnRequestItemDialogConfirmed;
+        _requestItemDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_requestItemDialog);
         EnsureRequestItemDialogWidgets();
 
         _hireOfficerDialog = new Window();
         _hireOfficerDialog.Exclusive = false;
         _hireOfficerDialog.Unresizable = true;
-        _hireOfficerDialog.CloseRequested += () => _hireOfficerDialog?.Hide();
+        _hireOfficerDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _hireOfficerDialog?.Hide();
+        };
         AddChild(_hireOfficerDialog);
         EnsureHireOfficerDialogWidgets();
         _hireOfficerDialog.Hide();
@@ -432,6 +473,7 @@ public partial class HudController : CanvasLayer
         _civilDialog.Exclusive = false;
         _civilDialog.Unfocusable = false;
         _civilDialog.Confirmed += OnCivilDialogConfirmed;
+        _civilDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_civilDialog);
         EnsureCivilDialogWidgets();
 
@@ -439,13 +481,18 @@ public partial class HudController : CanvasLayer
         _civilReliefDialog.Exclusive = false;
         _civilReliefDialog.Unfocusable = false;
         _civilReliefDialog.Confirmed += OnCivilReliefDialogConfirmed;
+        _civilReliefDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_civilReliefDialog);
         EnsureCivilReliefDialogWidgets();
 
         _diplomacyDialog = new Window();
         _diplomacyDialog.Exclusive = false;
         _diplomacyDialog.Unresizable = true;
-        _diplomacyDialog.CloseRequested += () => _diplomacyDialog?.Hide();
+        _diplomacyDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _diplomacyDialog?.Hide();
+        };
         AddChild(_diplomacyDialog);
         EnsureDiplomacyDialogWidgets();
         _diplomacyDialog.Hide();
@@ -461,10 +508,50 @@ public partial class HudController : CanvasLayer
         _spyDialog = new Window();
         _spyDialog.Exclusive = false;
         _spyDialog.Unresizable = true;
-        _spyDialog.CloseRequested += () => _spyDialog?.Hide();
+        _spyDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _spyDialog?.Hide();
+        };
         AddChild(_spyDialog);
         EnsureSpyDialogWidgets();
         _spyDialog.Hide();
+
+        _optionDialog = new Window();
+        _optionDialog.Exclusive = false;
+        _optionDialog.Unresizable = true;
+        _optionDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _optionDialog?.Hide();
+        };
+        AddChild(_optionDialog);
+        EnsureOptionDialogWidgets();
+        _optionDialog.Hide();
+
+        _saveLoadDialog = new Window();
+        _saveLoadDialog.Exclusive = false;
+        _saveLoadDialog.Unresizable = true;
+        _saveLoadDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _saveLoadDialog?.Hide();
+        };
+        AddChild(_saveLoadDialog);
+        EnsureSaveLoadDialogWidgets();
+        _saveLoadDialog.Hide();
+
+        _saveLoadConfirmDialog = new Window();
+        _saveLoadConfirmDialog.Exclusive = false;
+        _saveLoadConfirmDialog.Unresizable = true;
+        _saveLoadConfirmDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            OnSaveLoadConfirmNoPressed();
+        };
+        AddChild(_saveLoadConfirmDialog);
+        EnsureSaveLoadConfirmDialogWidgets();
+        _saveLoadConfirmDialog.Hide();
 
         _successionDialog = new AcceptDialog();
         _successionDialog.Exclusive = false;
@@ -478,6 +565,7 @@ public partial class HudController : CanvasLayer
         _internalAffairsDialog.Exclusive = false;
         _internalAffairsDialog.Unfocusable = false;
         _internalAffairsDialog.Confirmed += OnInternalAffairsDialogConfirmed;
+        _internalAffairsDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_internalAffairsDialog);
         EnsureInternalAffairsDialogWidgets();
 
@@ -485,6 +573,7 @@ public partial class HudController : CanvasLayer
         _moveDialog.Exclusive = false;
         _moveDialog.Unfocusable = false;
         _moveDialog.Confirmed += OnMoveDialogConfirmed;
+        _moveDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_moveDialog);
         EnsureMoveDialogWidgets();
 
@@ -714,6 +803,9 @@ public partial class HudController : CanvasLayer
         AddChild(_officerDetailDialog);
         EnsureOfficerDetailWidgets();
         LoadPortraitData();
+        AttachClickSfxToButtons(this);
+        LoadOptionSettings();
+        ApplyAudioSettings();
     }
 
     public override void _ExitTree()
@@ -747,6 +839,8 @@ public partial class HudController : CanvasLayer
         _moveDialog?.Hide();
         _spyDialog?.Hide();
         _attackDialog?.Hide();
+        _optionDialog?.Hide();
+        _saveLoadDialog?.Hide();
     }
 
     public override void _Process(double delta)
@@ -754,17 +848,49 @@ public partial class HudController : CanvasLayer
         SyncAttackDeploymentEditorSelection();
     }
 
+    private void AttachClickSfxToButtons(Node node)
+    {
+        foreach (Node child in node.GetChildren())
+        {
+            if (child is Button button)
+            {
+                RegisterButtonClickSfx(button);
+            }
+
+            AttachClickSfxToButtons(child);
+        }
+    }
+
+    private static void RegisterButtonClickSfx(Button button)
+    {
+        const string clickSfxConnectedKey = "_click_sfx_connected";
+        if (button.HasMeta(clickSfxConnectedKey))
+        {
+            return;
+        }
+
+        button.SetMeta(clickSfxConnectedKey, true);
+        button.Pressed += () => GameAudioController.Instance?.PlayClickSfx();
+    }
+
+    private static void PlayUiClickSfx()
+    {
+        GameAudioController.Instance?.PlayClickSfx();
+    }
+
     public void Initialize(
         TurnManager turnManager,
         CommandResolver commandResolver,
         AiController aiController,
         LocalizationService localization,
+        WorldRepository worldRepository,
         MapController? mapController = null)
     {
         _turnManager = turnManager;
         _commandResolver = commandResolver;
         _localization = localization;
         _aiController = aiController;
+        _worldRepository = worldRepository;
         _mapController = mapController;
 
         _localization.LanguageChanged -= OnLanguageChanged;
@@ -778,6 +904,7 @@ public partial class HudController : CanvasLayer
 
     public void OnCitySelected(CityData city)
     {
+        GameAudioController.Instance?.PlayCityClickSfx();
         _selectedCity = city;
         RefreshSelectedCity();
         if (_localization != null)
@@ -921,6 +1048,12 @@ public partial class HudController : CanvasLayer
             _viewButton.Pressed += OnViewPressed;
             _isViewButtonConnected = true;
         }
+
+        if (_optionButton != null && !_isOptionButtonConnected)
+        {
+            _optionButton.Pressed += OnOptionPressed;
+            _isOptionButtonConnected = true;
+        }
     }
 
     private void DisconnectButtons()
@@ -1007,6 +1140,12 @@ public partial class HudController : CanvasLayer
         {
             _viewButton.Pressed -= OnViewPressed;
             _isViewButtonConnected = false;
+        }
+
+        if (_optionButton != null && _isOptionButtonConnected)
+        {
+            _optionButton.Pressed -= OnOptionPressed;
+            _isOptionButtonConnected = false;
         }
     }
 
@@ -1476,6 +1615,8 @@ public partial class HudController : CanvasLayer
 
     private void OnAttackDialogCloseRequested()
     {
+        PlayUiClickSfx();
+
         if (_attackDialogMode == AttackDialogMode.Defense)
         {
             ReopenAttackDialog();

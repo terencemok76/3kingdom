@@ -185,6 +185,8 @@ public partial class HudController
 
     private void OnSuccessionDialogCloseRequested()
     {
+        PlayUiClickSfx();
+
         if (_pendingSuccessionFactionId > 0)
         {
             ShowSuccessionDialog();
