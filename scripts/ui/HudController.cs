@@ -230,6 +230,7 @@ public partial class HudController : CanvasLayer
     private Window? _spyDialog;
     private OptionButton? _spyActionOption;
     private OptionButton? _spyTargetCityOption;
+    private OptionButton? _spyTargetOfficerOption;
     private Tree? _spyOfficerList;
     private Label? _spySummaryLabel;
     private Label? _spyWarningLabel;

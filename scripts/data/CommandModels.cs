@@ -76,6 +76,7 @@ public class CommandRequest
     public int ActorFactionId { get; set; }
     public int SourceCityId { get; set; }
     public int? TargetCityId { get; set; }
+    public int? TargetOfficerId { get; set; }
     public int TroopsToSend { get; set; }
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }
@@ -98,6 +99,7 @@ public class PendingCommandData
     public int ActorFactionId { get; set; }
     public int SourceCityId { get; set; }
     public int TargetCityId { get; set; }
+    public int TargetOfficerId { get; set; }
     public int TroopsToSend { get; set; }
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }

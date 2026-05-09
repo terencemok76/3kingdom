@@ -28,6 +28,20 @@ public partial class CommandResolver
         };
     }
 
+    private void AppendLocalizedText(CommandResult result, string zhSuffix, string enSuffix)
+    {
+        if (!string.IsNullOrWhiteSpace(zhSuffix))
+        {
+            result.MessageZhHant = $"{result.MessageZhHant} {zhSuffix}".Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(enSuffix))
+        {
+            result.MessageEn = $"{result.MessageEn} {enSuffix}".Trim();
+            result.Message = result.MessageEn;
+        }
+    }
+
     private object[] GetCityArgs(CityData city, GameLanguage language)
     {
         return new object[]
@@ -514,6 +528,72 @@ public partial class CommandResolver
         {
             faction.OfficerIds.Add(candidateIds[0]);
         }
+    }
+
+    private (string ZhHant, string En)? TryResolveBattleRulerDeath(WorldState world, int officerId, float casualtyRatio)
+    {
+        if (casualtyRatio < 0.999f)
+        {
+            return null;
+        }
+
+        var officer = world.GetOfficer(officerId);
+        if (officer == null || !IsOfficerAlive(world, officer) || !IsFactionRuler(world, officer.Id))
+        {
+            return null;
+        }
+
+        var faction = world.Factions.FirstOrDefault(item => item.RulerOfficerId == officer.Id);
+        if (faction == null)
+        {
+            return null;
+        }
+
+        var factionId = faction.Id;
+        var factionNameZh = GetFactionName(faction, GameLanguage.TraditionalChinese);
+        var factionNameEn = GetFactionName(faction, GameLanguage.English);
+        var rulerNameZh = GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese);
+        var rulerNameEn = GetOfficerDisplayName(officer, GameLanguage.English);
+
+        EliminateOfficer(world, officer);
+        ResolveRulerDeath(world, factionId);
+
+        var updatedFaction = world.GetFaction(factionId);
+        if (updatedFaction == null || !IsFactionAlive(world, factionId))
+        {
+            return (
+                _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, "cmd.attack.ruler_fell_faction_destroyed_suffix", rulerNameZh, factionNameZh) ?? string.Empty,
+                _localization?.FormatForLanguage(GameLanguage.English, "cmd.attack.ruler_fell_faction_destroyed_suffix", rulerNameEn, factionNameEn) ?? string.Empty);
+        }
+
+        if (updatedFaction.IsPlayer || updatedFaction.RulerOfficerId <= 0)
+        {
+            return (
+                _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, "cmd.attack.ruler_fell_pending_succession_suffix", rulerNameZh, factionNameZh) ?? string.Empty,
+                _localization?.FormatForLanguage(GameLanguage.English, "cmd.attack.ruler_fell_pending_succession_suffix", rulerNameEn, factionNameEn) ?? string.Empty);
+        }
+
+        var successor = world.GetOfficer(updatedFaction.RulerOfficerId);
+        if (successor == null)
+        {
+            return (
+                _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, "cmd.attack.ruler_fell_pending_succession_suffix", rulerNameZh, factionNameZh) ?? string.Empty,
+                _localization?.FormatForLanguage(GameLanguage.English, "cmd.attack.ruler_fell_pending_succession_suffix", rulerNameEn, factionNameEn) ?? string.Empty);
+        }
+
+        return (
+            _localization?.FormatForLanguage(
+                GameLanguage.TraditionalChinese,
+                "cmd.attack.ruler_fell_succeeded_suffix",
+                rulerNameZh,
+                GetOfficerDisplayName(successor, GameLanguage.TraditionalChinese),
+                factionNameZh) ?? string.Empty,
+            _localization?.FormatForLanguage(
+                GameLanguage.English,
+                "cmd.attack.ruler_fell_succeeded_suffix",
+                rulerNameEn,
+                GetOfficerDisplayName(successor, GameLanguage.English),
+                factionNameEn) ?? string.Empty);
     }
 
     private void CollapseFaction(WorldState world, int factionId)

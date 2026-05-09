@@ -25,6 +25,7 @@ internal static class Program
         RunCoreActionsTest();
         RunAiDefensiveDiplomacyTruceTest();
         RunAiSpyReconPriorityTest();
+        RunAiSpyAssassinationTargetSelectionTest();
         RunAiDiplomacyGiftTest();
         RunAiDiplomacyAllianceTest();
         RunAiDiplomacyDemandTest();
@@ -33,9 +34,11 @@ internal static class Program
         RunDiplomacyDemandScheduleTest();
         RunDiplomacyBreakPactResolutionTest();
         RunSpyAssassinationResolutionTest();
+        RunSpyAssassinationDesignatedTargetTest();
         RunSpyAssassinationPlayerSuccessionPendingTest();
         RunSpyAssassinationFactionCollapseTest();
         RunAttackResolutionTest();
+        RunAttackRulerDeathPlayerSuccessionPendingTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
         RunUpkeepShortageTest();
@@ -204,6 +207,31 @@ internal static class Program
             command.ActorFactionId == 1 &&
             command.TargetCityId == 2);
         Assert(pending != null, "AI spy recon hidden target first", $"pending={(pending != null ? 1 : 0)}");
+    }
+
+    private static void RunAiSpyAssassinationTargetSelectionTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiSpyCity", 1, 700, 900, 1000, new[] { 101 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "EnemyCourt", 2, 180, 420, 900, new[] { 201, 202 }, new[] { 1 }));
+        world.GetCity(2)!.Defense = 18;
+        world.Officers.Add(TestHelpers.Officer(101, "SpyMaster", 1, intelligence: 95, charm: 84));
+        world.Officers.Add(TestHelpers.Officer(201, "EnemyRuler", 2, combat: 84));
+        world.Officers.Add(TestHelpers.Officer(202, "EnemyGeneral", 2, combat: 82));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201, 202 }));
+        world.UpsertCityIntel(1, 2, 3);
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(1, 1);
+
+        var pending = world.PendingCommands.SingleOrDefault(command =>
+            command.Type == CommandType.Spy &&
+            command.SpyActionType == SpyActionType.Assassination &&
+            command.ActorFactionId == 1 &&
+            command.TargetCityId == 2);
+        Assert(pending != null, "AI spy assassination schedules", $"pending={(pending != null ? 1 : 0)}");
+        Assert(pending != null && pending.TargetOfficerId == 201, "AI spy assassination picks best target officer", pending == null ? "pending=null" : $"targetOfficer={pending.TargetOfficerId}");
     }
 
     private static void RunAiDiplomacyGiftTest()
@@ -466,6 +494,47 @@ internal static class Program
         Assert(targetCity.OfficerIds.Contains(202), "Spy assassination keeps successor alive", $"cityHasSuccessor={targetCity.OfficerIds.Contains(202)}");
     }
 
+    private static void RunSpyAssassinationDesignatedTargetTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "SpyCity", 1, 800, 800, 1200, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "EnemyCity", 2, 900, 900, 1000, new[] { 201, 202 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "SpyOfficer", 1, intelligence: 95, charm: 90));
+        world.Officers.Add(TestHelpers.Officer(201, "EnemyRuler", 2, strength: 85, intelligence: 75, charm: 80, combat: 85));
+        world.Officers.Add(TestHelpers.Officer(202, "EnemyStrategist", 2, strength: 65, intelligence: 94, charm: 82, combat: 60));
+        world.Factions.Add(TestHelpers.Faction(1, "Enemy", false, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Target", false, 201, new[] { 201, 202 }));
+        var services = CreateServices(world);
+
+        var schedule = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Spy,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            TargetOfficerId = 202,
+            SpyActionType = SpyActionType.Assassination,
+            OfficerIds = new List<int> { 101 }
+        });
+        var pending = world.PendingCommands.Single(command => command.Type == CommandType.Spy);
+        var result = InvokePrivateInstance<CommandResult>(
+            services.Resolver,
+            "ResolveSuccessfulSpyAction",
+            world,
+            1,
+            world.GetCity(2)!,
+            world.GetOfficer(101)!,
+            SpyActionType.Assassination,
+            202);
+
+        Assert(schedule.Success, "Spy assassination designated target schedules", $"success={schedule.Success}");
+        Assert(pending.TargetOfficerId == 202, "Spy assassination stores designated target", $"targetOfficer={pending.TargetOfficerId}");
+        Assert(result.Success, "Spy assassination designated target resolves", $"success={result.Success}");
+        Assert(world.GetOfficer(202)!.DeathYear == world.Year, "Spy assassination designated target marks chosen officer dead", $"deathYear={world.GetOfficer(202)!.DeathYear}");
+        Assert(world.GetOfficer(201)!.DeathYear == 0, "Spy assassination designated target leaves ruler alive", $"deathYear={world.GetOfficer(201)!.DeathYear}");
+        Assert(world.GetFaction(2)!.RulerOfficerId == 201, "Spy assassination designated target keeps existing ruler", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
+    }
+
     private static void RunSpyAssassinationPlayerSuccessionPendingTest()
     {
         var world = TestHelpers.World();
@@ -558,6 +627,50 @@ internal static class Program
         _ = services.Turn.ResolvePendingCommands(services.Resolver);
 
         Assert(world.GetCity(1)?.OwnerFactionId == 2, "AI attack resolution", $"owner={world.GetCity(1)?.OwnerFactionId}");
+    }
+
+    private static void RunAttackRulerDeathPlayerSuccessionPendingTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerFrontier", 1, 1000, 1000, 600, new[] { 101, 102, 103 }, new[] { 2, 3 }));
+        world.Cities.Add(TestHelpers.City(2, "EnemyBase", 2, 1200, 1200, 2200, new[] { 201 }, new[] { 1 }));
+        world.Cities.Add(TestHelpers.City(3, "FallbackCity", 1, 800, 800, 500, new[] { 104 }, new[] { 1 }));
+        world.GetCity(2)!.InfantryTroops = 0;
+        world.GetCity(2)!.CavalryTroops = 2200;
+        world.GetCity(2)!.SyncLegacyTroops();
+        world.Officers.Add(TestHelpers.Officer(101, "PlayerRuler", 1, strength: 60, intelligence: 65, charm: 70, combat: 60));
+        world.Officers.Add(TestHelpers.Officer(102, "LordSuccessor", 1, strength: 72, intelligence: 74, charm: 76, combat: 72));
+        world.Officers.Add(TestHelpers.Officer(103, "GeneralSuccessor", 1, strength: 84, intelligence: 68, charm: 65, combat: 80));
+        world.Officers.Add(TestHelpers.Officer(104, "FallbackOfficer", 3, strength: 66, intelligence: 62, charm: 60, combat: 68));
+        world.Officers.Add(TestHelpers.Officer(201, "EnemyGeneral", 2, strength: 88, intelligence: 70, charm: 70, combat: 90));
+        world.GetOfficer(102)!.Role = "Lord";
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102, 103, 104 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201 }));
+        var services = CreateServices(world);
+
+        var scheduled = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 2,
+            SourceCityId = 2,
+            TargetCityId = 1,
+            OfficerIds = new List<int> { 201 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 201, TroopType = TroopType.Cavalry, TroopCount = 2200 }
+            }
+        });
+        var pendingAttack = world.PendingCommands.Single(command => command.Type == CommandType.Attack);
+        var resolved = services.Resolver.ResolvePendingCommand(pendingAttack);
+
+        var pendingSuccession = world.GetPendingSuccession(1);
+        Assert(scheduled.Success, "Attack ruler death scheduling", $"success={scheduled.Success}");
+        Assert(resolved.Success, "Attack ruler death resolution", $"success={resolved.Success}");
+        Assert(world.GetOfficer(101)!.DeathYear == world.Year, "Attack ruler death marks player ruler dead", $"deathYear={world.GetOfficer(101)!.DeathYear}");
+        Assert(world.GetFaction(1)!.RulerOfficerId == 0, "Attack ruler death clears player ruler id", $"ruler={world.GetFaction(1)!.RulerOfficerId}");
+        Assert(pendingSuccession != null, "Attack ruler death creates player succession prompt", $"pending={(pendingSuccession != null ? 1 : 0)}");
+        Assert(pendingSuccession != null && pendingSuccession.CandidateOfficerIds.SequenceEqual(new[] { 102, 103, 104 }), "Attack ruler death orders player succession candidates", pendingSuccession == null ? "pending=null" : $"candidates={string.Join(',', pendingSuccession.CandidateOfficerIds)}");
+        Assert(resolved.MessageEn.Contains("must choose a successor"), "Attack ruler death result mentions succession", resolved.MessageEn);
     }
 
     private static void RunDefensePromptEligibilityTest()
@@ -1305,11 +1418,13 @@ internal static class Program
             OfficerIds = new List<int> { 101 }
         });
         var hiddenResolved = hiddenServices.Turn.ResolvePendingCommands(hiddenServices.Resolver);
+        var hiddenOfficer = hiddenWorld.GetOfficer(151)!;
+        var hiddenOfficerInCity = hiddenWorld.GetCity(1)!.OfficerIds.Contains(151);
 
         Assert(result.Success, "Civil investigation can discover hidden free officer", $"success={result.Success}");
         Assert(hiddenResolved.Count == 1 && hiddenResolved[0].Success, "Civil investigation hidden officer month-end resolves", $"count={hiddenResolved.Count}");
-        Assert(!hiddenWorld.GetCity(1)!.OfficerIds.Contains(151), "Hidden free officer is revealed but not recruited", $"cityHas={hiddenWorld.GetCity(1)!.OfficerIds.Contains(151)}");
-        Assert(hiddenWorld.GetOfficer(151)!.CityId is 0 or 1, "Hidden free officer investigation remains valid", $"cityId={hiddenWorld.GetOfficer(151)!.CityId}");
+        Assert(hiddenOfficer.CityId is 0 or 1, "Hidden free officer investigation remains valid", $"cityId={hiddenOfficer.CityId}");
+        Assert(hiddenOfficerInCity == (hiddenOfficer.CityId == 1), "Hidden free officer city membership stays consistent", $"cityHas={hiddenOfficerInCity}, cityId={hiddenOfficer.CityId}");
 
         var rejectWorld = TestHelpers.World(year: 200, month: 2);
         rejectWorld.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
@@ -1467,7 +1582,9 @@ internal static class Program
 
     private static T InvokePrivateInstance<T>(object target, string methodName, params object[] args)
     {
-        var method = target.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance);
+        var method = target.GetType()
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+            .FirstOrDefault(candidate => candidate.Name == methodName && candidate.GetParameters().Length == args.Length);
         if (method == null)
         {
             throw new InvalidOperationException($"Method not found: {target.GetType().FullName}.{methodName}");

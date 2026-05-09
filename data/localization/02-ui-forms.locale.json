@@ -116,6 +116,10 @@
 								   "zhHant":  "目標城市",
 								   "en":  "Target City"
 							   },
+		"ui.spy_target_officer":  {
+									 "zhHant":  "目標官員",
+									 "en":  "Target Officer"
+								 },
 		"ui.spy_officer":  {
 							   "zhHant":  "執行間諜",
 							   "en":  "Assigned Spy"
@@ -124,6 +128,10 @@
 											   "zhHant":  "請選擇目標城市。",
 											   "en":  "Select a target city."
 										   },
+		"ui.spy_target_officer_required_warning":  {
+													   "zhHant":  "暗殺需要指定目標官員。",
+													   "en":  "Assassination requires a target officer."
+												   },
 		"ui.spy_officer_hint":  {
 									"zhHant":  "請選擇一位武將執行間諜任務。",
 									"en":  "Select one officer to perform the spy mission."

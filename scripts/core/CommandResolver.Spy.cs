@@ -24,6 +24,18 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.spy.same_faction");
         }
 
+        if (request.SpyActionType == SpyActionType.Assassination && request.TargetOfficerId.HasValue)
+        {
+            var targetOfficer = world.GetOfficer(request.TargetOfficerId.Value);
+            if (targetOfficer == null ||
+                targetOfficer.CityId != targetCity.Id ||
+                !targetCity.OfficerIds.Contains(targetOfficer.Id) ||
+                !IsOfficerAlive(world, targetOfficer))
+            {
+                return LocalizedResult(false, "cmd.spy.assassination_invalid_target");
+            }
+        }
+
         var officer = GetSingleAvailableOfficer(world, sourceCity, request.OfficerIds);
         if (officer == null)
         {
@@ -38,6 +50,9 @@ public partial class CommandResolver
             SourceCityId = sourceCity.Id,
             TargetCityId = targetCity.Id,
             TargetFactionId = targetCity.OwnerFactionId,
+            TargetOfficerId = request.SpyActionType == SpyActionType.Assassination
+                ? request.TargetOfficerId ?? 0
+                : 0,
             SpyActionType = request.SpyActionType,
             OfficerIds = new System.Collections.Generic.List<int> { officer.Id }
         });
@@ -80,7 +95,7 @@ public partial class CommandResolver
 
         if (success)
         {
-            var result = ResolveSuccessfulSpyAction(world, pendingCommand.ActorFactionId, targetCity, officer, pendingCommand.SpyActionType);
+            var result = ResolveSuccessfulSpyAction(world, pendingCommand.ActorFactionId, targetCity, officer, pendingCommand.SpyActionType, pendingCommand.TargetOfficerId);
             if (exposed)
             {
                 ApplySpyExposurePenalty(world, pendingCommand.ActorFactionId, officer, targetCity.OwnerFactionId, 6, 3);
@@ -131,6 +146,11 @@ public partial class CommandResolver
     }
 
     private CommandResult ResolveSuccessfulSpyAction(WorldState world, int actorFactionId, CityData targetCity, OfficerData officer, SpyActionType actionType)
+    {
+        return ResolveSuccessfulSpyAction(world, actorFactionId, targetCity, officer, actionType, 0);
+    }
+
+    private CommandResult ResolveSuccessfulSpyAction(WorldState world, int actorFactionId, CityData targetCity, OfficerData officer, SpyActionType actionType, int targetOfficerId)
     {
         switch (actionType)
         {
@@ -198,7 +218,7 @@ public partial class CommandResolver
             }
             case SpyActionType.Assassination:
             {
-                var targetOfficer = SelectAssassinationTarget(world, targetCity);
+                var targetOfficer = SelectAssassinationTarget(world, targetCity, targetOfficerId);
                 if (targetOfficer == null)
                 {
                     OfficerProgressionRules.AwardSpyExperience(officer, 10);
@@ -402,8 +422,22 @@ public partial class CommandResolver
         };
     }
 
-    private static OfficerData? SelectAssassinationTarget(WorldState world, CityData targetCity)
+    private static OfficerData? SelectAssassinationTarget(WorldState world, CityData targetCity, int targetOfficerId = 0)
     {
+        if (targetOfficerId > 0)
+        {
+            var designatedOfficer = world.GetOfficer(targetOfficerId);
+            if (designatedOfficer != null &&
+                designatedOfficer.CityId == targetCity.Id &&
+                targetCity.OfficerIds.Contains(designatedOfficer.Id) &&
+                IsOfficerAlive(world, designatedOfficer))
+            {
+                return designatedOfficer;
+            }
+
+            return null;
+        }
+
         return targetCity.OfficerIds
             .Select(world.GetOfficer)
             .Where(officer => IsOfficerAlive(world, officer))

@@ -19,6 +19,7 @@ public partial class HudController : CanvasLayer
         {
             _spyActionOption = existingRoot.GetNodeOrNull<OptionButton>("ActionRow/ActionOption");
             _spyTargetCityOption = existingRoot.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
+            _spyTargetOfficerOption = existingRoot.GetNodeOrNull<OptionButton>("TargetOfficerRow/TargetOfficerOption");
             _spyOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerList");
             _spySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
             _spyWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
@@ -44,6 +45,7 @@ public partial class HudController : CanvasLayer
         };
         _spyActionOption.ItemSelected += _ =>
         {
+            PopulateSpyTargetOfficerOptions();
             UpdateSpySummary();
             UpdateSpyConfirmButtonState();
         };
@@ -57,10 +59,24 @@ public partial class HudController : CanvasLayer
         };
         _spyTargetCityOption.ItemSelected += _ =>
         {
+            PopulateSpyTargetOfficerOptions();
             UpdateSpySummary();
             UpdateSpyConfirmButtonState();
         };
         root.GetNode<HBoxContainer>("TargetCityRow").AddChild(_spyTargetCityOption);
+
+        root.AddChild(CreateDiplomacyFormRow("TargetOfficerRow", "TargetOfficerLabel"));
+        _spyTargetOfficerOption = new OptionButton
+        {
+            Name = "TargetOfficerOption",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _spyTargetOfficerOption.ItemSelected += _ =>
+        {
+            UpdateSpySummary();
+            UpdateSpyConfirmButtonState();
+        };
+        root.GetNode<HBoxContainer>("TargetOfficerRow").AddChild(_spyTargetOfficerOption);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
         _spyOfficerList = new Tree
@@ -168,6 +184,7 @@ public partial class HudController : CanvasLayer
         }
 
         SelectFirstSpyOfficerRow();
+        PopulateSpyTargetOfficerOptions();
         SetSpyWarning(string.Empty);
         UpdateSpySummary();
         UpdateSpyConfirmButtonState();
@@ -183,6 +200,7 @@ public partial class HudController : CanvasLayer
         _spyDialog.Title = _localization.T("ui.spy");
         SetSpyDialogLabelText("ActionLabel", _localization.T("ui.spy_action"));
         SetSpyDialogLabelText("TargetCityLabel", _localization.T("ui.spy_target_city"));
+        SetSpyDialogLabelText("TargetOfficerLabel", _localization.T("ui.spy_target_officer"));
         SetSpyDialogLabelText("OfficerListLabel", _localization.T("ui.spy_officer"));
         if (_spyConfirmButton != null)
         {
@@ -349,6 +367,13 @@ public partial class HudController : CanvasLayer
             SpyActionType.Assassination => "command.spy.assassination",
             _ => "command.spy.reconnaissance"
         });
+        if (actionType == SpyActionType.Assassination)
+        {
+            var targetOfficerName = GetSelectedSpyTargetOfficerName();
+            _spySummaryLabel.Text = _localization.Format("fmt.spy_assassination_summary", actionName, targetCityName, targetOfficerName);
+            return;
+        }
+
         _spySummaryLabel.Text = _localization.Format("fmt.spy_summary", actionName, targetCityName);
     }
 
@@ -361,7 +386,9 @@ public partial class HudController : CanvasLayer
 
         var hasOfficer = GetSelectedTreeMetadataIds(_spyOfficerList).Count > 0;
         var hasTarget = GetSelectedSpyTargetCityId() > 0;
-        _spyConfirmButton.Disabled = !hasOfficer || !hasTarget;
+        var needsTargetOfficer = GetSelectedSpyActionType() == SpyActionType.Assassination;
+        var hasTargetOfficer = !needsTargetOfficer || GetSelectedSpyTargetOfficerId() > 0;
+        _spyConfirmButton.Disabled = !hasOfficer || !hasTarget || !hasTargetOfficer;
     }
 
     private void SetSpyWarning(string text)
@@ -393,14 +420,23 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var actionType = GetSelectedSpyActionType();
+        var targetOfficerId = GetSelectedSpyTargetOfficerId();
+        if (actionType == SpyActionType.Assassination && targetOfficerId <= 0)
+        {
+            SetSpyWarning(_localization.T("ui.spy_target_officer_required_warning"));
+            return;
+        }
+
         var result = _commandResolver.Execute(new CommandRequest
         {
             Type = CommandType.Spy,
             ActorFactionId = _turnManager.GetPlayerFactionId(),
             SourceCityId = _selectedCity.Id,
             TargetCityId = targetCityId,
+            TargetOfficerId = actionType == SpyActionType.Assassination ? targetOfficerId : null,
             OfficerIds = selectedOfficerIds,
-            SpyActionType = GetSelectedSpyActionType()
+            SpyActionType = actionType
         });
 
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
@@ -412,5 +448,66 @@ public partial class HudController : CanvasLayer
         }
 
         SetSpyWarning(GetLocalizedResultMessage(result));
+    }
+
+    private void PopulateSpyTargetOfficerOptions()
+    {
+        if (_turnManager?.World == null || _spyTargetOfficerOption == null || _localization == null)
+        {
+            return;
+        }
+
+        _spyTargetOfficerOption.Clear();
+        _spyTargetOfficerOption.AddItem(_localization.T("ui.none"));
+        _spyTargetOfficerOption.SetItemMetadata(0, -1);
+
+        var targetCity = _turnManager.World.GetCity(GetSelectedSpyTargetCityId());
+        if (targetCity != null)
+        {
+            foreach (var officerId in targetCity.OfficerIds)
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                if (officer == null || officer.DeathYear > 0 && _turnManager.World.Year >= officer.DeathYear)
+                {
+                    continue;
+                }
+
+                _spyTargetOfficerOption.AddItem($"{_localization.GetOfficerName(officer)} | {_localization.GetOfficerRole(officer)}");
+                _spyTargetOfficerOption.SetItemMetadata(_spyTargetOfficerOption.ItemCount - 1, officer.Id);
+            }
+        }
+
+        var isAssassination = GetSelectedSpyActionType() == SpyActionType.Assassination;
+        _spyTargetOfficerOption.Disabled = !isAssassination;
+        if (isAssassination && _spyTargetOfficerOption.ItemCount > 1)
+        {
+            _spyTargetOfficerOption.Select(1);
+        }
+        else
+        {
+            _spyTargetOfficerOption.Select(0);
+        }
+    }
+
+    private int GetSelectedSpyTargetOfficerId()
+    {
+        if (_spyTargetOfficerOption == null || _spyTargetOfficerOption.ItemCount == 0)
+        {
+            return -1;
+        }
+
+        var metadata = _spyTargetOfficerOption.GetItemMetadata(_spyTargetOfficerOption.Selected);
+        return metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : -1;
+    }
+
+    private string GetSelectedSpyTargetOfficerName()
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return "-";
+        }
+
+        var officer = _turnManager.World.GetOfficer(GetSelectedSpyTargetOfficerId());
+        return officer != null ? _localization.GetOfficerName(officer) : "-";
     }
 }

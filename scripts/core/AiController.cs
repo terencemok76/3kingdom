@@ -707,12 +707,14 @@ public class AiController
             .FirstOrDefault();
         if (assassinationTarget != null)
         {
+            var assassinationTargetOfficerId = GetBestAssassinationTargetOfficerId(world, assassinationTarget);
             var assassinationResult = _commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Spy,
                 ActorFactionId = factionId,
                 SourceCityId = city.Id,
                 TargetCityId = assassinationTarget.Id,
+                TargetOfficerId = assassinationTargetOfficerId > 0 ? assassinationTargetOfficerId : null,
                 SpyActionType = SpyActionType.Assassination,
                 OfficerIds = new System.Collections.Generic.List<int> { spyOfficerId }
             });
@@ -799,6 +801,19 @@ public class AiController
                 (world.Factions.Any(faction => faction.RulerOfficerId == officer.Id) ? 1000 : 0))
             .DefaultIfEmpty(0)
             .Max();
+    }
+
+    private static int GetBestAssassinationTargetOfficerId(WorldState world, CityData city)
+    {
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => world.Factions.Any(faction => faction.RulerOfficerId == officer.Id))
+            .ThenBy(officer => officer.Loyalty)
+            .ThenByDescending(officer => officer.Combat + officer.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
+            .Select(officer => officer.Id)
+            .FirstOrDefault();
     }
 
     private static int GetBestDiplomacyOfficerId(

@@ -39,6 +39,18 @@
                               "zhHant":  "【{0}】「{1}」攻擊【{2}】「{3}」失敗。出征武將已返回原城，返還兵力 +{4}，金返還 +{5}，糧返還 +{6}。",
                               "en":  "[{0}] \"{1}\" attack against [{2}] \"{3}\" failed. Deployed officers returned to the source city. Returned troops +{4}, gold +{5}, food +{6}."
                           },
+    "cmd.attack.ruler_fell_faction_destroyed_suffix":  {
+                                                           "zhHant":  "君主「{0}」於戰中陣亡，勢力「{1}」已滅亡。",
+                                                           "en":  "Ruler \"{0}\" fell in battle, and faction \"{1}\" has collapsed."
+                                                       },
+    "cmd.attack.ruler_fell_pending_succession_suffix":  {
+                                                            "zhHant":  "君主「{0}」於戰中陣亡，勢力「{1}」需決定繼承人。",
+                                                            "en":  "Ruler \"{0}\" fell in battle, and faction \"{1}\" must choose a successor."
+                                                        },
+    "cmd.attack.ruler_fell_succeeded_suffix":  {
+                                                   "zhHant":  "君主「{0}」於戰中陣亡，勢力「{2}」已由「{1}」繼位。",
+                                                   "en":  "Ruler \"{0}\" fell in battle, and faction \"{2}\" is now led by \"{1}\"."
+                                               },
     "cmd.attack.no_troops":  {
                                  "zhHant":  "沒有可用於攻擊的兵力。",
                                  "en":  "No troops available for attack."
@@ -295,6 +307,10 @@
                                             "zhHant":  "「{0}」潛入「{1}」，但未找到可下手的目標。",
                                             "en":  "\"{0}\" infiltrated \"{1}\", but found no valid assassination target."
                                         },
+    "cmd.spy.assassination_invalid_target":  {
+                                                 "zhHant":  "指定的暗殺目標目前不在目標城市，無法執行。",
+                                                 "en":  "The selected assassination target is no longer in the target city."
+                                             },
     "cmd.spy.assassination_success":  {
                                          "zhHant":  "「{0}」在「{2}」暗殺成功，目標「{1}」已被除去。",
                                          "en":  "\"{0}\" succeeded in an assassination at \"{2}\". Target \"{1}\" was eliminated."

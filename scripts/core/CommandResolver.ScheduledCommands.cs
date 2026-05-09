@@ -643,6 +643,7 @@ public partial class CommandResolver
             effectiveAttackerLoss = attackingTroops;
         }
 
+        var defendingTroopsBeforeBattle = targetCity.Troops;
         var defenderLoss = combat.DefenderLosses;
         if (defenderLoss > targetCity.Troops)
         {
@@ -651,6 +652,25 @@ public partial class CommandResolver
 
         var defenderLossAllocation = CreateTroopAllocationFromCityProportion(targetCity, defenderLoss);
         targetCity.RemoveTroopAllocation(defenderLossAllocation);
+        var battleDeathSummaries = new List<(string ZhHant, string En)>();
+        var attackerRulerDeath = pendingCommand.OfficerIds
+            .Select(officerId => TryResolveBattleRulerDeath(world, officerId, attackingTroops > 0 ? effectiveAttackerLoss / (float)attackingTroops : 0.0f))
+            .FirstOrDefault(summary => summary.HasValue);
+        if (attackerRulerDeath.HasValue)
+        {
+            battleDeathSummaries.Add(attackerRulerDeath.Value);
+        }
+
+        var defendingBattleOfficerIds = selectedDefendingOfficerIds.Count > 0
+            ? selectedDefendingOfficerIds
+            : defendingOfficerIds;
+        var defenderRulerDeath = defendingBattleOfficerIds
+            .Select(officerId => TryResolveBattleRulerDeath(world, officerId, defendingTroopsBeforeBattle > 0 ? defenderLoss / (float)defendingTroopsBeforeBattle : 0.0f))
+            .FirstOrDefault(summary => summary.HasValue);
+        if (defenderRulerDeath.HasValue)
+        {
+            battleDeathSummaries.Add(defenderRulerDeath.Value);
+        }
 
         if (!combat.AttackerWon)
         {
@@ -669,7 +689,7 @@ public partial class CommandResolver
             sourceCity.Gold += returnedGold;
             sourceCity.Food += returnedFood;
 
-            return LocalizedResult(
+            var failedResult = LocalizedResult(
                 true,
                 "cmd.attack.failed",
                 new object[]
@@ -692,6 +712,15 @@ public partial class CommandResolver
                     returnedGold,
                     returnedFood
                 });
+            if (battleDeathSummaries.Count > 0)
+            {
+                AppendLocalizedText(
+                    failedResult,
+                    string.Join(" ", battleDeathSummaries.Select(item => item.ZhHant)),
+                    string.Join(" ", battleDeathSummaries.Select(item => item.En)));
+            }
+
+            return failedResult;
         }
 
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
@@ -711,7 +740,7 @@ public partial class CommandResolver
         TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds);
         sourceCity.Loyalty = ClampStat(sourceCity.Loyalty + 2);
 
-        return LocalizedResult(
+        var successResult = LocalizedResult(
             true,
             "cmd.attack.success",
             new object[]
@@ -734,6 +763,15 @@ public partial class CommandResolver
                 pendingCommand.GoldToSend,
                 pendingCommand.FoodToSend
             });
+        if (battleDeathSummaries.Count > 0)
+        {
+            AppendLocalizedText(
+                successResult,
+                string.Join(" ", battleDeathSummaries.Select(item => item.ZhHant)),
+                string.Join(" ", battleDeathSummaries.Select(item => item.En)));
+        }
+
+        return successResult;
     }
 
 

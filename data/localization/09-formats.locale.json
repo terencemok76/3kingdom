@@ -47,6 +47,10 @@
                             "zhHant":  "預覽：{0} -> {1}，將於月底結算",
                             "en":  "Preview: {0} -> {1}, resolves at month end"
                                      },
+    "fmt.spy_assassination_summary":  {
+                                           "zhHant":  "預覽：{0} -> {1} -> {2}，將於月底結算",
+                                           "en":  "Preview: {0} -> {1} -> {2}, resolves at month end"
+                                       },
     "fmt.experience_title":  {
                                  "zhHant":  "{0}（{1}）",
                                  "en":  "{0} ({1})"
