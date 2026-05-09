@@ -4,10 +4,10 @@ namespace ThreeKingdom.Core;
 
 public partial class GameAudioController : Node
 {
-    private const string DefaultBgmPath = "res://assets/bgm/Jade_Gate_2.mp3";
-    private const string SecondaryBgmPath = "res://assets/bgm/Jade_Gate_1.mp3";
-    private const string ClickSfxPath = "res://assets/sfx/click_sound.mp3";
-    private const string ClickCitySfxPath = "res://assets/sfx/click_city_sound.mp3";
+    private const string DefaultBgmPath = "res://assets/bgm/Jade_Gate_2.ogg";
+    private const string SecondaryBgmPath = "res://assets/bgm/Jade_Gate_1.ogg";
+    private const string ClickSfxPath = "res://assets/sfx/click_sound.ogg";
+    private const string ClickCitySfxPath = "res://assets/sfx/click_city_sound.ogg";
 
     public static GameAudioController? Instance { get; private set; }
 
