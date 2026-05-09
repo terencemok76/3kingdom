@@ -413,10 +413,19 @@
   - `Save / Load Game`
   - `BGM On/Off`
   - `SFX On/Off`
+  - `BGM Volume`
+  - `SFX Volume`
+  - `Save Settings`
 - `Save / Load` 視窗已支援 `10` 格存檔槽位。
 - 每格可輸入描述並存檔。
 - 讀檔列表可查看描述、時間、劇本名稱與年月。
 - 存檔格式已支援 metadata 與舊檔相容讀取。
+- BGM 目前實際使用：
+  - `assets/bgm/Jade_Gate_2.ogg`
+  - `assets/bgm/Jade_Gate_1.ogg`
+- 一般 UI 點擊音效使用 `assets/sfx/click_sound.ogg`。
+- 地圖點擊城池使用專用音效 `assets/sfx/click_city_sound.ogg`。
+- 城池點擊音效受 `SFX On/Off` 與 `SFX Volume` 控制。
 
 ### 尚未完成
 

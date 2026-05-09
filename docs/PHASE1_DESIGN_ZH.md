@@ -1236,6 +1236,19 @@ tools/
 - `Save / Load Game`
 - `BGM On/Off`
 - `SFX On/Off`
+- `BGM Volume`
+- `SFX Volume`
+- `Save Settings`
+
+### 18.5.2A 音訊資產與行為
+
+- 預設 BGM 使用 `assets/bgm/Jade_Gate_2.ogg`。
+- 第二首 BGM 使用 `assets/bgm/Jade_Gate_1.ogg`。
+- 進遊戲後先播 `Jade_Gate_2.ogg`，再接 `Jade_Gate_1.ogg`，之後輪播。
+- 一般 UI 按鈕點擊音效使用 `assets/sfx/click_sound.ogg`。
+- 地圖上點擊城池時，使用專用音效 `assets/sfx/click_city_sound.ogg`。
+- `BGM On/Off` 與 `BGM Volume` 會控制背景音樂。
+- `SFX On/Off` 與 `SFX Volume` 會同時控制一般 UI 點擊音效與城池點擊音效。
 
 ### 18.5.3 Save / Load 視窗內容
 

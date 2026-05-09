@@ -553,7 +553,14 @@
   - `Save / Load Game`
   - `BGM`
   - `SFX`
+  - `BGM Volume`
+  - `SFX Volume`
+  - `Save Settings`
 - 點 `Save / Load Game` 後，確認會開啟存讀檔視窗。
 - 確認視窗列出 `10` 格槽位。
 - 任選一格輸入描述後存檔，再重新開啟視窗，確認描述仍存在。
 - 切換 `BGM` / `SFX` 按鈕後，確認文字會在 `On/Off` 或 `開/關` 間切換。
+- 調整 `BGM Volume` 後按 `Save Settings`，重開遊戲確認音量與 UI 顯示一致。
+- 調整 `SFX Volume` 後按 `Save Settings`，點一般 UI 按鈕確認 `click_sound.ogg` 音量正確。
+- 點地圖城池，確認會播放 `click_city_sound.ogg`，且音量受 `SFX Volume` 控制。
+- 關閉 `SFX` 後，再點一般 UI 按鈕與地圖城池，確認兩者都不播放音效。
