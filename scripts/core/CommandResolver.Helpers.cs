@@ -523,10 +523,48 @@ public partial class CommandResolver
             return;
         }
 
-        faction.RulerOfficerId = candidateIds[0];
+        var successor = world.GetOfficer(candidateIds[0]);
+        if (successor == null)
+        {
+            CollapseFaction(world, factionId);
+            return;
+        }
+
+        ApplyFactionSuccessor(world, faction, successor);
         if (!faction.OfficerIds.Contains(candidateIds[0]))
         {
             faction.OfficerIds.Add(candidateIds[0]);
+        }
+    }
+
+    private void ApplyFactionSuccessor(WorldState world, FactionData faction, OfficerData successor)
+    {
+        faction.RulerOfficerId = successor.Id;
+        successor.Role = "Lord";
+        successor.Belongs = faction.Id.ToString();
+        var successorNameZh = !string.IsNullOrWhiteSpace(successor.NameZhHant) ? successor.NameZhHant : successor.Name;
+        var successorNameEn = !string.IsNullOrWhiteSpace(successor.Name) ? successor.Name : successor.NameZhHant;
+        faction.NameZhHant = string.IsNullOrWhiteSpace(successorNameZh)
+            ? faction.NameZhHant
+            : _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, "fmt.faction_name_ruler", successorNameZh) ?? $"{successorNameZh}軍";
+        faction.NameEn = string.IsNullOrWhiteSpace(successorNameEn)
+            ? faction.NameEn
+            : _localization?.FormatForLanguage(GameLanguage.English, "fmt.faction_name_ruler", successorNameEn) ?? $"{successorNameEn} Forces";
+
+        if (!faction.OfficerIds.Contains(successor.Id))
+        {
+            faction.OfficerIds.Add(successor.Id);
+        }
+
+        foreach (var officerId in faction.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            officer.Belongs = faction.Id.ToString();
         }
     }
 

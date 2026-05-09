@@ -491,6 +491,8 @@ internal static class Program
         Assert(!world.GetFaction(2)!.OfficerIds.Contains(201), "Spy assassination removes ruler target from faction", $"factionHas={world.GetFaction(2)!.OfficerIds.Contains(201)}");
         Assert(world.GetOfficer(201)!.DeathYear == world.Year, "Spy assassination marks ruler dead", $"deathYear={world.GetOfficer(201)!.DeathYear}");
         Assert(world.GetFaction(2)!.RulerOfficerId == 202, "Spy assassination assigns AI successor", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
+        Assert(world.GetOfficer(202)!.Role == "Lord", "Spy assassination successor gets ruler role", $"role={world.GetOfficer(202)!.Role}");
+        Assert(world.GetFaction(2)!.NameZhHant == "EnemyGeneral軍", "Spy assassination successor updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
         Assert(targetCity.OfficerIds.Contains(202), "Spy assassination keeps successor alive", $"cityHasSuccessor={targetCity.OfficerIds.Contains(202)}");
     }
 
@@ -566,6 +568,8 @@ internal static class Program
         var resolveResult = services.Resolver.ResolvePlayerSuccession(2, 202);
         Assert(resolveResult.Success, "Player succession resolves", $"success={resolveResult.Success}");
         Assert(world.GetFaction(2)!.RulerOfficerId == 202, "Player succession assigns selected ruler", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
+        Assert(world.GetOfficer(202)!.Role == "Lord", "Player succession assigns ruler role", $"role={world.GetOfficer(202)!.Role}");
+        Assert(world.GetFaction(2)!.NameZhHant == "LordSuccessor軍", "Player succession updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
         Assert(world.GetPendingSuccession(2) == null, "Player succession clears pending record", $"pending={(world.GetPendingSuccession(2) != null ? 1 : 0)}");
     }
 

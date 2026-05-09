@@ -28,6 +28,7 @@
   - `Reconnaissance`
   - `Sabotage`
   - `Incite`
+  - `Assassination`
 - 戰爭迷霧 / 情報可見性：
   - 未偵察的敵方城市 / 武將 / 物品資訊遮罩為 `??`
   - 偵察成功後取得暫時城市情報
@@ -448,6 +449,8 @@
   - 推進到月末結算
 - 預期結果：
   - 指令可正常排程
+  - 玩家可手選目標官員
+  - AI 會排定明確的暗殺目標官員
   - 成功時會移除一名目標武將
   - 該武將不會殘留在 `City.OfficerIds` 或 `Faction.OfficerIds`
   - 該武將不會在後續自由武將流動中再次出現
@@ -496,3 +499,19 @@
   - 既有外交關係清除
   - 該勢力 pending command 取消
   - 已滅亡勢力不會繼續行動
+
+## 16.2 2026-05-09 煙測紀錄
+
+- 已執行一輪 Godot 專案啟動 smoke run。
+- 啟動輸出確認：
+  - `Loaded map texture: res://assets/map/china_map.png`
+  - `Phase 1 bootstrap complete.`
+- 本輪結果：
+  - 專案可正常啟動
+  - 啟動階段未見 script error
+  - 地圖資源載入正常
+  - 嘗試抓取執行中 viewport 截圖，但目前遠端截圖通道 timeout，尚未形成可附圖的人工操作證據
+- 尚未完成的人工實機鏈路：
+  - `AI 攻城 -> 玩家防守彈窗 -> 配兵 -> 戰鬥結算`
+  - `玩家君主死亡 -> 繼承視窗 -> 繼位後 UI / 地圖名稱刷新`
+  - `AI -> 玩家外交提案` 與月末中斷恢復

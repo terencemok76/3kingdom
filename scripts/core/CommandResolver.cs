@@ -131,11 +131,7 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.succession.invalid_successor");
         }
 
-        faction.RulerOfficerId = successorOfficerId;
-        if (!faction.OfficerIds.Contains(successorOfficerId))
-        {
-            faction.OfficerIds.Add(successorOfficerId);
-        }
+        ApplyFactionSuccessor(world, faction, successor);
 
         world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == factionId);
         return LocalizedResult(

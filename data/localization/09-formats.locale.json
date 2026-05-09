@@ -55,6 +55,10 @@
                                  "zhHant":  "{0}（{1}）",
                                  "en":  "{0} ({1})"
                              },
+    "fmt.faction_name_ruler":  {
+                                   "zhHant":  "{0}軍",
+                                   "en":  "{0} Forces"
+                               },
     "fmt.faction_destroyed":  {
                                   "zhHant":  "勢力滅亡：{0}",
                                   "en":  "Faction destroyed: {0}"
