@@ -282,11 +282,6 @@ public partial class HudController : CanvasLayer
             _commandsTitle.Text = _localization.T("ui.commands");
         }
 
-        if (_cityOfficerListTitle != null)
-        {
-            _cityOfficerListTitle.Text = _localization.T("ui.city_officer_list");
-        }
-
         if (_endTurnButton != null)
         {
             _endTurnButton.Text = _localization.T("ui.end_turn");
@@ -462,11 +457,6 @@ public partial class HudController : CanvasLayer
                 _cityStatsLabel.Text = BuildCityStatsTwoColumnText("-", null, 0);
             }
 
-            if (_cityOfficerListText != null)
-            {
-                _cityOfficerListText.Text = _localization.T("ui.none");
-            }
-
             UpdateGameplayButtonStates();
             return;
         }
@@ -485,72 +475,7 @@ public partial class HudController : CanvasLayer
             _cityStatsLabel.Text = BuildCityStatsTwoColumnText(ownerName, _selectedCity, freeOfficerCount);
         }
 
-        if (_cityOfficerListText != null)
-        {
-            _cityOfficerListText.Text = BuildOfficerListText(_selectedCity);
-        }
-
         UpdateGameplayButtonStates();
-    }
-
-    private void EnsureOfficerListWidgets(VBoxContainer leftPanel)
-    {
-        _cityOfficerListTitle = GetNodeOrNull<Label>("Root/LeftPanel/OfficerListTitle");
-        if (_cityOfficerListTitle == null)
-        {
-            _cityOfficerListTitle = new Label
-            {
-                Name = "OfficerListTitle"
-            };
-            leftPanel.AddChild(_cityOfficerListTitle);
-        }
-
-        _cityOfficerListText = GetNodeOrNull<RichTextLabel>("Root/LeftPanel/OfficerListText");
-        if (_cityOfficerListText == null)
-        {
-            _cityOfficerListText = new RichTextLabel
-            {
-                Name = "OfficerListText",
-                FitContent = true,
-                ScrollActive = true,
-                CustomMinimumSize = new Vector2(0.0f, 180.0f)
-            };
-            leftPanel.AddChild(_cityOfficerListText);
-        }
-    }
-
-    private string BuildOfficerListText(CityData city)
-    {
-        if (_turnManager?.World == null || _localization == null)
-        {
-            return string.Empty;
-        }
-
-        if (!CanViewCityFullInformation(city))
-        {
-            return UnknownInfoText;
-        }
-
-        if (city.OfficerIds.Count == 0)
-        {
-            return _localization.T("ui.none");
-        }
-
-        var officerLines = new List<string>();
-        foreach (var officerId in city.OfficerIds)
-        {
-            var officer = _turnManager.World.GetOfficer(officerId);
-            if (officer == null)
-            {
-                continue;
-            }
-
-            var roleName = _localization.GetOfficerRole(officer);
-            officerLines.Add(
-                $"{_localization.GetOfficerName(officer)} | {roleName} | {BuildOfficerStatusText(officer)} | {_localization.T("ui.strength")} {officer.Strength} | {_localization.T("ui.intelligence")} {officer.Intelligence} | {_localization.T("ui.charm")} {officer.Charm}");
-        }
-
-        return officerLines.Count == 0 ? _localization.T("ui.none") : string.Join("\n", officerLines);
     }
 
     private string BuildOfficerDetailText(OfficerData officer)
@@ -828,6 +753,8 @@ public partial class HudController : CanvasLayer
         var ownerValue = string.IsNullOrWhiteSpace(intelDurationText)
             ? ownerName
             : $"{ownerName} | {intelDurationText}";
+        var prefectLabel = city != null ? BuildPrefectLabel() : string.Empty;
+        var prefectValue = city != null ? BuildPrefectNameText(city) : string.Empty;
 
         var stats = city == null
             ? new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
@@ -846,7 +773,7 @@ public partial class HudController : CanvasLayer
             }
             : new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
             {
-                (_localization.T("ui.faction_owner"), ownerValue, string.Empty, string.Empty),
+                (_localization.T("ui.faction_owner"), ownerValue, prefectLabel, prefectValue),
                 (_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
                 (_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
                 (_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
@@ -886,6 +813,38 @@ public partial class HudController : CanvasLayer
         return bb.ToString();
     }
 
+    private string BuildPrefectLabel()
+    {
+        if (_localization == null)
+        {
+            return string.Empty;
+        }
+
+        return _localization.GetOfficerRole(new OfficerData { Role = "Governor" });
+    }
+
+    private string BuildPrefectNameText(CityData city)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return string.Empty;
+        }
+
+        if (!CanViewCityFullInformation(city))
+        {
+            return UnknownInfoText;
+        }
+
+        var prefect = city.OfficerIds
+            .Select(id => _turnManager.World.GetOfficer(id))
+            .FirstOrDefault(officer =>
+                officer != null &&
+                officer.Role.Equals("Governor", StringComparison.OrdinalIgnoreCase));
+        return prefect != null
+            ? _localization.GetOfficerName(prefect)
+            : _localization.T("ui.unassigned");
+    }
+
     private string BuildAdvisorSummaryText(CityData city)
     {
         if (_turnManager?.World == null || _localization == null)
@@ -912,10 +871,30 @@ public partial class HudController : CanvasLayer
         var chiefStrategistComment = BuildChiefStrategistComment(city);
 
         return
-            $"[b]{_localization.T("ui.chancellor")}[/b]: {chancellorName}\n" +
-            $"{_localization.T("ui.advisor_comment_prefix")}: {chancellorComment}\n" +
-            $"[b]{_localization.T("ui.chief_strategist")}[/b]: {chiefStrategistName}\n" +
-            $"{_localization.T("ui.advisor_comment_prefix")}: {chiefStrategistComment}";
+            $"{BuildAdvisorHeading(_localization.T("ui.chancellor"), chancellorName)}\n" +
+            $"{BuildAdvisorCommentLine(chancellorComment)}\n" +
+            $"{BuildAdvisorHeading(_localization.T("ui.chief_strategist"), chiefStrategistName)}\n" +
+            $"{BuildAdvisorCommentLine(chiefStrategistComment)}";
+    }
+
+    private string BuildAdvisorHeading(string title, string speakerName)
+    {
+        var safeTitle = EscapeBbCodeText(title);
+        var safeSpeakerName = EscapeBbCodeText(speakerName);
+        return $"[color=#8A5A20]{safeTitle}[/color]: {safeSpeakerName}";
+    }
+
+    private string BuildAdvisorCommentLine(string comment)
+    {
+        var prefix = _localization?.T("ui.advisor_comment_prefix") ?? "Comment";
+        return $"{EscapeBbCodeText(prefix)}: {EscapeBbCodeText(comment)}";
+    }
+
+    private static string EscapeBbCodeText(string value)
+    {
+        return value
+            .Replace("[", "[lb]")
+            .Replace("]", "[rb]");
     }
 
     private string BuildChancellorComment(CityData city)

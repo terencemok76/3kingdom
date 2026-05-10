@@ -8,8 +8,92 @@ namespace ThreeKingdom.Map;
 
 public partial class MapController : Node2D
 {
-    private const float CityClickRadius = 22.0f;
+    private sealed partial class MapPresentationLayer : Node2D
+    {
+        public bool IsOverlay { get; set; }
 
+        public override void _Draw()
+        {
+            var viewport = GetViewportRect();
+            if (viewport.Size == Vector2.Zero)
+            {
+                return;
+            }
+
+            if (IsOverlay)
+            {
+                var edge = 28.0f;
+                var vignette = new Color(0.03f, 0.025f, 0.02f, 0.22f);
+                DrawRect(new Rect2(0.0f, 0.0f, viewport.Size.X, edge), vignette);
+                DrawRect(new Rect2(0.0f, viewport.Size.Y - edge, viewport.Size.X, edge), vignette);
+                DrawRect(new Rect2(0.0f, 0.0f, edge, viewport.Size.Y), vignette);
+                DrawRect(new Rect2(viewport.Size.X - edge, 0.0f, edge, viewport.Size.Y), vignette);
+                return;
+            }
+
+            DrawRect(new Rect2(Vector2.Zero, viewport.Size), new Color("241f1a"));
+
+            var outerFrame = new Rect2(new Vector2(10.0f, 10.0f), viewport.Size - new Vector2(20.0f, 20.0f));
+            DrawRect(outerFrame, new Color("4b3928"));
+
+            var woodInner = outerFrame.Grow(-12.0f);
+            DrawRect(woodInner, new Color("6a543d"));
+
+            var parchmentRect = woodInner.Grow(-22.0f);
+            DrawRect(parchmentRect, new Color("6e6657", 0.42f));
+
+            var highlight = new Color("b59a72", 0.34f);
+            var shadow = new Color("2e2117", 0.48f);
+            DrawFrameLine(outerFrame, highlight, shadow);
+            DrawFrameLine(woodInner, new Color("cfb48b", 0.18f), new Color("3a2b1d", 0.32f));
+            DrawFrameLine(parchmentRect, new Color("efe1bc", 0.12f), new Color("45372a", 0.16f));
+
+            DrawCornerPlate(outerFrame.Position + new Vector2(12.0f, 12.0f), false, false);
+            DrawCornerPlate(new Vector2(outerFrame.End.X - 12.0f, outerFrame.Position.Y + 12.0f), true, false);
+            DrawCornerPlate(new Vector2(outerFrame.Position.X + 12.0f, outerFrame.End.Y - 12.0f), false, true);
+            DrawCornerPlate(outerFrame.End - new Vector2(12.0f, 12.0f), true, true);
+        }
+
+        private void DrawFrameLine(Rect2 rect, Color lightColor, Color darkColor)
+        {
+            DrawLine(rect.Position, new Vector2(rect.End.X, rect.Position.Y), lightColor, 2.0f);
+            DrawLine(rect.Position, new Vector2(rect.Position.X, rect.End.Y), lightColor, 2.0f);
+            DrawLine(new Vector2(rect.Position.X, rect.End.Y), rect.End, darkColor, 2.0f);
+            DrawLine(new Vector2(rect.End.X, rect.Position.Y), rect.End, darkColor, 2.0f);
+        }
+
+        private void DrawCornerPlate(Vector2 anchor, bool flipX, bool flipY)
+        {
+            var width = 34.0f;
+            var thickness = 8.0f;
+            var horizontalOrigin = new Vector2(
+                flipX ? anchor.X - width : anchor.X,
+                flipY ? anchor.Y - thickness : anchor.Y);
+            var verticalOrigin = new Vector2(
+                flipX ? anchor.X - thickness : anchor.X,
+                flipY ? anchor.Y - width : anchor.Y);
+
+            var plateColor = new Color("8b734e", 0.72f);
+            var rivetColor = new Color("d2bb8d", 0.78f);
+            DrawRect(new Rect2(horizontalOrigin, new Vector2(width, thickness)), plateColor);
+            DrawRect(new Rect2(verticalOrigin, new Vector2(thickness, width)), plateColor);
+
+            var rivetOffsetA = new Vector2(
+                flipX ? -10.0f : 10.0f,
+                flipY ? -4.0f : 4.0f);
+            var rivetOffsetB = new Vector2(
+                flipX ? -4.0f : 4.0f,
+                flipY ? -10.0f : 10.0f);
+            DrawCircle(anchor + rivetOffsetA, 1.8f, rivetColor);
+            DrawCircle(anchor + rivetOffsetB, 1.8f, rivetColor);
+        }
+    }
+
+    private const float CityClickRadius = 22.0f;
+    private const float MapViewportMargin = 72.0f;
+
+    private MapPresentationLayer? _backdropLayer;
+    private MapPresentationLayer? _overlayLayer;
     private Node2D? _worldRoot;
     private Node2D? _citiesLayer;
     private Node2D? _routesLayer;
@@ -22,11 +106,13 @@ public partial class MapController : Node2D
 
     private bool _isDragging;
     private Vector2 _lastMousePosition;
+    private Rect2 _backgroundBounds = new Rect2();
 
     public event Action<CityData>? CitySelected;
 
     public override void _Ready()
     {
+        EnsurePresentationLayers();
         _worldRoot = GetNodeOrNull<Node2D>("WorldRoot");
         _citiesLayer = GetNodeOrNull<Node2D>("WorldRoot/CitiesLayer");
         _routesLayer = GetNodeOrNull<Node2D>("WorldRoot/RoutesLayer");
@@ -75,8 +161,9 @@ public partial class MapController : Node2D
 
         _cityNodes.Clear();
 
-        var centerOffset = CalculateCenterOffset(world);
+        var centerOffset = CalculateCenterOffset();
         _worldRoot.Position = centerOffset;
+        ClampWorldRootPosition();
 
         foreach (var city in world.Cities)
         {
@@ -187,6 +274,7 @@ public partial class MapController : Node2D
 
         var delta = mouseMotion.Position - _lastMousePosition;
         _worldRoot.Position += delta;
+        ClampWorldRootPosition();
         _lastMousePosition = mouseMotion.Position;
         GetViewport().SetInputAsHandled();
     }
@@ -271,42 +359,15 @@ public partial class MapController : Node2D
         return $"{cityName}({city.Id})\n{ownerName}";
     }
 
-    private Vector2 CalculateCenterOffset(WorldState world)
+    private Vector2 CalculateCenterOffset()
     {
-        if (world.Cities.Count == 0)
+        var bounds = GetBackgroundBounds();
+        if (bounds.Size == Vector2.Zero)
         {
             return Vector2.Zero;
         }
 
-        float minX = float.MaxValue;
-        float minY = float.MaxValue;
-        float maxX = float.MinValue;
-        float maxY = float.MinValue;
-
-        foreach (var city in world.Cities)
-        {
-            if (city.MapX < minX)
-            {
-                minX = city.MapX;
-            }
-
-            if (city.MapY < minY)
-            {
-                minY = city.MapY;
-            }
-
-            if (city.MapX > maxX)
-            {
-                maxX = city.MapX;
-            }
-
-            if (city.MapY > maxY)
-            {
-                maxY = city.MapY;
-            }
-        }
-
-        var mapCenter = new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
+        var mapCenter = bounds.Position + (bounds.Size * 0.5f);
         var viewportSize = GetViewportRect().Size;
         if (viewportSize == Vector2.Zero)
         {
@@ -348,9 +409,115 @@ public partial class MapController : Node2D
             _backgroundSprite.Texture = texture;
             _backgroundSprite.Position = Vector2.Zero;
             _backgroundSprite.Scale = Vector2.One;
+            UpdateBackgroundBounds();
             GD.Print($"Loaded map texture: {path}");
             return;
         }
+    }
+
+    private void EnsurePresentationLayers()
+    {
+        _backdropLayer = GetNodeOrNull<MapPresentationLayer>("BackdropLayer");
+        if (_backdropLayer == null)
+        {
+            _backdropLayer = new MapPresentationLayer
+            {
+                Name = "BackdropLayer",
+                ZIndex = -100
+            };
+            AddChild(_backdropLayer);
+            MoveChild(_backdropLayer, 0);
+        }
+
+        _overlayLayer = GetNodeOrNull<MapPresentationLayer>("OverlayLayer");
+        if (_overlayLayer == null)
+        {
+            _overlayLayer = new MapPresentationLayer
+            {
+                Name = "OverlayLayer",
+                ZIndex = 100
+            };
+            AddChild(_overlayLayer);
+        }
+
+        _backdropLayer.IsOverlay = false;
+        _overlayLayer.IsOverlay = true;
+        _backdropLayer.QueueRedraw();
+        _overlayLayer.QueueRedraw();
+    }
+
+    private void ClampWorldRootPosition()
+    {
+        if (_worldRoot == null)
+        {
+            return;
+        }
+
+        var viewportSize = GetViewportRect().Size;
+        if (viewportSize == Vector2.Zero)
+        {
+            return;
+        }
+
+        var bounds = GetBackgroundBounds();
+        if (bounds.Size == Vector2.Zero)
+        {
+            return;
+        }
+
+        var minPosition = new Vector2(
+            viewportSize.X - (bounds.Position.X + bounds.Size.X) - MapViewportMargin,
+            viewportSize.Y - (bounds.Position.Y + bounds.Size.Y) - MapViewportMargin);
+        var maxPosition = new Vector2(
+            -bounds.Position.X + MapViewportMargin,
+            -bounds.Position.Y + MapViewportMargin);
+
+        if (bounds.Size.X + (MapViewportMargin * 2.0f) <= viewportSize.X)
+        {
+            var centeredX = (viewportSize.X - bounds.Size.X) * 0.5f - bounds.Position.X;
+            minPosition.X = centeredX;
+            maxPosition.X = centeredX;
+        }
+
+        if (bounds.Size.Y + (MapViewportMargin * 2.0f) <= viewportSize.Y)
+        {
+            var centeredY = (viewportSize.Y - bounds.Size.Y) * 0.5f - bounds.Position.Y;
+            minPosition.Y = centeredY;
+            maxPosition.Y = centeredY;
+        }
+
+        _worldRoot.Position = new Vector2(
+            Mathf.Clamp(_worldRoot.Position.X, minPosition.X, maxPosition.X),
+            Mathf.Clamp(_worldRoot.Position.Y, minPosition.Y, maxPosition.Y));
+    }
+
+    private Rect2 GetBackgroundBounds()
+    {
+        if (_backgroundBounds.Size != Vector2.Zero)
+        {
+            return _backgroundBounds;
+        }
+
+        UpdateBackgroundBounds();
+        return _backgroundBounds;
+    }
+
+    private void UpdateBackgroundBounds()
+    {
+        if (_backgroundSprite?.Texture == null)
+        {
+            _backgroundBounds = new Rect2();
+            return;
+        }
+
+        var size = _backgroundSprite.Texture.GetSize() * _backgroundSprite.Scale;
+        var origin = _backgroundSprite.Position;
+        if (_backgroundSprite.Centered)
+        {
+            origin -= size * 0.5f;
+        }
+
+        _backgroundBounds = new Rect2(origin, size);
     }
 }
 

@@ -366,10 +366,16 @@ public partial class HudController : CanvasLayer
         _cityNameLabel = GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");
         _cityStatsLabel = GetNodeOrNull<RichTextLabel>("Root/LeftPanel/CityStatsLabel");
         _commandsTitle = GetNodeOrNull<Label>("Root/LeftPanel/CommandsTitle");
-        var leftPanel = GetNodeOrNull<VBoxContainer>("Root/LeftPanel");
-        if (leftPanel != null)
+        _cityOfficerListTitle = GetNodeOrNull<Label>("Root/LeftPanel/OfficerListTitle");
+        if (_cityOfficerListTitle != null)
         {
-            EnsureOfficerListWidgets(leftPanel);
+            _cityOfficerListTitle.Visible = false;
+        }
+
+        _cityOfficerListText = GetNodeOrNull<RichTextLabel>("Root/LeftPanel/OfficerListText");
+        if (_cityOfficerListText != null)
+        {
+            _cityOfficerListText.Visible = false;
         }
 
         _developButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/DevelopButton");
@@ -922,10 +928,6 @@ public partial class HudController : CanvasLayer
         GameAudioController.Instance?.PlayCityClickSfx();
         _selectedCity = city;
         RefreshSelectedCity();
-        if (_localization != null)
-        {
-            AddLog(_localization.FormatCitySelected(_localization.GetCityName(city)));
-        }
     }
 
     public void RefreshMonth()
