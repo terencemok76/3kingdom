@@ -109,6 +109,7 @@ public partial class HudController
         _personnelDialog?.Hide();
         _personnelBonusDialog?.Hide();
         _assignRoleDialog?.Hide();
+        _advisorDialog?.Hide();
         _fireOfficerDialog?.Hide();
         _requestItemDialog?.Hide();
         _hireOfficerDialog?.Hide();

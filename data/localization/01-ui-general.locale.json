@@ -7,6 +7,78 @@
 								 "zhHant":  "官職",
 								 "en":  "Official Title"
 							 },
+	"ui.advisor_assign_officer":  {
+									  "zhHant":  "任命武將",
+									  "en":  "Officer To Appoint"
+								  },
+	"ui.advisor_assign_title":  {
+									"zhHant":  "中央任命",
+									"en":  "Central Appointment"
+								},
+	"ui.advisor_comment_chancellor_balanced":  {
+													 "zhHant":  "內政已相對平穩，可均衡推進農商與防務。",
+													 "en":  "Domestic affairs are stable enough to balance farming, commerce, and defense."
+												 },
+	"ui.advisor_comment_chancellor_food":  {
+												 "zhHant":  "糧草偏緊，宜先強化農業並安排運糧。",
+												 "en":  "Food reserves are tight. Strengthen farming and arrange supply transfers first."
+											 },
+	"ui.advisor_comment_chancellor_gold":  {
+												 "zhHant":  "府庫偏少，宜先振興商業，補足金庫。",
+												 "en":  "The treasury is running low. Improve commerce and restore gold reserves first."
+											 },
+	"ui.advisor_comment_chancellor_loyalty":  {
+													"zhHant":  "民心未穩，應先施政救濟或訪察民情。",
+													"en":  "Public loyalty is unstable. Prioritize relief or investigating the people."
+												},
+	"ui.advisor_comment_chancellor_population":  {
+													   "zhHant":  "人口尚弱，近期不宜承受長期消耗戰。",
+													   "en":  "Population is still limited. Avoid long wars of attrition for now."
+												   },
+	"ui.advisor_comment_chief_strategist_attack":  {
+														   "zhHant":  "鄰近有敵且我軍尚強，可擇機先發制人。",
+														   "en":  "An enemy is nearby and our forces are strong enough. Consider striking first."
+													   },
+	"ui.advisor_comment_chief_strategist_border":  {
+														   "zhHant":  "邊境有敵，宜保持戰備並先觀察動向。",
+														   "en":  "Enemy forces border this city. Stay battle-ready and observe their movements."
+													   },
+	"ui.advisor_comment_chief_strategist_defense":  {
+															"zhHant":  "邊境承壓而防務偏弱，宜先補強城防。",
+															"en":  "The border is under pressure and defense is weak. Reinforce the city first."
+														},
+	"ui.advisor_comment_chief_strategist_layout":  {
+														  "zhHant":  "暫無迫切戰事，可先以外交與間諜佈局。",
+														  "en":  "No urgent war is pressing. Use diplomacy and spy actions to prepare the field."
+													  },
+	"ui.advisor_comment_chief_strategist_loyalty":  {
+															 "zhHant":  "內部尚未穩定，暫不宜對外大舉擴張。",
+															 "en":  "Internal stability is not ready yet. Avoid major expansion for the moment."
+														 },
+	"ui.advisor_comment_no_chancellor":  {
+											 "zhHant":  "尚未任命丞相，請先安排內政總管。",
+											 "en":  "No chancellor is appointed yet. Assign a chief domestic officer first."
+										 },
+	"ui.advisor_comment_no_chief_strategist":  {
+												   "zhHant":  "尚未任命首席軍師，請先安排戰略參謀。",
+												   "en":  "No chief strategist is appointed yet. Assign a strategic advisor first."
+											   },
+	"ui.advisor_comment_prefix":  {
+									 "zhHant":  "建議",
+									 "en":  "Advice"
+								 },
+	"ui.advisor_menu":  {
+							"zhHant":  "參謀",
+							"en":  "Advisor"
+						},
+	"ui.advisor_pending_assignment":  {
+										  "zhHant":  "本次任命",
+										  "en":  "Pending Assignment"
+									  },
+	"ui.advisor_position":  {
+								"zhHant":  "任命職位",
+								"en":  "Position"
+							},
 	"ui.attack":  {
 					  "zhHant":  "攻擊",
 					  "en":  "Attack"
@@ -95,6 +167,14 @@
 						  "zhHant":  "情報",
 						  "en":  "Intel"
 					  },
+	"ui.chancellor":  {
+						   "zhHant":  "丞相",
+						   "en":  "Chancellor"
+					   },
+	"ui.chief_strategist":  {
+								 "zhHant":  "首席軍師",
+								 "en":  "Chief Strategist"
+							 },
 	"ui.civil":  {
 					 "zhHant":  "民事",
 					 "en":  "Civil Affairs"
@@ -123,6 +203,10 @@
 								   "zhHant":  "確認官職",
 								   "en":  "Confirm Title"
 							   },
+	"ui.confirm_advisor_assign":  {
+									  "zhHant":  "確認任命",
+									  "en":  "Confirm Appointment"
+								  },
 	"ui.confirm_attack":  {
 							  "zhHant":  "確認攻擊",
 							  "en":  "Confirm Attack"
@@ -259,6 +343,10 @@
 										"zhHant":  "指派武將",
 										"en":  "Assigned Officer"
 									},
+	"ui.unassigned":  {
+						   "zhHant":  "未任命",
+						   "en":  "Unassigned"
+					   },
 	"ui.lang_btn_en":  {
 						   "zhHant":  "English",
 						   "en":  "English"

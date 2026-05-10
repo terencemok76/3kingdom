@@ -8,6 +8,8 @@ public class FactionData
     public string NameEn { get; set; } = string.Empty;
     public string NameZhHant { get; set; } = string.Empty;
     public int RulerOfficerId { get; set; }
+    public int ChancellorOfficerId { get; set; }
+    public int ChiefStrategistOfficerId { get; set; }
     public List<int> OfficerIds { get; set; } = new();
     public bool IsPlayer { get; set; }
 }

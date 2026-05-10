@@ -7,6 +7,26 @@
                                    "zhHant":  "AI 尚未初始化。",
                                    "en":  "AI not initialized."
                                },
+    "cmd.actor_faction_not_found":  {
+                                        "zhHant":  "找不到執行命令的勢力。",
+                                        "en":  "Actor faction not found."
+                                    },
+    "cmd.assign_advisor.invalid_position":  {
+                                                "zhHant":  "無效的中央職位。",
+                                                "en":  "Invalid central position."
+                                            },
+    "cmd.assign_advisor.officer_required":  {
+                                                "zhHant":  "請選擇要任命中央職位的本城武將。",
+                                                "en":  "Select a local officer to appoint to the central position."
+                                            },
+    "cmd.assign_advisor.resolved":  {
+                                        "zhHant":  "已任命「{0}」為「{1}」。",
+                                        "en":  "Appointed \"{0}\" as \"{1}\"."
+                                    },
+    "cmd.assign_advisor.ruler_blocked":  {
+                                             "zhHant":  "君主不可直接兼任此中央職位。",
+                                             "en":  "The ruler cannot directly hold this central position."
+                                         },
     "cmd.assign_role.invalid_role":  {
                                          "zhHant":  "無效的官職。",
                                          "en":  "Invalid official title."

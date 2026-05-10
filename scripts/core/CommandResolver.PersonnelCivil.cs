@@ -183,6 +183,63 @@ public partial class CommandResolver
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetOfficerRoleName(role, GameLanguage.English) });
     }
 
+    public CommandResult ExecuteAssignFactionAdvisor(int actorFactionId, int cityId, int officerId, string position)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return LocalizedResult(false, "cmd.source_city_not_found");
+        }
+
+        if (city.OwnerFactionId != actorFactionId)
+        {
+            return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        var faction = world.GetFaction(actorFactionId);
+        if (faction == null)
+        {
+            return LocalizedResult(false, "cmd.actor_faction_not_found");
+        }
+
+        var officer = world.GetOfficer(officerId);
+        if (officer == null || officer.CityId != city.Id || !city.OfficerIds.Contains(officerId))
+        {
+            return LocalizedResult(false, "cmd.assign_advisor.officer_required");
+        }
+
+        if (IsFactionRuler(world, officer.Id))
+        {
+            return LocalizedResult(false, "cmd.assign_advisor.ruler_blocked");
+        }
+
+        if (!IsValidAdvisorPosition(position))
+        {
+            return LocalizedResult(false, "cmd.assign_advisor.invalid_position");
+        }
+
+        if (position.Equals("Chancellor", StringComparison.OrdinalIgnoreCase))
+        {
+            faction.ChancellorOfficerId = officer.Id;
+        }
+        else
+        {
+            faction.ChiefStrategistOfficerId = officer.Id;
+        }
+
+        return LocalizedResult(
+            true,
+            "cmd.assign_advisor.resolved",
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetAdvisorPositionName(position, GameLanguage.TraditionalChinese) },
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAdvisorPositionName(position, GameLanguage.English) });
+    }
+
     public CommandResult ExecuteFireOfficer(int actorFactionId, int cityId, int officerId)
     {
         if (_turnManager?.World == null)
@@ -230,6 +287,7 @@ public partial class CommandResolver
         city.OfficerIds.Remove(officer.Id);
         var faction = world.GetFaction(actorFactionId);
         faction?.OfficerIds.Remove(officer.Id);
+        ClearFactionAdvisorPosts(world, officer.Id);
 
         foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officer.Id))
         {
@@ -339,6 +397,7 @@ public partial class CommandResolver
 
         var oldFaction = sourceFactionId > 0 ? world.GetFaction(sourceFactionId) : null;
         oldFaction?.OfficerIds.Remove(officer.Id);
+        ClearFactionAdvisorPosts(world, officer.Id);
         var newFaction = world.GetFaction(actorFactionId);
         if (newFaction != null && !newFaction.OfficerIds.Contains(officer.Id))
         {

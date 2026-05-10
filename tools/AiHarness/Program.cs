@@ -54,6 +54,7 @@ internal static class Program
         RunInternalAffairsOfficerLockTest();
         RunPersonnelBonusTest();
         RunAssignOfficerRoleTest();
+        RunAssignFactionAdvisorTest();
         RunFireOfficerTest();
         RunHireOfficerTest();
         RunCivilReliefTest();
@@ -1523,6 +1524,32 @@ internal static class Program
         Assert(!blocked.Success, "Assign officer role blocks ruler", $"success={blocked.Success}");
     }
 
+    private static void RunAssignFactionAdvisorTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101, 102, 103 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "CivilOfficer", 1, intelligence: 84, charm: 76));
+        world.Officers.Add(TestHelpers.Officer(103, "StrategistOfficer", 1, intelligence: 92, charm: 81));
+        world.GetOfficer(102)!.Politics = 88;
+        world.GetOfficer(103)!.Politics = 70;
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102, 103 }));
+        var services = CreateServices(world);
+
+        var chancellorResult = services.Resolver.ExecuteAssignFactionAdvisor(1, 1, 102, "Chancellor");
+        var chiefStrategistResult = services.Resolver.ExecuteAssignFactionAdvisor(1, 1, 103, "ChiefStrategist");
+        var reassignResult = services.Resolver.ExecuteAssignFactionAdvisor(1, 1, 103, "Chancellor");
+        var rulerBlocked = services.Resolver.ExecuteAssignFactionAdvisor(1, 1, 101, "Chancellor");
+        var faction = world.GetFaction(1)!;
+
+        Assert(chancellorResult.Success, "Assign faction advisor chancellor resolves", $"success={chancellorResult.Success}");
+        Assert(chiefStrategistResult.Success, "Assign faction advisor chief strategist resolves", $"success={chiefStrategistResult.Success}");
+        Assert(faction.ChancellorOfficerId == 103, "Assign faction advisor reassigns unique chancellor", $"chancellor={faction.ChancellorOfficerId}");
+        Assert(faction.ChiefStrategistOfficerId == 103, "Assign faction advisor keeps chief strategist slot", $"chiefStrategist={faction.ChiefStrategistOfficerId}");
+        Assert(reassignResult.Success, "Assign faction advisor reassign resolves", $"success={reassignResult.Success}");
+        Assert(!rulerBlocked.Success, "Assign faction advisor blocks ruler", $"success={rulerBlocked.Success}");
+    }
+
     private static void RunHireOfficerTest()
     {
         var world = TestHelpers.World(month: 2);
@@ -1582,6 +1609,8 @@ internal static class Program
         });
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
         var services = CreateServices(world);
+        world.GetFaction(1)!.ChancellorOfficerId = 102;
+        world.GetFaction(1)!.ChiefStrategistOfficerId = 102;
 
         var result = services.Resolver.ExecuteFireOfficer(1, 1, 102);
         var rulerBlocked = services.Resolver.ExecuteFireOfficer(1, 1, 101);
@@ -1593,6 +1622,7 @@ internal static class Program
         Assert(result.Success, "Fire officer resolves", $"success={result.Success}");
         Assert(!city.OfficerIds.Contains(102), "Fire officer removes city assignment", $"cityHas={city.OfficerIds.Contains(102)}");
         Assert(!faction.OfficerIds.Contains(102), "Fire officer removes faction assignment", $"factionHas={faction.OfficerIds.Contains(102)}");
+        Assert(faction.ChancellorOfficerId == 0 && faction.ChiefStrategistOfficerId == 0, "Fire officer clears faction advisor posts", $"chancellor={faction.ChancellorOfficerId}, chiefStrategist={faction.ChiefStrategistOfficerId}");
         Assert(FreeOfficerMovement.IsVisibleFreeOfficer(world, officer), "Fire officer becomes visible free officer", $"cityId={officer.CityId}, stay={officer.FreeOfficerStayMonths}");
         Assert(item.EquippedOfficerId == 0 && item.OwnerFactionId == 1, "Fire officer returns equipped item to faction inventory", $"equipped={item.EquippedOfficerId}, ownerFaction={item.OwnerFactionId}");
         Assert(!rulerBlocked.Success, "Fire officer blocks ruler", $"success={rulerBlocked.Success}");
@@ -1987,6 +2017,8 @@ internal static class Program
             NameZhHant = faction.NameZhHant,
             IsPlayer = faction.IsPlayer,
             RulerOfficerId = faction.RulerOfficerId,
+            ChancellorOfficerId = faction.ChancellorOfficerId,
+            ChiefStrategistOfficerId = faction.ChiefStrategistOfficerId,
             OfficerIds = new List<int>(faction.OfficerIds)
         }));
 

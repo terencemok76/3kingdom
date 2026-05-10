@@ -487,6 +487,8 @@ public partial class CommandResolver
         {
             faction.RulerOfficerId = 0;
         }
+
+        ClearFactionAdvisorPosts(world, officer.Id);
     }
 
     private void ResolveRulerDeath(WorldState world, int factionId)
@@ -540,6 +542,16 @@ public partial class CommandResolver
     private void ApplyFactionSuccessor(WorldState world, FactionData faction, OfficerData successor)
     {
         faction.RulerOfficerId = successor.Id;
+        if (faction.ChancellorOfficerId == successor.Id)
+        {
+            faction.ChancellorOfficerId = 0;
+        }
+
+        if (faction.ChiefStrategistOfficerId == successor.Id)
+        {
+            faction.ChiefStrategistOfficerId = 0;
+        }
+
         successor.Role = "Lord";
         successor.Belongs = faction.Id.ToString();
         var successorNameZh = !string.IsNullOrWhiteSpace(successor.NameZhHant) ? successor.NameZhHant : successor.Name;
@@ -687,6 +699,8 @@ public partial class CommandResolver
 
         faction.OfficerIds.Clear();
         faction.RulerOfficerId = 0;
+        faction.ChancellorOfficerId = 0;
+        faction.ChiefStrategistOfficerId = 0;
         foreach (var item in world.Items.Where(item => item.OwnerFactionId == factionId).ToList())
         {
             item.OwnerFactionId = 0;
@@ -718,6 +732,43 @@ public partial class CommandResolver
     {
         return role.Equals("Lord", StringComparison.OrdinalIgnoreCase) ||
                role.Equals("Ruler", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void ClearFactionAdvisorPosts(WorldState world, int officerId)
+    {
+        foreach (var faction in world.Factions)
+        {
+            if (faction.ChancellorOfficerId == officerId)
+            {
+                faction.ChancellorOfficerId = 0;
+            }
+
+            if (faction.ChiefStrategistOfficerId == officerId)
+            {
+                faction.ChiefStrategistOfficerId = 0;
+            }
+        }
+    }
+
+    private static bool IsValidAdvisorPosition(string position)
+    {
+        return position.Equals("Chancellor", StringComparison.OrdinalIgnoreCase) ||
+               position.Equals("ChiefStrategist", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetAdvisorPositionName(string position, GameLanguage language)
+    {
+        if (_localization == null)
+        {
+            return position;
+        }
+
+        return position.ToLowerInvariant() switch
+        {
+            "chancellor" => _localization.TForLanguage(language, "ui.chancellor"),
+            "chiefstrategist" => _localization.TForLanguage(language, "ui.chief_strategist"),
+            _ => position
+        };
     }
 
     private static DiplomacyRelationData GetOrCreateDiplomacyRelation(WorldState world, int factionAId, int factionBId)

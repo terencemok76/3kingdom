@@ -147,6 +147,7 @@ public partial class HudController : CanvasLayer
     private Button? _diplomacyButton;
     private Button? _spyButton;
     private Button? _personnelButton;
+    private Button? _advisorButton;
     private Button? _civilButton;
     private Button? _attackButton;
     private Button? _viewButton;
@@ -169,6 +170,10 @@ public partial class HudController : CanvasLayer
     private AcceptDialog? _assignRoleDialog;
     private Tree? _assignRoleOfficerList;
     private OptionButton? _assignRoleOption;
+    private AcceptDialog? _advisorDialog;
+    private Tree? _advisorOfficerList;
+    private OptionButton? _advisorPositionOption;
+    private Label? _advisorSummaryLabel;
     private AcceptDialog? _fireOfficerDialog;
     private Tree? _fireOfficerList;
     private AcceptDialog? _requestItemDialog;
@@ -305,6 +310,7 @@ public partial class HudController : CanvasLayer
     private bool _isDiplomacyButtonConnected;
     private bool _isSpyButtonConnected;
     private bool _isPersonnelButtonConnected;
+    private bool _isAdvisorButtonConnected;
     private bool _isCivilButtonConnected;
     private bool _isAttackButtonConnected;
     private bool _isViewButtonConnected;
@@ -382,6 +388,7 @@ public partial class HudController : CanvasLayer
         _diplomacyButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/DiplomacyButton");
         _spyButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/SpyButton");
         _personnelButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/PersonnelButton");
+        EnsureAdvisorButton();
         _civilButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/CivilButton");
         _attackButton = GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
         if (_attackButton != null)
@@ -440,6 +447,14 @@ public partial class HudController : CanvasLayer
         _assignRoleDialog.CloseRequested += PlayUiClickSfx;
         AddChild(_assignRoleDialog);
         EnsureAssignRoleDialogWidgets();
+
+        _advisorDialog = new AcceptDialog();
+        _advisorDialog.Exclusive = false;
+        _advisorDialog.Unfocusable = false;
+        _advisorDialog.Confirmed += OnAdvisorDialogConfirmed;
+        _advisorDialog.CloseRequested += PlayUiClickSfx;
+        AddChild(_advisorDialog);
+        EnsureAdvisorDialogWidgets();
 
         _fireOfficerDialog = new AcceptDialog();
         _fireOfficerDialog.Exclusive = false;
@@ -1031,6 +1046,12 @@ public partial class HudController : CanvasLayer
             _isPersonnelButtonConnected = true;
         }
 
+        if (_advisorButton != null && !_isAdvisorButtonConnected)
+        {
+            _advisorButton.Pressed += OnAdvisorPressed;
+            _isAdvisorButtonConnected = true;
+        }
+
         if (_civilButton != null && !_isCivilButtonConnected)
         {
             _civilButton.Pressed += OnCivilPressed;
@@ -1122,6 +1143,12 @@ public partial class HudController : CanvasLayer
         {
             _personnelButton.Pressed -= OnPersonnelPressed;
             _isPersonnelButtonConnected = false;
+        }
+
+        if (_advisorButton != null && _isAdvisorButtonConnected)
+        {
+            _advisorButton.Pressed -= OnAdvisorPressed;
+            _isAdvisorButtonConnected = false;
         }
 
         if (_civilButton != null && _isCivilButtonConnected)
@@ -1254,6 +1281,16 @@ public partial class HudController : CanvasLayer
         }
 
         ShowPersonnelDialog();
+    }
+
+    private void OnAdvisorPressed()
+    {
+        if (_selectedCity == null)
+        {
+            return;
+        }
+
+        ShowAdvisorDialog();
     }
 
     private void OnCivilPressed()

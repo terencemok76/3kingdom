@@ -338,6 +338,11 @@ public partial class HudController : CanvasLayer
             _personnelButton.Text = _localization.T("ui.personnel");
         }
 
+        if (_advisorButton != null)
+        {
+            _advisorButton.Text = _localization.T("ui.advisor_menu");
+        }
+
         if (_civilButton != null)
         {
             _civilButton.Text = _localization.T("ui.civil");
@@ -383,6 +388,7 @@ public partial class HudController : CanvasLayer
         UpdatePersonnelDialogText();
         UpdatePersonnelBonusDialogText();
         UpdateAssignRoleDialogText();
+        UpdateAdvisorDialogText();
         UpdateFireOfficerDialogText();
         UpdateHireOfficerDialogText();
         UpdateCivilDialogText();
@@ -865,7 +871,134 @@ public partial class HudController : CanvasLayer
         }
 
         bb.Append("[/table]");
+
+        if (city != null)
+        {
+            var advisorSummary = BuildAdvisorSummaryText(city);
+            if (!string.IsNullOrWhiteSpace(advisorSummary))
+            {
+                bb.Append('\n');
+                bb.Append('\n');
+                bb.Append(advisorSummary);
+            }
+        }
+
         return bb.ToString();
+    }
+
+    private string BuildAdvisorSummaryText(CityData city)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return string.Empty;
+        }
+
+        if (_selectedCity == null || city.OwnerFactionId != _turnManager.GetPlayerFactionId())
+        {
+            return string.Empty;
+        }
+
+        var faction = _turnManager.World.GetFaction(city.OwnerFactionId);
+        if (faction == null)
+        {
+            return string.Empty;
+        }
+
+        var chancellor = _turnManager.World.GetOfficer(faction.ChancellorOfficerId);
+        var chiefStrategist = _turnManager.World.GetOfficer(faction.ChiefStrategistOfficerId);
+        var chancellorName = chancellor != null ? _localization.GetOfficerName(chancellor) : _localization.T("ui.unassigned");
+        var chiefStrategistName = chiefStrategist != null ? _localization.GetOfficerName(chiefStrategist) : _localization.T("ui.unassigned");
+        var chancellorComment = BuildChancellorComment(city);
+        var chiefStrategistComment = BuildChiefStrategistComment(city);
+
+        return
+            $"[b]{_localization.T("ui.chancellor")}[/b]: {chancellorName}\n" +
+            $"{_localization.T("ui.advisor_comment_prefix")}: {chancellorComment}\n" +
+            $"[b]{_localization.T("ui.chief_strategist")}[/b]: {chiefStrategistName}\n" +
+            $"{_localization.T("ui.advisor_comment_prefix")}: {chiefStrategistComment}";
+    }
+
+    private string BuildChancellorComment(CityData city)
+    {
+        if (_localization == null)
+        {
+            return string.Empty;
+        }
+
+        if (_turnManager?.World == null)
+        {
+            return string.Empty;
+        }
+
+        var faction = _turnManager.World.GetFaction(city.OwnerFactionId);
+        if (faction == null || faction.ChancellorOfficerId <= 0)
+        {
+            return _localization.T("ui.advisor_comment_no_chancellor");
+        }
+
+        if (city.Loyalty < 70)
+        {
+            return _localization.T("ui.advisor_comment_chancellor_loyalty");
+        }
+
+        if (city.Food < Math.Max(2000, city.Troops * 2))
+        {
+            return _localization.T("ui.advisor_comment_chancellor_food");
+        }
+
+        if (city.Gold < 800)
+        {
+            return _localization.T("ui.advisor_comment_chancellor_gold");
+        }
+
+        if (city.Population < 30000)
+        {
+            return _localization.T("ui.advisor_comment_chancellor_population");
+        }
+
+        return _localization.T("ui.advisor_comment_chancellor_balanced");
+    }
+
+    private string BuildChiefStrategistComment(CityData city)
+    {
+        if (_localization == null || _turnManager?.World == null)
+        {
+            return string.Empty;
+        }
+
+        var faction = _turnManager.World.GetFaction(city.OwnerFactionId);
+        if (faction == null || faction.ChiefStrategistOfficerId <= 0)
+        {
+            return _localization.T("ui.advisor_comment_no_chief_strategist");
+        }
+
+        var adjacentEnemyCities = city.ConnectedCityIds
+            .Select(id => _turnManager.World.GetCity(id))
+            .Where(target => target != null && target.OwnerFactionId > 0 && target.OwnerFactionId != city.OwnerFactionId)
+            .ToList();
+
+        if (adjacentEnemyCities.Count > 0)
+        {
+            var strongestEnemyTroops = adjacentEnemyCities.Max(target => target!.Troops);
+            if (city.Troops >= strongestEnemyTroops * 1.2f && city.Food >= 1000)
+            {
+                return _localization.T("ui.advisor_comment_chief_strategist_attack");
+            }
+
+            if (city.Defense < 60)
+            {
+                return _localization.T("ui.advisor_comment_chief_strategist_defense");
+            }
+
+            return _localization.T("ui.advisor_comment_chief_strategist_border");
+        }
+
+        if (city.Loyalty < 65)
+        {
+            return _localization.T("ui.advisor_comment_chief_strategist_loyalty");
+        }
+
+        return _localization.T("ui.advisor_comment_chief_strategist_layout");
     }
 
     private static void AppendCityStatCells(System.Text.StringBuilder bb, string label, string value)

@@ -529,6 +529,16 @@ public class WorldRepository
             {
                 faction.OfficerIds.Add(faction.RulerOfficerId);
             }
+
+            if (faction.ChancellorOfficerId > 0 && !faction.OfficerIds.Contains(faction.ChancellorOfficerId))
+            {
+                faction.ChancellorOfficerId = 0;
+            }
+
+            if (faction.ChiefStrategistOfficerId > 0 && !faction.OfficerIds.Contains(faction.ChiefStrategistOfficerId))
+            {
+                faction.ChiefStrategistOfficerId = 0;
+            }
         }
     }
 

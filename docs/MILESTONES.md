@@ -62,3 +62,27 @@
 - Troop costs, upkeep, and matchup multipliers
 - Item rarity, owner, location, and stat bonuses
 - AI priority weights and balancing constants
+
+## Phase2-Design-Locked-v1
+- Date: `May 10, 2026`
+- Status: design locked
+- Scope baseline: follows `Phase1.5-Completed-v1`
+- Purpose: freeze Phase 2 system design before further implementation continues
+
+### Locked Design Scope
+- Unique faction central posts:
+  - `Chancellor`
+  - `Chief Strategist`
+- Player appointment flow through a dedicated `Advisor` UI entry
+- Advisor comment display in city information
+- Faction-level persistence for advisor posts
+- Automatic cleanup when the holder dies, is dismissed, defects, is hired away, or becomes ruler
+- Basic AI appointment rules
+
+### Intentionally Deferred Within Phase 2
+- Full court hierarchy
+- Multi-layer advisor trees
+- Political jealousy / faction struggle simulation
+- Dedicated advisor event chains
+- Complex strategy AI driven by advisor personalities
+- Full stat buffs before the UI / data model stabilizes
