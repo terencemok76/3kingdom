@@ -23,7 +23,8 @@ public partial class HudController : CanvasLayer
         {
             _internalAffairsJobOption = existingRoot.GetNodeOrNull<OptionButton>("JobRow/JobOption");
             _internalAffairsDurationSpinBox = existingRoot.GetNodeOrNull<SpinBox>("DurationRow/DurationSpinBox");
-            _internalAffairsOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _internalAffairsSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _internalAffairsSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
             _internalAffairsScheduleList = existingRoot.GetNodeOrNull<ItemList>("ScheduleList");
             _internalAffairsTerminateButton = existingRoot.GetNodeOrNull<Button>("TerminateButton");
             _internalAffairsWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
@@ -83,17 +84,27 @@ public partial class HudController : CanvasLayer
         root.AddChild(durationRow);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
-        _internalAffairsOfficerList = new Tree
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerTable",
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 130.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _internalAffairsOfficerList.ItemSelected += OnInternalAffairsOfficerTableSelected;
-        root.AddChild(_internalAffairsOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _internalAffairsSelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_internalAffairsSelectedOfficerLabel);
+        _internalAffairsSelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _internalAffairsSelectOfficerButton.Pressed += OnInternalAffairsSelectOfficerPressed;
+        officerSelectorRow.AddChild(_internalAffairsSelectOfficerButton);
+        root.AddChild(officerSelectorRow);
 
         root.AddChild(new Label { Name = "ScheduleListLabel" });
         _internalAffairsScheduleList = new ItemList
@@ -133,7 +144,7 @@ public partial class HudController : CanvasLayer
         UpdateInternalAffairsDialogText();
         PopulateInternalAffairsDialog();
         SetInternalAffairsWarning(string.Empty);
-        _internalAffairsDialog.PopupCentered(new Vector2I(500, 560));
+        _internalAffairsDialog.PopupCentered(new Vector2I(500, 430));
     }
 
     private void PopulateInternalAffairsDialog()
@@ -153,70 +164,16 @@ public partial class HudController : CanvasLayer
             AddInternalAffairsJobOption(InternalAffairsJobType.Construction);
         }
 
-        if (_internalAffairsOfficerList != null)
+        var availableOfficerIds = _selectedCity.OfficerIds
+            .Where(GetAvailableOfficerIdsForOrder().Contains)
+            .ToList();
+        if (!availableOfficerIds.Contains(_internalAffairsSelectedOfficerId))
         {
-            _internalAffairsOfficerList.Clear();
-            ConfigureInternalAffairsOfficerTableColumns();
-            var tableRoot = _internalAffairsOfficerList.CreateItem();
-            var rowIndex = 0;
-            var availableOfficerIds = GetAvailableOfficerIdsForOrder();
-            foreach (var officerId in _selectedCity.OfficerIds)
-            {
-                if (!availableOfficerIds.Contains(officerId))
-                {
-                    continue;
-                }
-
-                var officer = _turnManager.World.GetOfficer(officerId);
-                if (officer == null)
-                {
-                    continue;
-                }
-
-                var row = _internalAffairsOfficerList.CreateItem(tableRoot);
-                PopulateInternalAffairsOfficerTableRow(row, officer, rowIndex);
-                rowIndex += 1;
-            }
+            _internalAffairsSelectedOfficerId = availableOfficerIds.FirstOrDefault();
         }
 
+        UpdateInternalAffairsSelectedOfficerSummary();
         RefreshInternalAffairsScheduleList();
-    }
-
-    private void OnInternalAffairsOfficerTableSelected()
-    {
-        if (_internalAffairsOfficerList == null)
-        {
-            return;
-        }
-
-        var selectedItem = _internalAffairsOfficerList.GetSelected();
-        if (selectedItem == null)
-        {
-            return;
-        }
-
-        var root = _internalAffairsOfficerList.GetRoot();
-        if (root == null)
-        {
-            return;
-        }
-
-        var row = root.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            if (row == selectedItem)
-            {
-                ApplyViewTableSelectedRowStyle(row, _internalAffairsOfficerList.Columns);
-            }
-            else
-            {
-                ApplyViewTableRowStriping(row, rowIndex, _internalAffairsOfficerList.Columns);
-            }
-
-            row = row.GetNext();
-            rowIndex += 1;
-        }
     }
 
     private void AddInternalAffairsJobOption(InternalAffairsJobType jobType)
@@ -266,10 +223,16 @@ public partial class HudController : CanvasLayer
         SetInternalAffairsDialogLabelText("DurationLabel", _localization.T("ui.internal_affairs_duration"));
         SetInternalAffairsDialogLabelText("OfficerListLabel", _localization.T("ui.internal_affairs_officer"));
         SetInternalAffairsDialogLabelText("ScheduleListLabel", _localization.T("ui.internal_affairs_active_schedules"));
+        if (_internalAffairsSelectOfficerButton != null)
+        {
+            _internalAffairsSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
         if (_internalAffairsTerminateButton != null)
         {
             _internalAffairsTerminateButton.Text = _localization.T("ui.terminate_internal_affairs");
         }
+
+        UpdateInternalAffairsSelectedOfficerSummary();
     }
 
     private void SetInternalAffairsDialogLabelText(string nodeName, string text)
@@ -282,43 +245,6 @@ public partial class HudController : CanvasLayer
         }
     }
 
-    private void ConfigureInternalAffairsOfficerTableColumns()
-    {
-        if (_internalAffairsOfficerList == null || _localization == null)
-        {
-            return;
-        }
-
-        _internalAffairsOfficerList.Columns = 4;
-        _internalAffairsOfficerList.SetColumnTitle(0, _localization.T("ui.officers"));
-        _internalAffairsOfficerList.SetColumnCustomMinimumWidth(0, 130);
-        _internalAffairsOfficerList.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
-        _internalAffairsOfficerList.SetColumnTitle(1, _localization.T("ui.role"));
-        _internalAffairsOfficerList.SetColumnCustomMinimumWidth(1, 100);
-        _internalAffairsOfficerList.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
-        _internalAffairsOfficerList.SetColumnTitle(2, _localization.T("ui.status"));
-        _internalAffairsOfficerList.SetColumnCustomMinimumWidth(2, 100);
-        _internalAffairsOfficerList.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
-        _internalAffairsOfficerList.SetColumnTitle(3, _localization.T("ui.politics"));
-        _internalAffairsOfficerList.SetColumnCustomMinimumWidth(3, 80);
-        _internalAffairsOfficerList.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
-    }
-
-    private void PopulateInternalAffairsOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex)
-    {
-        if (_turnManager?.World == null || _localization == null)
-        {
-            return;
-        }
-
-        row.SetMetadata(0, officer.Id);
-        row.SetText(0, _localization.GetOfficerName(officer));
-        row.SetText(1, _localization.GetOfficerRole(officer));
-        row.SetText(2, _localization.GetOfficerStatus(_turnManager.World, officer));
-        row.SetText(3, officer.Politics.ToString());
-        ApplyViewTableRowStriping(row, rowIndex, 4);
-    }
-
     private void OnInternalAffairsDialogConfirmed()
     {
         if (_selectedCity == null || _turnManager?.World == null || _commandResolver == null || _localization == null)
@@ -326,8 +252,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_internalAffairsOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        if (_internalAffairsSelectedOfficerId <= 0)
         {
             SetInternalAffairsWarning(_localization.T("ui.select_officer_warning"));
             ReopenInternalAffairsDialog();
@@ -339,13 +264,55 @@ public partial class HudController : CanvasLayer
         var result = _commandResolver.ScheduleInternalAffairs(
             _turnManager.GetPlayerFactionId(),
             _selectedCity.Id,
-            selectedOfficerIds[0],
+            _internalAffairsSelectedOfficerId,
             jobType,
             months);
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         RefreshInternalAffairsScheduleList();
         _mapController?.RefreshVisuals();
+    }
+
+    private void OnInternalAffairsSelectOfficerPressed()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var candidateOfficerIds = _selectedCity.OfficerIds
+            .Where(GetAvailableOfficerIdsForOrder().Contains)
+            .ToList();
+        if (candidateOfficerIds.Count == 0)
+        {
+            SetInternalAffairsWarning(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("ui.internal_affairs_officer"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Politics,
+            SelectInternalAffairsOfficerById);
+    }
+
+    private void SelectInternalAffairsOfficerById(int officerId)
+    {
+        _internalAffairsSelectedOfficerId = officerId;
+        UpdateInternalAffairsSelectedOfficerSummary();
+        SetInternalAffairsWarning(string.Empty);
+    }
+
+    private void UpdateInternalAffairsSelectedOfficerSummary()
+    {
+        if (_internalAffairsSelectedOfficerLabel == null || _localization == null)
+        {
+            return;
+        }
+
+        var officer = _internalAffairsSelectedOfficerId > 0 ? _turnManager?.World?.GetOfficer(_internalAffairsSelectedOfficerId) : null;
+        var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unassigned");
+        _internalAffairsSelectedOfficerLabel.Text = $"{_localization.T("ui.internal_affairs_officer")}: {officerName}";
     }
 
     private void OnInternalAffairsTerminatePressed()
@@ -414,7 +381,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenInternalAffairsDialogDeferred()
     {
-        _internalAffairsDialog?.PopupCentered(new Vector2I(500, 560));
+        _internalAffairsDialog?.PopupCentered(new Vector2I(500, 430));
     }
 
 

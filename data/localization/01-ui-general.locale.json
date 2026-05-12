@@ -151,6 +151,10 @@
 					"zhHant":  "城市",
 					"en":  "City"
 				},
+	"ui.city_panel_title":  {
+								"zhHant":  "城市議事",
+								"en":  "City Affairs"
+							},
 	"ui.city_filter_all":  {
 							   "zhHant":  "全部城市",
 							   "en":  "All Cities"
@@ -379,6 +383,10 @@
 								"zhHant":  "徵兵",
 								"en":  "Recruit"
 							},
+	"ui.log_panel_title":  {
+							   "zhHant":  "軍報記錄",
+							   "en":  "War Log"
+						   },
 	"ui.move":  {
 					"zhHant":  "移動",
 					"en":  "Move"

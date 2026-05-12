@@ -22,6 +22,8 @@ public partial class HudController : CanvasLayer
 
     private void OnOfficerListClosePressed()
     {
+        _genericOfficerSelectorConfirmedAction = null;
+        _genericOfficerSelectorCandidateIds.Clear();
         _officerListDialog?.Hide();
     }
 
@@ -75,7 +77,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        if (_officerListMode == OfficerListMode.CommandSelection)
+        if (_officerListMode is OfficerListMode.CommandSelection or OfficerListMode.GenericSelection)
         {
             return;
         }
@@ -181,6 +183,29 @@ public partial class HudController : CanvasLayer
     {
         if (_officerListMode != OfficerListMode.CommandSelection)
         {
+            if (_officerListMode == OfficerListMode.GenericSelection)
+            {
+                var selectedItemForSelector = _officerListTable?.GetSelected();
+                if (selectedItemForSelector == null)
+                {
+                    AddLog(_localization?.T("ui.select_officer_warning") ?? "Select one officer first.");
+                    return;
+                }
+
+                var selectorMetadata = selectedItemForSelector.GetMetadata(0);
+                if (selectorMetadata.VariantType != Variant.Type.Int)
+                {
+                    AddLog(_localization?.T("ui.select_officer_warning") ?? "Select one officer first.");
+                    return;
+                }
+
+                _genericOfficerSelectorConfirmedAction?.Invoke(selectorMetadata.AsInt32());
+                _genericOfficerSelectorConfirmedAction = null;
+                _genericOfficerSelectorCandidateIds.Clear();
+                _officerListDialog?.Hide();
+                return;
+            }
+
             _officerListDialog?.Hide();
             return;
         }

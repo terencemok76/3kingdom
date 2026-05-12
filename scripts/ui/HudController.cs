@@ -33,7 +33,15 @@ public partial class HudController : CanvasLayer
     private enum OfficerListMode
     {
         View,
-        CommandSelection
+        CommandSelection,
+        GenericSelection
+    }
+
+    private enum OfficerSelectorPrimaryStat
+    {
+        Politics,
+        Charm,
+        Intelligence
     }
 
     private enum AttackDialogMode
@@ -133,6 +141,7 @@ public partial class HudController : CanvasLayer
     private Label? _cityNameLabel;
     private RichTextLabel? _cityStatsLabel;
     private Label? _commandsTitle;
+    private GridContainer? _commandButtons;
     private Label? _cityOfficerListTitle;
     private RichTextLabel? _cityOfficerListText;
 
@@ -196,10 +205,12 @@ public partial class HudController : CanvasLayer
     private AcceptDialog? _internalAffairsDialog;
     private OptionButton? _internalAffairsJobOption;
     private SpinBox? _internalAffairsDurationSpinBox;
-    private Tree? _internalAffairsOfficerList;
+    private Label? _internalAffairsSelectedOfficerLabel;
+    private Button? _internalAffairsSelectOfficerButton;
     private ItemList? _internalAffairsScheduleList;
     private Button? _internalAffairsTerminateButton;
     private Label? _internalAffairsWarningLabel;
+    private int _internalAffairsSelectedOfficerId = -1;
     private AcceptDialog? _moveDialog;
     private OptionButton? _moveTargetCityOption;
     private SpinBox? _moveTroopsSpinBox;
@@ -225,11 +236,13 @@ public partial class HudController : CanvasLayer
     private SpinBox? _diplomacyGoldSpinBox;
     private SpinBox? _diplomacyFoodSpinBox;
     private SpinBox? _diplomacyHorseSpinBox;
-    private Tree? _diplomacyOfficerList;
+    private Label? _diplomacySelectedOfficerLabel;
+    private Button? _diplomacySelectOfficerButton;
     private Label? _diplomacyRelationInfoLabel;
     private Label? _diplomacySummaryLabel;
     private Label? _diplomacyWarningLabel;
     private Button? _diplomacyConfirmButton;
+    private int _diplomacySelectedOfficerId = -1;
     private Window? _diplomacyProposalDialog;
     private Label? _diplomacyProposalSummaryLabel;
     private Button? _diplomacyProposalAcceptButton;
@@ -244,6 +257,8 @@ public partial class HudController : CanvasLayer
     private Button? _spyConfirmButton;
     private Window? _optionDialog;
     private Button? _optionSaveLoadButton;
+    private Button? _optionLanguageButton;
+    private Button? _optionGodModeButton;
     private Button? _optionBgmToggleButton;
     private Button? _optionSfxToggleButton;
     private HSlider? _optionBgmVolumeSlider;
@@ -251,6 +266,7 @@ public partial class HudController : CanvasLayer
     private HSlider? _optionSfxVolumeSlider;
     private Label? _optionSfxVolumeValueLabel;
     private Button? _optionSaveSettingsButton;
+    private Button? _optionRestoreLayoutButton;
     private Window? _saveLoadDialog;
     private ItemList? _saveSlotList;
     private LineEdit? _saveDescriptionLineEdit;
@@ -339,6 +355,9 @@ public partial class HudController : CanvasLayer
     private string _lastAttackDeploymentSelectionSignature = string.Empty;
     private int _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
     private bool _hasLogEntries;
+    private Action<int>? _genericOfficerSelectorConfirmedAction;
+    private readonly List<int> _genericOfficerSelectorCandidateIds = new();
+    private OfficerSelectorPrimaryStat _genericOfficerSelectorPrimaryStat = OfficerSelectorPrimaryStat.Politics;
     private AttackDialogMode _attackDialogMode = AttackDialogMode.Attack;
     private CityData? _attackDialogContextCity;
     private PendingCommandData? _pendingDefenseCommand;
@@ -362,10 +381,19 @@ public partial class HudController : CanvasLayer
         _languageButton = GetNodeOrNull<Button>("Root/TopBar/LanguageButton");
         _godModeButton = GetNodeOrNull<Button>("Root/TopBar/GodModeButton");
         _endTurnButton = GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
+        if (_languageButton != null)
+        {
+            _languageButton.Visible = false;
+        }
+        if (_godModeButton != null)
+        {
+            _godModeButton.Visible = false;
+        }
 
         _cityNameLabel = GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");
         _cityStatsLabel = GetNodeOrNull<RichTextLabel>("Root/LeftPanel/CityStatsLabel");
         _commandsTitle = GetNodeOrNull<Label>("Root/LeftPanel/CommandsTitle");
+        _commandButtons = GetNodeOrNull<GridContainer>("Root/LeftPanel/CommandButtons");
         _cityOfficerListTitle = GetNodeOrNull<Label>("Root/LeftPanel/OfficerListTitle");
         if (_cityOfficerListTitle != null)
         {
@@ -409,6 +437,7 @@ public partial class HudController : CanvasLayer
         {
             _logText.ScrollFollowing = true;
         }
+        InitializeFloatingPanels();
 
         _targetCityMenu = new PopupMenu();
         AddChild(_targetCityMenu);
@@ -867,6 +896,8 @@ public partial class HudController : CanvasLayer
     public override void _Process(double delta)
     {
         SyncAttackDeploymentEditorSelection();
+        UpdateFloatingPanelDragging();
+        ProcessFloatingPanelDeferredRefresh();
     }
 
     private void AttachClickSfxToButtons(Node node)

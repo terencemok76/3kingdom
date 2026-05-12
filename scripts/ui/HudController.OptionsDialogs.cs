@@ -27,17 +27,35 @@ public partial class HudController
         public bool SfxEnabled { get; set; } = true;
         public float BgmVolume { get; set; } = 1.0f;
         public float SfxVolume { get; set; } = 1.0f;
+        public bool LeftPanelMinimized { get; set; }
+        public float LeftPanelX { get; set; } = 10.0f;
+        public float LeftPanelY { get; set; } = 70.0f;
+        public float LeftPanelWidth { get; set; } = 320.0f;
+        public float LeftPanelHeight { get; set; } = 790.0f;
+        public float TopBarX { get; set; } = 10.0f;
+        public float TopBarY { get; set; } = 10.0f;
+        public bool LogPanelMinimized { get; set; }
+        public float LogPanelX { get; set; } = 370.0f;
+        public float LogPanelY { get; set; } = 700.0f;
+        public float LogPanelWidth { get; set; } = 1210.0f;
+        public float LogPanelHeight { get; set; } = 180.0f;
     }
 
     private void EnsureOptionButton()
     {
         var commandButtons = GetNodeOrNull<GridContainer>("Root/LeftPanel/CommandButtons");
-        if (commandButtons == null)
+        var topBar = GetNodeOrNull<HBoxContainer>("Root/TopBar");
+        if (topBar == null)
         {
             return;
         }
 
-        _optionButton = commandButtons.GetNodeOrNull<Button>("OptionButton");
+        if (commandButtons?.GetNodeOrNull<Button>("OptionButton") is { } legacyButton)
+        {
+            legacyButton.QueueFree();
+        }
+
+        _optionButton = topBar.GetNodeOrNull<Button>("OptionButton");
         if (_optionButton != null)
         {
             return;
@@ -46,16 +64,22 @@ public partial class HudController
         _optionButton = new Button
         {
             Name = "OptionButton",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
             FocusMode = Control.FocusModeEnum.None
         };
 
-        if (_viewButton != null)
+        if (_endTurnButton != null)
+        {
+            CopyButtonTheme(_endTurnButton, _optionButton);
+            _optionButton.CustomMinimumSize = _endTurnButton.CustomMinimumSize;
+        }
+        else if (_viewButton != null)
         {
             CopyButtonTheme(_viewButton, _optionButton);
         }
 
-        commandButtons.AddChild(_optionButton);
+        topBar.AddChild(_optionButton);
+        topBar.MoveChild(_optionButton, Mathf.Max(topBar.GetChildCount() - 1, 0));
     }
 
     private void EnsureOptionDialogWidgets()
@@ -70,13 +94,22 @@ public partial class HudController
         if (existingRoot != null)
         {
             _optionSaveLoadButton = existingRoot.GetNodeOrNull<Button>("SaveLoadButton");
-            _optionBgmToggleButton = existingRoot.GetNodeOrNull<Button>("BgmToggleButton");
-            _optionSfxToggleButton = existingRoot.GetNodeOrNull<Button>("SfxToggleButton");
-            _optionBgmVolumeSlider = existingRoot.GetNodeOrNull<HSlider>("BgmVolumeRow/BgmVolumeSlider");
-            _optionBgmVolumeValueLabel = existingRoot.GetNodeOrNull<Label>("BgmVolumeRow/BgmVolumeValueLabel");
-            _optionSfxVolumeSlider = existingRoot.GetNodeOrNull<HSlider>("SfxVolumeRow/SfxVolumeSlider");
-            _optionSfxVolumeValueLabel = existingRoot.GetNodeOrNull<Label>("SfxVolumeRow/SfxVolumeValueLabel");
+            _optionLanguageButton = existingRoot.GetNodeOrNull<Button>("LanguageButton");
+            _optionGodModeButton = existingRoot.GetNodeOrNull<Button>("GodModeButton");
+            _optionBgmToggleButton = existingRoot.GetNodeOrNull<Button>("BgmAudioRow/BgmToggleButton")
+                ?? existingRoot.GetNodeOrNull<Button>("BgmToggleButton");
+            _optionSfxToggleButton = existingRoot.GetNodeOrNull<Button>("SfxAudioRow/SfxToggleButton")
+                ?? existingRoot.GetNodeOrNull<Button>("SfxToggleButton");
+            _optionBgmVolumeSlider = existingRoot.GetNodeOrNull<HSlider>("BgmAudioRow/BgmVolumeSlider")
+                ?? existingRoot.GetNodeOrNull<HSlider>("BgmVolumeRow/BgmVolumeSlider");
+            _optionBgmVolumeValueLabel = existingRoot.GetNodeOrNull<Label>("BgmAudioRow/BgmVolumeValueLabel")
+                ?? existingRoot.GetNodeOrNull<Label>("BgmVolumeRow/BgmVolumeValueLabel");
+            _optionSfxVolumeSlider = existingRoot.GetNodeOrNull<HSlider>("SfxAudioRow/SfxVolumeSlider")
+                ?? existingRoot.GetNodeOrNull<HSlider>("SfxVolumeRow/SfxVolumeSlider");
+            _optionSfxVolumeValueLabel = existingRoot.GetNodeOrNull<Label>("SfxAudioRow/SfxVolumeValueLabel")
+                ?? existingRoot.GetNodeOrNull<Label>("SfxVolumeRow/SfxVolumeValueLabel");
             _optionSaveSettingsButton = existingRoot.GetNodeOrNull<Button>("SaveSettingsButton");
+            _optionRestoreLayoutButton = existingRoot.GetNodeOrNull<Button>("RestoreLayoutButton");
             return;
         }
 
@@ -100,43 +133,61 @@ public partial class HudController
         margin.AddChild(content);
 
         _optionSaveLoadButton = CreateOptionActionButton("SaveLoadButton", OnOptionSaveLoadPressed);
-        _optionBgmToggleButton = CreateOptionActionButton("BgmToggleButton", OnOptionBgmTogglePressed);
-        _optionSfxToggleButton = CreateOptionActionButton("SfxToggleButton", OnOptionSfxTogglePressed);
+        _optionLanguageButton = CreateOptionActionButton("LanguageButton", OnOptionLanguagePressed);
+        _optionGodModeButton = CreateOptionActionButton("GodModeButton", OnOptionGodModePressed);
         content.AddChild(_optionSaveLoadButton);
-        content.AddChild(_optionBgmToggleButton);
-        content.AddChild(CreateVolumeRow(
-            "BgmVolumeRow",
+        content.AddChild(_optionLanguageButton);
+        content.AddChild(_optionGodModeButton);
+        content.AddChild(CreateAudioControlRow(
+            "BgmAudioRow",
+            "BgmToggleButton",
             "BgmVolumeSlider",
             "BgmVolumeValueLabel",
+            OnOptionBgmTogglePressed,
             OnOptionBgmVolumeChanged,
+            out _optionBgmToggleButton,
             out _optionBgmVolumeSlider,
             out _optionBgmVolumeValueLabel));
-        content.AddChild(_optionSfxToggleButton);
-        content.AddChild(CreateVolumeRow(
-            "SfxVolumeRow",
+        content.AddChild(CreateAudioControlRow(
+            "SfxAudioRow",
+            "SfxToggleButton",
             "SfxVolumeSlider",
             "SfxVolumeValueLabel",
+            OnOptionSfxTogglePressed,
             OnOptionSfxVolumeChanged,
+            out _optionSfxToggleButton,
             out _optionSfxVolumeSlider,
             out _optionSfxVolumeValueLabel));
         _optionSaveSettingsButton = CreateOptionActionButton("SaveSettingsButton", OnOptionSaveSettingsPressed);
         content.AddChild(_optionSaveSettingsButton);
+        _optionRestoreLayoutButton = CreateOptionActionButton("RestoreLayoutButton", OnOptionRestoreLayoutPressed);
+        content.AddChild(_optionRestoreLayoutButton);
     }
 
-    private static HBoxContainer CreateVolumeRow(
+    private HBoxContainer CreateAudioControlRow(
         string rowName,
+        string toggleButtonName,
         string sliderName,
         string valueLabelName,
+        Action togglePressedHandler,
         Action<double> valueChangedHandler,
+        out Button? toggleButton,
         out HSlider? slider,
         out Label? valueLabel)
     {
         var row = new HBoxContainer
         {
             Name = rowName,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            Alignment = BoxContainer.AlignmentMode.Center
         };
         row.AddThemeConstantOverride("separation", 8);
+
+        toggleButton = CreateOptionActionButton(toggleButtonName, togglePressedHandler);
+        toggleButton.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+        toggleButton.CustomMinimumSize = new Vector2(148.0f, 34.0f);
+        toggleButton.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        row.AddChild(toggleButton);
 
         slider = new HSlider
         {
@@ -144,7 +195,8 @@ public partial class HudController
             MinValue = 0.0,
             MaxValue = 100.0,
             Step = 1.0,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
         };
         slider.ValueChanged += value => valueChangedHandler(value);
         row.AddChild(slider);
@@ -153,7 +205,9 @@ public partial class HudController
         {
             Name = valueLabelName,
             CustomMinimumSize = new Vector2(52.0f, 0.0f),
-            HorizontalAlignment = HorizontalAlignment.Right
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
         };
         row.AddChild(valueLabel);
 
@@ -363,7 +417,7 @@ public partial class HudController
     private void OnOptionPressed()
     {
         RefreshOptionDialogText();
-        _optionDialog?.PopupCentered(new Vector2I(460, 360));
+        _optionDialog?.PopupCentered(new Vector2I(540, 340));
     }
 
     private void OnOptionSaveLoadPressed()
@@ -371,6 +425,18 @@ public partial class HudController
         PopulateSaveSlotList();
         RefreshSaveLoadDialogText();
         _saveLoadDialog?.PopupCentered(new Vector2I(780, 580));
+    }
+
+    private void OnOptionLanguagePressed()
+    {
+        OnLanguageButtonPressed();
+        RefreshOptionDialogText();
+    }
+
+    private void OnOptionGodModePressed()
+    {
+        OnGodModePressed();
+        RefreshOptionDialogText();
     }
 
     private void OnOptionBgmTogglePressed()
@@ -406,6 +472,18 @@ public partial class HudController
         SaveOptionSettings();
         AddLog(GetOptionSettingsSavedMessage(), isPlayerRelated: true);
     }
+
+    private void OnOptionRestoreLayoutPressed()
+    {
+        RestoreDefaultFloatingPanelLayout();
+        SaveOptionSettings();
+        RefreshOptionDialogText();
+        AddLog(GetRestoreLayoutSavedMessage(), isPlayerRelated: true);
+    }
+
+    private string GetRestoreLayoutButtonText() => _localization?.IsTraditionalChinese == true ? "還原版面預設" : "Restore Layout";
+
+    private string GetRestoreLayoutSavedMessage() => _localization?.IsTraditionalChinese == true ? "版面已還原為預設。" : "Layout restored to default.";
 
     private void OnSaveSlotSelected(long index)
     {
@@ -579,6 +657,16 @@ public partial class HudController
             _optionSaveLoadButton.Text = GetOptionSaveLoadButtonText();
         }
 
+        if (_optionLanguageButton != null)
+        {
+            _optionLanguageButton.Text = GetOptionLanguageButtonText();
+        }
+
+        if (_optionGodModeButton != null)
+        {
+            _optionGodModeButton.Text = GetOptionGodModeButtonText();
+        }
+
         if (_optionBgmToggleButton != null)
         {
             _optionBgmToggleButton.Text = GetAudioToggleButtonText(isBgm: true, _bgmEnabled);
@@ -616,6 +704,11 @@ public partial class HudController
         if (_optionSaveSettingsButton != null)
         {
             _optionSaveSettingsButton.Text = GetSaveSettingsButtonText();
+        }
+
+        if (_optionRestoreLayoutButton != null)
+        {
+            _optionRestoreLayoutButton.Text = GetRestoreLayoutButtonText();
         }
     }
 
@@ -720,6 +813,19 @@ public partial class HudController
         _sfxEnabled = settings.SfxEnabled;
         _bgmVolume = Mathf.Clamp(settings.BgmVolume, 0.0f, 1.0f);
         _sfxVolume = Mathf.Clamp(settings.SfxVolume, 0.0f, 1.0f);
+        ApplyLoadedFloatingPanelSettings(
+            settings.LeftPanelMinimized,
+            settings.LeftPanelX,
+            settings.LeftPanelY,
+            settings.LeftPanelWidth,
+            settings.LeftPanelHeight,
+            settings.TopBarX,
+            settings.TopBarY,
+            settings.LogPanelMinimized,
+            settings.LogPanelX,
+            settings.LogPanelY,
+            settings.LogPanelWidth,
+            settings.LogPanelHeight);
     }
 
     private void SaveOptionSettings()
@@ -738,6 +844,7 @@ public partial class HudController
             BgmVolume = _bgmVolume,
             SfxVolume = _sfxVolume
         };
+        PopulateFloatingPanelSettings(settings);
         File.WriteAllText(resolvedPath, JsonSerializer.Serialize(settings));
     }
 
@@ -823,4 +930,8 @@ public partial class HudController
     private string GetSaveConfirmMessage(int slotNumber) => _localization?.IsTraditionalChinese == true ? $"確定要存入存檔 {slotNumber} 嗎？" : $"Save to slot {slotNumber}?";
     private string GetLoadConfirmMessage(int slotNumber) => _localization?.IsTraditionalChinese == true ? $"確定要讀取存檔 {slotNumber} 嗎？" : $"Load slot {slotNumber}?";
     private string GetOptionSettingsSavedMessage() => _localization?.IsTraditionalChinese == true ? "選項設定已儲存。" : "Option settings saved.";
+    private string GetOptionLanguageButtonText() => _localization?.IsTraditionalChinese == true ? "語言: 繁中 / English" : "Language: English / 繁中";
+    private string GetOptionGodModeButtonText() => _localization?.IsTraditionalChinese == true
+        ? $"天眼模式: {((_turnManager?.World?.ViewAllInformationEnabled ?? false) ? "開" : "關")}"
+        : $"God Mode: {((_turnManager?.World?.ViewAllInformationEnabled ?? false) ? "On" : "Off")}";
 }

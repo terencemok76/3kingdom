@@ -326,6 +326,139 @@ public partial class HudController : CanvasLayer
         _officerListDialog.PopupCentered(new Vector2I(620, popupHeight));
     }
 
+    private void ShowOfficerSelectorDialog(
+        string title,
+        IEnumerable<int> candidateOfficerIds,
+        OfficerSelectorPrimaryStat primaryStat,
+        Action<int> onConfirmed)
+    {
+        if (_turnManager?.World == null || _officerListDialog == null || _officerListTable == null || _localization == null)
+        {
+            return;
+        }
+
+        var candidates = candidateOfficerIds
+            .Distinct()
+            .Select(id => _turnManager.World.GetOfficer(id))
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .OrderByDescending(GetOfficerSelectorPrimaryStatValue)
+            .ThenByDescending(officer => officer.Intelligence)
+            .ThenByDescending(officer => officer.Politics)
+            .ThenByDescending(officer => officer.Charm)
+            .ThenBy(officer => _localization.GetOfficerName(officer))
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            AddLog(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        _genericOfficerSelectorCandidateIds.Clear();
+        _genericOfficerSelectorCandidateIds.AddRange(candidates.Select(officer => officer.Id));
+        _genericOfficerSelectorPrimaryStat = primaryStat;
+        _genericOfficerSelectorConfirmedAction = onConfirmed;
+        _officerListMode = OfficerListMode.GenericSelection;
+        _pendingOfficerCommand = CommandType.Pass;
+
+        ConfigureOfficerListDialogLayout(isCommandSelection: true);
+        SetOfficerListDialogTitle(title);
+        _officerListDialog.OkButtonText = _localization.T("ui.confirm_officer_selection");
+        if (_officerListConfirmButton != null)
+        {
+            _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
+        }
+
+        UpdateOfficerListToolbar();
+        _officerListTable.Visible = true;
+        if (_officerListAuxRow != null)
+        {
+            _officerListAuxRow.Visible = false;
+        }
+
+        _officerListTable.Clear();
+        ConfigureOfficerSelectorTableColumns(primaryStat);
+        var tableRoot = _officerListTable.CreateItem();
+        for (var rowIndex = 0; rowIndex < candidates.Count; rowIndex += 1)
+        {
+            var row = _officerListTable.CreateItem(tableRoot);
+            PopulateOfficerSelectorTableRow(row, candidates[rowIndex], rowIndex, primaryStat);
+        }
+
+        var visibleRows = Math.Clamp(candidates.Count, 1, 6);
+        var popupHeight = 220 + visibleRows * 28;
+        _officerListDialog.PopupCentered(new Vector2I(620, popupHeight));
+    }
+
+    private void ConfigureOfficerSelectorTableColumns(OfficerSelectorPrimaryStat primaryStat)
+    {
+        if (_officerListTable == null || _localization == null)
+        {
+            return;
+        }
+
+        _officerListTable.Columns = 4;
+        _officerListTable.SetColumnTitle(0, _localization.T("ui.officers"));
+        _officerListTable.SetColumnCustomMinimumWidth(0, 150);
+        _officerListTable.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
+        _officerListTable.SetColumnTitle(1, _localization.T("ui.role"));
+        _officerListTable.SetColumnCustomMinimumWidth(1, 100);
+        _officerListTable.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
+        _officerListTable.SetColumnTitle(2, _localization.T("ui.status"));
+        _officerListTable.SetColumnCustomMinimumWidth(2, 100);
+        _officerListTable.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
+        _officerListTable.SetColumnTitle(3, GetOfficerSelectorPrimaryStatTitle(primaryStat));
+        _officerListTable.SetColumnCustomMinimumWidth(3, 90);
+        _officerListTable.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
+    }
+
+    private void PopulateOfficerSelectorTableRow(TreeItem row, OfficerData officer, int rowIndex, OfficerSelectorPrimaryStat primaryStat)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        row.SetMetadata(0, officer.Id);
+        row.SetText(0, _localization.GetOfficerName(officer));
+        row.SetText(1, _localization.GetOfficerRole(officer));
+        row.SetText(2, _localization.GetOfficerStatus(_turnManager.World, officer));
+        row.SetText(3, GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString());
+        ApplyViewTableRowStriping(row, rowIndex, 4);
+    }
+
+    private string GetOfficerSelectorPrimaryStatTitle(OfficerSelectorPrimaryStat primaryStat)
+    {
+        if (_localization == null)
+        {
+            return primaryStat.ToString();
+        }
+
+        return primaryStat switch
+        {
+            OfficerSelectorPrimaryStat.Politics => _localization.T("ui.politics"),
+            OfficerSelectorPrimaryStat.Charm => _localization.T("ui.charm"),
+            OfficerSelectorPrimaryStat.Intelligence => _localization.T("ui.intelligence"),
+            _ => primaryStat.ToString()
+        };
+    }
+
+    private int GetOfficerSelectorPrimaryStatValue(OfficerData officer)
+    {
+        return GetOfficerSelectorPrimaryStatValue(officer, _genericOfficerSelectorPrimaryStat);
+    }
+
+    private static int GetOfficerSelectorPrimaryStatValue(OfficerData officer, OfficerSelectorPrimaryStat primaryStat)
+    {
+        return primaryStat switch
+        {
+            OfficerSelectorPrimaryStat.Politics => officer.Politics,
+            OfficerSelectorPrimaryStat.Charm => officer.Charm,
+            OfficerSelectorPrimaryStat.Intelligence => officer.Intelligence,
+            _ => officer.Politics
+        };
+    }
+
     private void ConfigureOfficerListAuxRow(CommandType commandType)
     {
         if (_officerListAuxRow == null || _officerListAuxLabel == null || _officerListAuxOption == null || _localization == null)

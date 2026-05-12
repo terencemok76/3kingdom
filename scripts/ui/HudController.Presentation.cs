@@ -12,6 +12,10 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
+    private const int CityNameEnglishFontSize = 15;
+    private const int CityStatsEnglishFontSize = 13;
+    private const int CityCommandButtonEnglishFontSize = 13;
+
     private void OnLanguageChanged()
     {
         RefreshAllText();
@@ -354,6 +358,8 @@ public partial class HudController : CanvasLayer
             _viewButton.Text = _localization.T("ui.view");
         }
 
+        ApplyCityInfoTypography();
+        RefreshFloatingPanelTitleText();
         RefreshOptionDialogText();
         RefreshSaveLoadDialogText();
 
@@ -413,6 +419,66 @@ public partial class HudController : CanvasLayer
         RefreshSelectedCity();
     }
 
+    private void ApplyCityInfoTypography()
+    {
+        var useChineseSizing = _localization?.IsTraditionalChinese == true;
+
+        if (_cityNameLabel != null)
+        {
+            if (useChineseSizing)
+            {
+                _cityNameLabel.RemoveThemeFontSizeOverride("font_size");
+            }
+            else
+            {
+                _cityNameLabel.AddThemeFontSizeOverride("font_size", CityNameEnglishFontSize);
+            }
+        }
+
+        if (_cityStatsLabel != null)
+        {
+            if (useChineseSizing)
+            {
+                _cityStatsLabel.RemoveThemeFontSizeOverride("normal_font_size");
+            }
+            else
+            {
+                _cityStatsLabel.AddThemeFontSizeOverride("normal_font_size", CityStatsEnglishFontSize);
+            }
+        }
+
+        foreach (var button in new[]
+                 {
+                     _developButton,
+                     _recruitButton,
+                     _moveButton,
+                     _searchButton,
+                     _merchantButton,
+                     _diplomacyButton,
+                     _spyButton,
+                     _personnelButton,
+                     _advisorButton,
+                     _civilButton,
+                     _attackButton,
+                     _viewButton
+                 })
+        {
+            if (button == null)
+            {
+                continue;
+            }
+
+            if (useChineseSizing)
+            {
+                button.RemoveThemeFontSizeOverride("font_size");
+            }
+            else
+            {
+                button.AddThemeFontSizeOverride("font_size", CityCommandButtonEnglishFontSize);
+            }
+        }
+    }
+
     private void RefreshPlayerFaction()
     {
         if (_playerFactionLabel == null || _turnManager?.World == null || _localization == null)
@@ -458,6 +524,7 @@ public partial class HudController : CanvasLayer
             }
 
             UpdateGameplayButtonStates();
+            RequestFloatingPanelLayoutRefresh();
             return;
         }
 
@@ -476,6 +543,7 @@ public partial class HudController : CanvasLayer
         }
 
         UpdateGameplayButtonStates();
+        RequestFloatingPanelLayoutRefresh();
     }
 
     private string BuildOfficerDetailText(OfficerData officer)
@@ -798,17 +866,6 @@ public partial class HudController : CanvasLayer
         }
 
         bb.Append("[/table]");
-
-        if (city != null)
-        {
-            var advisorSummary = BuildAdvisorSummaryText(city);
-            if (!string.IsNullOrWhiteSpace(advisorSummary))
-            {
-                bb.Append('\n');
-                bb.Append('\n');
-                bb.Append(advisorSummary);
-            }
-        }
 
         return bb.ToString();
     }

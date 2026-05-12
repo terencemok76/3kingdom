@@ -8,8 +8,21 @@ namespace ThreeKingdom.Map;
 
 public partial class MapController : Node2D
 {
+    private const float FrameOuterInset = 10.0f;
+    private const float FrameWoodInset = 12.0f;
+    private const float FrameParchmentInset = 22.0f;
+    private const float DragOverscrollResistance = 0.3f;
+    private const float ReturnSpringStrength = 18.0f;
+    private const float ReturnSpringDamping = 0.82f;
     private sealed partial class MapPresentationLayer : Node2D
     {
+        private readonly Func<Rect2> _mapViewportRectProvider;
+
+        public MapPresentationLayer(Func<Rect2> mapViewportRectProvider)
+        {
+            _mapViewportRectProvider = mapViewportRectProvider;
+        }
+
         public bool IsOverlay { get; set; }
 
         public override void _Draw()
@@ -20,38 +33,42 @@ public partial class MapController : Node2D
                 return;
             }
 
+            var outerFrame = new Rect2(
+                new Vector2(FrameOuterInset, FrameOuterInset),
+                viewport.Size - new Vector2(FrameOuterInset * 2.0f, FrameOuterInset * 2.0f));
+            var woodInner = outerFrame.Grow(-FrameWoodInset);
+            var parchmentRect = _mapViewportRectProvider();
+
             if (IsOverlay)
             {
+                DrawRectBands(new Rect2(Vector2.Zero, viewport.Size), outerFrame, new Color("241f1a"));
+                DrawRectBands(outerFrame, woodInner, new Color("4b3928"));
+                DrawRectBands(woodInner, parchmentRect, new Color("6a543d"));
+
                 var edge = 28.0f;
                 var vignette = new Color(0.03f, 0.025f, 0.02f, 0.22f);
                 DrawRect(new Rect2(0.0f, 0.0f, viewport.Size.X, edge), vignette);
                 DrawRect(new Rect2(0.0f, viewport.Size.Y - edge, viewport.Size.X, edge), vignette);
                 DrawRect(new Rect2(0.0f, 0.0f, edge, viewport.Size.Y), vignette);
                 DrawRect(new Rect2(viewport.Size.X - edge, 0.0f, edge, viewport.Size.Y), vignette);
+
+                var highlight = new Color("b59a72", 0.34f);
+                var shadow = new Color("2e2117", 0.48f);
+                DrawFrameLine(outerFrame, highlight, shadow);
+                DrawFrameLine(woodInner, new Color("cfb48b", 0.18f), new Color("3a2b1d", 0.32f));
+                DrawFrameLine(parchmentRect, new Color("efe1bc", 0.12f), new Color("45372a", 0.16f));
+
+                DrawCornerPlate(outerFrame.Position + new Vector2(12.0f, 12.0f), false, false);
+                DrawCornerPlate(new Vector2(outerFrame.End.X - 12.0f, outerFrame.Position.Y + 12.0f), true, false);
+                DrawCornerPlate(new Vector2(outerFrame.Position.X + 12.0f, outerFrame.End.Y - 12.0f), false, true);
+                DrawCornerPlate(outerFrame.End - new Vector2(12.0f, 12.0f), true, true);
                 return;
             }
 
             DrawRect(new Rect2(Vector2.Zero, viewport.Size), new Color("241f1a"));
-
-            var outerFrame = new Rect2(new Vector2(10.0f, 10.0f), viewport.Size - new Vector2(20.0f, 20.0f));
             DrawRect(outerFrame, new Color("4b3928"));
-
-            var woodInner = outerFrame.Grow(-12.0f);
             DrawRect(woodInner, new Color("6a543d"));
-
-            var parchmentRect = woodInner.Grow(-22.0f);
             DrawRect(parchmentRect, new Color("6e6657", 0.42f));
-
-            var highlight = new Color("b59a72", 0.34f);
-            var shadow = new Color("2e2117", 0.48f);
-            DrawFrameLine(outerFrame, highlight, shadow);
-            DrawFrameLine(woodInner, new Color("cfb48b", 0.18f), new Color("3a2b1d", 0.32f));
-            DrawFrameLine(parchmentRect, new Color("efe1bc", 0.12f), new Color("45372a", 0.16f));
-
-            DrawCornerPlate(outerFrame.Position + new Vector2(12.0f, 12.0f), false, false);
-            DrawCornerPlate(new Vector2(outerFrame.End.X - 12.0f, outerFrame.Position.Y + 12.0f), true, false);
-            DrawCornerPlate(new Vector2(outerFrame.Position.X + 12.0f, outerFrame.End.Y - 12.0f), false, true);
-            DrawCornerPlate(outerFrame.End - new Vector2(12.0f, 12.0f), true, true);
         }
 
         private void DrawFrameLine(Rect2 rect, Color lightColor, Color darkColor)
@@ -60,6 +77,14 @@ public partial class MapController : Node2D
             DrawLine(rect.Position, new Vector2(rect.Position.X, rect.End.Y), lightColor, 2.0f);
             DrawLine(new Vector2(rect.Position.X, rect.End.Y), rect.End, darkColor, 2.0f);
             DrawLine(new Vector2(rect.End.X, rect.Position.Y), rect.End, darkColor, 2.0f);
+        }
+
+        private void DrawRectBands(Rect2 outerRect, Rect2 innerRect, Color color)
+        {
+            DrawRect(new Rect2(outerRect.Position, new Vector2(outerRect.Size.X, innerRect.Position.Y - outerRect.Position.Y)), color);
+            DrawRect(new Rect2(new Vector2(outerRect.Position.X, innerRect.End.Y), new Vector2(outerRect.Size.X, outerRect.End.Y - innerRect.End.Y)), color);
+            DrawRect(new Rect2(new Vector2(outerRect.Position.X, innerRect.Position.Y), new Vector2(innerRect.Position.X - outerRect.Position.X, innerRect.Size.Y)), color);
+            DrawRect(new Rect2(new Vector2(innerRect.End.X, innerRect.Position.Y), new Vector2(outerRect.End.X - innerRect.End.X, innerRect.Size.Y)), color);
         }
 
         private void DrawCornerPlate(Vector2 anchor, bool flipX, bool flipY)
@@ -90,7 +115,6 @@ public partial class MapController : Node2D
     }
 
     private const float CityClickRadius = 22.0f;
-    private const float MapViewportMargin = 72.0f;
 
     private MapPresentationLayer? _backdropLayer;
     private MapPresentationLayer? _overlayLayer;
@@ -107,6 +131,7 @@ public partial class MapController : Node2D
     private bool _isDragging;
     private Vector2 _lastMousePosition;
     private Rect2 _backgroundBounds = new Rect2();
+    private Vector2 _springVelocity = Vector2.Zero;
 
     public event Action<CityData>? CitySelected;
 
@@ -117,6 +142,7 @@ public partial class MapController : Node2D
         _citiesLayer = GetNodeOrNull<Node2D>("WorldRoot/CitiesLayer");
         _routesLayer = GetNodeOrNull<Node2D>("WorldRoot/RoutesLayer");
         _backgroundSprite = GetNodeOrNull<Sprite2D>("WorldRoot/BackgroundSprite");
+        GetViewport().SizeChanged += OnViewportSizeChanged;
 
         TryUseUserMapTexture();
     }
@@ -134,8 +160,36 @@ public partial class MapController : Node2D
         }
     }
 
+    public override void _Process(double delta)
+    {
+        if (_isDragging || _worldRoot == null)
+        {
+            return;
+        }
+
+        var currentPosition = _worldRoot.Position;
+        var clampedPosition = GetClampedWorldRootPosition(currentPosition);
+        var displacement = clampedPosition - currentPosition;
+        if (displacement.LengthSquared() < 0.01f && _springVelocity.LengthSquared() < 0.01f)
+        {
+            _worldRoot.Position = clampedPosition;
+            _springVelocity = Vector2.Zero;
+            return;
+        }
+
+        var dt = (float)delta;
+        _springVelocity = (_springVelocity + displacement * ReturnSpringStrength * dt) * Mathf.Pow(ReturnSpringDamping, dt * 60.0f);
+        _worldRoot.Position += _springVelocity * dt;
+    }
+
     public override void _ExitTree()
     {
+        var viewport = GetViewport();
+        if (viewport != null)
+        {
+            viewport.SizeChanged -= OnViewportSizeChanged;
+        }
+
         if (_localization != null)
         {
             _localization.LanguageChanged -= OnLanguageChanged;
@@ -230,6 +284,7 @@ public partial class MapController : Node2D
             if (mouseButton.Pressed)
             {
                 _isDragging = true;
+                _springVelocity = Vector2.Zero;
                 _lastMousePosition = mouseButton.Position;
                 GetViewport().SetInputAsHandled();
             }
@@ -273,8 +328,7 @@ public partial class MapController : Node2D
         }
 
         var delta = mouseMotion.Position - _lastMousePosition;
-        _worldRoot.Position += delta;
-        ClampWorldRootPosition();
+        _worldRoot.Position = ApplyElasticDrag(_worldRoot.Position, delta);
         _lastMousePosition = mouseMotion.Position;
         GetViewport().SetInputAsHandled();
     }
@@ -367,15 +421,15 @@ public partial class MapController : Node2D
             return Vector2.Zero;
         }
 
-        var mapCenter = bounds.Position + (bounds.Size * 0.5f);
-        var viewportSize = GetViewportRect().Size;
-        if (viewportSize == Vector2.Zero)
+        var mapViewport = GetMapViewportRect();
+        if (mapViewport.Size == Vector2.Zero)
         {
-            viewportSize = new Vector2(1600.0f, 900.0f);
+            mapViewport = new Rect2(
+                new Vector2(FrameOuterInset + FrameWoodInset + FrameParchmentInset, FrameOuterInset + FrameWoodInset + FrameParchmentInset),
+                new Vector2(1600.0f, 900.0f) - new Vector2((FrameOuterInset + FrameWoodInset + FrameParchmentInset) * 2.0f, (FrameOuterInset + FrameWoodInset + FrameParchmentInset) * 2.0f));
         }
 
-        var screenCenter = viewportSize * 0.5f;
-        return screenCenter - mapCenter;
+        return mapViewport.GetCenter() - bounds.GetCenter();
     }
 
     private void TryUseUserMapTexture()
@@ -420,7 +474,7 @@ public partial class MapController : Node2D
         _backdropLayer = GetNodeOrNull<MapPresentationLayer>("BackdropLayer");
         if (_backdropLayer == null)
         {
-            _backdropLayer = new MapPresentationLayer
+            _backdropLayer = new MapPresentationLayer(GetMapViewportRect)
             {
                 Name = "BackdropLayer",
                 ZIndex = -100
@@ -432,7 +486,7 @@ public partial class MapController : Node2D
         _overlayLayer = GetNodeOrNull<MapPresentationLayer>("OverlayLayer");
         if (_overlayLayer == null)
         {
-            _overlayLayer = new MapPresentationLayer
+            _overlayLayer = new MapPresentationLayer(GetMapViewportRect)
             {
                 Name = "OverlayLayer",
                 ZIndex = 100
@@ -453,42 +507,75 @@ public partial class MapController : Node2D
             return;
         }
 
-        var viewportSize = GetViewportRect().Size;
-        if (viewportSize == Vector2.Zero)
+        _worldRoot.Position = GetClampedWorldRootPosition(_worldRoot.Position);
+    }
+
+    private Vector2 GetClampedWorldRootPosition(Vector2 sourcePosition)
+    {
+        var mapViewport = GetMapViewportRect();
+        if (mapViewport.Size == Vector2.Zero)
         {
-            return;
+            return sourcePosition;
         }
 
         var bounds = GetBackgroundBounds();
         if (bounds.Size == Vector2.Zero)
         {
-            return;
+            return sourcePosition;
         }
 
-        var minPosition = new Vector2(
-            viewportSize.X - (bounds.Position.X + bounds.Size.X) - MapViewportMargin,
-            viewportSize.Y - (bounds.Position.Y + bounds.Size.Y) - MapViewportMargin);
-        var maxPosition = new Vector2(
-            -bounds.Position.X + MapViewportMargin,
-            -bounds.Position.Y + MapViewportMargin);
+        return new Vector2(
+            ClampAxisToViewport(sourcePosition.X, bounds.Position.X, bounds.End.X, mapViewport.Position.X, mapViewport.End.X),
+            ClampAxisToViewport(sourcePosition.Y, bounds.Position.Y, bounds.End.Y, mapViewport.Position.Y, mapViewport.End.Y));
+    }
 
-        if (bounds.Size.X + (MapViewportMargin * 2.0f) <= viewportSize.X)
+    private Vector2 ApplyElasticDrag(Vector2 sourcePosition, Vector2 delta)
+    {
+        var clampedStart = GetClampedWorldRootPosition(sourcePosition);
+        var rawTarget = sourcePosition + delta;
+        var clampedTarget = GetClampedWorldRootPosition(rawTarget);
+        var overscroll = rawTarget - clampedTarget;
+
+        return new Vector2(
+            ComputeElasticAxis(rawTarget.X, clampedTarget.X, overscroll.X, Mathf.IsEqualApprox(sourcePosition.X, clampedStart.X), delta.X),
+            ComputeElasticAxis(rawTarget.Y, clampedTarget.Y, overscroll.Y, Mathf.IsEqualApprox(sourcePosition.Y, clampedStart.Y), delta.Y));
+    }
+
+    private static float ComputeElasticAxis(float rawTarget, float clampedTarget, float overscroll, bool startedInsideBounds, float delta)
+    {
+        if (Mathf.IsZeroApprox(overscroll))
         {
-            var centeredX = (viewportSize.X - bounds.Size.X) * 0.5f - bounds.Position.X;
-            minPosition.X = centeredX;
-            maxPosition.X = centeredX;
+            return rawTarget;
         }
 
-        if (bounds.Size.Y + (MapViewportMargin * 2.0f) <= viewportSize.Y)
+        if (startedInsideBounds)
         {
-            var centeredY = (viewportSize.Y - bounds.Size.Y) * 0.5f - bounds.Position.Y;
-            minPosition.Y = centeredY;
-            maxPosition.Y = centeredY;
+            return clampedTarget + (overscroll * DragOverscrollResistance);
         }
 
-        _worldRoot.Position = new Vector2(
-            Mathf.Clamp(_worldRoot.Position.X, minPosition.X, maxPosition.X),
-            Mathf.Clamp(_worldRoot.Position.Y, minPosition.Y, maxPosition.Y));
+        return rawTarget - (delta * (1.0f - DragOverscrollResistance));
+    }
+
+    private Rect2 GetMapViewportRect()
+    {
+        var viewportSize = GetViewportRect().Size;
+        if (viewportSize == Vector2.Zero)
+        {
+            return new Rect2();
+        }
+
+        var inset = FrameOuterInset + FrameWoodInset + FrameParchmentInset;
+        var size = viewportSize - new Vector2(inset * 2.0f, inset * 2.0f);
+        return new Rect2(new Vector2(inset, inset), size);
+    }
+
+    private static float ClampAxisToViewport(float currentRootPosition, float contentMin, float contentMax, float viewportMin, float viewportMax)
+    {
+        var alignToFarEdge = viewportMax - contentMax;
+        var alignToNearEdge = viewportMin - contentMin;
+        var minRootPosition = Mathf.Min(alignToFarEdge, alignToNearEdge);
+        var maxRootPosition = Mathf.Max(alignToFarEdge, alignToNearEdge);
+        return Mathf.Clamp(currentRootPosition, minRootPosition, maxRootPosition);
     }
 
     private Rect2 GetBackgroundBounds()
@@ -518,6 +605,13 @@ public partial class MapController : Node2D
         }
 
         _backgroundBounds = new Rect2(origin, size);
+    }
+
+    private void OnViewportSizeChanged()
+    {
+        _backdropLayer?.QueueRedraw();
+        _overlayLayer?.QueueRedraw();
+        ClampWorldRootPosition();
     }
 }
 

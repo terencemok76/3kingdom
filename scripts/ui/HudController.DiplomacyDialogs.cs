@@ -23,7 +23,8 @@ public partial class HudController : CanvasLayer
             _diplomacyGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
             _diplomacyFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
             _diplomacyHorseSpinBox = existingRoot.GetNodeOrNull<SpinBox>("HorseRow/HorseSpinBox");
-            _diplomacyOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerList");
+            _diplomacySelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _diplomacySelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
             _diplomacyRelationInfoLabel = existingRoot.GetNodeOrNull<Label>("RelationInfoLabel");
             _diplomacySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
             _diplomacyWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
@@ -144,18 +145,27 @@ public partial class HudController : CanvasLayer
         root.AddChild(_diplomacyRelationInfoLabel);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
-        _diplomacyOfficerList = new Tree
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerList",
-            Columns = 6,
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 130.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyOfficerList.ItemSelected += OnDiplomacyOfficerTableSelected;
-        root.AddChild(_diplomacyOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _diplomacySelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_diplomacySelectedOfficerLabel);
+        _diplomacySelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _diplomacySelectOfficerButton.Pressed += OnDiplomacySelectOfficerPressed;
+        officerSelectorRow.AddChild(_diplomacySelectOfficerButton);
+        root.AddChild(officerSelectorRow);
 
         _diplomacySummaryLabel = new Label
         {
@@ -195,14 +205,14 @@ public partial class HudController : CanvasLayer
         EnsureDiplomacyDialogWidgets();
         UpdateDiplomacyDialogText();
         PopulateDiplomacyDialog();
-        _diplomacyDialog.PopupCentered(new Vector2I(820, 620));
+        _diplomacyDialog.PopupCentered(new Vector2I(760, 470));
     }
 
     private void PopulateDiplomacyDialog()
     {
         if (_turnManager?.World == null || _selectedCity == null || _localization == null ||
             _diplomacyActionOption == null || _diplomacyTargetFactionOption == null ||
-            _diplomacyDurationSpinBox == null || _diplomacyGoldSpinBox == null || _diplomacyOfficerList == null)
+            _diplomacyDurationSpinBox == null || _diplomacyGoldSpinBox == null)
         {
             return;
         }
@@ -236,35 +246,12 @@ public partial class HudController : CanvasLayer
             _diplomacyHorseSpinBox.Value = 0;
         }
 
-        ConfigureDiplomacyOfficerTableColumns();
-        _diplomacyOfficerList.Clear();
-        var root = _diplomacyOfficerList.CreateItem();
-        var rowIndex = 0;
-        foreach (var officerId in _selectedCity.OfficerIds)
+        var candidateOfficerIds = GetAvailableDiplomacyOfficerIds();
+        if (!candidateOfficerIds.Contains(_diplomacySelectedOfficerId))
         {
-            var officer = _turnManager.World.GetOfficer(officerId);
-            if (officer == null)
-            {
-                continue;
-            }
-
-            if (officer.Id == _turnManager.World.GetFaction(_selectedCity.OwnerFactionId)?.RulerOfficerId)
-            {
-                continue;
-            }
-
-            if (officer.LastAssignedYear == _turnManager.World.Year &&
-                officer.LastAssignedMonth == _turnManager.World.Month)
-            {
-                continue;
-            }
-
-            var row = _diplomacyOfficerList.CreateItem(root);
-            PopulateDiplomacyOfficerTableRow(row, officer, rowIndex);
-            rowIndex += 1;
+            _diplomacySelectedOfficerId = candidateOfficerIds.FirstOrDefault();
         }
-
-        SelectFirstDiplomacyOfficerRow();
+        UpdateDiplomacySelectedOfficerSummary();
         SetDiplomacyWarning(string.Empty);
         UpdateDiplomacyDialogInputState();
         UpdateDiplomacyRelationInfo();
@@ -287,10 +274,16 @@ public partial class HudController : CanvasLayer
         SetDiplomacyDialogLabelText("FoodLabel", _localization.T("ui.diplomacy_demand_food"));
         SetDiplomacyDialogLabelText("HorseLabel", _localization.T("ui.diplomacy_demand_horse"));
         SetDiplomacyDialogLabelText("OfficerListLabel", _localization.T("ui.diplomacy_officer"));
+        if (_diplomacySelectOfficerButton != null)
+        {
+            _diplomacySelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
         if (_diplomacyConfirmButton != null)
         {
             _diplomacyConfirmButton.Text = _localization.T("ui.confirm_diplomacy");
         }
+
+        UpdateDiplomacySelectedOfficerSummary();
     }
 
     private void SetDiplomacyDialogLabelText(string nodeName, string text)
@@ -337,98 +330,6 @@ public partial class HudController : CanvasLayer
         };
         _diplomacyActionOption.AddItem(_localization.T(key));
         _diplomacyActionOption.SetItemMetadata(_diplomacyActionOption.ItemCount - 1, (int)actionType);
-    }
-
-    private void ConfigureDiplomacyOfficerTableColumns()
-    {
-        if (_diplomacyOfficerList == null || _localization == null)
-        {
-            return;
-        }
-
-        _diplomacyOfficerList.Columns = 5;
-        _diplomacyOfficerList.SetColumnTitle(0, _localization.T("ui.officers"));
-        _diplomacyOfficerList.SetColumnCustomMinimumWidth(0, 130);
-        _diplomacyOfficerList.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
-        _diplomacyOfficerList.SetColumnTitle(1, _localization.T("ui.role"));
-        _diplomacyOfficerList.SetColumnCustomMinimumWidth(1, 90);
-        _diplomacyOfficerList.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
-        _diplomacyOfficerList.SetColumnTitle(2, _localization.T("ui.charm"));
-        _diplomacyOfficerList.SetColumnCustomMinimumWidth(2, 70);
-        _diplomacyOfficerList.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
-        _diplomacyOfficerList.SetColumnTitle(3, _localization.T("ui.politics"));
-        _diplomacyOfficerList.SetColumnCustomMinimumWidth(3, 70);
-        _diplomacyOfficerList.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
-        _diplomacyOfficerList.SetColumnTitle(4, _localization.T("ui.intelligence"));
-        _diplomacyOfficerList.SetColumnCustomMinimumWidth(4, 70);
-        _diplomacyOfficerList.SetColumnTitleAlignment(4, HorizontalAlignment.Left);
-    }
-
-    private void PopulateDiplomacyOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex)
-    {
-        if (_localization == null)
-        {
-            return;
-        }
-
-        row.SetMetadata(0, officer.Id);
-        row.SetText(0, _localization.GetOfficerName(officer));
-        row.SetText(1, _localization.GetOfficerRole(officer));
-        row.SetText(2, officer.Charm.ToString());
-        row.SetText(3, officer.Politics.ToString());
-        row.SetText(4, officer.Intelligence.ToString());
-        ApplyViewTableRowStriping(row, rowIndex, 5);
-    }
-
-    private void SelectFirstDiplomacyOfficerRow()
-    {
-        var row = _diplomacyOfficerList?.GetRoot()?.GetFirstChild();
-        if (row == null)
-        {
-            return;
-        }
-
-        row.Select(0);
-        OnDiplomacyOfficerTableSelected();
-    }
-
-    private void OnDiplomacyOfficerTableSelected()
-    {
-        if (_diplomacyOfficerList == null)
-        {
-            return;
-        }
-
-        var selectedItem = _diplomacyOfficerList.GetSelected();
-        if (selectedItem == null)
-        {
-            return;
-        }
-
-        var root = _diplomacyOfficerList.GetRoot();
-        if (root == null)
-        {
-            return;
-        }
-
-        var row = root.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            if (row == selectedItem)
-            {
-                ApplyViewTableSelectedRowStyle(row, _diplomacyOfficerList.Columns);
-            }
-            else
-            {
-                ApplyViewTableRowStriping(row, rowIndex, _diplomacyOfficerList.Columns);
-            }
-
-            row = row.GetNext();
-            rowIndex += 1;
-        }
-
-        UpdateDiplomacyConfirmButtonState();
     }
 
     private DiplomacyActionType GetSelectedDiplomacyActionType()
@@ -524,7 +425,7 @@ public partial class HudController : CanvasLayer
         }
 
         var actionType = GetSelectedDiplomacyActionType();
-        var hasOfficer = GetSelectedTreeMetadataIds(_diplomacyOfficerList).Count > 0;
+        var hasOfficer = _diplomacySelectedOfficerId > 0;
         var hasTarget = GetSelectedDiplomacyTargetFactionId() > 0;
         var hasRequiredResource = actionType switch
         {
@@ -593,8 +494,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_diplomacyOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        if (_diplomacySelectedOfficerId <= 0)
         {
             SetDiplomacyWarning(_localization.T("ui.select_officer_warning"));
             return;
@@ -629,7 +529,7 @@ public partial class HudController : CanvasLayer
             ActorFactionId = _turnManager.GetPlayerFactionId(),
             SourceCityId = _selectedCity.Id,
             TargetFactionId = targetFactionId,
-            OfficerIds = selectedOfficerIds,
+            OfficerIds = new System.Collections.Generic.List<int> { _diplomacySelectedOfficerId },
             GoldToSend = gold,
             FoodToSend = food,
             HorsesToSend = horses,
@@ -646,6 +546,65 @@ public partial class HudController : CanvasLayer
         }
 
         SetDiplomacyWarning(GetLocalizedResultMessage(result));
+    }
+
+    private void OnDiplomacySelectOfficerPressed()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var candidateOfficerIds = GetAvailableDiplomacyOfficerIds();
+        if (candidateOfficerIds.Count == 0)
+        {
+            SetDiplomacyWarning(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("ui.diplomacy_officer"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Charm,
+            SelectDiplomacyOfficerById);
+    }
+
+    private void SelectDiplomacyOfficerById(int officerId)
+    {
+        _diplomacySelectedOfficerId = officerId;
+        UpdateDiplomacySelectedOfficerSummary();
+        UpdateDiplomacyConfirmButtonState();
+        SetDiplomacyWarning(string.Empty);
+    }
+
+    private void UpdateDiplomacySelectedOfficerSummary()
+    {
+        if (_diplomacySelectedOfficerLabel == null || _localization == null)
+        {
+            return;
+        }
+
+        var officer = _diplomacySelectedOfficerId > 0 ? _turnManager?.World?.GetOfficer(_diplomacySelectedOfficerId) : null;
+        var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unassigned");
+        _diplomacySelectedOfficerLabel.Text = $"{_localization.T("ui.diplomacy_officer")}: {officerName}";
+    }
+
+    private System.Collections.Generic.List<int> GetAvailableDiplomacyOfficerIds()
+    {
+        if (_selectedCity == null || _turnManager?.World == null)
+        {
+            return new System.Collections.Generic.List<int>();
+        }
+
+        return _selectedCity.OfficerIds
+            .Select(id => _turnManager.World.GetOfficer(id))
+            .Where(officer =>
+                officer != null &&
+                officer.Id != _turnManager.World.GetFaction(_selectedCity.OwnerFactionId)?.RulerOfficerId &&
+                !(officer.LastAssignedYear == _turnManager.World.Year &&
+                  officer.LastAssignedMonth == _turnManager.World.Month))
+            .Select(officer => officer!.Id)
+            .ToList();
     }
 
     private string BuildDiplomacyDemandResourceSummary(int gold, int food, int horses)
