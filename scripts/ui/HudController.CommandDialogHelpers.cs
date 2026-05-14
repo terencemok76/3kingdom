@@ -436,6 +436,7 @@ public partial class HudController : CanvasLayer
 
         return primaryStat switch
         {
+            OfficerSelectorPrimaryStat.Strength => _localization.T("ui.strength"),
             OfficerSelectorPrimaryStat.Politics => _localization.T("ui.politics"),
             OfficerSelectorPrimaryStat.Charm => _localization.T("ui.charm"),
             OfficerSelectorPrimaryStat.Intelligence => _localization.T("ui.intelligence"),
@@ -452,6 +453,7 @@ public partial class HudController : CanvasLayer
     {
         return primaryStat switch
         {
+            OfficerSelectorPrimaryStat.Strength => officer.Strength,
             OfficerSelectorPrimaryStat.Politics => officer.Politics,
             OfficerSelectorPrimaryStat.Charm => officer.Charm,
             OfficerSelectorPrimaryStat.Intelligence => officer.Intelligence,

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ThreeKingdom.Data;
 
@@ -45,9 +46,30 @@ public partial class HudController
         var existingRoot = _advisorDialog.GetNodeOrNull<VBoxContainer>("AdvisorDialogRoot");
         if (existingRoot != null)
         {
-            _advisorOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _advisorSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _advisorSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
             _advisorPositionOption = existingRoot.GetNodeOrNull<OptionButton>("PositionOption");
             _advisorSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            _advisorConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+            if (!_advisorDialogSignalsConnected)
+            {
+                if (_advisorSelectOfficerButton != null)
+                {
+                    _advisorSelectOfficerButton.Pressed += OnAdvisorSelectOfficerPressed;
+                }
+
+                if (_advisorPositionOption != null)
+                {
+                    _advisorPositionOption.ItemSelected += _ => UpdateAdvisorSummary();
+                }
+
+                if (_advisorConfirmButton != null)
+                {
+                    _advisorConfirmButton.Pressed += OnAdvisorDialogConfirmed;
+                }
+
+                _advisorDialogSignalsConnected = true;
+            }
             return;
         }
 
@@ -60,17 +82,26 @@ public partial class HudController
         _advisorDialog.AddChild(root);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
-        _advisorOfficerList = new Tree
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerTable",
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 170.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _advisorOfficerList.ItemSelected += OnAdvisorOfficerTableSelected;
-        root.AddChild(_advisorOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _advisorSelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_advisorSelectedOfficerLabel);
+        _advisorSelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        officerSelectorRow.AddChild(_advisorSelectOfficerButton);
+        root.AddChild(officerSelectorRow);
 
         root.AddChild(new Label { Name = "PositionLabel" });
         _advisorPositionOption = new OptionButton
@@ -78,7 +109,6 @@ public partial class HudController
             Name = "PositionOption",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _advisorPositionOption.ItemSelected += _ => UpdateAdvisorSummary();
         root.AddChild(_advisorPositionOption);
 
         _advisorSummaryLabel = new Label
@@ -87,6 +117,24 @@ public partial class HudController
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
         root.AddChild(_advisorSummaryLabel);
+
+        var confirmRow = new HBoxContainer
+        {
+            Name = "ConfirmRow",
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        _advisorConfirmButton = new Button
+        {
+            Name = "ConfirmButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        confirmRow.AddChild(_advisorConfirmButton);
+        root.AddChild(confirmRow);
+
+        _advisorSelectOfficerButton.Pressed += OnAdvisorSelectOfficerPressed;
+        _advisorPositionOption.ItemSelected += _ => UpdateAdvisorSummary();
+        _advisorConfirmButton.Pressed += OnAdvisorDialogConfirmed;
+        _advisorDialogSignalsConnected = true;
     }
 
     private void ShowAdvisorDialog()
@@ -99,7 +147,7 @@ public partial class HudController
         EnsureAdvisorDialogWidgets();
         UpdateAdvisorDialogText();
         PopulateAdvisorDialog();
-        _advisorDialog.PopupCentered(new Vector2I(500, 420));
+        PopupDialogUsingSceneSize(_advisorDialog);
     }
 
     private void PopulateAdvisorDialog()
@@ -109,24 +157,16 @@ public partial class HudController
             return;
         }
 
-        if (_advisorOfficerList != null)
-        {
-            _advisorOfficerList.Clear();
-            ConfigureCompactOfficerTableColumns(_advisorOfficerList, includeStatus: true, includeCity: false, includeLoyalty: true, includeStats: true);
-            var tableRoot = _advisorOfficerList.CreateItem();
-            var rowIndex = 0;
-            foreach (var officerId in _selectedCity.OfficerIds)
+        var candidateOfficerIds = _selectedCity.OfficerIds
+            .Where(officerId =>
             {
                 var officer = _turnManager.World.GetOfficer(officerId);
-                if (officer == null || IsFactionRuler(_turnManager.World, officer))
-                {
-                    continue;
-                }
-
-                var row = _advisorOfficerList.CreateItem(tableRoot);
-                PopulateCompactOfficerTableRow(row, officer, rowIndex, includeStatus: true, includeCity: false, includeLoyalty: true, includeStats: true);
-                rowIndex += 1;
-            }
+                return officer != null && !IsFactionRuler(_turnManager.World, officer);
+            })
+            .ToList();
+        if (!candidateOfficerIds.Contains(_advisorSelectedOfficerId))
+        {
+            _advisorSelectedOfficerId = candidateOfficerIds.FirstOrDefault();
         }
 
         if (_advisorPositionOption != null)
@@ -161,9 +201,16 @@ public partial class HudController
         }
 
         _advisorDialog.Title = _localization.T("ui.advisor_assign_title");
-        _advisorDialog.OkButtonText = _localization.T("ui.confirm_advisor_assign");
         SetAdvisorDialogLabelText("OfficerListLabel", _localization.T("ui.advisor_assign_officer"));
         SetAdvisorDialogLabelText("PositionLabel", _localization.T("ui.advisor_position"));
+        if (_advisorSelectOfficerButton != null)
+        {
+            _advisorSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        if (_advisorConfirmButton != null)
+        {
+            _advisorConfirmButton.Text = _localization.T("ui.confirm_advisor_assign");
+        }
         UpdateAdvisorSummary();
     }
 
@@ -174,45 +221,6 @@ public partial class HudController
         {
             label.Text = text;
         }
-    }
-
-    private void OnAdvisorOfficerTableSelected()
-    {
-        if (_advisorOfficerList == null)
-        {
-            return;
-        }
-
-        var selectedItem = _advisorOfficerList.GetSelected();
-        if (selectedItem == null)
-        {
-            return;
-        }
-
-        var root = _advisorOfficerList.GetRoot();
-        if (root == null)
-        {
-            return;
-        }
-
-        var row = root.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            if (row == selectedItem)
-            {
-                ApplyViewTableSelectedRowStyle(row, _advisorOfficerList.Columns);
-            }
-            else
-            {
-                ApplyViewTableRowStriping(row, rowIndex, _advisorOfficerList.Columns);
-            }
-
-            row = row.GetNext();
-            rowIndex += 1;
-        }
-
-        UpdateAdvisorSummary();
     }
 
     private void UpdateAdvisorSummary()
@@ -233,12 +241,15 @@ public partial class HudController
         var chiefStrategist = _turnManager.World.GetOfficer(faction.ChiefStrategistOfficerId);
         var chancellorName = chancellor != null ? _localization.GetOfficerName(chancellor) : _localization.T("ui.unassigned");
         var chiefStrategistName = chiefStrategist != null ? _localization.GetOfficerName(chiefStrategist) : _localization.T("ui.unassigned");
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_advisorOfficerList);
-        var selectedOfficer = selectedOfficerIds.Count > 0 ? _turnManager.World.GetOfficer(selectedOfficerIds[0]) : null;
+        var selectedOfficer = _advisorSelectedOfficerId > 0 ? _turnManager.World.GetOfficer(_advisorSelectedOfficerId) : null;
         var selectedOfficerName = selectedOfficer != null ? _localization.GetOfficerName(selectedOfficer) : _localization.T("ui.none");
         var positionMetadata = _advisorPositionOption?.GetItemMetadata(_advisorPositionOption.Selected);
         var position = positionMetadata?.VariantType == Variant.Type.String ? positionMetadata.Value.AsString() : "Chancellor";
         var positionName = position == "Chancellor" ? _localization.T("ui.chancellor") : _localization.T("ui.chief_strategist");
+        if (_advisorSelectedOfficerLabel != null)
+        {
+            _advisorSelectedOfficerLabel.Text = $"{_localization.T("ui.advisor_assign_officer")}: {selectedOfficerName}";
+        }
 
         _advisorSummaryLabel.Text =
             $"{_localization.T("ui.chancellor")}: {chancellorName}\n" +
@@ -253,8 +264,7 @@ public partial class HudController
             return;
         }
 
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_advisorOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        if (_advisorSelectedOfficerId <= 0)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
             ReopenAdvisorDialog();
@@ -266,10 +276,11 @@ public partial class HudController
         var result = _commandResolver.ExecuteAssignFactionAdvisor(
             _turnManager.GetPlayerFactionId(),
             _selectedCity.Id,
-            selectedOfficerIds[0],
+            _advisorSelectedOfficerId,
             position);
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
+        _advisorDialog?.Hide();
     }
 
     private void ReopenAdvisorDialog()
@@ -279,6 +290,39 @@ public partial class HudController
 
     private void ReopenAdvisorDialogDeferred()
     {
-        _advisorDialog?.PopupCentered(new Vector2I(500, 420));
+        PopupDialogUsingSceneSize(_advisorDialog);
+    }
+
+    private void OnAdvisorSelectOfficerPressed()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var candidateOfficerIds = _selectedCity.OfficerIds
+            .Where(officerId =>
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                return officer != null && !IsFactionRuler(_turnManager.World, officer);
+            })
+            .ToList();
+        if (candidateOfficerIds.Count == 0)
+        {
+            AddLog(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("ui.advisor_assign_officer"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Politics,
+            SelectAdvisorOfficerById);
+    }
+
+    private void SelectAdvisorOfficerById(int officerId)
+    {
+        _advisorSelectedOfficerId = officerId;
+        UpdateAdvisorSummary();
     }
 }

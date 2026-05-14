@@ -90,6 +90,7 @@ public partial class HudController : CanvasLayer
             _merchantModeOption = existingRoot.GetNodeOrNull<OptionButton>("TradeModeRow/TradeModeOption");
             _merchantFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
             _merchantSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            _merchantConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
             ConnectMerchantDialogSignals();
             return;
         }
@@ -125,6 +126,19 @@ public partial class HudController : CanvasLayer
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
         root.AddChild(_merchantSummaryLabel);
+
+        var confirmRow = new HBoxContainer
+        {
+            Name = "ConfirmRow",
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        _merchantConfirmButton = new Button
+        {
+            Name = "ConfirmButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        confirmRow.AddChild(_merchantConfirmButton);
+        root.AddChild(confirmRow);
 
         ConnectMerchantDialogSignals();
     }
@@ -574,7 +588,7 @@ public partial class HudController : CanvasLayer
 
         UpdateMerchantFoodSpinBoxRange();
         UpdateMerchantTradeSummary();
-        _merchantDialog.PopupCentered(new Vector2I(400, 220));
+        PopupDialogUsingSceneSize(_merchantDialog);
     }
 
     private void UpdateMoveDialogText()
@@ -603,9 +617,12 @@ public partial class HudController : CanvasLayer
         }
 
         _merchantDialog.Title = _localization.T("ui.merchant");
-        _merchantDialog.OkButtonText = _localization.T("ui.confirm_merchant");
         SetMerchantDialogLabelText("TradeModeLabel", _localization.T("ui.trade_mode"));
         SetMerchantDialogLabelText("FoodLabel", _localization.T("ui.trade_amount"));
+        if (_merchantConfirmButton != null)
+        {
+            _merchantConfirmButton.Text = _localization.T("ui.confirm_merchant");
+        }
         UpdateMerchantTradeSummary();
     }
 
@@ -1126,6 +1143,11 @@ public partial class HudController : CanvasLayer
         if (_merchantFoodSpinBox != null)
         {
             _merchantFoodSpinBox.ValueChanged += OnMerchantFoodValueChanged;
+        }
+
+        if (_merchantConfirmButton != null)
+        {
+            _merchantConfirmButton.Pressed += OnMerchantDialogConfirmed;
         }
 
         _merchantDialogSignalsConnected = true;

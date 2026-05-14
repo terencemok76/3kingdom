@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://bwul0xsi6u8nw"]
+
+[node name="VisitCitizenDialog" type="Window" unique_id=641606667]
+oversampling_override = 1.0
+title = "Visit Citizen"
+position = Vector2i(0, 36)
+size = Vector2i(320, 120)
+
+[node name="VisitCitizenDialogRoot" type="VBoxContainer" parent="." unique_id=163863813]
+offset_left = 4.0
+offset_top = 9.0
+offset_right = 304.0
+offset_bottom = 110.0
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="VisitCitizenDialogRoot" unique_id=823071275]
+layout_mode = 2
+text = "Officers"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="VisitCitizenDialogRoot" unique_id=1047353085]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="VisitCitizenDialogRoot/OfficerSelectorRow" unique_id=931809634]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officers: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="VisitCitizenDialogRoot/OfficerSelectorRow" unique_id=1223046775]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="ConfirmRow" type="HBoxContainer" parent="VisitCitizenDialogRoot" unique_id=14653090]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="VisitCitizenDialogRoot/ConfirmRow" unique_id=73481110]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

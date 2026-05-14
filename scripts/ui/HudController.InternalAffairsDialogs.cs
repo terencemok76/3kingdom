@@ -25,16 +25,36 @@ public partial class HudController : CanvasLayer
             _internalAffairsDurationSpinBox = existingRoot.GetNodeOrNull<SpinBox>("DurationRow/DurationSpinBox");
             _internalAffairsSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
             _internalAffairsSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+            _internalAffairsConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
             _internalAffairsScheduleList = existingRoot.GetNodeOrNull<ItemList>("ScheduleList");
             _internalAffairsTerminateButton = existingRoot.GetNodeOrNull<Button>("TerminateButton");
             _internalAffairsWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
+            if (!_internalAffairsDialogSignalsConnected)
+            {
+                if (_internalAffairsSelectOfficerButton != null)
+                {
+                    _internalAffairsSelectOfficerButton.Pressed += OnInternalAffairsSelectOfficerPressed;
+                }
+
+                if (_internalAffairsTerminateButton != null)
+                {
+                    _internalAffairsTerminateButton.Pressed += OnInternalAffairsTerminatePressed;
+                }
+
+                if (_internalAffairsConfirmButton != null)
+                {
+                    _internalAffairsConfirmButton.Pressed += OnInternalAffairsDialogConfirmed;
+                }
+
+                _internalAffairsDialogSignalsConnected = true;
+            }
             return;
         }
 
         var root = new VBoxContainer
         {
             Name = "InternalAffairsDialogRoot",
-            CustomMinimumSize = new Vector2(460.0f, 520.0f)
+            CustomMinimumSize = new Vector2(460.0f, 400.0f)
         };
         root.AddThemeConstantOverride("separation", 8);
         _internalAffairsDialog.AddChild(root);
@@ -104,6 +124,7 @@ public partial class HudController : CanvasLayer
         };
         _internalAffairsSelectOfficerButton.Pressed += OnInternalAffairsSelectOfficerPressed;
         officerSelectorRow.AddChild(_internalAffairsSelectOfficerButton);
+        _internalAffairsDialogSignalsConnected = true;
         root.AddChild(officerSelectorRow);
 
         root.AddChild(new Label { Name = "ScheduleListLabel" });
@@ -131,6 +152,20 @@ public partial class HudController : CanvasLayer
         };
         _internalAffairsWarningLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.2f, 0.15f, 1.0f));
         root.AddChild(_internalAffairsWarningLabel);
+
+        var confirmRow = new HBoxContainer
+        {
+            Name = "ConfirmRow",
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        _internalAffairsConfirmButton = new Button
+        {
+            Name = "ConfirmButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _internalAffairsConfirmButton.Pressed += OnInternalAffairsDialogConfirmed;
+        confirmRow.AddChild(_internalAffairsConfirmButton);
+        root.AddChild(confirmRow);
     }
 
     private void ShowInternalAffairsDialog()
@@ -144,7 +179,7 @@ public partial class HudController : CanvasLayer
         UpdateInternalAffairsDialogText();
         PopulateInternalAffairsDialog();
         SetInternalAffairsWarning(string.Empty);
-        _internalAffairsDialog.PopupCentered(new Vector2I(500, 430));
+        PopupDialogUsingSceneSize(_internalAffairsDialog);
     }
 
     private void PopulateInternalAffairsDialog()
@@ -218,7 +253,6 @@ public partial class HudController : CanvasLayer
         }
 
         _internalAffairsDialog.Title = _localization.T("ui.internal_affairs");
-        _internalAffairsDialog.OkButtonText = _localization.T("ui.confirm_internal_affairs");
         SetInternalAffairsDialogLabelText("JobLabel", _localization.T("ui.internal_affairs_job"));
         SetInternalAffairsDialogLabelText("DurationLabel", _localization.T("ui.internal_affairs_duration"));
         SetInternalAffairsDialogLabelText("OfficerListLabel", _localization.T("ui.internal_affairs_officer"));
@@ -230,6 +264,10 @@ public partial class HudController : CanvasLayer
         if (_internalAffairsTerminateButton != null)
         {
             _internalAffairsTerminateButton.Text = _localization.T("ui.terminate_internal_affairs");
+        }
+        if (_internalAffairsConfirmButton != null)
+        {
+            _internalAffairsConfirmButton.Text = _localization.T("ui.confirm_internal_affairs");
         }
 
         UpdateInternalAffairsSelectedOfficerSummary();
@@ -271,6 +309,7 @@ public partial class HudController : CanvasLayer
         RefreshSelectedCity();
         RefreshInternalAffairsScheduleList();
         _mapController?.RefreshVisuals();
+        _internalAffairsDialog?.Hide();
     }
 
     private void OnInternalAffairsSelectOfficerPressed()
@@ -381,7 +420,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenInternalAffairsDialogDeferred()
     {
-        _internalAffairsDialog?.PopupCentered(new Vector2I(500, 430));
+        PopupDialogUsingSceneSize(_internalAffairsDialog);
     }
 
 

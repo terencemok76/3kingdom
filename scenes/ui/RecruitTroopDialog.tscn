@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://2dfqdtvibb36"]
+
+[node name="RecruitTroopDialog" type="Window" unique_id=839740954]
+oversampling_override = 1.0
+title = "Recruit"
+position = Vector2i(0, 36)
+size = Vector2i(380, 182)
+
+[node name="RecruitTroopDialogRoot" type="VBoxContainer" parent="." unique_id=2132251967]
+custom_minimum_size = Vector2(350, 120)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 372.0
+offset_bottom = 131.0
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="RecruitTroopDialogRoot" unique_id=910123028]
+layout_mode = 2
+text = "Officers"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="RecruitTroopDialogRoot" unique_id=1175721350]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="RecruitTroopDialogRoot/OfficerSelectorRow" unique_id=1496798526]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officers: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="RecruitTroopDialogRoot/OfficerSelectorRow" unique_id=2025176180]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="TroopTypeLabel" type="Label" parent="RecruitTroopDialogRoot" unique_id=2113847060]
+layout_mode = 2
+text = "Troop Type"
+
+[node name="TroopTypeOption" type="OptionButton" parent="RecruitTroopDialogRoot" unique_id=1916639541]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="RecruitTroopDialogRoot" unique_id=562409685]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="RecruitTroopDialogRoot/ConfirmRow" unique_id=1629396599]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

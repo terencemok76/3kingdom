@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://d1yqcs5onrlxp"]
+
+[node name="MilitaryDialog" type="Window" unique_id=1969138015]
+oversampling_override = 1.0
+title = "Military"
+position = Vector2i(0, 36)
+size = Vector2i(340, 110)
+
+[node name="MilitaryDialogRoot" type="VBoxContainer" parent="." unique_id=1498752218]
+custom_minimum_size = Vector2(320, 110)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 332.0
+offset_bottom = 118.0
+theme_override_constants/separation = 8
+
+[node name="CommandLabel" type="Label" parent="MilitaryDialogRoot" unique_id=1467024938]
+layout_mode = 2
+text = "Command"
+
+[node name="CommandOption" type="OptionButton" parent="MilitaryDialogRoot" unique_id=950750023]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="MilitaryDialogRoot" unique_id=1640727854]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="MilitaryDialogRoot/ConfirmRow" unique_id=840124810]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

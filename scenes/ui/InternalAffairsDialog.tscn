@@ -1,0 +1,94 @@
+[gd_scene format=3 uid="uid://ta5ax2elngwx"]
+
+[node name="InternalAffairsDialog" type="Window" unique_id=1571282665]
+oversampling_override = 1.0
+title = "Internal Affairs"
+position = Vector2i(0, 36)
+size = Vector2i(500, 440)
+
+[node name="InternalAffairsDialogRoot" type="VBoxContainer" parent="." unique_id=1280138850]
+custom_minimum_size = Vector2(460, 360)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 492.0
+offset_bottom = 391.0
+theme_override_constants/separation = 8
+
+[node name="JobRow" type="HBoxContainer" parent="InternalAffairsDialogRoot" unique_id=856422510]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="JobLabel" type="Label" parent="InternalAffairsDialogRoot/JobRow" unique_id=104842441]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Job"
+
+[node name="JobOption" type="OptionButton" parent="InternalAffairsDialogRoot/JobRow" unique_id=1736069169]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DurationRow" type="HBoxContainer" parent="InternalAffairsDialogRoot" unique_id=692705795]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DurationLabel" type="Label" parent="InternalAffairsDialogRoot/DurationRow" unique_id=1890366330]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Duration"
+
+[node name="DurationSpinBox" type="SpinBox" parent="InternalAffairsDialogRoot/DurationRow" unique_id=1320948687]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 24.0
+value = 3.0
+
+[node name="OfficerListLabel" type="Label" parent="InternalAffairsDialogRoot" unique_id=240573620]
+layout_mode = 2
+text = "Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="InternalAffairsDialogRoot" unique_id=4787522]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="InternalAffairsDialogRoot/OfficerSelectorRow" unique_id=2146123737]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="InternalAffairsDialogRoot/OfficerSelectorRow" unique_id=443403935]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="ScheduleListLabel" type="Label" parent="InternalAffairsDialogRoot" unique_id=443198224]
+layout_mode = 2
+text = "Schedules"
+
+[node name="ScheduleList" type="ItemList" parent="InternalAffairsDialogRoot" unique_id=1807947112]
+custom_minimum_size = Vector2(0, 130)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TerminateButton" type="Button" parent="InternalAffairsDialogRoot" unique_id=2071794022]
+layout_mode = 2
+focus_mode = 0
+text = "Terminate"
+
+[node name="WarningLabel" type="Label" parent="InternalAffairsDialogRoot" unique_id=1574264902]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.2, 0.15, 1)
+autowrap_mode = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="InternalAffairsDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="InternalAffairsDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

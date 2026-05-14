@@ -1,0 +1,44 @@
+[gd_scene format=3 uid="uid://dauvyg2wx6eit"]
+
+[node name="FireOfficerDialog" type="Window" unique_id=1694145384]
+oversampling_override = 1.0
+title = "Fire Officer"
+position = Vector2i(0, 36)
+size = Vector2i(340, 120)
+
+[node name="FireOfficerDialogRoot" type="VBoxContainer" parent="." unique_id=1311134691]
+custom_minimum_size = Vector2(320, 100)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 328.0
+offset_bottom = 109.0
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="FireOfficerDialogRoot" unique_id=1304344924]
+layout_mode = 2
+text = "Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="FireOfficerDialogRoot" unique_id=889739029]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="FireOfficerDialogRoot/OfficerSelectorRow" unique_id=786515828]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="FireOfficerDialogRoot/OfficerSelectorRow" unique_id=577045706]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="ConfirmRow" type="HBoxContainer" parent="FireOfficerDialogRoot" unique_id=1924105497]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="FireOfficerDialogRoot/ConfirmRow" unique_id=73153919]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

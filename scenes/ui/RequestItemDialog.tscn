@@ -1,0 +1,59 @@
+[gd_scene format=3 uid="uid://de2n0b842j0c5"]
+
+[node name="RequestItemDialog" type="Window" unique_id=1426632422]
+oversampling_override = 1.0
+title = "Request Item"
+position = Vector2i(0, 36)
+size = Vector2i(330, 150)
+
+[node name="RequestItemDialogRoot" type="VBoxContainer" parent="." unique_id=1543760162]
+custom_minimum_size = Vector2(320, 150)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 308.0
+offset_bottom = 158.0
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="RequestItemDialogRoot" unique_id=884741264]
+layout_mode = 2
+text = "Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="RequestItemDialogRoot" unique_id=1522552807]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="RequestItemDialogRoot/OfficerSelectorRow" unique_id=948691329]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="RequestItemDialogRoot/OfficerSelectorRow" unique_id=617495528]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="ItemRow" type="HBoxContainer" parent="RequestItemDialogRoot" unique_id=792941704]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ItemLabel" type="Label" parent="RequestItemDialogRoot/ItemRow" unique_id=1847481527]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Item"
+vertical_alignment = 1
+
+[node name="ItemOption" type="OptionButton" parent="RequestItemDialogRoot/ItemRow" unique_id=114206420]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="RequestItemDialogRoot" unique_id=709806463]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="RequestItemDialogRoot/ConfirmRow" unique_id=831055681]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

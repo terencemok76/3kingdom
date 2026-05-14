@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://bskumc7ojeu64"]
+
+[node name="MerchantDialog" type="Window" unique_id=33722012]
+oversampling_override = 1.0
+title = "Merchant"
+position = Vector2i(0, 36)
+size = Vector2i(350, 160)
+
+[node name="MerchantDialogRoot" type="VBoxContainer" parent="." unique_id=1060286005]
+custom_minimum_size = Vector2(320, 100)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 348.0
+offset_bottom = 146.0
+theme_override_constants/separation = 10
+
+[node name="TradeModeRow" type="HBoxContainer" parent="MerchantDialogRoot" unique_id=1822301426]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TradeModeLabel" type="Label" parent="MerchantDialogRoot/TradeModeRow" unique_id=1273887994]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Trade Mode"
+vertical_alignment = 1
+
+[node name="TradeModeOption" type="OptionButton" parent="MerchantDialogRoot/TradeModeRow" unique_id=266656791]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FoodRow" type="HBoxContainer" parent="MerchantDialogRoot" unique_id=1651970870]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="FoodLabel" type="Label" parent="MerchantDialogRoot/FoodRow" unique_id=1131634119]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Amount"
+vertical_alignment = 1
+
+[node name="FoodSpinBox" type="SpinBox" parent="MerchantDialogRoot/FoodRow" unique_id=60399959]
+layout_mode = 2
+size_flags_horizontal = 3
+step = 100.0
+rounded = true
+
+[node name="SummaryLabel" type="Label" parent="MerchantDialogRoot" unique_id=1695021629]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="MerchantDialogRoot" unique_id=793431010]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="MerchantDialogRoot/ConfirmRow" unique_id=413212873]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

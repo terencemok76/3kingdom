@@ -17,7 +17,8 @@ public partial class HudController
         if (existingRoot != null)
         {
             _successionSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
-            _successionOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerList");
+            _successionSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _successionSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
             _successionWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
             return;
         }
@@ -39,18 +40,28 @@ public partial class HudController
         };
         root.AddChild(_successionSummaryLabel);
 
-        _successionOfficerList = new Tree
+        root.AddChild(new Label { Name = "OfficerListLabel" });
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerList",
-            Columns = 5,
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 220.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _successionOfficerList.ItemSelected += OnSuccessionOfficerSelected;
-        root.AddChild(_successionOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _successionSelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_successionSelectedOfficerLabel);
+        _successionSelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _successionSelectOfficerButton.Pressed += OnSuccessionSelectOfficerPressed;
+        officerSelectorRow.AddChild(_successionSelectOfficerButton);
+        root.AddChild(officerSelectorRow);
 
         _successionWarningLabel = new Label
         {
@@ -92,87 +103,47 @@ public partial class HudController
         _successionDialog.OkButtonText = _localization.T("ui.confirm_succession");
         _successionSummaryLabel!.Text = _localization.Format("ui.succession_summary", _localization.GetFactionName(_turnManager.World, factionId));
         _successionWarningLabel!.Text = string.Empty;
-
-        _successionOfficerList!.Columns = 5;
-        _successionOfficerList.SetColumnTitle(0, _localization.T("ui.officers"));
-        _successionOfficerList.SetColumnTitle(1, _localization.T("ui.role"));
-        _successionOfficerList.SetColumnTitle(2, _localization.T("ui.leadership"));
-        _successionOfficerList.SetColumnTitle(3, _localization.T("ui.intelligence"));
-        _successionOfficerList.SetColumnTitle(4, _localization.T("ui.loyalty"));
-        _successionOfficerList.Clear();
-        var root = _successionOfficerList.CreateItem();
-        var rowIndex = 0;
-        foreach (var officerId in pendingSuccession.CandidateOfficerIds)
+        if (_successionSelectOfficerButton != null)
         {
-            var officer = _turnManager.World.GetOfficer(officerId);
-            if (officer == null)
+            _successionSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        if (_successionSelectedOfficerLabel != null)
+        {
+            var candidateOfficer = pendingSuccession.CandidateOfficerIds.Contains(_successionSelectedOfficerId)
+                ? _turnManager.World.GetOfficer(_successionSelectedOfficerId)
+                : null;
+            if (candidateOfficer == null)
             {
-                continue;
+                _successionSelectedOfficerId = pendingSuccession.CandidateOfficerIds.FirstOrDefault();
+                candidateOfficer = _turnManager.World.GetOfficer(_successionSelectedOfficerId);
             }
 
-            var row = _successionOfficerList.CreateItem(root);
-            row.SetMetadata(0, officer.Id);
-            row.SetText(0, _localization.GetOfficerName(officer));
-            row.SetText(1, _localization.GetOfficerRole(officer));
-            row.SetText(2, officer.Leadership.ToString());
-            row.SetText(3, officer.Intelligence.ToString());
-            row.SetText(4, officer.Loyalty.ToString());
-            ApplyViewTableRowStriping(row, rowIndex, 5);
-            rowIndex += 1;
+            var officerName = candidateOfficer != null ? _localization.GetOfficerName(candidateOfficer) : _localization.T("ui.unassigned");
+            _successionSelectedOfficerLabel.Text = $"{_localization.T("ui.officers")}: {officerName}";
         }
 
-        var first = _successionOfficerList.GetRoot()?.GetFirstChild();
-        first?.Select(0);
-        OnSuccessionOfficerSelected();
-        _successionDialog.PopupCentered(new Vector2I(760, 460));
-    }
-
-    private void OnSuccessionOfficerSelected()
-    {
-        if (_successionOfficerList == null)
-        {
-            return;
-        }
-
-        var selected = _successionOfficerList.GetSelected();
-        var row = _successionOfficerList.GetRoot()?.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            if (row == selected)
-            {
-                ApplyViewTableSelectedRowStyle(row, _successionOfficerList.Columns);
-            }
-            else
-            {
-                ApplyViewTableRowStriping(row, rowIndex, _successionOfficerList.Columns);
-            }
-
-            row = row.GetNext();
-            rowIndex += 1;
-        }
+        _successionDialog.PopupCentered(new Vector2I(760, 240));
     }
 
     private void OnSuccessionDialogConfirmed()
     {
-        if (_commandResolver == null || _localization == null || _pendingSuccessionFactionId <= 0 || _successionOfficerList == null)
+        if (_commandResolver == null || _localization == null || _pendingSuccessionFactionId <= 0)
         {
             return;
         }
 
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_successionOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        if (_successionSelectedOfficerId <= 0)
         {
             _successionWarningLabel!.Text = _localization.T("ui.select_officer_warning");
-            _successionDialog?.PopupCentered(new Vector2I(760, 460));
+            _successionDialog?.PopupCentered(new Vector2I(760, 240));
             return;
         }
 
-        var result = _commandResolver.ResolvePlayerSuccession(_pendingSuccessionFactionId, selectedOfficerIds[0]);
+        var result = _commandResolver.ResolvePlayerSuccession(_pendingSuccessionFactionId, _successionSelectedOfficerId);
         if (!result.Success)
         {
             _successionWarningLabel!.Text = GetLocalizedResultMessage(result);
-            _successionDialog?.PopupCentered(new Vector2I(760, 460));
+            _successionDialog?.PopupCentered(new Vector2I(760, 240));
             return;
         }
 
@@ -190,6 +161,44 @@ public partial class HudController
         if (_pendingSuccessionFactionId > 0)
         {
             ShowSuccessionDialog();
+        }
+    }
+
+    private void OnSuccessionSelectOfficerPressed()
+    {
+        if (_turnManager?.World == null || _localization == null || _pendingSuccessionFactionId <= 0)
+        {
+            return;
+        }
+
+        var pendingSuccession = _turnManager.World.GetPendingSuccession(_pendingSuccessionFactionId);
+        var candidateOfficerIds = pendingSuccession?.CandidateOfficerIds.ToList() ?? new System.Collections.Generic.List<int>();
+        if (candidateOfficerIds.Count == 0)
+        {
+            _successionWarningLabel!.Text = _localization.T("ui.select_officer_warning");
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("ui.succession"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Politics,
+            SelectSuccessionOfficerById);
+    }
+
+    private void SelectSuccessionOfficerById(int officerId)
+    {
+        _successionSelectedOfficerId = officerId;
+        if (_successionSelectedOfficerLabel != null && _localization != null)
+        {
+            var officer = _turnManager?.World?.GetOfficer(officerId);
+            var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unassigned");
+            _successionSelectedOfficerLabel.Text = $"{_localization.T("ui.officers")}: {officerName}";
+        }
+
+        if (_successionWarningLabel != null)
+        {
+            _successionWarningLabel.Text = string.Empty;
         }
     }
 }

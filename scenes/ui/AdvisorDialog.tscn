@@ -1,0 +1,56 @@
+[gd_scene format=3]
+
+[node name="AdvisorDialog" type="Window"]
+oversampling_override = 1.0
+title = "Advisor"
+position = Vector2i(0, 36)
+size = Vector2i(500, 280)
+
+[node name="AdvisorDialogRoot" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(480, 240)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 492.0
+offset_bottom = 248.0
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="AdvisorDialogRoot"]
+layout_mode = 2
+text = "Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="AdvisorDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="AdvisorDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="PositionLabel" type="Label" parent="AdvisorDialogRoot"]
+layout_mode = 2
+text = "Position"
+
+[node name="PositionOption" type="OptionButton" parent="AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SummaryLabel" type="Label" parent="AdvisorDialogRoot"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="AdvisorDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

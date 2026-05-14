@@ -29,6 +29,50 @@ public partial class HudController : CanvasLayer
             _diplomacySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
             _diplomacyWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
             _diplomacyConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmButton");
+            if (!_diplomacyDialogSignalsConnected)
+            {
+                if (_diplomacyActionOption != null)
+                {
+                    _diplomacyActionOption.ItemSelected += OnDiplomacyActionOptionSelected;
+                }
+
+                if (_diplomacyTargetFactionOption != null)
+                {
+                    _diplomacyTargetFactionOption.ItemSelected += OnDiplomacyTargetFactionOptionSelected;
+                }
+
+                if (_diplomacyDurationSpinBox != null)
+                {
+                    _diplomacyDurationSpinBox.ValueChanged += OnDiplomacyDurationChanged;
+                }
+
+                if (_diplomacyGoldSpinBox != null)
+                {
+                    _diplomacyGoldSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
+                }
+
+                if (_diplomacyFoodSpinBox != null)
+                {
+                    _diplomacyFoodSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
+                }
+
+                if (_diplomacyHorseSpinBox != null)
+                {
+                    _diplomacyHorseSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
+                }
+
+                if (_diplomacySelectOfficerButton != null)
+                {
+                    _diplomacySelectOfficerButton.Pressed += OnDiplomacySelectOfficerPressed;
+                }
+
+                if (_diplomacyConfirmButton != null)
+                {
+                    _diplomacyConfirmButton.Pressed += OnDiplomacyConfirmPressed;
+                }
+
+                _diplomacyDialogSignalsConnected = true;
+            }
             return;
         }
 
@@ -48,12 +92,7 @@ public partial class HudController : CanvasLayer
             Name = "ActionOption",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyActionOption.ItemSelected += _ =>
-        {
-            UpdateDiplomacyDialogInputState();
-            UpdateDiplomacySummary();
-            UpdateDiplomacyConfirmButtonState();
-        };
+        _diplomacyActionOption.ItemSelected += OnDiplomacyActionOptionSelected;
         root.GetNode<HBoxContainer>("ActionRow").AddChild(_diplomacyActionOption);
 
         root.AddChild(CreateDiplomacyFormRow("TargetFactionRow", "TargetFactionLabel"));
@@ -62,11 +101,7 @@ public partial class HudController : CanvasLayer
             Name = "TargetFactionOption",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyTargetFactionOption.ItemSelected += _ =>
-        {
-            UpdateDiplomacyRelationInfo();
-            UpdateDiplomacySummary();
-        };
+        _diplomacyTargetFactionOption.ItemSelected += OnDiplomacyTargetFactionOptionSelected;
         root.GetNode<HBoxContainer>("TargetFactionRow").AddChild(_diplomacyTargetFactionOption);
 
         root.AddChild(CreateDiplomacyFormRow("DurationRow", "DurationLabel"));
@@ -80,7 +115,7 @@ public partial class HudController : CanvasLayer
             Rounded = true,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyDurationSpinBox.ValueChanged += _ => UpdateDiplomacySummary();
+        _diplomacyDurationSpinBox.ValueChanged += OnDiplomacyDurationChanged;
         root.GetNode<HBoxContainer>("DurationRow").AddChild(_diplomacyDurationSpinBox);
 
         root.AddChild(CreateDiplomacyFormRow("GoldRow", "GoldLabel"));
@@ -94,11 +129,7 @@ public partial class HudController : CanvasLayer
             Rounded = true,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyGoldSpinBox.ValueChanged += _ =>
-        {
-            UpdateDiplomacySummary();
-            UpdateDiplomacyConfirmButtonState();
-        };
+        _diplomacyGoldSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
         root.GetNode<HBoxContainer>("GoldRow").AddChild(_diplomacyGoldSpinBox);
 
         root.AddChild(CreateDiplomacyFormRow("FoodRow", "FoodLabel"));
@@ -112,11 +143,7 @@ public partial class HudController : CanvasLayer
             Rounded = true,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyFoodSpinBox.ValueChanged += _ =>
-        {
-            UpdateDiplomacySummary();
-            UpdateDiplomacyConfirmButtonState();
-        };
+        _diplomacyFoodSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
         root.GetNode<HBoxContainer>("FoodRow").AddChild(_diplomacyFoodSpinBox);
 
         root.AddChild(CreateDiplomacyFormRow("HorseRow", "HorseLabel"));
@@ -130,11 +157,7 @@ public partial class HudController : CanvasLayer
             Rounded = true,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _diplomacyHorseSpinBox.ValueChanged += _ =>
-        {
-            UpdateDiplomacySummary();
-            UpdateDiplomacyConfirmButtonState();
-        };
+        _diplomacyHorseSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
         root.GetNode<HBoxContainer>("HorseRow").AddChild(_diplomacyHorseSpinBox);
 
         _diplomacyRelationInfoLabel = new Label
@@ -193,6 +216,7 @@ public partial class HudController : CanvasLayer
         };
         _diplomacyConfirmButton.Pressed += OnDiplomacyConfirmPressed;
         footer.AddChild(_diplomacyConfirmButton);
+        _diplomacyDialogSignalsConnected = true;
     }
 
     private void ShowDiplomacyDialog()
@@ -205,7 +229,7 @@ public partial class HudController : CanvasLayer
         EnsureDiplomacyDialogWidgets();
         UpdateDiplomacyDialogText();
         PopulateDiplomacyDialog();
-        _diplomacyDialog.PopupCentered(new Vector2I(760, 470));
+        PopupDialogUsingSceneSize(_diplomacyDialog);
     }
 
     private void PopulateDiplomacyDialog()
@@ -330,6 +354,30 @@ public partial class HudController : CanvasLayer
         };
         _diplomacyActionOption.AddItem(_localization.T(key));
         _diplomacyActionOption.SetItemMetadata(_diplomacyActionOption.ItemCount - 1, (int)actionType);
+    }
+
+    private void OnDiplomacyActionOptionSelected(long _)
+    {
+        UpdateDiplomacyDialogInputState();
+        UpdateDiplomacySummary();
+        UpdateDiplomacyConfirmButtonState();
+    }
+
+    private void OnDiplomacyTargetFactionOptionSelected(long _)
+    {
+        UpdateDiplomacyRelationInfo();
+        UpdateDiplomacySummary();
+    }
+
+    private void OnDiplomacyDurationChanged(double _)
+    {
+        UpdateDiplomacySummary();
+    }
+
+    private void OnDiplomacyResourceValueChanged(double _)
+    {
+        UpdateDiplomacySummary();
+        UpdateDiplomacyConfirmButtonState();
     }
 
     private DiplomacyActionType GetSelectedDiplomacyActionType()

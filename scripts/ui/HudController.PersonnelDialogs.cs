@@ -148,7 +148,8 @@ public partial class HudController : CanvasLayer
         var existingRoot = _personnelBonusDialog.GetNodeOrNull<VBoxContainer>("PersonnelBonusDialogRoot");
         if (existingRoot != null)
         {
-            _personnelBonusOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _personnelBonusSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _personnelBonusSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
             _personnelBonusGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
             _personnelBonusFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
             _personnelBonusItemOption = existingRoot.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
@@ -165,17 +166,27 @@ public partial class HudController : CanvasLayer
         _personnelBonusDialog.AddChild(root);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
-        _personnelBonusOfficerList = new Tree
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerTable",
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 150.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _personnelBonusOfficerList.ItemSelected += OnPersonnelBonusOfficerTableSelected;
-        root.AddChild(_personnelBonusOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _personnelBonusSelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_personnelBonusSelectedOfficerLabel);
+        _personnelBonusSelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _personnelBonusSelectOfficerButton.Pressed += OnPersonnelBonusSelectOfficerPressed;
+        officerSelectorRow.AddChild(_personnelBonusSelectOfficerButton);
+        root.AddChild(officerSelectorRow);
 
         var goldRow = CreatePersonnelBonusFormRow("GoldRow", "GoldLabel");
         _personnelBonusGoldSpinBox = CreateMoveSpinBox("GoldSpinBox");
@@ -219,36 +230,26 @@ public partial class HudController : CanvasLayer
         EnsurePersonnelBonusDialogWidgets();
         UpdatePersonnelBonusDialogText();
         PopulatePersonnelBonusDialog();
-        _personnelBonusDialog.PopupCentered(new Vector2I(480, 400));
+        _personnelBonusDialog.PopupCentered(new Vector2I(480, 260));
     }
 
     private void PopulatePersonnelBonusDialog()
     {
-        if (_selectedCity == null || _turnManager?.World == null || _personnelBonusOfficerList == null)
+        if (_selectedCity == null || _turnManager?.World == null)
         {
             return;
         }
 
-        _personnelBonusOfficerList.Clear();
-        ConfigureCompactOfficerTableColumns(_personnelBonusOfficerList);
-        var tableRoot = _personnelBonusOfficerList.CreateItem();
-        var rowIndex = 0;
-        foreach (var officerId in _selectedCity.OfficerIds)
+        var candidateOfficerIds = _selectedCity.OfficerIds
+            .Where(officerId =>
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                return officer != null && !IsFactionRuler(_turnManager.World, officer);
+            })
+            .ToList();
+        if (!candidateOfficerIds.Contains(_personnelBonusSelectedOfficerId))
         {
-            var officer = _turnManager.World.GetOfficer(officerId);
-            if (officer == null)
-            {
-                continue;
-            }
-
-            if (IsFactionRuler(_turnManager.World, officer))
-            {
-                continue;
-            }
-
-            var row = _personnelBonusOfficerList.CreateItem(tableRoot);
-            PopulateCompactOfficerTableRow(row, officer, rowIndex);
-            rowIndex += 1;
+            _personnelBonusSelectedOfficerId = candidateOfficerIds.FirstOrDefault();
         }
 
         ConfigureMoveSpinBox(_personnelBonusGoldSpinBox, _selectedCity.Gold, 0);
@@ -263,44 +264,8 @@ public partial class HudController : CanvasLayer
         }
 
         PopulateFactionInventoryOption(_personnelBonusItemOption);
+        UpdatePersonnelBonusSelectedOfficerSummary();
         UpdatePersonnelBonusSummary();
-    }
-
-    private void OnPersonnelBonusOfficerTableSelected()
-    {
-        if (_personnelBonusOfficerList == null)
-        {
-            return;
-        }
-
-        var selectedItem = _personnelBonusOfficerList.GetSelected();
-        if (selectedItem == null)
-        {
-            return;
-        }
-
-        var root = _personnelBonusOfficerList.GetRoot();
-        if (root == null)
-        {
-            return;
-        }
-
-        var row = root.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            if (row == selectedItem)
-            {
-                ApplyViewTableSelectedRowStyle(row, _personnelBonusOfficerList.Columns);
-            }
-            else
-            {
-                ApplyViewTableRowStriping(row, rowIndex, _personnelBonusOfficerList.Columns);
-            }
-
-            row = row.GetNext();
-            rowIndex += 1;
-        }
     }
 
     private void UpdatePersonnelBonusDialogText()
@@ -316,6 +281,11 @@ public partial class HudController : CanvasLayer
         SetPersonnelBonusDialogLabelText("GoldLabel", _localization.T("ui.personnel_bonus_gold"));
         SetPersonnelBonusDialogLabelText("FoodLabel", _localization.T("ui.personnel_bonus_food"));
         SetPersonnelBonusDialogLabelText("ItemLabel", _localization.T("ui.personnel_bonus_item"));
+        if (_personnelBonusSelectOfficerButton != null)
+        {
+            _personnelBonusSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        UpdatePersonnelBonusSelectedOfficerSummary();
     }
 
     private void SetPersonnelBonusDialogLabelText(string nodeName, string text)
@@ -372,8 +342,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_personnelBonusOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        if (_personnelBonusSelectedOfficerId <= 0)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
             ReopenPersonnelBonusDialog();
@@ -383,7 +352,7 @@ public partial class HudController : CanvasLayer
         var result = _commandResolver.ExecutePersonnelBonus(
             _turnManager.GetPlayerFactionId(),
             _selectedCity.Id,
-            selectedOfficerIds[0],
+            _personnelBonusSelectedOfficerId,
             (int)(_personnelBonusGoldSpinBox?.Value ?? 0),
             (int)(_personnelBonusFoodSpinBox?.Value ?? 0),
             GetSelectedItemFromOption(_personnelBonusItemOption)?.Id ?? 0);
@@ -399,7 +368,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenPersonnelBonusDialogDeferred()
     {
-        _personnelBonusDialog?.PopupCentered(new Vector2I(480, 400));
+        _personnelBonusDialog?.PopupCentered(new Vector2I(480, 260));
     }
 
     private void EnsureAssignRoleDialogWidgets()
@@ -412,7 +381,8 @@ public partial class HudController : CanvasLayer
         var existingRoot = _assignRoleDialog.GetNodeOrNull<VBoxContainer>("AssignRoleDialogRoot");
         if (existingRoot != null)
         {
-            _assignRoleOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _assignRoleSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _assignRoleSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
             _assignRoleOption = existingRoot.GetNodeOrNull<OptionButton>("RoleOption");
             return;
         }
@@ -426,17 +396,27 @@ public partial class HudController : CanvasLayer
         _assignRoleDialog.AddChild(root);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
-        _assignRoleOfficerList = new Tree
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerTable",
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 160.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _assignRoleOfficerList.ItemSelected += OnAssignRoleOfficerTableSelected;
-        root.AddChild(_assignRoleOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _assignRoleSelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_assignRoleSelectedOfficerLabel);
+        _assignRoleSelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _assignRoleSelectOfficerButton.Pressed += OnAssignRoleSelectOfficerPressed;
+        officerSelectorRow.AddChild(_assignRoleSelectOfficerButton);
+        root.AddChild(officerSelectorRow);
 
         root.AddChild(new Label { Name = "RoleLabel" });
         _assignRoleOption = new OptionButton
@@ -457,7 +437,7 @@ public partial class HudController : CanvasLayer
         EnsureAssignRoleDialogWidgets();
         UpdateAssignRoleDialogText();
         PopulateAssignRoleDialog();
-        _assignRoleDialog.PopupCentered(new Vector2I(480, 370));
+        _assignRoleDialog.PopupCentered(new Vector2I(480, 220));
     }
 
     private void PopulateAssignRoleDialog()
@@ -467,24 +447,16 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        if (_assignRoleOfficerList != null)
-        {
-            _assignRoleOfficerList.Clear();
-            ConfigureCompactOfficerTableColumns(_assignRoleOfficerList, includeStatus: true, includeCity: false, includeLoyalty: false, includeStats: true);
-            var tableRoot = _assignRoleOfficerList.CreateItem();
-            var rowIndex = 0;
-            foreach (var officerId in _selectedCity.OfficerIds)
+        var candidateOfficerIds = _selectedCity.OfficerIds
+            .Where(officerId =>
             {
                 var officer = _turnManager.World.GetOfficer(officerId);
-                if (officer == null || IsFactionRuler(_turnManager.World, officer))
-                {
-                    continue;
-                }
-
-                var row = _assignRoleOfficerList.CreateItem(tableRoot);
-                PopulateCompactOfficerTableRow(row, officer, rowIndex, includeStatus: true, includeCity: false, includeLoyalty: false, includeStats: true);
-                rowIndex += 1;
-            }
+                return officer != null && !IsFactionRuler(_turnManager.World, officer);
+            })
+            .ToList();
+        if (!candidateOfficerIds.Contains(_assignRoleSelectedOfficerId))
+        {
+            _assignRoleSelectedOfficerId = candidateOfficerIds.FirstOrDefault();
         }
 
         if (_assignRoleOption != null)
@@ -494,43 +466,6 @@ public partial class HudController : CanvasLayer
             AddAssignRoleOption("Strategist");
             AddAssignRoleOption("Advisor");
             AddAssignRoleOption("Governor");
-        }
-    }
-
-    private void OnAssignRoleOfficerTableSelected()
-    {
-        if (_assignRoleOfficerList == null)
-        {
-            return;
-        }
-
-        var selectedItem = _assignRoleOfficerList.GetSelected();
-        if (selectedItem == null)
-        {
-            return;
-        }
-
-        var root = _assignRoleOfficerList.GetRoot();
-        if (root == null)
-        {
-            return;
-        }
-
-        var row = root.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            if (row == selectedItem)
-            {
-                ApplyViewTableSelectedRowStyle(row, _assignRoleOfficerList.Columns);
-            }
-            else
-            {
-                ApplyViewTableRowStriping(row, rowIndex, _assignRoleOfficerList.Columns);
-            }
-
-            row = row.GetNext();
-            rowIndex += 1;
         }
     }
 
@@ -556,6 +491,11 @@ public partial class HudController : CanvasLayer
         _assignRoleDialog.OkButtonText = _localization.T("ui.confirm_assign_role");
         SetAssignRoleDialogLabelText("OfficerListLabel", _localization.T("ui.assign_role_officer"));
         SetAssignRoleDialogLabelText("RoleLabel", _localization.T("ui.assign_role_title"));
+        if (_assignRoleSelectOfficerButton != null)
+        {
+            _assignRoleSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        UpdateAssignRoleSelectedOfficerSummary();
     }
 
     private void SetAssignRoleDialogLabelText(string nodeName, string text)
@@ -577,7 +517,23 @@ public partial class HudController : CanvasLayer
         var existingRoot = _fireOfficerDialog.GetNodeOrNull<VBoxContainer>("FireOfficerDialogRoot");
         if (existingRoot != null)
         {
-            _fireOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _fireOfficerSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _fireOfficerSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+            _fireOfficerConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+            if (!_fireOfficerDialogSignalsConnected)
+            {
+                if (_fireOfficerSelectOfficerButton != null)
+                {
+                    _fireOfficerSelectOfficerButton.Pressed += OnFireOfficerSelectOfficerPressed;
+                }
+
+                if (_fireOfficerConfirmButton != null)
+                {
+                    _fireOfficerConfirmButton.Pressed += OnFireOfficerDialogConfirmed;
+                }
+
+                _fireOfficerDialogSignalsConnected = true;
+            }
             return;
         }
 
@@ -589,17 +545,44 @@ public partial class HudController : CanvasLayer
         root.AddThemeConstantOverride("separation", 8);
         _fireOfficerDialog.AddChild(root);
 
-        _fireOfficerList = new Tree
+        root.AddChild(new Label { Name = "OfficerListLabel" });
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerTable",
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 190.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _fireOfficerList.ItemSelected += OnFireOfficerTableSelected;
-        root.AddChild(_fireOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _fireOfficerSelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_fireOfficerSelectedOfficerLabel);
+        _fireOfficerSelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        officerSelectorRow.AddChild(_fireOfficerSelectOfficerButton);
+        root.AddChild(officerSelectorRow);
+
+        var confirmRow = new HBoxContainer
+        {
+            Name = "ConfirmRow",
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        _fireOfficerConfirmButton = new Button
+        {
+            Name = "ConfirmButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        confirmRow.AddChild(_fireOfficerConfirmButton);
+        root.AddChild(confirmRow);
+
+        _fireOfficerSelectOfficerButton.Pressed += OnFireOfficerSelectOfficerPressed;
+        _fireOfficerConfirmButton.Pressed += OnFireOfficerDialogConfirmed;
+        _fireOfficerDialogSignalsConnected = true;
     }
 
     private void ShowFireOfficerDialog()
@@ -618,32 +601,22 @@ public partial class HudController : CanvasLayer
         EnsureFireOfficerDialogWidgets();
         UpdateFireOfficerDialogText();
         PopulateFireOfficerDialog();
-        _fireOfficerDialog.PopupCentered(new Vector2I(480, 300));
+        PopupDialogUsingSceneSize(_fireOfficerDialog);
     }
 
     private void PopulateFireOfficerDialog()
     {
-        if (_selectedCity == null || _turnManager?.World == null || _fireOfficerList == null)
+        if (_selectedCity == null || _turnManager?.World == null)
         {
             return;
         }
 
-        _fireOfficerList.Clear();
-        ConfigureCompactOfficerTableColumns(_fireOfficerList, includeStatus: true, includeCity: false, includeLoyalty: true, includeStats: true);
-        var tableRoot = _fireOfficerList.CreateItem();
-        var rowIndex = 0;
-        foreach (var officerId in GetFireOfficerCandidateIds())
+        var candidateOfficerIds = GetFireOfficerCandidateIds();
+        if (!candidateOfficerIds.Contains(_fireOfficerSelectedOfficerId))
         {
-            var officer = _turnManager.World.GetOfficer(officerId);
-            if (officer == null)
-            {
-                continue;
-            }
-
-            var row = _fireOfficerList.CreateItem(tableRoot);
-            PopulateCompactOfficerTableRow(row, officer, rowIndex, includeStatus: true, includeCity: false, includeLoyalty: true, includeStats: true);
-            rowIndex += 1;
+            _fireOfficerSelectedOfficerId = candidateOfficerIds.FirstOrDefault();
         }
+        UpdateFireOfficerSelectedOfficerSummary();
     }
 
     private List<int> GetFireOfficerCandidateIds()
@@ -664,43 +637,6 @@ public partial class HudController : CanvasLayer
             .ToList();
     }
 
-    private void OnFireOfficerTableSelected()
-    {
-        if (_fireOfficerList == null)
-        {
-            return;
-        }
-
-        var selectedItem = _fireOfficerList.GetSelected();
-        if (selectedItem == null)
-        {
-            return;
-        }
-
-        var root = _fireOfficerList.GetRoot();
-        if (root == null)
-        {
-            return;
-        }
-
-        var row = root.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            if (row == selectedItem)
-            {
-                ApplyViewTableSelectedRowStyle(row, _fireOfficerList.Columns);
-            }
-            else
-            {
-                ApplyViewTableRowStriping(row, rowIndex, _fireOfficerList.Columns);
-            }
-
-            row = row.GetNext();
-            rowIndex += 1;
-        }
-    }
-
     private void UpdateFireOfficerDialogText()
     {
         if (_fireOfficerDialog == null || _localization == null)
@@ -709,7 +645,25 @@ public partial class HudController : CanvasLayer
         }
 
         _fireOfficerDialog.Title = _localization.T("command.personnel.fire_officer");
-        _fireOfficerDialog.OkButtonText = _localization.T("ui.confirm_personnel");
+        SetFireOfficerDialogLabelText("OfficerListLabel", _localization.T("ui.officers"));
+        if (_fireOfficerSelectOfficerButton != null)
+        {
+            _fireOfficerSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        if (_fireOfficerConfirmButton != null)
+        {
+            _fireOfficerConfirmButton.Text = _localization.T("ui.confirm_personnel");
+        }
+        UpdateFireOfficerSelectedOfficerSummary();
+    }
+
+    private void SetFireOfficerDialogLabelText(string nodeName, string text)
+    {
+        var label = _fireOfficerDialog?.GetNodeOrNull<Label>($"FireOfficerDialogRoot/{nodeName}");
+        if (label != null)
+        {
+            label.Text = text;
+        }
     }
 
     private void OnFireOfficerDialogConfirmed()
@@ -719,8 +673,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_fireOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        if (_fireOfficerSelectedOfficerId <= 0)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
             ReopenFireOfficerDialog();
@@ -730,10 +683,11 @@ public partial class HudController : CanvasLayer
         var result = _commandResolver.ExecuteFireOfficer(
             _turnManager.GetPlayerFactionId(),
             _selectedCity.Id,
-            selectedOfficerIds[0]);
+            _fireOfficerSelectedOfficerId);
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
+        _fireOfficerDialog?.Hide();
     }
 
     private void ReopenFireOfficerDialog()
@@ -743,7 +697,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenFireOfficerDialogDeferred()
     {
-        _fireOfficerDialog?.PopupCentered(new Vector2I(480, 300));
+        PopupDialogUsingSceneSize(_fireOfficerDialog);
     }
 
     private string GetRoleDisplayName(string role)
@@ -770,8 +724,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var selectedOfficerIds = GetSelectedTreeMetadataIds(_assignRoleOfficerList);
-        if (selectedOfficerIds.Count == 0)
+        if (_assignRoleSelectedOfficerId <= 0)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
             ReopenAssignRoleDialog();
@@ -783,7 +736,7 @@ public partial class HudController : CanvasLayer
         var result = _commandResolver.ExecuteAssignOfficerRole(
             _turnManager.GetPlayerFactionId(),
             _selectedCity.Id,
-            selectedOfficerIds[0],
+            _assignRoleSelectedOfficerId,
             role);
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
@@ -796,7 +749,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenAssignRoleDialogDeferred()
     {
-        _assignRoleDialog?.PopupCentered(new Vector2I(480, 370));
+        _assignRoleDialog?.PopupCentered(new Vector2I(480, 220));
     }
 
     private void EnsureRequestItemDialogWidgets()
@@ -809,8 +762,24 @@ public partial class HudController : CanvasLayer
         var existingRoot = _requestItemDialog.GetNodeOrNull<VBoxContainer>("RequestItemDialogRoot");
         if (existingRoot != null)
         {
-            _requestItemOfficerList = existingRoot.GetNodeOrNull<Tree>("OfficerTable");
+            _requestItemSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+            _requestItemSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
             _requestItemOption = existingRoot.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
+            _requestItemConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+            if (!_requestItemDialogSignalsConnected)
+            {
+                if (_requestItemSelectOfficerButton != null)
+                {
+                    _requestItemSelectOfficerButton.Pressed += OnRequestItemSelectOfficerPressed;
+                }
+
+                if (_requestItemConfirmButton != null)
+                {
+                    _requestItemConfirmButton.Pressed += OnRequestItemDialogConfirmed;
+                }
+
+                _requestItemDialogSignalsConnected = true;
+            }
             return;
         }
 
@@ -823,17 +792,26 @@ public partial class HudController : CanvasLayer
         _requestItemDialog.AddChild(root);
 
         root.AddChild(new Label { Name = "OfficerListLabel" });
-        _requestItemOfficerList = new Tree
+        var officerSelectorRow = new HBoxContainer
         {
-            Name = "OfficerTable",
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(0.0f, 160.0f),
+            Name = "OfficerSelectorRow",
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _requestItemOfficerList.ItemSelected += OnRequestItemOfficerTableSelected;
-        root.AddChild(_requestItemOfficerList);
+        officerSelectorRow.AddThemeConstantOverride("separation", 8);
+        _requestItemSelectedOfficerLabel = new Label
+        {
+            Name = "SelectedOfficerLabel",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        officerSelectorRow.AddChild(_requestItemSelectedOfficerLabel);
+        _requestItemSelectOfficerButton = new Button
+        {
+            Name = "SelectOfficerButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        officerSelectorRow.AddChild(_requestItemSelectOfficerButton);
+        root.AddChild(officerSelectorRow);
 
         var itemRow = CreatePersonnelBonusFormRow("ItemRow", "ItemLabel");
         _requestItemOption = new OptionButton
@@ -843,6 +821,23 @@ public partial class HudController : CanvasLayer
         };
         itemRow.AddChild(_requestItemOption);
         root.AddChild(itemRow);
+
+        var confirmRow = new HBoxContainer
+        {
+            Name = "ConfirmRow",
+            Alignment = BoxContainer.AlignmentMode.Center
+        };
+        _requestItemConfirmButton = new Button
+        {
+            Name = "ConfirmButton",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        confirmRow.AddChild(_requestItemConfirmButton);
+        root.AddChild(confirmRow);
+
+        _requestItemSelectOfficerButton.Pressed += OnRequestItemSelectOfficerPressed;
+        _requestItemConfirmButton.Pressed += OnRequestItemDialogConfirmed;
+        _requestItemDialogSignalsConnected = true;
     }
 
     private void ShowRequestItemDialog()
@@ -855,38 +850,23 @@ public partial class HudController : CanvasLayer
         EnsureRequestItemDialogWidgets();
         UpdateRequestItemDialogText();
         PopulateRequestItemDialog();
-        _requestItemDialog.PopupCentered(new Vector2I(480, 370));
+        PopupDialogUsingSceneSize(_requestItemDialog);
     }
 
     private void PopulateRequestItemDialog()
     {
-        if (_selectedCity == null || _turnManager?.World == null || _requestItemOfficerList == null)
+        if (_selectedCity == null || _turnManager?.World == null)
         {
             return;
         }
 
-        _requestItemOfficerList.Clear();
-        ConfigureCompactOfficerTableColumns(_requestItemOfficerList, includeStatus: true, includeCity: false, includeLoyalty: false, includeStats: true);
-        var tableRoot = _requestItemOfficerList.CreateItem();
-        var rowIndex = 0;
-        foreach (var officerId in _selectedCity.OfficerIds)
+        var candidateOfficerIds = GetRequestItemCandidateIds();
+        if (!candidateOfficerIds.Contains(_requestItemSelectedOfficerId))
         {
-            var officer = _turnManager.World.GetOfficer(officerId);
-            if (officer == null)
-            {
-                continue;
-            }
-
-            if (!_turnManager.World.Items.Any(item => item.EquippedOfficerId == officer.Id))
-            {
-                continue;
-            }
-
-            var row = _requestItemOfficerList.CreateItem(tableRoot);
-            PopulateCompactOfficerTableRow(row, officer, rowIndex, includeStatus: true, includeCity: false, includeLoyalty: false, includeStats: true);
-            rowIndex += 1;
+            _requestItemSelectedOfficerId = candidateOfficerIds.FirstOrDefault();
         }
 
+        UpdateRequestItemSelectedOfficerSummary();
         PopulateRequestItemOption();
     }
 
@@ -898,9 +878,17 @@ public partial class HudController : CanvasLayer
         }
 
         _requestItemDialog.Title = _localization.T("command.personnel.request_item");
-        _requestItemDialog.OkButtonText = _localization.T("ui.confirm_request_item");
         SetRequestItemDialogLabelText("OfficerListLabel", _localization.T("ui.request_item_officer"));
         SetRequestItemDialogLabelText("ItemLabel", _localization.T("ui.request_item"));
+        if (_requestItemSelectOfficerButton != null)
+        {
+            _requestItemSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        if (_requestItemConfirmButton != null)
+        {
+            _requestItemConfirmButton.Text = _localization.T("ui.confirm_request_item");
+        }
+        UpdateRequestItemSelectedOfficerSummary();
     }
 
     private void SetRequestItemDialogLabelText(string nodeName, string text)
@@ -911,41 +899,6 @@ public partial class HudController : CanvasLayer
         {
             label.Text = text;
         }
-    }
-
-    private void OnRequestItemOfficerTableSelected()
-    {
-        if (_requestItemOfficerList == null)
-        {
-            return;
-        }
-
-        var selectedItem = _requestItemOfficerList.GetSelected();
-        if (selectedItem != null)
-        {
-            var root = _requestItemOfficerList.GetRoot();
-            if (root != null)
-            {
-                var row = root.GetFirstChild();
-                var rowIndex = 0;
-                while (row != null)
-                {
-                    if (row == selectedItem)
-                    {
-                        ApplyViewTableSelectedRowStyle(row, _requestItemOfficerList.Columns);
-                    }
-                    else
-                    {
-                        ApplyViewTableRowStriping(row, rowIndex, _requestItemOfficerList.Columns);
-                    }
-
-                    row = row.GetNext();
-                    rowIndex += 1;
-                }
-            }
-        }
-
-        PopulateRequestItemOption();
     }
 
     private void PopulateRequestItemOption()
@@ -959,15 +912,14 @@ public partial class HudController : CanvasLayer
         _requestItemOption.AddItem(_localization.T("ui.no_item"));
         _requestItemOption.SetItemMetadata(0, 0);
 
-        var officerId = GetSelectedTreeMetadataIds(_requestItemOfficerList).FirstOrDefault();
-        if (officerId <= 0)
+        if (_requestItemSelectedOfficerId <= 0)
         {
             _requestItemOption.Select(0);
             return;
         }
 
         foreach (var item in _turnManager.World.Items
-                     .Where(item => item.EquippedOfficerId == officerId)
+                     .Where(item => item.EquippedOfficerId == _requestItemSelectedOfficerId)
                      .OrderBy(item => _localization.GetItemName(item)))
         {
             var row = _localization.Format(
@@ -989,8 +941,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var officerId = GetSelectedTreeMetadataIds(_requestItemOfficerList).FirstOrDefault();
-        if (officerId <= 0)
+        if (_requestItemSelectedOfficerId <= 0)
         {
             AddLog(_localization?.T("ui.select_officer_warning") ?? string.Empty);
             ReopenRequestItemDialog();
@@ -1005,10 +956,11 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var result = _commandResolver.ExecuteRecallOfficerItem(_turnManager.GetPlayerFactionId(), _selectedCity.Id, officerId, item.Id);
+        var result = _commandResolver.ExecuteRecallOfficerItem(_turnManager.GetPlayerFactionId(), _selectedCity.Id, _requestItemSelectedOfficerId, item.Id);
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
+        _requestItemDialog?.Hide();
     }
 
     private void ReopenRequestItemDialog()
@@ -1018,7 +970,192 @@ public partial class HudController : CanvasLayer
 
     private void ReopenRequestItemDialogDeferred()
     {
-        _requestItemDialog?.PopupCentered(new Vector2I(480, 370));
+        PopupDialogUsingSceneSize(_requestItemDialog);
+    }
+
+    private void OnPersonnelBonusSelectOfficerPressed()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var candidateOfficerIds = _selectedCity.OfficerIds
+            .Where(officerId =>
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                return officer != null && !IsFactionRuler(_turnManager.World, officer);
+            })
+            .ToList();
+        if (candidateOfficerIds.Count == 0)
+        {
+            AddLog(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("ui.personnel_bonus_officer"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Charm,
+            SelectPersonnelBonusOfficerById);
+    }
+
+    private void SelectPersonnelBonusOfficerById(int officerId)
+    {
+        _personnelBonusSelectedOfficerId = officerId;
+        UpdatePersonnelBonusSelectedOfficerSummary();
+    }
+
+    private void UpdatePersonnelBonusSelectedOfficerSummary()
+    {
+        if (_personnelBonusSelectedOfficerLabel == null || _localization == null)
+        {
+            return;
+        }
+
+        var officer = _personnelBonusSelectedOfficerId > 0 ? _turnManager?.World?.GetOfficer(_personnelBonusSelectedOfficerId) : null;
+        var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unassigned");
+        _personnelBonusSelectedOfficerLabel.Text = $"{_localization.T("ui.personnel_bonus_officer")}: {officerName}";
+    }
+
+    private void OnAssignRoleSelectOfficerPressed()
+    {
+        if (_selectedCity == null || _turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var candidateOfficerIds = _selectedCity.OfficerIds
+            .Where(officerId =>
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                return officer != null && !IsFactionRuler(_turnManager.World, officer);
+            })
+            .ToList();
+        if (candidateOfficerIds.Count == 0)
+        {
+            AddLog(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("ui.assign_role_officer"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Politics,
+            SelectAssignRoleOfficerById);
+    }
+
+    private void SelectAssignRoleOfficerById(int officerId)
+    {
+        _assignRoleSelectedOfficerId = officerId;
+        UpdateAssignRoleSelectedOfficerSummary();
+    }
+
+    private void UpdateAssignRoleSelectedOfficerSummary()
+    {
+        if (_assignRoleSelectedOfficerLabel == null || _localization == null)
+        {
+            return;
+        }
+
+        var officer = _assignRoleSelectedOfficerId > 0 ? _turnManager?.World?.GetOfficer(_assignRoleSelectedOfficerId) : null;
+        var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unassigned");
+        _assignRoleSelectedOfficerLabel.Text = $"{_localization.T("ui.assign_role_officer")}: {officerName}";
+    }
+
+    private void OnFireOfficerSelectOfficerPressed()
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        var candidateOfficerIds = GetFireOfficerCandidateIds();
+        if (candidateOfficerIds.Count == 0)
+        {
+            AddLog(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("command.personnel.fire_officer"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Politics,
+            SelectFireOfficerById);
+    }
+
+    private void SelectFireOfficerById(int officerId)
+    {
+        _fireOfficerSelectedOfficerId = officerId;
+        UpdateFireOfficerSelectedOfficerSummary();
+    }
+
+    private void UpdateFireOfficerSelectedOfficerSummary()
+    {
+        if (_fireOfficerSelectedOfficerLabel == null || _localization == null)
+        {
+            return;
+        }
+
+        var officer = _fireOfficerSelectedOfficerId > 0 ? _turnManager?.World?.GetOfficer(_fireOfficerSelectedOfficerId) : null;
+        var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unassigned");
+        _fireOfficerSelectedOfficerLabel.Text = $"{_localization.T("ui.officers")}: {officerName}";
+    }
+
+    private void OnRequestItemSelectOfficerPressed()
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        var candidateOfficerIds = GetRequestItemCandidateIds();
+        if (candidateOfficerIds.Count == 0)
+        {
+            AddLog(_localization.T("ui.select_officer_warning"));
+            return;
+        }
+
+        ShowOfficerSelectorDialog(
+            _localization.T("ui.request_item_officer"),
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Politics,
+            SelectRequestItemOfficerById);
+    }
+
+    private void SelectRequestItemOfficerById(int officerId)
+    {
+        _requestItemSelectedOfficerId = officerId;
+        UpdateRequestItemSelectedOfficerSummary();
+        PopulateRequestItemOption();
+    }
+
+    private void UpdateRequestItemSelectedOfficerSummary()
+    {
+        if (_requestItemSelectedOfficerLabel == null || _localization == null)
+        {
+            return;
+        }
+
+        var officer = _requestItemSelectedOfficerId > 0 ? _turnManager?.World?.GetOfficer(_requestItemSelectedOfficerId) : null;
+        var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unassigned");
+        _requestItemSelectedOfficerLabel.Text = $"{_localization.T("ui.request_item_officer")}: {officerName}";
+    }
+
+    private List<int> GetRequestItemCandidateIds()
+    {
+        if (_selectedCity == null || _turnManager?.World == null)
+        {
+            return new List<int>();
+        }
+
+        return _selectedCity.OfficerIds
+            .Where(officerId =>
+            {
+                var officer = _turnManager.World.GetOfficer(officerId);
+                return officer != null && _turnManager.World.Items.Any(item => item.EquippedOfficerId == officer.Id);
+            })
+            .ToList();
     }
 
     private void EnsureHireOfficerDialogWidgets()
