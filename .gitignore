@@ -6,3 +6,5 @@ obj/
 *.user
 *.tmp
 tools/godot-mcp-leesin/
+
+/ThreeKingdom.csproj.lscache
