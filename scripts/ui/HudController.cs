@@ -54,7 +54,7 @@ public partial class HudController : CanvasLayer
         GenericSelection
     }
 
-    private enum OfficerSelectorPrimaryStat
+    internal enum OfficerSelectorPrimaryStat
     {
         Strength,
         Politics,
@@ -137,7 +137,7 @@ public partial class HudController : CanvasLayer
         ("res://assets/portrait/team3.png", "res://data/person/person_image_3.json"),
         ("res://assets/portrait/team4.png", "res://data/person/person_image_4.json")
     };
-    private const int HireOfficerGoldCost = 200;
+    internal const int HireOfficerGoldCost = 200;
 
     private Label? _monthLabel;
     private Label? _playerFactionLabel;
@@ -171,85 +171,12 @@ public partial class HudController : CanvasLayer
     private SpinBox? _merchantFoodSpinBox;
     private Label? _merchantSummaryLabel;
     private Button? _merchantConfirmButton;
-    private Window? _militaryDialog;
-    private OptionButton? _militaryCommandOption;
-    private Button? _militaryConfirmButton;
-    private Window? _recruitTroopDialog;
-    private Label? _recruitTroopSelectedOfficerLabel;
-    private Button? _recruitTroopSelectOfficerButton;
-    private Button? _recruitTroopConfirmButton;
-    private OptionButton? _recruitTroopTypeOption;
-    private int _recruitTroopSelectedOfficerId = -1;
-    private Window? _visitCitizenDialog;
-    private Label? _visitCitizenSelectedOfficerLabel;
-    private Button? _visitCitizenSelectOfficerButton;
-    private Button? _visitCitizenConfirmButton;
-    private int _visitCitizenSelectedOfficerId = -1;
-    private Window? _personnelDialog;
-    private OptionButton? _personnelCommandOption;
-    private Button? _personnelConfirmButton;
-    private Window? _personnelBonusDialog;
-    private Tree? _personnelBonusOfficerList;
-    private Label? _personnelBonusSelectedOfficerLabel;
-    private Button? _personnelBonusSelectOfficerButton;
-    private Button? _personnelBonusConfirmButton;
-    private SpinBox? _personnelBonusGoldSpinBox;
-    private SpinBox? _personnelBonusFoodSpinBox;
-    private OptionButton? _personnelBonusItemOption;
-    private Label? _personnelBonusSummaryLabel;
-    private int _personnelBonusSelectedOfficerId = -1;
-    private Window? _assignRoleDialog;
-    private Tree? _assignRoleOfficerList;
-    private Label? _assignRoleSelectedOfficerLabel;
-    private Button? _assignRoleSelectOfficerButton;
-    private Button? _assignRoleConfirmButton;
-    private OptionButton? _assignRoleOption;
-    private int _assignRoleSelectedOfficerId = -1;
-    private Window? _advisorDialog;
-    private Tree? _advisorOfficerList;
-    private Label? _advisorSelectedOfficerLabel;
-    private Button? _advisorSelectOfficerButton;
-    private Button? _advisorConfirmButton;
-    private OptionButton? _advisorPositionOption;
-    private Label? _advisorSummaryLabel;
-    private int _advisorSelectedOfficerId = -1;
-    private Window? _fireOfficerDialog;
-    private Tree? _fireOfficerList;
-    private Label? _fireOfficerSelectedOfficerLabel;
-    private Button? _fireOfficerSelectOfficerButton;
-    private Button? _fireOfficerConfirmButton;
-    private int _fireOfficerSelectedOfficerId = -1;
-    private Window? _requestItemDialog;
-    private Tree? _requestItemOfficerList;
-    private Label? _requestItemSelectedOfficerLabel;
-    private Button? _requestItemSelectOfficerButton;
-    private Button? _requestItemConfirmButton;
-    private OptionButton? _requestItemOption;
-    private int _requestItemSelectedOfficerId = -1;
-    private HireOfficerDialog? _hireOfficerDialog;
-    private int _hireOfficerSelectedOfficerId = -1;
-    private Window? _civilDialog;
-    private OptionButton? _civilCommandOption;
-    private Button? _civilConfirmButton;
-    private Window? _civilReliefDialog;
-    private Tree? _civilReliefOfficerList;
-    private Label? _civilReliefSelectedOfficerLabel;
-    private Button? _civilReliefSelectOfficerButton;
-    private Button? _civilReliefConfirmButton;
-    private SpinBox? _civilReliefGoldSpinBox;
-    private SpinBox? _civilReliefFoodSpinBox;
-    private Label? _civilReliefSummaryLabel;
-    private int _civilReliefSelectedOfficerId = -1;
-    private Window? _internalAffairsDialog;
-    private OptionButton? _internalAffairsJobOption;
-    private SpinBox? _internalAffairsDurationSpinBox;
-    private Label? _internalAffairsSelectedOfficerLabel;
-    private Button? _internalAffairsSelectOfficerButton;
-    private Button? _internalAffairsConfirmButton;
-    private ItemList? _internalAffairsScheduleList;
-    private Button? _internalAffairsTerminateButton;
-    private Label? _internalAffairsWarningLabel;
-    private int _internalAffairsSelectedOfficerId = -1;
+    private MilitaryUiController? _militaryUiController;
+    private CivilUiController? _civilUiController;
+    private PersonnelUiController? _personnelUiController;
+    private AdvisorUiController? _advisorUiController;
+    private DiplomacyUiController? _diplomacyUiController;
+    private InternalAffairsUiController? _internalAffairsUiController;
     private Window? _moveDialog;
     private OptionButton? _moveTargetCityOption;
     private Button? _moveConfirmButton;
@@ -269,35 +196,7 @@ public partial class HudController : CanvasLayer
     private Label? _attackDeploymentSummaryLabel;
     private Label? _attackWarningLabel;
     private Button? _attackConfirmButton;
-    private Window? _diplomacyDialog;
-    private OptionButton? _diplomacyActionOption;
-    private OptionButton? _diplomacyTargetFactionOption;
-    private SpinBox? _diplomacyDurationSpinBox;
-    private SpinBox? _diplomacyGoldSpinBox;
-    private SpinBox? _diplomacyFoodSpinBox;
-    private SpinBox? _diplomacyHorseSpinBox;
-    private Label? _diplomacySelectedOfficerLabel;
-    private Button? _diplomacySelectOfficerButton;
-    private Label? _diplomacyRelationInfoLabel;
-    private Label? _diplomacySummaryLabel;
-    private Label? _diplomacyWarningLabel;
-    private Button? _diplomacyConfirmButton;
-    private int _diplomacySelectedOfficerId = -1;
-    private Window? _diplomacyProposalDialog;
-    private Label? _diplomacyProposalSummaryLabel;
-    private Button? _diplomacyProposalAcceptButton;
-    private Button? _diplomacyProposalRejectButton;
-    private Window? _spyDialog;
-    private OptionButton? _spyActionOption;
-    private OptionButton? _spyTargetCityOption;
-    private OptionButton? _spyTargetOfficerOption;
-    private Tree? _spyOfficerList;
-    private Label? _spySelectedOfficerLabel;
-    private Button? _spySelectOfficerButton;
-    private Label? _spySummaryLabel;
-    private Label? _spyWarningLabel;
-    private Button? _spyConfirmButton;
-    private int _spySelectedOfficerId = -1;
+    private SpyUiController? _spyUiController;
     private Window? _optionDialog;
     private Button? _optionSaveLoadButton;
     private Button? _optionLanguageButton;
@@ -321,14 +220,6 @@ public partial class HudController : CanvasLayer
     private Label? _saveLoadConfirmLabel;
     private Button? _saveLoadConfirmYesButton;
     private Button? _saveLoadConfirmNoButton;
-    private Window? _successionDialog;
-    private Tree? _successionOfficerList;
-    private Label? _successionSelectedOfficerLabel;
-    private Button? _successionSelectOfficerButton;
-    private Button? _successionConfirmButton;
-    private Label? _successionSummaryLabel;
-    private Label? _successionWarningLabel;
-    private int _successionSelectedOfficerId = -1;
     private Window? _officerListDialog;
     private HBoxContainer? _officerListToolbar;
     private HBoxContainer? _officerListAuxRow;
@@ -376,23 +267,8 @@ public partial class HudController : CanvasLayer
     private bool _isViewButtonConnected;
     private bool _isOptionButtonConnected;
     private bool _merchantDialogSignalsConnected;
-    private bool _militaryDialogSignalsConnected;
-    private bool _personnelDialogSignalsConnected;
-    private bool _personnelBonusDialogSignalsConnected;
-    private bool _assignRoleDialogSignalsConnected;
-    private bool _civilReliefDialogSignalsConnected;
     private bool _moveDialogSignalsConnected;
     private bool _attackOfficerListSignalsConnected;
-    private bool _recruitTroopDialogSignalsConnected;
-    private bool _visitCitizenDialogSignalsConnected;
-    private bool _advisorDialogSignalsConnected;
-    private bool _fireOfficerDialogSignalsConnected;
-    private bool _requestItemDialogSignalsConnected;
-    private bool _diplomacyDialogSignalsConnected;
-    private bool _spyDialogSignalsConnected;
-    private bool _civilDialogSignalsConnected;
-    private bool _internalAffairsDialogSignalsConnected;
-    private bool _successionDialogSignalsConnected;
     private bool _gameEnded;
     private readonly HashSet<int> _aliveFactionIds = new();
     private CommandType _pendingTargetCommand = CommandType.Pass;
@@ -417,8 +293,6 @@ public partial class HudController : CanvasLayer
     private AttackDialogMode _attackDialogMode = AttackDialogMode.Attack;
     private CityData? _attackDialogContextCity;
     private PendingCommandData? _pendingDefenseCommand;
-    private PendingCommandData? _pendingDiplomacyProposalCommand;
-    private int _pendingSuccessionFactionId = -1;
     private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
     private bool _isResolvingEndTurn;
@@ -511,181 +385,25 @@ public partial class HudController : CanvasLayer
         EnsureMerchantDialogWidgets();
         _merchantDialog.Hide();
 
-        _militaryDialog = GD.Load<PackedScene>("res://scenes/ui/military/MilitaryDialog.tscn").Instantiate<Window>();
-        _militaryDialog.Exclusive = false;
-        _militaryDialog.Unresizable = true;
-        _militaryDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _militaryDialog?.Hide();
-        };
-        AddChild(_militaryDialog);
-        EnsureMilitaryDialogWidgets();
-        _militaryDialog.Hide();
+        _militaryUiController = new MilitaryUiController(this);
+        _militaryUiController.Initialize();
 
-        _recruitTroopDialog = GD.Load<PackedScene>("res://scenes/ui/military/RecruitTroopDialog.tscn").Instantiate<Window>();
-        _recruitTroopDialog.Exclusive = false;
-        _recruitTroopDialog.Unresizable = true;
-        _recruitTroopDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _recruitTroopDialog?.Hide();
-        };
-        AddChild(_recruitTroopDialog);
-        EnsureRecruitTroopDialogWidgets();
-        _recruitTroopDialog.Hide();
+        _civilUiController = new CivilUiController(this);
+        _civilUiController.Initialize();
 
-        _personnelDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/PersonnelDialog.tscn").Instantiate<Window>();
-        _personnelDialog.Exclusive = false;
-        _personnelDialog.Unresizable = true;
-        _personnelDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _personnelDialog?.Hide();
-        };
-        AddChild(_personnelDialog);
-        EnsurePersonnelDialogWidgets();
-        _personnelDialog.Hide();
+        _personnelUiController = new PersonnelUiController(this);
+        _personnelUiController.Initialize();
 
-        _personnelBonusDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/PersonnelBonusDialog.tscn").Instantiate<Window>();
-        _personnelBonusDialog.Exclusive = false;
-        _personnelBonusDialog.Unresizable = true;
-        _personnelBonusDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _personnelBonusDialog?.Hide();
-        };
-        AddChild(_personnelBonusDialog);
-        EnsurePersonnelBonusDialogWidgets();
-        _personnelBonusDialog.Hide();
+        _advisorUiController = new AdvisorUiController(this);
+        _advisorUiController.Initialize();
+        _diplomacyUiController = new DiplomacyUiController(
+            this,
+            () => _personnelUiController?.HasPendingPlayerSuccession() == true,
+            () => _personnelUiController?.ShowSuccessionDialog());
+        _diplomacyUiController.Initialize();
 
-        _assignRoleDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/AssignRoleDialog.tscn").Instantiate<Window>();
-        _assignRoleDialog.Exclusive = false;
-        _assignRoleDialog.Unresizable = true;
-        _assignRoleDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _assignRoleDialog?.Hide();
-        };
-        AddChild(_assignRoleDialog);
-        EnsureAssignRoleDialogWidgets();
-        _assignRoleDialog.Hide();
-
-        _advisorDialog = GD.Load<PackedScene>("res://scenes/ui/advisor/AdvisorDialog.tscn").Instantiate<Window>();
-        _advisorDialog.Exclusive = false;
-        _advisorDialog.Unresizable = true;
-        _advisorDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _advisorDialog?.Hide();
-        };
-        AddChild(_advisorDialog);
-        EnsureAdvisorDialogWidgets();
-        _advisorDialog.Hide();
-
-        _fireOfficerDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/FireOfficerDialog.tscn").Instantiate<Window>();
-        _fireOfficerDialog.Exclusive = false;
-        _fireOfficerDialog.Unresizable = true;
-        _fireOfficerDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _fireOfficerDialog?.Hide();
-        };
-        AddChild(_fireOfficerDialog);
-        EnsureFireOfficerDialogWidgets();
-        _fireOfficerDialog.Hide();
-
-        _requestItemDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/RequestItemDialog.tscn").Instantiate<Window>();
-        _requestItemDialog.Exclusive = false;
-        _requestItemDialog.Unresizable = true;
-        _requestItemDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _requestItemDialog?.Hide();
-        };
-        AddChild(_requestItemDialog);
-        EnsureRequestItemDialogWidgets();
-        _requestItemDialog.Hide();
-
-        _hireOfficerDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/HireOfficerDialog.tscn").Instantiate<HireOfficerDialog>();
-        _hireOfficerDialog.Exclusive = false;
-        _hireOfficerDialog.Unresizable = true;
-        AddChild(_hireOfficerDialog);
-        _hireOfficerDialog.SelectOfficerPressed += OnHireOfficerSelectOfficerPressed;
-        _hireOfficerDialog.GoldValueChanged += OnHireOfficerOfferChanged;
-        _hireOfficerDialog.FoodValueChanged += OnHireOfficerOfferChanged;
-        _hireOfficerDialog.ItemSelected += OnHireOfficerItemSelected;
-        _hireOfficerDialog.ConfirmPressed += OnHireOfficerDialogConfirmed;
-        _hireOfficerDialog.CloseRequested += () => PlayUiClickSfx();
-        _hireOfficerDialog.Hide();
-
-        _civilDialog = GD.Load<PackedScene>("res://scenes/ui/civil/CivilDialog.tscn").Instantiate<Window>();
-        _civilDialog.Exclusive = false;
-        _civilDialog.Unresizable = true;
-        _civilDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _civilDialog?.Hide();
-        };
-        AddChild(_civilDialog);
-        EnsureCivilDialogWidgets();
-        _civilDialog.Hide();
-
-        _visitCitizenDialog = GD.Load<PackedScene>("res://scenes/ui/civil/VisitCitizenDialog.tscn").Instantiate<Window>();
-        _visitCitizenDialog.Exclusive = false;
-        _visitCitizenDialog.Unresizable = true;
-        _visitCitizenDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _visitCitizenDialog?.Hide();
-        };
-        AddChild(_visitCitizenDialog);
-        EnsureVisitCitizenDialogWidgets();
-        _visitCitizenDialog.Hide();
-
-        _civilReliefDialog = GD.Load<PackedScene>("res://scenes/ui/civil/CivilReliefDialog.tscn").Instantiate<Window>();
-        _civilReliefDialog.Exclusive = false;
-        _civilReliefDialog.Unresizable = true;
-        _civilReliefDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _civilReliefDialog?.Hide();
-        };
-        AddChild(_civilReliefDialog);
-        EnsureCivilReliefDialogWidgets();
-        _civilReliefDialog.Hide();
-
-        _diplomacyDialog = GD.Load<PackedScene>("res://scenes/ui/diplomacy/DiplomacyDialog.tscn").Instantiate<Window>();
-        _diplomacyDialog.Exclusive = false;
-        _diplomacyDialog.Unresizable = true;
-        _diplomacyDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _diplomacyDialog?.Hide();
-        };
-        AddChild(_diplomacyDialog);
-        EnsureDiplomacyDialogWidgets();
-        _diplomacyDialog.Hide();
-
-        _diplomacyProposalDialog = new Window();
-        _diplomacyProposalDialog.Exclusive = false;
-        _diplomacyProposalDialog.Unresizable = true;
-        _diplomacyProposalDialog.CloseRequested += OnDiplomacyProposalCloseRequested;
-        AddChild(_diplomacyProposalDialog);
-        EnsureDiplomacyProposalDialogWidgets();
-        _diplomacyProposalDialog.Hide();
-
-        _spyDialog = GD.Load<PackedScene>("res://scenes/ui/spy/SpyDialog.tscn").Instantiate<Window>();
-        _spyDialog.Exclusive = false;
-        _spyDialog.Unresizable = true;
-        _spyDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _spyDialog?.Hide();
-        };
-        AddChild(_spyDialog);
-        EnsureSpyDialogWidgets();
-        _spyDialog.Hide();
+        _spyUiController = new SpyUiController(this);
+        _spyUiController.Initialize();
 
         _optionDialog = new Window();
         _optionDialog.Exclusive = false;
@@ -723,25 +441,8 @@ public partial class HudController : CanvasLayer
         EnsureSaveLoadConfirmDialogWidgets();
         _saveLoadConfirmDialog.Hide();
 
-        _successionDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/SuccessionDialog.tscn").Instantiate<Window>();
-        _successionDialog.Exclusive = false;
-        _successionDialog.Unresizable = true;
-        _successionDialog.CloseRequested += OnSuccessionDialogCloseRequested;
-        AddChild(_successionDialog);
-        EnsureSuccessionDialogWidgets();
-        _successionDialog.Hide();
-
-        _internalAffairsDialog = GD.Load<PackedScene>("res://scenes/ui/internal_affairs/InternalAffairsDialog.tscn").Instantiate<Window>();
-        _internalAffairsDialog.Exclusive = false;
-        _internalAffairsDialog.Unresizable = true;
-        _internalAffairsDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _internalAffairsDialog?.Hide();
-        };
-        AddChild(_internalAffairsDialog);
-        EnsureInternalAffairsDialogWidgets();
-        _internalAffairsDialog.Hide();
+        _internalAffairsUiController = new InternalAffairsUiController(this);
+        _internalAffairsUiController.Initialize();
 
         _moveDialog = GD.Load<PackedScene>("res://scenes/ui/military/MoveDialog.tscn").Instantiate<Window>();
         _moveDialog.Exclusive = false;
@@ -842,17 +543,13 @@ public partial class HudController : CanvasLayer
 
         _officerDetailDialog?.Hide();
         _officerListDialog?.Hide();
-        _militaryDialog?.Hide();
-        _personnelDialog?.Hide();
-        _personnelBonusDialog?.Hide();
-        _assignRoleDialog?.Hide();
-        _hireOfficerDialog?.Hide();
-        _civilDialog?.Hide();
-        _civilReliefDialog?.Hide();
-        _internalAffairsDialog?.Hide();
+        _militaryUiController?.HideDialogs();
+        _personnelUiController?.HideDialogs();
+        _civilUiController?.HideDialogs();
+        _internalAffairsUiController?.HideDialogs();
         _merchantDialog?.Hide();
         _moveDialog?.Hide();
-        _spyDialog?.Hide();
+        _spyUiController?.HideDialogs();
         _attackDialog?.Hide();
         _optionDialog?.Hide();
         _saveLoadDialog?.Hide();
@@ -1195,12 +892,12 @@ public partial class HudController : CanvasLayer
 
     private void OnDevelopPressed()
     {
-        ShowInternalAffairsDialog();
+        _internalAffairsUiController?.ShowInternalAffairsDialog();
     }
 
     private void OnRecruitPressed()
     {
-        ShowMilitaryDialog();
+        _militaryUiController?.ShowMilitaryDialog();
     }
 
     private void OnMovePressed()
@@ -1238,7 +935,7 @@ public partial class HudController : CanvasLayer
 
     private void OnSearchPressed()
     {
-        ShowVisitCitizenDialog();
+        _civilUiController?.ShowVisitCitizenDialog();
     }
 
     private void OnMerchantPressed()
@@ -1258,7 +955,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        ShowDiplomacyDialog();
+        _diplomacyUiController?.ShowDiplomacyDialog();
     }
 
     private void OnSpyPressed()
@@ -1268,7 +965,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        ShowSpyDialog();
+        _spyUiController?.ShowSpyDialog();
     }
 
     private void OnPersonnelPressed()
@@ -1278,7 +975,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        ShowPersonnelDialog();
+        _personnelUiController?.ShowPersonnelDialog();
     }
 
     private void OnAdvisorPressed()
@@ -1288,7 +985,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        ShowAdvisorDialog();
+        _advisorUiController?.ShowAdvisorDialog();
     }
 
     private void OnCivilPressed()
@@ -1298,7 +995,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        ShowCivilDialog();
+        _civilUiController?.ShowCivilDialog();
     }
 
     private void OnAttackPressed()

@@ -1,0 +1,37 @@
+using System.Collections.Generic;
+using Godot;
+using ThreeKingdom.Core;
+using ThreeKingdom.Data;
+
+namespace ThreeKingdom.UI;
+
+public partial class HudController
+{
+    internal TurnManager? DiplomacyTurnManager => _turnManager;
+    internal CommandResolver? DiplomacyCommandResolver => _commandResolver;
+    internal LocalizationService? DiplomacyLocalization => _localization;
+    internal CityData? DiplomacySelectedCity => _selectedCity;
+
+    internal void DiplomacyPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+
+    internal void DiplomacyPlayUiClickSfx() => PlayUiClickSfx();
+
+    internal void DiplomacyAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
+
+    internal void DiplomacyRefreshSelectedCity() => RefreshSelectedCity();
+
+    internal void DiplomacyShowOfficerSelectorDialog(
+        string title,
+        List<int> candidateOfficerIds,
+        OfficerSelectorPrimaryStat primaryStat,
+        System.Action<int> confirmedAction) =>
+        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction);
+
+    internal void DiplomacyCheckFactionEliminations() => CheckFactionEliminations();
+
+    internal void DiplomacyContinuePendingNonAttackResolution() => ContinuePendingNonAttackResolution();
+
+    internal string DiplomacyGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
+
+    internal string DiplomacyGetStatusText(DiplomacyStatusType status) => GetDiplomacyStatusText(status);
+}

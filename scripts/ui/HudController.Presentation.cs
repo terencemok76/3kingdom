@@ -270,19 +270,13 @@ public partial class HudController : CanvasLayer
         UpdateOfficerListDialogTitle();
 
         UpdateMerchantDialogText();
-        UpdateDiplomacyDialogText();
-        UpdateDiplomacyProposalDialogText();
-        UpdateSpyDialogText();
-        UpdateMilitaryDialogText();
-        UpdatePersonnelDialogText();
-        UpdatePersonnelBonusDialogText();
-        UpdateAssignRoleDialogText();
-        UpdateAdvisorDialogText();
-        UpdateFireOfficerDialogText();
-        UpdateHireOfficerDialogText();
-        UpdateCivilDialogText();
-        UpdateCivilReliefDialogText();
-        UpdateInternalAffairsDialogText();
+        _diplomacyUiController?.RefreshText();
+        _spyUiController?.RefreshText();
+        _militaryUiController?.RefreshText();
+        _personnelUiController?.RefreshText();
+        _advisorUiController?.RefreshText();
+        _civilUiController?.RefreshText();
+        _internalAffairsUiController?.RefreshText();
         UpdateMoveDialogText();
         UpdateAttackDialogText();
 

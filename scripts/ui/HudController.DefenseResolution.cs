@@ -51,7 +51,7 @@ public partial class HudController
             _pendingNonAttackResolutionQueue.RemoveAt(0);
             if (ShouldPromptForPlayerDiplomacyProposal(pendingCommand))
             {
-                ShowDiplomacyProposalDialog(pendingCommand);
+                _diplomacyUiController?.ShowProposalDialog(pendingCommand);
                 return;
             }
 
@@ -59,9 +59,9 @@ public partial class HudController
             _turnManager.World.PendingCommands.Remove(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
             CheckFactionEliminations();
-            if (HasPendingPlayerSuccession())
+            if (_personnelUiController?.HasPendingPlayerSuccession() == true)
             {
-                ShowSuccessionDialog();
+                _personnelUiController.ShowSuccessionDialog();
                 return;
             }
         }
@@ -116,9 +116,9 @@ public partial class HudController
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
             CheckFactionEliminations();
-            if (HasPendingPlayerSuccession())
+            if (_personnelUiController?.HasPendingPlayerSuccession() == true)
             {
-                ShowSuccessionDialog();
+                _personnelUiController.ShowSuccessionDialog();
                 return;
             }
         }
@@ -159,8 +159,14 @@ public partial class HudController
         _isResolvingEndTurn = false;
         _pendingNonAttackResolutionQueue.Clear();
         _pendingDefenseCommand = null;
-        _pendingDiplomacyProposalCommand = null;
-        _pendingSuccessionFactionId = -1;
+        if (_diplomacyUiController != null)
+        {
+            _diplomacyUiController.PendingProposalCommand = null;
+        }
+        if (_personnelUiController != null)
+        {
+            _personnelUiController.PendingSuccessionFactionId = -1;
+        }
         _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
         _attackDialogContextCity = null;
         _attackDialogMode = AttackDialogMode.Attack;

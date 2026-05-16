@@ -72,8 +72,14 @@ public partial class HudController
         _pendingTargetCommand = CommandType.Pass;
         _pendingOfficerCommand = CommandType.Pass;
         _pendingDefenseCommand = null;
-        _pendingDiplomacyProposalCommand = null;
-        _pendingSuccessionFactionId = -1;
+        if (_diplomacyUiController != null)
+        {
+            _diplomacyUiController.PendingProposalCommand = null;
+        }
+        if (_personnelUiController != null)
+        {
+            _personnelUiController.PendingSuccessionFactionId = -1;
+        }
         _pendingNonAttackResolutionQueue.Clear();
         _pendingAttackResolutionQueue.Clear();
         _isResolvingEndTurn = false;
@@ -105,25 +111,17 @@ public partial class HudController
     {
         _targetCityMenu?.Hide();
         _merchantDialog?.Hide();
-        _militaryDialog?.Hide();
-        _personnelDialog?.Hide();
-        _personnelBonusDialog?.Hide();
-        _assignRoleDialog?.Hide();
-        _advisorDialog?.Hide();
-        _fireOfficerDialog?.Hide();
-        _requestItemDialog?.Hide();
-        _hireOfficerDialog?.Hide();
-        _civilDialog?.Hide();
-        _civilReliefDialog?.Hide();
-        _internalAffairsDialog?.Hide();
+        _militaryUiController?.HideDialogs();
+        _personnelUiController?.HideDialogs();
+        _advisorUiController?.HideDialogs();
+        _civilUiController?.HideDialogs();
+        _internalAffairsUiController?.HideDialogs();
         _moveDialog?.Hide();
         _attackDialog?.Hide();
-        _diplomacyDialog?.Hide();
-        _diplomacyProposalDialog?.Hide();
-        _spyDialog?.Hide();
+        _diplomacyUiController?.HideDialogs();
+        _spyUiController?.HideDialogs();
         _optionDialog?.Hide();
         _saveLoadDialog?.Hide();
-        _successionDialog?.Hide();
         _officerListDialog?.Hide();
         _officerDetailDialog?.Hide();
     }
