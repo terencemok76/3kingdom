@@ -14,61 +14,29 @@ public partial class HudController
         }
 
         var existingRoot = _successionDialog.GetNodeOrNull<VBoxContainer>("SuccessionDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _successionSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
-            _successionSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _successionSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _successionWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
+            GD.PushError("SuccessionDialogRoot not found in SuccessionDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _successionSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+        _successionSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _successionSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _successionWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
+        _successionConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_successionDialogSignalsConnected)
         {
-            Name = "SuccessionDialogRoot",
-            CustomMinimumSize = new Vector2(720.0f, 420.0f),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _successionDialog.AddChild(root);
-
-        _successionSummaryLabel = new Label
-        {
-            Name = "SummaryLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_successionSummaryLabel);
-
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _successionSelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_successionSelectedOfficerLabel);
-        _successionSelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _successionSelectOfficerButton.Pressed += OnSuccessionSelectOfficerPressed;
-        officerSelectorRow.AddChild(_successionSelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        _successionWarningLabel = new Label
-        {
-            Name = "WarningLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_successionWarningLabel);
+            if (_successionSelectOfficerButton != null)
+            {
+                _successionSelectOfficerButton.Pressed += OnSuccessionSelectOfficerPressed;
+            }
+            if (_successionConfirmButton != null)
+            {
+                _successionConfirmButton.Pressed += OnSuccessionDialogConfirmed;
+            }
+            _successionDialogSignalsConnected = true;
+        }
     }
 
     private bool HasPendingPlayerSuccession()
@@ -100,7 +68,10 @@ public partial class HudController
         _pendingSuccessionFactionId = factionId;
         EnsureSuccessionDialogWidgets();
         _successionDialog.Title = _localization.T("ui.succession");
-        _successionDialog.OkButtonText = _localization.T("ui.confirm_succession");
+        if (_successionConfirmButton != null)
+        {
+            _successionConfirmButton.Text = _localization.T("ui.confirm_succession");
+        }
         _successionSummaryLabel!.Text = _localization.Format("ui.succession_summary", _localization.GetFactionName(_turnManager.World, factionId));
         _successionWarningLabel!.Text = string.Empty;
         if (_successionSelectOfficerButton != null)
@@ -122,7 +93,7 @@ public partial class HudController
             _successionSelectedOfficerLabel.Text = $"{_localization.T("ui.officers")}: {officerName}";
         }
 
-        _successionDialog.PopupCentered(new Vector2I(760, 240));
+        PopupDialogUsingSceneSize(_successionDialog);
     }
 
     private void OnSuccessionDialogConfirmed()
@@ -135,7 +106,7 @@ public partial class HudController
         if (_successionSelectedOfficerId <= 0)
         {
             _successionWarningLabel!.Text = _localization.T("ui.select_officer_warning");
-            _successionDialog?.PopupCentered(new Vector2I(760, 240));
+            PopupDialogUsingSceneSize(_successionDialog);
             return;
         }
 
@@ -143,7 +114,7 @@ public partial class HudController
         if (!result.Success)
         {
             _successionWarningLabel!.Text = GetLocalizedResultMessage(result);
-            _successionDialog?.PopupCentered(new Vector2I(760, 240));
+            PopupDialogUsingSceneSize(_successionDialog);
             return;
         }
 

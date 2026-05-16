@@ -1,0 +1,52 @@
+[gd_scene format=3]
+
+[node name="AssignRoleDialog" type="Window"]
+oversampling_override = 1.0
+title = "Assign Role"
+position = Vector2i(0, 36)
+size = Vector2i(480, 220)
+
+[node name="AssignRoleDialogRoot" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(460, 180)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 472.0
+offset_bottom = 188.0
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="AssignRoleDialogRoot"]
+layout_mode = 2
+text = "Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="AssignRoleDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="AssignRoleDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="AssignRoleDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="RoleLabel" type="Label" parent="AssignRoleDialogRoot"]
+layout_mode = 2
+text = "Role"
+
+[node name="RoleOption" type="OptionButton" parent="AssignRoleDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="AssignRoleDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="AssignRoleDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

@@ -1,0 +1,43 @@
+[gd_scene format=3]
+
+[node name="OfficerDetailDialog" type="Window"]
+title = "Officer Details"
+position = Vector2i(0, 36)
+size = Vector2i(700, 360)
+
+[node name="OfficerDetailRoot" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(680, 240)
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="PortraitPanel" type="PanelContainer" parent="OfficerDetailRoot"]
+layout_mode = 2
+custom_minimum_size = Vector2(160, 220)
+
+[node name="PortraitCenter" type="CenterContainer" parent="OfficerDetailRoot/PortraitPanel"]
+layout_mode = 2
+
+[node name="PortraitStack" type="VBoxContainer" parent="OfficerDetailRoot/PortraitPanel/PortraitCenter"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="PortraitRect" type="TextureRect" parent="OfficerDetailRoot/PortraitPanel/PortraitCenter/PortraitStack"]
+layout_mode = 2
+custom_minimum_size = Vector2(128, 160)
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(0.7, 0.7, 0.75, 1)
+
+[node name="PortraitPlaceholder" type="Label" parent="OfficerDetailRoot/PortraitPanel/PortraitCenter/PortraitStack"]
+layout_mode = 2
+horizontal_alignment = 1
+text = "Portrait\nPending Asset"
+
+[node name="DetailText" type="RichTextLabel" parent="OfficerDetailRoot"]
+layout_mode = 2
+fit_content = true
+scroll_active = true
+custom_minimum_size = Vector2(500, 220)
+bbcode_enabled = true

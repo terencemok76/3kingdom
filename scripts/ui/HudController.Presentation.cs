@@ -42,112 +42,6 @@ public partial class HudController : CanvasLayer
             CornerRadiusBottomLeft = 10
         };
         _officerListDialog.AddThemeStyleboxOverride("panel", dialogPanel);
-        var embeddedBorder = new StyleBoxFlat
-        {
-            BgColor = new Color(0.92f, 0.88f, 0.8f, 1.0f),
-            BorderWidthLeft = 2,
-            BorderWidthTop = 26,
-            BorderWidthRight = 2,
-            BorderWidthBottom = 2,
-            BorderColor = new Color(0.56f, 0.45f, 0.29f, 1.0f),
-            CornerRadiusTopLeft = 10,
-            CornerRadiusTopRight = 10,
-            CornerRadiusBottomRight = 10,
-            CornerRadiusBottomLeft = 10
-        };
-        var embeddedBorderUnfocused = (StyleBoxFlat)embeddedBorder.Duplicate();
-        embeddedBorderUnfocused.BgColor = new Color(0.88f, 0.84f, 0.77f, 1.0f);
-        embeddedBorderUnfocused.BorderColor = new Color(0.54f, 0.45f, 0.33f, 1.0f);
-        _officerListDialog.AddThemeStyleboxOverride("embedded_border", embeddedBorder);
-        _officerListDialog.AddThemeStyleboxOverride("embedded_unfocused_border", embeddedBorderUnfocused);
-        _officerListDialog.AddThemeColorOverride("title_color", new Color(0.27f, 0.2f, 0.12f, 1.0f));
-        var titleButtonNormal = new StyleBoxFlat
-        {
-            BgColor = new Color(0.92f, 0.88f, 0.8f, 1.0f),
-            BorderWidthLeft = 0,
-            BorderWidthTop = 0,
-            BorderWidthRight = 0,
-            BorderWidthBottom = 0
-        };
-        var titleButtonHover = (StyleBoxFlat)titleButtonNormal.Duplicate();
-        titleButtonHover.BgColor = new Color(0.95f, 0.91f, 0.83f, 1.0f);
-        var titleButtonPressed = (StyleBoxFlat)titleButtonNormal.Duplicate();
-        titleButtonPressed.BgColor = new Color(0.84f, 0.77f, 0.64f, 1.0f);
-        _officerListDialog.AddThemeStyleboxOverride("close", titleButtonNormal);
-        _officerListDialog.AddThemeStyleboxOverride("close_pressed", titleButtonPressed);
-        _officerListDialog.AddThemeStyleboxOverride("title_button_normal", titleButtonNormal);
-        _officerListDialog.AddThemeStyleboxOverride("title_button_hover", titleButtonHover);
-        _officerListDialog.AddThemeStyleboxOverride("title_button_pressed", titleButtonPressed);
-        _officerListDialog.AddThemeColorOverride("close_color", new Color(0.34f, 0.24f, 0.14f, 1.0f));
-        _officerListDialog.AddThemeColorOverride("close_hover_color", new Color(0.22f, 0.16f, 0.09f, 1.0f));
-
-        if (_officerListHeaderPanel != null)
-        {
-            var headerPanel = new StyleBoxFlat
-            {
-                BgColor = new Color(0.9f, 0.84f, 0.71f, 0.98f),
-                BorderWidthLeft = 1,
-                BorderWidthTop = 1,
-                BorderWidthRight = 1,
-                BorderWidthBottom = 1,
-                BorderColor = new Color(0.62f, 0.49f, 0.29f, 1.0f),
-                CornerRadiusTopLeft = 7,
-                CornerRadiusTopRight = 7,
-                CornerRadiusBottomRight = 7,
-                CornerRadiusBottomLeft = 7,
-                ContentMarginLeft = 10,
-                ContentMarginTop = 6,
-                ContentMarginRight = 10,
-                ContentMarginBottom = 6
-            };
-            _officerListHeaderPanel.AddThemeStyleboxOverride("panel", headerPanel);
-        }
-
-        if (_officerListTitlebarFill != null)
-        {
-            var titlebarFillPanel = new StyleBoxFlat
-            {
-                BgColor = new Color(0.92f, 0.88f, 0.8f, 1.0f),
-                BorderWidthLeft = 0,
-                BorderWidthTop = 0,
-                BorderWidthRight = 0,
-                BorderWidthBottom = 0,
-                CornerRadiusTopLeft = 10,
-                CornerRadiusTopRight = 10
-            };
-            _officerListTitlebarFill.AddThemeStyleboxOverride("panel", titlebarFillPanel);
-        }
-
-        if (_officerListHeaderLabel != null)
-        {
-            _officerListHeaderLabel.AddThemeColorOverride("font_color", new Color(0.25f, 0.18f, 0.1f, 1.0f));
-        }
-
-        if (_officerListCloseButton != null)
-        {
-            var closeNormal = new StyleBoxFlat
-            {
-                BgColor = new Color(0.86f, 0.78f, 0.62f, 1.0f),
-                BorderWidthLeft = 1,
-                BorderWidthTop = 1,
-                BorderWidthRight = 1,
-                BorderWidthBottom = 1,
-                BorderColor = new Color(0.54f, 0.42f, 0.25f, 1.0f),
-                CornerRadiusTopLeft = 5,
-                CornerRadiusTopRight = 5,
-                CornerRadiusBottomRight = 5,
-                CornerRadiusBottomLeft = 5
-            };
-            var closeHover = (StyleBoxFlat)closeNormal.Duplicate();
-            closeHover.BgColor = new Color(0.94f, 0.84f, 0.66f, 1.0f);
-            var closePressed = (StyleBoxFlat)closeNormal.Duplicate();
-            closePressed.BgColor = new Color(0.73f, 0.61f, 0.42f, 1.0f);
-
-            _officerListCloseButton.AddThemeStyleboxOverride("normal", closeNormal);
-            _officerListCloseButton.AddThemeStyleboxOverride("hover", closeHover);
-            _officerListCloseButton.AddThemeStyleboxOverride("pressed", closePressed);
-            _officerListCloseButton.AddThemeColorOverride("font_color", new Color(0.22f, 0.15f, 0.08f, 1.0f));
-        }
 
         var okNormal = new StyleBoxFlat
         {
@@ -167,7 +61,6 @@ public partial class HudController : CanvasLayer
         var okPressed = (StyleBoxFlat)okNormal.Duplicate();
         okPressed.BgColor = new Color(0.76f, 0.65f, 0.46f, 1.0f);
 
-        _officerListDialog.GetOkButton().Visible = false;
         if (_officerListConfirmButton != null)
         {
             _officerListConfirmButton.AddThemeStyleboxOverride("normal", okNormal);
@@ -362,11 +255,6 @@ public partial class HudController : CanvasLayer
         RefreshFloatingPanelTitleText();
         RefreshOptionDialogText();
         RefreshSaveLoadDialogText();
-
-        if (_officerListDialog != null)
-        {
-            _officerListDialog.OkButtonText = _localization.T("ui.confirm_officer_selection");
-        }
 
         if (_officerListConfirmButton != null)
         {
@@ -730,66 +618,15 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _officerDetailDialog.GetNodeOrNull<HBoxContainer>("OfficerDetailRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _officerPortraitRect = existingRoot.GetNodeOrNull<TextureRect>("PortraitPanel/PortraitRect");
-            _officerPortraitPlaceholderLabel = existingRoot.GetNodeOrNull<Label>("PortraitPanel/PortraitPlaceholder");
-            _officerDetailText = existingRoot.GetNodeOrNull<RichTextLabel>("DetailText");
+            GD.PushError("OfficerDetailRoot not found in OfficerDetailDialog.tscn.");
             return;
         }
 
-        var root = new HBoxContainer
-        {
-            Name = "OfficerDetailRoot",
-            CustomMinimumSize = new Vector2(680.0f, 240.0f),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        root.AddThemeConstantOverride("separation", 16);
-        _officerDetailDialog.AddChild(root);
-
-        var portraitPanel = new PanelContainer
-        {
-            Name = "PortraitPanel",
-            CustomMinimumSize = new Vector2(160.0f, 220.0f)
-        };
-        root.AddChild(portraitPanel);
-
-        var portraitCenter = new CenterContainer();
-        portraitPanel.AddChild(portraitCenter);
-
-        var portraitStack = new VBoxContainer();
-        portraitStack.Alignment = BoxContainer.AlignmentMode.Center;
-        portraitStack.AddThemeConstantOverride("separation", 8);
-        portraitCenter.AddChild(portraitStack);
-
-        _officerPortraitRect = new TextureRect
-        {
-            Name = "PortraitRect",
-            CustomMinimumSize = new Vector2(128.0f, 160.0f),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            Modulate = new Color(0.7f, 0.7f, 0.75f, 1.0f)
-        };
-        portraitStack.AddChild(_officerPortraitRect);
-
-        _officerPortraitPlaceholderLabel = new Label
-        {
-            Name = "PortraitPlaceholder",
-            Text = _localization?.T("ui.portrait_pending_asset") ?? "Portrait\nPending Asset",
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-        portraitStack.AddChild(_officerPortraitPlaceholderLabel);
-
-        _officerDetailText = new RichTextLabel
-        {
-            Name = "DetailText",
-            FitContent = true,
-            ScrollActive = true,
-            CustomMinimumSize = new Vector2(500.0f, 220.0f),
-            BbcodeEnabled = true
-        };
-        root.AddChild(_officerDetailText);
+        _officerPortraitRect = existingRoot.GetNodeOrNull<TextureRect>("PortraitPanel/PortraitCenter/PortraitStack/PortraitRect");
+        _officerPortraitPlaceholderLabel = existingRoot.GetNodeOrNull<Label>("PortraitPanel/PortraitCenter/PortraitStack/PortraitPlaceholder");
+        _officerDetailText = existingRoot.GetNodeOrNull<RichTextLabel>("DetailText");
     }
 
     private string BuildOfficerListRowText(OfficerData officer, bool includeCityName = false)

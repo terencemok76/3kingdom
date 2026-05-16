@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[node name="CivilReliefDialog" type="Window"]
+oversampling_override = 1.0
+title = "Civil Relief"
+position = Vector2i(0, 36)
+size = Vector2i(480, 280)
+
+[node name="CivilReliefDialogRoot" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(420, 230)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 472.0
+offset_bottom = 238.0
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="CivilReliefDialogRoot"]
+layout_mode = 2
+text = "Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="CivilReliefDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="CivilReliefDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="CivilReliefDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="GoldRow" type="HBoxContainer" parent="CivilReliefDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="GoldLabel" type="Label" parent="CivilReliefDialogRoot/GoldRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(84, 0)
+vertical_alignment = 1
+text = "Gold"
+
+[node name="GoldSpinBox" type="SpinBox" parent="CivilReliefDialogRoot/GoldRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 100.0
+rounded = true
+
+[node name="FoodRow" type="HBoxContainer" parent="CivilReliefDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="FoodLabel" type="Label" parent="CivilReliefDialogRoot/FoodRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(84, 0)
+vertical_alignment = 1
+text = "Food"
+
+[node name="FoodSpinBox" type="SpinBox" parent="CivilReliefDialogRoot/FoodRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1000.0
+rounded = true
+
+[node name="SummaryLabel" type="Label" parent="CivilReliefDialogRoot"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="CivilReliefDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="CivilReliefDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

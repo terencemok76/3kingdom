@@ -199,21 +199,24 @@ public partial class HudController : CanvasLayer
     private Button? _visitCitizenSelectOfficerButton;
     private Button? _visitCitizenConfirmButton;
     private int _visitCitizenSelectedOfficerId = -1;
-    private AcceptDialog? _personnelDialog;
+    private Window? _personnelDialog;
     private OptionButton? _personnelCommandOption;
-    private AcceptDialog? _personnelBonusDialog;
+    private Button? _personnelConfirmButton;
+    private Window? _personnelBonusDialog;
     private Tree? _personnelBonusOfficerList;
     private Label? _personnelBonusSelectedOfficerLabel;
     private Button? _personnelBonusSelectOfficerButton;
+    private Button? _personnelBonusConfirmButton;
     private SpinBox? _personnelBonusGoldSpinBox;
     private SpinBox? _personnelBonusFoodSpinBox;
     private OptionButton? _personnelBonusItemOption;
     private Label? _personnelBonusSummaryLabel;
     private int _personnelBonusSelectedOfficerId = -1;
-    private AcceptDialog? _assignRoleDialog;
+    private Window? _assignRoleDialog;
     private Tree? _assignRoleOfficerList;
     private Label? _assignRoleSelectedOfficerLabel;
     private Button? _assignRoleSelectOfficerButton;
+    private Button? _assignRoleConfirmButton;
     private OptionButton? _assignRoleOption;
     private int _assignRoleSelectedOfficerId = -1;
     private Window? _advisorDialog;
@@ -247,10 +250,11 @@ public partial class HudController : CanvasLayer
     private Window? _civilDialog;
     private OptionButton? _civilCommandOption;
     private Button? _civilConfirmButton;
-    private AcceptDialog? _civilReliefDialog;
+    private Window? _civilReliefDialog;
     private Tree? _civilReliefOfficerList;
     private Label? _civilReliefSelectedOfficerLabel;
     private Button? _civilReliefSelectOfficerButton;
+    private Button? _civilReliefConfirmButton;
     private SpinBox? _civilReliefGoldSpinBox;
     private SpinBox? _civilReliefFoodSpinBox;
     private Label? _civilReliefSummaryLabel;
@@ -265,8 +269,9 @@ public partial class HudController : CanvasLayer
     private Button? _internalAffairsTerminateButton;
     private Label? _internalAffairsWarningLabel;
     private int _internalAffairsSelectedOfficerId = -1;
-    private AcceptDialog? _moveDialog;
+    private Window? _moveDialog;
     private OptionButton? _moveTargetCityOption;
+    private Button? _moveConfirmButton;
     private SpinBox? _moveTroopsSpinBox;
     private SpinBox? _moveGoldSpinBox;
     private SpinBox? _moveFoodSpinBox;
@@ -335,18 +340,15 @@ public partial class HudController : CanvasLayer
     private Label? _saveLoadConfirmLabel;
     private Button? _saveLoadConfirmYesButton;
     private Button? _saveLoadConfirmNoButton;
-    private AcceptDialog? _successionDialog;
+    private Window? _successionDialog;
     private Tree? _successionOfficerList;
     private Label? _successionSelectedOfficerLabel;
     private Button? _successionSelectOfficerButton;
+    private Button? _successionConfirmButton;
     private Label? _successionSummaryLabel;
     private Label? _successionWarningLabel;
     private int _successionSelectedOfficerId = -1;
-    private AcceptDialog? _officerListDialog;
-    private PanelContainer? _officerListTitlebarFill;
-    private PanelContainer? _officerListHeaderPanel;
-    private Label? _officerListHeaderLabel;
-    private Button? _officerListCloseButton;
+    private Window? _officerListDialog;
     private HBoxContainer? _officerListToolbar;
     private HBoxContainer? _officerListAuxRow;
     private Label? _officerListAuxLabel;
@@ -360,7 +362,7 @@ public partial class HudController : CanvasLayer
     private OptionButton? _cityListFilterOption;
     private OptionButton? _officerSortOption;
     private Tree? _officerListTable;
-    private AcceptDialog? _officerDetailDialog;
+    private Window? _officerDetailDialog;
     private TextureRect? _officerPortraitRect;
     private Label? _officerPortraitPlaceholderLabel;
     private RichTextLabel? _officerDetailText;
@@ -393,6 +395,11 @@ public partial class HudController : CanvasLayer
     private bool _isOptionButtonConnected;
     private bool _merchantDialogSignalsConnected;
     private bool _militaryDialogSignalsConnected;
+    private bool _personnelDialogSignalsConnected;
+    private bool _personnelBonusDialogSignalsConnected;
+    private bool _assignRoleDialogSignalsConnected;
+    private bool _civilReliefDialogSignalsConnected;
+    private bool _moveDialogSignalsConnected;
     private bool _attackOfficerListSignalsConnected;
     private bool _recruitTroopDialogSignalsConnected;
     private bool _visitCitizenDialogSignalsConnected;
@@ -400,11 +407,11 @@ public partial class HudController : CanvasLayer
     private bool _fireOfficerDialogSignalsConnected;
     private bool _requestItemDialogSignalsConnected;
     private bool _diplomacyDialogSignalsConnected;
+    private bool _spyDialogSignalsConnected;
     private bool _civilDialogSignalsConnected;
     private bool _internalAffairsDialogSignalsConnected;
+    private bool _successionDialogSignalsConnected;
     private bool _gameEnded;
-    private bool _isDraggingOfficerListDialog;
-    private Vector2I _officerListDialogDragOffset;
     private readonly HashSet<int> _aliveFactionIds = new();
     private CommandType _pendingTargetCommand = CommandType.Pass;
     private readonly Dictionary<int, Texture2D> _officerPortraitTextures = new();
@@ -548,29 +555,41 @@ public partial class HudController : CanvasLayer
         EnsureRecruitTroopDialogWidgets();
         _recruitTroopDialog.Hide();
 
-        _personnelDialog = new AcceptDialog();
+        _personnelDialog = GD.Load<PackedScene>("res://scenes/ui/PersonnelDialog.tscn").Instantiate<Window>();
         _personnelDialog.Exclusive = false;
-        _personnelDialog.Unfocusable = false;
-        _personnelDialog.Confirmed += OnPersonnelDialogConfirmed;
-        _personnelDialog.CloseRequested += PlayUiClickSfx;
+        _personnelDialog.Unresizable = true;
+        _personnelDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _personnelDialog?.Hide();
+        };
         AddChild(_personnelDialog);
         EnsurePersonnelDialogWidgets();
+        _personnelDialog.Hide();
 
-        _personnelBonusDialog = new AcceptDialog();
+        _personnelBonusDialog = GD.Load<PackedScene>("res://scenes/ui/PersonnelBonusDialog.tscn").Instantiate<Window>();
         _personnelBonusDialog.Exclusive = false;
-        _personnelBonusDialog.Unfocusable = false;
-        _personnelBonusDialog.Confirmed += OnPersonnelBonusDialogConfirmed;
-        _personnelBonusDialog.CloseRequested += PlayUiClickSfx;
+        _personnelBonusDialog.Unresizable = true;
+        _personnelBonusDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _personnelBonusDialog?.Hide();
+        };
         AddChild(_personnelBonusDialog);
         EnsurePersonnelBonusDialogWidgets();
+        _personnelBonusDialog.Hide();
 
-        _assignRoleDialog = new AcceptDialog();
+        _assignRoleDialog = GD.Load<PackedScene>("res://scenes/ui/AssignRoleDialog.tscn").Instantiate<Window>();
         _assignRoleDialog.Exclusive = false;
-        _assignRoleDialog.Unfocusable = false;
-        _assignRoleDialog.Confirmed += OnAssignRoleDialogConfirmed;
-        _assignRoleDialog.CloseRequested += PlayUiClickSfx;
+        _assignRoleDialog.Unresizable = true;
+        _assignRoleDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _assignRoleDialog?.Hide();
+        };
         AddChild(_assignRoleDialog);
         EnsureAssignRoleDialogWidgets();
+        _assignRoleDialog.Hide();
 
         _advisorDialog = GD.Load<PackedScene>("res://scenes/ui/AdvisorDialog.tscn").Instantiate<Window>();
         _advisorDialog.Exclusive = false;
@@ -644,13 +663,17 @@ public partial class HudController : CanvasLayer
         EnsureVisitCitizenDialogWidgets();
         _visitCitizenDialog.Hide();
 
-        _civilReliefDialog = new AcceptDialog();
+        _civilReliefDialog = GD.Load<PackedScene>("res://scenes/ui/CivilReliefDialog.tscn").Instantiate<Window>();
         _civilReliefDialog.Exclusive = false;
-        _civilReliefDialog.Unfocusable = false;
-        _civilReliefDialog.Confirmed += OnCivilReliefDialogConfirmed;
-        _civilReliefDialog.CloseRequested += PlayUiClickSfx;
+        _civilReliefDialog.Unresizable = true;
+        _civilReliefDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _civilReliefDialog?.Hide();
+        };
         AddChild(_civilReliefDialog);
         EnsureCivilReliefDialogWidgets();
+        _civilReliefDialog.Hide();
 
         _diplomacyDialog = GD.Load<PackedScene>("res://scenes/ui/DiplomacyDialog.tscn").Instantiate<Window>();
         _diplomacyDialog.Exclusive = false;
@@ -672,7 +695,7 @@ public partial class HudController : CanvasLayer
         EnsureDiplomacyProposalDialogWidgets();
         _diplomacyProposalDialog.Hide();
 
-        _spyDialog = new Window();
+        _spyDialog = GD.Load<PackedScene>("res://scenes/ui/SpyDialog.tscn").Instantiate<Window>();
         _spyDialog.Exclusive = false;
         _spyDialog.Unresizable = true;
         _spyDialog.CloseRequested += () =>
@@ -720,13 +743,13 @@ public partial class HudController : CanvasLayer
         EnsureSaveLoadConfirmDialogWidgets();
         _saveLoadConfirmDialog.Hide();
 
-        _successionDialog = new AcceptDialog();
+        _successionDialog = GD.Load<PackedScene>("res://scenes/ui/SuccessionDialog.tscn").Instantiate<Window>();
         _successionDialog.Exclusive = false;
-        _successionDialog.Unfocusable = false;
-        _successionDialog.Confirmed += OnSuccessionDialogConfirmed;
+        _successionDialog.Unresizable = true;
         _successionDialog.CloseRequested += OnSuccessionDialogCloseRequested;
         AddChild(_successionDialog);
         EnsureSuccessionDialogWidgets();
+        _successionDialog.Hide();
 
         _internalAffairsDialog = GD.Load<PackedScene>("res://scenes/ui/InternalAffairsDialog.tscn").Instantiate<Window>();
         _internalAffairsDialog.Exclusive = false;
@@ -740,15 +763,19 @@ public partial class HudController : CanvasLayer
         EnsureInternalAffairsDialogWidgets();
         _internalAffairsDialog.Hide();
 
-        _moveDialog = new AcceptDialog();
+        _moveDialog = GD.Load<PackedScene>("res://scenes/ui/MoveDialog.tscn").Instantiate<Window>();
         _moveDialog.Exclusive = false;
-        _moveDialog.Unfocusable = false;
-        _moveDialog.Confirmed += OnMoveDialogConfirmed;
-        _moveDialog.CloseRequested += PlayUiClickSfx;
+        _moveDialog.Unresizable = true;
+        _moveDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _moveDialog?.Hide();
+        };
         AddChild(_moveDialog);
         EnsureMoveDialogWidgets();
+        _moveDialog.Hide();
 
-        _attackDialog = new Window();
+        _attackDialog = GD.Load<PackedScene>("res://scenes/ui/AttackDialog.tscn").Instantiate<Window>();
         _attackDialog.Exclusive = false;
         _attackDialog.Unresizable = true;
         _attackDialog.CloseRequested += OnAttackDialogCloseRequested;
@@ -756,223 +783,54 @@ public partial class HudController : CanvasLayer
         EnsureAttackDialogWidgets();
         _attackDialog.Hide();
 
-        _officerListDialog = new AcceptDialog();
-        _officerListDialog.Title = " ";
-        _officerListDialog.Borderless = true;
+        _officerListDialog = GD.Load<PackedScene>("res://scenes/ui/OfficerListDialog.tscn").Instantiate<Window>();
         _officerListDialog.Exclusive = false;
-        _officerListDialog.Unfocusable = false;
-        _officerListDialog.Confirmed += OnOfficerListDialogConfirmed;
+        _officerListDialog.Unresizable = true;
+        _officerListDialog.CloseRequested += OnOfficerListClosePressed;
         AddChild(_officerListDialog);
-
-        _officerListTitlebarFill = new PanelContainer
+        _officerListToolbar = _officerListDialog.GetNodeOrNull<HBoxContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar");
+        _officerListAuxRow = _officerListDialog.GetNodeOrNull<HBoxContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow");
+        _officerListAuxLabel = _officerListDialog.GetNodeOrNull<Label>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow/OfficerListAuxLabel");
+        _officerListAuxOption = _officerListDialog.GetNodeOrNull<OptionButton>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow/OfficerListAuxOption");
+        _viewCityOfficersDialogButton = _officerListDialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCityOfficersButton");
+        _viewFactionOfficersDialogButton = _officerListDialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewFactionOfficersButton");
+        _viewFactionItemsDialogButton = _officerListDialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewFactionItemsButton");
+        _viewDiplomacyRelationsDialogButton = _officerListDialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewDiplomacyRelationsButton");
+        _viewCitiesDialogButton = _officerListDialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCitiesButton");
+        _cityListFilterOption = _officerListDialog.GetNodeOrNull<OptionButton>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/CityListFilterOption");
+        _officerSortOption = _officerListDialog.GetNodeOrNull<OptionButton>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/OfficerSortOption");
+        _officerListTable = _officerListDialog.GetNodeOrNull<Tree>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListTable");
+        _officerListConfirmButton = _officerListDialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow/OfficerListConfirmButton");
+        if (_officerListAuxOption != null) _officerListAuxOption.ItemSelected += OnOfficerListAuxOptionSelected;
+        if (_viewCityOfficersDialogButton != null) _viewCityOfficersDialogButton.Pressed += OnViewCityOfficersDialogPressed;
+        if (_viewFactionOfficersDialogButton != null) _viewFactionOfficersDialogButton.Pressed += OnViewFactionOfficersDialogPressed;
+        if (_viewFactionItemsDialogButton != null) _viewFactionItemsDialogButton.Pressed += OnViewFactionItemsDialogPressed;
+        if (_viewDiplomacyRelationsDialogButton != null) _viewDiplomacyRelationsDialogButton.Pressed += OnViewDiplomacyRelationsDialogPressed;
+        if (_viewCitiesDialogButton != null) _viewCitiesDialogButton.Pressed += OnViewCitiesDialogPressed;
+        if (_cityListFilterOption != null) _cityListFilterOption.ItemSelected += OnCityListFilterOptionSelected;
+        if (_officerSortOption != null) _officerSortOption.ItemSelected += OnOfficerSortOptionSelected;
+        if (_officerListTable != null)
         {
-            Name = "OfficerListTitlebarFill",
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            OffsetLeft = 0.0f,
-            OffsetTop = 0.0f,
-            OffsetRight = 0.0f,
-            OffsetBottom = 34.0f,
-            AnchorLeft = 0.0f,
-            AnchorTop = 0.0f,
-            AnchorRight = 1.0f,
-            AnchorBottom = 0.0f,
-            Visible = false
-        };
-        _officerListDialog.AddChild(_officerListTitlebarFill);
-
-        var officerListRoot = new VBoxContainer
-        {
-            Name = "OfficerListDialogRoot",
-            CustomMinimumSize = new Vector2(420.0f, 280.0f),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        officerListRoot.AddThemeConstantOverride("separation", 8);
-        _officerListDialog.AddChild(officerListRoot);
-
-        var officerListContentMargin = new MarginContainer
-        {
-            Name = "OfficerListContentMargin",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        officerListContentMargin.AddThemeConstantOverride("margin_left", 12);
-        officerListContentMargin.AddThemeConstantOverride("margin_top", 8);
-        officerListContentMargin.AddThemeConstantOverride("margin_right", 12);
-        officerListContentMargin.AddThemeConstantOverride("margin_bottom", 8);
-        officerListRoot.AddChild(officerListContentMargin);
-
-        var officerListContent = new VBoxContainer
-        {
-            Name = "OfficerListContent",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        officerListContent.AddThemeConstantOverride("separation", 8);
-        officerListContentMargin.AddChild(officerListContent);
-
-        _officerListHeaderPanel = new PanelContainer
-        {
-            Name = "OfficerListHeaderPanel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _officerListHeaderPanel.GuiInput += OnOfficerListHeaderGuiInput;
-        officerListContent.AddChild(_officerListHeaderPanel);
-
-        var officerListHeaderRow = new HBoxContainer
-        {
-            Name = "OfficerListHeaderRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerListHeaderRow.AddThemeConstantOverride("separation", 8);
-        _officerListHeaderPanel.AddChild(officerListHeaderRow);
-
-        _officerListHeaderLabel = new Label
-        {
-            Name = "OfficerListHeaderLabel",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerListHeaderRow.AddChild(_officerListHeaderLabel);
-
-        _officerListCloseButton = new Button
-        {
-            Name = "OfficerListCloseButton",
-            Text = "X",
-            CustomMinimumSize = new Vector2(28.0f, 24.0f),
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _officerListCloseButton.Pressed += OnOfficerListClosePressed;
-        officerListHeaderRow.AddChild(_officerListCloseButton);
-
-        _officerListToolbar = new HBoxContainer
-        {
-            Name = "OfficerListToolbar",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _officerListToolbar.AddThemeConstantOverride("separation", 8);
-        officerListContent.AddChild(_officerListToolbar);
-
-        _officerListAuxRow = new HBoxContainer
-        {
-            Name = "OfficerListAuxRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            Visible = false
-        };
-        _officerListAuxRow.AddThemeConstantOverride("separation", 8);
-        officerListContent.AddChild(_officerListAuxRow);
-
-        _officerListAuxLabel = new Label
-        {
-            Name = "OfficerListAuxLabel",
-            CustomMinimumSize = new Vector2(84.0f, 0.0f),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        _officerListAuxRow.AddChild(_officerListAuxLabel);
-
-        _officerListAuxOption = new OptionButton
-        {
-            Name = "OfficerListAuxOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _officerListAuxOption.ItemSelected += OnOfficerListAuxOptionSelected;
-        _officerListAuxRow.AddChild(_officerListAuxOption);
-
-        _viewCityOfficersDialogButton = new Button
-        {
-            Name = "ViewCityOfficersButton",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _viewCityOfficersDialogButton.Pressed += OnViewCityOfficersDialogPressed;
-        _officerListToolbar.AddChild(_viewCityOfficersDialogButton);
-
-        _viewFactionOfficersDialogButton = new Button
-        {
-            Name = "ViewFactionOfficersButton",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _viewFactionOfficersDialogButton.Pressed += OnViewFactionOfficersDialogPressed;
-        _officerListToolbar.AddChild(_viewFactionOfficersDialogButton);
-
-        _viewFactionItemsDialogButton = new Button
-        {
-            Name = "ViewFactionItemsButton",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _viewFactionItemsDialogButton.Pressed += OnViewFactionItemsDialogPressed;
-        _officerListToolbar.AddChild(_viewFactionItemsDialogButton);
-
-        _viewDiplomacyRelationsDialogButton = new Button
-        {
-            Name = "ViewDiplomacyRelationsButton",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _viewDiplomacyRelationsDialogButton.Pressed += OnViewDiplomacyRelationsDialogPressed;
-        _officerListToolbar.AddChild(_viewDiplomacyRelationsDialogButton);
-
-        _viewCitiesDialogButton = new Button
-        {
-            Name = "ViewCitiesButton",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _viewCitiesDialogButton.Pressed += OnViewCitiesDialogPressed;
-        _officerListToolbar.AddChild(_viewCitiesDialogButton);
-
-        _cityListFilterOption = new OptionButton
-        {
-            Name = "CityListFilterOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _cityListFilterOption.ItemSelected += OnCityListFilterOptionSelected;
-        _officerListToolbar.AddChild(_cityListFilterOption);
-
-        _officerSortOption = new OptionButton
-        {
-            Name = "OfficerSortOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _officerSortOption.ItemSelected += OnOfficerSortOptionSelected;
-        _officerListToolbar.AddChild(_officerSortOption);
-
-        _officerListTable = new Tree
-        {
-            Name = "OfficerListTable",
-            HideRoot = true,
-            ColumnTitlesVisible = true,
-            SelectMode = Tree.SelectModeEnum.Row,
-            CustomMinimumSize = new Vector2(920.0f, 260.0f),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        _officerListTable.ItemSelected += OnOfficerListTableSelected;
-        _officerListTable.ItemActivated += OnOfficerListTableActivated;
-        _officerListTable.ColumnTitleClicked += OnOfficerListTableColumnTitleClicked;
-        officerListContent.AddChild(_officerListTable);
-
-        var officerListConfirmRow = new CenterContainer
-        {
-            Name = "OfficerListConfirmRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0.0f, 34.0f)
-        };
-        officerListContent.AddChild(officerListConfirmRow);
-
-        _officerListConfirmButton = new Button
-        {
-            Name = "OfficerListConfirmButton",
-            FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(92.0f, 28.0f)
-        };
-        _officerListConfirmButton.Pressed += OnOfficerListDialogConfirmed;
-        officerListConfirmRow.AddChild(_officerListConfirmButton);
+            _officerListTable.ItemSelected += OnOfficerListTableSelected;
+            _officerListTable.ItemActivated += OnOfficerListTableActivated;
+            _officerListTable.ColumnTitleClicked += OnOfficerListTableColumnTitleClicked;
+        }
+        if (_officerListConfirmButton != null) _officerListConfirmButton.Pressed += OnOfficerListDialogConfirmed;
+        _officerListDialog.Hide();
 
         ApplyOfficerListDialogTheme();
 
-        _officerDetailDialog = new AcceptDialog();
+        _officerDetailDialog = GD.Load<PackedScene>("res://scenes/ui/OfficerDetailDialog.tscn").Instantiate<Window>();
         _officerDetailDialog.Exclusive = false;
-        _officerDetailDialog.Unfocusable = false;
+        _officerDetailDialog.Unresizable = true;
+        _officerDetailDialog.CloseRequested += () =>
+        {
+            PlayUiClickSfx();
+            _officerDetailDialog?.Hide();
+        };
         AddChild(_officerDetailDialog);
         EnsureOfficerDetailWidgets();
+        _officerDetailDialog.Hide();
         LoadPortraitData();
         AttachClickSfxToButtons(this);
         LoadOptionSettings();
@@ -1498,17 +1356,20 @@ public partial class HudController : CanvasLayer
         }
 
         _officerListMode = OfficerListMode.View;
-        ConfigureOfficerListDialogLayout(isCommandSelection: false);
+        ResetOfficerListDialogLayoutToSceneDefaults();
         if (_officerListAuxRow != null)
         {
             _officerListAuxRow.Visible = false;
         }
         _officerListContentMode = OfficerListContentMode.Officers;
         _officerListScope = OfficerListScope.City;
-        _officerListDialog.OkButtonText = _localization?.T("ui.confirm_officer_selection") ?? "Confirm Selection";
+        if (_officerListConfirmButton != null)
+        {
+            _officerListConfirmButton.Text = _localization?.T("ui.confirm_officer_selection") ?? "Confirm Selection";
+        }
         UpdateOfficerListToolbar();
         PopulateOfficerListDialog();
-        _officerListDialog.PopupCentered(new Vector2I(420, 320));
+        PopupDialogUsingSceneSize(_officerListDialog);
     }
 
     private void OnViewCityOfficersDialogPressed()

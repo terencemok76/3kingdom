@@ -1,0 +1,54 @@
+[gd_scene format=3]
+
+[node name="SuccessionDialog" type="Window"]
+oversampling_override = 1.0
+title = "Succession"
+position = Vector2i(0, 36)
+size = Vector2i(760, 240)
+
+[node name="SuccessionDialogRoot" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(720, 200)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 752.0
+offset_bottom = 208.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="SummaryLabel" type="Label" parent="SuccessionDialogRoot"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="OfficerListLabel" type="Label" parent="SuccessionDialogRoot"]
+layout_mode = 2
+text = "Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="SuccessionDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelectedOfficerLabel" type="Label" parent="SuccessionDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="SuccessionDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="WarningLabel" type="Label" parent="SuccessionDialogRoot"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="SuccessionDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="SuccessionDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

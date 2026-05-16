@@ -19,26 +19,19 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _personnelDialog.GetNodeOrNull<VBoxContainer>("PersonnelDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _personnelCommandOption = existingRoot.GetNodeOrNull<OptionButton>("CommandOption");
+            GD.PushError("PersonnelDialogRoot not found in PersonnelDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _personnelCommandOption = existingRoot.GetNodeOrNull<OptionButton>("CommandOption");
+        _personnelConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_personnelDialogSignalsConnected && _personnelConfirmButton != null)
         {
-            Name = "PersonnelDialogRoot",
-            CustomMinimumSize = new Vector2(420.0f, 130.0f)
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _personnelDialog.AddChild(root);
-        root.AddChild(new Label { Name = "CommandLabel" });
-        _personnelCommandOption = new OptionButton
-        {
-            Name = "CommandOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        root.AddChild(_personnelCommandOption);
+            _personnelConfirmButton.Pressed += OnPersonnelDialogConfirmed;
+            _personnelDialogSignalsConnected = true;
+        }
     }
 
     private void ShowPersonnelDialog()
@@ -51,7 +44,7 @@ public partial class HudController : CanvasLayer
         EnsurePersonnelDialogWidgets();
         UpdatePersonnelDialogText();
         PopulatePersonnelDialog();
-        _personnelDialog.PopupCentered(new Vector2I(440, 170));
+        PopupDialogUsingSceneSize(_personnelDialog);
     }
 
     private void PopulatePersonnelDialog()
@@ -88,11 +81,14 @@ public partial class HudController : CanvasLayer
         }
 
         _personnelDialog.Title = _localization.T("ui.personnel");
-        _personnelDialog.OkButtonText = _localization.T("ui.confirm_personnel");
         var label = _personnelDialog.GetNodeOrNull<Label>("PersonnelDialogRoot/CommandLabel");
         if (label != null)
         {
             label.Text = _localization.T("ui.personnel_command");
+        }
+        if (_personnelConfirmButton != null)
+        {
+            _personnelConfirmButton.Text = _localization.T("ui.confirm_personnel");
         }
     }
 
@@ -102,6 +98,8 @@ public partial class HudController : CanvasLayer
         {
             return;
         }
+
+        _personnelDialog?.Hide();
 
         var metadata = _personnelCommandOption.GetItemMetadata(_personnelCommandOption.Selected);
         var commandKey = metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
@@ -146,78 +144,43 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _personnelBonusDialog.GetNodeOrNull<VBoxContainer>("PersonnelBonusDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _personnelBonusSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _personnelBonusSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _personnelBonusGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
-            _personnelBonusFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
-            _personnelBonusItemOption = existingRoot.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
-            _personnelBonusSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            GD.PushError("PersonnelBonusDialogRoot not found in PersonnelBonusDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _personnelBonusSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _personnelBonusSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _personnelBonusGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
+        _personnelBonusFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
+        _personnelBonusItemOption = existingRoot.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
+        _personnelBonusSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+        _personnelBonusConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_personnelBonusDialogSignalsConnected)
         {
-            Name = "PersonnelBonusDialogRoot",
-            CustomMinimumSize = new Vector2(460.0f, 360.0f)
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _personnelBonusDialog.AddChild(root);
-
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _personnelBonusSelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_personnelBonusSelectedOfficerLabel);
-        _personnelBonusSelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _personnelBonusSelectOfficerButton.Pressed += OnPersonnelBonusSelectOfficerPressed;
-        officerSelectorRow.AddChild(_personnelBonusSelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        var goldRow = CreatePersonnelBonusFormRow("GoldRow", "GoldLabel");
-        _personnelBonusGoldSpinBox = CreateMoveSpinBox("GoldSpinBox");
-        _personnelBonusGoldSpinBox.Step = 100;
-        _personnelBonusGoldSpinBox.ValueChanged += _ => UpdatePersonnelBonusSummary();
-        goldRow.AddChild(_personnelBonusGoldSpinBox);
-        root.AddChild(goldRow);
-
-        var foodRow = CreatePersonnelBonusFormRow("FoodRow", "FoodLabel");
-        _personnelBonusFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
-        _personnelBonusFoodSpinBox.Step = 500;
-        _personnelBonusFoodSpinBox.ValueChanged += _ => UpdatePersonnelBonusSummary();
-        foodRow.AddChild(_personnelBonusFoodSpinBox);
-        root.AddChild(foodRow);
-
-        var itemRow = CreatePersonnelBonusFormRow("ItemRow", "ItemLabel");
-        _personnelBonusItemOption = new OptionButton
-        {
-            Name = "ItemOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _personnelBonusItemOption.ItemSelected += _ => UpdatePersonnelBonusSummary();
-        itemRow.AddChild(_personnelBonusItemOption);
-        root.AddChild(itemRow);
-
-        _personnelBonusSummaryLabel = new Label
-        {
-            Name = "SummaryLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_personnelBonusSummaryLabel);
+            if (_personnelBonusSelectOfficerButton != null)
+            {
+                _personnelBonusSelectOfficerButton.Pressed += OnPersonnelBonusSelectOfficerPressed;
+            }
+            if (_personnelBonusGoldSpinBox != null)
+            {
+                _personnelBonusGoldSpinBox.ValueChanged += _ => UpdatePersonnelBonusSummary();
+            }
+            if (_personnelBonusFoodSpinBox != null)
+            {
+                _personnelBonusFoodSpinBox.ValueChanged += _ => UpdatePersonnelBonusSummary();
+            }
+            if (_personnelBonusItemOption != null)
+            {
+                _personnelBonusItemOption.ItemSelected += _ => UpdatePersonnelBonusSummary();
+            }
+            if (_personnelBonusConfirmButton != null)
+            {
+                _personnelBonusConfirmButton.Pressed += OnPersonnelBonusDialogConfirmed;
+            }
+            _personnelBonusDialogSignalsConnected = true;
+        }
     }
 
     private void ShowPersonnelBonusDialog()
@@ -230,7 +193,7 @@ public partial class HudController : CanvasLayer
         EnsurePersonnelBonusDialogWidgets();
         UpdatePersonnelBonusDialogText();
         PopulatePersonnelBonusDialog();
-        _personnelBonusDialog.PopupCentered(new Vector2I(480, 260));
+        PopupDialogUsingSceneSize(_personnelBonusDialog);
     }
 
     private void PopulatePersonnelBonusDialog()
@@ -276,7 +239,6 @@ public partial class HudController : CanvasLayer
         }
 
         _personnelBonusDialog.Title = _localization.T("command.personnel.give_bonus");
-        _personnelBonusDialog.OkButtonText = _localization.T("ui.confirm_personnel_bonus");
         SetPersonnelBonusDialogLabelText("OfficerListLabel", _localization.T("ui.personnel_bonus_officer"));
         SetPersonnelBonusDialogLabelText("GoldLabel", _localization.T("ui.personnel_bonus_gold"));
         SetPersonnelBonusDialogLabelText("FoodLabel", _localization.T("ui.personnel_bonus_food"));
@@ -284,6 +246,10 @@ public partial class HudController : CanvasLayer
         if (_personnelBonusSelectOfficerButton != null)
         {
             _personnelBonusSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        if (_personnelBonusConfirmButton != null)
+        {
+            _personnelBonusConfirmButton.Text = _localization.T("ui.confirm_personnel_bonus");
         }
         UpdatePersonnelBonusSelectedOfficerSummary();
     }
@@ -298,25 +264,6 @@ public partial class HudController : CanvasLayer
         {
             label.Text = text;
         }
-    }
-
-    private static HBoxContainer CreatePersonnelBonusFormRow(string rowName, string labelName)
-    {
-        var row = new HBoxContainer
-        {
-            Name = rowName,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        row.AddThemeConstantOverride("separation", 10);
-
-        var label = new Label
-        {
-            Name = labelName,
-            CustomMinimumSize = new Vector2(84.0f, 0.0f),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        row.AddChild(label);
-        return row;
     }
 
     private void UpdatePersonnelBonusSummary()
@@ -359,6 +306,7 @@ public partial class HudController : CanvasLayer
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
+        _personnelBonusDialog?.Hide();
     }
 
     private void ReopenPersonnelBonusDialog()
@@ -368,7 +316,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenPersonnelBonusDialogDeferred()
     {
-        _personnelBonusDialog?.PopupCentered(new Vector2I(480, 260));
+        PopupDialogUsingSceneSize(_personnelBonusDialog);
     }
 
     private void EnsureAssignRoleDialogWidgets()
@@ -379,52 +327,28 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _assignRoleDialog.GetNodeOrNull<VBoxContainer>("AssignRoleDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _assignRoleSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _assignRoleSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _assignRoleOption = existingRoot.GetNodeOrNull<OptionButton>("RoleOption");
+            GD.PushError("AssignRoleDialogRoot not found in AssignRoleDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _assignRoleSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _assignRoleSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _assignRoleOption = existingRoot.GetNodeOrNull<OptionButton>("RoleOption");
+        _assignRoleConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_assignRoleDialogSignalsConnected)
         {
-            Name = "AssignRoleDialogRoot",
-            CustomMinimumSize = new Vector2(460.0f, 330.0f)
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _assignRoleDialog.AddChild(root);
-
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _assignRoleSelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_assignRoleSelectedOfficerLabel);
-        _assignRoleSelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _assignRoleSelectOfficerButton.Pressed += OnAssignRoleSelectOfficerPressed;
-        officerSelectorRow.AddChild(_assignRoleSelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        root.AddChild(new Label { Name = "RoleLabel" });
-        _assignRoleOption = new OptionButton
-        {
-            Name = "RoleOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        root.AddChild(_assignRoleOption);
+            if (_assignRoleSelectOfficerButton != null)
+            {
+                _assignRoleSelectOfficerButton.Pressed += OnAssignRoleSelectOfficerPressed;
+            }
+            if (_assignRoleConfirmButton != null)
+            {
+                _assignRoleConfirmButton.Pressed += OnAssignRoleDialogConfirmed;
+            }
+            _assignRoleDialogSignalsConnected = true;
+        }
     }
 
     private void ShowAssignRoleDialog()
@@ -437,7 +361,7 @@ public partial class HudController : CanvasLayer
         EnsureAssignRoleDialogWidgets();
         UpdateAssignRoleDialogText();
         PopulateAssignRoleDialog();
-        _assignRoleDialog.PopupCentered(new Vector2I(480, 220));
+        PopupDialogUsingSceneSize(_assignRoleDialog);
     }
 
     private void PopulateAssignRoleDialog()
@@ -488,12 +412,15 @@ public partial class HudController : CanvasLayer
         }
 
         _assignRoleDialog.Title = _localization.T("command.personnel.assign_title");
-        _assignRoleDialog.OkButtonText = _localization.T("ui.confirm_assign_role");
         SetAssignRoleDialogLabelText("OfficerListLabel", _localization.T("ui.assign_role_officer"));
         SetAssignRoleDialogLabelText("RoleLabel", _localization.T("ui.assign_role_title"));
         if (_assignRoleSelectOfficerButton != null)
         {
             _assignRoleSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        if (_assignRoleConfirmButton != null)
+        {
+            _assignRoleConfirmButton.Text = _localization.T("ui.confirm_assign_role");
         }
         UpdateAssignRoleSelectedOfficerSummary();
     }
@@ -515,74 +442,27 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _fireOfficerDialog.GetNodeOrNull<VBoxContainer>("FireOfficerDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _fireOfficerSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _fireOfficerSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _fireOfficerConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
-            if (!_fireOfficerDialogSignalsConnected)
-            {
-                if (_fireOfficerSelectOfficerButton != null)
-                {
-                    _fireOfficerSelectOfficerButton.Pressed += OnFireOfficerSelectOfficerPressed;
-                }
-
-                if (_fireOfficerConfirmButton != null)
-                {
-                    _fireOfficerConfirmButton.Pressed += OnFireOfficerDialogConfirmed;
-                }
-
-                _fireOfficerDialogSignalsConnected = true;
-            }
+            GD.PushError("FireOfficerDialogRoot not found in FireOfficerDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _fireOfficerSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _fireOfficerSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _fireOfficerConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_fireOfficerDialogSignalsConnected)
         {
-            Name = "FireOfficerDialogRoot",
-            CustomMinimumSize = new Vector2(460.0f, 260.0f)
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _fireOfficerDialog.AddChild(root);
-
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _fireOfficerSelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_fireOfficerSelectedOfficerLabel);
-        _fireOfficerSelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        officerSelectorRow.AddChild(_fireOfficerSelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        var confirmRow = new HBoxContainer
-        {
-            Name = "ConfirmRow",
-            Alignment = BoxContainer.AlignmentMode.Center
-        };
-        _fireOfficerConfirmButton = new Button
-        {
-            Name = "ConfirmButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        confirmRow.AddChild(_fireOfficerConfirmButton);
-        root.AddChild(confirmRow);
-
-        _fireOfficerSelectOfficerButton.Pressed += OnFireOfficerSelectOfficerPressed;
-        _fireOfficerConfirmButton.Pressed += OnFireOfficerDialogConfirmed;
-        _fireOfficerDialogSignalsConnected = true;
+            if (_fireOfficerSelectOfficerButton != null)
+            {
+                _fireOfficerSelectOfficerButton.Pressed += OnFireOfficerSelectOfficerPressed;
+            }
+            if (_fireOfficerConfirmButton != null)
+            {
+                _fireOfficerConfirmButton.Pressed += OnFireOfficerDialogConfirmed;
+            }
+            _fireOfficerDialogSignalsConnected = true;
+        }
     }
 
     private void ShowFireOfficerDialog()
@@ -740,6 +620,7 @@ public partial class HudController : CanvasLayer
             role);
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
+        _assignRoleDialog?.Hide();
     }
 
     private void ReopenAssignRoleDialog()
@@ -749,7 +630,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenAssignRoleDialogDeferred()
     {
-        _assignRoleDialog?.PopupCentered(new Vector2I(480, 220));
+        PopupDialogUsingSceneSize(_assignRoleDialog);
     }
 
     private void EnsureRequestItemDialogWidgets()
@@ -760,84 +641,28 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _requestItemDialog.GetNodeOrNull<VBoxContainer>("RequestItemDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _requestItemSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _requestItemSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _requestItemOption = existingRoot.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
-            _requestItemConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
-            if (!_requestItemDialogSignalsConnected)
-            {
-                if (_requestItemSelectOfficerButton != null)
-                {
-                    _requestItemSelectOfficerButton.Pressed += OnRequestItemSelectOfficerPressed;
-                }
-
-                if (_requestItemConfirmButton != null)
-                {
-                    _requestItemConfirmButton.Pressed += OnRequestItemDialogConfirmed;
-                }
-
-                _requestItemDialogSignalsConnected = true;
-            }
+            GD.PushError("RequestItemDialogRoot not found in RequestItemDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _requestItemSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _requestItemSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _requestItemOption = existingRoot.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
+        _requestItemConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_requestItemDialogSignalsConnected)
         {
-            Name = "RequestItemDialogRoot",
-            CustomMinimumSize = new Vector2(460.0f, 330.0f)
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _requestItemDialog.AddChild(root);
-
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _requestItemSelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_requestItemSelectedOfficerLabel);
-        _requestItemSelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        officerSelectorRow.AddChild(_requestItemSelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        var itemRow = CreatePersonnelBonusFormRow("ItemRow", "ItemLabel");
-        _requestItemOption = new OptionButton
-        {
-            Name = "ItemOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        itemRow.AddChild(_requestItemOption);
-        root.AddChild(itemRow);
-
-        var confirmRow = new HBoxContainer
-        {
-            Name = "ConfirmRow",
-            Alignment = BoxContainer.AlignmentMode.Center
-        };
-        _requestItemConfirmButton = new Button
-        {
-            Name = "ConfirmButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        confirmRow.AddChild(_requestItemConfirmButton);
-        root.AddChild(confirmRow);
-
-        _requestItemSelectOfficerButton.Pressed += OnRequestItemSelectOfficerPressed;
-        _requestItemConfirmButton.Pressed += OnRequestItemDialogConfirmed;
-        _requestItemDialogSignalsConnected = true;
+            if (_requestItemSelectOfficerButton != null)
+            {
+                _requestItemSelectOfficerButton.Pressed += OnRequestItemSelectOfficerPressed;
+            }
+            if (_requestItemConfirmButton != null)
+            {
+                _requestItemConfirmButton.Pressed += OnRequestItemDialogConfirmed;
+            }
+            _requestItemDialogSignalsConnected = true;
+        }
     }
 
     private void ShowRequestItemDialog()

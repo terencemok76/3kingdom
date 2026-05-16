@@ -1,0 +1,91 @@
+[gd_scene format=3]
+
+[node name="MoveDialog" type="Window"]
+oversampling_override = 1.0
+title = "Move"
+position = Vector2i(0, 36)
+size = Vector2i(460, 560)
+
+[node name="MoveDialogRoot" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(420, 420)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 452.0
+offset_bottom = 528.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="TargetCityLabel" type="Label" parent="MoveDialogRoot"]
+layout_mode = 2
+text = "Target City"
+
+[node name="TargetCityOption" type="OptionButton" parent="MoveDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TroopsLabel" type="Label" parent="MoveDialogRoot"]
+layout_mode = 2
+text = "Troops"
+
+[node name="TroopsSpinBox" type="SpinBox" parent="MoveDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="GoldLabel" type="Label" parent="MoveDialogRoot"]
+layout_mode = 2
+text = "Gold"
+
+[node name="GoldSpinBox" type="SpinBox" parent="MoveDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="FoodLabel" type="Label" parent="MoveDialogRoot"]
+layout_mode = 2
+text = "Food"
+
+[node name="FoodSpinBox" type="SpinBox" parent="MoveDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="HorseLabel" type="Label" parent="MoveDialogRoot"]
+layout_mode = 2
+text = "Horse"
+
+[node name="HorseSpinBox" type="SpinBox" parent="MoveDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="OfficerListLabel" type="Label" parent="MoveDialogRoot"]
+layout_mode = 2
+text = "Officers"
+
+[node name="OfficerTable" type="Tree" parent="MoveDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+hide_root = true
+column_titles_visible = true
+select_mode = 1
+custom_minimum_size = Vector2(0, 180)
+
+[node name="ConfirmRow" type="HBoxContainer" parent="MoveDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="MoveDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "OK"

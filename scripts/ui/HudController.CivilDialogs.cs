@@ -181,75 +181,46 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _civilReliefDialog.GetNodeOrNull<VBoxContainer>("CivilReliefDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _civilReliefSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _civilReliefSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _civilReliefGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
-            _civilReliefFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
-            _civilReliefSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+            GD.PushError("CivilReliefDialogRoot not found in CivilReliefDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _civilReliefSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _civilReliefSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _civilReliefGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
+        _civilReliefFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
+        _civilReliefSummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+        _civilReliefConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_civilReliefDialogSignalsConnected)
         {
-            Name = "CivilReliefDialogRoot",
-            CustomMinimumSize = new Vector2(420.0f, 230.0f)
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _civilReliefDialog.AddChild(root);
-
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _civilReliefSelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_civilReliefSelectedOfficerLabel);
-        _civilReliefSelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _civilReliefSelectOfficerButton.Pressed += OnCivilReliefSelectOfficerPressed;
-        officerSelectorRow.AddChild(_civilReliefSelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        var goldRow = CreateCivilReliefFormRow("GoldRow", "GoldLabel");
-        _civilReliefGoldSpinBox = CreateMoveSpinBox("GoldSpinBox");
-        _civilReliefGoldSpinBox.Step = 100;
-        _civilReliefGoldSpinBox.ValueChanged += _ =>
-        {
-            UpdateCivilReliefSummary();
-            UpdateCivilReliefConfirmButtonState();
-        };
-        goldRow.AddChild(_civilReliefGoldSpinBox);
-        root.AddChild(goldRow);
-
-        var foodRow = CreateCivilReliefFormRow("FoodRow", "FoodLabel");
-        _civilReliefFoodSpinBox = CreateMoveSpinBox("FoodSpinBox");
-        _civilReliefFoodSpinBox.Step = 1000;
-        _civilReliefFoodSpinBox.ValueChanged += _ =>
-        {
-            UpdateCivilReliefSummary();
-            UpdateCivilReliefConfirmButtonState();
-        };
-        foodRow.AddChild(_civilReliefFoodSpinBox);
-        root.AddChild(foodRow);
-
-        _civilReliefSummaryLabel = new Label
-        {
-            Name = "SummaryLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_civilReliefSummaryLabel);
+            if (_civilReliefSelectOfficerButton != null)
+            {
+                _civilReliefSelectOfficerButton.Pressed += OnCivilReliefSelectOfficerPressed;
+            }
+            if (_civilReliefGoldSpinBox != null)
+            {
+                _civilReliefGoldSpinBox.ValueChanged += _ =>
+                {
+                    UpdateCivilReliefSummary();
+                    UpdateCivilReliefConfirmButtonState();
+                };
+            }
+            if (_civilReliefFoodSpinBox != null)
+            {
+                _civilReliefFoodSpinBox.ValueChanged += _ =>
+                {
+                    UpdateCivilReliefSummary();
+                    UpdateCivilReliefConfirmButtonState();
+                };
+            }
+            if (_civilReliefConfirmButton != null)
+            {
+                _civilReliefConfirmButton.Pressed += OnCivilReliefDialogConfirmed;
+            }
+            _civilReliefDialogSignalsConnected = true;
+        }
     }
 
     private void ShowCivilReliefDialog()
@@ -262,7 +233,7 @@ public partial class HudController : CanvasLayer
         EnsureCivilReliefDialogWidgets();
         UpdateCivilReliefDialogText();
         PopulateCivilReliefDialog();
-        _civilReliefDialog.PopupCentered(new Vector2I(480, 280));
+        PopupDialogUsingSceneSize(_civilReliefDialog);
     }
 
     private void PopulateCivilReliefDialog()
@@ -304,13 +275,16 @@ public partial class HudController : CanvasLayer
         }
 
         _civilReliefDialog.Title = _localization.T("command.civil.relief");
-        _civilReliefDialog.OkButtonText = _localization.T("ui.confirm_civil_relief");
         SetCivilReliefDialogLabelText("OfficerListLabel", _localization.T("ui.civil_relief_officer"));
         SetCivilReliefDialogLabelText("GoldLabel", _localization.T("ui.civil_relief_gold"));
         SetCivilReliefDialogLabelText("FoodLabel", _localization.T("ui.civil_relief_food"));
         if (_civilReliefSelectOfficerButton != null)
         {
             _civilReliefSelectOfficerButton.Text = _localization.T("ui.select_officer");
+        }
+        if (_civilReliefConfirmButton != null)
+        {
+            _civilReliefConfirmButton.Text = _localization.T("ui.confirm_civil_relief");
         }
         UpdateCivilReliefSelectedOfficerSummary();
     }
@@ -324,25 +298,6 @@ public partial class HudController : CanvasLayer
         {
             label.Text = text;
         }
-    }
-
-    private static HBoxContainer CreateCivilReliefFormRow(string rowName, string labelName)
-    {
-        var row = new HBoxContainer
-        {
-            Name = rowName,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        row.AddThemeConstantOverride("separation", 10);
-
-        var label = new Label
-        {
-            Name = labelName,
-            CustomMinimumSize = new Vector2(84.0f, 0.0f),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        row.AddChild(label);
-        return row;
     }
 
     private void UpdateCivilReliefSummary()
@@ -360,8 +315,7 @@ public partial class HudController : CanvasLayer
 
     private void UpdateCivilReliefConfirmButtonState()
     {
-        var okButton = _civilReliefDialog?.GetOkButton();
-        if (okButton == null)
+        if (_civilReliefConfirmButton == null)
         {
             return;
         }
@@ -371,7 +325,7 @@ public partial class HudController : CanvasLayer
         var food = (int)(_civilReliefFoodSpinBox?.Value ?? 0);
         var hasReliefAmount = gold > 0 || food > 0;
         var effectiveGain = gold / 100 * 10 + food / 1000 * 10;
-        okButton.Disabled = !hasOfficer || !hasReliefAmount || effectiveGain <= 0;
+        _civilReliefConfirmButton.Disabled = !hasOfficer || !hasReliefAmount || effectiveGain <= 0;
     }
 
     private void OnCivilReliefDialogConfirmed()
@@ -397,6 +351,7 @@ public partial class HudController : CanvasLayer
         AddLog(GetLocalizedResultMessage(result), isPlayerRelated: true);
         RefreshSelectedCity();
         _mapController?.RefreshVisuals();
+        _civilReliefDialog?.Hide();
     }
 
     private void ReopenCivilReliefDialog()
@@ -406,7 +361,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenCivilReliefDialogDeferred()
     {
-        _civilReliefDialog?.PopupCentered(new Vector2I(480, 280));
+        PopupDialogUsingSceneSize(_civilReliefDialog);
     }
 
     private void EnsureVisitCitizenDialogWidgets()
@@ -417,73 +372,29 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _visitCitizenDialog.GetNodeOrNull<VBoxContainer>("VisitCitizenDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _visitCitizenSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _visitCitizenSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _visitCitizenConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
-            if (!_visitCitizenDialogSignalsConnected)
-            {
-                if (_visitCitizenSelectOfficerButton != null)
-                {
-                    _visitCitizenSelectOfficerButton.Pressed += OnVisitCitizenSelectOfficerPressed;
-                }
-
-                if (_visitCitizenConfirmButton != null)
-                {
-                    _visitCitizenConfirmButton.Pressed += OnVisitCitizenDialogConfirmed;
-                }
-
-                _visitCitizenDialogSignalsConnected = true;
-            }
+            GD.PushError("VisitCitizenDialogRoot not found in VisitCitizenDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _visitCitizenSelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _visitCitizenSelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _visitCitizenConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (!_visitCitizenDialogSignalsConnected)
         {
-            Name = "VisitCitizenDialogRoot",
-            CustomMinimumSize = new Vector2(420.0f, 120.0f)
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _visitCitizenDialog.AddChild(root);
+            if (_visitCitizenSelectOfficerButton != null)
+            {
+                _visitCitizenSelectOfficerButton.Pressed += OnVisitCitizenSelectOfficerPressed;
+            }
 
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _visitCitizenSelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_visitCitizenSelectedOfficerLabel);
-        _visitCitizenSelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _visitCitizenSelectOfficerButton.Pressed += OnVisitCitizenSelectOfficerPressed;
-        _visitCitizenDialogSignalsConnected = true;
-        officerSelectorRow.AddChild(_visitCitizenSelectOfficerButton);
-        root.AddChild(officerSelectorRow);
+            if (_visitCitizenConfirmButton != null)
+            {
+                _visitCitizenConfirmButton.Pressed += OnVisitCitizenDialogConfirmed;
+            }
 
-        var confirmRow = new HBoxContainer
-        {
-            Name = "ConfirmRow",
-            Alignment = BoxContainer.AlignmentMode.Center
-        };
-        _visitCitizenConfirmButton = new Button
-        {
-            Name = "ConfirmButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _visitCitizenConfirmButton.Pressed += OnVisitCitizenDialogConfirmed;
-        confirmRow.AddChild(_visitCitizenConfirmButton);
-        root.AddChild(confirmRow);
+            _visitCitizenDialogSignalsConnected = true;
+        }
     }
 
     private void ShowVisitCitizenDialog()

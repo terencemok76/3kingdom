@@ -267,9 +267,8 @@ public partial class HudController : CanvasLayer
         _pendingOfficerCommand = commandType;
         _pendingRecruitTroopType = TroopType.Infantry;
         _officerListMode = OfficerListMode.CommandSelection;
-        ConfigureOfficerListDialogLayout(isCommandSelection: true);
+        ConfigureCompactOfficerListDialogLayout();
         SetOfficerListDialogTitle(_localization.Format("fmt.select_officer_for_command", GetCommandName(commandType)));
-        _officerListDialog.OkButtonText = _localization.T("ui.confirm_officer_selection");
         if (_officerListConfirmButton != null)
         {
             _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
@@ -361,9 +360,8 @@ public partial class HudController : CanvasLayer
         _officerListMode = OfficerListMode.GenericSelection;
         _pendingOfficerCommand = CommandType.Pass;
 
-        ConfigureOfficerListDialogLayout(isCommandSelection: true);
+        ConfigureCompactOfficerListDialogLayout();
         SetOfficerListDialogTitle(title);
-        _officerListDialog.OkButtonText = _localization.T("ui.confirm_officer_selection");
         if (_officerListConfirmButton != null)
         {
             _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
@@ -582,29 +580,43 @@ public partial class HudController : CanvasLayer
         };
     }
 
-    private void ConfigureOfficerListDialogLayout(bool isCommandSelection)
+    private void ConfigureCompactOfficerListDialogLayout()
     {
         var root = _officerListDialog?.GetNodeOrNull<VBoxContainer>("OfficerListDialogRoot");
         var confirmRow = _officerListDialog?.GetNodeOrNull<CenterContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow");
         if (root != null)
         {
-            root.CustomMinimumSize = isCommandSelection
-                ? new Vector2(420.0f, 220.0f)
-                : new Vector2(420.0f, 280.0f);
+            root.CustomMinimumSize = new Vector2(420.0f, 220.0f);
         }
 
         if (_officerListTable != null)
         {
-            _officerListTable.CustomMinimumSize = isCommandSelection
-                ? new Vector2(560.0f, 180.0f)
-                : new Vector2(920.0f, 260.0f);
+            _officerListTable.CustomMinimumSize = new Vector2(560.0f, 180.0f);
         }
 
         if (confirmRow != null)
         {
-            confirmRow.CustomMinimumSize = isCommandSelection
-                ? new Vector2(0.0f, 28.0f)
-                : new Vector2(0.0f, 34.0f);
+            confirmRow.CustomMinimumSize = new Vector2(0.0f, 28.0f);
+        }
+    }
+
+    private void ResetOfficerListDialogLayoutToSceneDefaults()
+    {
+        var root = _officerListDialog?.GetNodeOrNull<VBoxContainer>("OfficerListDialogRoot");
+        var confirmRow = _officerListDialog?.GetNodeOrNull<CenterContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow");
+        if (root != null)
+        {
+            root.CustomMinimumSize = new Vector2(960.0f, 380.0f);
+        }
+
+        if (_officerListTable != null)
+        {
+            _officerListTable.CustomMinimumSize = new Vector2(920.0f, 260.0f);
+        }
+
+        if (confirmRow != null)
+        {
+            confirmRow.CustomMinimumSize = new Vector2(0.0f, 34.0f);
         }
     }
 

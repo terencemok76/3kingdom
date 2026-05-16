@@ -15,119 +15,21 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _spyDialog.GetNodeOrNull<VBoxContainer>("SpyDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _spyActionOption = existingRoot.GetNodeOrNull<OptionButton>("ActionRow/ActionOption");
-            _spyTargetCityOption = existingRoot.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
-            _spyTargetOfficerOption = existingRoot.GetNodeOrNull<OptionButton>("TargetOfficerRow/TargetOfficerOption");
-            _spySelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _spySelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _spySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
-            _spyWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
-            _spyConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmButton");
+            GD.PushError("SpyDialogRoot not found in SpyDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
-        {
-            Name = "SpyDialogRoot",
-            CustomMinimumSize = new Vector2(760.0f, 470.0f),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _spyDialog.AddChild(root);
-
-        root.AddChild(CreateDiplomacyFormRow("ActionRow", "ActionLabel"));
-        _spyActionOption = new OptionButton
-        {
-            Name = "ActionOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _spyActionOption.ItemSelected += _ =>
-        {
-            PopulateSpyTargetOfficerOptions();
-            UpdateSpySummary();
-            UpdateSpyConfirmButtonState();
-        };
-        root.GetNode<HBoxContainer>("ActionRow").AddChild(_spyActionOption);
-
-        root.AddChild(CreateDiplomacyFormRow("TargetCityRow", "TargetCityLabel"));
-        _spyTargetCityOption = new OptionButton
-        {
-            Name = "TargetCityOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _spyTargetCityOption.ItemSelected += _ =>
-        {
-            PopulateSpyTargetOfficerOptions();
-            UpdateSpySummary();
-            UpdateSpyConfirmButtonState();
-        };
-        root.GetNode<HBoxContainer>("TargetCityRow").AddChild(_spyTargetCityOption);
-
-        root.AddChild(CreateDiplomacyFormRow("TargetOfficerRow", "TargetOfficerLabel"));
-        _spyTargetOfficerOption = new OptionButton
-        {
-            Name = "TargetOfficerOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _spyTargetOfficerOption.ItemSelected += _ =>
-        {
-            UpdateSpySummary();
-            UpdateSpyConfirmButtonState();
-        };
-        root.GetNode<HBoxContainer>("TargetOfficerRow").AddChild(_spyTargetOfficerOption);
-
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _spySelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_spySelectedOfficerLabel);
-        _spySelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _spySelectOfficerButton.Pressed += OnSpySelectOfficerPressed;
-        officerSelectorRow.AddChild(_spySelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        _spySummaryLabel = new Label
-        {
-            Name = "SummaryLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_spySummaryLabel);
-
-        _spyWarningLabel = new Label
-        {
-            Name = "WarningLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_spyWarningLabel);
-
-        var footer = new HBoxContainer
-        {
-            Name = "FooterRow",
-            Alignment = BoxContainer.AlignmentMode.Center
-        };
-        root.AddChild(footer);
-        _spyConfirmButton = new Button
-        {
-            Name = "ConfirmButton"
-        };
-        _spyConfirmButton.Pressed += OnSpyConfirmPressed;
-        footer.AddChild(_spyConfirmButton);
+        _spyActionOption = existingRoot.GetNodeOrNull<OptionButton>("ActionRow/ActionOption");
+        _spyTargetCityOption = existingRoot.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
+        _spyTargetOfficerOption = existingRoot.GetNodeOrNull<OptionButton>("TargetOfficerRow/TargetOfficerOption");
+        _spySelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
+        _spySelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _spySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
+        _spyWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
+        _spyConfirmButton = existingRoot.GetNodeOrNull<Button>("FooterRow/ConfirmButton");
+        ConnectSpyDialogSignals();
     }
 
     private void ShowSpyDialog()
@@ -140,7 +42,7 @@ public partial class HudController : CanvasLayer
         EnsureSpyDialogWidgets();
         UpdateSpyDialogText();
         PopulateSpyDialog();
-        _spyDialog.PopupCentered(new Vector2I(820, 340));
+        PopupDialogUsingSceneSize(_spyDialog);
     }
 
     private void PopulateSpyDialog()
@@ -302,6 +204,55 @@ public partial class HudController : CanvasLayer
         {
             _spyWarningLabel.Text = text;
         }
+    }
+
+    private void ConnectSpyDialogSignals()
+    {
+        if (_spyDialogSignalsConnected)
+        {
+            return;
+        }
+
+        if (_spyActionOption != null)
+        {
+            _spyActionOption.ItemSelected += _ =>
+            {
+                PopulateSpyTargetOfficerOptions();
+                UpdateSpySummary();
+                UpdateSpyConfirmButtonState();
+            };
+        }
+
+        if (_spyTargetCityOption != null)
+        {
+            _spyTargetCityOption.ItemSelected += _ =>
+            {
+                PopulateSpyTargetOfficerOptions();
+                UpdateSpySummary();
+                UpdateSpyConfirmButtonState();
+            };
+        }
+
+        if (_spyTargetOfficerOption != null)
+        {
+            _spyTargetOfficerOption.ItemSelected += _ =>
+            {
+                UpdateSpySummary();
+                UpdateSpyConfirmButtonState();
+            };
+        }
+
+        if (_spySelectOfficerButton != null)
+        {
+            _spySelectOfficerButton.Pressed += OnSpySelectOfficerPressed;
+        }
+
+        if (_spyConfirmButton != null)
+        {
+            _spyConfirmButton.Pressed += OnSpyConfirmPressed;
+        }
+
+        _spyDialogSignalsConnected = true;
     }
 
     private void OnSpyConfirmPressed()

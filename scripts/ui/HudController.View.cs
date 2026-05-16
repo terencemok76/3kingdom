@@ -27,30 +27,6 @@ public partial class HudController : CanvasLayer
         _officerListDialog?.Hide();
     }
 
-    private void OnOfficerListHeaderGuiInput(InputEvent inputEvent)
-    {
-        if (_officerListDialog == null)
-        {
-            return;
-        }
-
-        if (inputEvent is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
-        {
-            _isDraggingOfficerListDialog = mouseButton.Pressed;
-            if (_isDraggingOfficerListDialog)
-            {
-                _officerListDialogDragOffset = DisplayServer.MouseGetPosition() - _officerListDialog.Position;
-            }
-
-            return;
-        }
-
-        if (_isDraggingOfficerListDialog && inputEvent is InputEventMouseMotion)
-        {
-            _officerListDialog.Position = DisplayServer.MouseGetPosition() - _officerListDialogDragOffset;
-        }
-    }
-
     private void OnOfficerListTableSelected()
     {
         if (_turnManager?.World == null || _officerListTable == null)
@@ -116,7 +92,6 @@ public partial class HudController : CanvasLayer
             _officerPortraitPlaceholderLabel.Text = $"{(_localization?.T("ui.portrait") ?? "Portrait")}\n{officerName}";
         }
 
-        _officerDetailDialog.DialogText = string.Empty;
         if (_officerDetailDialog.Visible)
         {
             _officerDetailDialog.Show();
@@ -902,13 +877,7 @@ public partial class HudController : CanvasLayer
     {
         if (_officerListDialog != null)
         {
-            // Keep the built-in titlebar visually quiet and show the real title in our themed header row.
-            _officerListDialog.Title = " ";
-        }
-
-        if (_officerListHeaderLabel != null)
-        {
-            _officerListHeaderLabel.Text = title;
+            _officerListDialog.Title = title;
         }
     }
 
@@ -1167,7 +1136,7 @@ public partial class HudController : CanvasLayer
 
     private void ReopenOfficerListDialogDeferred()
     {
-        _officerListDialog?.PopupCentered(new Vector2I(420, 320));
+        PopupDialogUsingSceneSize(_officerListDialog);
     }
 
 

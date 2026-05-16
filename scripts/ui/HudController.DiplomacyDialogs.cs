@@ -15,208 +15,68 @@ public partial class HudController : CanvasLayer
         }
 
         var existingRoot = _diplomacyDialog.GetNodeOrNull<VBoxContainer>("DiplomacyDialogRoot");
-        if (existingRoot != null)
+        if (existingRoot == null)
         {
-            _diplomacyActionOption = existingRoot.GetNodeOrNull<OptionButton>("ActionRow/ActionOption");
-            _diplomacyTargetFactionOption = existingRoot.GetNodeOrNull<OptionButton>("TargetFactionRow/TargetFactionOption");
-            _diplomacyDurationSpinBox = existingRoot.GetNodeOrNull<SpinBox>("DurationRow/DurationSpinBox");
-            _diplomacyGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
-            _diplomacyFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
-            _diplomacyHorseSpinBox = existingRoot.GetNodeOrNull<SpinBox>("HorseRow/HorseSpinBox");
-            _diplomacySelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
-            _diplomacySelectOfficerButton = existingRoot.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
-            _diplomacyRelationInfoLabel = existingRoot.GetNodeOrNull<Label>("RelationInfoLabel");
-            _diplomacySummaryLabel = existingRoot.GetNodeOrNull<Label>("SummaryLabel");
-            _diplomacyWarningLabel = existingRoot.GetNodeOrNull<Label>("WarningLabel");
-            _diplomacyConfirmButton = existingRoot.GetNodeOrNull<Button>("ConfirmButton");
-            if (!_diplomacyDialogSignalsConnected)
-            {
-                if (_diplomacyActionOption != null)
-                {
-                    _diplomacyActionOption.ItemSelected += OnDiplomacyActionOptionSelected;
-                }
-
-                if (_diplomacyTargetFactionOption != null)
-                {
-                    _diplomacyTargetFactionOption.ItemSelected += OnDiplomacyTargetFactionOptionSelected;
-                }
-
-                if (_diplomacyDurationSpinBox != null)
-                {
-                    _diplomacyDurationSpinBox.ValueChanged += OnDiplomacyDurationChanged;
-                }
-
-                if (_diplomacyGoldSpinBox != null)
-                {
-                    _diplomacyGoldSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
-                }
-
-                if (_diplomacyFoodSpinBox != null)
-                {
-                    _diplomacyFoodSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
-                }
-
-                if (_diplomacyHorseSpinBox != null)
-                {
-                    _diplomacyHorseSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
-                }
-
-                if (_diplomacySelectOfficerButton != null)
-                {
-                    _diplomacySelectOfficerButton.Pressed += OnDiplomacySelectOfficerPressed;
-                }
-
-                if (_diplomacyConfirmButton != null)
-                {
-                    _diplomacyConfirmButton.Pressed += OnDiplomacyConfirmPressed;
-                }
-
-                _diplomacyDialogSignalsConnected = true;
-            }
+            GD.PushError("DiplomacyDialogRoot not found in DiplomacyDialog.tscn.");
             return;
         }
 
-        var root = new VBoxContainer
+        _diplomacyActionOption = existingRoot.GetNodeOrNull<OptionButton>("HeaderSection/ActionRow/ActionOption");
+        _diplomacyTargetFactionOption = existingRoot.GetNodeOrNull<OptionButton>("HeaderSection/TargetFactionRow/TargetFactionOption");
+        _diplomacyDurationSpinBox = existingRoot.GetNodeOrNull<SpinBox>("MiddleSection/DurationRow/DurationSpinBox");
+        _diplomacyGoldSpinBox = existingRoot.GetNodeOrNull<SpinBox>("MiddleSection/GoldRow/GoldSpinBox");
+        _diplomacyFoodSpinBox = existingRoot.GetNodeOrNull<SpinBox>("MiddleSection/FoodRow/FoodSpinBox");
+        _diplomacyHorseSpinBox = existingRoot.GetNodeOrNull<SpinBox>("MiddleSection/HorseRow/HorseSpinBox");
+        _diplomacySelectedOfficerLabel = existingRoot.GetNodeOrNull<Label>("FooterSection/OfficerSelectorRow/SelectedOfficerLabel");
+        _diplomacySelectOfficerButton = existingRoot.GetNodeOrNull<Button>("FooterSection/OfficerSelectorRow/SelectOfficerButton");
+        _diplomacyRelationInfoLabel = existingRoot.GetNodeOrNull<Label>("MiddleSection/RelationInfoLabel");
+        _diplomacySummaryLabel = existingRoot.GetNodeOrNull<Label>("FooterSection/SummaryLabel");
+        _diplomacyWarningLabel = existingRoot.GetNodeOrNull<Label>("FooterSection/WarningLabel");
+        _diplomacyConfirmButton = existingRoot.GetNodeOrNull<Button>("FooterSection/FooterRow/ConfirmButton");
+        if (!_diplomacyDialogSignalsConnected)
         {
-            Name = "DiplomacyDialogRoot",
-            CustomMinimumSize = new Vector2(760.0f, 0.0f),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill
-        };
-        root.AddThemeConstantOverride("separation", 8);
-        _diplomacyDialog.AddChild(root);
+            if (_diplomacyActionOption != null)
+            {
+                _diplomacyActionOption.ItemSelected += OnDiplomacyActionOptionSelected;
+            }
 
-        root.AddChild(CreateDiplomacyFormRow("ActionRow", "ActionLabel"));
-        _diplomacyActionOption = new OptionButton
-        {
-            Name = "ActionOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _diplomacyActionOption.ItemSelected += OnDiplomacyActionOptionSelected;
-        root.GetNode<HBoxContainer>("ActionRow").AddChild(_diplomacyActionOption);
+            if (_diplomacyTargetFactionOption != null)
+            {
+                _diplomacyTargetFactionOption.ItemSelected += OnDiplomacyTargetFactionOptionSelected;
+            }
 
-        root.AddChild(CreateDiplomacyFormRow("TargetFactionRow", "TargetFactionLabel"));
-        _diplomacyTargetFactionOption = new OptionButton
-        {
-            Name = "TargetFactionOption",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _diplomacyTargetFactionOption.ItemSelected += OnDiplomacyTargetFactionOptionSelected;
-        root.GetNode<HBoxContainer>("TargetFactionRow").AddChild(_diplomacyTargetFactionOption);
+            if (_diplomacyDurationSpinBox != null)
+            {
+                _diplomacyDurationSpinBox.ValueChanged += OnDiplomacyDurationChanged;
+            }
 
-        root.AddChild(CreateDiplomacyFormRow("DurationRow", "DurationLabel"));
-        _diplomacyDurationSpinBox = new SpinBox
-        {
-            Name = "DurationSpinBox",
-            MinValue = 1,
-            MaxValue = 12,
-            Step = 1,
-            Value = 3,
-            Rounded = true,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _diplomacyDurationSpinBox.ValueChanged += OnDiplomacyDurationChanged;
-        root.GetNode<HBoxContainer>("DurationRow").AddChild(_diplomacyDurationSpinBox);
+            if (_diplomacyGoldSpinBox != null)
+            {
+                _diplomacyGoldSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
+            }
 
-        root.AddChild(CreateDiplomacyFormRow("GoldRow", "GoldLabel"));
-        _diplomacyGoldSpinBox = new SpinBox
-        {
-            Name = "GoldSpinBox",
-            MinValue = 0,
-            MaxValue = 9999,
-            Step = 100,
-            Value = 0,
-            Rounded = true,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _diplomacyGoldSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
-        root.GetNode<HBoxContainer>("GoldRow").AddChild(_diplomacyGoldSpinBox);
+            if (_diplomacyFoodSpinBox != null)
+            {
+                _diplomacyFoodSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
+            }
 
-        root.AddChild(CreateDiplomacyFormRow("FoodRow", "FoodLabel"));
-        _diplomacyFoodSpinBox = new SpinBox
-        {
-            Name = "FoodSpinBox",
-            MinValue = 0,
-            MaxValue = 99999,
-            Step = 100,
-            Value = 0,
-            Rounded = true,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _diplomacyFoodSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
-        root.GetNode<HBoxContainer>("FoodRow").AddChild(_diplomacyFoodSpinBox);
+            if (_diplomacyHorseSpinBox != null)
+            {
+                _diplomacyHorseSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
+            }
 
-        root.AddChild(CreateDiplomacyFormRow("HorseRow", "HorseLabel"));
-        _diplomacyHorseSpinBox = new SpinBox
-        {
-            Name = "HorseSpinBox",
-            MinValue = 0,
-            MaxValue = 9999,
-            Step = 10,
-            Value = 0,
-            Rounded = true,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        _diplomacyHorseSpinBox.ValueChanged += OnDiplomacyResourceValueChanged;
-        root.GetNode<HBoxContainer>("HorseRow").AddChild(_diplomacyHorseSpinBox);
+            if (_diplomacySelectOfficerButton != null)
+            {
+                _diplomacySelectOfficerButton.Pressed += OnDiplomacySelectOfficerPressed;
+            }
 
-        _diplomacyRelationInfoLabel = new Label
-        {
-            Name = "RelationInfoLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_diplomacyRelationInfoLabel);
+            if (_diplomacyConfirmButton != null)
+            {
+                _diplomacyConfirmButton.Pressed += OnDiplomacyConfirmPressed;
+            }
 
-        root.AddChild(new Label { Name = "OfficerListLabel" });
-        var officerSelectorRow = new HBoxContainer
-        {
-            Name = "OfficerSelectorRow",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        officerSelectorRow.AddThemeConstantOverride("separation", 8);
-        _diplomacySelectedOfficerLabel = new Label
-        {
-            Name = "SelectedOfficerLabel",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        officerSelectorRow.AddChild(_diplomacySelectedOfficerLabel);
-        _diplomacySelectOfficerButton = new Button
-        {
-            Name = "SelectOfficerButton",
-            FocusMode = Control.FocusModeEnum.None
-        };
-        _diplomacySelectOfficerButton.Pressed += OnDiplomacySelectOfficerPressed;
-        officerSelectorRow.AddChild(_diplomacySelectOfficerButton);
-        root.AddChild(officerSelectorRow);
-
-        _diplomacySummaryLabel = new Label
-        {
-            Name = "SummaryLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_diplomacySummaryLabel);
-
-        _diplomacyWarningLabel = new Label
-        {
-            Name = "WarningLabel",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
-        };
-        root.AddChild(_diplomacyWarningLabel);
-
-        var footer = new HBoxContainer
-        {
-            Name = "FooterRow",
-            Alignment = BoxContainer.AlignmentMode.Center
-        };
-        root.AddChild(footer);
-        _diplomacyConfirmButton = new Button
-        {
-            Name = "ConfirmButton"
-        };
-        _diplomacyConfirmButton.Pressed += OnDiplomacyConfirmPressed;
-        footer.AddChild(_diplomacyConfirmButton);
-        _diplomacyDialogSignalsConnected = true;
+            _diplomacyDialogSignalsConnected = true;
+        }
     }
 
     private void ShowDiplomacyDialog()
@@ -281,6 +141,7 @@ public partial class HudController : CanvasLayer
         UpdateDiplomacyRelationInfo();
         UpdateDiplomacySummary();
         UpdateDiplomacyConfirmButtonState();
+        UpdateDiplomacyDialogSize();
     }
 
     private void UpdateDiplomacyDialogText()
@@ -320,22 +181,6 @@ public partial class HudController : CanvasLayer
         }
     }
 
-    private static HBoxContainer CreateDiplomacyFormRow(string rowName, string labelName)
-    {
-        var row = new HBoxContainer
-        {
-            Name = rowName,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-        };
-        row.AddThemeConstantOverride("separation", 8);
-        row.AddChild(new Label
-        {
-            Name = labelName,
-            CustomMinimumSize = new Vector2(120.0f, 0.0f)
-        });
-        return row;
-    }
-
     private void AddDiplomacyActionOption(DiplomacyActionType actionType)
     {
         if (_diplomacyActionOption == null || _localization == null)
@@ -361,6 +206,7 @@ public partial class HudController : CanvasLayer
         UpdateDiplomacyDialogInputState();
         UpdateDiplomacySummary();
         UpdateDiplomacyConfirmButtonState();
+        UpdateDiplomacyDialogSize();
     }
 
     private void OnDiplomacyTargetFactionOptionSelected(long _)
@@ -515,6 +361,24 @@ public partial class HudController : CanvasLayer
             actionType == DiplomacyActionType.Demand
                 ? _localization.T("ui.diplomacy_demand_horse")
                 : _localization.T("ui.diplomacy_gift_horse"));
+    }
+
+    private void UpdateDiplomacyDialogSize()
+    {
+        if (_diplomacyDialog == null)
+        {
+            return;
+        }
+
+        var actionType = GetSelectedDiplomacyActionType();
+        var desiredHeight = actionType switch
+        {
+            DiplomacyActionType.Gift or DiplomacyActionType.Demand => 520,
+            DiplomacyActionType.BreakPact => 420,
+            _ => 460
+        };
+
+        _diplomacyDialog.Size = new Vector2I(500, desiredHeight);
     }
 
     private void SetDiplomacyRowVisible(string rowName, bool visible)
