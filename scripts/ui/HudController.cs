@@ -130,20 +130,6 @@ public partial class HudController : CanvasLayer
         Loyalty
     }
 
-    private enum HireOfficerSortField
-    {
-        Name,
-        Role,
-        City,
-        Owner,
-        Loyalty,
-        Strength,
-        Intelligence,
-        Charm,
-        Leadership,
-        Combat
-    }
-
     private static readonly (string SheetPath, string MappingPath)[] PortraitSources =
     {
         ("res://assets/portrait/team1.png", "res://data/person/person_image_1.json"),
@@ -240,13 +226,8 @@ public partial class HudController : CanvasLayer
     private Button? _requestItemConfirmButton;
     private OptionButton? _requestItemOption;
     private int _requestItemSelectedOfficerId = -1;
-    private Window? _hireOfficerDialog;
-    private Tree? _hireOfficerList;
-    private SpinBox? _hireOfficerGoldSpinBox;
-    private SpinBox? _hireOfficerFoodSpinBox;
-    private OptionButton? _hireOfficerItemOption;
-    private Label? _hireOfficerSummaryLabel;
-    private Button? _hireOfficerConfirmButton;
+    private HireOfficerDialog? _hireOfficerDialog;
+    private int _hireOfficerSelectedOfficerId = -1;
     private Window? _civilDialog;
     private OptionButton? _civilCommandOption;
     private Button? _civilConfirmButton;
@@ -362,6 +343,7 @@ public partial class HudController : CanvasLayer
     private OptionButton? _cityListFilterOption;
     private OptionButton? _officerSortOption;
     private Tree? _officerListTable;
+    private SelectOfficerDialog? _selectOfficerDialog;
     private Window? _officerDetailDialog;
     private TextureRect? _officerPortraitRect;
     private Label? _officerPortraitPlaceholderLabel;
@@ -422,8 +404,6 @@ public partial class HudController : CanvasLayer
     private OfficerSortMode _officerSortMode = OfficerSortMode.Strength;
     private ViewTableSortField _viewTableSortField = ViewTableSortField.Name;
     private bool _viewTableSortAscending = true;
-    private HireOfficerSortField _hireOfficerSortField = HireOfficerSortField.Loyalty;
-    private bool _hireOfficerSortAscending = true;
     private CommandType _pendingOfficerCommand = CommandType.Pass;
     private TroopType _pendingRecruitTroopType = TroopType.Infantry;
     private readonly Dictionary<int, AttackOfficerDeploymentData> _attackOfficerDeployments = new();
@@ -519,7 +499,7 @@ public partial class HudController : CanvasLayer
         AddChild(_targetCityMenu);
         _targetCityMenu.IdPressed += OnTargetCityMenuIdPressed;
 
-        _merchantDialog = GD.Load<PackedScene>("res://scenes/ui/MerchantDialog.tscn").Instantiate<Window>();
+        _merchantDialog = GD.Load<PackedScene>("res://scenes/ui/merchant/MerchantDialog.tscn").Instantiate<Window>();
         _merchantDialog.Exclusive = false;
         _merchantDialog.Unresizable = true;
         _merchantDialog.CloseRequested += () =>
@@ -531,7 +511,7 @@ public partial class HudController : CanvasLayer
         EnsureMerchantDialogWidgets();
         _merchantDialog.Hide();
 
-        _militaryDialog = GD.Load<PackedScene>("res://scenes/ui/MilitaryDialog.tscn").Instantiate<Window>();
+        _militaryDialog = GD.Load<PackedScene>("res://scenes/ui/military/MilitaryDialog.tscn").Instantiate<Window>();
         _militaryDialog.Exclusive = false;
         _militaryDialog.Unresizable = true;
         _militaryDialog.CloseRequested += () =>
@@ -543,7 +523,7 @@ public partial class HudController : CanvasLayer
         EnsureMilitaryDialogWidgets();
         _militaryDialog.Hide();
 
-        _recruitTroopDialog = GD.Load<PackedScene>("res://scenes/ui/RecruitTroopDialog.tscn").Instantiate<Window>();
+        _recruitTroopDialog = GD.Load<PackedScene>("res://scenes/ui/military/RecruitTroopDialog.tscn").Instantiate<Window>();
         _recruitTroopDialog.Exclusive = false;
         _recruitTroopDialog.Unresizable = true;
         _recruitTroopDialog.CloseRequested += () =>
@@ -555,7 +535,7 @@ public partial class HudController : CanvasLayer
         EnsureRecruitTroopDialogWidgets();
         _recruitTroopDialog.Hide();
 
-        _personnelDialog = GD.Load<PackedScene>("res://scenes/ui/PersonnelDialog.tscn").Instantiate<Window>();
+        _personnelDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/PersonnelDialog.tscn").Instantiate<Window>();
         _personnelDialog.Exclusive = false;
         _personnelDialog.Unresizable = true;
         _personnelDialog.CloseRequested += () =>
@@ -567,7 +547,7 @@ public partial class HudController : CanvasLayer
         EnsurePersonnelDialogWidgets();
         _personnelDialog.Hide();
 
-        _personnelBonusDialog = GD.Load<PackedScene>("res://scenes/ui/PersonnelBonusDialog.tscn").Instantiate<Window>();
+        _personnelBonusDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/PersonnelBonusDialog.tscn").Instantiate<Window>();
         _personnelBonusDialog.Exclusive = false;
         _personnelBonusDialog.Unresizable = true;
         _personnelBonusDialog.CloseRequested += () =>
@@ -579,7 +559,7 @@ public partial class HudController : CanvasLayer
         EnsurePersonnelBonusDialogWidgets();
         _personnelBonusDialog.Hide();
 
-        _assignRoleDialog = GD.Load<PackedScene>("res://scenes/ui/AssignRoleDialog.tscn").Instantiate<Window>();
+        _assignRoleDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/AssignRoleDialog.tscn").Instantiate<Window>();
         _assignRoleDialog.Exclusive = false;
         _assignRoleDialog.Unresizable = true;
         _assignRoleDialog.CloseRequested += () =>
@@ -591,7 +571,7 @@ public partial class HudController : CanvasLayer
         EnsureAssignRoleDialogWidgets();
         _assignRoleDialog.Hide();
 
-        _advisorDialog = GD.Load<PackedScene>("res://scenes/ui/AdvisorDialog.tscn").Instantiate<Window>();
+        _advisorDialog = GD.Load<PackedScene>("res://scenes/ui/advisor/AdvisorDialog.tscn").Instantiate<Window>();
         _advisorDialog.Exclusive = false;
         _advisorDialog.Unresizable = true;
         _advisorDialog.CloseRequested += () =>
@@ -603,7 +583,7 @@ public partial class HudController : CanvasLayer
         EnsureAdvisorDialogWidgets();
         _advisorDialog.Hide();
 
-        _fireOfficerDialog = GD.Load<PackedScene>("res://scenes/ui/FireOfficerDialog.tscn").Instantiate<Window>();
+        _fireOfficerDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/FireOfficerDialog.tscn").Instantiate<Window>();
         _fireOfficerDialog.Exclusive = false;
         _fireOfficerDialog.Unresizable = true;
         _fireOfficerDialog.CloseRequested += () =>
@@ -615,7 +595,7 @@ public partial class HudController : CanvasLayer
         EnsureFireOfficerDialogWidgets();
         _fireOfficerDialog.Hide();
 
-        _requestItemDialog = GD.Load<PackedScene>("res://scenes/ui/RequestItemDialog.tscn").Instantiate<Window>();
+        _requestItemDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/RequestItemDialog.tscn").Instantiate<Window>();
         _requestItemDialog.Exclusive = false;
         _requestItemDialog.Unresizable = true;
         _requestItemDialog.CloseRequested += () =>
@@ -627,19 +607,19 @@ public partial class HudController : CanvasLayer
         EnsureRequestItemDialogWidgets();
         _requestItemDialog.Hide();
 
-        _hireOfficerDialog = new Window();
+        _hireOfficerDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/HireOfficerDialog.tscn").Instantiate<HireOfficerDialog>();
         _hireOfficerDialog.Exclusive = false;
         _hireOfficerDialog.Unresizable = true;
-        _hireOfficerDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _hireOfficerDialog?.Hide();
-        };
         AddChild(_hireOfficerDialog);
-        EnsureHireOfficerDialogWidgets();
+        _hireOfficerDialog.SelectOfficerPressed += OnHireOfficerSelectOfficerPressed;
+        _hireOfficerDialog.GoldValueChanged += OnHireOfficerOfferChanged;
+        _hireOfficerDialog.FoodValueChanged += OnHireOfficerOfferChanged;
+        _hireOfficerDialog.ItemSelected += OnHireOfficerItemSelected;
+        _hireOfficerDialog.ConfirmPressed += OnHireOfficerDialogConfirmed;
+        _hireOfficerDialog.CloseRequested += () => PlayUiClickSfx();
         _hireOfficerDialog.Hide();
 
-        _civilDialog = GD.Load<PackedScene>("res://scenes/ui/CivilDialog.tscn").Instantiate<Window>();
+        _civilDialog = GD.Load<PackedScene>("res://scenes/ui/civil/CivilDialog.tscn").Instantiate<Window>();
         _civilDialog.Exclusive = false;
         _civilDialog.Unresizable = true;
         _civilDialog.CloseRequested += () =>
@@ -651,7 +631,7 @@ public partial class HudController : CanvasLayer
         EnsureCivilDialogWidgets();
         _civilDialog.Hide();
 
-        _visitCitizenDialog = GD.Load<PackedScene>("res://scenes/ui/VisitCitizenDialog.tscn").Instantiate<Window>();
+        _visitCitizenDialog = GD.Load<PackedScene>("res://scenes/ui/civil/VisitCitizenDialog.tscn").Instantiate<Window>();
         _visitCitizenDialog.Exclusive = false;
         _visitCitizenDialog.Unresizable = true;
         _visitCitizenDialog.CloseRequested += () =>
@@ -663,7 +643,7 @@ public partial class HudController : CanvasLayer
         EnsureVisitCitizenDialogWidgets();
         _visitCitizenDialog.Hide();
 
-        _civilReliefDialog = GD.Load<PackedScene>("res://scenes/ui/CivilReliefDialog.tscn").Instantiate<Window>();
+        _civilReliefDialog = GD.Load<PackedScene>("res://scenes/ui/civil/CivilReliefDialog.tscn").Instantiate<Window>();
         _civilReliefDialog.Exclusive = false;
         _civilReliefDialog.Unresizable = true;
         _civilReliefDialog.CloseRequested += () =>
@@ -675,7 +655,7 @@ public partial class HudController : CanvasLayer
         EnsureCivilReliefDialogWidgets();
         _civilReliefDialog.Hide();
 
-        _diplomacyDialog = GD.Load<PackedScene>("res://scenes/ui/DiplomacyDialog.tscn").Instantiate<Window>();
+        _diplomacyDialog = GD.Load<PackedScene>("res://scenes/ui/diplomacy/DiplomacyDialog.tscn").Instantiate<Window>();
         _diplomacyDialog.Exclusive = false;
         _diplomacyDialog.Unresizable = true;
         _diplomacyDialog.CloseRequested += () =>
@@ -695,7 +675,7 @@ public partial class HudController : CanvasLayer
         EnsureDiplomacyProposalDialogWidgets();
         _diplomacyProposalDialog.Hide();
 
-        _spyDialog = GD.Load<PackedScene>("res://scenes/ui/SpyDialog.tscn").Instantiate<Window>();
+        _spyDialog = GD.Load<PackedScene>("res://scenes/ui/spy/SpyDialog.tscn").Instantiate<Window>();
         _spyDialog.Exclusive = false;
         _spyDialog.Unresizable = true;
         _spyDialog.CloseRequested += () =>
@@ -743,7 +723,7 @@ public partial class HudController : CanvasLayer
         EnsureSaveLoadConfirmDialogWidgets();
         _saveLoadConfirmDialog.Hide();
 
-        _successionDialog = GD.Load<PackedScene>("res://scenes/ui/SuccessionDialog.tscn").Instantiate<Window>();
+        _successionDialog = GD.Load<PackedScene>("res://scenes/ui/personnel/SuccessionDialog.tscn").Instantiate<Window>();
         _successionDialog.Exclusive = false;
         _successionDialog.Unresizable = true;
         _successionDialog.CloseRequested += OnSuccessionDialogCloseRequested;
@@ -751,7 +731,7 @@ public partial class HudController : CanvasLayer
         EnsureSuccessionDialogWidgets();
         _successionDialog.Hide();
 
-        _internalAffairsDialog = GD.Load<PackedScene>("res://scenes/ui/InternalAffairsDialog.tscn").Instantiate<Window>();
+        _internalAffairsDialog = GD.Load<PackedScene>("res://scenes/ui/internal_affairs/InternalAffairsDialog.tscn").Instantiate<Window>();
         _internalAffairsDialog.Exclusive = false;
         _internalAffairsDialog.Unresizable = true;
         _internalAffairsDialog.CloseRequested += () =>
@@ -763,7 +743,7 @@ public partial class HudController : CanvasLayer
         EnsureInternalAffairsDialogWidgets();
         _internalAffairsDialog.Hide();
 
-        _moveDialog = GD.Load<PackedScene>("res://scenes/ui/MoveDialog.tscn").Instantiate<Window>();
+        _moveDialog = GD.Load<PackedScene>("res://scenes/ui/military/MoveDialog.tscn").Instantiate<Window>();
         _moveDialog.Exclusive = false;
         _moveDialog.Unresizable = true;
         _moveDialog.CloseRequested += () =>
@@ -775,7 +755,7 @@ public partial class HudController : CanvasLayer
         EnsureMoveDialogWidgets();
         _moveDialog.Hide();
 
-        _attackDialog = GD.Load<PackedScene>("res://scenes/ui/AttackDialog.tscn").Instantiate<Window>();
+        _attackDialog = GD.Load<PackedScene>("res://scenes/ui/military/AttackDialog.tscn").Instantiate<Window>();
         _attackDialog.Exclusive = false;
         _attackDialog.Unresizable = true;
         _attackDialog.CloseRequested += OnAttackDialogCloseRequested;
@@ -783,7 +763,7 @@ public partial class HudController : CanvasLayer
         EnsureAttackDialogWidgets();
         _attackDialog.Hide();
 
-        _officerListDialog = GD.Load<PackedScene>("res://scenes/ui/OfficerListDialog.tscn").Instantiate<Window>();
+        _officerListDialog = GD.Load<PackedScene>("res://scenes/ui/view/OfficerListDialog.tscn").Instantiate<Window>();
         _officerListDialog.Exclusive = false;
         _officerListDialog.Unresizable = true;
         _officerListDialog.CloseRequested += OnOfficerListClosePressed;
@@ -820,7 +800,13 @@ public partial class HudController : CanvasLayer
 
         ApplyOfficerListDialogTheme();
 
-        _officerDetailDialog = GD.Load<PackedScene>("res://scenes/ui/OfficerDetailDialog.tscn").Instantiate<Window>();
+        _selectOfficerDialog = GD.Load<PackedScene>("res://scenes/ui/view/SelectOfficerDialog.tscn").Instantiate<SelectOfficerDialog>();
+        _selectOfficerDialog.Exclusive = false;
+        _selectOfficerDialog.Unresizable = true;
+        AddChild(_selectOfficerDialog);
+        _selectOfficerDialog.Hide();
+
+        _officerDetailDialog = GD.Load<PackedScene>("res://scenes/ui/view/OfficerDetailDialog.tscn").Instantiate<Window>();
         _officerDetailDialog.Exclusive = false;
         _officerDetailDialog.Unresizable = true;
         _officerDetailDialog.CloseRequested += () =>

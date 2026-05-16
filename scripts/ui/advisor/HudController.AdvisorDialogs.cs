@@ -243,7 +243,14 @@ public partial class HudController
         var chiefStrategistName = chiefStrategist != null ? _localization.GetOfficerName(chiefStrategist) : _localization.T("ui.unassigned");
         var selectedOfficer = _advisorSelectedOfficerId > 0 ? _turnManager.World.GetOfficer(_advisorSelectedOfficerId) : null;
         var selectedOfficerName = selectedOfficer != null ? _localization.GetOfficerName(selectedOfficer) : _localization.T("ui.none");
-        var positionMetadata = _advisorPositionOption?.GetItemMetadata(_advisorPositionOption.Selected);
+        Variant? positionMetadata = null;
+        if (_advisorPositionOption != null &&
+            _advisorPositionOption.ItemCount > 0 &&
+            _advisorPositionOption.Selected >= 0)
+        {
+            positionMetadata = _advisorPositionOption.GetItemMetadata(_advisorPositionOption.Selected);
+        }
+
         var position = positionMetadata?.VariantType == Variant.Type.String ? positionMetadata.Value.AsString() : "Chancellor";
         var positionName = position == "Chancellor" ? _localization.T("ui.chancellor") : _localization.T("ui.chief_strategist");
         if (_advisorSelectedOfficerLabel != null)
@@ -271,7 +278,14 @@ public partial class HudController
             return;
         }
 
-        var positionMetadata = _advisorPositionOption?.GetItemMetadata(_advisorPositionOption.Selected);
+        Variant? positionMetadata = null;
+        if (_advisorPositionOption != null &&
+            _advisorPositionOption.ItemCount > 0 &&
+            _advisorPositionOption.Selected >= 0)
+        {
+            positionMetadata = _advisorPositionOption.GetItemMetadata(_advisorPositionOption.Selected);
+        }
+
         var position = positionMetadata?.VariantType == Variant.Type.String ? positionMetadata.Value.AsString() : "Chancellor";
         var result = _commandResolver.ExecuteAssignFactionAdvisor(
             _turnManager.GetPlayerFactionId(),

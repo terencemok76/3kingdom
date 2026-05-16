@@ -1,0 +1,49 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/view/SelectOfficerDialog.cs" id="1_ftm40"]
+
+[node name="SelectOfficerDialog" type="Window"]
+script = ExtResource("1_ftm40")
+oversampling_override = 1.0
+title = "Select Officer"
+position = Vector2i(0, 36)
+size = Vector2i(620, 320)
+
+[node name="SelectOfficerDialogRoot" type="VBoxContainer" parent="."]
+custom_minimum_size = Vector2(620, 280)
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 608.0
+offset_bottom = 308.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="ContentSection" type="VBoxContainer" parent="SelectOfficerDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="OfficerTable" type="Tree" parent="SelectOfficerDialogRoot/ContentSection"]
+custom_minimum_size = Vector2(560, 180)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+column_titles_visible = true
+hide_root = true
+select_mode = 1
+
+[node name="FooterSection" type="VBoxContainer" parent="SelectOfficerDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfirmRow" type="CenterContainer" parent="SelectOfficerDialogRoot/FooterSection"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConfirmButton" type="Button" parent="SelectOfficerDialogRoot/FooterSection/ConfirmRow"]
+custom_minimum_size = Vector2(92, 28)
+layout_mode = 2
+focus_mode = 0
+text = "Confirm"

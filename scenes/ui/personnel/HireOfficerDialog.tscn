@@ -1,0 +1,103 @@
+[gd_scene load_steps=2 format=3 uid="uid://jnq4lbeu5e46"]
+
+[ext_resource type="Script" path="res://scripts/ui/personnel/HireOfficerDialog.cs" id="1_wajxk"]
+
+[node name="HireOfficerDialog" type="Window" unique_id=679507729]
+script = ExtResource("1_wajxk")
+oversampling_override = 1.0
+title = "Hire Officer"
+position = Vector2i(0, 36)
+size = Vector2i(460, 270)
+
+[node name="HireOfficerDialogRoot" type="VBoxContainer" parent="." unique_id=628821647]
+custom_minimum_size = Vector2(450, 260)
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 458.0
+offset_bottom = 268.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="OfficerListLabel" type="Label" parent="HireOfficerDialogRoot" unique_id=949118305]
+layout_mode = 2
+text = "Target Officer"
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=2083665529]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="SelectedOfficerLabel" type="Label" parent="HireOfficerDialogRoot/OfficerSelectorRow" unique_id=1327568009]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Officer: -"
+autowrap_mode = 3
+
+[node name="SelectOfficerButton" type="Button" parent="HireOfficerDialogRoot/OfficerSelectorRow" unique_id=224928292]
+layout_mode = 2
+focus_mode = 0
+text = "Select Officer"
+
+[node name="GoldRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=2043924433]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="GoldLabel" type="Label" parent="HireOfficerDialogRoot/GoldRow" unique_id=254028434]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Gold"
+vertical_alignment = 1
+
+[node name="GoldSpinBox" type="SpinBox" parent="HireOfficerDialogRoot/GoldRow" unique_id=1904406376]
+layout_mode = 2
+size_flags_horizontal = 3
+step = 100.0
+rounded = true
+
+[node name="FoodRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=1681558064]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="FoodLabel" type="Label" parent="HireOfficerDialogRoot/FoodRow" unique_id=1405207507]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Food"
+vertical_alignment = 1
+
+[node name="FoodSpinBox" type="SpinBox" parent="HireOfficerDialogRoot/FoodRow" unique_id=1812569743]
+layout_mode = 2
+size_flags_horizontal = 3
+step = 500.0
+rounded = true
+
+[node name="ItemRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=297587311]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ItemLabel" type="Label" parent="HireOfficerDialogRoot/ItemRow" unique_id=2110562319]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Item"
+vertical_alignment = 1
+
+[node name="ItemOption" type="OptionButton" parent="HireOfficerDialogRoot/ItemRow" unique_id=1067214186]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SummaryLabel" type="Label" parent="HireOfficerDialogRoot" unique_id=673633786]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ConfirmRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=446661001]
+layout_mode = 2
+alignment = 1
+
+[node name="ConfirmButton" type="Button" parent="HireOfficerDialogRoot/ConfirmRow" unique_id=703924572]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+focus_mode = 0
+text = "Confirm"

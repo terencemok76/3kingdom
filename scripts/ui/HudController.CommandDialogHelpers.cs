@@ -331,7 +331,7 @@ public partial class HudController : CanvasLayer
         OfficerSelectorPrimaryStat primaryStat,
         Action<int> onConfirmed)
     {
-        if (_turnManager?.World == null || _officerListDialog == null || _officerListTable == null || _localization == null)
+        if (_turnManager?.World == null || _selectOfficerDialog == null || _localization == null)
         {
             return;
         }
@@ -357,72 +357,33 @@ public partial class HudController : CanvasLayer
         _genericOfficerSelectorCandidateIds.AddRange(candidates.Select(officer => officer.Id));
         _genericOfficerSelectorPrimaryStat = primaryStat;
         _genericOfficerSelectorConfirmedAction = onConfirmed;
-        _officerListMode = OfficerListMode.GenericSelection;
         _pendingOfficerCommand = CommandType.Pass;
 
-        ConfigureCompactOfficerListDialogLayout();
-        SetOfficerListDialogTitle(title);
-        if (_officerListConfirmButton != null)
-        {
-            _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
-        }
+        var rows = candidates
+            .Select(officer => new SelectOfficerDialog.RowData
+            {
+                OfficerId = officer.Id,
+                OfficerName = _localization.GetOfficerName(officer),
+                RoleName = _localization.GetOfficerRole(officer),
+                StatusName = _localization.GetOfficerStatus(_turnManager.World, officer),
+                PrimaryStatText = GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString()
+            })
+            .ToList();
 
-        UpdateOfficerListToolbar();
-        _officerListTable.Visible = true;
-        if (_officerListAuxRow != null)
-        {
-            _officerListAuxRow.Visible = false;
-        }
-
-        _officerListTable.Clear();
-        ConfigureOfficerSelectorTableColumns(primaryStat);
-        var tableRoot = _officerListTable.CreateItem();
-        for (var rowIndex = 0; rowIndex < candidates.Count; rowIndex += 1)
-        {
-            var row = _officerListTable.CreateItem(tableRoot);
-            PopulateOfficerSelectorTableRow(row, candidates[rowIndex], rowIndex, primaryStat);
-        }
-
-        var visibleRows = Math.Clamp(candidates.Count, 1, 6);
-        var popupHeight = 220 + visibleRows * 28;
-        _officerListDialog.PopupCentered(new Vector2I(620, popupHeight));
-    }
-
-    private void ConfigureOfficerSelectorTableColumns(OfficerSelectorPrimaryStat primaryStat)
-    {
-        if (_officerListTable == null || _localization == null)
-        {
-            return;
-        }
-
-        _officerListTable.Columns = 4;
-        _officerListTable.SetColumnTitle(0, _localization.T("ui.officers"));
-        _officerListTable.SetColumnCustomMinimumWidth(0, 150);
-        _officerListTable.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
-        _officerListTable.SetColumnTitle(1, _localization.T("ui.role"));
-        _officerListTable.SetColumnCustomMinimumWidth(1, 100);
-        _officerListTable.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
-        _officerListTable.SetColumnTitle(2, _localization.T("ui.status"));
-        _officerListTable.SetColumnCustomMinimumWidth(2, 100);
-        _officerListTable.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
-        _officerListTable.SetColumnTitle(3, GetOfficerSelectorPrimaryStatTitle(primaryStat));
-        _officerListTable.SetColumnCustomMinimumWidth(3, 90);
-        _officerListTable.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
-    }
-
-    private void PopulateOfficerSelectorTableRow(TreeItem row, OfficerData officer, int rowIndex, OfficerSelectorPrimaryStat primaryStat)
-    {
-        if (_turnManager?.World == null || _localization == null)
-        {
-            return;
-        }
-
-        row.SetMetadata(0, officer.Id);
-        row.SetText(0, _localization.GetOfficerName(officer));
-        row.SetText(1, _localization.GetOfficerRole(officer));
-        row.SetText(2, _localization.GetOfficerStatus(_turnManager.World, officer));
-        row.SetText(3, GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString());
-        ApplyViewTableRowStriping(row, rowIndex, 4);
+        _selectOfficerDialog.ShowSelector(
+            title,
+            _localization.T("ui.confirm_officer_selection"),
+            _localization.T("ui.officers"),
+            _localization.T("ui.role"),
+            _localization.T("ui.status"),
+            GetOfficerSelectorPrimaryStatTitle(primaryStat),
+            rows,
+            officerId =>
+            {
+                _genericOfficerSelectorConfirmedAction?.Invoke(officerId);
+                _genericOfficerSelectorConfirmedAction = null;
+                _genericOfficerSelectorCandidateIds.Clear();
+            });
     }
 
     private string GetOfficerSelectorPrimaryStatTitle(OfficerSelectorPrimaryStat primaryStat)
