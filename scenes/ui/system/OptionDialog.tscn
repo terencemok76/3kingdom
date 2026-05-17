@@ -1,0 +1,110 @@
+[gd_scene format=3 uid="uid://bj7k7n4b2xjma"]
+
+[node name="OptionDialog" type="Window" unique_id=193640001]
+oversampling_override = 1.0
+title = "Options"
+position = Vector2i(0, 36)
+size = Vector2i(540, 340)
+
+[node name="OptionDialogRoot" type="VBoxContainer" parent="." unique_id=117320445]
+custom_minimum_size = Vector2(420, 320)
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 524.0
+offset_bottom = 324.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="SaveLoadButton" type="Button" parent="OptionDialogRoot" unique_id=136180741]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Save / Load"
+
+[node name="LanguageButton" type="Button" parent="OptionDialogRoot" unique_id=136180742]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Language"
+
+[node name="GodModeButton" type="Button" parent="OptionDialogRoot" unique_id=136180743]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "God Mode"
+
+[node name="BgmAudioRow" type="HBoxContainer" parent="OptionDialogRoot" unique_id=136180744]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="BgmToggleButton" type="Button" parent="OptionDialogRoot/BgmAudioRow" unique_id=136180745]
+custom_minimum_size = Vector2(148, 34)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+text = "BGM: On"
+
+[node name="BgmVolumeSlider" type="HSlider" parent="OptionDialogRoot/BgmAudioRow" unique_id=136180746]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="BgmVolumeValueLabel" type="Label" parent="OptionDialogRoot/BgmAudioRow" unique_id=136180747]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+size_flags_vertical = 4
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SfxAudioRow" type="HBoxContainer" parent="OptionDialogRoot" unique_id=136180748]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="SfxToggleButton" type="Button" parent="OptionDialogRoot/SfxAudioRow" unique_id=136180749]
+custom_minimum_size = Vector2(148, 34)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+text = "SFX: On"
+
+[node name="SfxVolumeSlider" type="HSlider" parent="OptionDialogRoot/SfxAudioRow" unique_id=136180750]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="SfxVolumeValueLabel" type="Label" parent="OptionDialogRoot/SfxAudioRow" unique_id=136180751]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+size_flags_vertical = 4
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SaveSettingsButton" type="Button" parent="OptionDialogRoot" unique_id=136180752]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Save Settings"
+
+[node name="RestoreLayoutButton" type="Button" parent="OptionDialogRoot" unique_id=136180753]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Restore Layout"

@@ -12,10 +12,6 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
-    private const int CityNameEnglishFontSize = 15;
-    private const int CityStatsEnglishFontSize = 13;
-    private const int CityCommandButtonEnglishFontSize = 13;
-
     private void OnLanguageChanged()
     {
         RefreshAllText();
@@ -170,106 +166,11 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        RefreshMonth();
-        RefreshPlayerFaction();
-        RefreshStoryName();
+        _mainHudUiController?.RefreshText();
+        _systemUiController?.RefreshText();
+        _viewUiController?.RefreshText();
 
-        if (_commandsTitle != null)
-        {
-            _commandsTitle.Text = _localization.T("ui.commands");
-        }
-
-        if (_endTurnButton != null)
-        {
-            _endTurnButton.Text = _localization.T("ui.end_turn");
-        }
-
-        if (_godModeButton != null)
-        {
-            _godModeButton.Text = BuildGodModeButtonText();
-        }
-
-        if (_developButton != null)
-        {
-            _developButton.Text = _localization.T("ui.internal_affairs");
-        }
-
-        if (_recruitButton != null)
-        {
-            _recruitButton.Text = _localization.T("ui.military");
-        }
-
-        if (_moveButton != null)
-        {
-            _moveButton.Text = _localization.T("ui.move");
-            _moveButton.Visible = false;
-        }
-
-        if (_searchButton != null)
-        {
-            _searchButton.Text = _localization.T("ui.search");
-        }
-
-        if (_merchantButton != null)
-        {
-            _merchantButton.Text = _localization.T("ui.merchant");
-        }
-
-        if (_diplomacyButton != null)
-        {
-            _diplomacyButton.Text = _localization.T("ui.diplomacy");
-        }
-
-        if (_spyButton != null)
-        {
-            _spyButton.Text = _localization.T("ui.spy");
-        }
-
-        if (_personnelButton != null)
-        {
-            _personnelButton.Text = _localization.T("ui.personnel");
-        }
-
-        if (_advisorButton != null)
-        {
-            _advisorButton.Text = _localization.T("ui.advisor_menu");
-        }
-
-        if (_civilButton != null)
-        {
-            _civilButton.Text = _localization.T("ui.civil");
-        }
-
-        if (_attackButton != null)
-        {
-            _attackButton.Text = _localization.T("ui.attack");
-            _attackButton.Visible = false;
-        }
-
-        if (_viewButton != null)
-        {
-            _viewButton.Text = _localization.T("ui.view");
-        }
-
-        ApplyCityInfoTypography();
-        RefreshFloatingPanelTitleText();
-        RefreshOptionDialogText();
-        RefreshSaveLoadDialogText();
-
-        if (_officerListConfirmButton != null)
-        {
-            _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
-        }
-
-        if (_officerListAuxRow?.Visible == true && _pendingOfficerCommand == CommandType.Recruit)
-        {
-            ConfigureOfficerListAuxRow(CommandType.Recruit);
-        }
-
-        UpdateOfficerListToolbar();
-        UpdateOfficerListDialogTitle();
-
-        UpdateMerchantDialogText();
+        _merchantUiController?.RefreshText();
         _diplomacyUiController?.RefreshText();
         _spyUiController?.RefreshText();
         _militaryUiController?.RefreshText();
@@ -277,155 +178,11 @@ public partial class HudController : CanvasLayer
         _advisorUiController?.RefreshText();
         _civilUiController?.RefreshText();
         _internalAffairsUiController?.RefreshText();
-        UpdateMoveDialogText();
-        UpdateAttackDialogText();
-
-        if (_officerDetailDialog != null)
-        {
-            _officerDetailDialog.Title = _localization.T("ui.officer_detail");
-        }
-
-        if (_officerPortraitPlaceholderLabel != null && (_officerDetailDialog == null || !_officerDetailDialog.Visible))
-        {
-            _officerPortraitPlaceholderLabel.Visible = true;
-            _officerPortraitPlaceholderLabel.Text = _localization.T("ui.portrait_pending_asset");
-        }
-
-        if (_languageButton != null)
-        {
-            _languageButton.Text = _localization.IsTraditionalChinese
-                ? _localization.T("ui.lang_btn_en")
-                : _localization.T("ui.lang_btn_zh");
-        }
-
-        RefreshSelectedCity();
-    }
-
-    private void ApplyCityInfoTypography()
-    {
-        var useChineseSizing = _localization?.IsTraditionalChinese == true;
-
-        if (_cityNameLabel != null)
-        {
-            if (useChineseSizing)
-            {
-                _cityNameLabel.RemoveThemeFontSizeOverride("font_size");
-            }
-            else
-            {
-                _cityNameLabel.AddThemeFontSizeOverride("font_size", CityNameEnglishFontSize);
-            }
-        }
-
-        if (_cityStatsLabel != null)
-        {
-            if (useChineseSizing)
-            {
-                _cityStatsLabel.RemoveThemeFontSizeOverride("normal_font_size");
-            }
-            else
-            {
-                _cityStatsLabel.AddThemeFontSizeOverride("normal_font_size", CityStatsEnglishFontSize);
-            }
-        }
-
-        foreach (var button in new[]
-                 {
-                     _developButton,
-                     _recruitButton,
-                     _moveButton,
-                     _searchButton,
-                     _merchantButton,
-                     _diplomacyButton,
-                     _spyButton,
-                     _personnelButton,
-                     _advisorButton,
-                     _civilButton,
-                     _attackButton,
-                     _viewButton
-                 })
-        {
-            if (button == null)
-            {
-                continue;
-            }
-
-            if (useChineseSizing)
-            {
-                button.RemoveThemeFontSizeOverride("font_size");
-            }
-            else
-            {
-                button.AddThemeFontSizeOverride("font_size", CityCommandButtonEnglishFontSize);
-            }
-        }
-    }
-
-    private void RefreshPlayerFaction()
-    {
-        if (_playerFactionLabel == null || _turnManager?.World == null || _localization == null)
-        {
-            return;
-        }
-
-        var playerFactionId = _turnManager.GetPlayerFactionId();
-        var factionName = _localization.GetFactionName(_turnManager.World, playerFactionId);
-        _playerFactionLabel.Text = _localization.FormatPlayerFaction(factionName);
-    }
-
-    private void RefreshStoryName()
-    {
-        if (_storyLabel == null || _turnManager?.World == null || _localization == null)
-        {
-            return;
-        }
-
-        var world = _turnManager.World;
-        _storyLabel.Text = _localization.IsTraditionalChinese
-            ? (!string.IsNullOrWhiteSpace(world.StoryNameZhHant) ? world.StoryNameZhHant : world.StoryNameEn)
-            : (!string.IsNullOrWhiteSpace(world.StoryNameEn) ? world.StoryNameEn : world.StoryNameZhHant);
     }
 
     private void RefreshSelectedCity()
     {
-        if (_localization == null || _turnManager?.World == null)
-        {
-            return;
-        }
-
-        if (_selectedCity == null)
-        {
-            if (_cityNameLabel != null)
-            {
-                _cityNameLabel.Text = _localization.FormatCityHeader("-");
-            }
-
-            if (_cityStatsLabel != null)
-            {
-                _cityStatsLabel.Text = BuildCityStatsTwoColumnText("-", null, 0);
-            }
-
-            UpdateGameplayButtonStates();
-            RequestFloatingPanelLayoutRefresh();
-            return;
-        }
-
-        if (_cityNameLabel != null)
-        {
-            _cityNameLabel.Text = _localization.FormatCityHeader(_localization.GetCityName(_selectedCity));
-        }
-
-        if (_cityStatsLabel != null)
-        {
-            var ownerName = _localization.GetFactionName(_turnManager.World, _selectedCity.OwnerFactionId);
-            var freeOfficerCount = _turnManager.World.Officers.Count(officer =>
-                officer.CityId == _selectedCity.Id &&
-                FreeOfficerMovement.IsVisibleFreeOfficer(_turnManager.World, officer));
-            _cityStatsLabel.Text = BuildCityStatsTwoColumnText(ownerName, _selectedCity, freeOfficerCount);
-        }
-
-        UpdateGameplayButtonStates();
-        RequestFloatingPanelLayoutRefresh();
+        _mainHudUiController?.RefreshSelectedCity();
     }
 
     private string BuildOfficerDetailText(OfficerData officer)

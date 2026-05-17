@@ -13,28 +13,11 @@ public partial class HudController
         Log
     }
 
-    private const float FloatingPanelHeaderHeight = 30.0f;
-    private const float FloatingPanelTopClamp = 8.0f;
-    private const float FloatingPanelViewportMargin = 8.0f;
-    private const float TopBarWidth = 720.0f;
-    private const float TopBarHeight = 42.0f;
-    private const float LeftPanelMinimizedWidth = 176.0f;
-    private const float LeftPanelMinimumWidth = 260.0f;
-    private const float LeftPanelMinimumHeight = 260.0f;
-    private const float LogPanelMinimizedWidth = 200.0f;
-    private const float LogPanelMinimumWidth = 320.0f;
-    private const float LogPanelMinimumHeight = 140.0f;
     private const float ResizeHandleSize = 30.0f;
 
     private Control? _rootControl;
     private ColorRect? _topBarBg;
     private HBoxContainer? _topBar;
-    private Vector2 _topBarDefaultPosition;
-    private Vector2 _topBarPosition;
-    private Vector2 _topBarSize;
-    private Vector2 _topBarContentOffset;
-    private Vector2 _topBarContentSize;
-
     private ColorRect? _leftPanelBg;
     private VBoxContainer? _leftPanelContent;
     private ColorRect? _logPanelBg;
@@ -46,37 +29,14 @@ public partial class HudController
     private Button? _logPanelMinimizeButton;
     private Button? _logResizeHandle;
 
-    private Vector2 _leftPanelDefaultHeaderPosition;
-    private Vector2 _leftPanelHeaderPosition;
-    private Vector2 _leftPanelDefaultBgSize;
-    private Vector2 _leftPanelBgOffset;
-    private Vector2 _leftPanelBgSize;
-    private Vector2 _leftPanelContentOffset;
-    private Vector2 _leftPanelDefaultContentSize;
-    private Vector2 _leftPanelContentSize;
-    private bool _leftPanelMinimized;
-
-    private Vector2 _logPanelDefaultHeaderPosition;
-    private Vector2 _logPanelHeaderPosition;
-    private Vector2 _logPanelBgOffset;
-    private Vector2 _logPanelDefaultBgSize;
-    private Vector2 _logPanelBgSize;
-    private Vector2 _logPanelContentOffset;
-    private Vector2 _logPanelDefaultContentSize;
-    private Vector2 _logPanelContentSize;
-    private bool _logPanelMinimized;
-
     private FloatingPanelKind _draggingFloatingPanel = FloatingPanelKind.None;
     private Vector2 _floatingPanelDragMouseOffset;
-    private bool _isResizingLogPanel;
-    private Vector2 _logResizeStartMousePosition;
-    private Vector2 _logResizeStartSize;
     private bool _floatingPanelsInitialized;
     private int _pendingFloatingPanelRefreshFrames;
 
     private void InitializeFloatingPanels()
     {
-        if (_floatingPanelsInitialized)
+        if (_floatingPanelsInitialized || _mainHudUiController == null)
         {
             return;
         }
@@ -92,7 +52,8 @@ public partial class HudController
         _leftPanelBg = GetNodeOrNull<ColorRect>("Root/LeftPanelBg");
         _leftPanelContent = GetNodeOrNull<VBoxContainer>("Root/LeftPanel");
         _logPanelBg = GetNodeOrNull<ColorRect>("Root/LogPanelBg");
-        if (_rootControl == null || _topBarBg == null || _topBar == null || _leftPanelBg == null || _leftPanelContent == null || _logPanelBg == null || _logText == null)
+        var logText = MainHudLogText;
+        if (_rootControl == null || _topBarBg == null || _topBar == null || _leftPanelBg == null || _leftPanelContent == null || _logPanelBg == null || logText == null)
         {
             return;
         }
@@ -102,23 +63,10 @@ public partial class HudController
         MakeControlAbsolute(_leftPanelBg);
         MakeControlAbsolute(_leftPanelContent);
         MakeControlAbsolute(_logPanelBg);
-        MakeControlAbsolute(_logText);
+        MakeControlAbsolute(logText);
 
-        _topBarDefaultPosition = _topBarBg.Position;
-        _topBarPosition = _topBarBg.Position;
-        _topBarSize = new Vector2(Mathf.Min(TopBarWidth, GetViewport().GetVisibleRect().Size.X - (FloatingPanelViewportMargin * 2.0f)), TopBarHeight);
-        if (_topBarSize.X < 520.0f)
-        {
-            _topBarSize.X = Mathf.Max(420.0f, _topBarBg.Size.X);
-        }
-        _topBarContentOffset = new Vector2(12.0f, 6.0f);
-        _topBarContentSize = new Vector2(_topBarSize.X - 24.0f, 28.0f);
-        _topBarBg.Color = new Color(0.06f, 0.06f, 0.08f, 0.9f);
-        _topBarBg.MouseFilter = Control.MouseFilterEnum.Pass;
-        _topBar.MouseFilter = Control.MouseFilterEnum.Pass;
         _topBarBg.GuiInput += OnTopBarGuiInput;
         _topBar.GuiInput += OnTopBarGuiInput;
-        _topBar.AddThemeConstantOverride("separation", 10);
         foreach (var dragControl in new Control?[] { monthLabel, playerFactionLabel, storyLabel, leftSpacer, rightSpacer })
         {
             if (dragControl == null)
@@ -130,50 +78,32 @@ public partial class HudController
             dragControl.GuiInput += OnTopBarGuiInput;
         }
 
-        _leftPanelBg.MouseFilter = Control.MouseFilterEnum.Ignore;
-        _leftPanelContent.MouseFilter = Control.MouseFilterEnum.Pass;
-        _logPanelBg.MouseFilter = Control.MouseFilterEnum.Ignore;
-        _logText.MouseFilter = Control.MouseFilterEnum.Ignore;
         ApplyPanelContentMouseFilters(_leftPanelContent);
-
-        var leftPanelOriginalPosition = _leftPanelBg.Position;
-        _leftPanelDefaultHeaderPosition = leftPanelOriginalPosition;
-        _leftPanelHeaderPosition = leftPanelOriginalPosition;
-        _leftPanelBgOffset = new Vector2(0.0f, FloatingPanelHeaderHeight);
-        _leftPanelDefaultBgSize = new Vector2(_leftPanelBg.Size.X, _leftPanelBg.Size.Y - FloatingPanelHeaderHeight);
-        _leftPanelBgSize = new Vector2(_leftPanelBg.Size.X, _leftPanelBg.Size.Y - FloatingPanelHeaderHeight);
-        _leftPanelContentOffset = (_leftPanelContent.Position - leftPanelOriginalPosition) + new Vector2(0.0f, FloatingPanelHeaderHeight);
-        _leftPanelDefaultContentSize = new Vector2(_leftPanelContent.Size.X, _leftPanelContent.Size.Y - FloatingPanelHeaderHeight);
-        _leftPanelContentSize = new Vector2(_leftPanelContent.Size.X, _leftPanelContent.Size.Y - FloatingPanelHeaderHeight);
-
-        var logPanelOriginalPosition = _logPanelBg.Position;
-        _logPanelDefaultHeaderPosition = logPanelOriginalPosition;
-        _logPanelHeaderPosition = logPanelOriginalPosition;
-        _logPanelBgOffset = new Vector2(0.0f, FloatingPanelHeaderHeight);
-        _logPanelDefaultBgSize = new Vector2(_logPanelBg.Size.X, _logPanelBg.Size.Y - FloatingPanelHeaderHeight);
-        _logPanelBgSize = new Vector2(_logPanelBg.Size.X, _logPanelBg.Size.Y - FloatingPanelHeaderHeight);
-        _logPanelContentOffset = (_logText.Position - logPanelOriginalPosition) + new Vector2(0.0f, FloatingPanelHeaderHeight);
-        _logPanelDefaultContentSize = new Vector2(_logText.Size.X, _logText.Size.Y - FloatingPanelHeaderHeight);
-        _logPanelContentSize = new Vector2(_logText.Size.X, _logText.Size.Y - FloatingPanelHeaderHeight);
 
         _leftPanelHeader = CreateFloatingPanelHeader(
             "LeftPanelHeader",
             _localization?.T("ui.city_panel_title") ?? "City Affairs",
-            FloatingPanelKind.Left,
+            OnLeftPanelHeaderGuiInput,
+            OnLeftPanelMinimizePressed,
             out _leftPanelHeaderLabel,
             out _leftPanelMinimizeButton);
         _logPanelHeader = CreateFloatingPanelHeader(
             "LogPanelHeader",
             _localization?.T("ui.log_panel_title") ?? "War Log",
-            FloatingPanelKind.Log,
+            OnLogPanelHeaderGuiInput,
+            OnLogPanelMinimizePressed,
             out _logPanelHeaderLabel,
             out _logPanelMinimizeButton);
         _logResizeHandle = CreateResizeHandle("LogResizeHandle", OnLogResizeHandleGuiInput);
         _logResizeHandle.ButtonDown += StartLogPanelResize;
 
-        ApplyTopBarLayout();
-        ApplyLeftPanelLayout();
-        ApplyLogPanelLayout();
+        _mainHudUiController.InitializeTopBarPanelBehavior(_topBarBg, _topBar);
+        _mainHudUiController.InitializeCityInfoPanelBehavior(_leftPanelHeader, _leftPanelMinimizeButton, _leftPanelBg, _leftPanelContent);
+        _mainHudUiController.InitializeLogPanelBehavior(_logPanelHeader, _logPanelMinimizeButton, _logResizeHandle, _logPanelBg);
+
+        _mainHudUiController.ApplyTopBarLayout();
+        _mainHudUiController.ApplyCityInfoLayout();
+        _mainHudUiController.ApplyLogLayout();
         _floatingPanelsInitialized = true;
         RequestFloatingPanelLayoutRefresh();
     }
@@ -202,28 +132,20 @@ public partial class HudController
 
     private void RefreshFloatingPanelLayoutsDeferred()
     {
-        if (!_floatingPanelsInitialized)
+        if (!_floatingPanelsInitialized || _mainHudUiController == null)
         {
             return;
         }
 
-        ApplyTopBarLayout();
-        ApplyLeftPanelLayout();
-        ApplyLogPanelLayout();
+        _mainHudUiController.ApplyTopBarLayout();
+        _mainHudUiController.ApplyCityInfoLayout();
+        _mainHudUiController.ApplyLogLayout();
         SaveOptionSettings();
     }
 
     private void RefreshFloatingPanelTitleText()
     {
-        if (_leftPanelHeaderLabel != null)
-        {
-            _leftPanelHeaderLabel.Text = _localization?.T("ui.city_panel_title") ?? "City Affairs";
-        }
-
-        if (_logPanelHeaderLabel != null)
-        {
-            _logPanelHeaderLabel.Text = _localization?.T("ui.log_panel_title") ?? "War Log";
-        }
+        _mainHudUiController?.RefreshPanelTitles();
     }
 
     private void RequestFloatingPanelLayoutRefresh()
@@ -250,7 +172,8 @@ public partial class HudController
     private PanelContainer CreateFloatingPanelHeader(
         string name,
         string title,
-        FloatingPanelKind panelKind,
+        Action<InputEvent> guiInputHandler,
+        Action toggleAction,
         out Label headerLabel,
         out Button minimizeButton)
     {
@@ -324,10 +247,10 @@ public partial class HudController
         minimizeButton.AddThemeStyleboxOverride("pressed", buttonPressedStyle);
         minimizeButton.AddThemeColorOverride("font_color", new Color(0.12f, 0.09f, 0.05f, 1.0f));
         RegisterButtonClickSfx(minimizeButton);
-        minimizeButton.Pressed += () => ToggleFloatingPanel(panelKind);
+        minimizeButton.Pressed += toggleAction;
         row.AddChild(minimizeButton);
 
-        header.GuiInput += @event => OnFloatingPanelHeaderGuiInput(panelKind, @event);
+        header.GuiInput += @event => guiInputHandler(@event);
         _rootControl?.AddChild(header);
         return header;
     }
@@ -337,7 +260,7 @@ public partial class HudController
         var handle = new Button
         {
             Name = name,
-            Text = "↘",
+            Text = "##",
             MouseFilter = Control.MouseFilterEnum.Stop,
             CustomMinimumSize = new Vector2(ResizeHandleSize, ResizeHandleSize),
             FocusMode = Control.FocusModeEnum.None
@@ -397,36 +320,62 @@ public partial class HudController
     {
         if (@event is not InputEventMouseButton mouseButton ||
             mouseButton.ButtonIndex != MouseButton.Left ||
-            !mouseButton.Pressed)
+            !mouseButton.Pressed ||
+            _mainHudUiController == null)
         {
             return;
         }
 
-        BringFloatingPanelToFront(FloatingPanelKind.Top);
+        _mainHudUiController.BringTopBarToFront();
         _draggingFloatingPanel = FloatingPanelKind.Top;
-        _floatingPanelDragMouseOffset = GetViewport().GetMousePosition() - _topBarPosition;
+        _floatingPanelDragMouseOffset = GetViewport().GetMousePosition() - _mainHudUiController.GetTopBarPosition();
         GetViewport().SetInputAsHandled();
     }
 
-    private void OnFloatingPanelHeaderGuiInput(FloatingPanelKind panelKind, InputEvent @event)
+    private void OnLeftPanelHeaderGuiInput(InputEvent @event)
     {
         if (@event is not InputEventMouseButton mouseButton ||
             mouseButton.ButtonIndex != MouseButton.Left ||
-            !mouseButton.Pressed)
+            !mouseButton.Pressed ||
+            _mainHudUiController == null ||
+            _leftPanelHeader == null)
         {
             return;
         }
 
-        var header = panelKind == FloatingPanelKind.Left ? _leftPanelHeader : _logPanelHeader;
-        if (header == null)
-        {
-            return;
-        }
-
-        BringFloatingPanelToFront(panelKind);
-        _draggingFloatingPanel = panelKind;
-        _floatingPanelDragMouseOffset = GetViewport().GetMousePosition() - header.Position;
+        _mainHudUiController.BringCityInfoToFront();
+        _draggingFloatingPanel = FloatingPanelKind.Left;
+        _floatingPanelDragMouseOffset = GetViewport().GetMousePosition() - _leftPanelHeader.Position;
         GetViewport().SetInputAsHandled();
+    }
+
+    private void OnLogPanelHeaderGuiInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton mouseButton ||
+            mouseButton.ButtonIndex != MouseButton.Left ||
+            !mouseButton.Pressed ||
+            _mainHudUiController == null ||
+            _logPanelHeader == null)
+        {
+            return;
+        }
+
+        _mainHudUiController.BringLogToFront();
+        _draggingFloatingPanel = FloatingPanelKind.Log;
+        _floatingPanelDragMouseOffset = GetViewport().GetMousePosition() - _logPanelHeader.Position;
+        GetViewport().SetInputAsHandled();
+    }
+
+    private void OnLeftPanelMinimizePressed()
+    {
+        _mainHudUiController?.ToggleCityInfoMinimized();
+        SaveOptionSettings();
+    }
+
+    private void OnLogPanelMinimizePressed()
+    {
+        _mainHudUiController?.ToggleLogMinimized();
+        SaveOptionSettings();
     }
 
     private void OnLogResizeHandleGuiInput(InputEvent @event)
@@ -443,63 +392,36 @@ public partial class HudController
 
     private void StartLogPanelResize()
     {
-        BringFloatingPanelToFront(FloatingPanelKind.Log);
-        _isResizingLogPanel = true;
-        _draggingFloatingPanel = FloatingPanelKind.None;
-        _logResizeStartMousePosition = GetViewport().GetMousePosition();
-        _logResizeStartSize = _logPanelBgSize;
-        GetViewport().SetInputAsHandled();
-    }
-
-    private void BringFloatingPanelToFront(FloatingPanelKind panelKind)
-    {
-        switch (panelKind)
+        if (_mainHudUiController == null)
         {
-            case FloatingPanelKind.Top:
-                MoveFloatingControlToFront(_topBarBg);
-                MoveFloatingControlToFront(_topBar);
-                break;
-            case FloatingPanelKind.Left:
-                MoveFloatingControlToFront(_leftPanelBg);
-                MoveFloatingControlToFront(_leftPanelContent);
-                MoveFloatingControlToFront(_leftPanelHeader);
-                break;
-            case FloatingPanelKind.Log:
-                MoveFloatingControlToFront(_logPanelBg);
-                MoveFloatingControlToFront(_logText);
-                MoveFloatingControlToFront(_logResizeHandle);
-                MoveFloatingControlToFront(_logPanelHeader);
-                break;
+            return;
         }
-    }
 
-    private static void MoveFloatingControlToFront(CanvasItem? item)
-    {
-        item?.MoveToFront();
+        _mainHudUiController.BringLogToFront();
+        _draggingFloatingPanel = FloatingPanelKind.None;
+        _mainHudUiController.StartLogResize(GetViewport().GetMousePosition());
+        GetViewport().SetInputAsHandled();
     }
 
     private void UpdateFloatingPanelDragging()
     {
-        if (_isResizingLogPanel)
+        if (_mainHudUiController == null)
+        {
+            return;
+        }
+
+        if (_mainHudUiController.IsLogResizing())
         {
             if (!Input.IsMouseButtonPressed(MouseButton.Left))
             {
-                _isResizingLogPanel = false;
-                SaveOptionSettings();
+                if (_mainHudUiController.EndLogResize())
+                {
+                    SaveOptionSettings();
+                }
             }
             else
             {
-                var mouseDelta = GetViewport().GetMousePosition() - _logResizeStartMousePosition;
-                var viewportSize = GetViewport().GetVisibleRect().Size;
-                var maxWidth = Mathf.Max(LogPanelMinimumWidth, viewportSize.X - _logPanelHeaderPosition.X - FloatingPanelViewportMargin);
-                var maxHeight = Mathf.Max(LogPanelMinimumHeight, viewportSize.Y - _logPanelHeaderPosition.Y - FloatingPanelHeaderHeight - FloatingPanelViewportMargin);
-                _logPanelBgSize = new Vector2(
-                    Mathf.Clamp(_logResizeStartSize.X + mouseDelta.X, LogPanelMinimumWidth, maxWidth),
-                    Mathf.Clamp(_logResizeStartSize.Y + mouseDelta.Y, LogPanelMinimumHeight, maxHeight));
-                _logPanelContentSize = new Vector2(
-                    Mathf.Max(80.0f, _logPanelBgSize.X - 12.0f),
-                    Mathf.Max(60.0f, _logPanelBgSize.Y - 12.0f));
-                ApplyLogPanelLayout();
+                _mainHudUiController.UpdateLogResize(GetViewport().GetMousePosition());
             }
 
             return;
@@ -518,157 +440,17 @@ public partial class HudController
         }
 
         var targetPosition = GetViewport().GetMousePosition() - _floatingPanelDragMouseOffset;
-        if (_draggingFloatingPanel == FloatingPanelKind.Top)
+        switch (_draggingFloatingPanel)
         {
-            _topBarPosition = ClampFloatingPanelPosition(targetPosition, _topBarSize.X, _topBarSize.Y);
-            ApplyTopBarLayout();
-        }
-        else if (_draggingFloatingPanel == FloatingPanelKind.Left)
-        {
-            _leftPanelHeaderPosition = ClampFloatingPanelPosition(
-                targetPosition,
-                _leftPanelMinimized ? LeftPanelMinimizedWidth : _leftPanelHeader?.Size.X ?? 0.0f,
-                CalculateLeftPanelTotalHeight());
-            ApplyLeftPanelLayout();
-        }
-        else if (_draggingFloatingPanel == FloatingPanelKind.Log)
-        {
-            _logPanelHeaderPosition = ClampFloatingPanelPosition(
-                targetPosition,
-                _logPanelMinimized ? LogPanelMinimizedWidth : _logPanelHeader?.Size.X ?? 0.0f,
-                CalculateLogPanelTotalHeight());
-            ApplyLogPanelLayout();
-        }
-    }
-
-    private Vector2 ClampFloatingPanelPosition(Vector2 position, float width, float height)
-    {
-        var viewportSize = GetViewport().GetVisibleRect().Size;
-        if (viewportSize == Vector2.Zero)
-        {
-            return position;
-        }
-
-        var maxX = Mathf.Max(FloatingPanelViewportMargin, viewportSize.X - width - FloatingPanelViewportMargin);
-        var maxY = Mathf.Max(FloatingPanelTopClamp, viewportSize.Y - height - FloatingPanelViewportMargin);
-        return new Vector2(
-            Mathf.Clamp(position.X, FloatingPanelViewportMargin, maxX),
-            Mathf.Clamp(position.Y, FloatingPanelTopClamp, maxY));
-    }
-
-    private float CalculateLeftPanelTotalHeight()
-    {
-        return _leftPanelMinimized
-            ? FloatingPanelHeaderHeight
-            : Mathf.Max(
-                FloatingPanelHeaderHeight + _leftPanelBgOffset.Y + _leftPanelBgSize.Y,
-                FloatingPanelHeaderHeight + _leftPanelContentOffset.Y + _leftPanelContentSize.Y);
-    }
-
-    private float CalculateLogPanelTotalHeight()
-    {
-        return _logPanelMinimized
-            ? FloatingPanelHeaderHeight
-            : Mathf.Max(
-                FloatingPanelHeaderHeight + _logPanelBgOffset.Y + _logPanelBgSize.Y,
-                FloatingPanelHeaderHeight + _logPanelContentOffset.Y + _logPanelContentSize.Y);
-    }
-
-    private void ToggleFloatingPanel(FloatingPanelKind panelKind)
-    {
-        if (panelKind == FloatingPanelKind.Left)
-        {
-            _leftPanelMinimized = !_leftPanelMinimized;
-            ApplyLeftPanelLayout();
-            SaveOptionSettings();
-            return;
-        }
-
-        if (panelKind == FloatingPanelKind.Log)
-        {
-            _logPanelMinimized = !_logPanelMinimized;
-            ApplyLogPanelLayout();
-            SaveOptionSettings();
-        }
-    }
-
-    private void ApplyTopBarLayout()
-    {
-        if (_topBarBg == null || _topBar == null)
-        {
-            return;
-        }
-
-        _topBarPosition = ClampFloatingPanelPosition(_topBarPosition, _topBarSize.X, _topBarSize.Y);
-        _topBarBg.Position = _topBarPosition;
-        _topBarBg.Size = _topBarSize;
-        _topBar.Position = _topBarPosition + _topBarContentOffset;
-        _topBar.Size = _topBarContentSize;
-    }
-
-    private void ApplyLeftPanelLayout()
-    {
-        if (_leftPanelHeader == null || _leftPanelBg == null || _leftPanelContent == null || _leftPanelMinimizeButton == null)
-        {
-            return;
-        }
-
-        ClampLeftPanelSizeToCurrentLimits();
-
-        var headerWidth = _leftPanelMinimized ? LeftPanelMinimizedWidth : _leftPanelBgSize.X;
-        _leftPanelHeaderPosition = ClampFloatingPanelPosition(_leftPanelHeaderPosition, headerWidth, CalculateLeftPanelTotalHeight());
-        _leftPanelHeader.Position = _leftPanelHeaderPosition;
-        _leftPanelHeader.Size = new Vector2(headerWidth, FloatingPanelHeaderHeight);
-        _leftPanelMinimizeButton.Text = _leftPanelMinimized ? "+" : "-";
-
-        _leftPanelBg.Visible = !_leftPanelMinimized;
-        _leftPanelContent.Visible = !_leftPanelMinimized;
-        if (_leftPanelMinimized)
-        {
-            return;
-        }
-
-        _leftPanelBg.Position = _leftPanelHeaderPosition + _leftPanelBgOffset;
-        _leftPanelBg.Size = _leftPanelBgSize;
-        _leftPanelContent.Position = _leftPanelHeaderPosition + _leftPanelContentOffset;
-        _leftPanelContent.Size = _leftPanelContentSize;
-    }
-
-    private void ApplyLogPanelLayout()
-    {
-        if (_logPanelHeader == null || _logPanelBg == null || _logText == null || _logPanelMinimizeButton == null)
-        {
-            return;
-        }
-
-        var headerWidth = _logPanelMinimized ? LogPanelMinimizedWidth : _logPanelBgSize.X;
-        _logPanelHeaderPosition = ClampFloatingPanelPosition(_logPanelHeaderPosition, headerWidth, CalculateLogPanelTotalHeight());
-        _logPanelHeader.Position = _logPanelHeaderPosition;
-        _logPanelHeader.Size = new Vector2(headerWidth, FloatingPanelHeaderHeight);
-        _logPanelMinimizeButton.Text = _logPanelMinimized ? "+" : "-";
-
-        _logPanelBg.Visible = !_logPanelMinimized;
-        _logText.Visible = !_logPanelMinimized;
-        if (_logResizeHandle != null)
-        {
-            _logResizeHandle.Visible = !_logPanelMinimized;
-        }
-
-        if (_logPanelMinimized)
-        {
-            return;
-        }
-
-        _logPanelBg.Position = _logPanelHeaderPosition + _logPanelBgOffset;
-        _logPanelBg.Size = _logPanelBgSize;
-        _logText.Position = _logPanelHeaderPosition + _logPanelContentOffset;
-        _logText.Size = _logPanelContentSize;
-        if (_logResizeHandle != null)
-        {
-            _logResizeHandle.Position = _logPanelBg.Position + _logPanelBg.Size - new Vector2(ResizeHandleSize + 12.0f, ResizeHandleSize + 12.0f);
-            _logResizeHandle.Size = new Vector2(ResizeHandleSize, ResizeHandleSize);
-            _logResizeHandle.MoveToFront();
-            _logResizeHandle.QueueRedraw();
+            case FloatingPanelKind.Top:
+                _mainHudUiController.SetTopBarDraggedPosition(targetPosition);
+                break;
+            case FloatingPanelKind.Left:
+                _mainHudUiController.SetCityInfoDraggedPosition(targetPosition);
+                break;
+            case FloatingPanelKind.Log:
+                _mainHudUiController.SetLogDraggedPosition(targetPosition);
+                break;
         }
     }
 
@@ -686,179 +468,35 @@ public partial class HudController
         float logWidth,
         float logHeight)
     {
-        if (!_floatingPanelsInitialized)
+        if (!_floatingPanelsInitialized || _mainHudUiController == null)
         {
             return;
         }
 
-        _leftPanelMinimized = leftMinimized;
-        _leftPanelHeaderPosition = new Vector2(leftX, leftY);
-        if (leftWidth > 0.0f)
-        {
-            _leftPanelBgSize.X = _leftPanelDefaultBgSize.X;
-            _leftPanelContentSize.X = _leftPanelDefaultContentSize.X;
-        }
-
-        if (leftHeight > 0.0f)
-        {
-            _leftPanelBgSize.Y = GetLeftPanelPreferredHeight();
-            _leftPanelContentSize.Y = Mathf.Max(GetLeftPanelMinimumContentHeight(), _leftPanelBgSize.Y - 20.0f);
-        }
-
-        _topBarPosition = new Vector2(topBarX, topBarY);
-
-        _logPanelMinimized = logMinimized;
-        _logPanelHeaderPosition = new Vector2(logX, logY);
-        if (logWidth > 0.0f)
-        {
-            _logPanelBgSize.X = logWidth;
-            _logPanelContentSize.X = Mathf.Max(80.0f, logWidth - 12.0f);
-        }
-
-        if (logHeight > 0.0f)
-        {
-            _logPanelBgSize.Y = logHeight;
-            _logPanelContentSize.Y = Mathf.Max(60.0f, logHeight - 12.0f);
-        }
-
-        ApplyTopBarLayout();
-        ApplyLeftPanelLayout();
-        ApplyLogPanelLayout();
+        _mainHudUiController.ApplyCityInfoLoadedSettings(leftMinimized, leftX, leftY, leftWidth, leftHeight);
+        _mainHudUiController.ApplyTopBarLoadedSettings(topBarX, topBarY);
+        _mainHudUiController.ApplyLogLoadedSettings(logMinimized, logX, logY, logWidth, logHeight);
+        _mainHudUiController.ApplyTopBarLayout();
+        _mainHudUiController.ApplyCityInfoLayout();
+        _mainHudUiController.ApplyLogLayout();
     }
 
     private void PopulateFloatingPanelSettings(OptionSettingsData settings)
     {
-        settings.LeftPanelMinimized = _leftPanelMinimized;
-        settings.LeftPanelX = _leftPanelHeaderPosition.X;
-        settings.LeftPanelY = _leftPanelHeaderPosition.Y;
-        settings.LeftPanelWidth = _leftPanelBgSize.X;
-        settings.LeftPanelHeight = _leftPanelBgSize.Y;
-        settings.TopBarX = _topBarPosition.X;
-        settings.TopBarY = _topBarPosition.Y;
-        settings.LogPanelMinimized = _logPanelMinimized;
-        settings.LogPanelX = _logPanelHeaderPosition.X;
-        settings.LogPanelY = _logPanelHeaderPosition.Y;
-        settings.LogPanelWidth = _logPanelBgSize.X;
-        settings.LogPanelHeight = _logPanelBgSize.Y;
+        _mainHudUiController?.PopulateCityInfoSettings(settings);
+        _mainHudUiController?.PopulateTopBarSettings(settings);
+        _mainHudUiController?.PopulateLogSettings(settings);
     }
 
     private void RestoreDefaultFloatingPanelLayout()
     {
-        if (!_floatingPanelsInitialized)
+        if (!_floatingPanelsInitialized || _mainHudUiController == null)
         {
             return;
         }
 
-        _topBarPosition = _topBarDefaultPosition;
-
-        _leftPanelMinimized = false;
-        _leftPanelHeaderPosition = _leftPanelDefaultHeaderPosition;
-        _leftPanelBgSize = _leftPanelDefaultBgSize;
-        _leftPanelContentSize = _leftPanelDefaultContentSize;
-
-        _logPanelMinimized = false;
-        _logPanelHeaderPosition = _logPanelDefaultHeaderPosition;
-        _logPanelBgSize = _logPanelDefaultBgSize;
-        _logPanelContentSize = _logPanelDefaultContentSize;
-
-        ApplyTopBarLayout();
-        ApplyLeftPanelLayout();
-        ApplyLogPanelLayout();
-    }
-
-    private float GetLeftPanelMinimumContentWidth()
-    {
-        return Mathf.Max(180.0f, _leftPanelDefaultContentSize.X);
-    }
-
-    private float GetLeftPanelMinimumContentHeight()
-    {
-        var commandBottom = 0.0f;
-        if (_commandsTitle != null && _commandsTitle.Visible)
-        {
-            commandBottom = Mathf.Max(commandBottom, _commandsTitle.Position.Y + _commandsTitle.Size.Y);
-        }
-
-        if (_commandButtons != null && _commandButtons.Visible)
-        {
-            commandBottom = Mathf.Max(commandBottom, _commandButtons.Position.Y + _commandButtons.Size.Y);
-        }
-
-        if (commandBottom > 0.0f)
-        {
-            return Mathf.Max(180.0f, commandBottom + 12.0f);
-        }
-
-        return Mathf.Max(180.0f, GetLeftPanelOccupiedContentHeight());
-    }
-
-    private float GetLeftPanelMinimumHeight()
-    {
-        return Mathf.Max(LeftPanelMinimumHeight, GetLeftPanelMinimumContentHeight() + 20.0f);
-    }
-
-    private float GetLeftPanelPreferredHeight()
-    {
-        return GetLeftPanelMinimumHeight() + 4.0f;
-    }
-
-    private void ClampLeftPanelSizeToCurrentLimits()
-    {
-        var viewportSize = GetViewport().GetVisibleRect().Size;
-        if (viewportSize == Vector2.Zero)
-        {
-            return;
-        }
-
-        var fixedHeight = GetLeftPanelPreferredHeight();
-
-        _leftPanelBgSize = new Vector2(
-            _leftPanelDefaultBgSize.X,
-            fixedHeight);
-        _leftPanelContentSize = new Vector2(
-            _leftPanelDefaultContentSize.X,
-            Mathf.Max(GetLeftPanelMinimumContentHeight(), _leftPanelBgSize.Y - 20.0f));
-    }
-
-    private float GetLeftPanelOccupiedContentWidth()
-    {
-        if (_leftPanelContent == null)
-        {
-            return 180.0f;
-        }
-
-        var maxRight = 0.0f;
-        foreach (var child in _leftPanelContent.GetChildren())
-        {
-            if (child is not Control control || !control.Visible)
-            {
-                continue;
-            }
-
-            maxRight = Mathf.Max(maxRight, control.Position.X + control.Size.X);
-        }
-
-        return maxRight + 8.0f;
-    }
-
-    private float GetLeftPanelOccupiedContentHeight()
-    {
-        if (_leftPanelContent == null)
-        {
-            return 180.0f;
-        }
-
-        var maxBottom = 0.0f;
-        foreach (var child in _leftPanelContent.GetChildren())
-        {
-            if (child is not Control control || !control.Visible)
-            {
-                continue;
-            }
-
-            maxBottom = Mathf.Max(maxBottom, control.Position.Y + control.Size.Y);
-        }
-
-        return maxBottom + 8.0f;
+        _mainHudUiController.RestoreTopBarLayout();
+        _mainHudUiController.RestoreCityInfoLayout();
+        _mainHudUiController.RestoreLogLayout();
     }
 }

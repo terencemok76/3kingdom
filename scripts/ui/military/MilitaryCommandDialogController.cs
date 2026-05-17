@@ -7,15 +7,19 @@ namespace ThreeKingdom.UI;
 internal sealed class MilitaryCommandDialogController
 {
     private readonly MilitaryUiContext _context;
+    private readonly System.Action _openMoveFlow;
+    private readonly System.Action _openAttackFlow;
     private readonly System.Action _showRecruitTroopDialog;
     private Window? _dialog;
     private OptionButton? _commandOption;
     private Button? _confirmButton;
     private bool _signalsConnected;
 
-    public MilitaryCommandDialogController(MilitaryUiContext context, System.Action showRecruitTroopDialog)
+    public MilitaryCommandDialogController(MilitaryUiContext context, System.Action openMoveFlow, System.Action openAttackFlow, System.Action showRecruitTroopDialog)
     {
         _context = context;
+        _openMoveFlow = openMoveFlow;
+        _openAttackFlow = openAttackFlow;
         _showRecruitTroopDialog = showRecruitTroopDialog;
     }
 
@@ -119,10 +123,10 @@ internal sealed class MilitaryCommandDialogController
         switch (GetSelectedCommandType())
         {
             case CommandType.Attack:
-                _context.OpenAttackFlow();
+                _openAttackFlow();
                 return;
             case CommandType.Move:
-                _context.OpenMoveFlow();
+                _openMoveFlow();
                 return;
             default:
                 _showRecruitTroopDialog();

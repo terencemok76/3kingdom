@@ -592,4 +592,93 @@
 							   "zhHant":  "確認間諜",
 							   "en":  "Confirm Spy"
 						   }
+,
+		"ui.option":  {
+						  "zhHant":  "選項",
+						  "en":  "Option"
+					  },
+		"ui.options":  {
+						   "zhHant":  "選項",
+						   "en":  "Options"
+					   },
+		"ui.save_load":  {
+							 "zhHant":  "存檔 / 讀檔",
+							 "en":  "Save / Load"
+						 },
+		"ui.save_settings":  {
+								 "zhHant":  "儲存設定",
+								 "en":  "Save Settings"
+							 },
+		"ui.restore_layout":  {
+								  "zhHant":  "還原版面配置",
+								  "en":  "Restore Layout"
+							  },
+		"ui.bgm_volume":  {
+							  "zhHant":  "BGM 音量",
+							  "en":  "BGM Volume"
+						  },
+		"ui.sfx_volume":  {
+							  "zhHant":  "SFX 音量",
+							  "en":  "SFX Volume"
+						  },
+		"ui.save_slots":  {
+							  "zhHant":  "存檔欄位",
+							  "en":  "Save Slots"
+						  },
+		"ui.description":  {
+							   "zhHant":  "描述",
+							   "en":  "Description"
+						   },
+		"ui.save_details":  {
+								"zhHant":  "存檔詳情",
+								"en":  "Save Details"
+							},
+		"ui.save_description_placeholder":  {
+												 "zhHant":  "輸入這個欄位的存檔描述",
+												 "en":  "Enter a description for this slot"
+											 },
+		"ui.save":  {
+						 "zhHant":  "存檔",
+						 "en":  "Save"
+					 },
+		"ui.load":  {
+						 "zhHant":  "讀檔",
+						 "en":  "Load"
+					 },
+		"ui.close":  {
+						  "zhHant":  "關閉",
+						  "en":  "Close"
+					  },
+		"ui.empty":  {
+						  "zhHant":  "空白",
+						  "en":  "Empty"
+					  },
+		"ui.no_description":  {
+								   "zhHant":  "沒有描述",
+								   "en":  "No Description"
+							   },
+		"ui.on":  {
+					   "zhHant":  "開",
+					   "en":  "On"
+				   },
+		"ui.off":  {
+						"zhHant":  "關",
+						"en":  "Off"
+					},
+		"ui.confirm":  {
+						   "zhHant":  "確認",
+						   "en":  "Confirm"
+					   },
+		"ui.cancel":  {
+						  "zhHant":  "取消",
+						  "en":  "Cancel"
+					  },
+		"ui.option_language_toggle":  {
+										   "zhHant":  "語言：繁體中文 / English",
+										   "en":  "Language: English / 繁體中文"
+									   },
+		"ui.option_god_mode":  {
+								   "zhHant":  "God Mode",
+								   "en":  "God Mode"
+							   }
 }

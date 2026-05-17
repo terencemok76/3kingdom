@@ -37,10 +37,14 @@ public partial class HudController
         ExecutePlayerCommand(commandType, targetCityId: targetCityId, troopsToSend: troopsToSend, officerIds: officerIds, recruitTroopType: recruitTroopType);
 
     internal string MilitaryGetCommandName(CommandType commandType) => GetCommandName(commandType);
-
     internal string MilitaryGetTroopTypeDisplayName(TroopType troopType) => GetTroopTypeDisplayName(troopType);
-
-    internal void MilitaryOpenAttackFlow() => OpenAttackFlow();
-
-    internal void MilitaryOpenMoveFlow() => OpenMoveFlow();
+    internal void MilitaryConfigureCompactOfficerTableColumns(Tree tree, bool includeCheck) => ConfigureCompactOfficerTableColumns(tree, includeCheck);
+    internal void MilitaryPopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeCheck) => PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck);
+    internal List<int> MilitaryGetCheckedTreeMetadataIds(Tree? tree) => GetCheckedTreeMetadataIds(tree).ToList();
+    internal CommandResult MilitaryExecuteMoveCommand(int targetCityId, int troops, int gold, int food, int horses, List<int> officerIds) =>
+        ExecutePlayerCommand(CommandType.Move, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, horsesToSend: horses, officerIds: officerIds);
+    internal CommandResult MilitaryExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds) =>
+        ExecutePlayerCommand(CommandType.Attack, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, attackOfficerDeployments: deployments, officerIds: officerIds);
+    internal string MilitaryGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
+    internal void MilitaryContinuePendingAttackResolution() => ContinuePendingAttackResolution();
 }

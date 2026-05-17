@@ -273,7 +273,7 @@ public partial class HudController : CanvasLayer
         {
             _officerListConfirmButton.Text = _localization.T("ui.confirm_officer_selection");
         }
-        UpdateOfficerListToolbar();
+        _viewUiController?.RefreshOfficerListChrome();
         _officerListTable.Visible = true;
         ConfigureOfficerListAuxRow(commandType);
         _officerListTable.Clear();

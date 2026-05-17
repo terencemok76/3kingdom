@@ -39,7 +39,7 @@ public partial class HudController
         var saved = _worldRepository.SaveGame(
             QuickSavePath,
             _turnManager.World,
-            _localization?.IsTraditionalChinese == true ? "快速存檔" : "Quick Save",
+            _localization?.T("fmt.quick_save_name") ?? "Quick Save",
             0);
         AddLog(saved
             ? _localization?.T("log.quick_save_success") ?? "Quick save completed."
@@ -71,7 +71,6 @@ public partial class HudController
         _gameEnded = false;
         _pendingTargetCommand = CommandType.Pass;
         _pendingOfficerCommand = CommandType.Pass;
-        _pendingDefenseCommand = null;
         if (_diplomacyUiController != null)
         {
             _diplomacyUiController.PendingProposalCommand = null;
@@ -83,9 +82,7 @@ public partial class HudController
         _pendingNonAttackResolutionQueue.Clear();
         _pendingAttackResolutionQueue.Clear();
         _isResolvingEndTurn = false;
-        _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
-        _attackDialogContextCity = null;
-        _attackDialogMode = AttackDialogMode.Attack;
+        _militaryUiController?.ResetAttackDialogState();
         _selectedCity = null;
 
         HideTransientDialogs();
@@ -110,19 +107,15 @@ public partial class HudController
     private void HideTransientDialogs()
     {
         _targetCityMenu?.Hide();
-        _merchantDialog?.Hide();
+        _merchantUiController?.HideDialogs();
         _militaryUiController?.HideDialogs();
         _personnelUiController?.HideDialogs();
         _advisorUiController?.HideDialogs();
         _civilUiController?.HideDialogs();
         _internalAffairsUiController?.HideDialogs();
-        _moveDialog?.Hide();
-        _attackDialog?.Hide();
         _diplomacyUiController?.HideDialogs();
         _spyUiController?.HideDialogs();
-        _optionDialog?.Hide();
-        _saveLoadDialog?.Hide();
-        _officerListDialog?.Hide();
-        _officerDetailDialog?.Hide();
+        _systemUiController?.HideDialogs();
+        _viewUiController?.HideDialogs();
     }
 }

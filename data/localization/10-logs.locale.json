@@ -114,5 +114,29 @@
     "log.victory_all_cities":  {
                                    "zhHant":  "勝利：你已控制所有城市。",
                                    "en":  "Victory: You control all cities."
+                               },
+    "log.option_settings_saved":  {
+                                      "zhHant":  "選項設定已儲存。",
+                                      "en":  "Option settings saved."
+                                  },
+    "log.layout_restored":  {
+                                "zhHant":  "版面配置已還原為預設值。",
+                                "en":  "Layout restored to default."
+                            },
+    "log.save_slot_saved":  {
+                                "zhHant":  "已儲存到欄位 {0}。",
+                                "en":  "Saved to slot {0}."
+                            },
+    "log.save_slot_save_failed":  {
+                                      "zhHant":  "存檔到欄位 {0} 失敗。",
+                                      "en":  "Save to slot {0} failed."
+                                  },
+    "log.save_slot_missing":  {
+                                  "zhHant":  "欄位 {0} 目前沒有存檔。",
+                                  "en":  "Save slot {0} is empty."
+                              },
+    "log.save_slot_loaded":  {
+                                 "zhHant":  "已讀取欄位 {0}。",
+                                 "en":  "Loaded slot {0}."
                                }
 }

@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://csu8ejtkro8ny" path="res://scripts/core/GameBootstrap.cs" id="1"]
 [ext_resource type="PackedScene" uid="uid://6nej0d0lpe8e" path="res://scenes/map/MapScene.tscn" id="2"]
-[ext_resource type="PackedScene" uid="uid://dmhw0qu238adr" path="res://scenes/ui/HUD.tscn" id="3"]
+[ext_resource type="PackedScene" uid="uid://dmhw0qu238adr" path="res://scenes/ui/main/HUD.tscn" id="3"]
 
 [node name="Main" type="Node" unique_id=1110327383]
 script = ExtResource("1")

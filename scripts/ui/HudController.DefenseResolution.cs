@@ -109,7 +109,7 @@ public partial class HudController
 
             if (ShouldPromptForPlayerDefense(targetCity, pendingCommand))
             {
-                ShowDefenseAttackDialog(pendingCommand, targetCity, sourceCity);
+                _militaryUiController?.ShowDefenseAttackDialog(pendingCommand, targetCity, sourceCity);
                 return;
             }
 
@@ -158,7 +158,6 @@ public partial class HudController
         _turnManager.RemovePendingCommandsOfType(CommandType.Attack);
         _isResolvingEndTurn = false;
         _pendingNonAttackResolutionQueue.Clear();
-        _pendingDefenseCommand = null;
         if (_diplomacyUiController != null)
         {
             _diplomacyUiController.PendingProposalCommand = null;
@@ -167,9 +166,7 @@ public partial class HudController
         {
             _personnelUiController.PendingSuccessionFactionId = -1;
         }
-        _attackDiplomacyWarningAcknowledgedTargetCityId = -1;
-        _attackDialogContextCity = null;
-        _attackDialogMode = AttackDialogMode.Attack;
+        _militaryUiController?.ResetAttackDialogState();
 
         _turnManager.AdvanceMonth();
         var economyMonth = world.Month;

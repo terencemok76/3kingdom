@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://b8lv2txd6nj4v"]
+
+[node name="SaveLoadDialog" type="Window" unique_id=192110201]
+oversampling_override = 1.0
+title = "Save / Load"
+position = Vector2i(0, 36)
+size = Vector2i(780, 580)
+
+[node name="SaveLoadDialogRoot" type="VBoxContainer" parent="." unique_id=192110202]
+custom_minimum_size = Vector2(760, 540)
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 764.0
+offset_bottom = 564.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="SlotListLabel" type="Label" parent="SaveLoadDialogRoot" unique_id=192110203]
+layout_mode = 2
+text = "Save Slots"
+
+[node name="SlotList" type="ItemList" parent="SaveLoadDialogRoot" unique_id=192110204]
+custom_minimum_size = Vector2(0, 220)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DescriptionLabel" type="Label" parent="SaveLoadDialogRoot" unique_id=192110205]
+layout_mode = 2
+text = "Description"
+
+[node name="DescriptionLineEdit" type="LineEdit" parent="SaveLoadDialogRoot" unique_id=192110206]
+layout_mode = 2
+placeholder_text = "Enter a description for this slot"
+
+[node name="SummaryTitleLabel" type="Label" parent="SaveLoadDialogRoot" unique_id=192110207]
+layout_mode = 2
+text = "Save Details"
+
+[node name="SummaryLabel" type="RichTextLabel" parent="SaveLoadDialogRoot" unique_id=192110208]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+size_flags_horizontal = 3
+fit_content = true
+scroll_active = true
+
+[node name="ButtonRow" type="HBoxContainer" parent="SaveLoadDialogRoot" unique_id=192110209]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="SaveSlotButton" type="Button" parent="SaveLoadDialogRoot/ButtonRow" unique_id=192110210]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Save"
+
+[node name="LoadSlotButton" type="Button" parent="SaveLoadDialogRoot/ButtonRow" unique_id=192110211]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Load"
+
+[node name="CloseSlotButton" type="Button" parent="SaveLoadDialogRoot/ButtonRow" unique_id=192110212]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Close"

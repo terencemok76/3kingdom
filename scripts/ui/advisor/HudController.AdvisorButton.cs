@@ -25,9 +25,9 @@ public partial class HudController
             FocusMode = Control.FocusModeEnum.None
         };
 
-        if (_personnelButton != null)
+        if (MainHudPersonnelButton != null)
         {
-            CopyButtonTheme(_personnelButton, _advisorButton);
+            CopyButtonTheme(MainHudPersonnelButton, _advisorButton);
         }
 
         commandButtons.AddChild(_advisorButton);

@@ -130,5 +130,41 @@
     "fmt.year_month":  {
                            "zhHant":  "{0}年 {1}月",
                            "en":  "Year {0}  Month {1}"
-                       }
+                       },
+    "fmt.audio_toggle_button":  {
+                                    "zhHant":  "{0}：{1}",
+                                    "en":  "{0}: {1}"
+                                },
+    "fmt.option_god_mode":  {
+                                "zhHant":  "{0}：{1}",
+                                "en":  "{0}: {1}"
+                            },
+    "fmt.save_slot_prefix":  {
+                                 "zhHant":  "存檔 {0}",
+                                 "en":  "Slot {0}"
+                             },
+    "fmt.save_slot_list_item":  {
+                                    "zhHant":  "{0} {1}",
+                                    "en":  "{0} {1}"
+                                },
+    "fmt.save_slot_empty_summary":  {
+                                        "zhHant":  "這個存檔欄位目前是空的。\n輸入描述後即可存檔到這裡。",
+                                        "en":  "This save slot is empty.\nEnter a description and save the game here."
+                                    },
+    "fmt.save_slot_summary":  {
+                                  "zhHant":  "欄位：{0}\n描述：{1}\n劇本：{2}\n存檔時間：{3}\n進度：{4}年 {5}月",
+                                  "en":  "Slot: {0}\nDescription: {1}\nStory: {2}\nSaved: {3}\nProgress: Year {4}, Month {5}"
+                              },
+    "fmt.save_confirm_message":  {
+                                     "zhHant":  "確定要存到欄位 {0} 嗎？",
+                                     "en":  "Save to slot {0}?"
+                                 },
+    "fmt.load_confirm_message":  {
+                                     "zhHant":  "確定要讀取欄位 {0} 嗎？",
+                                     "en":  "Load slot {0}?"
+                                 },
+    "fmt.quick_save_name":  {
+                                "zhHant":  "快速存檔",
+                                "en":  "Quick Save"
+                            }
 }

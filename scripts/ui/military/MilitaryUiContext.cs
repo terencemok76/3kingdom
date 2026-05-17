@@ -48,8 +48,13 @@ internal sealed class MilitaryUiContext
     public CommandResult ExecutePlayerCommand(CommandType commandType, int? targetCityId = null, int troopsToSend = 0, List<int>? officerIds = null, TroopType recruitTroopType = TroopType.Infantry) => _owner.MilitaryExecutePlayerCommand(commandType, targetCityId, troopsToSend, officerIds, recruitTroopType);
     public string GetCommandName(CommandType commandType) => _owner.MilitaryGetCommandName(commandType);
     public string GetTroopTypeDisplayName(TroopType troopType) => _owner.MilitaryGetTroopTypeDisplayName(troopType);
-    public void OpenAttackFlow() => _owner.MilitaryOpenAttackFlow();
-    public void OpenMoveFlow() => _owner.MilitaryOpenMoveFlow();
+    public void ConfigureCompactOfficerTableColumns(Tree tree, bool includeCheck) => _owner.MilitaryConfigureCompactOfficerTableColumns(tree, includeCheck);
+    public void PopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeCheck) => _owner.MilitaryPopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck);
+    public List<int> GetCheckedTreeMetadataIds(Tree? tree) => _owner.MilitaryGetCheckedTreeMetadataIds(tree);
+    public CommandResult ExecuteMoveCommand(int targetCityId, int troops, int gold, int food, int horses, List<int> officerIds) => _owner.MilitaryExecuteMoveCommand(targetCityId, troops, gold, food, horses, officerIds);
+    public CommandResult ExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds) => _owner.MilitaryExecuteAttackCommand(targetCityId, troops, gold, food, deployments, officerIds);
+    public string GetLocalizedResultMessage(CommandResult result) => _owner.MilitaryGetLocalizedResultMessage(result);
+    public void ContinuePendingAttackResolution() => _owner.MilitaryContinuePendingAttackResolution();
 
     public List<int> GetAvailableCityOfficerIds()
     {

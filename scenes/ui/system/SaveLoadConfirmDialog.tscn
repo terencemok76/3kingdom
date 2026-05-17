@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://by1etx5okclh8"]
+
+[node name="SaveLoadConfirmDialog" type="Window" unique_id=192210201]
+oversampling_override = 1.0
+title = "Confirm"
+position = Vector2i(0, 36)
+size = Vector2i(380, 180)
+
+[node name="ConfirmRoot" type="VBoxContainer" parent="." unique_id=192210202]
+custom_minimum_size = Vector2(320, 130)
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 364.0
+offset_bottom = 164.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="ConfirmLabel" type="Label" parent="ConfirmRoot" unique_id=192210203]
+custom_minimum_size = Vector2(320, 70)
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ButtonRow" type="HBoxContainer" parent="ConfirmRoot" unique_id=192210204]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ConfirmYesButton" type="Button" parent="ConfirmRoot/ButtonRow" unique_id=192210205]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Confirm"
+
+[node name="ConfirmNoButton" type="Button" parent="ConfirmRoot/ButtonRow" unique_id=192210206]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Cancel"
