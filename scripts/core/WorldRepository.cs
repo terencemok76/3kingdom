@@ -159,6 +159,8 @@ public class WorldRepository
             return;
         }
 
+        var borderOffsetX = mapDoc.MapMetadata?.MapBorderX ?? 0.0f;
+        var borderOffsetY = mapDoc.MapMetadata?.MapBorderY ?? 0.0f;
         var nextCityId = 1;
         var cities = new List<CityData>();
         foreach (var entry in sourceLocations)
@@ -195,8 +197,8 @@ public class WorldRepository
                 Commercial = 60,
                 Defense = 55,
                 Loyalty = 70,
-                MapX = entry.X,
-                MapY = entry.Y
+                MapX = entry.X + borderOffsetX,
+                MapY = entry.Y + borderOffsetY
             };
 
             cities.Add(city);
@@ -617,8 +619,23 @@ public class WorldRepository
 
     private sealed class MapLocationDocument
     {
+        [JsonPropertyName("map_metadata")]
+        public MapMetadata? MapMetadata { get; set; }
+
+        [JsonPropertyName("locations")]
         public List<MapLocationEntry> Locations { get; set; } = new();
+
+        [JsonPropertyName("cities")]
         public List<MapLocationEntry> Cities { get; set; } = new();
+    }
+
+    private sealed class MapMetadata
+    {
+        [JsonPropertyName("map_border_x")]
+        public float MapBorderX { get; set; }
+
+        [JsonPropertyName("map_border_y")]
+        public float MapBorderY { get; set; }
     }
 
     private sealed class OfficerDatasetDocument

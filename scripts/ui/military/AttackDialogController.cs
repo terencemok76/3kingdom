@@ -28,6 +28,7 @@ internal sealed class AttackDialogController
     private Label? _warningLabel;
     private Button? _confirmButton;
     private bool _officerListSignalsConnected;
+    private bool _confirmButtonSignalsConnected;
     private string _lastSelectionSignature = string.Empty;
     private int _warningAcknowledgedTargetCityId = -1;
     private DialogMode _dialogMode = DialogMode.Attack;
@@ -227,10 +228,10 @@ internal sealed class AttackDialogController
             _officerListSignalsConnected = true;
         }
 
-        if (_confirmButton != null)
+        if (!_confirmButtonSignalsConnected && _confirmButton != null)
         {
-            _confirmButton.Pressed -= OnConfirmPressed;
             _confirmButton.Pressed += OnConfirmPressed;
+            _confirmButtonSignalsConnected = true;
         }
     }
 

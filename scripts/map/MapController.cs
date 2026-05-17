@@ -441,10 +441,8 @@ public partial class MapController : Node2D
 
         var preferredPaths = new[]
         {
-            "res://assets/map/china_map.png",
-            "res://assets/map/san4_generated_v2.png",
-            "res://assets/map/san4_generated.png",
-            "res://assets/map/san4_map.png"
+            "res://assets/map/china_map_v2.png",
+//            "res://assets/map/china_map.png",
         };
 
         foreach (var path in preferredPaths)

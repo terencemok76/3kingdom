@@ -1,7 +1,9 @@
 {
 	"map_metadata": {
-		"original_resolution": "1024x1024",
+		"original_resolution": "1254x1254",
 		"coordinate_origin": "Top-Left (0,0)",
+		"map_border_x":0,
+		"map_border_y":0,
 		"count": 41
 	},
 	"locations": [
@@ -10,328 +12,328 @@
 			"nameEn": "Ji",
 			"nameChi": "薊",
 			"region": "Youzhou",
-			"x": 720,
-			"y": 65
+			"x": 860,
+			"y": 192
 		},
 		{
 			"id": 2,
 			"nameEn": "Xiangping",
 			"nameChi": "襄平",
 			"region": "Liaodong",
-			"x": 860,
-			"y": 45
+			"x": 978,
+			"y": 180
 		},
 		{
 			"id": 3,
 			"nameEn": "Beiping",
 			"nameChi": "北平",
 			"region": "Youzhou",
-			"x": 780,
-			"y": 80
+			"x": 916,
+			"y": 208
 		},
 		{
 			"id": 4,
 			"nameEn": "Jinyang",
 			"nameChi": "晉陽",
 			"region": "Bingzhou",
-			"x": 480,
-			"y": 140
+			"x": 647,
+			"y": 272
 		},
 		{
 			"id": 5,
 			"nameEn": "Ye",
 			"nameChi": "鄴",
 			"region": "Jizhou",
-			"x": 510,
-			"y": 195
+			"x": 656,
+			"y": 324
 		},
 		{
 			"id": 6,
 			"nameEn": "Nanpi",
 			"nameChi": "南皮",
 			"region": "Jizhou",
-			"x": 610,
-			"y": 160
+			"x": 709,
+			"y": 287
 		},
 		{
 			"id": 7,
 			"nameEn": "Linzi",
 			"nameChi": "臨淄",
 			"region": "Qingzhou",
-			"x": 705,
-			"y": 170
+			"x": 828,
+			"y": 306
 		},
 		{
 			"id": 8,
 			"nameEn": "Beihai",
 			"nameChi": "北海",
 			"region": "Qingzhou",
-			"x": 780,
-			"y": 210
+			"x": 907,
+			"y": 338
 		},
 		{
 			"id": 9,
 			"nameEn": "Luoyang",
 			"nameChi": "洛陽",
 			"region": "Sili",
-			"x": 440,
-			"y": 310
+			"x": 587,
+			"y": 406
 		},
 		{
 			"id": 10,
 			"nameEn": "Changan",
 			"nameChi": "長安",
 			"region": "Sili",
-			"x": 320,
-			"y": 355
+			"x": 465,
+			"y": 465
 		},
 		{
 			"id": 11,
 			"nameEn": "Xuchang",
 			"nameChi": "許昌",
 			"region": "Yuzhou",
-			"x": 520,
-			"y": 360
+			"x": 654,
+			"y": 463
 		},
 		{
 			"id": 12,
 			"nameEn": "Chenliu",
 			"nameChi": "陳留",
 			"region": "Yanzhou",
-			"x": 550,
-			"y": 300
+			"x": 673,
+			"y": 416
 		},
 		{
 			"id": 13,
 			"nameEn": "Puyang",
 			"nameChi": "濮陽",
 			"region": "Yanzhou",
-			"x": 580,
-			"y": 240
+			"x": 712,
+			"y": 354
 		},
 		{
 			"id": 14,
 			"nameEn": "Qiao",
 			"nameChi": "譙",
 			"region": "Yuzhou",
-			"x": 600,
-			"y": 370
+			"x": 732,
+			"y": 472
 		},
 		{
 			"id": 15,
 			"nameEn": "Runan",
 			"nameChi": "汝南",
 			"region": "Yuzhou",
-			"x": 540,
-			"y": 420
+			"x": 680,
+			"y": 536
 		},
 		{
 			"id": 16,
 			"nameEn": "Wancheng",
 			"nameChi": "宛",
 			"region": "Jingzhou",
-			"x": 460,
-			"y": 430
+			"x": 602,
+			"y": 540
 		},
 		{
 			"id": 17,
 			"nameEn": "Xiapi",
 			"nameChi": "下邳",
 			"region": "Xuzhou",
-			"x": 710,
-			"y": 320
+			"x": 840,
+			"y": 430
 		},
 		{
 			"id": 18,
 			"nameEn": "Xiaopei",
 			"nameChi": "小沛",
 			"region": "Xuzhou",
-			"x": 660,
-			"y": 310
+			"x": 792,
+			"y": 421
 		},
 		{
 			"id": 19,
 			"nameEn": "Guangling",
 			"nameChi": "廣陵",
 			"region": "Xuzhou",
-			"x": 770,
-			"y": 420
+			"x": 908,
+			"y": 518
 		},
 		{
 			"id": 20,
 			"nameEn": "Shouchun",
 			"nameChi": "壽春",
 			"region": "Yangzhou",
-			"x": 650,
-			"y": 410
+			"x": 777,
+			"y": 513
 		},
 		{
 			"id": 21,
 			"nameEn": "Lujiang",
 			"nameChi": "廬江",
 			"region": "Yangzhou",
-			"x": 640,
-			"y": 480
+			"x": 770,
+			"y": 576
 		},
 		{
 			"id": 22,
 			"nameEn": "Jianye",
 			"nameChi": "建業",
 			"region": "Yangzhou",
-			"x": 785,
-			"y": 375
+			"x": 908,
+			"y": 464
 		},
 		{
 			"id": 23,
 			"nameEn": "Wu",
 			"nameChi": "吳",
 			"region": "Yangzhou",
-			"x": 845,
-			"y": 430
+			"x": 975,
+			"y": 522
 		},
 		{
 			"id": 24,
 			"nameEn": "Kuaiji",
 			"nameChi": "會稽",
 			"region": "Yangzhou",
-			"x": 840,
-			"y": 510
+			"x": 958,
+			"y": 598
 		},
 		{
 			"id": 25,
 			"nameEn": "Chaisang",
 			"nameChi": "柴桑",
 			"region": "Yangzhou",
-			"x": 610,
-			"y": 560
+			"x": 748,
+			"y": 656
 		},
 		{
 			"id": 26,
 			"nameEn": "Tianshui",
 			"nameChi": "天水",
 			"region": "Liangzhou",
-			"x": 180,
-			"y": 360
+			"x": 328,
+			"y": 430
 		},
 		{
 			"id": 27,
 			"nameEn": "Xiping",
 			"nameChi": "西平",
 			"region": "Liangzhou",
-			"x": 80,
-			"y": 330
+			"x": 240,
+			"y": 430
 		},
 		{
 			"id": 28,
 			"nameEn": "Wuwei",
 			"nameChi": "武威",
 			"region": "Liangzhou",
-			"x": 120,
-			"y": 250
+			"x": 285,
+			"y": 365
 		},
 		{
 			"id": 29,
 			"nameEn": "Hanzhong",
 			"nameChi": "漢中",
 			"region": "Yiazhou",
-			"x": 240,
-			"y": 490
+			"x": 390,
+			"y": 575
 		},
 		{
 			"id": 30,
 			"nameEn": "Xiangyang",
 			"nameChi": "襄陽",
 			"region": "Jingzhou",
-			"x": 490,
-			"y": 515
+			"x": 650,
+			"y": 615
 		},
 		{
 			"id": 31,
 			"nameEn": "Jiangling",
 			"nameChi": "江陵",
 			"region": "Jingzhou",
-			"x": 480,
-			"y": 590
+			"x": 630,
+			"y": 668
 		},
 		{
 			"id": 32,
 			"nameEn": "Wuchang",
 			"nameChi": "武昌",
 			"region": "Jingzhou",
-			"x": 560,
-			"y": 620
+			"x": 710,
+			"y": 690
 		},
 		{
 			"id": 33,
 			"nameEn": "Changsha",
 			"nameChi": "長沙",
 			"region": "Jingzhou",
-			"x": 520,
-			"y": 750
+			"x": 650,
+			"y": 820
 		},
 		{
 			"id": 34,
 			"nameEn": "Lingling",
 			"nameChi": "零陵",
 			"region": "Jingzhou",
-			"x": 450,
-			"y": 820
+			"x": 588,
+			"y": 896
 		},
 		{
 			"id": 35,
 			"nameEn": "Guiyang",
 			"nameChi": "桂陽",
 			"region": "Jingzhou",
-			"x": 530,
-			"y": 840
+			"x": 670,
+			"y": 908
 		},
 		{
 			"id": 36,
 			"nameEn": "Chengdu",
 			"nameChi": "成都",
 			"region": "Yiazhou",
-			"x": 145,
-			"y": 680
+			"x": 300,
+			"y": 774
 		},
 		{
 			"id": 37,
 			"nameEn": "Jiangzhou",
 			"nameChi": "江州",
 			"region": "Yiazhou",
-			"x": 310,
-			"y": 690
+			"x": 450,
+			"y": 770
 		},
 		{
 			"id": 38,
 			"nameEn": "Yongchang",
 			"nameChi": "永昌",
 			"region": "Yiazhou",
-			"x": 60,
-			"y": 920
+			"x": 210,
+			"y": 945
 		},
 		{
 			"id": 39,
 			"nameEn": "Nanhai",
 			"nameChi": "南海",
 			"region": "Jiaozhou",
-			"x": 510,
-			"y": 935
+			"x": 660,
+			"y": 1040
 		},
 		{
 			"id": 40,
 			"nameEn": "Jiaozhou",
 			"nameChi": "交州",
 			"region": "Jiaozhou",
-			"x": 280,
-			"y": 960
+			"x": 405,
+			"y": 1000
 		},
 		{
 			"id": 41,
 			"nameEn": "Taiwan",
 			"nameChi": "臺灣",
 			"region": "Island",
-			"x": 915,
-			"y": 830
+			"x": 1050,
+			"y": 880
 		}
 	]
 }
