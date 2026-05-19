@@ -10,6 +10,7 @@ internal sealed class AssignRoleDialogController
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private OptionButton? _roleOption;
+    private Label? _summaryLabel;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
@@ -79,12 +80,17 @@ internal sealed class AssignRoleDialogController
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _roleOption = root.GetNodeOrNull<OptionButton>("RoleOption");
+        _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
             {
                 _selectOfficerButton.Pressed += OnSelectOfficerPressed;
+            }
+            if (_roleOption != null)
+            {
+                _roleOption.ItemSelected += _ => UpdateSelectedOfficerSummary();
             }
             if (_confirmButton != null)
             {
@@ -97,6 +103,11 @@ internal sealed class AssignRoleDialogController
     private void Populate()
     {
         var candidateOfficerIds = _context.GetNonRulerCityOfficerIds();
+        if (candidateOfficerIds.Count == 0)
+        {
+            candidateOfficerIds = _context.GetNonRulerFactionOfficerIds();
+        }
+
         if (!candidateOfficerIds.Contains(_selectedOfficerId))
         {
             _selectedOfficerId = candidateOfficerIds.FirstOrDefault();
@@ -109,6 +120,8 @@ internal sealed class AssignRoleDialogController
             AddRoleOption("Strategist");
             AddRoleOption("Advisor");
             AddRoleOption("Governor");
+            AddRoleOption("Chancellor");
+            AddRoleOption("ChiefStrategist");
         }
 
         UpdateSelectedOfficerSummary();
@@ -147,6 +160,8 @@ internal sealed class AssignRoleDialogController
             "strategist" => _context.Localization.T("role.strategist"),
             "advisor" => _context.Localization.T("role.advisor"),
             "governor" => _context.Localization.T("role.governor"),
+            "chancellor" => _context.Localization.T("ui.chancellor"),
+            "chiefstrategist" => _context.Localization.T("ui.chief_strategist"),
             _ => role
         };
     }
@@ -156,7 +171,8 @@ internal sealed class AssignRoleDialogController
         var city = _context.SelectedCity;
         var turnManager = _context.TurnManager;
         var commandResolver = _context.CommandResolver;
-        if (city == null || turnManager == null || commandResolver == null)
+        var world = turnManager?.World;
+        if (city == null || turnManager == null || commandResolver == null || world == null)
         {
             return;
         }
@@ -168,9 +184,15 @@ internal sealed class AssignRoleDialogController
             return;
         }
 
+        var officer = world.GetOfficer(_selectedOfficerId);
+        var sourceCityId = officer?.CityId ?? city.Id;
         var roleMetadata = _roleOption?.GetItemMetadata(_roleOption.Selected);
         var role = roleMetadata?.VariantType == Variant.Type.String ? roleMetadata.Value.AsString() : "General";
-        var result = commandResolver.ExecuteAssignOfficerRole(turnManager.GetPlayerFactionId(), city.Id, _selectedOfficerId, role);
+        var result = role switch
+        {
+            "Chancellor" or "ChiefStrategist" => commandResolver.ExecuteAssignFactionAdvisor(turnManager.GetPlayerFactionId(), sourceCityId, _selectedOfficerId, role),
+            _ => commandResolver.ExecuteAssignOfficerRole(turnManager.GetPlayerFactionId(), sourceCityId, _selectedOfficerId, role)
+        };
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         _context.RefreshSelectedCity();
         _dialog?.Hide();
@@ -184,8 +206,9 @@ internal sealed class AssignRoleDialogController
             return;
         }
 
-        var candidateOfficerIds = _context.GetNonRulerCityOfficerIds();
-        if (candidateOfficerIds.Count == 0)
+        var localCandidateOfficerIds = _context.GetNonRulerCityOfficerIds();
+        var factionCandidateOfficerIds = _context.GetNonRulerFactionOfficerIds();
+        if (factionCandidateOfficerIds.Count == 0)
         {
             _context.AddLog(localization.T("ui.select_officer_warning"));
             return;
@@ -193,13 +216,29 @@ internal sealed class AssignRoleDialogController
 
         _context.ShowOfficerSelectorDialog(
             localization.T("ui.assign_role_officer"),
-            candidateOfficerIds,
+            localCandidateOfficerIds.Count > 0 ? localCandidateOfficerIds : factionCandidateOfficerIds,
             HudController.OfficerSelectorPrimaryStat.Politics,
             officerId =>
             {
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
-            });
+            },
+            scopeOptions: new[]
+            {
+                new HudController.OfficerSelectorScopeOption
+                {
+                    Key = "local",
+                    Label = localization.T("ui.local_place"),
+                    CandidateOfficerIds = localCandidateOfficerIds
+                },
+                new HudController.OfficerSelectorScopeOption
+                {
+                    Key = "faction",
+                    Label = localization.T("ui.whole_faction"),
+                    CandidateOfficerIds = factionCandidateOfficerIds
+                }
+            },
+            initialScopeKey: localCandidateOfficerIds.Count > 0 ? "local" : "faction");
     }
 
     private void UpdateSelectedOfficerSummary()
@@ -209,8 +248,43 @@ internal sealed class AssignRoleDialogController
             return;
         }
 
-        var officer = _selectedOfficerId > 0 ? _context.TurnManager?.World?.GetOfficer(_selectedOfficerId) : null;
+        var world = _context.TurnManager?.World;
+        var officer = _selectedOfficerId > 0 ? world?.GetOfficer(_selectedOfficerId) : null;
         var officerName = officer != null ? _context.Localization.GetOfficerName(officer) : _context.Localization.T("ui.unassigned");
         _selectedOfficerLabel.Text = $"{_context.Localization.T("ui.assign_role_officer")}: {officerName}";
+
+        if (_summaryLabel == null || world == null || _context.SelectedCity == null)
+        {
+            return;
+        }
+
+        var faction = world.GetFaction(_context.SelectedCity.OwnerFactionId);
+        if (faction == null)
+        {
+            _summaryLabel.Text = string.Empty;
+            return;
+        }
+
+        var chancellor = world.GetOfficer(faction.ChancellorOfficerId);
+        var chiefStrategist = world.GetOfficer(faction.ChiefStrategistOfficerId);
+        var chancellorName = chancellor != null ? _context.Localization.GetOfficerName(chancellor) : _context.Localization.T("ui.unassigned");
+        var chiefStrategistName = chiefStrategist != null ? _context.Localization.GetOfficerName(chiefStrategist) : _context.Localization.T("ui.unassigned");
+        var selectedRole = GetSelectedRoleName();
+
+        _summaryLabel.Text =
+            $"{_context.Localization.T("ui.chancellor")}: {chancellorName}\n" +
+            $"{_context.Localization.T("ui.chief_strategist")}: {chiefStrategistName}\n" +
+            $"{_context.Localization.T("ui.advisor_pending_assignment")}: {officerName} -> {selectedRole}";
+    }
+
+    private string GetSelectedRoleName()
+    {
+        var roleMetadata = _roleOption?.GetItemMetadata(_roleOption.Selected);
+        if (roleMetadata?.VariantType == Variant.Type.String)
+        {
+            return GetRoleDisplayName(roleMetadata.Value.AsString());
+        }
+
+        return GetRoleDisplayName("General");
     }
 }

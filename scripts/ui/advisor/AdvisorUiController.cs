@@ -2,31 +2,31 @@ namespace ThreeKingdom.UI;
 
 public sealed class AdvisorUiController
 {
-    private readonly AdvisorAssignmentDialogController _assignmentDialogController;
+    private readonly AdvisorDialogController _dialogController;
 
     public AdvisorUiController(HudController owner)
     {
         var context = new AdvisorUiContext(owner);
-        _assignmentDialogController = new AdvisorAssignmentDialogController(context);
+        _dialogController = new AdvisorDialogController(context);
     }
 
     public void Initialize()
     {
-        _assignmentDialogController.Initialize();
+        _dialogController.Initialize();
     }
 
     public void HideDialogs()
     {
-        _assignmentDialogController.Hide();
+        _dialogController.Hide();
     }
 
     public void RefreshText()
     {
-        _assignmentDialogController.RefreshText();
+        _dialogController.RefreshText();
     }
 
     public void ShowAdvisorDialog()
     {
-        _assignmentDialogController.Show();
+        _dialogController.Show();
     }
 }

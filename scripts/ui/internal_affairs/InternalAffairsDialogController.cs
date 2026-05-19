@@ -4,10 +4,9 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class InternalAffairsDialogController
+internal sealed class InternalAffairsDialogController : FloatingOverlayController
 {
     private readonly InternalAffairsUiContext _context;
-    private Window? _dialog;
     private OptionButton? _jobOption;
     private SpinBox? _durationSpinBox;
     private Label? _selectedOfficerLabel;
@@ -18,45 +17,44 @@ internal sealed class InternalAffairsDialogController
     private Label? _warningLabel;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(500.0f, 360.0f);
 
     public InternalAffairsDialogController(InternalAffairsUiContext context)
+        : base(context, "res://scenes/ui/internal_affairs/InternalAffairsDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/internal_affairs/InternalAffairsDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _dialog == null || _context.Localization == null)
+        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
         SetWarning(string.Empty);
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.internal_affairs");
-        SetLabelText("JobLabel", _context.Localization.T("ui.internal_affairs_job"));
-        SetLabelText("DurationLabel", _context.Localization.T("ui.internal_affairs_duration"));
+        SetOverlayTitleText(_context.Localization.T("ui.internal_affairs"));
+        SetLabelText("JobRow/JobLabel", _context.Localization.T("ui.internal_affairs_job"));
+        SetLabelText("DurationRow/DurationLabel", _context.Localization.T("ui.internal_affairs_duration"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.internal_affairs_officer"));
         SetLabelText("ScheduleListLabel", _context.Localization.T("ui.internal_affairs_active_schedules"));
         if (_selectOfficerButton != null)
@@ -75,20 +73,8 @@ internal sealed class InternalAffairsDialogController
         UpdateSelectedOfficerSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("InternalAffairsDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("InternalAffairsDialogRoot not found in InternalAffairsDialog.tscn.");
-            return;
-        }
-
         _jobOption = root.GetNodeOrNull<OptionButton>("JobRow/JobOption");
         _durationSpinBox = root.GetNodeOrNull<SpinBox>("DurationRow/DurationSpinBox");
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
@@ -97,6 +83,7 @@ internal sealed class InternalAffairsDialogController
         _scheduleList = root.GetNodeOrNull<ItemList>("ScheduleList");
         _terminateButton = root.GetNodeOrNull<Button>("TerminateButton");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
+        ApplyButtonThemes();
 
         if (!_signalsConnected)
         {
@@ -114,6 +101,24 @@ internal sealed class InternalAffairsDialogController
             }
 
             _signalsConnected = true;
+        }
+    }
+
+    private void ApplyButtonThemes()
+    {
+        if (_selectOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+
+        if (_terminateButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_terminateButton);
+        }
+
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
         }
     }
 
@@ -190,8 +195,7 @@ internal sealed class InternalAffairsDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var root = _dialog?.GetNodeOrNull<Control>("InternalAffairsDialogRoot");
-        var label = root?.FindChild(nodeName, recursive: true, owned: false) as Label;
+        var label = GetOverlayContentNode<Label>(nodeName);
         if (label != null)
         {
             label.Text = text;
@@ -212,7 +216,7 @@ internal sealed class InternalAffairsDialogController
         if (_selectedOfficerId <= 0)
         {
             SetWarning(localization.T("ui.select_officer_warning"));
-            _context.ReopenDialog(_dialog);
+            _context.ReopenDialog(OverlayRoot);
             return;
         }
 
@@ -227,7 +231,7 @@ internal sealed class InternalAffairsDialogController
         _context.RefreshSelectedCity();
         RefreshScheduleList();
         _context.RefreshMapVisuals();
-        _dialog?.Hide();
+        HideOverlay();
     }
 
     private void OnSelectOfficerPressed()

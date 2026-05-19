@@ -4,10 +4,9 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class MerchantDialogController
+internal sealed class MerchantDialogController : FloatingOverlayController
 {
     private readonly MerchantUiContext _context;
-    private Window? _dialog;
     private OptionButton? _tradeModeOption;
     private SpinBox? _amountSpinBox;
     private Label? _summaryLabel;
@@ -15,42 +14,40 @@ internal sealed class MerchantDialogController
     private bool _signalsConnected;
 
     public MerchantDialogController(MerchantUiContext context)
+        : base(context, "res://scenes/ui/merchant/MerchantDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/merchant/MerchantDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_dialog == null || _tradeModeOption == null || _context.SelectedCity == null)
+        if (_context.SelectedCity == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.merchant");
-        SetLabelText("TradeModeLabel", _context.Localization.T("ui.trade_mode"));
-        SetLabelText("FoodLabel", _context.Localization.T("ui.trade_amount"));
+        SetOverlayTitleText(_context.Localization.T("ui.merchant"));
+        SetLabelText("TradeModeRow/TradeModeLabel", _context.Localization.T("ui.trade_mode"));
+        SetLabelText("FoodRow/FoodLabel", _context.Localization.T("ui.trade_amount"));
         if (_confirmButton != null)
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_merchant");
@@ -59,24 +56,14 @@ internal sealed class MerchantDialogController
         UpdateSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("MerchantDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("MerchantDialogRoot not found in MerchantDialog.tscn.");
-            return;
-        }
-
         _tradeModeOption = root.GetNodeOrNull<OptionButton>("TradeModeRow/TradeModeOption");
         _amountSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        ApplyInputThemes();
+        ApplyButtonThemes();
 
         if (_signalsConnected)
         {
@@ -99,6 +86,26 @@ internal sealed class MerchantDialogController
         }
 
         _signalsConnected = true;
+    }
+
+    private void ApplyButtonThemes()
+    {
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+    }
+
+    private void ApplyInputThemes()
+    {
+        if (_amountSpinBox?.GetLineEdit() is not LineEdit lineEdit)
+        {
+            return;
+        }
+
+        lineEdit.AddThemeColorOverride("font_color", new Color(0.93f, 0.9f, 0.84f, 1.0f));
+        lineEdit.AddThemeColorOverride("font_placeholder_color", new Color(0.72f, 0.68f, 0.62f, 0.9f));
+        lineEdit.AddThemeColorOverride("caret_color", new Color(0.95f, 0.83f, 0.56f, 1.0f));
     }
 
     private void Populate()
@@ -194,7 +201,7 @@ internal sealed class MerchantDialogController
         var result = _context.ExecuteMerchantCommand((int)_amountSpinBox.Value, GetSelectedTradeMode());
         if (result.Success)
         {
-            _dialog?.Hide();
+            HideOverlay();
         }
     }
 
@@ -213,8 +220,7 @@ internal sealed class MerchantDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var root = _dialog?.GetNodeOrNull<Control>("MerchantDialogRoot");
-        var label = root?.FindChild(nodeName, recursive: true, owned: false) as Label;
+        var label = GetOverlayContentNode<Label>(nodeName);
         if (label != null)
         {
             label.Text = text;

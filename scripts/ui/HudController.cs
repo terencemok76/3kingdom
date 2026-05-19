@@ -29,6 +29,17 @@ public partial class HudController : CanvasLayer
         dialog.PopupCentered(desiredSize);
     }
 
+    private static void ShowOverlay(Control? overlay)
+    {
+        if (overlay == null)
+        {
+            return;
+        }
+
+        overlay.Show();
+        overlay.MoveToFront();
+    }
+
     private sealed class PortraitMappingEntry
     {
         [JsonPropertyName("charId")]
@@ -60,6 +71,13 @@ public partial class HudController : CanvasLayer
         Politics,
         Charm,
         Intelligence
+    }
+
+    internal sealed class OfficerSelectorScopeOption
+    {
+        public required string Key { get; init; }
+        public required string Label { get; init; }
+        public required List<int> CandidateOfficerIds { get; init; }
     }
 
     private enum OfficerListScope

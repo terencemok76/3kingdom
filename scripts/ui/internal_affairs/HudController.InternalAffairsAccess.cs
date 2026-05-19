@@ -12,8 +12,10 @@ public partial class HudController
     internal CommandResolver? InternalAffairsCommandResolver => _commandResolver;
     internal LocalizationService? InternalAffairsLocalization => _localization;
     internal CityData? InternalAffairsSelectedCity => _selectedCity;
+    internal Control? InternalAffairsOverlayParent => GetNodeOrNull<Control>("Root");
 
-    internal void InternalAffairsPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+    internal void InternalAffairsPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void InternalAffairsBringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void InternalAffairsPlayUiClickSfx() => PlayUiClickSfx();
 
@@ -33,4 +35,12 @@ public partial class HudController
     internal List<int> InternalAffairsGetAvailableOfficerIdsForOrder() => GetAvailableOfficerIdsForOrder().ToList();
 
     internal string InternalAffairsGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
+
+    internal void InternalAffairsApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
 }

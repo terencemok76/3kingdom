@@ -79,6 +79,58 @@
 								"zhHant":  "任命職位",
 								"en":  "Position"
 							},
+	"ui.ask_for_advice":  {
+							  "zhHant":  "請教意見",
+							  "en":  "Ask For Advice"
+						  },
+	"ui.past_advice":  {
+							"zhHant":  "過往意見",
+							"en":  "Past Advice"
+						},
+	"ui.call_chancellor":  {
+							   "zhHant":  "請丞相建言",
+							   "en":  "Call Chancellor"
+						   },
+	"ui.call_chief_strategist":  {
+									   "zhHant":  "請軍師建言",
+									   "en":  "Call Strategist"
+								   },
+	"ui.call_local_officer":  {
+								   "zhHant":  "請本地武將建言",
+								   "en":  "Call Local Officer"
+							   },
+	"ui.select_local_officer_for_advice":  {
+											 "zhHant":  "請先選擇本地武將再請教意見。",
+											 "en":  "Select a local officer first before asking for advice."
+										 },
+	"ui.advice_local_politics_loyalty":  {
+											 "zhHant":  "民心尚未安定，先安撫百姓與整頓內政較為穩妥。",
+											 "en":  "Loyalty is not steady yet. Calm the people and stabilize internal affairs first."
+										 },
+	"ui.advice_local_politics_gold":  {
+										  "zhHant":  "府庫偏緊，應先發展商業與儲備金糧。",
+										  "en":  "The treasury is tight. Improve commerce and build reserves first."
+									  },
+	"ui.advice_local_politics_balanced":  {
+											  "zhHant":  "城內政務尚稱穩定，可循序推進建設與整備。",
+											  "en":  "City affairs are stable enough to continue development and preparation."
+										  },
+	"ui.advice_local_intelligence_border":  {
+												 "zhHant":  "邊境已有敵情，宜先探查虛實，再決定攻守。",
+												 "en":  "Enemies are near the border. Scout first, then decide whether to attack or defend."
+											 },
+	"ui.advice_local_intelligence_prepare":  {
+												  "zhHant":  "目前可先布置使者與細作，為後續行動預作準備。",
+												  "en":  "Use diplomacy and spies now to prepare for later action."
+											  },
+	"ui.advice_local_strength_defense":  {
+											 "zhHant":  "兵力與城防仍嫌不足，當先整兵固守。",
+											 "en":  "Troops and defenses are still thin. Reinforce and hold first."
+										 },
+	"ui.advice_local_strength_attack":  {
+										   "zhHant":  "若軍備齊整，可考慮主動出擊爭取先機。",
+										   "en":  "If the army is ready, consider striking first to seize the initiative."
+									   },
 	"ui.attack":  {
 					  "zhHant":  "攻擊",
 					  "en":  "Attack"
@@ -167,6 +219,10 @@
 								"zhHant":  "我方城市",
 								"en":  "Self Faction Cities"
 							},
+	"ui.local_place":  {
+						   "zhHant":  "本地",
+						   "en":  "Local"
+					   },
 	"ui.city_intel":  {
 						  "zhHant":  "情報",
 						  "en":  "Intel"
@@ -419,6 +475,10 @@
 					"zhHant":  "無",
 					"en":  "None"
 				},
+	"ui.no_advice":  {
+						  "zhHant":  "冇意見。",
+						  "en":  "No advice."
+					  },
 	"ui.officers":  {
 						"zhHant":  "武將",
 						"en":  "Officers"
@@ -547,6 +607,10 @@
 									 "zhHant":  "全勢力武將",
 									 "en":  "Faction Officers"
 								 },
+	"ui.whole_faction":  {
+							 "zhHant":  "全勢力",
+							 "en":  "Whole Faction"
+						 },
 	"ui.view_title.cities_all":  {
 									 "zhHant":  "查看城市（全部）",
 									 "en":  "View Cities (All)"

@@ -53,8 +53,10 @@ internal sealed class PersonnelUiContext
         string title,
         List<int> candidateOfficerIds,
         HudController.OfficerSelectorPrimaryStat primaryStat,
-        Action<int> confirmedAction) =>
-        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction);
+        Action<int> confirmedAction,
+        IEnumerable<HudController.OfficerSelectorScopeOption>? scopeOptions = null,
+        string? initialScopeKey = null) =>
+        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey);
 
     public void ContinuePendingNonAttackResolution() => _owner.PersonnelContinuePendingNonAttackResolution();
 
@@ -76,6 +78,30 @@ internal sealed class PersonnelUiContext
         }
 
         return city.OfficerIds
+            .Where(officerId =>
+            {
+                var officer = world.GetOfficer(officerId);
+                return officer != null && !IsFactionRuler(world, officer);
+            })
+            .ToList();
+    }
+
+    public List<int> GetNonRulerFactionOfficerIds()
+    {
+        var city = SelectedCity;
+        var world = TurnManager?.World;
+        if (city == null || world == null)
+        {
+            return new List<int>();
+        }
+
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction == null)
+        {
+            return new List<int>();
+        }
+
+        return faction.OfficerIds
             .Where(officerId =>
             {
                 var officer = world.GetOfficer(officerId);

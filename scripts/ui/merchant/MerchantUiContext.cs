@@ -5,6 +5,7 @@ using ThreeKingdom.Data;
 namespace ThreeKingdom.UI;
 
 internal sealed class MerchantUiContext
+    : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -17,21 +18,30 @@ internal sealed class MerchantUiContext
     public LocalizationService? Localization => _owner.MerchantLocalization;
     public CityData? SelectedCity => _owner.MerchantSelectedCity;
 
-    public Window CreateWindow(string scenePath, System.Action<Window> closeAction)
+    public Control CreateOverlay(string scenePath, System.Action closeAction)
     {
-        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Window>();
-        dialog.Exclusive = false;
-        dialog.Unresizable = true;
-        dialog.CloseRequested += () =>
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.MerchantOverlayParent != null)
         {
-            _owner.MerchantPlayUiClickSfx();
-            closeAction(dialog);
-        };
-        _owner.AddChild(dialog);
+            parent = _owner.MerchantOverlayParent;
+        }
+
+        parent.AddChild(dialog);
         return dialog;
     }
 
-    public void PopupDialog(Window? dialog) => _owner.MerchantPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.MerchantPopupDialog(dialog);
+
+    public void CloseOverlay(System.Action closeAction)
+    {
+        _owner.MerchantPlayUiClickSfx();
+        closeAction();
+    }
+
+    public void BringOverlayToFront(CanvasItem? item) => _owner.MerchantBringOverlayToFront(item);
+    public void ApplyCommandButtonTheme(Button button) => _owner.MerchantApplyCommandButtonTheme(button);
 
     public CommandResult ExecuteMerchantCommand(int amount, MerchantTradeMode tradeMode) =>
         _owner.MerchantExecuteCommand(amount, tradeMode);

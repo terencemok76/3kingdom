@@ -7,7 +7,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class AdvisorUiContext
+internal sealed class AdvisorUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -21,21 +21,29 @@ internal sealed class AdvisorUiContext
     public LocalizationService? Localization => _owner.AdvisorLocalization;
     public CityData? SelectedCity => _owner.AdvisorSelectedCity;
 
-    public Window CreateWindow(string scenePath, Action<Window> closeAction)
+    public Control CreateOverlay(string scenePath, Action closeAction)
     {
-        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Window>();
-        dialog.Exclusive = false;
-        dialog.Unresizable = true;
-        dialog.CloseRequested += () =>
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.AdvisorOverlayParent != null)
         {
-            _owner.AdvisorPlayUiClickSfx();
-            closeAction(dialog);
-        };
-        _owner.AddChild(dialog);
+            parent = _owner.AdvisorOverlayParent;
+        }
+
+        parent.AddChild(dialog);
         return dialog;
     }
 
-    public void PopupDialog(Window? dialog) => _owner.AdvisorPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.AdvisorPopupDialog(dialog);
+
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.AdvisorPlayUiClickSfx();
+        closeAction();
+    }
+
+    public void BringOverlayToFront(CanvasItem? item) => _owner.AdvisorBringOverlayToFront(item);
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.AdvisorAddLog(message, isPlayerRelated);
 
@@ -51,6 +59,12 @@ internal sealed class AdvisorUiContext
     public bool IsFactionRuler(WorldState world, OfficerData officer) => _owner.AdvisorIsFactionRuler(world, officer);
 
     public string GetLocalizedResultMessage(CommandResult result) => _owner.AdvisorGetLocalizedResultMessage(result);
+
+    public Texture2D? BuildOfficerPortraitTexture(int officerId) => _owner.AdvisorBuildOfficerPortraitTexture(officerId);
+
+    public string GetPortraitLabel() => _owner.AdvisorGetPortraitLabel();
+
+    public void ApplyCommandButtonTheme(Button button) => _owner.AdvisorApplyCommandButtonTheme(button);
 
     public List<int> GetNonRulerCityOfficerIds()
     {

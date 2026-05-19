@@ -24,6 +24,24 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
+[node name="ScopeRow" type="HBoxContainer" parent="SelectOfficerDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+visible = false
+
+[node name="PrimaryScopeButton" type="Button" parent="SelectOfficerDialogRoot/ScopeRow"]
+layout_mode = 2
+focus_mode = 0
+size_flags_horizontal = 3
+text = "Local"
+
+[node name="SecondaryScopeButton" type="Button" parent="SelectOfficerDialogRoot/ScopeRow"]
+layout_mode = 2
+focus_mode = 0
+size_flags_horizontal = 3
+text = "Faction"
+
 [node name="OfficerTable" type="Tree" parent="SelectOfficerDialogRoot/ContentSection"]
 custom_minimum_size = Vector2(560, 180)
 layout_mode = 2

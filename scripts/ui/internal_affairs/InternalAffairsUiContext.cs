@@ -8,6 +8,7 @@ using ThreeKingdom.Data;
 namespace ThreeKingdom.UI;
 
 internal sealed class InternalAffairsUiContext
+    : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -21,30 +22,39 @@ internal sealed class InternalAffairsUiContext
     public LocalizationService? Localization => _owner.InternalAffairsLocalization;
     public CityData? SelectedCity => _owner.InternalAffairsSelectedCity;
 
-    public Window CreateWindow(string scenePath, Action<Window> closeAction)
+    public Control CreateOverlay(string scenePath, Action closeAction)
     {
-        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Window>();
-        dialog.Exclusive = false;
-        dialog.Unresizable = true;
-        dialog.CloseRequested += () =>
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.InternalAffairsOverlayParent != null)
         {
-            _owner.InternalAffairsPlayUiClickSfx();
-            closeAction(dialog);
-        };
-        _owner.AddChild(dialog);
+            parent = _owner.InternalAffairsOverlayParent;
+        }
+
+        parent.AddChild(dialog);
         return dialog;
     }
 
-    public void PopupDialog(Window? dialog) => _owner.InternalAffairsPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.InternalAffairsPopupDialog(dialog);
 
-    public void ReopenDialog(Window? dialog)
+    public void ReopenDialog(Control? dialog)
     {
         Callable.From(() => _owner.InternalAffairsPopupDialog(dialog)).CallDeferred();
     }
 
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.InternalAffairsPlayUiClickSfx();
+        closeAction();
+    }
+
+    public void BringOverlayToFront(CanvasItem? item) => _owner.InternalAffairsBringOverlayToFront(item);
+
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.InternalAffairsAddLog(message, isPlayerRelated);
     public void RefreshSelectedCity() => _owner.InternalAffairsRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.InternalAffairsRefreshMapVisuals();
+    public void ApplyCommandButtonTheme(Button button) => _owner.InternalAffairsApplyCommandButtonTheme(button);
     public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.InternalAffairsShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
     public List<int> GetAvailableOfficerIdsForOrder() => _owner.InternalAffairsGetAvailableOfficerIdsForOrder();
     public string GetLocalizedResultMessage(CommandResult result) => _owner.InternalAffairsGetLocalizedResultMessage(result);

@@ -329,24 +329,45 @@ public partial class HudController : CanvasLayer
         string title,
         IEnumerable<int> candidateOfficerIds,
         OfficerSelectorPrimaryStat primaryStat,
-        Action<int> onConfirmed)
+        Action<int> onConfirmed,
+        IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
+        string? initialScopeKey = null)
     {
         if (_turnManager?.World == null || _selectOfficerDialog == null || _localization == null)
         {
             return;
         }
 
-        var candidates = candidateOfficerIds
-            .Distinct()
-            .Select(id => _turnManager.World.GetOfficer(id))
-            .Where(officer => officer != null)
-            .Cast<OfficerData>()
-            .OrderByDescending(GetOfficerSelectorPrimaryStatValue)
-            .ThenByDescending(officer => officer.Intelligence)
-            .ThenByDescending(officer => officer.Politics)
-            .ThenByDescending(officer => officer.Charm)
-            .ThenBy(officer => _localization.GetOfficerName(officer))
-            .ToList();
+        List<OfficerData> BuildCandidates(IEnumerable<int> ids)
+        {
+            return ids
+                .Distinct()
+                .Select(id => _turnManager.World.GetOfficer(id))
+                .Where(officer => officer != null)
+                .Cast<OfficerData>()
+                .OrderByDescending(GetOfficerSelectorPrimaryStatValue)
+                .ThenByDescending(officer => officer.Intelligence)
+                .ThenByDescending(officer => officer.Politics)
+                .ThenByDescending(officer => officer.Charm)
+                .ThenBy(officer => _localization.GetOfficerName(officer))
+                .ToList();
+        }
+
+        List<SelectOfficerDialog.RowData> BuildRows(IEnumerable<int> ids)
+        {
+            return BuildCandidates(ids)
+                .Select(officer => new SelectOfficerDialog.RowData
+                {
+                    OfficerId = officer.Id,
+                    OfficerName = _localization.GetOfficerName(officer),
+                    RoleName = _localization.GetOfficerRole(officer),
+                    StatusName = _localization.GetOfficerStatus(_turnManager.World, officer),
+                    PrimaryStatText = GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString()
+                })
+                .ToList();
+        }
+
+        var candidates = BuildCandidates(candidateOfficerIds);
         if (candidates.Count == 0)
         {
             AddLog(_localization.T("ui.select_officer_warning"));
@@ -369,6 +390,15 @@ public partial class HudController : CanvasLayer
                 PrimaryStatText = GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString()
             })
             .ToList();
+        var scopeRows = scopeOptions?
+            .Select(option => new SelectOfficerDialog.ScopeOption
+            {
+                Key = option.Key,
+                Label = option.Label,
+                Rows = BuildRows(option.CandidateOfficerIds)
+            })
+            .Where(option => option.Rows.Count > 0)
+            .ToList();
 
         _selectOfficerDialog.ShowSelector(
             title,
@@ -383,7 +413,9 @@ public partial class HudController : CanvasLayer
                 _genericOfficerSelectorConfirmedAction?.Invoke(officerId);
                 _genericOfficerSelectorConfirmedAction = null;
                 _genericOfficerSelectorCandidateIds.Clear();
-            });
+            },
+            scopeRows,
+            initialScopeKey);
     }
 
     private string GetOfficerSelectorPrimaryStatTitle(OfficerSelectorPrimaryStat primaryStat)

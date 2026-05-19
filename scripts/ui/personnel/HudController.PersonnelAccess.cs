@@ -30,8 +30,10 @@ public partial class HudController
         string title,
         List<int> candidateOfficerIds,
         OfficerSelectorPrimaryStat primaryStat,
-        Action<int> confirmedAction) =>
-        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction);
+        Action<int> confirmedAction,
+        IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
+        string? initialScopeKey = null) =>
+        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey);
 
     internal List<int> PersonnelGetAvailableOfficerIdsForOrder() => GetAvailableOfficerIdsForOrder().ToList();
 

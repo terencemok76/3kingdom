@@ -12,8 +12,10 @@ public partial class HudController
     internal CommandResolver? AdvisorCommandResolver => _commandResolver;
     internal LocalizationService? AdvisorLocalization => _localization;
     internal CityData? AdvisorSelectedCity => _selectedCity;
+    internal Control? AdvisorOverlayParent => GetNodeOrNull<Control>("Root");
 
-    internal void AdvisorPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+    internal void AdvisorPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void AdvisorBringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void AdvisorPlayUiClickSfx() => PlayUiClickSfx();
 
@@ -31,4 +33,16 @@ public partial class HudController
     internal bool AdvisorIsFactionRuler(WorldState world, OfficerData officer) => IsFactionRuler(world, officer);
 
     internal string AdvisorGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
+
+    internal Texture2D? AdvisorBuildOfficerPortraitTexture(int officerId) => BuildOfficerPortraitTexture(officerId);
+
+    internal string AdvisorGetPortraitLabel() => _localization?.T("ui.portrait") ?? "Portrait";
+
+    internal void AdvisorApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
 }

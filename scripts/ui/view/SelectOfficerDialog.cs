@@ -1,11 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 namespace ThreeKingdom.UI;
 
 public sealed partial class SelectOfficerDialog : Window
 {
+    public sealed class ScopeOption
+    {
+        public required string Key { get; init; }
+        public required string Label { get; init; }
+        public required IReadOnlyList<RowData> Rows { get; init; }
+    }
+
     public sealed class RowData
     {
         public required int OfficerId { get; init; }
@@ -16,17 +24,35 @@ public sealed partial class SelectOfficerDialog : Window
     }
 
     private Tree? _officerTable;
+    private HBoxContainer? _scopeRow;
+    private Button? _primaryScopeButton;
+    private Button? _secondaryScopeButton;
     private Button? _confirmButton;
     private Action<int>? _confirmedAction;
+    private readonly List<ScopeOption> _scopeOptions = new();
+    private string _activeScopeKey = string.Empty;
 
     public override void _Ready()
     {
         _officerTable = GetNodeOrNull<Tree>("SelectOfficerDialogRoot/ContentSection/OfficerTable");
+        _scopeRow = GetNodeOrNull<HBoxContainer>("SelectOfficerDialogRoot/ScopeRow");
+        _primaryScopeButton = GetNodeOrNull<Button>("SelectOfficerDialogRoot/ScopeRow/PrimaryScopeButton");
+        _secondaryScopeButton = GetNodeOrNull<Button>("SelectOfficerDialogRoot/ScopeRow/SecondaryScopeButton");
         _confirmButton = GetNodeOrNull<Button>("SelectOfficerDialogRoot/FooterSection/ConfirmRow/ConfirmButton");
 
         if (_officerTable != null)
         {
             _officerTable.ItemSelected += OnOfficerTableSelected;
+        }
+
+        if (_primaryScopeButton != null)
+        {
+            _primaryScopeButton.Pressed += () => ActivateScope(0);
+        }
+
+        if (_secondaryScopeButton != null)
+        {
+            _secondaryScopeButton.Pressed += () => ActivateScope(1);
         }
 
         if (_confirmButton != null)
@@ -45,7 +71,9 @@ public sealed partial class SelectOfficerDialog : Window
         string statusTitle,
         string statTitle,
         IReadOnlyList<RowData> rows,
-        Action<int> onConfirmed)
+        Action<int> onConfirmed,
+        IReadOnlyList<ScopeOption>? scopeOptions = null,
+        string? initialScopeKey = null)
     {
         if (_officerTable == null || _confirmButton == null)
         {
@@ -55,6 +83,62 @@ public sealed partial class SelectOfficerDialog : Window
         Title = title;
         _confirmButton.Text = confirmText;
         _confirmedAction = onConfirmed;
+        ConfigureColumns(officerTitle, roleTitle, statusTitle, statTitle);
+
+        _scopeOptions.Clear();
+        if (scopeOptions != null)
+        {
+            _scopeOptions.AddRange(scopeOptions.Where(option => option.Rows.Count > 0));
+        }
+
+        if (_scopeRow != null)
+        {
+            _scopeRow.Visible = _scopeOptions.Count >= 2;
+        }
+
+        if (_scopeOptions.Count >= 2)
+        {
+            if (_primaryScopeButton != null)
+            {
+                _primaryScopeButton.Text = _scopeOptions[0].Label;
+            }
+
+            if (_secondaryScopeButton != null)
+            {
+                _secondaryScopeButton.Text = _scopeOptions[1].Label;
+            }
+
+            _activeScopeKey = !string.IsNullOrWhiteSpace(initialScopeKey) &&
+                              _scopeOptions.Any(option => option.Key == initialScopeKey)
+                ? initialScopeKey
+                : _scopeOptions[0].Key;
+            RenderRows(GetActiveScopeRows());
+            UpdateScopeButtonStates();
+        }
+        else
+        {
+            _activeScopeKey = string.Empty;
+            RenderRows(rows);
+            UpdateScopeButtonStates();
+        }
+
+        var sceneSize = Size;
+        if (sceneSize.X > 0 && sceneSize.Y > 0)
+        {
+            PopupCentered(sceneSize);
+        }
+        else
+        {
+            PopupCentered(new Vector2I(620, 320));
+        }
+    }
+
+    private void ConfigureColumns(string officerTitle, string roleTitle, string statusTitle, string statTitle)
+    {
+        if (_officerTable == null)
+        {
+            return;
+        }
 
         _officerTable.Clear();
         _officerTable.Columns = 4;
@@ -70,7 +154,16 @@ public sealed partial class SelectOfficerDialog : Window
         _officerTable.SetColumnTitle(3, statTitle);
         _officerTable.SetColumnCustomMinimumWidth(3, 90);
         _officerTable.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
+    }
 
+    private void RenderRows(IReadOnlyList<RowData> rows)
+    {
+        if (_officerTable == null)
+        {
+            return;
+        }
+
+        _officerTable.Clear();
         var root = _officerTable.CreateItem();
         for (var rowIndex = 0; rowIndex < rows.Count; rowIndex += 1)
         {
@@ -83,15 +176,36 @@ public sealed partial class SelectOfficerDialog : Window
             row.SetText(3, rowData.PrimaryStatText);
             ApplyRowStriping(row, rowIndex, 4);
         }
+    }
 
-        var sceneSize = Size;
-        if (sceneSize.X > 0 && sceneSize.Y > 0)
+    private void ActivateScope(int index)
+    {
+        if (index < 0 || index >= _scopeOptions.Count)
         {
-            PopupCentered(sceneSize);
+            return;
         }
-        else
+
+        _activeScopeKey = _scopeOptions[index].Key;
+        RenderRows(_scopeOptions[index].Rows);
+        UpdateScopeButtonStates();
+    }
+
+    private IReadOnlyList<RowData> GetActiveScopeRows()
+    {
+        var activeScope = _scopeOptions.FirstOrDefault(option => option.Key == _activeScopeKey);
+        return activeScope?.Rows ?? _scopeOptions[0].Rows;
+    }
+
+    private void UpdateScopeButtonStates()
+    {
+        if (_primaryScopeButton != null)
         {
-            PopupCentered(new Vector2I(620, 320));
+            _primaryScopeButton.Disabled = _scopeOptions.Count >= 1 && _activeScopeKey == _scopeOptions[0].Key;
+        }
+
+        if (_secondaryScopeButton != null)
+        {
+            _secondaryScopeButton.Disabled = _scopeOptions.Count >= 2 && _activeScopeKey == _scopeOptions[1].Key;
         }
     }
 
