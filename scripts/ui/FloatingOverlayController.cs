@@ -168,8 +168,12 @@ internal abstract class FloatingOverlayController
 
         var minimumSize = MinimumOverlaySize;
         var currentSize = OverlayPanel.Size;
-        var targetWidth = currentSize.X > 0.0f ? currentSize.X : minimumSize.X;
-        var targetHeight = currentSize.Y > 0.0f ? currentSize.Y : minimumSize.Y;
+        var targetWidth = minimumSize.X > 0.0f
+            ? minimumSize.X
+            : currentSize.X;
+        var targetHeight = minimumSize.Y > 0.0f
+            ? minimumSize.Y
+            : currentSize.Y;
 
         if (AutoFitOverlayWidth || AutoFitOverlayHeight)
         {
