@@ -282,7 +282,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         var faction = world.GetFaction(city.OwnerFactionId);
         var chancellor = faction != null ? world.GetOfficer(faction.ChancellorOfficerId) : null;
         var speaker = chancellor != null ? localization.GetOfficerName(chancellor) : localization.T("ui.chancellor");
-        AddAdviceEntry(speaker, localization.T("ui.chancellor"), BuildChancellorComment(city), chancellor?.Id ?? 0);
+        AddAdviceEntry(speaker, localization.T("ui.chancellor"), BuildChancellorComment(city.OwnerFactionId), chancellor?.Id ?? 0);
     }
 
     private void OnAskChiefStrategistPressed()
@@ -298,7 +298,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         var faction = world.GetFaction(city.OwnerFactionId);
         var chiefStrategist = faction != null ? world.GetOfficer(faction.ChiefStrategistOfficerId) : null;
         var speaker = chiefStrategist != null ? localization.GetOfficerName(chiefStrategist) : localization.T("ui.chief_strategist");
-        AddAdviceEntry(speaker, localization.T("ui.chief_strategist"), BuildChiefStrategistComment(city), chiefStrategist?.Id ?? 0);
+        AddAdviceEntry(speaker, localization.T("ui.chief_strategist"), BuildChiefStrategistComment(city.OwnerFactionId), chiefStrategist?.Id ?? 0);
     }
 
     private void OnAskLocalOfficerPressed()
@@ -368,7 +368,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         return officer.Intelligence * 3 + officer.Politics * 2 + officer.Charm;
     }
 
-    private string BuildChancellorComment(CityData city)
+    private string BuildChancellorComment(int factionId)
     {
         var localization = _context.Localization;
         var world = _context.TurnManager?.World;
@@ -377,28 +377,39 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
             return string.Empty;
         }
 
-        var faction = world.GetFaction(city.OwnerFactionId);
+        var faction = world.GetFaction(factionId);
         if (faction == null || faction.ChancellorOfficerId <= 0)
         {
             return localization.T("ui.advisor_comment_no_chancellor");
         }
 
-        if (city.Loyalty < 65)
+        var factionCities = GetFactionCities(world, factionId);
+        if (factionCities.Count == 0)
+        {
+            return localization.T("ui.advisor_comment_chancellor_balanced");
+        }
+
+        var lowestLoyalty = factionCities.Min(city => city.Loyalty);
+        var totalFood = factionCities.Sum(city => city.Food);
+        var totalGold = factionCities.Sum(city => city.Gold);
+        var totalPopulation = factionCities.Sum(city => city.Population);
+
+        if (lowestLoyalty < 65)
         {
             return localization.T("ui.advisor_comment_chancellor_loyalty");
         }
 
-        if (city.Food < 900)
+        if (totalFood < factionCities.Count * 900)
         {
             return localization.T("ui.advisor_comment_chancellor_food");
         }
 
-        if (city.Gold < 500)
+        if (totalGold < factionCities.Count * 500)
         {
             return localization.T("ui.advisor_comment_chancellor_gold");
         }
 
-        if (city.Population < 40000)
+        if (totalPopulation < factionCities.Count * 40000)
         {
             return localization.T("ui.advisor_comment_chancellor_population");
         }
@@ -406,7 +417,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         return localization.T("ui.advisor_comment_chancellor_balanced");
     }
 
-    private string BuildChiefStrategistComment(CityData city)
+    private string BuildChiefStrategistComment(int factionId)
     {
         var localization = _context.Localization;
         var world = _context.TurnManager?.World;
@@ -415,31 +426,41 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
             return string.Empty;
         }
 
-        var faction = world.GetFaction(city.OwnerFactionId);
+        var faction = world.GetFaction(factionId);
         if (faction == null || faction.ChiefStrategistOfficerId <= 0)
         {
             return localization.T("ui.advisor_comment_no_chief_strategist");
         }
 
-        var hasEnemyBorder = city.ConnectedCityIds
-            .Select(world.GetCity)
-            .Where(target => target != null)
-            .Cast<CityData>()
-            .Any(target => target.OwnerFactionId > 0 && target.OwnerFactionId != city.OwnerFactionId);
-        if (hasEnemyBorder)
-        {
-            var strongestEnemy = city.ConnectedCityIds
+        var factionCities = GetFactionCities(world, factionId);
+        var frontierCities = factionCities
+            .Where(city => city.ConnectedCityIds
                 .Select(world.GetCity)
-                .Where(target => target != null && target.OwnerFactionId > 0 && target.OwnerFactionId != city.OwnerFactionId)
+                .Where(target => target != null)
+                .Cast<CityData>()
+                .Any(target => target.OwnerFactionId > 0 && target.OwnerFactionId != factionId))
+            .ToList();
+
+        if (frontierCities.Count > 0)
+        {
+            var strongestEnemy = frontierCities
+                .SelectMany(city => city.ConnectedCityIds
+                    .Select(world.GetCity)
+                    .Where(target => target != null && target.OwnerFactionId > 0 && target.OwnerFactionId != factionId)
+                    .Cast<CityData>())
                 .Cast<CityData>()
                 .OrderByDescending(target => target.Troops)
                 .FirstOrDefault();
-            if (strongestEnemy != null && city.Troops >= strongestEnemy.Troops + 600)
+
+            var strongestFrontier = frontierCities
+                .OrderByDescending(city => city.Troops)
+                .FirstOrDefault();
+            if (strongestEnemy != null && strongestFrontier != null && strongestFrontier.Troops >= strongestEnemy.Troops + 600)
             {
                 return localization.T("ui.advisor_comment_chief_strategist_attack");
             }
 
-            if (city.Defense < 60 || city.Troops < 1600)
+            if (frontierCities.Any(city => city.Defense < 60 || city.Troops < 1600))
             {
                 return localization.T("ui.advisor_comment_chief_strategist_defense");
             }
@@ -447,12 +468,19 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
             return localization.T("ui.advisor_comment_chief_strategist_border");
         }
 
-        if (city.Loyalty < 70)
+        if (factionCities.Any(city => city.Loyalty < 70))
         {
             return localization.T("ui.advisor_comment_chief_strategist_loyalty");
         }
 
         return localization.T("ui.advisor_comment_chief_strategist_layout");
+    }
+
+    private static List<CityData> GetFactionCities(WorldState world, int factionId)
+    {
+        return world.Cities
+            .Where(city => city.OwnerFactionId == factionId)
+            .ToList();
     }
 
     private string BuildLocalOfficerComment(CityData city, OfficerData officer)

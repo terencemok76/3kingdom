@@ -4,52 +4,50 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class RequestItemDialogController
+internal sealed class RequestItemDialogController : FloatingOverlayController
 {
     private readonly PersonnelUiContext _context;
-    private Window? _dialog;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private OptionButton? _itemOption;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(330.0f, 150.0f);
 
     public RequestItemDialogController(PersonnelUiContext context)
+        : base(context, "res://scenes/ui/personnel/RequestItemDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/personnel/RequestItemDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _dialog == null || _context.Localization == null)
+        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("command.personnel.request_item");
+        SetOverlayTitleText(_context.Localization.T("command.personnel.request_item"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.request_item_officer"));
         SetLabelText("ItemLabel", _context.Localization.T("ui.request_item"));
         if (_selectOfficerButton != null)
@@ -63,24 +61,20 @@ internal sealed class RequestItemDialogController
         UpdateSelectedOfficerSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("RequestItemDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("RequestItemDialogRoot not found in RequestItemDialog.tscn.");
-            return;
-        }
-
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _itemOption = root.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (_selectOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
@@ -109,8 +103,8 @@ internal sealed class RequestItemDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var label = _dialog?.GetNodeOrNull<Label>($"RequestItemDialogRoot/{nodeName}") ??
-                    _dialog?.GetNodeOrNull<Label>($"RequestItemDialogRoot/ItemRow/{nodeName}");
+        var label = GetOverlayContentNode<Label>(nodeName) ??
+                    GetOverlayContentNode<Label>($"ItemRow/{nodeName}");
         if (label != null)
         {
             label.Text = text;
@@ -165,7 +159,7 @@ internal sealed class RequestItemDialogController
         if (_selectedOfficerId <= 0)
         {
             _context.AddLog(_context.Localization?.T("ui.select_officer_warning") ?? string.Empty);
-            _context.PopupDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -173,7 +167,7 @@ internal sealed class RequestItemDialogController
         if (item == null)
         {
             _context.AddLog(_context.Localization?.T("ui.select_item_warning") ?? string.Empty);
-            _context.PopupDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -181,7 +175,7 @@ internal sealed class RequestItemDialogController
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         _context.RefreshSelectedCity();
         _context.RefreshMapVisuals();
-        _dialog?.Hide();
+        HideOverlay();
     }
 
     private void OnSelectOfficerPressed()

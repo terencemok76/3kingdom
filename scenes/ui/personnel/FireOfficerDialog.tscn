@@ -1,44 +1,165 @@
 [gd_scene format=3 uid="uid://dauvyg2wx6eit"]
 
-[node name="FireOfficerDialog" type="Window" unique_id=1694145384]
-oversampling_override = 1.0
-title = "Fire Officer"
-position = Vector2i(0, 36)
-size = Vector2i(340, 120)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog_panel"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.08, 0.1, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.79, 0.71, 0.24)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.22)
+shadow_size = 6
 
-[node name="FireOfficerDialogRoot" type="VBoxContainer" parent="." unique_id=1311134691]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_bar"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.15, 0.13, 0.11, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.48, 0.39, 0.24, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_normal"]
+bg_color = Color(0.62, 0.53, 0.36, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_hover"]
+bg_color = Color(0.73, 0.62, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_pressed"]
+bg_color = Color(0.46, 0.38, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[node name="FireOfficerDialogOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(340, 120)
+offset_right = 340.0
+offset_bottom = 120.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
+
+[node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
 custom_minimum_size = Vector2(320, 100)
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 328.0
-offset_bottom = 109.0
+layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="OfficerListLabel" type="Label" parent="FireOfficerDialogRoot" unique_id=1304344924]
+[node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_bar")
+
+[node name="TitleBar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel"]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="TitleSpacerLeft" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+text = "Fire Officer"
+horizontal_alignment = 1
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
+
+[node name="TitleSpacerRight" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CloseButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 22)
+focus_mode = 0
+text = "×"
+theme_override_colors/font_color = Color(0.12, 0.09, 0.05, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
+
+[node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 text = "Officer"
 
-[node name="OfficerSelectorRow" type="HBoxContainer" parent="FireOfficerDialogRoot" unique_id=889739029]
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="SelectedOfficerLabel" type="Label" parent="FireOfficerDialogRoot/OfficerSelectorRow" unique_id=786515828]
+[node name="SelectedOfficerLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Officer: -"
 autowrap_mode = 3
 
-[node name="SelectOfficerButton" type="Button" parent="FireOfficerDialogRoot/OfficerSelectorRow" unique_id=577045706]
+[node name="SelectOfficerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
 layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
 
-[node name="ConfirmRow" type="HBoxContainer" parent="FireOfficerDialogRoot" unique_id=1924105497]
+[node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1
 
-[node name="ConfirmButton" type="Button" parent="FireOfficerDialogRoot/ConfirmRow" unique_id=73153919]
+[node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
 layout_mode = 2
 focus_mode = 0
 text = "OK"

@@ -7,7 +7,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class CivilUiContext
+internal sealed class CivilUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -35,7 +35,28 @@ internal sealed class CivilUiContext
         return dialog;
     }
 
+    public Control CreateOverlay(string scenePath, Action closeAction)
+    {
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.CivilOverlayParent != null)
+        {
+            parent = _owner.CivilOverlayParent;
+        }
+
+        parent.AddChild(dialog);
+        return dialog;
+    }
+
     public void PopupDialog(Window? dialog) => _owner.CivilPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.CivilPopupDialog(dialog);
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.CivilPlayUiClickSfx();
+        closeAction();
+    }
+    public void BringOverlayToFront(CanvasItem? item) => _owner.CivilBringOverlayToFront(item);
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.CivilAddLog(message, isPlayerRelated);
     public void RefreshSelectedCity() => _owner.CivilRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.CivilRefreshMapVisuals();
@@ -45,6 +66,7 @@ internal sealed class CivilUiContext
     public CommandResult ExecutePlayerCommand(CommandType commandType, int? targetCityId = null, int troopsToSend = 0, List<int>? officerIds = null) => _owner.CivilExecutePlayerCommand(commandType, targetCityId, troopsToSend, officerIds);
     public string GetCommandName(CommandType commandType) => _owner.CivilGetCommandName(commandType);
     public string GetLocalizedResultMessage(CommandResult result) => _owner.CivilGetLocalizedResultMessage(result);
+    public void ApplyCommandButtonTheme(Button button) => _owner.CivilApplyCommandButtonTheme(button);
 
     public List<int> GetAvailableCityOfficerIds()
     {

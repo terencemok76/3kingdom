@@ -6,7 +6,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class DiplomacyUiContext
+internal sealed class DiplomacyUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -20,17 +20,17 @@ internal sealed class DiplomacyUiContext
     public LocalizationService? Localization => _owner.DiplomacyLocalization;
     public CityData? SelectedCity => _owner.DiplomacySelectedCity;
 
-    public Window CreateWindow(string scenePath, Action<Window> closeAction)
+    public Control CreateOverlay(string scenePath, Action closeAction)
     {
-        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Window>();
-        dialog.Exclusive = false;
-        dialog.Unresizable = true;
-        dialog.CloseRequested += () =>
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.DiplomacyOverlayParent != null)
         {
-            _owner.DiplomacyPlayUiClickSfx();
-            closeAction(dialog);
-        };
-        _owner.AddChild(dialog);
+            parent = _owner.DiplomacyOverlayParent;
+        }
+
+        parent.AddChild(dialog);
         return dialog;
     }
 
@@ -50,7 +50,13 @@ internal sealed class DiplomacyUiContext
         return dialog;
     }
 
-    public void PopupDialog(Window? dialog) => _owner.DiplomacyPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.DiplomacyPopupDialog(dialog);
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.DiplomacyPlayUiClickSfx();
+        closeAction();
+    }
+    public void BringOverlayToFront(CanvasItem? item) => _owner.DiplomacyBringOverlayToFront(item);
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.DiplomacyAddLog(message, isPlayerRelated);
     public void RefreshSelectedCity() => _owner.DiplomacyRefreshSelectedCity();
     public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.DiplomacyShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
@@ -58,4 +64,5 @@ internal sealed class DiplomacyUiContext
     public void ContinuePendingNonAttackResolution() => _owner.DiplomacyContinuePendingNonAttackResolution();
     public string GetLocalizedResultMessage(CommandResult result) => _owner.DiplomacyGetLocalizedResultMessage(result);
     public string GetStatusText(DiplomacyStatusType status) => _owner.DiplomacyGetStatusText(status);
+    public void ApplyCommandButtonTheme(Button button) => _owner.DiplomacyApplyCommandButtonTheme(button);
 }

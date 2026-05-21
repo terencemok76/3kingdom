@@ -3,10 +3,9 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class MoveDialogController
+internal sealed class MoveDialogController : FloatingOverlayController
 {
     private readonly MilitaryUiContext _context;
-    private Window? _dialog;
     private OptionButton? _targetCityOption;
     private Button? _confirmButton;
     private SpinBox? _troopsSpinBox;
@@ -15,29 +14,28 @@ internal sealed class MoveDialogController
     private SpinBox? _horseSpinBox;
     private Tree? _officerList;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(460.0f, 560.0f);
 
     public MoveDialogController(MilitaryUiContext context)
+        : base(context, "res://scenes/ui/military/MoveDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/military/MoveDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show(List<int> candidateIds)
     {
-        if (_dialog == null || _targetCityOption == null || _context.SelectedCity == null || _context.TurnManager?.World == null)
+        if (_context.SelectedCity == null || _context.TurnManager?.World == null || !EnsureOverlayReady() || _targetCityOption == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
 
         _targetCityOption.Clear();
@@ -90,17 +88,17 @@ internal sealed class MoveDialogController
             }
         }
 
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.move");
+        SetOverlayTitleText(_context.Localization.T("ui.move"));
         if (_confirmButton != null)
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_move");
@@ -114,20 +112,8 @@ internal sealed class MoveDialogController
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.transfer_officers"));
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("MoveDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("MoveDialogRoot not found in MoveDialog.tscn.");
-            return;
-        }
-
         _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityOption");
         _troopsSpinBox = root.GetNodeOrNull<SpinBox>("TroopsSpinBox");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldSpinBox");
@@ -135,6 +121,10 @@ internal sealed class MoveDialogController
         _horseSpinBox = root.GetNodeOrNull<SpinBox>("HorseSpinBox");
         _officerList = root.GetNodeOrNull<Tree>("OfficerTable");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
 
         if (_signalsConnected || _confirmButton == null)
         {
@@ -173,7 +163,7 @@ internal sealed class MoveDialogController
             _context.GetCheckedTreeMetadataIds(_officerList));
         if (result.Success)
         {
-            _dialog?.Hide();
+            HideOverlay();
         }
     }
 
@@ -191,7 +181,7 @@ internal sealed class MoveDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var label = _dialog?.GetNodeOrNull<Label>($"MoveDialogRoot/{nodeName}");
+        var label = GetOverlayContentNode<Label>(nodeName);
         if (label != null)
         {
             label.Text = text;

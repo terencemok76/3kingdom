@@ -10,8 +10,10 @@ public partial class HudController
     internal CommandResolver? SpyCommandResolver => _commandResolver;
     internal LocalizationService? SpyLocalization => _localization;
     internal CityData? SpySelectedCity => _selectedCity;
+    internal Control? SpyOverlayParent => GetNodeOrNull<Control>("Root");
 
-    internal void SpyPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+    internal void SpyPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void SpyBringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void SpyPlayUiClickSfx() => PlayUiClickSfx();
 
@@ -29,4 +31,12 @@ public partial class HudController
     internal bool SpyHasActiveInternalAffairsSchedule(int officerId) => HasActiveInternalAffairsSchedule(officerId);
 
     internal string SpyGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
+
+    internal void SpyApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
 }

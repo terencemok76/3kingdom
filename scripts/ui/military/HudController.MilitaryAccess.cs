@@ -12,8 +12,11 @@ public partial class HudController
     internal CommandResolver? MilitaryCommandResolver => _commandResolver;
     internal LocalizationService? MilitaryLocalization => _localization;
     internal CityData? MilitarySelectedCity => _selectedCity;
+    internal Control? MilitaryOverlayParent => GetNodeOrNull<Control>("Root");
 
     internal void MilitaryPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+    internal void MilitaryPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void MilitaryBringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void MilitaryPlayUiClickSfx() => PlayUiClickSfx();
 
@@ -47,4 +50,12 @@ public partial class HudController
         ExecutePlayerCommand(CommandType.Attack, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, attackOfficerDeployments: deployments, officerIds: officerIds);
     internal string MilitaryGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
     internal void MilitaryContinuePendingAttackResolution() => ContinuePendingAttackResolution();
+
+    internal void MilitaryApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
 }

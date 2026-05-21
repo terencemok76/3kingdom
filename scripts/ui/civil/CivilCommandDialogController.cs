@@ -3,17 +3,18 @@ using ThreeKingdom.Core;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class CivilCommandDialogController
+internal sealed class CivilCommandDialogController : FloatingOverlayController
 {
     private readonly CivilUiContext _context;
     private readonly System.Action _showReliefDialog;
     private readonly System.Action _showVisitCitizenDialog;
-    private Window? _dialog;
     private OptionButton? _commandOption;
     private Button? _confirmButton;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(320.0f, 150.0f);
 
     public CivilCommandDialogController(CivilUiContext context, System.Action showReliefDialog, System.Action showVisitCitizenDialog)
+        : base(context, "res://scenes/ui/civil/CivilDialog.tscn")
     {
         _context = context;
         _showReliefDialog = showReliefDialog;
@@ -22,35 +23,32 @@ internal sealed class CivilCommandDialogController
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/civil/CivilDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.civil");
-        var label = _dialog.GetNodeOrNull<Label>("CivilDialogRoot/CommandLabel");
+        SetOverlayTitleText(_context.Localization.T("ui.civil"));
+        var label = GetOverlayContentNode<Label>("CommandLabel");
         if (label != null)
         {
             label.Text = _context.Localization.T("ui.civil_command");
@@ -61,22 +59,14 @@ internal sealed class CivilCommandDialogController
         }
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("CivilDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("CivilDialogRoot not found in CivilDialog.tscn.");
-            return;
-        }
-
         _commandOption = root.GetNodeOrNull<OptionButton>("CommandOption");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
         if (!_signalsConnected && _confirmButton != null)
         {
             _confirmButton.Pressed += OnConfirmPressed;
@@ -144,10 +134,14 @@ internal sealed class CivilCommandDialogController
             return;
         }
 
-        _dialog?.Hide();
-
         var metadata = _commandOption.GetItemMetadata(_commandOption.Selected);
         var commandKey = metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
+        var selectedCommandText = _commandOption.GetItemText(_commandOption.Selected);
+        Callable.From(() => CompleteConfirm(commandKey, selectedCommandText)).CallDeferred();
+    }
+
+    private void CompleteConfirm(string commandKey, string selectedCommandText)
+    {
         if (commandKey == "command.civil.relief")
         {
             _showReliefDialog();
@@ -160,6 +154,6 @@ internal sealed class CivilCommandDialogController
             return;
         }
 
-        _context.AddLog(_context.Localization.Format("log.civil_command_selected", _commandOption.GetItemText(_commandOption.Selected)), isPlayerRelated: true);
+        _context.AddLog(_context.Localization?.Format("log.civil_command_selected", selectedCommandText) ?? selectedCommandText, isPlayerRelated: true);
     }
 }

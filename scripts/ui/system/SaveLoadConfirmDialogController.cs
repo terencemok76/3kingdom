@@ -9,10 +9,9 @@ internal enum SaveLoadConfirmActionKind
     Load
 }
 
-internal sealed class SaveLoadConfirmDialogController
+internal sealed class SaveLoadConfirmDialogController : FloatingOverlayController
 {
     private readonly SystemUiContext _context;
-    private Window? _dialog;
     private Label? _confirmLabel;
     private Button? _yesButton;
     private Button? _noButton;
@@ -20,35 +19,36 @@ internal sealed class SaveLoadConfirmDialogController
     private int _pendingSlotNumber;
     private System.Action? _pendingConfirmedAction;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(380.0f, 180.0f);
 
     public SaveLoadConfirmDialogController(SystemUiContext context)
+        : base(context, "res://scenes/ui/system/SaveLoadConfirmDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.SaveLoadConfirmDialog;
-        EnsureWidgets();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Cancel()
     {
         _pendingConfirmedAction = null;
         _pendingAction = SaveLoadConfirmActionKind.None;
-        _dialog?.Hide();
+        HideOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null)
+        if (!EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.GetSaveLoadConfirmTitle();
+        SetOverlayTitleText(_context.GetSaveLoadConfirmTitle());
         if (_yesButton != null)
         {
             _yesButton.Text = _context.GetConfirmYesText();
@@ -86,17 +86,11 @@ internal sealed class SaveLoadConfirmDialogController
         _pendingSlotNumber = slotNumber;
         _pendingConfirmedAction = confirmedAction;
         RefreshText();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        var root = _dialog?.GetNodeOrNull<VBoxContainer>("ConfirmRoot");
-        if (root == null)
-        {
-            return;
-        }
-
         _confirmLabel = root.GetNodeOrNull<Label>("ConfirmLabel");
         _yesButton = root.GetNodeOrNull<Button>("ButtonRow/ConfirmYesButton");
         _noButton = root.GetNodeOrNull<Button>("ButtonRow/ConfirmNoButton");
@@ -131,7 +125,7 @@ internal sealed class SaveLoadConfirmDialogController
 
     private void OnConfirmed()
     {
-        _dialog?.Hide();
+        HideOverlay();
         _pendingConfirmedAction?.Invoke();
         _pendingConfirmedAction = null;
         _pendingAction = SaveLoadConfirmActionKind.None;

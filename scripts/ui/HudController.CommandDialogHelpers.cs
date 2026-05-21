@@ -322,7 +322,14 @@ public partial class HudController : CanvasLayer
 
         var visibleRows = Math.Clamp(rowIndex, 1, 6);
         var popupHeight = 220 + visibleRows * 28 + (commandType == CommandType.Recruit ? 40 : 0);
-        _officerListDialog.PopupCentered(new Vector2I(620, popupHeight));
+        var panel = _officerListDialog?.GetNodeOrNull<PanelContainer>("CenterContainer/AdvisorDialogPanel");
+        if (panel != null)
+        {
+            panel.CustomMinimumSize = new Vector2(620.0f, popupHeight);
+            panel.Size = new Vector2(620.0f, popupHeight);
+        }
+        _officerListDialog?.Show();
+        _officerListDialog?.MoveToFront();
     }
 
     private void ShowOfficerSelectorDialog(
@@ -575,8 +582,8 @@ public partial class HudController : CanvasLayer
 
     private void ConfigureCompactOfficerListDialogLayout()
     {
-        var root = _officerListDialog?.GetNodeOrNull<VBoxContainer>("OfficerListDialogRoot");
-        var confirmRow = _officerListDialog?.GetNodeOrNull<CenterContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow");
+        var root = _officerListDialog?.GetNodeOrNull<VBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot");
+        var confirmRow = _officerListDialog?.GetNodeOrNull<CenterContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow");
         if (root != null)
         {
             root.CustomMinimumSize = new Vector2(420.0f, 220.0f);
@@ -595,8 +602,8 @@ public partial class HudController : CanvasLayer
 
     private void ResetOfficerListDialogLayoutToSceneDefaults()
     {
-        var root = _officerListDialog?.GetNodeOrNull<VBoxContainer>("OfficerListDialogRoot");
-        var confirmRow = _officerListDialog?.GetNodeOrNull<CenterContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow");
+        var root = _officerListDialog?.GetNodeOrNull<VBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot");
+        var confirmRow = _officerListDialog?.GetNodeOrNull<CenterContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow");
         if (root != null)
         {
             root.CustomMinimumSize = new Vector2(960.0f, 380.0f);

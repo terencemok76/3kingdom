@@ -1,73 +1,192 @@
 [gd_scene format=3 uid="uid://blddl6rray8sx"]
 
-[node name="DiplomacyDialog" type="Window" unique_id=1032666848]
-oversampling_override = 1.0
-title = "Diplomacy"
-position = Vector2i(0, 36)
-size = Vector2i(500, 440)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog_panel"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.08, 0.1, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.79, 0.71, 0.24)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.22)
+shadow_size = 6
 
-[node name="DiplomacyDialogRoot" type="VBoxContainer" parent="." unique_id=1259464743]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_bar"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.15, 0.13, 0.11, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.48, 0.39, 0.24, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_normal"]
+bg_color = Color(0.62, 0.53, 0.36, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_hover"]
+bg_color = Color(0.73, 0.62, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_pressed"]
+bg_color = Color(0.46, 0.38, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[node name="DiplomacyDialogOverlay" type="Control"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = -26.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(500, 460)
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 500.0
+offset_bottom = 460.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
+
+[node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
+custom_minimum_size = Vector2(460, 400)
+layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HeaderSection" type="VBoxContainer" parent="DiplomacyDialogRoot" unique_id=1334824201]
+[node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_bar")
+
+[node name="TitleBar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel"]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="TitleSpacerLeft" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+text = "Diplomacy"
+horizontal_alignment = 1
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
+
+[node name="TitleSpacerRight" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CloseButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 22)
+focus_mode = 0
+text = "×"
+theme_override_colors/font_color = Color(0.12, 0.09, 0.05, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
+
+[node name="HeaderSection" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="ActionRow" type="HBoxContainer" parent="DiplomacyDialogRoot/HeaderSection" unique_id=878810841]
+[node name="ActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/HeaderSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="ActionLabel" type="Label" parent="DiplomacyDialogRoot/HeaderSection/ActionRow" unique_id=285308463]
+[node name="ActionLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/HeaderSection/ActionRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 text = "Action"
 
-[node name="ActionOption" type="OptionButton" parent="DiplomacyDialogRoot/HeaderSection/ActionRow" unique_id=1224696032]
+[node name="ActionOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/HeaderSection/ActionRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TargetFactionRow" type="HBoxContainer" parent="DiplomacyDialogRoot/HeaderSection" unique_id=1996747284]
+[node name="TargetFactionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/HeaderSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="TargetFactionLabel" type="Label" parent="DiplomacyDialogRoot/HeaderSection/TargetFactionRow" unique_id=1886888165]
+[node name="TargetFactionLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/HeaderSection/TargetFactionRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 text = "Target Faction"
 
-[node name="TargetFactionOption" type="OptionButton" parent="DiplomacyDialogRoot/HeaderSection/TargetFactionRow" unique_id=1102868701]
+[node name="TargetFactionOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/HeaderSection/TargetFactionRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="MiddleSection" type="VBoxContainer" parent="DiplomacyDialogRoot" unique_id=104447208]
+[node name="MiddleSection" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="DurationRow" type="HBoxContainer" parent="DiplomacyDialogRoot/MiddleSection" unique_id=1827169809]
+[node name="DurationRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="DurationLabel" type="Label" parent="DiplomacyDialogRoot/MiddleSection/DurationRow" unique_id=2096814341]
+[node name="DurationLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/DurationRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 text = "Duration"
 
-[node name="DurationSpinBox" type="SpinBox" parent="DiplomacyDialogRoot/MiddleSection/DurationRow" unique_id=1492875509]
+[node name="DurationSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/DurationRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 1.0
@@ -75,98 +194,98 @@ max_value = 12.0
 value = 3.0
 rounded = true
 
-[node name="GoldRow" type="HBoxContainer" parent="DiplomacyDialogRoot/MiddleSection" unique_id=2026745595]
+[node name="GoldRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="GoldLabel" type="Label" parent="DiplomacyDialogRoot/MiddleSection/GoldRow" unique_id=1072462983]
+[node name="GoldLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/GoldRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 text = "Gold"
 
-[node name="GoldSpinBox" type="SpinBox" parent="DiplomacyDialogRoot/MiddleSection/GoldRow" unique_id=1737610690]
+[node name="GoldSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/GoldRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 9999.0
 step = 100.0
 rounded = true
 
-[node name="FoodRow" type="HBoxContainer" parent="DiplomacyDialogRoot/MiddleSection" unique_id=2130999287]
+[node name="FoodRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="FoodLabel" type="Label" parent="DiplomacyDialogRoot/MiddleSection/FoodRow" unique_id=146298103]
+[node name="FoodLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/FoodRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 text = "Food"
 
-[node name="FoodSpinBox" type="SpinBox" parent="DiplomacyDialogRoot/MiddleSection/FoodRow" unique_id=1888146931]
+[node name="FoodSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/FoodRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 99999.0
 step = 100.0
 rounded = true
 
-[node name="HorseRow" type="HBoxContainer" parent="DiplomacyDialogRoot/MiddleSection" unique_id=593804919]
+[node name="HorseRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="HorseLabel" type="Label" parent="DiplomacyDialogRoot/MiddleSection/HorseRow" unique_id=1955286121]
+[node name="HorseLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/HorseRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 text = "Horse"
 
-[node name="HorseSpinBox" type="SpinBox" parent="DiplomacyDialogRoot/MiddleSection/HorseRow" unique_id=573075402]
+[node name="HorseSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/HorseRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 9999.0
 step = 10.0
 rounded = true
 
-[node name="RelationInfoLabel" type="Label" parent="DiplomacyDialogRoot/MiddleSection" unique_id=636271255]
+[node name="RelationInfoLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection"]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="FooterSection" type="VBoxContainer" parent="DiplomacyDialogRoot" unique_id=1656511642]
+[node name="FooterSection" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="OfficerListLabel" type="Label" parent="DiplomacyDialogRoot/FooterSection" unique_id=147158303]
+[node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
 layout_mode = 2
 text = "Officer"
 
-[node name="OfficerSelectorRow" type="HBoxContainer" parent="DiplomacyDialogRoot/FooterSection" unique_id=1057957504]
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="SelectedOfficerLabel" type="Label" parent="DiplomacyDialogRoot/FooterSection/OfficerSelectorRow" unique_id=286524371]
+[node name="SelectedOfficerLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/OfficerSelectorRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Officer: -"
 autowrap_mode = 3
 
-[node name="SelectOfficerButton" type="Button" parent="DiplomacyDialogRoot/FooterSection/OfficerSelectorRow" unique_id=533374495]
+[node name="SelectOfficerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/OfficerSelectorRow"]
 layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
 
-[node name="SummaryLabel" type="Label" parent="DiplomacyDialogRoot/FooterSection" unique_id=760470309]
+[node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="WarningLabel" type="Label" parent="DiplomacyDialogRoot/FooterSection" unique_id=251849519]
+[node name="WarningLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="FooterRow" type="HBoxContainer" parent="DiplomacyDialogRoot/FooterSection" unique_id=1716681427]
+[node name="FooterRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
 layout_mode = 2
 alignment = 1
 
-[node name="ConfirmButton" type="Button" parent="DiplomacyDialogRoot/FooterSection/FooterRow" unique_id=1309983882]
+[node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/FooterRow"]
 layout_mode = 2
 text = "Confirm"

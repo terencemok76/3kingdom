@@ -12,8 +12,11 @@ public partial class HudController
     internal CommandResolver? CivilCommandResolver => _commandResolver;
     internal LocalizationService? CivilLocalization => _localization;
     internal CityData? CivilSelectedCity => _selectedCity;
+    internal Control? CivilOverlayParent => GetNodeOrNull<Control>("Root");
 
     internal void CivilPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+    internal void CivilPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void CivilBringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void CivilPlayUiClickSfx() => PlayUiClickSfx();
 
@@ -44,4 +47,12 @@ public partial class HudController
     internal string CivilGetCommandName(CommandType commandType) => GetCommandName(commandType);
 
     internal string CivilGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
+
+    internal void CivilApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
 }

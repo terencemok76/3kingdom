@@ -5,7 +5,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class RecruitTroopDialogController
+internal sealed class RecruitTroopDialogController : FloatingOverlayController
 {
     private static readonly TroopType[] TroopTypes =
     {
@@ -18,49 +18,47 @@ internal sealed class RecruitTroopDialogController
     };
 
     private readonly MilitaryUiContext _context;
-    private Window? _dialog;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private OptionButton? _troopTypeOption;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(380.0f, 182.0f);
 
     public RecruitTroopDialogController(MilitaryUiContext context)
+        : base(context, "res://scenes/ui/military/RecruitTroopDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/military/RecruitTroopDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _dialog == null || _context.Localization == null)
+        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.military_recruit");
+        SetOverlayTitleText(_context.Localization.T("ui.military_recruit"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.officers"));
         SetLabelText("TroopTypeLabel", _context.Localization.T("ui.recruit_troop_type"));
         if (_selectOfficerButton != null)
@@ -76,24 +74,20 @@ internal sealed class RecruitTroopDialogController
         UpdateSelectedOfficerSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("RecruitTroopDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("RecruitTroopDialogRoot not found in RecruitTroopDialog.tscn.");
-            return;
-        }
-
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _troopTypeOption = root.GetNodeOrNull<OptionButton>("TroopTypeOption");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (_selectOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
@@ -138,7 +132,7 @@ internal sealed class RecruitTroopDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var label = _dialog?.GetNodeOrNull<Label>($"RecruitTroopDialogRoot/{nodeName}");
+        var label = GetOverlayContentNode<Label>(nodeName);
         if (label != null)
         {
             label.Text = text;
@@ -181,7 +175,7 @@ internal sealed class RecruitTroopDialogController
         if (_selectedOfficerId <= 0)
         {
             _context.AddLog(_context.Localization.T("ui.select_officer_warning"));
-            _context.ReopenDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -191,7 +185,7 @@ internal sealed class RecruitTroopDialogController
             recruitTroopType: GetSelectedRecruitTroopType());
         if (result.Success)
         {
-            _dialog?.Hide();
+            HideOverlay();
         }
     }
 

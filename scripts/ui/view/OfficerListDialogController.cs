@@ -2,12 +2,14 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-public sealed class OfficerListDialogController
+internal sealed class OfficerListDialogController : FloatingOverlayController
 {
     private readonly ViewUiContext _context;
     private readonly OfficerDetailDialogController _officerDetailDialogController;
+    protected override Vector2 MinimumOverlaySize => new(960.0f, 380.0f);
 
     public OfficerListDialogController(ViewUiContext context, OfficerDetailDialogController officerDetailDialogController)
+        : base(context, "res://scenes/ui/view/OfficerListDialog.tscn")
     {
         _context = context;
         _officerDetailDialogController = officerDetailDialogController;
@@ -15,86 +17,14 @@ public sealed class OfficerListDialogController
 
     public void Initialize()
     {
-        var dialog = GD.Load<PackedScene>("res://scenes/ui/view/OfficerListDialog.tscn").Instantiate<Window>();
-        dialog.Exclusive = false;
-        dialog.Unresizable = true;
-        dialog.CloseRequested += OnCloseRequested;
-        _context.AddChild(dialog);
-
-        _context.OfficerListDialog = dialog;
-        _context.OfficerListToolbar = dialog.GetNodeOrNull<HBoxContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar");
-        _context.OfficerListAuxRow = dialog.GetNodeOrNull<HBoxContainer>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow");
-        _context.OfficerListAuxLabel = dialog.GetNodeOrNull<Label>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow/OfficerListAuxLabel");
-        _context.OfficerListAuxOption = dialog.GetNodeOrNull<OptionButton>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow/OfficerListAuxOption");
-        _context.ViewCityOfficersButton = dialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCityOfficersButton");
-        _context.ViewFactionOfficersButton = dialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewFactionOfficersButton");
-        _context.ViewFactionItemsButton = dialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewFactionItemsButton");
-        _context.ViewDiplomacyRelationsButton = dialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewDiplomacyRelationsButton");
-        _context.ViewCitiesButton = dialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCitiesButton");
-        _context.CityListFilterOption = dialog.GetNodeOrNull<OptionButton>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/CityListFilterOption");
-        _context.OfficerSortOption = dialog.GetNodeOrNull<OptionButton>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar/OfficerSortOption");
-        _context.OfficerListTable = dialog.GetNodeOrNull<Tree>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListTable");
-        _context.OfficerListConfirmButton = dialog.GetNodeOrNull<Button>("OfficerListDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow/OfficerListConfirmButton");
-
-        if (_context.OfficerListAuxOption != null)
-        {
-            _context.OfficerListAuxOption.ItemSelected += OnAuxOptionSelected;
-        }
-
-        if (_context.ViewCityOfficersButton != null)
-        {
-            _context.ViewCityOfficersButton.Pressed += OnViewCityOfficersPressed;
-        }
-
-        if (_context.ViewFactionOfficersButton != null)
-        {
-            _context.ViewFactionOfficersButton.Pressed += OnViewFactionOfficersPressed;
-        }
-
-        if (_context.ViewFactionItemsButton != null)
-        {
-            _context.ViewFactionItemsButton.Pressed += OnViewFactionItemsPressed;
-        }
-
-        if (_context.ViewDiplomacyRelationsButton != null)
-        {
-            _context.ViewDiplomacyRelationsButton.Pressed += OnViewDiplomacyRelationsPressed;
-        }
-
-        if (_context.ViewCitiesButton != null)
-        {
-            _context.ViewCitiesButton.Pressed += OnViewCitiesPressed;
-        }
-
-        if (_context.CityListFilterOption != null)
-        {
-            _context.CityListFilterOption.ItemSelected += OnCityListFilterSelected;
-        }
-
-        if (_context.OfficerSortOption != null)
-        {
-            _context.OfficerSortOption.ItemSelected += OnOfficerSortSelected;
-        }
-
-        if (_context.OfficerListTable != null)
-        {
-            _context.OfficerListTable.ItemSelected += OnOfficerListSelected;
-            _context.OfficerListTable.ItemActivated += OnOfficerListActivated;
-            _context.OfficerListTable.ColumnTitleClicked += OnOfficerListColumnTitleClicked;
-        }
-
-        if (_context.OfficerListConfirmButton != null)
-        {
-            _context.OfficerListConfirmButton.Pressed += OnOfficerListConfirmPressed;
-        }
-
-        dialog.Hide();
+        InitializeOverlay();
+        _context.OfficerListDialog = OverlayRoot;
         _context.ApplyOfficerListTheme();
     }
 
     public void Hide()
     {
-        _context.OfficerListDialog?.Hide();
+        HideOverlay();
     }
 
     public void RefreshText()
@@ -117,7 +47,7 @@ public sealed class OfficerListDialogController
         _context.SetOfficerListConfirmButtonToDefaultText();
         RefreshChrome();
         PopulateDialog();
-        _context.PopupOfficerListDialog();
+        ShowOverlay();
     }
 
     public void RefreshChrome()
@@ -204,10 +134,74 @@ public sealed class OfficerListDialogController
         UpdateDialogTitle();
     }
 
-    private void OnCloseRequested()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        _context.PlayUiClickSfx();
-        _context.HideOfficerListDialog();
+        _context.OfficerListDialog = OverlayRoot;
+        _context.OfficerListToolbar = root.GetNodeOrNull<HBoxContainer>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar");
+        _context.OfficerListAuxRow = root.GetNodeOrNull<HBoxContainer>("OfficerListContentMargin/OfficerListContent/OfficerListAuxRow");
+        _context.OfficerListAuxLabel = root.GetNodeOrNull<Label>("OfficerListContentMargin/OfficerListContent/OfficerListAuxRow/OfficerListAuxLabel");
+        _context.OfficerListAuxOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListAuxRow/OfficerListAuxOption");
+        _context.ViewCityOfficersButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCityOfficersButton");
+        _context.ViewFactionOfficersButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewFactionOfficersButton");
+        _context.ViewFactionItemsButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewFactionItemsButton");
+        _context.ViewDiplomacyRelationsButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewDiplomacyRelationsButton");
+        _context.ViewCitiesButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCitiesButton");
+        _context.CityListFilterOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/CityListFilterOption");
+        _context.OfficerSortOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/OfficerSortOption");
+        _context.OfficerListTable = root.GetNodeOrNull<Tree>("OfficerListContentMargin/OfficerListContent/OfficerListTable");
+        _context.OfficerListConfirmButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow/OfficerListConfirmButton");
+
+        if (_context.OfficerListAuxOption != null)
+        {
+            _context.OfficerListAuxOption.ItemSelected += OnAuxOptionSelected;
+        }
+
+        if (_context.ViewCityOfficersButton != null)
+        {
+            _context.ViewCityOfficersButton.Pressed += OnViewCityOfficersPressed;
+        }
+
+        if (_context.ViewFactionOfficersButton != null)
+        {
+            _context.ViewFactionOfficersButton.Pressed += OnViewFactionOfficersPressed;
+        }
+
+        if (_context.ViewFactionItemsButton != null)
+        {
+            _context.ViewFactionItemsButton.Pressed += OnViewFactionItemsPressed;
+        }
+
+        if (_context.ViewDiplomacyRelationsButton != null)
+        {
+            _context.ViewDiplomacyRelationsButton.Pressed += OnViewDiplomacyRelationsPressed;
+        }
+
+        if (_context.ViewCitiesButton != null)
+        {
+            _context.ViewCitiesButton.Pressed += OnViewCitiesPressed;
+        }
+
+        if (_context.CityListFilterOption != null)
+        {
+            _context.CityListFilterOption.ItemSelected += OnCityListFilterSelected;
+        }
+
+        if (_context.OfficerSortOption != null)
+        {
+            _context.OfficerSortOption.ItemSelected += OnOfficerSortSelected;
+        }
+
+        if (_context.OfficerListTable != null)
+        {
+            _context.OfficerListTable.ItemSelected += OnOfficerListSelected;
+            _context.OfficerListTable.ItemActivated += OnOfficerListActivated;
+            _context.OfficerListTable.ColumnTitleClicked += OnOfficerListColumnTitleClicked;
+        }
+
+        if (_context.OfficerListConfirmButton != null)
+        {
+            _context.OfficerListConfirmButton.Pressed += OnOfficerListConfirmPressed;
+        }
     }
 
     private void OnAuxOptionSelected(long index) => _context.HandleOfficerListAuxSelected(index);

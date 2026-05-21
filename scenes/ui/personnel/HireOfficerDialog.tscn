@@ -1,102 +1,220 @@
-[gd_scene load_steps=2 format=3 uid="uid://jnq4lbeu5e46"]
+[gd_scene format=3 uid="uid://jnq4lbeu5e46"]
 
-[ext_resource type="Script" path="res://scripts/ui/personnel/HireOfficerDialog.cs" id="1_wajxk"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog_panel"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.08, 0.1, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.79, 0.71, 0.24)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+shadow_color = Color(0, 0, 0, 0.22)
+shadow_size = 6
 
-[node name="HireOfficerDialog" type="Window" unique_id=679507729]
-script = ExtResource("1_wajxk")
-oversampling_override = 1.0
-title = "Hire Officer"
-position = Vector2i(0, 36)
-size = Vector2i(460, 270)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_bar"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.15, 0.13, 0.11, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.48, 0.39, 0.24, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
 
-[node name="HireOfficerDialogRoot" type="VBoxContainer" parent="." unique_id=628821647]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_normal"]
+bg_color = Color(0.62, 0.53, 0.36, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_hover"]
+bg_color = Color(0.73, 0.62, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_pressed"]
+bg_color = Color(0.46, 0.38, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[node name="HireOfficerDialogOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(460, 270)
+offset_right = 460.0
+offset_bottom = 270.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
+
+[node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
 custom_minimum_size = Vector2(450, 260)
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 458.0
-offset_bottom = 268.0
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="OfficerListLabel" type="Label" parent="HireOfficerDialogRoot" unique_id=949118305]
+[node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_bar")
+
+[node name="TitleBar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel"]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="TitleSpacerLeft" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+text = "Hire Officer"
+horizontal_alignment = 1
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
+
+[node name="TitleSpacerRight" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CloseButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 22)
+focus_mode = 0
+text = "×"
+theme_override_colors/font_color = Color(0.12, 0.09, 0.05, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
+
+[node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 text = "Target Officer"
 
-[node name="OfficerSelectorRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=2083665529]
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="SelectedOfficerLabel" type="Label" parent="HireOfficerDialogRoot/OfficerSelectorRow" unique_id=1327568009]
+[node name="SelectedOfficerLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Officer: -"
 autowrap_mode = 3
 
-[node name="SelectOfficerButton" type="Button" parent="HireOfficerDialogRoot/OfficerSelectorRow" unique_id=224928292]
+[node name="SelectOfficerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
 layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
 
-[node name="GoldRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=2043924433]
+[node name="GoldRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="GoldLabel" type="Label" parent="HireOfficerDialogRoot/GoldRow" unique_id=254028434]
+[node name="GoldLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/GoldRow"]
 custom_minimum_size = Vector2(84, 0)
 layout_mode = 2
 text = "Gold"
 vertical_alignment = 1
 
-[node name="GoldSpinBox" type="SpinBox" parent="HireOfficerDialogRoot/GoldRow" unique_id=1904406376]
+[node name="GoldSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/GoldRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 step = 100.0
 rounded = true
 
-[node name="FoodRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=1681558064]
+[node name="FoodRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="FoodLabel" type="Label" parent="HireOfficerDialogRoot/FoodRow" unique_id=1405207507]
+[node name="FoodLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FoodRow"]
 custom_minimum_size = Vector2(84, 0)
 layout_mode = 2
 text = "Food"
 vertical_alignment = 1
 
-[node name="FoodSpinBox" type="SpinBox" parent="HireOfficerDialogRoot/FoodRow" unique_id=1812569743]
+[node name="FoodSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FoodRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 step = 500.0
 rounded = true
 
-[node name="ItemRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=297587311]
+[node name="ItemRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="ItemLabel" type="Label" parent="HireOfficerDialogRoot/ItemRow" unique_id=2110562319]
+[node name="ItemLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ItemRow"]
 custom_minimum_size = Vector2(84, 0)
 layout_mode = 2
 text = "Item"
 vertical_alignment = 1
 
-[node name="ItemOption" type="OptionButton" parent="HireOfficerDialogRoot/ItemRow" unique_id=1067214186]
+[node name="ItemOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ItemRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="SummaryLabel" type="Label" parent="HireOfficerDialogRoot" unique_id=673633786]
+[node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="ConfirmRow" type="HBoxContainer" parent="HireOfficerDialogRoot" unique_id=446661001]
+[node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1
 
-[node name="ConfirmButton" type="Button" parent="HireOfficerDialogRoot/ConfirmRow" unique_id=703924572]
+[node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 focus_mode = 0

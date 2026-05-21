@@ -174,9 +174,9 @@ public partial class HudController
     private static void ApplyViewTableRowStriping(TreeItem row, int rowIndex, int columnCount)
     {
         var background = rowIndex % 2 == 0
-            ? new Color(0.98f, 0.95f, 0.89f, 0.92f)
-            : new Color(0.93f, 0.88f, 0.78f, 0.9f);
-        var textColor = new Color(0.13f, 0.09f, 0.05f, 1.0f);
+            ? new Color(0.12f, 0.12f, 0.14f, 0.84f)
+            : new Color(0.16f, 0.16f, 0.18f, 0.8f);
+        var textColor = new Color(0.92f, 0.89f, 0.82f, 1.0f);
 
         for (var column = 0; column < columnCount; column += 1)
         {
@@ -219,8 +219,8 @@ public partial class HudController
 
     private static void ApplyViewTableSelectedRowStyle(TreeItem row, int columnCount)
     {
-        var background = new Color(0.82f, 0.68f, 0.38f, 1.0f);
-        var textColor = new Color(0.22f, 0.05f, 0.02f, 1.0f);
+        var background = new Color(0.55f, 0.45f, 0.28f, 0.92f);
+        var textColor = new Color(0.98f, 0.95f, 0.9f, 1.0f);
 
         for (var column = 0; column < columnCount; column += 1)
         {

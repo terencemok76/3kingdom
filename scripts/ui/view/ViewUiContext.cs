@@ -5,7 +5,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-public sealed class ViewUiContext
+public sealed class ViewUiContext : IFloatingOverlayContext
 {
     private readonly HudController _hud;
 
@@ -14,7 +14,7 @@ public sealed class ViewUiContext
         _hud = hud;
     }
 
-    internal Window? OfficerListDialog
+    internal Control? OfficerListDialog
     {
         get => _hud.ViewOfficerListDialog;
         set => _hud.ViewOfficerListDialog = value;
@@ -98,7 +98,7 @@ public sealed class ViewUiContext
         set => _hud.ViewOfficerListTable = value;
     }
 
-    internal Window? OfficerDetailDialog
+    internal Control? OfficerDetailDialog
     {
         get => _hud.ViewOfficerDetailDialog;
         set => _hud.ViewOfficerDetailDialog = value;
@@ -121,6 +121,34 @@ public sealed class ViewUiContext
         get => _hud.ViewOfficerDetailText;
         set => _hud.ViewOfficerDetailText = value;
     }
+
+    public Control CreateOverlay(string scenePath, System.Action closeAction)
+    {
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        var parent = _hud.GetNodeOrNull<Control>("Root") as Node ?? _hud;
+        parent.AddChild(dialog);
+        return dialog;
+    }
+
+    public void PopupDialog(Control? dialog)
+    {
+        if (dialog == null)
+        {
+            return;
+        }
+
+        dialog.Show();
+        dialog.MoveToFront();
+    }
+
+    public void CloseOverlay(System.Action closeAction)
+    {
+        PlayUiClickSfx();
+        closeAction();
+    }
+
+    public void BringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void AddChild(Node node) => _hud.AddChild(node);
     internal void PlayUiClickSfx() => _hud.ViewPlayUiClickSfx();

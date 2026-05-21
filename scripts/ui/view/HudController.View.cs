@@ -62,9 +62,10 @@ public partial class HudController : CanvasLayer
 
     private void SetOfficerListDialogTitle(string title)
     {
-        if (_officerListDialog != null)
+        var titleLabel = _officerListDialog?.GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/TitleLabel");
+        if (titleLabel != null)
         {
-            _officerListDialog.Title = title;
+            titleLabel.Text = title;
         }
     }
 }

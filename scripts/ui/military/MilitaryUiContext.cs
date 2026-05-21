@@ -7,7 +7,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class MilitaryUiContext
+internal sealed class MilitaryUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -35,7 +35,28 @@ internal sealed class MilitaryUiContext
         return dialog;
     }
 
+    public Control CreateOverlay(string scenePath, Action closeAction)
+    {
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.MilitaryOverlayParent != null)
+        {
+            parent = _owner.MilitaryOverlayParent;
+        }
+
+        parent.AddChild(dialog);
+        return dialog;
+    }
+
     public void PopupDialog(Window? dialog) => _owner.MilitaryPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.MilitaryPopupDialog(dialog);
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.MilitaryPlayUiClickSfx();
+        closeAction();
+    }
+    public void BringOverlayToFront(CanvasItem? item) => _owner.MilitaryBringOverlayToFront(item);
 
     public void ReopenDialog(Window? dialog)
     {
@@ -55,6 +76,7 @@ internal sealed class MilitaryUiContext
     public CommandResult ExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds) => _owner.MilitaryExecuteAttackCommand(targetCityId, troops, gold, food, deployments, officerIds);
     public string GetLocalizedResultMessage(CommandResult result) => _owner.MilitaryGetLocalizedResultMessage(result);
     public void ContinuePendingAttackResolution() => _owner.MilitaryContinuePendingAttackResolution();
+    public void ApplyCommandButtonTheme(Button button) => _owner.MilitaryApplyCommandButtonTheme(button);
 
     public List<int> GetAvailableCityOfficerIds()
     {

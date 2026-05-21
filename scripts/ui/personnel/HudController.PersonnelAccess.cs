@@ -13,8 +13,11 @@ public partial class HudController
     internal CommandResolver? PersonnelCommandResolver => _commandResolver;
     internal LocalizationService? PersonnelLocalization => _localization;
     internal CityData? PersonnelSelectedCity => _selectedCity;
+    internal Control? PersonnelOverlayParent => GetNodeOrNull<Control>("Root");
 
     internal void PersonnelPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+    internal void PersonnelPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void PersonnelBringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void PersonnelPlayUiClickSfx() => PlayUiClickSfx();
 
@@ -44,4 +47,12 @@ public partial class HudController
     internal bool PersonnelIsFactionRuler(WorldState world, OfficerData officer) => IsFactionRuler(world, officer);
 
     internal bool PersonnelIsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => IsOfficerOldEnoughToJoin(world, officer);
+
+    internal void PersonnelApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
 }

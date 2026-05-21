@@ -4,18 +4,19 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class MilitaryCommandDialogController
+internal sealed class MilitaryCommandDialogController : FloatingOverlayController
 {
     private readonly MilitaryUiContext _context;
     private readonly System.Action _openMoveFlow;
     private readonly System.Action _openAttackFlow;
     private readonly System.Action _showRecruitTroopDialog;
-    private Window? _dialog;
     private OptionButton? _commandOption;
     private Button? _confirmButton;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(340.0f, 145.0f);
 
     public MilitaryCommandDialogController(MilitaryUiContext context, System.Action openMoveFlow, System.Action openAttackFlow, System.Action showRecruitTroopDialog)
+        : base(context, "res://scenes/ui/military/MilitaryDialog.tscn")
     {
         _context = context;
         _openMoveFlow = openMoveFlow;
@@ -25,35 +26,32 @@ internal sealed class MilitaryCommandDialogController
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/military/MilitaryDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_context.SelectedCity == null || _dialog == null || _context.Localization == null)
+        if (_context.SelectedCity == null || _context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.military");
-        var label = _dialog.GetNodeOrNull<Label>("MilitaryDialogRoot/CommandLabel");
+        SetOverlayTitleText(_context.Localization.T("ui.military"));
+        var label = GetOverlayContentNode<Label>("CommandLabel");
         if (label != null)
         {
             label.Text = _context.Localization.T("ui.military_command");
@@ -65,22 +63,14 @@ internal sealed class MilitaryCommandDialogController
         }
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("MilitaryDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("MilitaryDialogRoot not found in MilitaryDialog.tscn.");
-            return;
-        }
-
         _commandOption = root.GetNodeOrNull<OptionButton>("CommandOption");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
         if (!_signalsConnected && _confirmButton != null)
         {
             _confirmButton.Pressed += OnConfirmPressed;
@@ -118,9 +108,13 @@ internal sealed class MilitaryCommandDialogController
 
     private void OnConfirmPressed()
     {
-        _dialog?.Hide();
+        var selectedCommand = GetSelectedCommandType();
+        Callable.From(() => CompleteConfirm(selectedCommand)).CallDeferred();
+    }
 
-        switch (GetSelectedCommandType())
+    private void CompleteConfirm(CommandType selectedCommand)
+    {
+        switch (selectedCommand)
         {
             case CommandType.Attack:
                 _openAttackFlow();

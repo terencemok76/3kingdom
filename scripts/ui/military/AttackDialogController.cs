@@ -7,7 +7,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class AttackDialogController
+internal sealed class AttackDialogController : FloatingOverlayController
 {
     private enum DialogMode
     {
@@ -18,7 +18,6 @@ internal sealed class AttackDialogController
     private readonly MilitaryUiContext _context;
     private readonly Dictionary<int, AttackOfficerDeploymentData> _deployments = new();
     private readonly List<int> _deploymentOfficerOrder = new();
-    private Window? _dialog;
     private OptionButton? _targetCityOption;
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
@@ -35,31 +34,32 @@ internal sealed class AttackDialogController
     private CityData? _dialogContextCity;
     private PendingCommandData? _pendingDefenseCommand;
 
+    protected override Vector2 MinimumOverlaySize => new(620.0f, 630.0f);
+
     public AttackDialogController(MilitaryUiContext context)
+        : base(context, "res://scenes/ui/military/AttackDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/military/AttackDialog.tscn", OnCloseRequested);
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
         var isDefenseMode = _dialogMode == DialogMode.Defense;
-        _dialog.Title = isDefenseMode
+        SetOverlayTitleText(isDefenseMode
             ? (_context.Localization.T("ui.defense") ?? "Defense")
-            : _context.Localization.T("ui.attack");
+            : _context.Localization.T("ui.attack"));
         if (_confirmButton != null)
         {
             _confirmButton.Text = isDefenseMode
@@ -84,7 +84,7 @@ internal sealed class AttackDialogController
 
     public void ShowAttack(List<int> candidateIds)
     {
-        if (_dialog == null || _targetCityOption == null || _context.SelectedCity == null || _context.TurnManager?.World == null)
+        if (_context.SelectedCity == null || _context.TurnManager?.World == null || !EnsureOverlayReady() || _targetCityOption == null)
         {
             return;
         }
@@ -92,7 +92,6 @@ internal sealed class AttackDialogController
         _dialogMode = DialogMode.Attack;
         _dialogContextCity = _context.SelectedCity;
         _pendingDefenseCommand = null;
-        EnsureWidgets();
         RefreshText();
         SetWarning(string.Empty);
         _warningAcknowledgedTargetCityId = -1;
@@ -124,12 +123,12 @@ internal sealed class AttackDialogController
         _dialogContextCity = _context.SelectedCity;
         PopulateOfficerList(_context.SelectedCity, _context.GetAvailableOfficerIdsForOrder());
         RefreshDeploymentEditor();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void ShowDefense(PendingCommandData pendingCommand, CityData defendingCity, CityData attackingCity)
     {
-        if (_dialog == null || _targetCityOption == null)
+        if (!EnsureOverlayReady() || _targetCityOption == null)
         {
             return;
         }
@@ -138,7 +137,6 @@ internal sealed class AttackDialogController
         _dialogMode = DialogMode.Defense;
         _dialogContextCity = defendingCity;
         _pendingDefenseCommand = pendingCommand;
-        EnsureWidgets();
         RefreshText();
         SetWarning(string.Empty);
         _warningAcknowledgedTargetCityId = -1;
@@ -154,12 +152,12 @@ internal sealed class AttackDialogController
         ConfigureSpinBox(_foodSpinBox, 0, 0);
         PopulateOfficerList(defendingCity, defendingCity.OfficerIds.ToList());
         RefreshDeploymentEditor();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void Process()
     {
-        if (_dialog == null || !_dialog.Visible)
+        if (OverlayRoot == null || !OverlayRoot.Visible)
         {
             _lastSelectionSignature = string.Empty;
             return;
@@ -188,20 +186,8 @@ internal sealed class AttackDialogController
         _deploymentOfficerOrder.Clear();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("AttackDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("AttackDialogRoot not found in AttackDialog.tscn.");
-            return;
-        }
-
         _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
@@ -210,6 +196,11 @@ internal sealed class AttackDialogController
         _deploymentSummaryLabel = root.GetNodeOrNull<Label>("DeploymentSummaryLabel");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
 
         if (_officerList != null)
         {
@@ -233,6 +224,18 @@ internal sealed class AttackDialogController
             _confirmButton.Pressed += OnConfirmPressed;
             _confirmButtonSignalsConnected = true;
         }
+    }
+
+    protected override void OnOverlayCloseRequested()
+    {
+        if (_dialogMode == DialogMode.Defense)
+        {
+            ShowOverlay();
+            return;
+        }
+
+        HideOverlay();
+        ResetState();
     }
 
     private void PopulateOfficerList(CityData city, List<int> candidateOfficerIds)
@@ -428,7 +431,7 @@ internal sealed class AttackDialogController
         if (attackDeployments.Count == 0)
         {
             SetWarning(_context.Localization?.T("ui.attack_deployment_required_warning") ?? "Configure troop type and count for each deployed officer.");
-            _context.ReopenDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -436,7 +439,7 @@ internal sealed class AttackDialogController
         if (allocation.Total <= 0)
         {
             SetWarning(_context.Localization?.T("ui.attack_troops_required_warning") ?? "Enter the number of troops to deploy.");
-            _context.ReopenDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -448,7 +451,7 @@ internal sealed class AttackDialogController
             allocation.Siege > dialogCity.SiegeTroops)
         {
             SetWarning(_context.Localization?.T("ui.attack_deployment_exceed_warning") ?? "Troop deployment exceeds the city's available troop types.");
-            _context.ReopenDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -461,7 +464,7 @@ internal sealed class AttackDialogController
 
             _pendingDefenseCommand.DefenderOfficerDeployments = attackDeployments;
             SetWarning(string.Empty);
-            _dialog?.Hide();
+            HideOverlay();
             _context.ContinuePendingAttackResolution();
             return;
         }
@@ -483,7 +486,7 @@ internal sealed class AttackDialogController
         {
             _warningAcknowledgedTargetCityId = targetCityId;
             SetWarning(_context.Localization?.T("ui.attack_break_pact_warning") ?? "This attack will automatically break the current alliance or truce. Confirm again to proceed.");
-            _context.ReopenDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -498,25 +501,13 @@ internal sealed class AttackDialogController
         if (result.Success)
         {
             SetWarning(string.Empty);
-            _dialog?.Hide();
+            HideOverlay();
             ResetState();
             return;
         }
 
         SetWarning(_context.GetLocalizedResultMessage(result));
-        _context.ReopenDialog(_dialog);
-    }
-
-    private void OnCloseRequested(Window dialog)
-    {
-        if (_dialogMode == DialogMode.Defense)
-        {
-            _context.ReopenDialog(dialog);
-            return;
-        }
-
-        dialog.Hide();
-        ResetState();
+        ShowOverlay();
     }
 
     private bool ShouldWarnBreakPact(int targetCityId)
@@ -591,7 +582,7 @@ internal sealed class AttackDialogController
 
     private void SetFieldRowVisible(string rowName, bool visible)
     {
-        var root = _dialog?.GetNodeOrNull<Control>("AttackDialogRoot");
+        var root = OverlayContentRoot as Control;
         var row = root?.FindChild(rowName, recursive: true, owned: false) as Control;
         if (row != null)
         {
@@ -601,7 +592,7 @@ internal sealed class AttackDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var root = _dialog?.GetNodeOrNull<Control>("AttackDialogRoot");
+        var root = OverlayContentRoot as Control;
         var label = root?.FindChild(nodeName, recursive: true, owned: false) as Label;
         if (label != null)
         {

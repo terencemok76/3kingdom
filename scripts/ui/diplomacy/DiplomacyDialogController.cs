@@ -6,10 +6,9 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class DiplomacyDialogController
+internal sealed class DiplomacyDialogController : FloatingOverlayController
 {
     private readonly DiplomacyUiContext _context;
-    private Window? _dialog;
     private OptionButton? _actionOption;
     private OptionButton? _targetFactionOption;
     private SpinBox? _durationSpinBox;
@@ -24,49 +23,49 @@ internal sealed class DiplomacyDialogController
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
+    private Vector2 _dialogSize = new(500.0f, 460.0f);
+    protected override Vector2 MinimumOverlaySize => _dialogSize;
 
     public DiplomacyDialogController(DiplomacyUiContext context)
+        : base(context, "res://scenes/ui/diplomacy/DiplomacyDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/diplomacy/DiplomacyDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_context.SelectedCity == null || _dialog == null || _context.Localization == null)
+        if (_context.SelectedCity == null || _context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.diplomacy");
-        SetLabelText("ActionLabel", _context.Localization.T("ui.diplomacy_action"));
-        SetLabelText("TargetFactionLabel", _context.Localization.T("ui.diplomacy_target_faction"));
-        SetLabelText("DurationLabel", _context.Localization.T("ui.diplomacy_duration"));
-        SetLabelText("GoldLabel", _context.Localization.T("ui.diplomacy_gift_gold"));
-        SetLabelText("FoodLabel", _context.Localization.T("ui.diplomacy_demand_food"));
-        SetLabelText("HorseLabel", _context.Localization.T("ui.diplomacy_demand_horse"));
-        SetLabelText("OfficerListLabel", _context.Localization.T("ui.diplomacy_officer"));
+        SetOverlayTitleText(_context.Localization.T("ui.diplomacy"));
+        SetLabelText("HeaderSection/ActionRow/ActionLabel", _context.Localization.T("ui.diplomacy_action"));
+        SetLabelText("HeaderSection/TargetFactionRow/TargetFactionLabel", _context.Localization.T("ui.diplomacy_target_faction"));
+        SetLabelText("MiddleSection/DurationRow/DurationLabel", _context.Localization.T("ui.diplomacy_duration"));
+        SetLabelText("MiddleSection/GoldRow/GoldLabel", _context.Localization.T("ui.diplomacy_gift_gold"));
+        SetLabelText("MiddleSection/FoodRow/FoodLabel", _context.Localization.T("ui.diplomacy_demand_food"));
+        SetLabelText("MiddleSection/HorseRow/HorseLabel", _context.Localization.T("ui.diplomacy_demand_horse"));
+        SetLabelText("FooterSection/OfficerListLabel", _context.Localization.T("ui.diplomacy_officer"));
         if (_selectOfficerButton != null)
         {
             _selectOfficerButton.Text = _context.Localization.T("ui.select_officer");
@@ -79,20 +78,8 @@ internal sealed class DiplomacyDialogController
         UpdateSelectedOfficerSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("DiplomacyDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("DiplomacyDialogRoot not found in DiplomacyDialog.tscn.");
-            return;
-        }
-
         _actionOption = root.GetNodeOrNull<OptionButton>("HeaderSection/ActionRow/ActionOption");
         _targetFactionOption = root.GetNodeOrNull<OptionButton>("HeaderSection/TargetFactionRow/TargetFactionOption");
         _durationSpinBox = root.GetNodeOrNull<SpinBox>("MiddleSection/DurationRow/DurationSpinBox");
@@ -105,6 +92,7 @@ internal sealed class DiplomacyDialogController
         _summaryLabel = root.GetNodeOrNull<Label>("FooterSection/SummaryLabel");
         _warningLabel = root.GetNodeOrNull<Label>("FooterSection/WarningLabel");
         _confirmButton = root.GetNodeOrNull<Button>("FooterSection/FooterRow/ConfirmButton");
+        ApplyButtonThemes();
         if (!_signalsConnected)
         {
             if (_actionOption != null) _actionOption.ItemSelected += _ => OnActionChanged();
@@ -177,11 +165,23 @@ internal sealed class DiplomacyDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var root = _dialog?.GetNodeOrNull<Control>("DiplomacyDialogRoot");
-        var label = root?.FindChild(nodeName, true, false) as Label;
+        var label = GetOverlayContentNode<Label>(nodeName);
         if (label != null)
         {
             label.Text = text;
+        }
+    }
+
+    private void ApplyButtonThemes()
+    {
+        if (_selectOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
         }
     }
 
@@ -329,11 +329,6 @@ internal sealed class DiplomacyDialogController
 
     private void UpdateDialogSize()
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
         var desiredHeight = GetSelectedActionType() switch
         {
             DiplomacyActionType.Gift or DiplomacyActionType.Demand => 520,
@@ -341,13 +336,16 @@ internal sealed class DiplomacyDialogController
             _ => 460
         };
 
-        _dialog.Size = new Vector2I(500, desiredHeight);
+        _dialogSize = new Vector2(500.0f, desiredHeight);
+        if (OverlayRoot != null)
+        {
+            UpdateOverlayLayoutNow();
+        }
     }
 
     private void SetRowVisible(string rowName, bool visible)
     {
-        var root = _dialog?.GetNodeOrNull<Control>("DiplomacyDialogRoot");
-        var row = root?.FindChild(rowName, true, false) as Control;
+        var row = GetOverlayContentNode<Control>($"MiddleSection/{rowName}");
         if (row != null)
         {
             row.Visible = visible;
@@ -419,7 +417,7 @@ internal sealed class DiplomacyDialogController
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         if (result.Success)
         {
-            _dialog?.Hide();
+            HideOverlay();
             _context.RefreshSelectedCity();
             return;
         }

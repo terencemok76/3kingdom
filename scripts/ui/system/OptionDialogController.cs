@@ -2,11 +2,10 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class OptionDialogController
+internal sealed class OptionDialogController : FloatingOverlayController
 {
     private readonly SystemUiContext _context;
     private readonly System.Action _showSaveLoadDialog;
-    private Window? _dialog;
     private Button? _saveLoadButton;
     private Button? _languageButton;
     private Button? _godModeButton;
@@ -19,8 +18,10 @@ internal sealed class OptionDialogController
     private Button? _saveSettingsButton;
     private Button? _restoreLayoutButton;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(540.0f, 340.0f);
 
     public OptionDialogController(SystemUiContext context, System.Action showSaveLoadDialog)
+        : base(context, "res://scenes/ui/system/OptionDialog.tscn")
     {
         _context = context;
         _showSaveLoadDialog = showSaveLoadDialog;
@@ -28,26 +29,25 @@ internal sealed class OptionDialogController
 
     public void Initialize()
     {
-        _dialog = _context.OptionDialog;
-        EnsureWidgets();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
         RefreshText();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null)
+        if (!EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.GetOptionDialogTitle();
+        SetOverlayTitleText(_context.GetOptionDialogTitle());
 
         if (_saveLoadButton != null)
         {
@@ -109,14 +109,8 @@ internal sealed class OptionDialogController
         }
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        var root = _dialog?.GetNodeOrNull<VBoxContainer>("OptionDialogRoot");
-        if (root == null)
-        {
-            return;
-        }
-
         _saveLoadButton = root.GetNodeOrNull<Button>("SaveLoadButton");
         _languageButton = root.GetNodeOrNull<Button>("LanguageButton");
         _godModeButton = root.GetNodeOrNull<Button>("GodModeButton");

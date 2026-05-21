@@ -7,7 +7,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class SpyUiContext
+internal sealed class SpyUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -21,26 +21,33 @@ internal sealed class SpyUiContext
     public LocalizationService? Localization => _owner.SpyLocalization;
     public CityData? SelectedCity => _owner.SpySelectedCity;
 
-    public Window CreateWindow(string scenePath, Action<Window> closeAction)
+    public Control CreateOverlay(string scenePath, Action closeAction)
     {
-        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Window>();
-        dialog.Exclusive = false;
-        dialog.Unresizable = true;
-        dialog.CloseRequested += () =>
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.SpyOverlayParent != null)
         {
-            _owner.SpyPlayUiClickSfx();
-            closeAction(dialog);
-        };
-        _owner.AddChild(dialog);
+            parent = _owner.SpyOverlayParent;
+        }
+
+        parent.AddChild(dialog);
         return dialog;
     }
 
-    public void PopupDialog(Window? dialog) => _owner.SpyPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.SpyPopupDialog(dialog);
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.SpyPlayUiClickSfx();
+        closeAction();
+    }
+    public void BringOverlayToFront(CanvasItem? item) => _owner.SpyBringOverlayToFront(item);
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.SpyAddLog(message, isPlayerRelated);
     public void RefreshSelectedCity() => _owner.SpyRefreshSelectedCity();
     public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.SpyShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
     public bool HasActiveInternalAffairsSchedule(int officerId) => _owner.SpyHasActiveInternalAffairsSchedule(officerId);
     public string GetLocalizedResultMessage(CommandResult result) => _owner.SpyGetLocalizedResultMessage(result);
+    public void ApplyCommandButtonTheme(Button button) => _owner.SpyApplyCommandButtonTheme(button);
 
     public CommandResult ExecuteSpyCommand(int targetCityId, int selectedOfficerId, SpyActionType actionType, int targetOfficerId)
     {

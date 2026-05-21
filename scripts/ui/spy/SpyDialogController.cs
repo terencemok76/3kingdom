@@ -4,10 +4,9 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class SpyDialogController
+internal sealed class SpyDialogController : FloatingOverlayController
 {
     private readonly SpyUiContext _context;
-    private Window? _dialog;
     private OptionButton? _actionOption;
     private OptionButton? _targetCityOption;
     private OptionButton? _targetOfficerOption;
@@ -18,45 +17,44 @@ internal sealed class SpyDialogController
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(510.0f, 290.0f);
 
     public SpyDialogController(SpyUiContext context)
+        : base(context, "res://scenes/ui/spy/SpyDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/spy/SpyDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_context.SelectedCity == null || _dialog == null || _context.Localization == null)
+        if (_context.SelectedCity == null || _context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("ui.spy");
-        SetLabelText("ActionLabel", _context.Localization.T("ui.spy_action"));
-        SetLabelText("TargetCityLabel", _context.Localization.T("ui.spy_target_city"));
-        SetLabelText("TargetOfficerLabel", _context.Localization.T("ui.spy_target_officer"));
+        SetOverlayTitleText(_context.Localization.T("ui.spy"));
+        SetLabelText("ActionRow/ActionLabel", _context.Localization.T("ui.spy_action"));
+        SetLabelText("TargetCityRow/TargetCityLabel", _context.Localization.T("ui.spy_target_city"));
+        SetLabelText("TargetOfficerRow/TargetOfficerLabel", _context.Localization.T("ui.spy_target_officer"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.spy_officer"));
         if (_selectOfficerButton != null)
         {
@@ -71,20 +69,8 @@ internal sealed class SpyDialogController
         UpdateSelectedOfficerSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("SpyDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("SpyDialogRoot not found in SpyDialog.tscn.");
-            return;
-        }
-
         _actionOption = root.GetNodeOrNull<OptionButton>("ActionRow/ActionOption");
         _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
         _targetOfficerOption = root.GetNodeOrNull<OptionButton>("TargetOfficerRow/TargetOfficerOption");
@@ -93,6 +79,7 @@ internal sealed class SpyDialogController
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
         _confirmButton = root.GetNodeOrNull<Button>("FooterRow/ConfirmButton");
+        ApplyButtonThemes();
         ConnectSignals();
     }
 
@@ -135,11 +122,23 @@ internal sealed class SpyDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var root = _dialog?.GetNodeOrNull<Control>("SpyDialogRoot");
-        var label = root?.FindChild(nodeName, true, false) as Label;
+        var label = GetOverlayContentNode<Label>(nodeName);
         if (label != null)
         {
             label.Text = text;
+        }
+    }
+
+    private void ApplyButtonThemes()
+    {
+        if (_selectOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
         }
     }
 
@@ -414,7 +413,7 @@ internal sealed class SpyDialogController
         _context.AddLog(resultMessage, isPlayerRelated: true);
         if (result.Success)
         {
-            _dialog?.Hide();
+            HideOverlay();
             _context.RefreshSelectedCity();
             return;
         }

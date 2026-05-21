@@ -171,7 +171,7 @@ public partial class HudController : CanvasLayer
     private Window? _optionDialog;
     private Window? _saveLoadDialog;
     private Window? _saveLoadConfirmDialog;
-    private Window? _officerListDialog;
+    private Control? _officerListDialog;
     private HBoxContainer? _officerListToolbar;
     private HBoxContainer? _officerListAuxRow;
     private Label? _officerListAuxLabel;
@@ -186,7 +186,7 @@ public partial class HudController : CanvasLayer
     private OptionButton? _officerSortOption;
     private Tree? _officerListTable;
     private SelectOfficerDialog? _selectOfficerDialog;
-    private Window? _officerDetailDialog;
+    private Control? _officerDetailDialog;
     private TextureRect? _officerPortraitRect;
     private Label? _officerPortraitPlaceholderLabel;
     private RichTextLabel? _officerDetailText;
@@ -295,39 +295,6 @@ public partial class HudController : CanvasLayer
         _spyUiController = new SpyUiController(this);
         _spyUiController.Initialize();
 
-        _optionDialog = GD.Load<PackedScene>("res://scenes/ui/system/OptionDialog.tscn").Instantiate<Window>();
-        _optionDialog.Exclusive = false;
-        _optionDialog.Unresizable = true;
-        _optionDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _optionDialog?.Hide();
-        };
-        AddChild(_optionDialog);
-        _optionDialog.Hide();
-
-        _saveLoadDialog = GD.Load<PackedScene>("res://scenes/ui/system/SaveLoadDialog.tscn").Instantiate<Window>();
-        _saveLoadDialog.Exclusive = false;
-        _saveLoadDialog.Unresizable = true;
-        _saveLoadDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _saveLoadDialog?.Hide();
-        };
-        AddChild(_saveLoadDialog);
-        _saveLoadDialog.Hide();
-
-        _saveLoadConfirmDialog = GD.Load<PackedScene>("res://scenes/ui/system/SaveLoadConfirmDialog.tscn").Instantiate<Window>();
-        _saveLoadConfirmDialog.Exclusive = false;
-        _saveLoadConfirmDialog.Unresizable = true;
-        _saveLoadConfirmDialog.CloseRequested += () =>
-        {
-            PlayUiClickSfx();
-            _systemUiController?.CancelPendingConfirmation();
-        };
-        AddChild(_saveLoadConfirmDialog);
-        _saveLoadConfirmDialog.Hide();
-
         _systemUiController = new SystemUiController(this);
         _systemUiController.Initialize();
 
@@ -338,9 +305,14 @@ public partial class HudController : CanvasLayer
         _viewUiController.Initialize();
 
         _selectOfficerDialog = GD.Load<PackedScene>("res://scenes/ui/view/SelectOfficerDialog.tscn").Instantiate<SelectOfficerDialog>();
-        _selectOfficerDialog.Exclusive = false;
-        _selectOfficerDialog.Unresizable = true;
-        AddChild(_selectOfficerDialog);
+        if (GetNodeOrNull<Control>("Root") is Control overlayRoot)
+        {
+            overlayRoot.AddChild(_selectOfficerDialog);
+        }
+        else
+        {
+            AddChild(_selectOfficerDialog);
+        }
         _selectOfficerDialog.Hide();
         LoadPortraitData();
         AttachClickSfxToButtons(this);

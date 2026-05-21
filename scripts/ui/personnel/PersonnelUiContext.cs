@@ -7,7 +7,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class PersonnelUiContext
+internal sealed class PersonnelUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -35,11 +35,32 @@ internal sealed class PersonnelUiContext
         return dialog;
     }
 
+    public Control CreateOverlay(string scenePath, Action closeAction)
+    {
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.PersonnelOverlayParent != null)
+        {
+            parent = _owner.PersonnelOverlayParent;
+        }
+
+        parent.AddChild(dialog);
+        return dialog;
+    }
+
     public void AddChild(Node node) => _owner.AddChild(node);
 
     public void PlayUiClickSfx() => _owner.PersonnelPlayUiClickSfx();
 
     public void PopupDialog(Window? dialog) => _owner.PersonnelPopupDialog(dialog);
+    public void PopupDialog(Control? dialog) => _owner.PersonnelPopupDialog(dialog);
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.PersonnelPlayUiClickSfx();
+        closeAction();
+    }
+    public void BringOverlayToFront(CanvasItem? item) => _owner.PersonnelBringOverlayToFront(item);
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.PersonnelAddLog(message, isPlayerRelated);
 
@@ -65,6 +86,7 @@ internal sealed class PersonnelUiContext
     public bool IsFactionRuler(WorldState world, OfficerData officer) => _owner.PersonnelIsFactionRuler(world, officer);
 
     public bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => _owner.PersonnelIsOfficerOldEnoughToJoin(world, officer);
+    public void ApplyCommandButtonTheme(Button button) => _owner.PersonnelApplyCommandButtonTheme(button);
 
     public List<int> GetAvailableOfficerIdsForOrder() => _owner.PersonnelGetAvailableOfficerIdsForOrder();
 

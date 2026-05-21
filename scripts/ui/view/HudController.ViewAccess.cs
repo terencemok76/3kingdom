@@ -8,7 +8,7 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController
 {
-    internal Window? ViewOfficerListDialog
+    internal Control? ViewOfficerListDialog
     {
         get => _officerListDialog;
         set => _officerListDialog = value;
@@ -92,7 +92,7 @@ public partial class HudController
         set => _officerListTable = value;
     }
 
-    internal Window? ViewOfficerDetailDialog
+    internal Control? ViewOfficerDetailDialog
     {
         get => _officerDetailDialog;
         set => _officerDetailDialog = value;
@@ -178,7 +178,16 @@ public partial class HudController
         }
     }
 
-    internal void ViewPopupOfficerListDialog() => PopupDialogUsingSceneSize(_officerListDialog);
+    internal void ViewPopupOfficerListDialog()
+    {
+        if (_officerListDialog == null)
+        {
+            return;
+        }
+
+        _officerListDialog.Show();
+        _officerListDialog.MoveToFront();
+    }
     internal string ViewGetOfficerDetailTitle() => _localization?.T("ui.officer_detail") ?? "Officer Details";
     internal string ViewBuildOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer);
     internal bool ViewCanViewOfficerFullInformation(OfficerData officer) => CanViewOfficerFullInformation(officer);
@@ -225,9 +234,10 @@ public partial class HudController
 
     internal void ViewSetOfficerListDialogTitle(string title)
     {
-        if (_officerListDialog != null)
+        var titleLabel = _officerListDialog?.GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/TitleLabel");
+        if (titleLabel != null)
         {
-            _officerListDialog.Title = title;
+            titleLabel.Text = title;
         }
     }
 
@@ -396,9 +406,10 @@ public partial class HudController
             ConfigureOfficerListAuxRow(CommandType.Recruit);
         }
 
-        if (_officerDetailDialog != null)
+        var detailTitleLabel = _officerDetailDialog?.GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/TitleLabel");
+        if (detailTitleLabel != null)
         {
-            _officerDetailDialog.Title = _localization.T("ui.officer_detail");
+            detailTitleLabel.Text = _localization.T("ui.officer_detail");
         }
 
         if (_officerPortraitPlaceholderLabel != null && (_officerDetailDialog == null || !_officerDetailDialog.Visible))

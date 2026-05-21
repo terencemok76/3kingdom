@@ -4,10 +4,9 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class SuccessionDialogController
+internal sealed class SuccessionDialogController : FloatingOverlayController
 {
     private readonly PersonnelUiContext _context;
-    private Window? _dialog;
     private Label? _summaryLabel;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
@@ -16,8 +15,10 @@ internal sealed class SuccessionDialogController
     private int _selectedOfficerId = -1;
     private int _pendingFactionId = -1;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(760.0f, 240.0f);
 
     public SuccessionDialogController(PersonnelUiContext context)
+        : base(context, "res://scenes/ui/personnel/SuccessionDialog.tscn")
     {
         _context = context;
     }
@@ -30,12 +31,10 @@ internal sealed class SuccessionDialogController
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/personnel/SuccessionDialog.tscn", _ => OnCloseRequested());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public bool HasPendingPlayerSuccession()
     {
@@ -53,7 +52,7 @@ internal sealed class SuccessionDialogController
     {
         var world = _context.TurnManager?.World;
         var localization = _context.Localization;
-        if (world == null || localization == null || _dialog == null)
+        if (world == null || localization == null || !EnsureOverlayReady())
         {
             return;
         }
@@ -67,8 +66,7 @@ internal sealed class SuccessionDialogController
         }
 
         _pendingFactionId = factionId;
-        EnsureWidgets();
-        _dialog.Title = localization.T("ui.succession");
+        SetOverlayTitleText(localization.T("ui.succession"));
         if (_confirmButton != null)
         {
             _confirmButton.Text = localization.T("ui.confirm_succession");
@@ -95,28 +93,24 @@ internal sealed class SuccessionDialogController
         }
 
         UpdateSelectedOfficerSummary();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("SuccessionDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("SuccessionDialogRoot not found in SuccessionDialog.tscn.");
-            return;
-        }
-
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (_selectOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
@@ -146,7 +140,7 @@ internal sealed class SuccessionDialogController
             {
                 _warningLabel.Text = localization.T("ui.select_officer_warning");
             }
-            _context.PopupDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -157,23 +151,26 @@ internal sealed class SuccessionDialogController
             {
                 _warningLabel.Text = _context.GetLocalizedResultMessage(result);
             }
-            _context.PopupDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
         _pendingFactionId = -1;
-        _dialog?.Hide();
+        HideOverlay();
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         _context.RefreshSelectedCity();
         _context.ContinuePendingNonAttackResolution();
     }
 
-    private void OnCloseRequested()
+    protected override void OnOverlayCloseRequested()
     {
         if (_pendingFactionId > 0)
         {
             Show();
+            return;
         }
+
+        HideOverlay();
     }
 
     private void OnSelectOfficerPressed()

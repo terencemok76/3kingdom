@@ -5,7 +5,7 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-public sealed partial class SelectOfficerDialog : Window
+public sealed partial class SelectOfficerDialog : Control
 {
     public sealed class ScopeOption
     {
@@ -28,17 +28,26 @@ public sealed partial class SelectOfficerDialog : Window
     private Button? _primaryScopeButton;
     private Button? _secondaryScopeButton;
     private Button? _confirmButton;
+    private PanelContainer? _dialogPanel;
+    private Control? _titleBar;
+    private Label? _titleLabel;
     private Action<int>? _confirmedAction;
     private readonly List<ScopeOption> _scopeOptions = new();
     private string _activeScopeKey = string.Empty;
+    private bool _dragging;
+    private Vector2 _dragOffset = Vector2.Zero;
 
     public override void _Ready()
     {
-        _officerTable = GetNodeOrNull<Tree>("SelectOfficerDialogRoot/ContentSection/OfficerTable");
-        _scopeRow = GetNodeOrNull<HBoxContainer>("SelectOfficerDialogRoot/ScopeRow");
-        _primaryScopeButton = GetNodeOrNull<Button>("SelectOfficerDialogRoot/ScopeRow/PrimaryScopeButton");
-        _secondaryScopeButton = GetNodeOrNull<Button>("SelectOfficerDialogRoot/ScopeRow/SecondaryScopeButton");
-        _confirmButton = GetNodeOrNull<Button>("SelectOfficerDialogRoot/FooterSection/ConfirmRow/ConfirmButton");
+        _dialogPanel = GetNodeOrNull<PanelContainer>("CenterContainer/AdvisorDialogPanel");
+        _titleBar = GetNodeOrNull<Control>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar");
+        _titleLabel = GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/TitleLabel");
+        _officerTable = GetNodeOrNull<Tree>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentSection/OfficerTable");
+        _scopeRow = GetNodeOrNull<HBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow");
+        _primaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/PrimaryScopeButton");
+        _secondaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/SecondaryScopeButton");
+        _confirmButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/ConfirmRow/ConfirmButton");
+        var closeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/CloseButton");
 
         if (_officerTable != null)
         {
@@ -60,7 +69,18 @@ public sealed partial class SelectOfficerDialog : Window
             _confirmButton.Pressed += OnConfirmPressed;
         }
 
-        CloseRequested += OnCloseRequested;
+        if (_titleBar != null)
+        {
+            _titleBar.GuiInput += OnTitleBarGuiInput;
+        }
+        if (_dialogPanel != null)
+        {
+            _dialogPanel.GuiInput += OnDialogPanelGuiInput;
+        }
+        if (closeButton != null)
+        {
+            closeButton.Pressed += OnCloseRequested;
+        }
     }
 
     public void ShowSelector(
@@ -80,7 +100,10 @@ public sealed partial class SelectOfficerDialog : Window
             return;
         }
 
-        Title = title;
+        if (_titleLabel != null)
+        {
+            _titleLabel.Text = title;
+        }
         _confirmButton.Text = confirmText;
         _confirmedAction = onConfirmed;
         ConfigureColumns(officerTitle, roleTitle, statusTitle, statTitle);
@@ -122,15 +145,9 @@ public sealed partial class SelectOfficerDialog : Window
             UpdateScopeButtonStates();
         }
 
-        var sceneSize = Size;
-        if (sceneSize.X > 0 && sceneSize.Y > 0)
-        {
-            PopupCentered(sceneSize);
-        }
-        else
-        {
-            PopupCentered(new Vector2I(620, 320));
-        }
+        Show();
+        MoveToFront();
+        CenterPanel(new Vector2(620.0f, 320.0f));
     }
 
     private void ConfigureColumns(string officerTitle, string roleTitle, string statusTitle, string statTitle)
@@ -271,12 +288,81 @@ public sealed partial class SelectOfficerDialog : Window
         Hide();
     }
 
+    private void OnDialogPanelGuiInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseButton mouseButton &&
+            mouseButton.ButtonIndex == MouseButton.Left &&
+            mouseButton.Pressed)
+        {
+            MoveToFront();
+        }
+    }
+
+    private void OnTitleBarGuiInput(InputEvent @event)
+    {
+        if (_dialogPanel == null)
+        {
+            return;
+        }
+
+        if (@event is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
+        {
+            if (mouseButton.Pressed)
+            {
+                MoveToFront();
+                _dragging = true;
+                _dragOffset = mouseButton.GlobalPosition - _dialogPanel.GlobalPosition;
+            }
+            else
+            {
+                _dragging = false;
+            }
+
+            return;
+        }
+
+        if (@event is InputEventMouseMotion mouseMotion && _dragging)
+        {
+            var viewportSize = GetViewportRect().Size;
+            var panelSize = _dialogPanel.Size;
+            var target = mouseMotion.GlobalPosition - _dragOffset;
+            _dialogPanel.Position = new Vector2(
+                Mathf.Clamp(target.X, 0.0f, Mathf.Max(0.0f, viewportSize.X - panelSize.X)),
+                Mathf.Clamp(target.Y, 0.0f, Mathf.Max(0.0f, viewportSize.Y - panelSize.Y)));
+        }
+    }
+
+    private void CenterPanel(Vector2 fallbackSize)
+    {
+        if (_dialogPanel == null)
+        {
+            return;
+        }
+
+        var viewportSize = GetViewportRect().Size;
+        var panelSize = _dialogPanel.Size;
+        if (panelSize.X <= 0.0f || panelSize.Y <= 0.0f)
+        {
+            panelSize = _dialogPanel.CustomMinimumSize;
+        }
+        if (panelSize.X <= 0.0f || panelSize.Y <= 0.0f)
+        {
+            panelSize = fallbackSize;
+            _dialogPanel.CustomMinimumSize = fallbackSize;
+            _dialogPanel.Size = fallbackSize;
+        }
+
+        _dialogPanel.Position = new Vector2(
+            Mathf.Max(0.0f, (viewportSize.X - panelSize.X) * 0.5f),
+            Mathf.Max(0.0f, (viewportSize.Y - panelSize.Y) * 0.5f));
+    }
+
     private static void ApplyRowStriping(TreeItem row, int rowIndex, int columnCount)
     {
         var background = rowIndex % 2 == 0
-            ? new Color(0.96f, 0.93f, 0.86f, 1.0f)
-            : new Color(0.92f, 0.88f, 0.8f, 1.0f);
-        var textColor = new Color(0.16f, 0.12f, 0.08f, 1.0f);
+            ? new Color(0.12f, 0.12f, 0.14f, 0.84f)
+            : new Color(0.16f, 0.16f, 0.18f, 0.8f);
+        var textColor = new Color(0.92f, 0.89f, 0.82f, 1.0f);
 
         for (var column = 0; column < columnCount; column += 1)
         {
@@ -287,8 +373,8 @@ public sealed partial class SelectOfficerDialog : Window
 
     private static void ApplySelectedRowStyle(TreeItem row, int columnCount)
     {
-        var background = new Color(0.82f, 0.68f, 0.38f, 1.0f);
-        var textColor = new Color(0.22f, 0.05f, 0.02f, 1.0f);
+        var background = new Color(0.55f, 0.45f, 0.28f, 0.92f);
+        var textColor = new Color(0.98f, 0.95f, 0.9f, 1.0f);
 
         for (var column = 0; column < columnCount; column += 1)
         {

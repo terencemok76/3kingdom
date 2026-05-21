@@ -4,10 +4,9 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class PersonnelBonusDialogController
+internal sealed class PersonnelBonusDialogController : FloatingOverlayController
 {
     private readonly PersonnelUiContext _context;
-    private Window? _dialog;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private SpinBox? _goldSpinBox;
@@ -17,42 +16,41 @@ internal sealed class PersonnelBonusDialogController
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(480.0f, 260.0f);
 
     public PersonnelBonusDialogController(PersonnelUiContext context)
+        : base(context, "res://scenes/ui/personnel/PersonnelBonusDialog.tscn")
     {
         _context = context;
     }
 
     public void Initialize()
     {
-        _dialog = _context.CreateWindow("res://scenes/ui/personnel/PersonnelBonusDialog.tscn", dialog => dialog.Hide());
-        EnsureWidgets();
-        _dialog.Hide();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
-        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _dialog == null || _context.Localization == null)
+        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _context.Localization == null)
         {
             return;
         }
 
-        EnsureWidgets();
         RefreshText();
         Populate();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null || _context.Localization == null)
+        if (_context.Localization == null || !EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.Localization.T("command.personnel.give_bonus");
+        SetOverlayTitleText(_context.Localization.T("command.personnel.give_bonus"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.personnel_bonus_officer"));
         SetLabelText("GoldLabel", _context.Localization.T("ui.personnel_bonus_gold"));
         SetLabelText("FoodLabel", _context.Localization.T("ui.personnel_bonus_food"));
@@ -68,20 +66,8 @@ internal sealed class PersonnelBonusDialogController
         UpdateSelectedOfficerSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        if (_dialog == null)
-        {
-            return;
-        }
-
-        var root = _dialog.GetNodeOrNull<VBoxContainer>("PersonnelBonusDialogRoot");
-        if (root == null)
-        {
-            GD.PushError("PersonnelBonusDialogRoot not found in PersonnelBonusDialog.tscn.");
-            return;
-        }
-
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
@@ -89,6 +75,14 @@ internal sealed class PersonnelBonusDialogController
         _itemOption = root.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        if (_selectOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+        if (_confirmButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_confirmButton);
+        }
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
@@ -147,10 +141,10 @@ internal sealed class PersonnelBonusDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var label = _dialog?.GetNodeOrNull<Label>($"PersonnelBonusDialogRoot/{nodeName}") ??
-                    _dialog?.GetNodeOrNull<Label>($"PersonnelBonusDialogRoot/GoldRow/{nodeName}") ??
-                    _dialog?.GetNodeOrNull<Label>($"PersonnelBonusDialogRoot/FoodRow/{nodeName}") ??
-                    _dialog?.GetNodeOrNull<Label>($"PersonnelBonusDialogRoot/ItemRow/{nodeName}");
+        var label = GetOverlayContentNode<Label>(nodeName) ??
+                    GetOverlayContentNode<Label>($"GoldRow/{nodeName}") ??
+                    GetOverlayContentNode<Label>($"FoodRow/{nodeName}") ??
+                    GetOverlayContentNode<Label>($"ItemRow/{nodeName}");
         if (label != null)
         {
             label.Text = text;
@@ -186,7 +180,7 @@ internal sealed class PersonnelBonusDialogController
         if (_selectedOfficerId <= 0)
         {
             _context.AddLog(_context.Localization?.T("ui.select_officer_warning") ?? string.Empty);
-            _context.PopupDialog(_dialog);
+            ShowOverlay();
             return;
         }
 
@@ -200,7 +194,7 @@ internal sealed class PersonnelBonusDialogController
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         _context.RefreshSelectedCity();
         _context.RefreshMapVisuals();
-        _dialog?.Hide();
+        HideOverlay();
     }
 
     private void OnSelectOfficerPressed()

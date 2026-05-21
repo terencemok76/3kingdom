@@ -11,8 +11,10 @@ public partial class HudController
     internal CommandResolver? DiplomacyCommandResolver => _commandResolver;
     internal LocalizationService? DiplomacyLocalization => _localization;
     internal CityData? DiplomacySelectedCity => _selectedCity;
+    internal Control? DiplomacyOverlayParent => GetNodeOrNull<Control>("Root");
 
-    internal void DiplomacyPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
+    internal void DiplomacyPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void DiplomacyBringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
 
     internal void DiplomacyPlayUiClickSfx() => PlayUiClickSfx();
 
@@ -34,4 +36,12 @@ public partial class HudController
     internal string DiplomacyGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
 
     internal string DiplomacyGetStatusText(DiplomacyStatusType status) => GetDiplomacyStatusText(status);
+
+    internal void DiplomacyApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
 }

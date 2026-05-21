@@ -4,7 +4,7 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class SystemUiContext
+internal sealed class SystemUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -13,9 +13,6 @@ internal sealed class SystemUiContext
         _owner = owner;
     }
 
-    public Window? OptionDialog => _owner.SystemOptionDialog;
-    public Window? SaveLoadDialog => _owner.SystemSaveLoadDialog;
-    public Window? SaveLoadConfirmDialog => _owner.SystemSaveLoadConfirmDialog;
     public HBoxContainer? TopBar => _owner.SystemTopBar;
     public GridContainer? CommandButtons => _owner.SystemCommandButtons;
     public TurnManager? TurnManager => _owner.SystemTurnManager;
@@ -46,7 +43,34 @@ internal sealed class SystemUiContext
         set => _owner.SystemSfxVolume = value;
     }
 
-    public void PopupDialog(Window? dialog) => _owner.SystemPopupDialog(dialog);
+    public Control CreateOverlay(string scenePath, System.Action closeAction)
+    {
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        var parent = _owner.GetNodeOrNull<Control>("Root") as Node ?? _owner;
+        parent.AddChild(dialog);
+        return dialog;
+    }
+
+    public void PopupDialog(Control? dialog)
+    {
+        if (dialog == null)
+        {
+            return;
+        }
+
+        dialog.Show();
+        dialog.MoveToFront();
+    }
+
+    public void CloseOverlay(System.Action closeAction)
+    {
+        PlayUiClickSfx();
+        closeAction();
+    }
+
+    public void BringOverlayToFront(CanvasItem? item) => item?.MoveToFront();
+
     public void PlayUiClickSfx() => _owner.SystemPlayUiClickSfx();
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.SystemAddLog(message, isPlayerRelated);
     public void ToggleLanguage() => _owner.SystemToggleLanguage();

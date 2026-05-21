@@ -2,13 +2,12 @@ using Godot;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class SaveLoadDialogController
+internal sealed class SaveLoadDialogController : FloatingOverlayController
 {
     private const int SaveSlotCount = 10;
 
     private readonly SystemUiContext _context;
     private readonly SaveLoadConfirmDialogController _confirmDialogController;
-    private Window? _dialog;
     private ItemList? _slotList;
     private LineEdit? _descriptionLineEdit;
     private RichTextLabel? _summaryLabel;
@@ -17,8 +16,10 @@ internal sealed class SaveLoadDialogController
     private Button? _closeButton;
     private int _selectedSlotIndex;
     private bool _signalsConnected;
+    protected override Vector2 MinimumOverlaySize => new(780.0f, 580.0f);
 
     public SaveLoadDialogController(SystemUiContext context, SaveLoadConfirmDialogController confirmDialogController)
+        : base(context, "res://scenes/ui/system/SaveLoadDialog.tscn")
     {
         _context = context;
         _confirmDialogController = confirmDialogController;
@@ -26,27 +27,26 @@ internal sealed class SaveLoadDialogController
 
     public void Initialize()
     {
-        _dialog = _context.SaveLoadDialog;
-        EnsureWidgets();
+        InitializeOverlay();
     }
 
-    public void Hide() => _dialog?.Hide();
+    public void Hide() => HideOverlay();
 
     public void Show()
     {
         PopulateSaveSlotList();
         RefreshText();
-        _context.PopupDialog(_dialog);
+        ShowOverlay();
     }
 
     public void RefreshText()
     {
-        if (_dialog == null)
+        if (!EnsureOverlayReady())
         {
             return;
         }
 
-        _dialog.Title = _context.GetSaveLoadDialogTitle();
+        SetOverlayTitleText(_context.GetSaveLoadDialogTitle());
         SetLabelText("SlotListLabel", _context.GetSaveSlotListLabel());
         SetLabelText("DescriptionLabel", _context.GetSaveDescriptionLabel());
         SetLabelText("SummaryTitleLabel", _context.GetSaveSummaryLabel());
@@ -74,14 +74,8 @@ internal sealed class SaveLoadDialogController
         RefreshSelectedSaveSlotSummary();
     }
 
-    private void EnsureWidgets()
+    protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        var root = _dialog?.GetNodeOrNull<VBoxContainer>("SaveLoadDialogRoot");
-        if (root == null)
-        {
-            return;
-        }
-
         _slotList = root.GetNodeOrNull<ItemList>("SlotList");
         _descriptionLineEdit = root.GetNodeOrNull<LineEdit>("DescriptionLineEdit");
         _summaryLabel = root.GetNodeOrNull<RichTextLabel>("SummaryLabel");
@@ -148,7 +142,7 @@ internal sealed class SaveLoadDialogController
 
     private void OnClosePressed()
     {
-        _dialog?.Hide();
+        HideOverlay();
     }
 
     private void PerformSave()
@@ -239,7 +233,7 @@ internal sealed class SaveLoadDialogController
 
     private void SetLabelText(string nodeName, string text)
     {
-        var label = _dialog?.GetNodeOrNull<Label>($"SaveLoadDialogRoot/{nodeName}");
+        var label = GetOverlayContentNode<Label>(nodeName);
         if (label != null)
         {
             label.Text = text;

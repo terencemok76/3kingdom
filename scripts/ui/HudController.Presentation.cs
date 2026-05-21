@@ -24,20 +24,26 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        var officerListPanel = _officerListDialog.GetNodeOrNull<PanelContainer>("CenterContainer/AdvisorDialogPanel");
+        if (officerListPanel == null)
+        {
+            return;
+        }
+
         var dialogPanel = new StyleBoxFlat
         {
-            BgColor = new Color(0.96f, 0.94f, 0.88f, 1.0f),
+            BgColor = new Color(0.08f, 0.08f, 0.1f, 0.88f),
             BorderWidthLeft = 2,
             BorderWidthTop = 2,
             BorderWidthRight = 2,
             BorderWidthBottom = 2,
-            BorderColor = new Color(0.56f, 0.45f, 0.29f, 1.0f),
+            BorderColor = new Color(0.48f, 0.39f, 0.24f, 0.92f),
             CornerRadiusTopLeft = 10,
             CornerRadiusTopRight = 10,
             CornerRadiusBottomRight = 10,
             CornerRadiusBottomLeft = 10
         };
-        _officerListDialog.AddThemeStyleboxOverride("panel", dialogPanel);
+        officerListPanel.AddThemeStyleboxOverride("panel", dialogPanel);
 
         var okNormal = new StyleBoxFlat
         {
@@ -74,7 +80,7 @@ public partial class HudController : CanvasLayer
 
             var normal = new StyleBoxFlat
             {
-                BgColor = new Color(0.88f, 0.81f, 0.65f, 0.97f),
+                BgColor = new Color(0.79f, 0.71f, 0.53f, 0.95f),
                 BorderWidthLeft = 1,
                 BorderWidthTop = 1,
                 BorderWidthRight = 1,
@@ -86,34 +92,34 @@ public partial class HudController : CanvasLayer
                 CornerRadiusBottomLeft = 6
             };
             var hover = (StyleBoxFlat)normal.Duplicate();
-            hover.BgColor = new Color(0.93f, 0.87f, 0.72f, 1.0f);
+            hover.BgColor = new Color(0.86f, 0.78f, 0.6f, 1.0f);
             var disabled = (StyleBoxFlat)normal.Duplicate();
-            disabled.BgColor = new Color(0.76f, 0.72f, 0.65f, 0.92f);
-            disabled.BorderColor = new Color(0.58f, 0.54f, 0.47f, 1.0f);
+            disabled.BgColor = new Color(0.38f, 0.35f, 0.31f, 0.94f);
+            disabled.BorderColor = new Color(0.44f, 0.4f, 0.34f, 1.0f);
 
             button.AddThemeStyleboxOverride("normal", normal);
             button.AddThemeStyleboxOverride("hover", hover);
             button.AddThemeStyleboxOverride("disabled", disabled);
             button.AddThemeColorOverride("font_color", new Color(0.16f, 0.12f, 0.08f, 1.0f));
-            button.AddThemeColorOverride("font_disabled_color", new Color(0.32f, 0.29f, 0.24f, 1.0f));
+            button.AddThemeColorOverride("font_disabled_color", new Color(0.72f, 0.68f, 0.61f, 1.0f));
         }
 
         if (_officerListTable != null)
         {
             var tablePanel = new StyleBoxFlat
             {
-                BgColor = new Color(0.96f, 0.93f, 0.86f, 0.98f),
+                BgColor = new Color(0.1f, 0.1f, 0.12f, 0.76f),
                 BorderWidthLeft = 1,
                 BorderWidthTop = 1,
                 BorderWidthRight = 1,
                 BorderWidthBottom = 1,
-                BorderColor = new Color(0.47f, 0.39f, 0.27f, 0.95f)
+                BorderColor = new Color(0.44f, 0.37f, 0.25f, 0.88f)
             };
             var focusPanel = (StyleBoxFlat)tablePanel.Duplicate();
-            focusPanel.BorderColor = new Color(0.65f, 0.49f, 0.25f, 1.0f);
+            focusPanel.BorderColor = new Color(0.65f, 0.49f, 0.25f, 0.98f);
             var selectedPanel = new StyleBoxFlat
             {
-                BgColor = new Color(0.82f, 0.72f, 0.52f, 1.0f),
+                BgColor = new Color(0.47f, 0.38f, 0.24f, 0.92f),
                 BorderWidthLeft = 1,
                 BorderWidthTop = 1,
                 BorderWidthRight = 1,
@@ -121,21 +127,21 @@ public partial class HudController : CanvasLayer
                 BorderColor = new Color(0.55f, 0.4f, 0.2f, 1.0f)
             };
             var selectedFocusPanel = (StyleBoxFlat)selectedPanel.Duplicate();
-            selectedFocusPanel.BgColor = new Color(0.86f, 0.76f, 0.56f, 1.0f);
+            selectedFocusPanel.BgColor = new Color(0.58f, 0.47f, 0.29f, 0.96f);
 
             var titleNormal = new StyleBoxFlat
             {
-                BgColor = new Color(0.67f, 0.53f, 0.31f, 1.0f),
+                BgColor = new Color(0.18f, 0.16f, 0.14f, 0.98f),
                 BorderWidthLeft = 1,
                 BorderWidthTop = 1,
                 BorderWidthRight = 1,
                 BorderWidthBottom = 1,
-                BorderColor = new Color(0.33f, 0.24f, 0.13f, 1.0f)
+                BorderColor = new Color(0.48f, 0.39f, 0.24f, 0.96f)
             };
             var titleHover = (StyleBoxFlat)titleNormal.Duplicate();
-            titleHover.BgColor = new Color(0.75f, 0.6f, 0.37f, 1.0f);
+            titleHover.BgColor = new Color(0.24f, 0.21f, 0.17f, 1.0f);
             var titlePressed = (StyleBoxFlat)titleNormal.Duplicate();
-            titlePressed.BgColor = new Color(0.56f, 0.43f, 0.24f, 1.0f);
+            titlePressed.BgColor = new Color(0.33f, 0.27f, 0.18f, 1.0f);
 
             _officerListTable.AddThemeStyleboxOverride("panel", tablePanel);
             _officerListTable.AddThemeStyleboxOverride("focus", focusPanel);
@@ -144,17 +150,17 @@ public partial class HudController : CanvasLayer
             _officerListTable.AddThemeStyleboxOverride("title_button_normal", titleNormal);
             _officerListTable.AddThemeStyleboxOverride("title_button_hover", titleHover);
             _officerListTable.AddThemeStyleboxOverride("title_button_pressed", titlePressed);
-            _officerListTable.AddThemeColorOverride("font_color", new Color(0.17f, 0.13f, 0.09f, 1.0f));
-            _officerListTable.AddThemeColorOverride("font_hovered_color", new Color(0.12f, 0.09f, 0.06f, 1.0f));
-            _officerListTable.AddThemeColorOverride("font_selected_color", new Color(0.12f, 0.09f, 0.06f, 1.0f));
-            _officerListTable.AddThemeColorOverride("font_hovered_selected_color", new Color(0.1f, 0.07f, 0.04f, 1.0f));
-            _officerListTable.AddThemeColorOverride("font_outline_color", new Color(0.96f, 0.93f, 0.86f, 0.0f));
-            _officerListTable.AddThemeColorOverride("custom_button_font_highlight", new Color(0.12f, 0.09f, 0.06f, 1.0f));
-            _officerListTable.AddThemeColorOverride("custom_button_font_highlight_pressed", new Color(0.1f, 0.07f, 0.04f, 1.0f));
-            _officerListTable.AddThemeColorOverride("title_button_color", new Color(0.98f, 0.95f, 0.9f, 1.0f));
-            _officerListTable.AddThemeColorOverride("title_button_hover_color", Colors.White);
-            _officerListTable.AddThemeColorOverride("title_button_pressed_color", Colors.White);
-            _officerListTable.AddThemeColorOverride("guide_color", new Color(0.58f, 0.5f, 0.38f, 0.65f));
+            _officerListTable.AddThemeColorOverride("font_color", new Color(0.92f, 0.89f, 0.82f, 1.0f));
+            _officerListTable.AddThemeColorOverride("font_hovered_color", new Color(0.98f, 0.95f, 0.9f, 1.0f));
+            _officerListTable.AddThemeColorOverride("font_selected_color", new Color(0.98f, 0.94f, 0.86f, 1.0f));
+            _officerListTable.AddThemeColorOverride("font_hovered_selected_color", Colors.White);
+            _officerListTable.AddThemeColorOverride("font_outline_color", new Color(0.0f, 0.0f, 0.0f, 0.0f));
+            _officerListTable.AddThemeColorOverride("custom_button_font_highlight", new Color(0.95f, 0.91f, 0.82f, 1.0f));
+            _officerListTable.AddThemeColorOverride("custom_button_font_highlight_pressed", Colors.White);
+            _officerListTable.AddThemeColorOverride("title_button_color", new Color(0.91f, 0.87f, 0.77f, 1.0f));
+            _officerListTable.AddThemeColorOverride("title_button_hover_color", new Color(0.98f, 0.95f, 0.9f, 1.0f));
+            _officerListTable.AddThemeColorOverride("title_button_pressed_color", new Color(0.98f, 0.95f, 0.9f, 1.0f));
+            _officerListTable.AddThemeColorOverride("guide_color", new Color(0.44f, 0.37f, 0.25f, 0.58f));
             _officerListTable.AddThemeColorOverride("drop_position_color", new Color(0.75f, 0.55f, 0.22f, 1.0f));
         }
     }
@@ -368,7 +374,7 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        var existingRoot = _officerDetailDialog.GetNodeOrNull<HBoxContainer>("OfficerDetailRoot");
+        var existingRoot = _officerDetailDialog.GetNodeOrNull<HBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerDetailRoot");
         if (existingRoot == null)
         {
             GD.PushError("OfficerDetailRoot not found in OfficerDetailDialog.tscn.");

@@ -18,6 +18,7 @@ internal abstract class FloatingOverlayController
     private bool _contentReady;
     private bool _hasPositionInitialized;
     private bool _isDragging;
+    private bool _keepCenteredDuringInitialLayout;
     private int _pendingDeferredLayoutPasses;
     private Vector2 _dragOffset = Vector2.Zero;
 
@@ -39,6 +40,11 @@ internal abstract class FloatingOverlayController
     {
         OverlayRoot = _overlayContext.CreateOverlay(_scenePath, HideOverlay);
         EnsureOverlayReady();
+        _hasPositionInitialized = false;
+        if (OverlayPanel != null)
+        {
+            OverlayPanel.Position = Vector2.Zero;
+        }
         OverlayRoot.Hide();
     }
 
@@ -91,10 +97,9 @@ internal abstract class FloatingOverlayController
             return;
         }
 
+        _keepCenteredDuringInitialLayout = !_hasPositionInitialized;
         _overlayContext.PopupDialog(OverlayRoot);
-        ApplyOverlaySize();
-        EnsureOverlayPosition();
-        BringOverlayToFront();
+        UpdateOverlayLayoutNow();
         _pendingDeferredLayoutPasses = 3;
         Callable.From(RefreshOverlayLayoutDeferred).CallDeferred();
     }
@@ -112,14 +117,25 @@ internal abstract class FloatingOverlayController
         }
     }
 
+    protected void UpdateOverlayLayoutNow()
+    {
+        ApplyOverlaySize();
+        if (OverlayRoot?.Visible == true)
+        {
+            EnsureOverlayPosition();
+            BringOverlayToFront();
+        }
+    }
+
     protected T? GetOverlayContentNode<T>(string path) where T : class
         => OverlayContentRoot?.GetNodeOrNull<T>(path);
 
     protected abstract void OnOverlayContentReady(VBoxContainer root);
+    protected virtual void OnOverlayCloseRequested() => HideOverlay();
 
     private void OnClosePressed()
     {
-        _overlayContext.CloseOverlay(HideOverlay);
+        _overlayContext.CloseOverlay(OnOverlayCloseRequested);
     }
 
     private void EnsureOverlayPosition()
@@ -145,7 +161,7 @@ internal abstract class FloatingOverlayController
         var maxX = Mathf.Max(0.0f, viewportSize.X - panelSize.X);
         var maxY = Mathf.Max(0.0f, viewportSize.Y - panelSize.Y);
 
-        if (!_hasPositionInitialized || current.X > maxX || current.Y > maxY)
+        if (_keepCenteredDuringInitialLayout || !_hasPositionInitialized || current.X > maxX || current.Y > maxY)
         {
             OverlayPanel.Position = new Vector2(
                 Mathf.Max(0.0f, (viewportSize.X - panelSize.X) * 0.5f),
@@ -205,14 +221,15 @@ internal abstract class FloatingOverlayController
         }
 
         _pendingDeferredLayoutPasses -= 1;
-        ApplyOverlaySize();
-        EnsureOverlayPosition();
-        BringOverlayToFront();
+        UpdateOverlayLayoutNow();
 
         if (_pendingDeferredLayoutPasses > 0)
         {
             Callable.From(RefreshOverlayLayoutDeferred).CallDeferred();
+            return;
         }
+
+        _keepCenteredDuringInitialLayout = false;
     }
 
     private void OnTitleBarGuiInput(InputEvent @event)
@@ -228,6 +245,8 @@ internal abstract class FloatingOverlayController
             {
                 BringOverlayToFront();
                 _isDragging = true;
+                _keepCenteredDuringInitialLayout = false;
+                _hasPositionInitialized = true;
                 _dragOffset = mouseButton.GlobalPosition - OverlayPanel.GlobalPosition;
             }
             else
