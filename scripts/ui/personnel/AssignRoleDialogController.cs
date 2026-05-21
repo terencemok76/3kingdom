@@ -35,8 +35,8 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             return;
         }
 
-        RefreshText();
         Populate();
+        RefreshText();
         ShowOverlay();
     }
 
@@ -116,6 +116,10 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             AddRoleOption("Governor");
             AddRoleOption("Chancellor");
             AddRoleOption("ChiefStrategist");
+            if (_roleOption.ItemCount > 0)
+            {
+                _roleOption.Select(0);
+            }
         }
 
         UpdateSelectedOfficerSummary();
@@ -273,10 +277,15 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
 
     private string GetSelectedRoleName()
     {
-        var roleMetadata = _roleOption?.GetItemMetadata(_roleOption.Selected);
-        if (roleMetadata?.VariantType == Variant.Type.String)
+        if (_roleOption == null || _roleOption.ItemCount == 0 || _roleOption.Selected < 0)
         {
-            return GetRoleDisplayName(roleMetadata.Value.AsString());
+            return GetRoleDisplayName("General");
+        }
+
+        var roleMetadata = _roleOption.GetItemMetadata(_roleOption.Selected);
+        if (roleMetadata.VariantType == Variant.Type.String)
+        {
+            return GetRoleDisplayName(roleMetadata.AsString());
         }
 
         return GetRoleDisplayName("General");

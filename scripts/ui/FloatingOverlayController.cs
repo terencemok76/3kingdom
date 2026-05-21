@@ -84,6 +84,7 @@ internal abstract class FloatingOverlayController
         if (!_contentReady)
         {
             OnOverlayContentReady(OverlayContentRoot);
+            ApplyOverlayInputThemes(OverlayContentRoot);
             _contentReady = true;
         }
 
@@ -230,6 +231,74 @@ internal abstract class FloatingOverlayController
         }
 
         _keepCenteredDuringInitialLayout = false;
+    }
+
+    private static void ApplyOverlayInputThemes(Node root)
+    {
+        foreach (var optionButton in EnumerateDescendants<OptionButton>(root))
+        {
+            ApplyOptionButtonTheme(optionButton);
+        }
+    }
+
+    private static void ApplyOptionButtonTheme(OptionButton optionButton)
+    {
+        var normal = new StyleBoxFlat
+        {
+            BgColor = new Color(0.12f, 0.12f, 0.14f, 0.92f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.62f, 0.53f, 0.36f, 0.95f),
+            CornerRadiusTopLeft = 5,
+            CornerRadiusTopRight = 5,
+            CornerRadiusBottomLeft = 5,
+            CornerRadiusBottomRight = 5,
+            ContentMarginLeft = 8.0f,
+            ContentMarginTop = 4.0f,
+            ContentMarginRight = 8.0f,
+            ContentMarginBottom = 4.0f
+        };
+        var hover = (StyleBoxFlat)normal.Duplicate();
+        hover.BorderColor = new Color(0.78f, 0.68f, 0.47f, 1.0f);
+        hover.BgColor = new Color(0.15f, 0.15f, 0.17f, 0.96f);
+        var pressed = (StyleBoxFlat)normal.Duplicate();
+        pressed.BorderColor = new Color(0.83f, 0.72f, 0.5f, 1.0f);
+        pressed.BgColor = new Color(0.18f, 0.17f, 0.14f, 0.98f);
+        var disabled = (StyleBoxFlat)normal.Duplicate();
+        disabled.BorderColor = new Color(0.42f, 0.39f, 0.33f, 0.9f);
+        disabled.BgColor = new Color(0.1f, 0.1f, 0.11f, 0.78f);
+        var focus = (StyleBoxFlat)hover.Duplicate();
+        focus.BorderColor = new Color(0.88f, 0.76f, 0.53f, 1.0f);
+
+        optionButton.AddThemeStyleboxOverride("normal", normal);
+        optionButton.AddThemeStyleboxOverride("hover", hover);
+        optionButton.AddThemeStyleboxOverride("pressed", pressed);
+        optionButton.AddThemeStyleboxOverride("disabled", disabled);
+        optionButton.AddThemeStyleboxOverride("focus", focus);
+        optionButton.AddThemeColorOverride("font_color", new Color(0.93f, 0.89f, 0.82f, 1.0f));
+        optionButton.AddThemeColorOverride("font_hover_color", Colors.White);
+        optionButton.AddThemeColorOverride("font_pressed_color", Colors.White);
+        optionButton.AddThemeColorOverride("font_disabled_color", new Color(0.68f, 0.64f, 0.57f, 1.0f));
+        optionButton.AddThemeColorOverride("font_focus_color", Colors.White);
+        optionButton.Modulate = Colors.White;
+    }
+
+    private static System.Collections.Generic.IEnumerable<T> EnumerateDescendants<T>(Node root) where T : class
+    {
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var descendant in EnumerateDescendants<T>(child))
+            {
+                yield return descendant;
+            }
+        }
     }
 
     private void OnTitleBarGuiInput(InputEvent @event)
