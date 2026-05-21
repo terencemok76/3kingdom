@@ -1,305 +1,354 @@
-# UI MVC Guidelines
+# UI MVC 指南
 
-本文件整理目前 `ThreeKingdom` 專案 UI 重構後的實務規則。
+本文整理 `ThreeKingdom` 目前 UI 層的實作約定，特別是已完成的 `Window -> Control + PanelContainer` 浮動視窗重構。
 
-目標不是追求教科書式 MVC，而是提供一套適合目前 Godot 專案的穩定做法，避免後續開發又把邏輯塞回 `HudController`，讓結構重新長回大總控。
+## 1. 目標
 
-## 1. 目前 UI 結構方向
+UI 層的設計目標：
 
-目前專案採用的是「輕量 MVC + domain controller」風格：
+- 保持 Godot 節點結構清楚
+- 把 UI 顯示邏輯與遊戲資料邏輯分開
+- 避免 `HudController` 直接承擔所有 dialog 細節
+- 讓新 UI 可以共用拖曳、置中、關閉、置頂、樣式等能力
 
-- `HudController`
-  - 主 HUD host
-  - 負責初始化、全域協調、少量 shared helper
-- `XxxUiController`
-  - 某個 UI domain 的 coordinator
-  - 例如 `PersonnelUiController`、`SystemUiController`、`ViewUiController`
-- `XxxDialogController` / `XxxPanelController`
-  - 單一 dialog 或 panel 的流程控制者
-- `XxxUiContext`
-  - 提供 controller 所需的 state / service / host bridge
-- `.tscn`
-  - UI view 本體
-- scene script
-  - 只在真的需要時加上少量 node 封裝或視圖輔助
+目前採用：
 
-## 2. 分層責任
+- MVC 風格切分
+- `HudController` 作為 host
+- 各 domain 使用 `UiController + DialogController + UiContext`
+- 浮動視窗統一走 `FloatingOverlayController`
+
+## 2. 分層
 
 ### Model
 
-放這些：
+負責資料與規則：
 
 - `WorldState`
 - `CityData`
 - `OfficerData`
 - `ItemData`
+- `FactionData`
 - `TurnManager`
 - `CommandResolver`
 - `WorldRepository`
 
-規則：
+Model 不應依賴：
 
-- 不依賴 UI
-- 不操作 Godot node
-- 不負責 dialog 顯示狀態
+- Godot `Node`
+- `.tscn`
+- dialog 顯示狀態
 
 ### View
 
-包含：
+負責畫面結構與基礎元件：
 
 - `.tscn`
-- 少量 scene script，例如 `SelectOfficerDialog.cs`
+- 少量 scene script
 
-規則：
+View 應負責：
 
-- 只知道自己的 node
-- 只做顯示、排版、小型 signal 轉送
-- 不放遊戲規則
-- 不直接執行 command
+- 節點樹
+- 基本 signal 發出
+- 純視覺層元件組合
+
+View 不應負責：
+
+- 執行 command
+- 直接讀寫 `TurnManager.World`
+- 判斷 faction / city / officer 規則
 
 ### Controller
 
-包含：
+負責 UI 行為與流程：
 
 - `XxxUiController`
 - `XxxDialogController`
 - `XxxPanelController`
 
-規則：
+Controller 應負責：
 
-- 處理互動流程
-- 驗證輸入
-- 刷新 UI
-- 呼叫 model/service
-- 管理該畫面的狀態
+- 初始化 widget
+- 綁定 signal
+- 將 model/state 映射到 UI
+- 驅動跨 dialog 流程
 
 ### Context
 
-規則：
+`XxxUiContext` 是 dialog controller 與 `HudController` / service 之間的 bridge。
 
-- 提供 controller 需要的最小能力
-- 提供 state / service / host action bridge
-- 不應該變成 `HudController` 的完整代理
+Context 應負責：
 
-## 3. HudController 應該做什麼
+- 暴露 `World` / `Localization` / `SelectedCity`
+- 暴露 `AddLog()`、`RefreshSelectedCity()`、`PlayUiClickSfx()` 等 host 能力
+- 把 `HudController` 的存取包成較小且可理解的方法
 
-`HudController` 應保留以下責任：
+Context 不應變成：
 
-- 持有全域 service 參考
-  - `_turnManager`
-  - `_localization`
-  - `_worldRepository`
-  - `_mapController`
-- 建立各個 domain controller
-- 處理主 HUD 初始化
-- 處理少量跨 domain 協調
-- 提供必要 shared helper
+- 第二個 `HudController`
+- 超大型 helper 集合
 
-`HudController` 不應再承擔：
+## 3. HudController 的角色
 
-- 某個單一 domain 的大量 dialog widget 欄位
-- 某個單一 dialog 的事件接線細節
-- 某個單一 domain 的流程狀態全集
-- 某個單一表格的 populate 細節
-- 一整包 if/else UI 切換流程
+`HudController` 是 UI host，不是每個 dialog 的直接實作者。
 
-## 4. Domain 拆分原則
+它應負責：
 
-一個 domain 建議至少有：
+- 持有 shared service 與 state
+- 建立各 domain `UiController`
+- 提供跨 domain 的 bridge
+- 持有 HUD 根節點與共享視覺 helper
+
+它不應負責：
+
+- 每個 dialog 的 widget 初始化
+- 每個 dialog 的所有 signal 綁定
+- 每個畫面的所有 populate / refresh 細節
+
+## 4. Domain 結構
+
+每個 domain 建議最少包含：
 
 - `XxxUiController`
 - `XxxUiContext`
-- 1 到多個 `XxxDialogController` / `XxxPanelController`
+- 一個以上 `XxxDialogController` 或 `XxxPanelController`
 
-例如：
+例子：
 
+- `advisor`
+- `civil`
+- `diplomacy`
+- `internal_affairs`
+- `merchant`
+- `military`
+- `personnel`
+- `spy`
 - `system`
-  - `SystemUiController`
-  - `OptionDialogController`
-  - `SaveLoadDialogController`
-  - `SaveLoadConfirmDialogController`
 - `view`
-  - `ViewUiController`
-  - `OfficerListDialogController`
-  - `OfficerDetailDialogController`
-- `main`
-  - `MainHudUiController`
-  - `TopBarController`
-  - `CityInfoPanelController`
-  - `LogPanelController`
 
-## 5. 一個 dialog / panel 的 ownership 規則
+## 5. 浮動視窗標準
 
-原則只有一句：
+目前大多數 UI dialog 已改成浮動 overlay，不再依賴 `Window`。
 
-誰的畫面，誰持有 node。
+共用基底：
 
-例如：
+- [FloatingOverlayController.cs](/D:/sandbox_ai/godot/3kingdom/scripts/ui/FloatingOverlayController.cs:1)
 
-- `OptionDialog` 內的 button / slider
-  - 應由 `OptionDialogController` 管
-- `OfficerListDialog` 內的 table / toolbar
-  - 應由 `OfficerListDialogController` 管
-- `TopBar` 內的 label / button
-  - 應由 `TopBarController` 管
+### 標準節點結構
 
-不要再把這些 node 長期留在 `HudController`，除非它是整個 HUD 的 shared root node。
+建議 scene 結構：
 
-## 6. View script 規則
+1. `OverlayRoot`：`Control`
+2. `CenterContainer`：`Control`
+3. `AdvisorDialogPanel`：`PanelContainer`
+4. `AdvisorDialogRoot`：`VBoxContainer`
+5. `TitleBarPanel`
+6. `TitleBar`
+7. `TitleLabel`
+8. `CloseButton`
 
-View script 可以做：
+目前 `FloatingOverlayController` 預設就是用以下路徑抓節點：
 
-- `GetNodeOrNull`
-- 小型顯示 helper
-- 封裝固定 widget access
-- 單純轉送 signal
+- `CenterContainer/AdvisorDialogPanel`
+- `CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot`
+- `CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar`
 
-View script 不應做：
+所以新 scene 應盡量遵守這套命名。
 
-- `ExecutePlayerCommand(...)`
-- 大量 `TurnManager.World` 規則判斷
-- faction / city / officer 排序邏輯
-- 跨 scene / 跨 domain 控制
+### 共用能力
 
-## 7. Context 規則
+`FloatingOverlayController` 目前提供：
 
-Context 適合放：
+- overlay 建立
+- 顯示 / 隱藏
+- title bar 拖曳
+- 點擊置頂
+- 第一次打開預設置中
+- 初次 layout 穩定前持續置中
+- 視窗 clamp 在可視範圍內
+- close button 行為
+- `OptionButton` 共用強化樣式
 
-- `World`
+### 適用情境
+
+優先使用 `FloatingOverlayController` 的情況：
+
+- 遊戲內浮動命令視窗
+- 可以和其他 UI 重疊的非 modal 面板
+- 需要拖曳、置頂、保留 session 內位置的 dialog
+
+仍可保留 `Window` 的情況：
+
+- 原生 popup 行為更合適
+- 短期內不值得重構
+- 特殊平台行為仍依賴 Godot `Window`
+
+## 6. 顯示與關閉規則
+
+### Show 流程
+
+推薦順序：
+
+1. `EnsureOverlayReady()`
+2. `Populate()`
+3. `RefreshText()`
+4. `ShowOverlay()`
+
+理由：
+
+- 避免 `RefreshText()` 先讀到尚未填入的 `OptionButton`
+- 避免 `Selected = -1` 時提前讀 metadata
+
+### Hide 流程
+
+若 Confirm 之後要切到下一個 dialog：
+
+- 依需求決定主命令視窗是否保留
+- 若怕同一個 click 造成穿透，可改用 deferred 切換
+
+目前：
+
+- `Military` / `Personnel` / `Civil` 主命令視窗在 confirm 後會保留開著
+- 子 dialog 另行打開
+
+## 7. 樣式規則
+
+### 按鈕
+
+多數命令按鈕直接複用 `City Info` 按鈕風格。
+
+建議：
+
+- 透過 `HudController.XxxAccess.cs` 的 theme helper 套用
+- 不要每個 dialog 各自複製一套顏色常數
+
+### Dropdown / OptionButton
+
+現在 overlay 內的 `OptionButton` 會由 `FloatingOverlayController` 自動套用共用樣式：
+
+- 深色底
+- 金棕色邊框
+- hover / focus 時邊框更亮
+- disabled 狀態可辨識
+
+如果某個 dialog 需要特殊輸入樣式：
+
+- 可以在 scene 自己 override
+- 但要確認不會破壞整體 UI 一致性
+
+### 表格 / Tree / ItemList
+
+表格配色與選中列建議集中放在 helper：
+
+- `HudController.ViewTableHelpers.cs`
+- `HudController.Presentation.cs`
+- `SelectOfficerDialog.cs`
+
+不要把同一套 row striping 複製到多個 dialog。
+
+## 8. Context 規則
+
+`UiContext` 應該是薄 bridge，不應塞進大量業務判斷。
+
+適合放在 context 的內容：
+
+- `TurnManager`
 - `Localization`
 - `SelectedCity`
+- `PopupDialog(...)`
+- `BringOverlayToFront(...)`
 - `AddLog(...)`
-- `PlayUiClickSfx()`
-- `SelectCityById(...)`
-- 少量 host bridge
+- `ShowOfficerSelectorDialog(...)`
 
-Context 不適合長期放：
+不適合放在 context 的內容：
 
-- 大量單一 dialog 專屬 helper
-- 幾十個一對一 forwarding method
-- 大量 table builder 細節
-- 任意存取整個 HUD 的能力
+- 複雜 table 排序規則
+- 大量 advice / AI / strategy 決策
+- 完整 command 流程編排
 
-實務判斷：
+那些應回到 dialog controller 或 domain helper。
 
-- `Context` 可以像插座
-- 但不應該變成整捲延長線加轉接器集合
+## 9. 新增 UI 的建議流程
 
-## 8. 新增 UI 功能時的標準流程
+新增一個新浮動 dialog，建議步驟：
 
-建議固定照以下順序：
+1. 建 `.tscn`
+2. root 採用標準 overlay 節點結構
+3. 新增 `XxxDialogController`
+4. 繼承 `FloatingOverlayController`
+5. 在 `OnOverlayContentReady()` 綁定節點
+6. 把 host bridge 放進 `XxxUiContext`
+7. 在 `XxxUiController` 中接入
+8. 在 `HudController` 建立 access method
 
-1. 先建立 `.tscn`
-2. 判斷它屬於哪個 domain
-3. 建立對應 controller
-4. 需要共用 state / service 時，加到該 domain `Context`
-5. 由 `HudController` 只做初始化與掛接
-6. 最後補 theme / localization / save-load hide 行為
+## 10. 已完成的重構方向
 
-這樣做可以降低再把邏輯塞回 `HudController` 的機率。
+目前專案已大量將 `Window` 轉為 `PanelContainer` overlay。
 
-## 9. 命名規則
+已採用共用 overlay 邏輯的類型包含：
 
-建議固定命名：
+- `Advisor`
+- `Merchant`
+- `Internal Affairs`
+- `Diplomacy`
+- `Spy`
+- `Civil`
+- `Military`
+- `Personnel`
+- `View`
+- 多數次級 command dialog
 
-- domain coordinator
-  - `XxxUiController`
-- dialog controller
-  - `XxxDialogController`
-- panel controller
-  - `XxxPanelController`
-- context
-  - `XxxUiContext`
-- access bridge
-  - `HudController.XxxAccess.cs`
-- scene script
-  - 跟 scene 同名
+因此後續新 UI 應優先沿用 overlay 架構，而不是回到 `Window + PopupCentered()`。
 
-例如：
+## 11. 常見錯誤
 
-- `ViewUiController`
-- `OfficerListDialogController`
-- `OfficerDetailDialogController`
-- `ViewUiContext`
+### 1. Refresh 太早
 
-## 10. 狀態應該放哪裡
+問題：
 
-### 放在 Model
+- `RefreshText()` 先於 `Populate()` 執行
+- `OptionButton.Selected == -1`
+- `GetItemMetadata(-1)` 直接炸錯
 
-- 世界資料
-- 城市資料
-- 官員資料
-- 道具資料
+做法：
 
-### 放在 UiController / DialogController
+- 先 populate 再 refresh
+- 對 `ItemCount == 0` / `Selected < 0` 加防呆
 
-- 畫面模式
-- 目前選擇狀態
-- pending UI flow state
-- dialog open / close 狀態
+### 2. 把所有邏輯塞回 HudController
 
-### 放在 HudController
+問題：
 
-- 全域 service 參考
-- domain controller 實例
-- 少量 shared flow state
+- 維護困難
+- domain 邊界模糊
 
-不要混在一起：
+做法：
 
-- UI 選取狀態
-- 世界規則狀態
-- 存檔資料狀態
+- 流程放 `UiController`
+- dialog 細節放 `DialogController`
+- `HudController` 保持 host 角色
 
-## 11. Helper 抽取原則
+### 3. 每個 dialog 自己發明一套樣式
 
-可以抽 helper 的時機：
+問題：
 
-- 同樣 table row styling 重複出現
-- 同樣 sortable title builder 重複出現
-- 同樣 item/officer summary formatting 重複出現
-- 同樣 dialog theme 重複出現
+- 視覺不一致
+- 之後難統一
 
-不要太早抽的東西：
+做法：
 
-- 抽象但只用一次的 base class
-- 沒有明確使用者的 generic utility
-- 為了看起來像 MVC 而做的空洞介面
+- 按鈕共用主 HUD 樣式
+- dropdown 走 overlay base 樣式
+- 表格配色集中管理
 
-## 12. 什麼時候該停下來重構
+## 12. 文件更新原則
 
-看到以下情況就該停一下：
+當以下任一項發生時，應同步更新本文件：
 
-- `HudController` 又開始新增一串 `_button/_label/_dialog`
-- 新功能需要修改多個無關 domain
-- 單一 controller 同時管太多不相關 dialog
-- `Context` 已經變成大代理
-- 單一方法同時混合 UI、規則、資料整理而且很長
+- 新的 UI 架構被採納
+- `FloatingOverlayController` 能力有新增
+- 大量 dialog 從 `Window` 改成 overlay
+- theme / input / positioning 規則改變
+- 顯示流程與互動規則改變
 
-## 13. 目前專案的建議節奏
-
-目前 UI refactor 已經進入「可用結構」階段。
-
-現階段建議：
-
-- 繼續用這套結構開發功能
-- 先不要為了更純而過度拆分
-- 當某個 domain 真正卡手時，再做下一輪小重構
-
-不建議現在做的事：
-
-- 為了理論純度，把所有 helper 都抽成很多小類別
-- 把 `Context` 再包成多層抽象
-- 沒有實際痛點就大改 `move/attack` 深層流程
-
-## 14. 當前實務結論
-
-最適合這個專案的是：
-
-- `HudController` 當 host
-- 每個 domain 一個 `UiController`
-- 每個主要 dialog / panel 一個 controller
-- `Context` 當 bridge
-- table/data helper 先留在 domain 內的 helper file
-- 真的重複了再抽共用層
-
-這樣的做法比「很重的教科書式 MVC」更符合目前專案狀態，也比較不容易再長回大總控。
+本文件的目的不是列出所有檔案，而是保證之後做 UI 時，大家遵循的是同一套實際存在的規則。
