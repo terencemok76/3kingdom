@@ -10,7 +10,7 @@ public sealed class ViewUiController
     public ViewUiController(HudController hud)
     {
         _context = new ViewUiContext(hud);
-        _uiEventHub = hud.PersonnelUiEventHub;
+        _uiEventHub = hud.UiEventHub;
         _officerDetailDialogController = new OfficerDetailDialogController(_context);
         _officerListDialogController = new OfficerListDialogController(_context, _officerDetailDialogController);
     }
@@ -19,12 +19,18 @@ public sealed class ViewUiController
     {
         _officerListDialogController.Initialize();
         _officerDetailDialogController.Initialize();
+        _uiEventHub.CityStateChanged += OnWorldStateChanged;
+        _uiEventHub.OfficerStateChanged += OnWorldStateChanged;
         _uiEventHub.OfficerAppointmentsChanged += OnOfficerAppointmentsChanged;
+        _uiEventHub.FactionLeadershipChanged += OnWorldStateChanged;
     }
 
     public void Shutdown()
     {
+        _uiEventHub.CityStateChanged -= OnWorldStateChanged;
+        _uiEventHub.OfficerStateChanged -= OnWorldStateChanged;
         _uiEventHub.OfficerAppointmentsChanged -= OnOfficerAppointmentsChanged;
+        _uiEventHub.FactionLeadershipChanged -= OnWorldStateChanged;
     }
 
     public void HideDialogs()
@@ -56,12 +62,32 @@ public sealed class ViewUiController
 
     private void OnOfficerAppointmentsChanged(UiEventHub.OfficerAppointmentsChangedEvent payload)
     {
-        if (!_officerListDialogController.IsOpen())
+        RefreshOpenDialogs();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.CityStateChangedEvent payload)
+    {
+        RefreshOpenDialogs();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.OfficerStateChangedEvent payload)
+    {
+        RefreshOpenDialogs();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.FactionLeadershipChangedEvent payload)
+    {
+        RefreshOpenDialogs();
+    }
+
+    private void RefreshOpenDialogs()
+    {
+        if (_officerListDialogController.IsOpen())
         {
-            return;
+            RefreshOfficerListChrome();
+            RefreshOfficerListContent();
         }
 
-        RefreshOfficerListChrome();
-        RefreshOfficerListContent();
+        _officerDetailDialogController.RefreshShownOfficer();
     }
 }

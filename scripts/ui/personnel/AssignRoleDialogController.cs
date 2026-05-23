@@ -189,10 +189,14 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             _ => commandResolver.ExecuteAssignOfficerAppointment(turnManager.GetPlayerFactionId(), sourceCityId, _selectedOfficerId, role)
         };
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
-        _context.RefreshSelectedCity();
         if (result.Success)
         {
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
             _context.UiEventHub.PublishOfficerAppointmentsChanged(_selectedOfficerId, sourceCityId, city.OwnerFactionId);
+            if (role is "Chancellor" or "ChiefStrategist")
+            {
+                _context.UiEventHub.PublishFactionLeadershipChanged(city.OwnerFactionId, city.Id);
+            }
         }
         HideOverlay();
     }

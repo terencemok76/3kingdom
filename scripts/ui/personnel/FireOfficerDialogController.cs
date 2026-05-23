@@ -145,8 +145,12 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
 
         var result = commandResolver.ExecuteFireOfficer(turnManager.GetPlayerFactionId(), city.Id, _selectedOfficerId);
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
-        _context.RefreshSelectedCity();
-        _context.RefreshMapVisuals();
+        if (result.Success)
+        {
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedOfficerId, city.Id, city.OwnerFactionId);
+            _context.RefreshMapVisuals();
+        }
         HideOverlay();
     }
 

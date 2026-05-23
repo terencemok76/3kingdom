@@ -46,6 +46,7 @@ internal sealed class AdvisorUiContext : IFloatingOverlayContext
     public void BringOverlayToFront(CanvasItem? item) => _owner.AdvisorBringOverlayToFront(item);
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.AdvisorAddLog(message, isPlayerRelated);
+    public UiEventHub UiEventHub => _owner.UiEventHub;
 
     public void RefreshSelectedCity() => _owner.AdvisorRefreshSelectedCity();
 

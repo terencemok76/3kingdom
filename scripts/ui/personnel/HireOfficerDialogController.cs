@@ -256,8 +256,12 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             _context.GetSelectedItemFromOption(_itemOption)?.Id ?? 0);
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         HideOverlay();
-        _context.RefreshSelectedCity();
-        _context.RefreshMapVisuals();
+        if (result.Success)
+        {
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedOfficerId, city.Id, city.OwnerFactionId);
+            _context.RefreshMapVisuals();
+        }
     }
 
     private List<OfficerData> GetOrderedCandidates(WorldState world, int playerFactionId)

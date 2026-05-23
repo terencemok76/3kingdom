@@ -228,9 +228,13 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             GetSelectedJobType(),
             months);
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
-        _context.RefreshSelectedCity();
-        RefreshScheduleList();
-        _context.RefreshMapVisuals();
+        if (result.Success)
+        {
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedOfficerId, city.Id, city.OwnerFactionId);
+            RefreshScheduleList();
+            _context.RefreshMapVisuals();
+        }
         HideOverlay();
     }
 
@@ -280,7 +284,10 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
 
         var result = commandResolver.TerminateInternalAffairsSchedule(_context.TurnManager!.GetPlayerFactionId(), selectedIds[0]);
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
-        _context.RefreshSelectedCity();
+        if (_context.SelectedCity != null && result.Success)
+        {
+            _context.UiEventHub.PublishCityStateChanged(_context.SelectedCity.Id, _context.SelectedCity.OwnerFactionId);
+        }
         Populate();
     }
 

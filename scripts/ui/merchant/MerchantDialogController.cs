@@ -198,9 +198,14 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             return;
         }
 
+        var city = _context.SelectedCity;
         var result = _context.ExecuteMerchantCommand((int)_amountSpinBox.Value, GetSelectedTradeMode());
         if (result.Success)
         {
+            if (city != null)
+            {
+                _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
+            }
             HideOverlay();
         }
     }

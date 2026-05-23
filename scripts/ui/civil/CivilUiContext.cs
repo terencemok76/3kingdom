@@ -58,6 +58,7 @@ internal sealed class CivilUiContext : IFloatingOverlayContext
     }
     public void BringOverlayToFront(CanvasItem? item) => _owner.CivilBringOverlayToFront(item);
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.CivilAddLog(message, isPlayerRelated);
+    public UiEventHub UiEventHub => _owner.UiEventHub;
     public void RefreshSelectedCity() => _owner.CivilRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.CivilRefreshMapVisuals();
     public void ConfigureMoveSpinBox(SpinBox? spinBox, int maxValue, int value) => _owner.CivilConfigureMoveSpinBox(spinBox, maxValue, value);

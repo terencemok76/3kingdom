@@ -44,6 +44,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
     }
 
     public void Hide() => HideOverlay();
+    public bool IsOpen() => OverlayRoot?.Visible == true;
 
     public void Show()
     {
@@ -84,6 +85,16 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
 
         UpdateAdvisorButtonStates();
         RefreshAdviceHistoryList();
+    }
+
+    public void RefreshIfOpen()
+    {
+        if (!IsOpen())
+        {
+            return;
+        }
+
+        RefreshText();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)

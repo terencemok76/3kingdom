@@ -237,6 +237,7 @@ public partial class HudController : CanvasLayer
     private bool _sfxEnabled = true;
     private float _bgmVolume = 1.0f;
     private float _sfxVolume = 1.0f;
+    internal UiEventHub UiEventHub => _uiEventHub;
     public override void _Ready()
     {
         var languageButton = MainHudLanguageButton;
@@ -345,6 +346,7 @@ public partial class HudController : CanvasLayer
         _mainHudUiController?.Shutdown();
         _systemUiController?.Shutdown();
         _viewUiController?.Shutdown();
+        _advisorUiController?.Shutdown();
     }
 
     public override void _Notification(int what)

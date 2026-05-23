@@ -418,7 +418,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         if (result.Success)
         {
             HideOverlay();
-            _context.RefreshSelectedCity();
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
             return;
         }
 

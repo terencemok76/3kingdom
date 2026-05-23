@@ -77,6 +77,7 @@ internal sealed class MilitaryUiContext : IFloatingOverlayContext
     public string GetLocalizedResultMessage(CommandResult result) => _owner.MilitaryGetLocalizedResultMessage(result);
     public void ContinuePendingAttackResolution() => _owner.MilitaryContinuePendingAttackResolution();
     public void ApplyCommandButtonTheme(Button button) => _owner.MilitaryApplyCommandButtonTheme(button);
+    public UiEventHub UiEventHub => _owner.UiEventHub;
 
     public List<int> GetAvailableCityOfficerIds()
     {

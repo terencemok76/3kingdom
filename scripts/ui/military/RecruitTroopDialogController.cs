@@ -167,14 +167,16 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
 
     private void OnConfirmPressed()
     {
-        if (_context.Localization == null)
+        var localization = _context.Localization;
+        var city = _context.SelectedCity;
+        if (localization == null || city == null)
         {
             return;
         }
 
         if (_selectedOfficerId <= 0)
         {
-            _context.AddLog(_context.Localization.T("ui.select_officer_warning"));
+            _context.AddLog(localization.T("ui.select_officer_warning"));
             ShowOverlay();
             return;
         }
@@ -185,6 +187,8 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             recruitTroopType: GetSelectedRecruitTroopType());
         if (result.Success)
         {
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedOfficerId, city.Id, city.OwnerFactionId);
             HideOverlay();
         }
     }

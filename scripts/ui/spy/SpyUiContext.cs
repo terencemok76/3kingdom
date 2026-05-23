@@ -36,6 +36,7 @@ internal sealed class SpyUiContext : IFloatingOverlayContext
     }
 
     public void PopupDialog(Control? dialog) => _owner.SpyPopupDialog(dialog);
+    public UiEventHub UiEventHub => _owner.UiEventHub;
     public void CloseOverlay(Action closeAction)
     {
         _owner.SpyPlayUiClickSfx();

@@ -144,7 +144,8 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
             return;
         }
 
-        var result = commandResolver.ResolvePlayerSuccession(_pendingFactionId, _selectedOfficerId);
+        var factionId = _pendingFactionId;
+        var result = commandResolver.ResolvePlayerSuccession(factionId, _selectedOfficerId);
         if (!result.Success)
         {
             if (_warningLabel != null)
@@ -155,10 +156,16 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
             return;
         }
 
+        var successor = _context.TurnManager?.World?.GetOfficer(_selectedOfficerId);
+        var cityId = successor?.CityId ?? _context.SelectedCity?.Id ?? 0;
         _pendingFactionId = -1;
         HideOverlay();
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
-        _context.RefreshSelectedCity();
+        _context.UiEventHub.PublishFactionLeadershipChanged(factionId, cityId);
+        if (cityId > 0)
+        {
+            _context.UiEventHub.PublishCityStateChanged(cityId, factionId);
+        }
         _context.ContinuePendingNonAttackResolution();
     }
 

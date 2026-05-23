@@ -192,8 +192,12 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
             (int)(_foodSpinBox?.Value ?? 0),
             _context.GetSelectedItemFromOption(_itemOption)?.Id ?? 0);
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
-        _context.RefreshSelectedCity();
-        _context.RefreshMapVisuals();
+        if (result.Success)
+        {
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedOfficerId, city.Id, city.OwnerFactionId);
+            _context.RefreshMapVisuals();
+        }
         HideOverlay();
     }
 

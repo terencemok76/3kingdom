@@ -56,6 +56,11 @@ public partial class HudController : CanvasLayer
             recruitTroopType: _pendingOfficerCommand == CommandType.Recruit ? _pendingRecruitTroopType : TroopType.Infantry);
         if (result.Success)
         {
+            if (_selectedCity != null)
+            {
+                _uiEventHub.PublishCityStateChanged(_selectedCity.Id, _selectedCity.OwnerFactionId);
+                _uiEventHub.PublishOfficerStateChanged(metadata.AsInt32(), _selectedCity.Id, _selectedCity.OwnerFactionId);
+            }
             _officerListDialog?.Hide();
         }
     }

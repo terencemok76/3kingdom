@@ -137,7 +137,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
 
     private void OnConfirmPressed()
     {
-        if (_targetCityOption == null)
+        var sourceCity = _context.SelectedCity;
+        if (_targetCityOption == null || sourceCity == null)
         {
             return;
         }
@@ -154,15 +155,23 @@ internal sealed class MoveDialogController : FloatingOverlayController
             return;
         }
 
+        var targetCityId = targetMetadata.AsInt32();
+        var movedOfficerIds = _context.GetCheckedTreeMetadataIds(_officerList);
         var result = _context.ExecuteMoveCommand(
-            targetMetadata.AsInt32(),
+            targetCityId,
             _troopsSpinBox != null ? (int)_troopsSpinBox.Value : 0,
             _goldSpinBox != null ? (int)_goldSpinBox.Value : 0,
             _foodSpinBox != null ? (int)_foodSpinBox.Value : 0,
             _horseSpinBox != null ? (int)_horseSpinBox.Value : 0,
-            _context.GetCheckedTreeMetadataIds(_officerList));
+            movedOfficerIds);
         if (result.Success)
         {
+            _context.UiEventHub.PublishCityStateChanged(sourceCity.Id, sourceCity.OwnerFactionId);
+            _context.UiEventHub.PublishCityStateChanged(targetCityId, sourceCity.OwnerFactionId);
+            foreach (var officerId in movedOfficerIds)
+            {
+                _context.UiEventHub.PublishOfficerStateChanged(officerId, targetCityId, sourceCity.OwnerFactionId);
+            }
             HideOverlay();
         }
     }

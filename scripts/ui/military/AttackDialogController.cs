@@ -500,6 +500,20 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
         if (result.Success)
         {
+            var sourceCity = GetDialogCityContext();
+            if (sourceCity != null)
+            {
+                _context.UiEventHub.PublishCityStateChanged(sourceCity.Id, sourceCity.OwnerFactionId);
+                foreach (var officerId in attackDeployments.Select(item => item.OfficerId).Distinct())
+                {
+                    _context.UiEventHub.PublishOfficerStateChanged(officerId, sourceCity.Id, sourceCity.OwnerFactionId);
+                }
+            }
+
+            if (_context.TurnManager?.World?.GetCity(targetCityId) is { } targetCity)
+            {
+                _context.UiEventHub.PublishCityStateChanged(targetCity.Id, targetCity.OwnerFactionId);
+            }
             SetWarning(string.Empty);
             HideOverlay();
             ResetState();

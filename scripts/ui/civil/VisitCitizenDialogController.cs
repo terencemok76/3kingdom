@@ -137,7 +137,8 @@ internal sealed class VisitCitizenDialogController : FloatingOverlayController
     private void OnConfirmPressed()
     {
         var localization = _context.Localization;
-        if (localization == null)
+        var city = _context.SelectedCity;
+        if (localization == null || city == null)
         {
             return;
         }
@@ -152,6 +153,8 @@ internal sealed class VisitCitizenDialogController : FloatingOverlayController
         var result = _context.ExecutePlayerCommand(CommandType.Search, officerIds: new List<int> { _selectedOfficerId });
         if (result.Success)
         {
+            _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedOfficerId, city.Id, city.OwnerFactionId);
             HideOverlay();
         }
     }

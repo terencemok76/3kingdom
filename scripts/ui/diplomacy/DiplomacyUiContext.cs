@@ -51,6 +51,7 @@ internal sealed class DiplomacyUiContext : IFloatingOverlayContext
     }
 
     public void PopupDialog(Control? dialog) => _owner.DiplomacyPopupDialog(dialog);
+    public UiEventHub UiEventHub => _owner.UiEventHub;
     public void CloseOverlay(Action closeAction)
     {
         _owner.DiplomacyPlayUiClickSfx();

@@ -4,16 +4,19 @@ using Godot;
 
 internal sealed class MainHudUiController
 {
+    private readonly MainHudUiContext _context;
+    private readonly UiEventHub _uiEventHub;
     private readonly TopBarController _topBarController;
     private readonly CityInfoPanelController _cityInfoPanelController;
     private readonly LogPanelController _logPanelController;
 
     public MainHudUiController(HudController owner)
     {
-        var context = new MainHudUiContext(owner);
-        _topBarController = new TopBarController(context);
-        _cityInfoPanelController = new CityInfoPanelController(context);
-        _logPanelController = new LogPanelController(context);
+        _context = new MainHudUiContext(owner);
+        _uiEventHub = _context.UiEventHub;
+        _topBarController = new TopBarController(_context);
+        _cityInfoPanelController = new CityInfoPanelController(_context);
+        _logPanelController = new LogPanelController(_context);
     }
 
     public void Initialize()
@@ -21,10 +24,18 @@ internal sealed class MainHudUiController
         _topBarController.Initialize();
         _cityInfoPanelController.Initialize();
         _logPanelController.Initialize();
+        _uiEventHub.CityStateChanged += OnWorldStateChanged;
+        _uiEventHub.OfficerStateChanged += OnWorldStateChanged;
+        _uiEventHub.OfficerAppointmentsChanged += OnWorldStateChanged;
+        _uiEventHub.FactionLeadershipChanged += OnWorldStateChanged;
     }
 
     public void Shutdown()
     {
+        _uiEventHub.CityStateChanged -= OnWorldStateChanged;
+        _uiEventHub.OfficerStateChanged -= OnWorldStateChanged;
+        _uiEventHub.OfficerAppointmentsChanged -= OnWorldStateChanged;
+        _uiEventHub.FactionLeadershipChanged -= OnWorldStateChanged;
         _topBarController.Shutdown();
         _cityInfoPanelController.Shutdown();
     }
@@ -99,4 +110,24 @@ internal sealed class MainHudUiController
     public bool UpdateLogResize(Vector2 mousePosition) => _logPanelController.UpdateResize(mousePosition);
     public bool EndLogResize() => _logPanelController.EndResize();
     public bool IsLogResizing() => _logPanelController.IsResizing();
+
+    private void OnWorldStateChanged(UiEventHub.CityStateChangedEvent _)
+    {
+        RefreshSelectedCity();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.OfficerStateChangedEvent _)
+    {
+        RefreshSelectedCity();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.OfficerAppointmentsChangedEvent _)
+    {
+        RefreshSelectedCity();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.FactionLeadershipChangedEvent _)
+    {
+        RefreshSelectedCity();
+    }
 }

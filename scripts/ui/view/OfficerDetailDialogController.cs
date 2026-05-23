@@ -6,6 +6,7 @@ namespace ThreeKingdom.UI;
 internal sealed class OfficerDetailDialogController : FloatingOverlayController
 {
     private readonly ViewUiContext _context;
+    private int _shownOfficerId = -1;
 
     public OfficerDetailDialogController(ViewUiContext context)
         : base(context, "res://scenes/ui/view/OfficerDetailDialog.tscn")
@@ -24,6 +25,7 @@ internal sealed class OfficerDetailDialogController : FloatingOverlayController
     public void Hide()
     {
         HideOverlay();
+        _shownOfficerId = -1;
     }
 
     public void RefreshText()
@@ -38,6 +40,7 @@ internal sealed class OfficerDetailDialogController : FloatingOverlayController
             return;
         }
 
+        _shownOfficerId = officer.Id;
         SetOverlayTitleText(_context.GetOfficerDetailTitle());
 
         if (_context.OfficerDetailText != null)
@@ -63,6 +66,25 @@ internal sealed class OfficerDetailDialogController : FloatingOverlayController
         }
 
         ShowOverlay();
+    }
+
+    public bool IsOpen() => OverlayRoot?.Visible == true;
+
+    public void RefreshShownOfficer()
+    {
+        if (!IsOpen() || _shownOfficerId <= 0)
+        {
+            return;
+        }
+
+        var officer = _context.GetOfficerById(_shownOfficerId);
+        if (officer == null)
+        {
+            Hide();
+            return;
+        }
+
+        ShowOfficer(officer);
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)

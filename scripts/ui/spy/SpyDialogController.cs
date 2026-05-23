@@ -414,7 +414,8 @@ internal sealed class SpyDialogController : FloatingOverlayController
         if (result.Success)
         {
             HideOverlay();
-            _context.RefreshSelectedCity();
+            _context.UiEventHub.PublishCityStateChanged(_context.SelectedCity.Id, _context.SelectedCity.OwnerFactionId);
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedOfficerId, _context.SelectedCity.Id, _context.SelectedCity.OwnerFactionId);
             return;
         }
 

@@ -42,6 +42,7 @@ internal sealed class MerchantUiContext
 
     public void BringOverlayToFront(CanvasItem? item) => _owner.MerchantBringOverlayToFront(item);
     public void ApplyCommandButtonTheme(Button button) => _owner.MerchantApplyCommandButtonTheme(button);
+    public UiEventHub UiEventHub => _owner.UiEventHub;
 
     public CommandResult ExecuteMerchantCommand(int amount, MerchantTradeMode tradeMode) =>
         _owner.MerchantExecuteCommand(amount, tradeMode);

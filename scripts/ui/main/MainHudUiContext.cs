@@ -18,6 +18,7 @@ internal sealed class MainHudUiContext
     public WorldState? World => _owner.MainHudWorld;
     public CityData? SelectedCity => _owner.MainHudSelectedCity;
     public int PlayerFactionId => _owner.MainHudPlayerFactionId;
+    public UiEventHub UiEventHub => _owner.UiEventHub;
 
     public Label? MonthLabel => _owner.MainHudMonthLabel;
     public Label? PlayerFactionLabel => _owner.MainHudPlayerFactionLabel;
