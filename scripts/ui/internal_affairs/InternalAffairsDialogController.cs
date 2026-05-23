@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Godot;
 using ThreeKingdom.Data;
 
@@ -13,11 +14,14 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
     private Button? _selectOfficerButton;
     private Button? _confirmButton;
     private ItemList? _scheduleList;
+    private Button? _pauseButton;
+    private Button? _resumeButton;
+    private Button? _cancelCurrentMonthButton;
     private Button? _terminateButton;
     private Label? _warningLabel;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
-    protected override Vector2 MinimumOverlaySize => new(500.0f, 360.0f);
+    protected override Vector2 MinimumOverlaySize => new(500.0f, 420.0f);
 
     public InternalAffairsDialogController(InternalAffairsUiContext context)
         : base(context, "res://scenes/ui/internal_affairs/InternalAffairsDialog.tscn")
@@ -65,6 +69,18 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         {
             _terminateButton.Text = _context.Localization.T("ui.terminate_internal_affairs");
         }
+        if (_pauseButton != null)
+        {
+            _pauseButton.Text = _context.Localization.T("ui.pause_internal_affairs");
+        }
+        if (_resumeButton != null)
+        {
+            _resumeButton.Text = _context.Localization.T("ui.resume_internal_affairs");
+        }
+        if (_cancelCurrentMonthButton != null)
+        {
+            _cancelCurrentMonthButton.Text = _context.Localization.T("ui.cancel_current_month_internal_affairs");
+        }
         if (_confirmButton != null)
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_internal_affairs");
@@ -81,6 +97,9 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         _scheduleList = root.GetNodeOrNull<ItemList>("ScheduleList");
+        _pauseButton = root.GetNodeOrNull<Button>("ScheduleActionsRow/PauseButton");
+        _resumeButton = root.GetNodeOrNull<Button>("ScheduleActionsRow/ResumeButton");
+        _cancelCurrentMonthButton = root.GetNodeOrNull<Button>("ScheduleActionsRow/CancelCurrentMonthButton");
         _terminateButton = root.GetNodeOrNull<Button>("TerminateButton");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
         ApplyButtonThemes();
@@ -91,9 +110,25 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             {
                 _selectOfficerButton.Pressed += OnSelectOfficerPressed;
             }
+            if (_scheduleList != null)
+            {
+                _scheduleList.ItemSelected += OnScheduleSelected;
+            }
             if (_terminateButton != null)
             {
                 _terminateButton.Pressed += OnTerminatePressed;
+            }
+            if (_pauseButton != null)
+            {
+                _pauseButton.Pressed += OnPausePressed;
+            }
+            if (_resumeButton != null)
+            {
+                _resumeButton.Pressed += OnResumePressed;
+            }
+            if (_cancelCurrentMonthButton != null)
+            {
+                _cancelCurrentMonthButton.Pressed += OnCancelCurrentMonthPressed;
             }
             if (_confirmButton != null)
             {
@@ -114,6 +149,21 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         if (_terminateButton != null)
         {
             _context.ApplyCommandButtonTheme(_terminateButton);
+        }
+
+        if (_pauseButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_pauseButton);
+        }
+
+        if (_resumeButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_resumeButton);
+        }
+
+        if (_cancelCurrentMonthButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_cancelCurrentMonthButton);
         }
 
         if (_confirmButton != null)
@@ -139,6 +189,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
 
         UpdateSelectedOfficerSummary();
         RefreshScheduleList();
+        SyncSelectedOfficerWithScheduleSelection();
     }
 
     private void PopulateJobOptions()
@@ -180,15 +231,17 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         _scheduleList.Clear();
         foreach (var schedule in world.InternalAffairsSchedules)
         {
-            if (schedule.State != InternalAffairsScheduleState.Active || schedule.CityId != city.Id)
+            if (schedule.CityId != city.Id ||
+                schedule.State is InternalAffairsScheduleState.Terminated or InternalAffairsScheduleState.Interrupted or InternalAffairsScheduleState.Completed)
             {
                 continue;
             }
 
             var officer = world.GetOfficer(schedule.OfficerId);
             var officerName = officer != null ? localization.GetOfficerName(officer) : "-";
+            var stateText = GetScheduleStateText(schedule);
             var itemIndex = _scheduleList.AddItem(
-                localization.Format("fmt.internal_affairs_schedule_row", GetJobName(schedule.JobType), officerName, schedule.RemainingMonths));
+                localization.Format("fmt.internal_affairs_schedule_row", GetJobName(schedule.JobType), officerName, schedule.RemainingMonths, stateText));
             _scheduleList.SetItemMetadata(itemIndex, schedule.Id);
         }
     }
@@ -265,6 +318,11 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             });
     }
 
+    private void OnScheduleSelected(long _index)
+    {
+        SyncSelectedOfficerWithScheduleSelection();
+    }
+
     private void OnTerminatePressed()
     {
         var world = _context.TurnManager?.World;
@@ -291,6 +349,68 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         Populate();
     }
 
+    private void OnPausePressed()
+    {
+        var commandResolver = _context.CommandResolver;
+        var localization = _context.Localization;
+        if (_context.TurnManager?.World == null || commandResolver == null || localization == null)
+        {
+            return;
+        }
+
+        var selectedIds = _context.GetSelectedItemMetadataIds(_scheduleList);
+        if (selectedIds.Count == 0)
+        {
+            SetWarning(localization.T("ui.select_internal_affairs_schedule_warning"));
+            return;
+        }
+
+        var result = commandResolver.PauseInternalAffairsSchedule(_context.TurnManager!.GetPlayerFactionId(), selectedIds[0]);
+        HandleScheduleActionResult(result);
+    }
+
+    private void OnResumePressed()
+    {
+        var commandResolver = _context.CommandResolver;
+        var localization = _context.Localization;
+        if (_context.TurnManager?.World == null || commandResolver == null || localization == null)
+        {
+            return;
+        }
+
+        var selectedIds = _context.GetSelectedItemMetadataIds(_scheduleList);
+        if (selectedIds.Count == 0)
+        {
+            SetWarning(localization.T("ui.select_internal_affairs_schedule_warning"));
+            return;
+        }
+
+        var selectedSchedule = GetSelectedSchedule();
+        var resumeOfficerId = selectedSchedule?.State == InternalAffairsScheduleState.Paused ? _selectedOfficerId : 0;
+        var result = commandResolver.ResumeInternalAffairsSchedule(_context.TurnManager!.GetPlayerFactionId(), selectedIds[0], resumeOfficerId);
+        HandleScheduleActionResult(result);
+    }
+
+    private void OnCancelCurrentMonthPressed()
+    {
+        var commandResolver = _context.CommandResolver;
+        var localization = _context.Localization;
+        if (_context.TurnManager?.World == null || commandResolver == null || localization == null)
+        {
+            return;
+        }
+
+        var selectedIds = _context.GetSelectedItemMetadataIds(_scheduleList);
+        if (selectedIds.Count == 0)
+        {
+            SetWarning(localization.T("ui.select_internal_affairs_schedule_warning"));
+            return;
+        }
+
+        var result = commandResolver.CancelCurrentMonthInternalAffairsSchedule(_context.TurnManager!.GetPlayerFactionId(), selectedIds[0]);
+        HandleScheduleActionResult(result);
+    }
+
     private void UpdateSelectedOfficerSummary()
     {
         var localization = _context.Localization;
@@ -302,6 +422,40 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         var officer = _selectedOfficerId > 0 ? _context.TurnManager?.World?.GetOfficer(_selectedOfficerId) : null;
         var officerName = officer != null ? localization.GetOfficerName(officer) : localization.T("ui.unassigned");
         _selectedOfficerLabel.Text = $"{localization.T("ui.internal_affairs_officer")}: {officerName}";
+    }
+
+    private void SyncSelectedOfficerWithScheduleSelection()
+    {
+        var city = _context.SelectedCity;
+        var schedule = GetSelectedSchedule();
+        if (city == null || schedule == null)
+        {
+            UpdateSelectedOfficerSummary();
+            return;
+        }
+
+        if (schedule.State == InternalAffairsScheduleState.Paused)
+        {
+            var availableOfficerIds = _context.GetAvailableCityOfficerIds();
+            if (!availableOfficerIds.Contains(_selectedOfficerId))
+            {
+                _selectedOfficerId = _context.GetRecommendedInternalAffairsOfficerId(city.Id, schedule.JobType);
+            }
+        }
+
+        UpdateSelectedOfficerSummary();
+    }
+
+    private InternalAffairsScheduleData? GetSelectedSchedule()
+    {
+        var world = _context.TurnManager?.World;
+        var selectedIds = _context.GetSelectedItemMetadataIds(_scheduleList);
+        if (world == null || selectedIds.Count == 0)
+        {
+            return null;
+        }
+
+        return world.InternalAffairsSchedules.FirstOrDefault(schedule => schedule.Id == selectedIds[0]);
     }
 
     private InternalAffairsJobType GetSelectedJobType()
@@ -333,6 +487,41 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             InternalAffairsJobType.Construction => _context.Localization.T("command.internal_affairs.construction"),
             _ => jobType.ToString()
         };
+    }
+
+    private string GetScheduleStateText(InternalAffairsScheduleData schedule)
+    {
+        var localization = _context.Localization;
+        var world = _context.TurnManager?.World;
+        if (localization == null || world == null)
+        {
+            return schedule.State.ToString();
+        }
+
+        if (schedule.SkipExecutionYear == world.Year && schedule.SkipExecutionMonth == world.Month)
+        {
+            return localization.T("ui.internal_affairs_status_cancelled_this_month");
+        }
+
+        return schedule.State switch
+        {
+            InternalAffairsScheduleState.Active => localization.T("ui.internal_affairs_status_active"),
+            InternalAffairsScheduleState.Paused => localization.T("ui.internal_affairs_status_paused"),
+            _ => schedule.State.ToString()
+        };
+    }
+
+    private void HandleScheduleActionResult(CommandResult result)
+    {
+        _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
+        if (_context.SelectedCity != null && result.Success)
+        {
+            _context.UiEventHub.PublishCityStateChanged(_context.SelectedCity.Id, _context.SelectedCity.OwnerFactionId);
+            _context.RefreshMapVisuals();
+        }
+
+        Populate();
+        SetWarning(string.Empty);
     }
 
     private void SetWarning(string text)

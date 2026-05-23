@@ -67,6 +67,10 @@
                                            "zhHant":  "指派職位",
                                            "en":  "Assign Appointment"
                                        },
+    "command.personnel.prefect_authorization":  {
+                                                    "zhHant":  "太守授權",
+                                                    "en":  "Prefect Authorization"
+                                                },
     "command.personnel.fire_officer":  {
                                            "zhHant":  "開除武將",
                                            "en":  "Dismiss Officer"

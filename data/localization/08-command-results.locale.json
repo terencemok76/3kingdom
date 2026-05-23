@@ -43,6 +43,14 @@
                                           "zhHant":  "君主不需指派此類官職。",
                                           "en":  "The ruler does not need this type of assigned title."
                                       },
+    "cmd.authorize_prefect.prefect_required":  {
+                                                   "zhHant":  "此城市尚未任命太守，無法授權。",
+                                                   "en":  "This city has no appointed prefect to authorize."
+                                               },
+    "cmd.authorize_prefect.resolved":  {
+                                           "zhHant":  "已將「{0}」的太守授權模式設為「{2}」。",
+                                           "en":  "Set the prefect authorization mode for \"{0}\" to \"{2}\"."
+                                       },
     "cmd.attack.blocked_by_diplomacy":  {
                                             "zhHant":  "目前與目標勢力存在同盟或停戰，不能發動攻擊。",
                                             "en":  "An active alliance or truce blocks this attack."
@@ -479,6 +487,34 @@
                                           "zhHant":  "「{0}」內政進度：「{1}」執行「{2}」。農業 +{3}，商業 +{4}，防衛 +{5}，防災 +{6}，忠誠 +{7}，剩餘 {8} 月。",
                                           "en":  "\"{0}\" internal affairs: \"{1}\" worked on \"{2}\". Farm +{3}, Commercial +{4}, Defense +{5}, Disaster Prevention +{6}, Loyalty +{7}, {8} months left."
                                       },
+    "cmd.internal_affairs.pause_not_available":  {
+                                                     "zhHant":  "目前只有進行中的內政計畫可以暫停。",
+                                                     "en":  "Only a running internal affairs plan can be paused."
+                                                 },
+    "cmd.internal_affairs.paused":  {
+                                        "zhHant":  "「{0}」已暫停「{1}」內政計畫。",
+                                        "en":  "\"{0}\" paused the \"{1}\" internal affairs plan."
+                                    },
+    "cmd.internal_affairs.resume_not_available":  {
+                                                      "zhHant":  "目前只有已暫停的內政計畫可以恢復。",
+                                                      "en":  "Only a paused internal affairs plan can be resumed."
+                                                  },
+    "cmd.internal_affairs.resume_no_officer":  {
+                                                   "zhHant":  "「{0}」目前沒有可重新指派的武將，無法恢復內政。",
+                                                   "en":  "\"{0}\" has no available officer to reassign, so internal affairs cannot be resumed."
+                                               },
+    "cmd.internal_affairs.resumed":  {
+                                         "zhHant":  "「{0}」已恢復「{1}」內政，並重新指派「{2}」執行。",
+                                         "en":  "\"{0}\" resumed \"{1}\" internal affairs and reassigned \"{2}\" to execute it."
+                                     },
+    "cmd.internal_affairs.cancel_month_not_available":  {
+                                                            "zhHant":  "目前只有進行中的內政計畫可以取消本月執行。",
+                                                            "en":  "Only a running internal affairs plan can cancel this month's execution."
+                                                        },
+    "cmd.internal_affairs.cancelled_this_month":  {
+                                                      "zhHant":  "「{0}」已取消「{1}」本月執行，計畫保留至下月。",
+                                                      "en":  "\"{0}\" cancelled this month's execution of \"{1}\" and kept the plan for next month."
+                                                  },
     "cmd.internal_affairs.schedule_not_found":  {
                                                     "zhHant":  "找不到可中止的內政排程。",
                                                     "en":  "No active internal affairs schedule found to terminate."

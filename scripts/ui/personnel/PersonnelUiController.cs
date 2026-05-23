@@ -6,6 +6,7 @@ public sealed class PersonnelUiController
     private readonly PersonnelCommandDialogController _commandDialogController;
     private readonly PersonnelBonusDialogController _bonusDialogController;
     private readonly AssignRoleDialogController _assignRoleDialogController;
+    private readonly PrefectAuthorizationDialogController _prefectAuthorizationDialogController;
     private readonly FireOfficerDialogController _fireOfficerDialogController;
     private readonly RequestItemDialogController _requestItemDialogController;
     private readonly HireOfficerDialogController _hireOfficerDialogController;
@@ -16,6 +17,7 @@ public sealed class PersonnelUiController
         _context = new PersonnelUiContext(owner);
         _bonusDialogController = new PersonnelBonusDialogController(_context);
         _assignRoleDialogController = new AssignRoleDialogController(_context);
+        _prefectAuthorizationDialogController = new PrefectAuthorizationDialogController(_context);
         _fireOfficerDialogController = new FireOfficerDialogController(_context);
         _requestItemDialogController = new RequestItemDialogController(_context);
         _hireOfficerDialogController = new HireOfficerDialogController(_context);
@@ -24,6 +26,7 @@ public sealed class PersonnelUiController
             _context,
             _bonusDialogController.Show,
             _assignRoleDialogController.Show,
+            _prefectAuthorizationDialogController.Show,
             _fireOfficerDialogController.Show,
             _requestItemDialogController.Show,
             _hireOfficerDialogController.Show);
@@ -40,6 +43,7 @@ public sealed class PersonnelUiController
         _commandDialogController.Initialize();
         _bonusDialogController.Initialize();
         _assignRoleDialogController.Initialize();
+        _prefectAuthorizationDialogController.Initialize();
         _fireOfficerDialogController.Initialize();
         _requestItemDialogController.Initialize();
         _hireOfficerDialogController.Initialize();
@@ -51,6 +55,7 @@ public sealed class PersonnelUiController
         _commandDialogController.Hide();
         _bonusDialogController.Hide();
         _assignRoleDialogController.Hide();
+        _prefectAuthorizationDialogController.Hide();
         _fireOfficerDialogController.Hide();
         _requestItemDialogController.Hide();
         _hireOfficerDialogController.Hide();
@@ -62,6 +67,7 @@ public sealed class PersonnelUiController
         _commandDialogController.RefreshText();
         _bonusDialogController.RefreshText();
         _assignRoleDialogController.RefreshText();
+        _prefectAuthorizationDialogController.RefreshText();
         _fireOfficerDialogController.RefreshText();
         _requestItemDialogController.RefreshText();
         _hireOfficerDialogController.RefreshText();

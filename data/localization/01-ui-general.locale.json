@@ -403,6 +403,30 @@
 										"zhHant":  "指派武將",
 										"en":  "Assigned Officer"
 									},
+	"ui.internal_affairs_status_active":  {
+											 "zhHant":  "進行中",
+											 "en":  "Running"
+										 },
+	"ui.internal_affairs_status_paused":  {
+											 "zhHant":  "已暫停",
+											 "en":  "Paused"
+										 },
+	"ui.internal_affairs_status_cancelled_this_month":  {
+															"zhHant":  "本月取消",
+															"en":  "Cancelled This Month"
+														},
+	"ui.pause_internal_affairs":  {
+									 "zhHant":  "暫停計畫",
+									 "en":  "Pause Plan"
+								 },
+	"ui.resume_internal_affairs":  {
+									  "zhHant":  "恢復計畫",
+									  "en":  "Resume Plan"
+								  },
+	"ui.cancel_current_month_internal_affairs":  {
+													 "zhHant":  "取消本月執行",
+													 "en":  "Cancel This Month"
+												 },
 	"ui.unassigned":  {
 						   "zhHant":  "未任命",
 						   "en":  "Unassigned"
@@ -472,9 +496,41 @@
 								   "en":  "No hireable free or outside officers are available."
 							   },
 	"ui.none":  {
-					"zhHant":  "無",
-					"en":  "None"
-				},
+					 "zhHant":  "無",
+					 "en":  "None"
+				 },
+	"ui.prefect_authorization.none":  {
+										 "zhHant":  "未授權",
+										 "en":  "No Authorization"
+									 },
+	"ui.prefect_authorization.half":  {
+										 "zhHant":  "半授權",
+										 "en":  "Half Authorization"
+									 },
+	"ui.prefect_authorization.full":  {
+										 "zhHant":  "全授權",
+										 "en":  "Full Authorization"
+									 },
+	"ui.prefect_authorization_mode":  {
+										 "zhHant":  "授權模式",
+										 "en":  "Authorization Mode"
+									 },
+	"ui.prefect_authorization_status":  {
+										   "zhHant":  "太守授權",
+										   "en":  "Prefect Authorization"
+									   },
+	"ui.prefect_authorization_prefect":  {
+											"zhHant":  "當前太守",
+											"en":  "Current Prefect"
+										},
+	"ui.prefect_authorization_current":  {
+											"zhHant":  "目前模式",
+											"en":  "Current Mode"
+										},
+	"ui.prefect_authorization_pending":  {
+											"zhHant":  "套用後模式",
+											"en":  "Pending Mode"
+										},
 	"ui.no_advice":  {
 						  "zhHant":  "冇意見。",
 						  "en":  "No advice."

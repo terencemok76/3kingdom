@@ -12,6 +12,7 @@ public enum InternalAffairsJobType
 public enum InternalAffairsScheduleState
 {
     Active,
+    Paused,
     Terminated,
     Interrupted,
     Completed
@@ -29,4 +30,6 @@ public class InternalAffairsScheduleData
     public int StartedMonth { get; set; }
     public InternalAffairsScheduleState State { get; set; } = InternalAffairsScheduleState.Active;
     public string InterruptedReason { get; set; } = string.Empty;
+    public int SkipExecutionYear { get; set; } = -1;
+    public int SkipExecutionMonth { get; set; } = -1;
 }

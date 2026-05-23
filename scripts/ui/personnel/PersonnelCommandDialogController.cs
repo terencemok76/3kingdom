@@ -7,6 +7,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
     private readonly PersonnelUiContext _context;
     private readonly System.Action _showBonusDialog;
     private readonly System.Action _showAssignRoleDialog;
+    private readonly System.Action _showPrefectAuthorizationDialog;
     private readonly System.Action _showFireOfficerDialog;
     private readonly System.Action _showRequestItemDialog;
     private readonly System.Action _showHireOfficerDialog;
@@ -20,6 +21,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         PersonnelUiContext context,
         System.Action showBonusDialog,
         System.Action showAssignRoleDialog,
+        System.Action showPrefectAuthorizationDialog,
         System.Action showFireOfficerDialog,
         System.Action showRequestItemDialog,
         System.Action showHireOfficerDialog)
@@ -28,6 +30,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         _context = context;
         _showBonusDialog = showBonusDialog;
         _showAssignRoleDialog = showAssignRoleDialog;
+        _showPrefectAuthorizationDialog = showPrefectAuthorizationDialog;
         _showFireOfficerDialog = showFireOfficerDialog;
         _showRequestItemDialog = showRequestItemDialog;
         _showHireOfficerDialog = showHireOfficerDialog;
@@ -93,6 +96,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         _commandOption.Clear();
         AddOption("command.personnel.give_bonus");
         AddOption("command.personnel.assign_title");
+        AddOption("command.personnel.prefect_authorization");
         AddOption("command.personnel.fire_officer");
         AddOption("command.personnel.request_item");
         AddOption("command.personnel.hire_officer");
@@ -131,6 +135,9 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
                 return;
             case "command.personnel.assign_title":
                 _showAssignRoleDialog();
+                return;
+            case "command.personnel.prefect_authorization":
+                _showPrefectAuthorizationDialog();
                 return;
             case "command.personnel.fire_officer":
                 _showFireOfficerDialog();

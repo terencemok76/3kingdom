@@ -200,6 +200,49 @@ public partial class CommandResolver
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAppointmentName(appointment, GameLanguage.English) });
     }
 
+    public CommandResult ExecuteAuthorizePrefect(int actorFactionId, int cityId, PrefectAuthorizationType authorizationType)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return LocalizedResult(false, "cmd.source_city_not_found");
+        }
+
+        if (city.OwnerFactionId != actorFactionId)
+        {
+            return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        var prefect = GetCityPrefect(world, city);
+        if (RequiresAppointedPrefect(authorizationType) && prefect == null)
+        {
+            return LocalizedResult(false, "cmd.authorize_prefect.prefect_required");
+        }
+
+        city.PrefectAuthorizationType = authorizationType;
+        return LocalizedResult(
+            true,
+            "cmd.authorize_prefect.resolved",
+            new object[]
+            {
+                GetCityName(city, GameLanguage.TraditionalChinese),
+                prefect != null ? GetOfficerDisplayName(prefect, GameLanguage.TraditionalChinese) : GetAppointmentName(OfficerAppointmentRules.Governor, GameLanguage.TraditionalChinese),
+                GetPrefectAuthorizationTypeName(authorizationType, GameLanguage.TraditionalChinese)
+            },
+            new object[]
+            {
+                GetCityName(city, GameLanguage.English),
+                prefect != null ? GetOfficerDisplayName(prefect, GameLanguage.English) : GetAppointmentName(OfficerAppointmentRules.Governor, GameLanguage.English),
+                GetPrefectAuthorizationTypeName(authorizationType, GameLanguage.English)
+            });
+    }
+
     public CommandResult ExecuteAssignFactionAdvisor(int actorFactionId, int cityId, int officerId, string position)
     {
         if (_turnManager?.World == null)

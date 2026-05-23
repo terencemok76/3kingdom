@@ -142,9 +142,19 @@
 ### 3A.7 授權規則
 - Player 與 AI 都可以有太守，但 `能否自行設定月計畫` 取決於授權狀態
 - Player faction：
-  - Player 可選擇是否授權某城市太守自行設定月計畫
-  - 未授權時：月計畫由 player 直接指定，太守不自動決策
-  - 已授權時：太守可依規則或傾向自動決定該城月計畫
+  - Player 可選擇某城市的授權模式：
+	- `未授權 / None`
+	- `半授權 / Half`
+	- `全授權 / Full`
+  - `未授權`：
+	- 月計畫由 player 直接指定
+	- 太守不自動決策
+  - `半授權`：
+	- player 指定城市目標與計畫期
+	- 太守負責監督執行，並從當月可用武將中指派適合人選
+  - `全授權`：
+	- 太守可依規則或傾向自動決定該城月計畫
+	- 太守負責執行期內的派工與重派
   - 若 player 曾手動覆蓋月計畫：
 	- 視為直接改變該城目前生效中的 plan
 	- 不需再次授權
@@ -167,6 +177,44 @@
 	- 守成型：偏 `防禦 / 平衡`
 	- 進取型：偏 `徵兵 / 前線準備`
   - 同一勢力內不同城市，也可因太守不同而呈現不同月計畫傾向
+
+### 3A.7A 授權 Plan 執行狀態
+- `授權模式` 與 `plan 執行狀態` 必須分開
+- 授權模式決定：
+  - 誰負責決定月計畫
+  - 誰負責派工
+- 執行狀態決定：
+  - 該計畫目前是否正在跑
+  - 本月是否暫停或略過
+- `v1 建議`至少有：
+  - `Running`
+  - `Paused`
+- 另外需要支援一個「只影響本月」的操作：
+  - `取消本月執行`
+  - 此操作不是取消授權，也不是刪除整個 plan
+  - 只是讓該 plan 本月不執行，並釋放原執行武將
+  - 下月可重新派工後繼續跑
+
+### 3A.7B Pause / Resume / Cancel Current Month
+- `Pause`
+  - 不移除授權模式
+  - 不刪除當前月計畫
+  - 只是暫停 plan 執行
+  - 暫停後原執行武將應立即釋放，可改做其他任務
+- `Resume`
+  - 恢復原計畫
+  - 太守不必綁定原執行武將
+  - 系統應允許太守依當下可用武將重新指派最適人選
+- `Cancel Current Month`
+  - 取消本月這一次執行
+  - 不等於 `Pause`
+  - 不等於 `Cancel Authorization`
+  - 不等於 `Terminate Plan`
+  - player 可在取消後，立刻把原執行武將改派去做其他事
+- `Terminate Plan`
+  - 代表整個內政 / 授權 plan 被明確結束
+  - 不再保留剩餘月數
+  - 若之後要再跑，需重新建立 plan
 
 ## 4. UI 設計
 
@@ -199,6 +247,7 @@
   - 查看該城市目前月計畫
   - 指定玩家是否授權該太守自訂月計畫
   - 在未授權情況下由玩家直接指定月計畫
+  - 對當前 plan 執行 `Pause / Resume / Cancel Current Month / Terminate`
 - 視窗定位：
   - 這是 city-level 的地方治理介面
   - 可從城市視角進入，因為其關心的是單城執行
@@ -207,6 +256,7 @@
   - 太守姓名 / 未任命
   - 當前授權狀態
   - 當前月計畫
+  - 當前 plan 執行狀態
   - 候選武將
 
 ### 4.3 城市資訊面板
@@ -440,16 +490,28 @@
 - 建議新增：
   - `PrefectOfficerId`
   - `MonthlyPlanType`
-  - `MonthlyPlanAuthorityMode`
+  - `PrefectAuthorizationType`
 	- 例如：
-	  - `PlayerDirect`
-	  - `AuthorizedPrefect`
-	  - `AiControlled`
+	  - `None`
+	  - `Half`
+	  - `Full`
+  - `MonthlyPlanExecutionState`
+	- 例如：
+	  - `Running`
+	  - `Paused`
+  - `CurrentMonthlyPlanDuration`
+  - `CurrentMonthlyPlanRemainingMonths`
+  - `CurrentMonthlyPlanSkipExecutionYear`
+  - `CurrentMonthlyPlanSkipExecutionMonth`
+  - `CurrentMonthlyPlanAssignedOfficerId`
 
 ### 8.2 Save / Load
 - 中央職位資料必須進存檔
-- 舊存檔若沒有這兩欄，應視為：
+- 舊存檔若沒有相關欄位，應視為：
   - `0 / 未任命`
+  - 授權模式 `None`
+  - 執行狀態 `Running`
+  - skip month = `-1 / -1`
 
 ## 9. 與既有系統互動
 

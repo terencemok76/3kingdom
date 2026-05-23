@@ -437,7 +437,7 @@ public partial class CommandResolver
     private static bool HasActiveInternalAffairsJob(WorldState world, int cityId, InternalAffairsJobType jobType)
     {
         return world.InternalAffairsSchedules.Any(schedule =>
-            schedule.State == InternalAffairsScheduleState.Active &&
+            schedule.State is InternalAffairsScheduleState.Active or InternalAffairsScheduleState.Paused &&
             schedule.CityId == cityId &&
             schedule.JobType == jobType);
     }
@@ -677,6 +677,7 @@ public partial class CommandResolver
             }
 
             city.OwnerFactionId = 0;
+            ClearCityPrefectAuthorization(city);
             city.Loyalty = 50;
             foreach (var officerId in city.OfficerIds.ToList())
             {
@@ -759,6 +760,35 @@ public partial class CommandResolver
         }
     }
 
+    private static OfficerData? GetCityPrefect(WorldState world, CityData city)
+    {
+        foreach (var officerId in city.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            if (HasOfficerAppointment(officer, OfficerAppointmentRules.Governor))
+            {
+                return officer;
+            }
+        }
+
+        return null;
+    }
+
+    private static void ClearCityPrefectAuthorization(CityData city)
+    {
+        city.PrefectAuthorizationType = PrefectAuthorizationType.None;
+    }
+
+    private static bool RequiresAppointedPrefect(PrefectAuthorizationType authorizationType)
+    {
+        return authorizationType is PrefectAuthorizationType.Half or PrefectAuthorizationType.Full;
+    }
+
     private static void ClearOfficerAppointment(OfficerData officer, string appointment)
     {
         OfficerAppointmentRules.RemoveAppointment(officer, appointment);
@@ -800,6 +830,22 @@ public partial class CommandResolver
             "chancellor" => _localization.TForLanguage(language, "ui.chancellor"),
             "chiefstrategist" => _localization.TForLanguage(language, "ui.chief_strategist"),
             _ => position
+        };
+    }
+
+    private string GetPrefectAuthorizationTypeName(PrefectAuthorizationType authorizationType, GameLanguage language)
+    {
+        if (_localization == null)
+        {
+            return authorizationType.ToString();
+        }
+
+        return authorizationType switch
+        {
+            PrefectAuthorizationType.None => _localization.TForLanguage(language, "ui.prefect_authorization.none"),
+            PrefectAuthorizationType.Half => _localization.TForLanguage(language, "ui.prefect_authorization.half"),
+            PrefectAuthorizationType.Full => _localization.TForLanguage(language, "ui.prefect_authorization.full"),
+            _ => authorizationType.ToString()
         };
     }
 
@@ -869,6 +915,51 @@ public partial class CommandResolver
         return world.InternalAffairsSchedules.Count == 0
             ? 1
             : world.InternalAffairsSchedules.Max(schedule => schedule.Id) + 1;
+    }
+
+    private static void ReleaseInternalAffairsOfficerAssignment(WorldState world, int officerId)
+    {
+        var officer = world.GetOfficer(officerId);
+        if (officer == null)
+        {
+            return;
+        }
+
+        if (officer.LastAssignedYear == world.Year &&
+            officer.LastAssignedMonth == world.Month &&
+            officer.LastAssignedCommand == CommandType.InternalAffairs)
+        {
+            officer.LastAssignedYear = -1;
+            officer.LastAssignedMonth = -1;
+            officer.LastAssignedCommand = CommandType.Pass;
+        }
+    }
+
+    private static OfficerData? TrySelectInternalAffairsOfficerForSchedule(WorldState world, CityData city, InternalAffairsJobType jobType)
+    {
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer =>
+                officer != null &&
+                !IsOfficerAssignedThisMonth(world, officer) &&
+                !HasActiveInternalAffairsSchedule(world, officer.Id))
+            .OrderByDescending(officer => ScoreInternalAffairsOfficer(officer!, jobType))
+            .ThenByDescending(officer => officer!.Loyalty)
+            .ThenBy(officer => officer!.Id)
+            .FirstOrDefault();
+    }
+
+    private static int ScoreInternalAffairsOfficer(OfficerData officer, InternalAffairsJobType jobType)
+    {
+        return jobType switch
+        {
+            InternalAffairsJobType.Farm => officer.Politics * 3 + officer.Charm + officer.Intelligence + officer.FarmRank * 25,
+            InternalAffairsJobType.Commercial => officer.Politics * 3 + officer.Intelligence * 2 + officer.CommercialRank * 25,
+            InternalAffairsJobType.Defend => officer.Leadership * 2 + officer.Politics * 2 + officer.DefendRank * 25,
+            InternalAffairsJobType.WaterControl => officer.Intelligence * 2 + officer.Politics * 2 + officer.DisasterPreventionRank * 25,
+            InternalAffairsJobType.Construction => officer.Politics * 2 + officer.Leadership + officer.Intelligence + officer.ConstructionRank * 25,
+            _ => officer.Politics + officer.Intelligence + officer.Charm
+        };
     }
 
     private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty) ApplyInternalAffairsJob(

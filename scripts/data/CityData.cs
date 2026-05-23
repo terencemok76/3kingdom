@@ -2,6 +2,13 @@
 
 namespace ThreeKingdom.Data;
 
+public enum PrefectAuthorizationType
+{
+    None = 0,
+    Half = 1,
+    Full = 2
+}
+
 public class CityData
 {
     private int _troops;
@@ -50,6 +57,7 @@ public class CityData
     public int LastSearchMonth { get; set; } = -1;
     public int LastCivilReliefYear { get; set; } = -1;
     public int LastCivilReliefMonth { get; set; } = -1;
+    public PrefectAuthorizationType PrefectAuthorizationType { get; set; } = PrefectAuthorizationType.None;
 
     public List<int> OfficerIds { get; set; } = new();
     public List<int> ConnectedCityIds { get; set; } = new();

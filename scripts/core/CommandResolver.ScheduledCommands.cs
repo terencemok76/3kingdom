@@ -724,6 +724,7 @@ public partial class CommandResolver
         }
 
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
+        ClearCityPrefectAuthorization(targetCity);
         AwardBattleExperience(world, pendingCommand.OfficerIds, 26);
         AwardBattleExperience(world, defendingOfficerIds, 12);
         ResolveCapturedCityOfficers(world, targetCity, defendingFactionId);

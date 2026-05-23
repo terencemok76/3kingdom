@@ -419,11 +419,14 @@ public partial class HudController : CanvasLayer
             : $"{ownerName} | {intelDurationText}";
         var prefectLabel = city != null ? BuildPrefectLabel() : string.Empty;
         var prefectValue = city != null ? BuildPrefectNameText(city) : string.Empty;
+        var prefectAuthorizationLabel = city != null ? BuildPrefectAuthorizationLabel() : string.Empty;
+        var prefectAuthorizationValue = city != null ? BuildPrefectAuthorizationText(city) : string.Empty;
 
         var stats = city == null
             ? new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
             {
                 (_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
+                (string.Empty, string.Empty, string.Empty, string.Empty),
                 (_localization.T("ui.gold"), "0", _localization.T("ui.food"), "0"),
                 (_localization.T("ui.horse"), "0", _localization.T("ui.population"), "0"),
                 (_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
@@ -438,6 +441,7 @@ public partial class HudController : CanvasLayer
             : new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
             {
                 (_localization.T("ui.faction_owner"), ownerValue, prefectLabel, prefectValue),
+                (prefectAuthorizationLabel, prefectAuthorizationValue, string.Empty, string.Empty),
                 (_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
                 (_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
                 (_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
@@ -496,6 +500,37 @@ public partial class HudController : CanvasLayer
         return prefect != null
             ? _localization.GetOfficerName(prefect)
             : _localization.T("ui.unassigned");
+    }
+
+    private string BuildPrefectAuthorizationLabel()
+    {
+        if (_localization == null)
+        {
+            return string.Empty;
+        }
+
+        return _localization.T("ui.prefect_authorization_mode");
+    }
+
+    private string BuildPrefectAuthorizationText(CityData city)
+    {
+        if (_localization == null)
+        {
+            return string.Empty;
+        }
+
+        if (!CanViewCityFullInformation(city))
+        {
+            return UnknownInfoText;
+        }
+
+        return city.PrefectAuthorizationType switch
+        {
+            PrefectAuthorizationType.None => _localization.T("ui.prefect_authorization.none"),
+            PrefectAuthorizationType.Half => _localization.T("ui.prefect_authorization.half"),
+            PrefectAuthorizationType.Full => _localization.T("ui.prefect_authorization.full"),
+            _ => city.PrefectAuthorizationType.ToString()
+        };
     }
 
     private string BuildOfficerAppointmentsText(OfficerData officer)

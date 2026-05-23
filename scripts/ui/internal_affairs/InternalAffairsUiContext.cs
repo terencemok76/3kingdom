@@ -59,6 +59,8 @@ internal sealed class InternalAffairsUiContext
     public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.InternalAffairsShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
     public List<int> GetAvailableOfficerIdsForOrder() => _owner.InternalAffairsGetAvailableOfficerIdsForOrder();
     public string GetLocalizedResultMessage(CommandResult result) => _owner.InternalAffairsGetLocalizedResultMessage(result);
+    public int GetRecommendedInternalAffairsOfficerId(int cityId, InternalAffairsJobType jobType) =>
+        CommandResolver?.GetRecommendedInternalAffairsOfficerId(TurnManager?.GetPlayerFactionId() ?? 0, cityId, jobType) ?? 0;
 
     public List<int> GetAvailableCityOfficerIds()
     {
