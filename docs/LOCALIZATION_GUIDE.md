@@ -300,3 +300,49 @@ If this happens:
 
 - update `LocalizationService` only if file pattern rules change
 - keep namespaces stable so code references do not need mass renaming
+## Addendum: Role vs Appointment Terminology
+
+### Base Role
+
+Use `role.*` only for an officer's base identity.
+
+Examples:
+
+- `role.lord`
+- `role.general`
+- `role.advisor`
+
+These correspond to the long-term identity carried by `OfficerData.Role`.
+
+### Appointed Posts
+
+Appointed posts are a different concept from `role.*`.
+
+Examples:
+
+- `丞相`
+- `軍師`
+- `首席軍師`
+- `太守`
+
+These should not automatically be treated as `role.*` keys unless the data model explicitly defines them as base roles.
+
+For current UI work, appointment-related visible labels should usually live under `ui.*`.
+
+Examples:
+
+- `ui.chancellor`
+- `ui.chief_strategist`
+- `ui.appointed_titles`
+
+### Personnel-Specific UI File
+
+This project currently also has:
+
+- `06-ui-personnel.locale.json`
+
+Use it for personnel-specific UI labels that are not broad enough for `01-ui-general.locale.json`.
+
+Example:
+
+- `ui.appointed_titles`

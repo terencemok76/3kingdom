@@ -65,8 +65,8 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.PersonnelAddLog(message, isPlayerRelated);
 
     public void RefreshSelectedCity() => _owner.PersonnelRefreshSelectedCity();
-
     public void RefreshMapVisuals() => _owner.PersonnelRefreshMapVisuals();
+    public UiEventHub UiEventHub => _owner.PersonnelUiEventHub;
 
     public void ConfigureMoveSpinBox(SpinBox? spinBox, int maxValue, int value) => _owner.PersonnelConfigureMoveSpinBox(spinBox, maxValue, value);
 
@@ -78,6 +78,14 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         IEnumerable<HudController.OfficerSelectorScopeOption>? scopeOptions = null,
         string? initialScopeKey = null) =>
         _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey);
+
+    public void ShowAssignRoleOfficerSelectorDialog(
+        string title,
+        List<int> candidateOfficerIds,
+        Action<int> confirmedAction,
+        IEnumerable<HudController.OfficerSelectorScopeOption>? scopeOptions = null,
+        string? initialScopeKey = null) =>
+        _owner.PersonnelShowAssignRoleOfficerSelectorDialog(title, candidateOfficerIds, confirmedAction, scopeOptions, initialScopeKey);
 
     public void ContinuePendingNonAttackResolution() => _owner.PersonnelContinuePendingNonAttackResolution();
 
@@ -100,6 +108,8 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         }
 
         return city.OfficerIds
+            .Concat(world.Officers.Where(officer => officer.CityId == city.Id).Select(officer => officer.Id))
+            .Distinct()
             .Where(officerId =>
             {
                 var officer = world.GetOfficer(officerId);
@@ -124,6 +134,14 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         }
 
         return faction.OfficerIds
+            .Concat(world.Officers
+                .Where(officer =>
+                {
+                    var officerCity = world.GetCity(officer.CityId);
+                    return officerCity != null && officerCity.OwnerFactionId == faction.Id;
+                })
+                .Select(officer => officer.Id))
+            .Distinct()
             .Where(officerId =>
             {
                 var officer = world.GetOfficer(officerId);

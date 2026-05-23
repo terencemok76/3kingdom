@@ -196,6 +196,7 @@ public partial class HudController : CanvasLayer
         var canViewOfficer = CanViewOfficerFullInformation(officer);
         var officerName = canViewOfficer ? (_localization?.GetOfficerName(officer) ?? officer.Name) : UnknownInfoText;
         var roleName = canViewOfficer ? (_localization?.GetOfficerRole(officer) ?? officer.Role) : UnknownInfoText;
+        var appointmentName = canViewOfficer ? BuildOfficerAppointmentsText(officer) : UnknownInfoText;
         var generalTitle = _localization?.GetProgressionTitle(officer.GeneralTitle) ?? officer.GeneralTitle;
         var strategistTitle = _localization?.GetProgressionTitle(officer.StrategistTitle) ?? officer.StrategistTitle;
         var spyTitle = _localization?.GetProgressionTitle(officer.SpyTitle) ?? officer.SpyTitle;
@@ -215,6 +216,7 @@ public partial class HudController : CanvasLayer
         var entries = new List<(string Label, string Value)>
         {
             (_localization?.T("ui.role") ?? "Role", roleName),
+            (_localization?.T("ui.appointed_titles") ?? "Appointments", appointmentName),
             (_localization?.T("ui.status") ?? "Status", statusValue),
             (_localization?.T("ui.age") ?? "Age", MaskedNumberText(canViewOfficer, officerAge)),
             (_localization?.T("ui.loyalty_short") ?? "LOY", MaskedNumberText(canViewOfficer, officer.Loyalty)),
@@ -471,7 +473,7 @@ public partial class HudController : CanvasLayer
             return string.Empty;
         }
 
-        return _localization.GetOfficerRole(new OfficerData { Role = "Governor" });
+        return _localization.GetAppointmentName(OfficerAppointmentRules.Governor);
     }
 
     private string BuildPrefectNameText(CityData city)
@@ -490,10 +492,46 @@ public partial class HudController : CanvasLayer
             .Select(id => _turnManager.World.GetOfficer(id))
             .FirstOrDefault(officer =>
                 officer != null &&
-                officer.Role.Equals("Governor", StringComparison.OrdinalIgnoreCase));
+                OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor));
         return prefect != null
             ? _localization.GetOfficerName(prefect)
             : _localization.T("ui.unassigned");
+    }
+
+    private string BuildOfficerAppointmentsText(OfficerData officer)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return string.Empty;
+        }
+
+        var appointments = new List<string>();
+        foreach (var appointment in officer.Appointments)
+        {
+            appointments.Add(_localization.GetAppointmentName(appointment));
+        }
+
+        var officerFaction = _turnManager.World.Factions.FirstOrDefault(faction => faction.OfficerIds.Contains(officer.Id));
+        if (officerFaction != null)
+        {
+            if (officerFaction.ChancellorOfficerId == officer.Id)
+            {
+                appointments.Add(_localization.GetAppointmentName(OfficerAppointmentRules.Chancellor));
+            }
+
+            if (officerFaction.ChiefStrategistOfficerId == officer.Id)
+            {
+                appointments.Add(_localization.GetAppointmentName(OfficerAppointmentRules.ChiefStrategist));
+            }
+        }
+
+        var distinctAppointments = appointments
+            .Where(static appointment => !string.IsNullOrWhiteSpace(appointment))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return distinctAppointments.Count > 0
+            ? string.Join(" / ", distinctAppointments)
+            : _localization.T("ui.none");
     }
 
     private string BuildAdvisorSummaryText(CityData city)

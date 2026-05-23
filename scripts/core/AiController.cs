@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Collections.Generic;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
@@ -33,6 +34,67 @@ public class AiController
         _commandResolver = commandResolver;
         _turnManager = turnManager;
         _localization = localization;
+    }
+
+    public List<CommandResult> RunFactionAppointmentDecisions(int factionId)
+    {
+        var results = new List<CommandResult>();
+        if (_commandResolver == null || _turnManager?.World == null)
+        {
+            return results;
+        }
+
+        var world = _turnManager.World;
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return results;
+        }
+
+        var reservedOfficerIds = new HashSet<int>();
+        if (faction.ChancellorOfficerId > 0)
+        {
+            reservedOfficerIds.Add(faction.ChancellorOfficerId);
+        }
+
+        if (faction.ChiefStrategistOfficerId > 0)
+        {
+            reservedOfficerIds.Add(faction.ChiefStrategistOfficerId);
+        }
+
+        if (faction.ChancellorOfficerId <= 0)
+        {
+            var chancellorCandidate = GetBestFactionAdvisorCandidate(
+                world,
+                faction,
+                reservedOfficerIds,
+                officer => officer.Politics * 3 + officer.Intelligence * 2 + officer.Charm);
+            var chancellorResult = TryAssignFactionAdvisor(factionId, chancellorCandidate, "Chancellor");
+            if (chancellorResult != null)
+            {
+                results.Add(chancellorResult);
+                if (chancellorResult.Success && chancellorCandidate != null)
+                {
+                    reservedOfficerIds.Add(chancellorCandidate.Id);
+                }
+            }
+        }
+
+        if (faction.ChiefStrategistOfficerId <= 0)
+        {
+            var strategistCandidate = GetBestFactionAdvisorCandidate(
+                world,
+                faction,
+                reservedOfficerIds,
+                officer => officer.Intelligence * 3 + officer.Leadership * 2 + officer.Charm);
+            var strategistResult = TryAssignFactionAdvisor(factionId, strategistCandidate, "ChiefStrategist");
+            if (strategistResult != null)
+            {
+                results.Add(strategistResult);
+            }
+        }
+
+        return results;
     }
 
     public CommandResult RunSingleCityDecision(int factionId, int cityId)
@@ -410,6 +472,40 @@ public class AiController
         }
 
         return bestOfficerId;
+    }
+
+    private CommandResult? TryAssignFactionAdvisor(int factionId, OfficerData? officer, string position)
+    {
+        if (_commandResolver == null || _turnManager?.World == null || officer == null)
+        {
+            return null;
+        }
+
+        var city = _turnManager.World.GetCity(officer.CityId);
+        if (city == null || city.OwnerFactionId != factionId || !city.OfficerIds.Contains(officer.Id))
+        {
+            return null;
+        }
+
+        return _commandResolver.ExecuteAssignFactionAdvisor(factionId, city.Id, officer.Id, position);
+    }
+
+    private static OfficerData? GetBestFactionAdvisorCandidate(
+        WorldState world,
+        FactionData faction,
+        HashSet<int> reservedOfficerIds,
+        System.Func<OfficerData, int> scoreSelector)
+    {
+        return faction.OfficerIds
+            .Where(officerId => officerId != faction.RulerOfficerId && !reservedOfficerIds.Contains(officerId))
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .Where(officer => officer.CityId > 0)
+            .OrderByDescending(scoreSelector)
+            .ThenByDescending(officer => officer.Loyalty)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
     }
 
     private CommandResult? TryIssueDiplomacyCommand(

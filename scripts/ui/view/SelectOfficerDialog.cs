@@ -7,6 +7,12 @@ namespace ThreeKingdom.UI;
 
 public sealed partial class SelectOfficerDialog : Control
 {
+    public sealed class ColumnDefinition
+    {
+        public required string Title { get; init; }
+        public int MinWidth { get; init; } = 90;
+    }
+
     public sealed class ScopeOption
     {
         public required string Key { get; init; }
@@ -17,10 +23,7 @@ public sealed partial class SelectOfficerDialog : Control
     public sealed class RowData
     {
         public required int OfficerId { get; init; }
-        public required string OfficerName { get; init; }
-        public required string RoleName { get; init; }
-        public required string StatusName { get; init; }
-        public required string PrimaryStatText { get; init; }
+        public required IReadOnlyList<string> ColumnTexts { get; init; }
     }
 
     private Tree? _officerTable;
@@ -48,6 +51,8 @@ public sealed partial class SelectOfficerDialog : Control
         _secondaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/SecondaryScopeButton");
         _confirmButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/ConfirmRow/ConfirmButton");
         var closeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/CloseButton");
+
+        ApplyExistingButtonThemes();
 
         if (_officerTable != null)
         {
@@ -86,14 +91,12 @@ public sealed partial class SelectOfficerDialog : Control
     public void ShowSelector(
         string title,
         string confirmText,
-        string officerTitle,
-        string roleTitle,
-        string statusTitle,
-        string statTitle,
+        IReadOnlyList<ColumnDefinition> columns,
         IReadOnlyList<RowData> rows,
         Action<int> onConfirmed,
         IReadOnlyList<ScopeOption>? scopeOptions = null,
-        string? initialScopeKey = null)
+        string? initialScopeKey = null,
+        Vector2? panelSize = null)
     {
         if (_officerTable == null || _confirmButton == null)
         {
@@ -106,7 +109,7 @@ public sealed partial class SelectOfficerDialog : Control
         }
         _confirmButton.Text = confirmText;
         _confirmedAction = onConfirmed;
-        ConfigureColumns(officerTitle, roleTitle, statusTitle, statTitle);
+        ConfigureColumns(columns);
 
         _scopeOptions.Clear();
         if (scopeOptions != null)
@@ -147,30 +150,25 @@ public sealed partial class SelectOfficerDialog : Control
 
         Show();
         MoveToFront();
-        CenterPanel(new Vector2(620.0f, 320.0f));
+        CenterPanel(panelSize ?? new Vector2(620.0f, 320.0f));
     }
 
-    private void ConfigureColumns(string officerTitle, string roleTitle, string statusTitle, string statTitle)
+    private void ConfigureColumns(IReadOnlyList<ColumnDefinition> columns)
     {
-        if (_officerTable == null)
+        if (_officerTable == null || columns.Count == 0)
         {
             return;
         }
 
         _officerTable.Clear();
-        _officerTable.Columns = 4;
-        _officerTable.SetColumnTitle(0, officerTitle);
-        _officerTable.SetColumnCustomMinimumWidth(0, 150);
-        _officerTable.SetColumnTitleAlignment(0, HorizontalAlignment.Left);
-        _officerTable.SetColumnTitle(1, roleTitle);
-        _officerTable.SetColumnCustomMinimumWidth(1, 100);
-        _officerTable.SetColumnTitleAlignment(1, HorizontalAlignment.Left);
-        _officerTable.SetColumnTitle(2, statusTitle);
-        _officerTable.SetColumnCustomMinimumWidth(2, 100);
-        _officerTable.SetColumnTitleAlignment(2, HorizontalAlignment.Left);
-        _officerTable.SetColumnTitle(3, statTitle);
-        _officerTable.SetColumnCustomMinimumWidth(3, 90);
-        _officerTable.SetColumnTitleAlignment(3, HorizontalAlignment.Left);
+        _officerTable.Columns = columns.Count;
+        for (var columnIndex = 0; columnIndex < columns.Count; columnIndex += 1)
+        {
+            var column = columns[columnIndex];
+            _officerTable.SetColumnTitle(columnIndex, column.Title);
+            _officerTable.SetColumnCustomMinimumWidth(columnIndex, column.MinWidth);
+            _officerTable.SetColumnTitleAlignment(columnIndex, HorizontalAlignment.Left);
+        }
     }
 
     private void RenderRows(IReadOnlyList<RowData> rows)
@@ -187,11 +185,13 @@ public sealed partial class SelectOfficerDialog : Control
             var rowData = rows[rowIndex];
             var row = _officerTable.CreateItem(root);
             row.SetMetadata(0, rowData.OfficerId);
-            row.SetText(0, rowData.OfficerName);
-            row.SetText(1, rowData.RoleName);
-            row.SetText(2, rowData.StatusName);
-            row.SetText(3, rowData.PrimaryStatText);
-            ApplyRowStriping(row, rowIndex, 4);
+            for (var columnIndex = 0; columnIndex < _officerTable.Columns; columnIndex += 1)
+            {
+                var text = columnIndex < rowData.ColumnTexts.Count ? rowData.ColumnTexts[columnIndex] : string.Empty;
+                row.SetText(columnIndex, text);
+            }
+
+            ApplyRowStriping(row, rowIndex, _officerTable.Columns);
         }
     }
 
@@ -355,6 +355,63 @@ public sealed partial class SelectOfficerDialog : Control
         _dialogPanel.Position = new Vector2(
             Mathf.Max(0.0f, (viewportSize.X - panelSize.X) * 0.5f),
             Mathf.Max(0.0f, (viewportSize.Y - panelSize.Y) * 0.5f));
+    }
+
+    private void ApplyExistingButtonThemes()
+    {
+        var hudController = FindAncestor<HudController>(this);
+        var sourceButton = hudController?.GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton") ??
+                           hudController?.GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
+        if (sourceButton == null)
+        {
+            return;
+        }
+
+        foreach (var button in new[] { _primaryScopeButton, _secondaryScopeButton, _confirmButton })
+        {
+            if (button == null)
+            {
+                continue;
+            }
+
+            CopyButtonTheme(sourceButton, button);
+        }
+    }
+
+    private static T? FindAncestor<T>(Node? node) where T : class
+    {
+        var current = node;
+        while (current != null)
+        {
+            if (current is T match)
+            {
+                return match;
+            }
+
+            current = current.GetParent();
+        }
+
+        return null;
+    }
+
+    private static void CopyButtonTheme(Button source, Button target)
+    {
+        foreach (var state in new[] { "normal", "hover", "pressed", "disabled", "focus" })
+        {
+            var style = source.GetThemeStylebox(state);
+            if (style != null)
+            {
+                target.AddThemeStyleboxOverride(state, style);
+            }
+        }
+
+        foreach (var colorName in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_disabled_color", "font_focus_color" })
+        {
+            if (source.HasThemeColor(colorName))
+            {
+                target.AddThemeColorOverride(colorName, source.GetThemeColor(colorName));
+            }
+        }
     }
 
     private static void ApplyRowStriping(TreeItem row, int rowIndex, int columnCount)

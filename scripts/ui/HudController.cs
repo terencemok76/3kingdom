@@ -80,6 +80,19 @@ public partial class HudController : CanvasLayer
         public required List<int> CandidateOfficerIds { get; init; }
     }
 
+    internal sealed class OfficerSelectorColumnDefinition
+    {
+        public required string Title { get; init; }
+        public int MinWidth { get; init; } = 90;
+    }
+
+    internal sealed class OfficerSelectorDisplayConfig
+    {
+        public required IReadOnlyList<OfficerSelectorColumnDefinition> Columns { get; init; }
+        public required Func<OfficerData, IReadOnlyList<string>> BuildRowTexts { get; init; }
+        public Vector2 PanelSize { get; init; } = new(620.0f, 320.0f);
+    }
+
     private enum OfficerListScope
     {
         City,
@@ -112,6 +125,7 @@ public partial class HudController : CanvasLayer
     {
         Name,
         Role,
+        Appointment,
         Status,
         City,
         Holder,
@@ -168,6 +182,7 @@ public partial class HudController : CanvasLayer
     private SpyUiController? _spyUiController;
     private SystemUiController? _systemUiController;
     private ViewUiController? _viewUiController;
+    private readonly UiEventHub _uiEventHub = new();
     private Window? _optionDialog;
     private Window? _saveLoadDialog;
     private Window? _saveLoadConfirmDialog;

@@ -133,24 +133,25 @@ public partial class HudController
         }
 
         var includeCityName = _officerListScope == OfficerListScope.Faction;
-        _officerListTable.Columns = includeCityName ? 8 : 7;
+        _officerListTable.Columns = includeCityName ? 9 : 8;
         SetViewTableColumn(0, _localization.T("ui.officers"), 170, ViewTableSortField.Name);
         SetViewTableColumn(1, _localization.T("ui.role"), 120, ViewTableSortField.Role);
-        SetViewTableColumn(2, _localization.T("ui.status"), 100, ViewTableSortField.Status);
+        SetViewTableColumn(2, _localization.T("ui.appointed_titles"), 170, ViewTableSortField.Appointment);
+        SetViewTableColumn(3, _localization.T("ui.status"), 100, ViewTableSortField.Status);
         if (includeCityName)
         {
-            SetViewTableColumn(3, _localization.T("ui.city"), 140, ViewTableSortField.City);
+            SetViewTableColumn(4, _localization.T("ui.city"), 140, ViewTableSortField.City);
+            SetViewTableColumn(5, _localization.T("ui.age"), 70, ViewTableSortField.Age);
+            SetViewTableColumn(6, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
+            SetViewTableColumn(7, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
+            SetViewTableColumn(8, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
+        }
+        else
+        {
             SetViewTableColumn(4, _localization.T("ui.age"), 70, ViewTableSortField.Age);
             SetViewTableColumn(5, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
             SetViewTableColumn(6, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
             SetViewTableColumn(7, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
-        }
-        else
-        {
-            SetViewTableColumn(3, _localization.T("ui.age"), 70, ViewTableSortField.Age);
-            SetViewTableColumn(4, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
-            SetViewTableColumn(5, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
-            SetViewTableColumn(6, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
         }
     }
 
@@ -240,25 +241,26 @@ public partial class HudController
         row.SetMetadata(0, officer.Id);
         row.SetText(0, BuildMaskedOfficerName(officer));
         row.SetText(1, BuildMaskedOfficerRole(officer));
+        row.SetText(2, BuildMaskedOfficerAppointments(officer));
         var world = _turnManager!.World!;
-        row.SetText(2, BuildMaskedOfficerStatus(world, officer));
+        row.SetText(3, BuildMaskedOfficerStatus(world, officer));
         var officerAge = CalculateOfficerAge(officer, world.Year);
         var loyaltyText = BuildMaskedOfficerLoyalty(world, officer);
         if (includeCityName)
         {
             var city = _turnManager?.World?.GetCity(officer.CityId);
-            row.SetText(3, canViewOfficer && city != null ? _localization.GetCityName(city) : UnknownInfoText);
+            row.SetText(4, canViewOfficer && city != null ? _localization.GetCityName(city) : UnknownInfoText);
+            row.SetText(5, MaskedNumberText(canViewOfficer, officerAge));
+            row.SetText(6, loyaltyText);
+            row.SetText(7, MaskedNumberText(canViewOfficer, officer.Strength));
+            row.SetText(8, MaskedNumberText(canViewOfficer, officer.Intelligence));
+        }
+        else
+        {
             row.SetText(4, MaskedNumberText(canViewOfficer, officerAge));
             row.SetText(5, loyaltyText);
             row.SetText(6, MaskedNumberText(canViewOfficer, officer.Strength));
             row.SetText(7, MaskedNumberText(canViewOfficer, officer.Intelligence));
-        }
-        else
-        {
-            row.SetText(3, MaskedNumberText(canViewOfficer, officerAge));
-            row.SetText(4, loyaltyText);
-            row.SetText(5, MaskedNumberText(canViewOfficer, officer.Strength));
-            row.SetText(6, MaskedNumberText(canViewOfficer, officer.Intelligence));
         }
     }
 
@@ -387,12 +389,13 @@ public partial class HudController
             return column switch
             {
                 1 => ViewTableSortField.Role,
-                2 => ViewTableSortField.Status,
-                3 => ViewTableSortField.City,
-                4 => ViewTableSortField.Age,
-                5 => ViewTableSortField.OfficerLoyalty,
-                6 => ViewTableSortField.Strength,
-                7 => ViewTableSortField.Intelligence,
+                2 => ViewTableSortField.Appointment,
+                3 => ViewTableSortField.Status,
+                4 => ViewTableSortField.City,
+                5 => ViewTableSortField.Age,
+                6 => ViewTableSortField.OfficerLoyalty,
+                7 => ViewTableSortField.Strength,
+                8 => ViewTableSortField.Intelligence,
                 _ => ViewTableSortField.Name
             };
         }
@@ -400,18 +403,19 @@ public partial class HudController
         return column switch
         {
             1 => ViewTableSortField.Role,
-            2 => ViewTableSortField.Status,
-            3 => ViewTableSortField.Age,
-            4 => ViewTableSortField.OfficerLoyalty,
-            5 => ViewTableSortField.Strength,
-            6 => ViewTableSortField.Intelligence,
+            2 => ViewTableSortField.Appointment,
+            3 => ViewTableSortField.Status,
+            4 => ViewTableSortField.Age,
+            5 => ViewTableSortField.OfficerLoyalty,
+            6 => ViewTableSortField.Strength,
+            7 => ViewTableSortField.Intelligence,
             _ => ViewTableSortField.Name
         };
     }
 
     private static bool IsAscendingDefaultSortField(ViewTableSortField field)
     {
-        return field is ViewTableSortField.Name or ViewTableSortField.Role or ViewTableSortField.Status or ViewTableSortField.City or ViewTableSortField.Owner or ViewTableSortField.Holder or ViewTableSortField.ItemType or ViewTableSortField.Rarity or ViewTableSortField.RelationStatus;
+        return field is ViewTableSortField.Name or ViewTableSortField.Role or ViewTableSortField.Appointment or ViewTableSortField.Status or ViewTableSortField.City or ViewTableSortField.Owner or ViewTableSortField.Holder or ViewTableSortField.ItemType or ViewTableSortField.Rarity or ViewTableSortField.RelationStatus;
     }
 
     private IEnumerable<OfficerData> GetSortedOfficers(List<OfficerData> officers)
@@ -421,6 +425,9 @@ public partial class HudController
             ViewTableSortField.Role => _viewTableSortAscending
                 ? officers.OrderBy(officer => _localization?.GetOfficerRole(officer) ?? officer.Role)
                 : officers.OrderByDescending(officer => _localization?.GetOfficerRole(officer) ?? officer.Role),
+            ViewTableSortField.Appointment => _viewTableSortAscending
+                ? officers.OrderBy(BuildOfficerAppointmentsForSort)
+                : officers.OrderByDescending(BuildOfficerAppointmentsForSort),
             ViewTableSortField.Status => _viewTableSortAscending
                 ? officers.OrderBy(GetOfficerStatusSortKey)
                 : officers.OrderByDescending(GetOfficerStatusSortKey),
@@ -449,6 +456,16 @@ public partial class HudController
                 ? officers.OrderBy(BuildMaskedOfficerName)
                 : officers.OrderByDescending(BuildMaskedOfficerName)
         };
+    }
+
+    private string BuildOfficerAppointmentsForSort(OfficerData officer)
+    {
+        if (!CanViewOfficerFullInformation(officer))
+        {
+            return UnknownInfoText;
+        }
+
+        return BuildOfficerAppointmentsText(officer);
     }
 
     private List<ItemData> GetSortedFactionInventoryItems()

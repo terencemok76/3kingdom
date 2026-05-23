@@ -338,7 +338,8 @@ public partial class HudController : CanvasLayer
         OfficerSelectorPrimaryStat primaryStat,
         Action<int> onConfirmed,
         IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
-        string? initialScopeKey = null)
+        string? initialScopeKey = null,
+        OfficerSelectorDisplayConfig? displayConfig = null)
     {
         if (_turnManager?.World == null || _selectOfficerDialog == null || _localization == null)
         {
@@ -366,10 +367,7 @@ public partial class HudController : CanvasLayer
                 .Select(officer => new SelectOfficerDialog.RowData
                 {
                     OfficerId = officer.Id,
-                    OfficerName = _localization.GetOfficerName(officer),
-                    RoleName = _localization.GetOfficerRole(officer),
-                    StatusName = _localization.GetOfficerStatus(_turnManager.World, officer),
-                    PrimaryStatText = GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString()
+                    ColumnTexts = GetOfficerSelectorColumnTexts(officer, primaryStat, displayConfig)
                 })
                 .ToList();
         }
@@ -391,10 +389,7 @@ public partial class HudController : CanvasLayer
             .Select(officer => new SelectOfficerDialog.RowData
             {
                 OfficerId = officer.Id,
-                OfficerName = _localization.GetOfficerName(officer),
-                RoleName = _localization.GetOfficerRole(officer),
-                StatusName = _localization.GetOfficerStatus(_turnManager.World, officer),
-                PrimaryStatText = GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString()
+                ColumnTexts = GetOfficerSelectorColumnTexts(officer, primaryStat, displayConfig)
             })
             .ToList();
         var scopeRows = scopeOptions?
@@ -410,10 +405,7 @@ public partial class HudController : CanvasLayer
         _selectOfficerDialog.ShowSelector(
             title,
             _localization.T("ui.confirm_officer_selection"),
-            _localization.T("ui.officers"),
-            _localization.T("ui.role"),
-            _localization.T("ui.status"),
-            GetOfficerSelectorPrimaryStatTitle(primaryStat),
+            BuildOfficerSelectorColumns(primaryStat, displayConfig),
             rows,
             officerId =>
             {
@@ -422,7 +414,53 @@ public partial class HudController : CanvasLayer
                 _genericOfficerSelectorCandidateIds.Clear();
             },
             scopeRows,
-            initialScopeKey);
+            initialScopeKey,
+            displayConfig?.PanelSize);
+    }
+
+    private IReadOnlyList<SelectOfficerDialog.ColumnDefinition> BuildOfficerSelectorColumns(
+        OfficerSelectorPrimaryStat primaryStat,
+        OfficerSelectorDisplayConfig? displayConfig)
+    {
+        if (displayConfig != null)
+        {
+            return displayConfig.Columns
+                .Select(column => new SelectOfficerDialog.ColumnDefinition
+                {
+                    Title = column.Title,
+                    MinWidth = column.MinWidth
+                })
+                .ToList();
+        }
+
+        return
+        [
+            new SelectOfficerDialog.ColumnDefinition { Title = _localization?.T("ui.officers") ?? "Officer", MinWidth = 150 },
+            new SelectOfficerDialog.ColumnDefinition { Title = _localization?.T("ui.role") ?? "Role", MinWidth = 100 },
+            new SelectOfficerDialog.ColumnDefinition { Title = _localization?.T("ui.status") ?? "Status", MinWidth = 100 },
+            new SelectOfficerDialog.ColumnDefinition { Title = GetOfficerSelectorPrimaryStatTitle(primaryStat), MinWidth = 90 }
+        ];
+    }
+
+    private IReadOnlyList<string> GetOfficerSelectorColumnTexts(
+        OfficerData officer,
+        OfficerSelectorPrimaryStat primaryStat,
+        OfficerSelectorDisplayConfig? displayConfig)
+    {
+        if (displayConfig != null)
+        {
+            return displayConfig.BuildRowTexts(officer);
+        }
+
+        return
+        [
+            _localization?.GetOfficerName(officer) ?? officer.Name,
+            _localization?.GetOfficerRole(officer) ?? officer.Role,
+            _turnManager?.World != null && _localization != null
+                ? _localization.GetOfficerStatus(_turnManager.World, officer)
+                : string.Empty,
+            GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString()
+        ];
     }
 
     private string GetOfficerSelectorPrimaryStatTitle(OfficerSelectorPrimaryStat primaryStat)

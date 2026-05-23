@@ -18,12 +18,13 @@ public static class OfficerProgressionRules
     public static int GetStatBonus(OfficerData officer, OfficerProgressionStat stat)
     {
         var roleBonus = GetRoleStatBonus(officer.Role, stat);
+        var appointmentBonus = GetAppointmentStatBonus(officer, stat);
         var titleBonus = GetTitleStatBonus(officer.GeneralTitle, stat) +
                          GetTitleStatBonus(officer.StrategistTitle, stat) +
                          GetTitleStatBonus(officer.SpyTitle, stat) +
                          GetTitleStatBonus(officer.DiplomacyTitle, stat) +
                          GetTitleStatBonus(officer.CivilTitle, stat);
-        return roleBonus + titleBonus;
+        return roleBonus + appointmentBonus + titleBonus;
     }
 
     public static int GetInternalAffairsOutputBonus(OfficerData officer, InternalAffairsJobType jobType)
@@ -169,13 +170,35 @@ public static class OfficerProgressionRules
         return role.ToLowerInvariant() switch
         {
             "general" when stat is OfficerProgressionStat.Leadership or OfficerProgressionStat.Combat => 2,
-            "strategist" when stat == OfficerProgressionStat.Intelligence => 4,
-            "strategist" when stat == OfficerProgressionStat.Charm => 2,
             "advisor" when stat is OfficerProgressionStat.Intelligence or OfficerProgressionStat.Politics => 2,
-            "governor" when stat == OfficerProgressionStat.Politics => 4,
-            "governor" when stat == OfficerProgressionStat.Charm => 2,
             _ => 0
         };
+    }
+
+    private static int GetAppointmentStatBonus(OfficerData officer, OfficerProgressionStat stat)
+    {
+        var bonus = 0;
+        if (OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Strategist))
+        {
+            bonus += stat switch
+            {
+                OfficerProgressionStat.Intelligence => 4,
+                OfficerProgressionStat.Charm => 2,
+                _ => 0
+            };
+        }
+
+        if (OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor))
+        {
+            bonus += stat switch
+            {
+                OfficerProgressionStat.Politics => 4,
+                OfficerProgressionStat.Charm => 2,
+                _ => 0
+            };
+        }
+
+        return bonus;
     }
 
     private static int GetTitleStatBonus(string titleKey, OfficerProgressionStat stat)

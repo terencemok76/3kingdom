@@ -24,8 +24,8 @@ public partial class HudController
     internal void PersonnelAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
 
     internal void PersonnelRefreshSelectedCity() => RefreshSelectedCity();
-
     internal void PersonnelRefreshMapVisuals() => _mapController?.RefreshVisuals();
+    internal UiEventHub PersonnelUiEventHub => _uiEventHub;
 
     internal void PersonnelConfigureMoveSpinBox(SpinBox? spinBox, int maxValue, int value) => ConfigureMoveSpinBox(spinBox, maxValue, value);
 
@@ -37,6 +37,21 @@ public partial class HudController
         IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
         string? initialScopeKey = null) =>
         ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey);
+
+    internal void PersonnelShowAssignRoleOfficerSelectorDialog(
+        string title,
+        List<int> candidateOfficerIds,
+        Action<int> confirmedAction,
+        IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
+        string? initialScopeKey = null) =>
+        ShowOfficerSelectorDialog(
+            title,
+            candidateOfficerIds,
+            OfficerSelectorPrimaryStat.Politics,
+            confirmedAction,
+            scopeOptions,
+            initialScopeKey,
+            BuildAssignRoleOfficerSelectorDisplayConfig());
 
     internal List<int> PersonnelGetAvailableOfficerIdsForOrder() => GetAvailableOfficerIdsForOrder().ToList();
 
@@ -54,5 +69,94 @@ public partial class HudController
         {
             CopyButtonTheme(MainHudViewButton, button);
         }
+    }
+
+    private OfficerSelectorDisplayConfig BuildAssignRoleOfficerSelectorDisplayConfig()
+    {
+        return new OfficerSelectorDisplayConfig
+        {
+            Columns =
+            [
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.officers") ?? "Officer", MinWidth = 140 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.role") ?? "Role", MinWidth = 90 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.appointed_titles") ?? "Appointments", MinWidth = 180 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.city") ?? "City", MinWidth = 100 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.status") ?? "Status", MinWidth = 90 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.age") ?? "Age", MinWidth = 60 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.loyalty") ?? "Loyalty", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.strength") ?? "Strength", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.intelligence") ?? "Intelligence", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.charm") ?? "Charm", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.leadership") ?? "Leadership", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.politics") ?? "Politics", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.combat") ?? "Combat", MinWidth = 70 }
+            ],
+            BuildRowTexts = BuildAssignRoleOfficerSelectorRowTexts,
+            PanelSize = new Vector2(1460.0f, 360.0f)
+        };
+    }
+
+    private IReadOnlyList<string> BuildAssignRoleOfficerSelectorRowTexts(OfficerData officer)
+    {
+        var age = CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0);
+        var cityName = _turnManager?.World?.GetCity(officer.CityId) is { } city && _localization != null
+            ? _localization.GetCityName(city)
+            : "-";
+        var statusName = _turnManager?.World != null && _localization != null
+            ? _localization.GetOfficerStatus(_turnManager.World, officer)
+            : string.Empty;
+        var appointedTitles = GetOfficerAppointmentSummary(officer);
+
+        return
+        [
+            _localization?.GetOfficerName(officer) ?? officer.Name,
+            _localization?.GetOfficerRole(officer) ?? officer.Role,
+            appointedTitles,
+            cityName,
+            statusName,
+            age.ToString(),
+            officer.Loyalty.ToString(),
+            officer.Strength.ToString(),
+            officer.Intelligence.ToString(),
+            officer.Charm.ToString(),
+            officer.Leadership.ToString(),
+            officer.Politics.ToString(),
+            officer.Combat.ToString()
+        ];
+    }
+
+    private string GetOfficerAppointmentSummary(OfficerData officer)
+    {
+        var world = _turnManager?.World;
+        var localization = _localization;
+        if (world == null || localization == null)
+        {
+            return string.Empty;
+        }
+
+        var titles = officer.Appointments
+            .Where(static appointment => !string.IsNullOrWhiteSpace(appointment))
+            .Select(localization.GetAppointmentName)
+            .ToList();
+
+        var faction = world.Factions.FirstOrDefault(item => item.OfficerIds.Contains(officer.Id));
+        if (faction != null)
+        {
+            if (faction.ChancellorOfficerId == officer.Id)
+            {
+                titles.Add(localization.GetAppointmentName(OfficerAppointmentRules.Chancellor));
+            }
+
+            if (faction.ChiefStrategistOfficerId == officer.Id)
+            {
+                titles.Add(localization.GetAppointmentName(OfficerAppointmentRules.ChiefStrategist));
+            }
+        }
+
+        var distinctTitles = titles
+            .Where(static title => !string.IsNullOrWhiteSpace(title))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return distinctTitles.Count > 0 ? string.Join(" / ", distinctTitles) : localization.T("ui.none");
     }
 }

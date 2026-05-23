@@ -3,12 +3,14 @@ namespace ThreeKingdom.UI;
 public sealed class ViewUiController
 {
     private readonly ViewUiContext _context;
+    private readonly UiEventHub _uiEventHub;
     private readonly OfficerListDialogController _officerListDialogController;
     private readonly OfficerDetailDialogController _officerDetailDialogController;
 
     public ViewUiController(HudController hud)
     {
         _context = new ViewUiContext(hud);
+        _uiEventHub = hud.PersonnelUiEventHub;
         _officerDetailDialogController = new OfficerDetailDialogController(_context);
         _officerListDialogController = new OfficerListDialogController(_context, _officerDetailDialogController);
     }
@@ -17,10 +19,12 @@ public sealed class ViewUiController
     {
         _officerListDialogController.Initialize();
         _officerDetailDialogController.Initialize();
+        _uiEventHub.OfficerAppointmentsChanged += OnOfficerAppointmentsChanged;
     }
 
     public void Shutdown()
     {
+        _uiEventHub.OfficerAppointmentsChanged -= OnOfficerAppointmentsChanged;
     }
 
     public void HideDialogs()
@@ -48,5 +52,16 @@ public sealed class ViewUiController
     public void ShowViewDialog()
     {
         _officerListDialogController.ShowMainDialog();
+    }
+
+    private void OnOfficerAppointmentsChanged(UiEventHub.OfficerAppointmentsChangedEvent payload)
+    {
+        if (!_officerListDialogController.IsOpen())
+        {
+            return;
+        }
+
+        RefreshOfficerListChrome();
+        RefreshOfficerListContent();
     }
 }

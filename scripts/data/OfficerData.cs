@@ -54,6 +54,7 @@ public class OfficerData
     public int CivilExperience { get; set; }
     public int CivilRank { get; set; }
     public string CivilTitle { get; set; } = string.Empty;
+    public List<string> Appointments { get; set; } = new();
     [JsonPropertyName("relationship_type")]
     public Dictionary<string, string> RelationshipType { get; set; } = new();
     public int CityId { get; set; }

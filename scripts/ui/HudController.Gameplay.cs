@@ -98,6 +98,17 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
+            foreach (var appointmentResult in _aiController.RunFactionAppointmentDecisions(faction.Id))
+            {
+                if (!appointmentResult.Success)
+                {
+                    continue;
+                }
+
+                var factionName = _localization.GetFactionName(world, faction.Id);
+                AddLog(_localization.FormatAiCityAction(factionName, "-", GetLocalizedResultMessage(appointmentResult)));
+            }
+
             var cityIds = new List<int>();
             foreach (var city in world.Cities)
             {

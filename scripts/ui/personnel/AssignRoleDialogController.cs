@@ -1,5 +1,6 @@
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 
 namespace ThreeKingdom.UI;
 
@@ -110,10 +111,8 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         if (_roleOption != null)
         {
             _roleOption.Clear();
-            AddRoleOption("General");
-            AddRoleOption("Strategist");
-            AddRoleOption("Advisor");
             AddRoleOption("Governor");
+            AddRoleOption("Strategist");
             AddRoleOption("Chancellor");
             AddRoleOption("ChiefStrategist");
             if (_roleOption.ItemCount > 0)
@@ -154,10 +153,8 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
 
         return role.ToLowerInvariant() switch
         {
-            "general" => _context.Localization.T("role.general"),
-            "strategist" => _context.Localization.T("role.strategist"),
-            "advisor" => _context.Localization.T("role.advisor"),
             "governor" => _context.Localization.T("role.governor"),
+            "strategist" => _context.Localization.T("role.strategist"),
             "chancellor" => _context.Localization.T("ui.chancellor"),
             "chiefstrategist" => _context.Localization.T("ui.chief_strategist"),
             _ => role
@@ -185,14 +182,18 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         var officer = world.GetOfficer(_selectedOfficerId);
         var sourceCityId = officer?.CityId ?? city.Id;
         var roleMetadata = _roleOption?.GetItemMetadata(_roleOption.Selected);
-        var role = roleMetadata?.VariantType == Variant.Type.String ? roleMetadata.Value.AsString() : "General";
+        var role = roleMetadata?.VariantType == Variant.Type.String ? roleMetadata.Value.AsString() : OfficerAppointmentRules.Governor;
         var result = role switch
-        {
+            {
             "Chancellor" or "ChiefStrategist" => commandResolver.ExecuteAssignFactionAdvisor(turnManager.GetPlayerFactionId(), sourceCityId, _selectedOfficerId, role),
-            _ => commandResolver.ExecuteAssignOfficerRole(turnManager.GetPlayerFactionId(), sourceCityId, _selectedOfficerId, role)
+            _ => commandResolver.ExecuteAssignOfficerAppointment(turnManager.GetPlayerFactionId(), sourceCityId, _selectedOfficerId, role)
         };
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         _context.RefreshSelectedCity();
+        if (result.Success)
+        {
+            _context.UiEventHub.PublishOfficerAppointmentsChanged(_selectedOfficerId, sourceCityId, city.OwnerFactionId);
+        }
         HideOverlay();
     }
 
@@ -212,10 +213,9 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             return;
         }
 
-        _context.ShowOfficerSelectorDialog(
+        _context.ShowAssignRoleOfficerSelectorDialog(
             localization.T("ui.assign_role_officer"),
             localCandidateOfficerIds.Count > 0 ? localCandidateOfficerIds : factionCandidateOfficerIds,
-            HudController.OfficerSelectorPrimaryStat.Politics,
             officerId =>
             {
                 _selectedOfficerId = officerId;
@@ -279,7 +279,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
     {
         if (_roleOption == null || _roleOption.ItemCount == 0 || _roleOption.Selected < 0)
         {
-            return GetRoleDisplayName("General");
+            return GetRoleDisplayName(OfficerAppointmentRules.Governor);
         }
 
         var roleMetadata = _roleOption.GetItemMetadata(_roleOption.Selected);
@@ -288,6 +288,6 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             return GetRoleDisplayName(roleMetadata.AsString());
         }
 
-        return GetRoleDisplayName("General");
+        return GetRoleDisplayName(OfficerAppointmentRules.Governor);
     }
 }

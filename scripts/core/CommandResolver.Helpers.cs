@@ -482,6 +482,7 @@ public partial class CommandResolver
         officer.CityId = 0;
         officer.FreeOfficerStayMonths = 0;
         officer.DeathYear = world.Year;
+        ClearAllOfficerAppointments(officer);
 
         if (faction != null && faction.RulerOfficerId == officer.Id)
         {
@@ -502,8 +503,7 @@ public partial class CommandResolver
         var candidateIds = faction.OfficerIds
             .Select(world.GetOfficer)
             .Where(officer => officer != null && IsOfficerAlive(world, officer))
-            .OrderByDescending(officer => IsRulerRole(officer!.Role))
-            .ThenByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
+            .OrderByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
             .ThenByDescending(officer => officer!.Loyalty)
             .Select(officer => officer!.Id)
             .ToList();
@@ -541,18 +541,26 @@ public partial class CommandResolver
 
     private void ApplyFactionSuccessor(WorldState world, FactionData faction, OfficerData successor)
     {
+        var previousRuler = world.GetOfficer(faction.RulerOfficerId);
+        if (previousRuler != null && previousRuler.Id != successor.Id)
+        {
+            ClearOfficerAppointment(previousRuler, OfficerAppointmentRules.Lord);
+        }
+
         faction.RulerOfficerId = successor.Id;
         if (faction.ChancellorOfficerId == successor.Id)
         {
             faction.ChancellorOfficerId = 0;
+            ClearOfficerAppointment(successor, OfficerAppointmentRules.Chancellor);
         }
 
         if (faction.ChiefStrategistOfficerId == successor.Id)
         {
             faction.ChiefStrategistOfficerId = 0;
+            ClearOfficerAppointment(successor, OfficerAppointmentRules.ChiefStrategist);
         }
 
-        successor.Role = "Lord";
+        AssignOfficerAppointment(successor, OfficerAppointmentRules.Lord);
         successor.Belongs = faction.Id.ToString();
         var successorNameZh = !string.IsNullOrWhiteSpace(successor.NameZhHant) ? successor.NameZhHant : successor.Name;
         var successorNameEn = !string.IsNullOrWhiteSpace(successor.Name) ? successor.Name : successor.NameZhHant;
@@ -728,14 +736,15 @@ public partial class CommandResolver
         return officer.DeathYear <= 0 || world.Year < officer.DeathYear;
     }
 
-    private static bool IsRulerRole(string role)
-    {
-        return role.Equals("Lord", StringComparison.OrdinalIgnoreCase) ||
-               role.Equals("Ruler", StringComparison.OrdinalIgnoreCase);
-    }
-
     private static void ClearFactionAdvisorPosts(WorldState world, int officerId)
     {
+        var officer = world.GetOfficer(officerId);
+        if (officer != null)
+        {
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Chancellor);
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.ChiefStrategist);
+        }
+
         foreach (var faction in world.Factions)
         {
             if (faction.ChancellorOfficerId == officerId)
@@ -750,13 +759,33 @@ public partial class CommandResolver
         }
     }
 
+    private static void ClearOfficerAppointment(OfficerData officer, string appointment)
+    {
+        OfficerAppointmentRules.RemoveAppointment(officer, appointment);
+    }
+
+    private static void ClearAllOfficerAppointments(OfficerData officer)
+    {
+        officer.Appointments.Clear();
+    }
+
+    private static void AssignOfficerAppointment(OfficerData officer, string appointment)
+    {
+        OfficerAppointmentRules.AddAppointment(officer, appointment);
+    }
+
+    private static bool HasOfficerAppointment(OfficerData officer, string appointment)
+    {
+        return OfficerAppointmentRules.HasAppointment(officer, appointment);
+    }
+
     private static bool IsValidAdvisorPosition(string position)
     {
         return position.Equals("Chancellor", StringComparison.OrdinalIgnoreCase) ||
                position.Equals("ChiefStrategist", StringComparison.OrdinalIgnoreCase);
     }
 
-    private string GetAdvisorPositionName(string position, GameLanguage language)
+    private string GetAppointmentName(string position, GameLanguage language)
     {
         if (_localization == null)
         {
@@ -765,6 +794,9 @@ public partial class CommandResolver
 
         return position.ToLowerInvariant() switch
         {
+            "lord" => _localization.TForLanguage(language, "role.lord"),
+            "governor" => _localization.TForLanguage(language, "role.governor"),
+            "strategist" => _localization.TForLanguage(language, "role.strategist"),
             "chancellor" => _localization.TForLanguage(language, "ui.chancellor"),
             "chiefstrategist" => _localization.TForLanguage(language, "ui.chief_strategist"),
             _ => position
@@ -827,28 +859,9 @@ public partial class CommandResolver
         return true;
     }
 
-    private static bool IsAssignableRole(string role)
+    private static bool IsValidOfficerAppointment(string role)
     {
-        return role.Equals("General", StringComparison.OrdinalIgnoreCase) ||
-               role.Equals("Strategist", StringComparison.OrdinalIgnoreCase) ||
-               role.Equals("Advisor", StringComparison.OrdinalIgnoreCase) ||
-               role.Equals("Governor", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private string GetOfficerRoleName(string role, GameLanguage language)
-    {
-        var key = role.ToLowerInvariant() switch
-        {
-            "general" => "role.general",
-            "strategist" => "role.strategist",
-            "advisor" => "role.advisor",
-            "governor" => "role.governor",
-            _ => string.Empty
-        };
-
-        return string.IsNullOrWhiteSpace(key)
-            ? role
-            : _localization?.FormatForLanguage(language, key) ?? role;
+        return OfficerAppointmentRules.IsValidOfficerAppointment(role);
     }
 
     private static int GetNextInternalAffairsScheduleId(WorldState world)

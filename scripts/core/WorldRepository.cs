@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using File = System.IO.File;
 using Directory = System.IO.Directory;
 using Path = System.IO.Path;
@@ -14,7 +15,8 @@ public class WorldRepository
 {
     private const int MinimumOfficerJoinAge = 18;
     private const string MapLocationsPath = "res://data/scenarios/map_locations_40.json";
-    private const string OfficerDataPath = "res://data/person/officer.json";
+    private const string OfficerDataDirectoryPath = "res://data/person";
+    private const string DefaultOfficerDataPath = "res://data/person/officer_story01.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -41,7 +43,7 @@ public class WorldRepository
             return null;
         }
 
-        LoadOfficerData(world);
+        LoadOfficerData(world, path);
         ApplyMapLocations(world);
         return world;
     }
@@ -93,19 +95,7 @@ public class WorldRepository
             return document;
         }
 
-        var legacyWorld = JsonSerializer.Deserialize<WorldState>(json, JsonOptions);
-        if (legacyWorld == null)
-        {
-            return null;
-        }
-
-        NormalizeLoadedWorld(legacyWorld);
-        return new SaveGameData
-        {
-            Description = string.Empty,
-            SavedAtUtc = string.Empty,
-            World = legacyWorld
-        };
+        return null;
     }
 
     public SaveSlotSummary LoadSaveSlotSummary(string path, int slotIndex)
@@ -330,10 +320,17 @@ public class WorldRepository
             city.EnsureTroopTypesInitialized();
         }
 
+        foreach (var officer in world.Officers)
+        {
+            OfficerAppointmentRules.NormalizeOfficer(officer);
+        }
+
         foreach (var faction in world.Factions)
         {
             faction.OfficerIds ??= new List<int>();
         }
+
+        EnsureFactionRulersAssigned(world);
     }
 
     private static string ResolveWritablePath(string path)
@@ -349,23 +346,56 @@ public class WorldRepository
             : Path.GetFullPath(path);
     }
 
-    private static void LoadOfficerData(WorldState world)
+    private static void LoadOfficerData(WorldState world, string scenarioPath)
     {
-        if (!FileAccess.FileExists(OfficerDataPath))
+        var officerDataPath = ResolveOfficerDataPath(world, scenarioPath);
+        if (string.IsNullOrWhiteSpace(officerDataPath) || !FileAccess.FileExists(officerDataPath))
         {
+            GD.PushWarning($"Officer dataset missing for story: {world.StoryId}");
             return;
         }
 
-        using var file = FileAccess.Open(OfficerDataPath, FileAccess.ModeFlags.Read);
+        using var file = FileAccess.Open(officerDataPath, FileAccess.ModeFlags.Read);
         var raw = file.GetAsText();
         var document = JsonSerializer.Deserialize<OfficerDatasetDocument>(raw, JsonOptions);
         if (document?.Characters == null || document.Characters.Count == 0)
         {
-            GD.PushWarning($"Officer dataset could not be parsed: {OfficerDataPath}");
+            GD.PushWarning($"Officer dataset could not be parsed: {officerDataPath}");
             return;
         }
 
         world.Officers = document.Characters;
+        foreach (var officer in world.Officers)
+        {
+            OfficerAppointmentRules.NormalizeOfficer(officer);
+        }
+    }
+
+    private static string ResolveOfficerDataPath(WorldState world, string scenarioPath)
+    {
+        var candidates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(world.StoryId))
+        {
+            candidates.Add($"{OfficerDataDirectoryPath}/officer_{world.StoryId}.json");
+        }
+
+        var scenarioFileName = Path.GetFileNameWithoutExtension(scenarioPath);
+        if (!string.IsNullOrWhiteSpace(scenarioFileName))
+        {
+            candidates.Add($"{OfficerDataDirectoryPath}/officer_{scenarioFileName}.json");
+        }
+
+        candidates.Add(DefaultOfficerDataPath);
+
+        foreach (var candidate in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (FileAccess.FileExists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return string.Empty;
     }
 
     private static void ApplyCityStarts(WorldState world, List<CityStartData> cityStarts)
@@ -541,6 +571,18 @@ public class WorldRepository
             {
                 faction.ChiefStrategistOfficerId = 0;
             }
+
+            SyncFactionLordAppointment(world, faction);
+        }
+
+        foreach (var officer in world.Officers)
+        {
+            if (world.Factions.Any(faction => faction.RulerOfficerId == officer.Id))
+            {
+                continue;
+            }
+
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
         }
     }
 
@@ -549,7 +591,16 @@ public class WorldRepository
         foreach (var officerId in faction.OfficerIds)
         {
             var officer = world.GetOfficer(officerId);
-            if (officer != null && IsRulerRole(officer.Role))
+            if (officer != null && OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Lord))
+            {
+                return officer;
+            }
+        }
+
+        foreach (var officerId in faction.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer != null && IsLegacyRulerRole(officer.Role))
             {
                 return officer;
             }
@@ -558,7 +609,27 @@ public class WorldRepository
         return null;
     }
 
-    private static bool IsRulerRole(string role)
+    private static void SyncFactionLordAppointment(WorldState world, FactionData faction)
+    {
+        foreach (var officerId in faction.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            if (officer.Id == faction.RulerOfficerId)
+            {
+                OfficerAppointmentRules.AddAppointment(officer, OfficerAppointmentRules.Lord);
+                continue;
+            }
+
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
+        }
+    }
+
+    private static bool IsLegacyRulerRole(string role)
     {
         return role.Equals("Lord", System.StringComparison.OrdinalIgnoreCase) ||
                role.Equals("Ruler", System.StringComparison.OrdinalIgnoreCase);

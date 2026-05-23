@@ -406,9 +406,7 @@ public class LocalizationService
         {
             "lord" => "role.lord",
             "general" => "role.general",
-            "strategist" => "role.strategist",
             "advisor" => "role.advisor",
-            "governor" => "role.governor",
             _ => string.Empty
         };
 
@@ -419,6 +417,27 @@ public class LocalizationService
 
         var localized = T(key);
         return string.Equals(localized, key, StringComparison.Ordinal) ? officer.Role : localized;
+    }
+
+    public string GetAppointmentName(string appointment)
+    {
+        var key = appointment.ToLowerInvariant() switch
+        {
+            "lord" => "role.lord",
+            "governor" => "role.governor",
+            "strategist" => "role.strategist",
+            "chancellor" => "ui.chancellor",
+            "chiefstrategist" => "ui.chief_strategist",
+            _ => string.Empty
+        };
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return appointment;
+        }
+
+        var localized = T(key);
+        return string.Equals(localized, key, StringComparison.Ordinal) ? appointment : localized;
     }
 
     public string GetProgressionTitle(string titleKey)

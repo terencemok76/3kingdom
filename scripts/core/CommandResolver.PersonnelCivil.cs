@@ -140,7 +140,7 @@ public partial class CommandResolver
         });
     }
 
-    public CommandResult ExecuteAssignOfficerRole(int actorFactionId, int cityId, int officerId, string role)
+    public CommandResult ExecuteAssignOfficerAppointment(int actorFactionId, int cityId, int officerId, string appointment)
     {
         if (_turnManager?.World == null)
         {
@@ -170,17 +170,34 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.assign_role.ruler_blocked");
         }
 
-        if (!IsAssignableRole(role))
+        if (!IsValidOfficerAppointment(appointment))
         {
             return LocalizedResult(false, "cmd.assign_role.invalid_role");
         }
 
-        officer.Role = role;
+        if (appointment.Equals(OfficerAppointmentRules.Governor, StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var cityOfficerId in city.OfficerIds)
+            {
+                if (cityOfficerId == officer.Id)
+                {
+                    continue;
+                }
+
+                var cityOfficer = world.GetOfficer(cityOfficerId);
+                if (cityOfficer != null)
+                {
+                    ClearOfficerAppointment(cityOfficer, OfficerAppointmentRules.Governor);
+                }
+            }
+        }
+
+        AssignOfficerAppointment(officer, appointment);
         return LocalizedResult(
             true,
             "cmd.assign_role.resolved",
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetOfficerRoleName(role, GameLanguage.TraditionalChinese) },
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetOfficerRoleName(role, GameLanguage.English) });
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetAppointmentName(appointment, GameLanguage.TraditionalChinese) },
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAppointmentName(appointment, GameLanguage.English) });
     }
 
     public CommandResult ExecuteAssignFactionAdvisor(int actorFactionId, int cityId, int officerId, string position)
@@ -226,18 +243,30 @@ public partial class CommandResolver
 
         if (position.Equals("Chancellor", StringComparison.OrdinalIgnoreCase))
         {
+            var previousHolder = world.GetOfficer(faction.ChancellorOfficerId);
+            if (previousHolder != null && previousHolder.Id != officer.Id)
+            {
+                ClearOfficerAppointment(previousHolder, OfficerAppointmentRules.Chancellor);
+            }
             faction.ChancellorOfficerId = officer.Id;
+            AssignOfficerAppointment(officer, OfficerAppointmentRules.Chancellor);
         }
         else
         {
+            var previousHolder = world.GetOfficer(faction.ChiefStrategistOfficerId);
+            if (previousHolder != null && previousHolder.Id != officer.Id)
+            {
+                ClearOfficerAppointment(previousHolder, OfficerAppointmentRules.ChiefStrategist);
+            }
             faction.ChiefStrategistOfficerId = officer.Id;
+            AssignOfficerAppointment(officer, OfficerAppointmentRules.ChiefStrategist);
         }
 
         return LocalizedResult(
             true,
             "cmd.assign_advisor.resolved",
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetAdvisorPositionName(position, GameLanguage.TraditionalChinese) },
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAdvisorPositionName(position, GameLanguage.English) });
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetAppointmentName(position, GameLanguage.TraditionalChinese) },
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAppointmentName(position, GameLanguage.English) });
     }
 
     public CommandResult ExecuteFireOfficer(int actorFactionId, int cityId, int officerId)
@@ -288,6 +317,7 @@ public partial class CommandResolver
         var faction = world.GetFaction(actorFactionId);
         faction?.OfficerIds.Remove(officer.Id);
         ClearFactionAdvisorPosts(world, officer.Id);
+        ClearAllOfficerAppointments(officer);
 
         foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officer.Id))
         {
@@ -398,6 +428,7 @@ public partial class CommandResolver
         var oldFaction = sourceFactionId > 0 ? world.GetFaction(sourceFactionId) : null;
         oldFaction?.OfficerIds.Remove(officer.Id);
         ClearFactionAdvisorPosts(world, officer.Id);
+        ClearAllOfficerAppointments(officer);
         var newFaction = world.GetFaction(actorFactionId);
         if (newFaction != null && !newFaction.OfficerIds.Contains(officer.Id))
         {

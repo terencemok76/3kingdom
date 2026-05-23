@@ -4,8 +4,8 @@
 								   "en":  "Officer To Assign"
 							   },
 	"ui.assign_role_title":  {
-								 "zhHant":  "官職",
-								 "en":  "Official Title"
+								 "zhHant":  "職位",
+								 "en":  "Appointment"
 							 },
 	"ui.advisor_assign_officer":  {
 									  "zhHant":  "任命武將",
@@ -260,8 +260,8 @@
 						  "en":  "Commercial"
 					  },
 	"ui.confirm_assign_role":  {
-								   "zhHant":  "確認官職",
-								   "en":  "Confirm Title"
+								   "zhHant":  "確認職位",
+								   "en":  "Confirm Appointment"
 							   },
 	"ui.confirm_advisor_assign":  {
 									  "zhHant":  "確認任命",

@@ -112,6 +112,11 @@ public partial class HudController
         return MaskedText(CanViewOfficerFullInformation(officer), _localization?.GetOfficerRole(officer) ?? officer.Role);
     }
 
+    private string BuildMaskedOfficerAppointments(OfficerData officer)
+    {
+        return MaskedText(CanViewOfficerFullInformation(officer), BuildOfficerAppointmentsText(officer));
+    }
+
     private string BuildMaskedOfficerStatus(WorldState world, OfficerData officer)
     {
         return MaskedText(

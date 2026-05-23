@@ -27,6 +27,11 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         HideOverlay();
     }
 
+    public bool IsOpen()
+    {
+        return OverlayRoot?.Visible == true;
+    }
+
     public void RefreshText()
     {
         _context.RefreshDialogsText();

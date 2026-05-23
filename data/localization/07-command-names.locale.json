@@ -64,8 +64,8 @@
                                           "en":  "Farm"
                                       },
     "command.personnel.assign_title":  {
-                                           "zhHant":  "指派官職",
-                                           "en":  "Assign Official Title"
+                                           "zhHant":  "指派職位",
+                                           "en":  "Assign Appointment"
                                        },
     "command.personnel.fire_officer":  {
                                            "zhHant":  "開除武將",
