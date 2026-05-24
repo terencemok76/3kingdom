@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Godot;
+
 namespace ThreeKingdom.UI;
 
 public sealed class SpyUiController
@@ -25,4 +28,12 @@ public sealed class SpyUiController
     }
 
     public void ShowSpyDialog() => _dialogController.Show();
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        if (_dialogController.OverlayControl?.Visible == true)
+        {
+            overlays.Add(_dialogController.OverlayControl);
+        }
+    }
 }

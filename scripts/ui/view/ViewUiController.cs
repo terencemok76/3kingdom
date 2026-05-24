@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Godot;
+
 namespace ThreeKingdom.UI;
 
 public sealed class ViewUiController
@@ -89,5 +92,19 @@ public sealed class ViewUiController
         }
 
         _officerDetailDialogController.RefreshShownOfficer();
+    }
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        AddVisibleOverlay(overlays, _officerListDialogController);
+        AddVisibleOverlay(overlays, _officerDetailDialogController);
+    }
+
+    private static void AddVisibleOverlay(List<Control> overlays, FloatingOverlayController controller)
+    {
+        if (controller.OverlayControl?.Visible == true)
+        {
+            overlays.Add(controller.OverlayControl);
+        }
     }
 }

@@ -31,6 +31,7 @@ internal sealed class CityInfoPanelController
     private Vector2 _defaultContentSize;
     private Vector2 _contentSize;
     private bool _minimized;
+    private bool _temporarilyHidden;
     private bool _developButtonConnected;
     private bool _recruitButtonConnected;
     private bool _moveButtonConnected;
@@ -134,7 +135,7 @@ internal sealed class CityInfoPanelController
     {
         if (_context.CityPanelHeaderLabel != null)
         {
-            _context.CityPanelHeaderLabel.Text = _context.Localization?.T("ui.city_panel_title") ?? "City Affairs";
+            _context.CityPanelHeaderLabel.Text = _context.Localization?.T("ui.city_panel_title") ?? "City Info";
         }
     }
 
@@ -221,10 +222,11 @@ internal sealed class CityInfoPanelController
         _header.Position = _headerPosition;
         _header.Size = new Vector2(headerWidth, FloatingPanelHeaderHeight);
         _minimizeButton.Text = _minimized ? "+" : "-";
+        _header.Visible = !_temporarilyHidden;
 
-        _background.Visible = !_minimized;
-        _content.Visible = !_minimized;
-        if (_minimized)
+        _background.Visible = !_temporarilyHidden && !_minimized;
+        _content.Visible = !_temporarilyHidden && !_minimized;
+        if (_temporarilyHidden || _minimized)
         {
             return;
         }
@@ -240,6 +242,19 @@ internal sealed class CityInfoPanelController
         _context.MoveToFront(_background);
         _context.MoveToFront(_content);
         _context.MoveToFront(_header);
+    }
+
+    public void CollectVisiblePanelControls(System.Collections.Generic.List<Control> controls)
+    {
+        AddVisibleControl(controls, _header);
+        AddVisibleControl(controls, _background);
+        AddVisibleControl(controls, _content);
+    }
+
+    public void SetTemporarilyHidden(bool hidden)
+    {
+        _temporarilyHidden = hidden;
+        ApplyLayout();
     }
 
     public void ApplyLoadedSettings(bool minimized, float x, float y, float width, float height)
@@ -401,6 +416,14 @@ internal sealed class CityInfoPanelController
         if (button != null)
         {
             button.Text = text;
+        }
+    }
+
+    private static void AddVisibleControl(System.Collections.Generic.List<Control> controls, Control? control)
+    {
+        if (control?.Visible == true)
+        {
+            controls.Add(control);
         }
     }
 

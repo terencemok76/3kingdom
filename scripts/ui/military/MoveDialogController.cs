@@ -14,6 +14,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
     private SpinBox? _horseSpinBox;
     private Tree? _officerList;
     private bool _signalsConnected;
+    private bool _officerListSignalsConnected;
+    private bool _officerListGuiInputConnected;
     protected override Vector2 MinimumOverlaySize => new(460.0f, 560.0f);
 
     public MoveDialogController(MilitaryUiContext context)
@@ -86,6 +88,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
                 _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
                 rowIndex += 1;
             }
+
+            UpdateOfficerCheckHighlights();
         }
 
         ShowOverlay();
@@ -124,6 +128,18 @@ internal sealed class MoveDialogController : FloatingOverlayController
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+
+        if (!_officerListSignalsConnected && _officerList != null)
+        {
+            _officerList.ItemSelected += UpdateOfficerCheckHighlights;
+            _officerListSignalsConnected = true;
+        }
+
+        if (!_officerListGuiInputConnected && _officerList != null)
+        {
+            _officerList.GuiInput += OnOfficerListGuiInput;
+            _officerListGuiInputConnected = true;
         }
 
         if (_signalsConnected || _confirmButton == null)
@@ -186,6 +202,83 @@ internal sealed class MoveDialogController : FloatingOverlayController
         spinBox.MinValue = 0;
         spinBox.MaxValue = maxValue;
         spinBox.Value = maxValue <= 0 ? 0 : Mathf.Clamp(defaultValue, 0, maxValue);
+    }
+
+    private void UpdateOfficerCheckHighlights()
+    {
+        if (_officerList == null)
+        {
+            return;
+        }
+
+        var root = _officerList.GetRoot();
+        var row = root?.GetFirstChild();
+        var rowIndex = 0;
+        while (row != null)
+        {
+            ApplyOfficerRowVisualState(row, rowIndex, _officerList.Columns, IsOfficerRowChecked(row));
+            row = row.GetNext();
+            rowIndex += 1;
+        }
+    }
+
+    private static void ApplyOfficerRowVisualState(TreeItem row, int rowIndex, int columnCount, bool isChecked)
+    {
+        var background = isChecked
+            ? new Color(0.33f, 0.27f, 0.16f, 0.78f)
+            : (rowIndex % 2 == 0
+                ? new Color(0.12f, 0.12f, 0.14f, 0.84f)
+                : new Color(0.16f, 0.16f, 0.18f, 0.8f));
+        var textColor = isChecked
+            ? new Color(0.94f, 0.91f, 0.84f, 1.0f)
+            : new Color(0.92f, 0.89f, 0.82f, 1.0f);
+
+        for (var column = 0; column < columnCount; column += 1)
+        {
+            row.SetCustomBgColor(column, background, false);
+            row.SetCustomColor(column, column == 0
+                ? (isChecked ? new Color(0.88f, 0.79f, 0.52f, 1.0f) : new Color(0.60f, 0.57f, 0.52f, 0.92f))
+                : textColor);
+        }
+
+        row.SetText(0, isChecked ? "●" : "○");
+    }
+
+    private void ToggleOfficerRow(TreeItem row)
+    {
+        if (row == null)
+        {
+            return;
+        }
+
+        var current = row.GetMetadata(0).VariantType == Variant.Type.Bool && row.GetMetadata(0).AsBool();
+        row.SetMetadata(0, !current);
+    }
+
+    private static bool IsOfficerRowChecked(TreeItem row)
+    {
+        return row.GetMetadata(0).VariantType == Variant.Type.Bool && row.GetMetadata(0).AsBool();
+    }
+
+    private void OnOfficerListGuiInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton mouseButton ||
+            mouseButton.ButtonIndex != MouseButton.Left ||
+            !mouseButton.Pressed ||
+            _officerList == null)
+        {
+            return;
+        }
+
+        var clickedRow = _officerList.GetItemAtPosition(mouseButton.Position);
+        if (clickedRow == null)
+        {
+            return;
+        }
+
+        ToggleOfficerRow(clickedRow);
+        UpdateOfficerCheckHighlights();
+        _officerList.AcceptEvent();
     }
 
     private void SetLabelText(string nodeName, string text)

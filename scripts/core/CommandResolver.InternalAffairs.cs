@@ -410,13 +410,22 @@ public partial class CommandResolver
                 continue;
             }
 
-            if (city.PrefectAuthorizationType == PrefectAuthorizationType.None)
+            var isPlayerCity = city.OwnerFactionId == playerFactionId;
+            var prefect = GetCityPrefect(world, city);
+            var effectiveAuthorizationType = city.PrefectAuthorizationType;
+            if (!isPlayerCity &&
+                effectiveAuthorizationType == PrefectAuthorizationType.None &&
+                prefect != null)
+            {
+                effectiveAuthorizationType = PrefectAuthorizationType.Full;
+            }
+
+            if (effectiveAuthorizationType == PrefectAuthorizationType.None)
             {
                 ClearCityAuthorizedPlan(city);
                 continue;
             }
 
-            var prefect = GetCityPrefect(world, city);
             if (prefect == null)
             {
                 ClearCityAuthorizedPlan(city);
@@ -433,17 +442,18 @@ public partial class CommandResolver
                 continue;
             }
 
-            if (city.PrefectAuthorizationType == PrefectAuthorizationType.Full && city.PrefectPlanRemainingMonths <= 0)
+            if (effectiveAuthorizationType == PrefectAuthorizationType.Full && city.PrefectPlanRemainingMonths <= 0)
             {
-                var plannedJob = ChooseAuthorizedPlanJob(world, city);
+                var plannedJob = ChooseAuthorizedPlanJob(world, city, prefect);
                 if (!plannedJob.HasValue)
                 {
                     continue;
                 }
 
                 city.PrefectPlanJobType = plannedJob.Value;
-                city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value);
+                city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect);
                 city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
+                city.PrefectPlanIsPlayerDirected = false;
             }
 
             if (city.PrefectPlanRemainingMonths <= 0)

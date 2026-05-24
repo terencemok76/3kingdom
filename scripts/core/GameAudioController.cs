@@ -6,8 +6,8 @@ public partial class GameAudioController : Node
 {
     private const string DefaultBgmPath = "res://assets/bgm/bgm_main_menu_01.ogg";
     private const string SecondaryBgmPath = "res://assets/bgm/bgm_main_menu_02.ogg";
-    private const string ClickSfxPath = "res://assets/sfx/click_sound.ogg";
-    private const string ClickCitySfxPath = "res://assets/sfx/click_city_sound.ogg";
+    private const string ClickSfxPath = "res://assets/sfx/menu/click_sound.ogg";
+    private const string ClickCitySfxPath = "res://assets/sfx/menu/click_city_sound.ogg";
 
     public static GameAudioController? Instance { get; private set; }
 
@@ -20,6 +20,7 @@ public partial class GameAudioController : Node
     private AudioStreamPlayer? _bgmPlayer;
     private AudioStreamPlayer? _sfxPlayer;
     private AudioStreamPlayer? _citySfxPlayer;
+    private AudioStreamPlayer? _eventSfxPlayer;
     private int _currentBgmIndex;
     private bool _bgmEnabled = true;
     private bool _sfxEnabled = true;
@@ -54,6 +55,14 @@ public partial class GameAudioController : Node
             ProcessMode = ProcessModeEnum.Always
         };
         AddChild(_citySfxPlayer);
+
+        _eventSfxPlayer = new AudioStreamPlayer
+        {
+            Name = "EventSfxPlayer",
+            Bus = "Master",
+            ProcessMode = ProcessModeEnum.Always
+        };
+        AddChild(_eventSfxPlayer);
 
         PlayCurrentBgm();
         LoadClickSfx();
@@ -112,6 +121,24 @@ public partial class GameAudioController : Node
         }
 
         _citySfxPlayer.Play();
+    }
+
+    public void PlayEventSfx(string resourcePath)
+    {
+        if (!_sfxEnabled || _eventSfxPlayer == null || string.IsNullOrWhiteSpace(resourcePath))
+        {
+            return;
+        }
+
+        var stream = ResourceLoader.Load<AudioStream>(resourcePath);
+        if (stream == null)
+        {
+            GD.PushWarning($"Event SFX resource missing: {resourcePath}");
+            return;
+        }
+
+        _eventSfxPlayer.Stream = stream;
+        _eventSfxPlayer.Play();
     }
 
     private void OnBgmFinished()
@@ -201,5 +228,13 @@ public partial class GameAudioController : Node
 
         _citySfxPlayer.StreamPaused = !_sfxEnabled;
         _citySfxPlayer.VolumeDb = _sfxEnabled ? Mathf.LinearToDb(Mathf.Max(_sfxVolume, 0.0001f)) : -80.0f;
+
+        if (_eventSfxPlayer == null)
+        {
+            return;
+        }
+
+        _eventSfxPlayer.StreamPaused = !_sfxEnabled;
+        _eventSfxPlayer.VolumeDb = _sfxEnabled ? Mathf.LinearToDb(Mathf.Max(_sfxVolume, 0.0001f)) : -80.0f;
     }
 }

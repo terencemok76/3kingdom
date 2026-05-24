@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Godot;
+
 namespace ThreeKingdom.UI;
 
 public sealed class MerchantUiController
@@ -28,5 +31,13 @@ public sealed class MerchantUiController
     public void ShowMerchantDialog()
     {
         _dialogController.Show();
+    }
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        if (_dialogController.OverlayControl?.Visible == true)
+        {
+            overlays.Add(_dialogController.OverlayControl);
+        }
     }
 }

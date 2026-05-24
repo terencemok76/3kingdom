@@ -1,0 +1,79 @@
+[
+	{
+		"eventType": "bandit",
+		"picture":"bandit.png", 
+		"sound":"bandit.ogg",
+		"durationSeconds": 2.6,
+		"mapMarkerColor": "#C98B2B"
+	},
+	{
+		"eventType": "drought",
+		"picture":"drought.png", 
+		"sound":"drought.ogg",
+		"durationSeconds": 2.8,
+		"mapMarkerColor": "#C76A2A"
+	},
+	{
+		"eventType": "earthquake",
+		"picture":"earthquake.png", 
+		"sound":"earthquake.ogg",
+		"durationSeconds": 2.8,
+		"mapMarkerColor": "#E3A13E"
+	},
+	{
+		"eventType": "fire",
+		"picture":"fire.png", 
+		"sound":"fire.ogg",
+		"durationSeconds": 2.7,
+		"mapMarkerColor": "#D84A1B"
+	},
+	{
+		"eventType": "flooding",
+		"picture":"flooding.png", 
+		"sound":"flooding.ogg",
+		"durationSeconds": 2.9,
+		"mapMarkerColor": "#2C84D8"
+	},
+	{
+		"eventType": "bumperHarvest",
+		"picture":"harvest.png", 
+		"sound":"harvest.ogg",
+		"durationSeconds": 2.5,
+		"mapMarkerColor": "#D6B638"
+	},
+	{
+		"eventType": "insectDisaster",
+		"picture":"insect.png", 
+		"sound":"insect.ogg",
+		"durationSeconds": 2.6,
+		"mapMarkerColor": "#7A9B2E"
+	},
+	{
+		"eventType": "plague",
+		"picture":"plague.png", 
+		"sound":"plague.ogg",
+		"durationSeconds": 2.7,
+		"mapMarkerColor": "#A45CDA"
+	},
+	{
+		"eventType": "rebellion",
+		"picture":"rebellion.png", 
+		"sound":"rebellion.ogg",
+		"durationSeconds": 2.9,
+		"mapMarkerColor": "#B13A2F"
+	},
+	{
+		"eventType": "snow",
+		"picture":"snow.png", 
+		"sound":"snow.ogg",
+		"durationSeconds": 2.7,
+		"mapMarkerColor": "#B7D1E8"
+	},
+	{
+		"eventType": "typhoon",
+		"picture":"typhoon.png", 
+		"sound":"typhoon.ogg",
+		"durationSeconds": 3.0,
+		"mapMarkerColor": "#556FB5"
+	}
+]

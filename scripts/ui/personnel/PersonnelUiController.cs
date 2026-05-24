@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Godot;
+
 namespace ThreeKingdom.UI;
 
 public sealed class PersonnelUiController
@@ -113,5 +116,25 @@ public sealed class PersonnelUiController
     private void OnWorldStateChanged(UiEventHub.FactionLeadershipChangedEvent _)
     {
         _prefectAuthorizationDialogController.RefreshIfOpen();
+    }
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        AddVisibleOverlay(overlays, _commandDialogController);
+        AddVisibleOverlay(overlays, _bonusDialogController);
+        AddVisibleOverlay(overlays, _assignRoleDialogController);
+        AddVisibleOverlay(overlays, _prefectAuthorizationDialogController);
+        AddVisibleOverlay(overlays, _fireOfficerDialogController);
+        AddVisibleOverlay(overlays, _requestItemDialogController);
+        AddVisibleOverlay(overlays, _hireOfficerDialogController);
+        AddVisibleOverlay(overlays, _successionDialogController);
+    }
+
+    private static void AddVisibleOverlay(List<Control> overlays, FloatingOverlayController controller)
+    {
+        if (controller.OverlayControl?.Visible == true)
+        {
+            overlays.Add(controller.OverlayControl);
+        }
     }
 }

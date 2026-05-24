@@ -1,0 +1,54 @@
+{
+    "event.name.flooding": {
+        "zhHant": "洪水",
+        "en": "Flooding"
+    },
+    "event.name.drought": {
+        "zhHant": "旱災",
+        "en": "Drought"
+    },
+    "event.name.earthquake": {
+        "zhHant": "地震",
+        "en": "Earthquake"
+    },
+    "event.name.insect_disaster": {
+        "zhHant": "蟲害",
+        "en": "Insect Disaster"
+    },
+    "event.name.plague": {
+        "zhHant": "瘟疫",
+        "en": "Plague"
+    },
+    "event.name.rebellion": {
+        "zhHant": "暴動",
+        "en": "Rebellion"
+    },
+    "event.name.bandit": {
+        "zhHant": "盜賊",
+        "en": "Bandits"
+    },
+    "event.name.snow": {
+        "zhHant": "大雪",
+        "en": "Snow"
+    },
+    "event.name.typhoon": {
+        "zhHant": "颱風",
+        "en": "Typhoon"
+    },
+    "event.name.bumper_harvest": {
+        "zhHant": "豐收",
+        "en": "Bumper Harvest"
+    },
+    "event.name.fire": {
+        "zhHant": "火災",
+        "en": "Fire"
+    },
+    "ui.event_presentation.caption": {
+        "zhHant": "{0} 發生 {1}",
+        "en": "{1} in {0}"
+    },
+    "ui.event_presentation.map_tag": {
+        "zhHant": "【{0}】",
+        "en": "[{0}]"
+    }
+}

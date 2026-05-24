@@ -95,6 +95,8 @@ internal sealed class MainHudUiController
     public void ApplyCityInfoLoadedSettings(bool minimized, float x, float y, float width, float height) => _cityInfoPanelController.ApplyLoadedSettings(minimized, x, y, width, height);
     public void PopulateCityInfoSettings(HudController.OptionSettingsData settings) => _cityInfoPanelController.PopulateSettings(settings);
     public void RestoreCityInfoLayout() => _cityInfoPanelController.RestoreDefaultLayout();
+    public void CollectVisibleCityInfoControls(System.Collections.Generic.List<Control> controls) => _cityInfoPanelController.CollectVisiblePanelControls(controls);
+    public void SetCityInfoTemporarilyHidden(bool hidden) => _cityInfoPanelController.SetTemporarilyHidden(hidden);
 
     public Vector2 GetLogHeaderPosition() => _logPanelController.GetHeaderPosition();
     public float GetLogHeaderWidth() => _logPanelController.GetHeaderWidth();

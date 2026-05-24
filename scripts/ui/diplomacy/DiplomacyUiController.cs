@@ -1,5 +1,7 @@
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using System.Collections.Generic;
+using Godot;
 
 namespace ThreeKingdom.UI;
 
@@ -45,4 +47,18 @@ public sealed class DiplomacyUiController
     public void ShowDiplomacyDialog() => _dialogController.Show();
 
     public void ShowProposalDialog(PendingCommandData pendingCommand) => _proposalDialogController.Show(pendingCommand);
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        AddVisibleOverlay(overlays, _dialogController);
+        AddVisibleOverlay(overlays, _proposalDialogController);
+    }
+
+    private static void AddVisibleOverlay(List<Control> overlays, FloatingOverlayController controller)
+    {
+        if (controller.OverlayControl?.Visible == true)
+        {
+            overlays.Add(controller.OverlayControl);
+        }
+    }
 }

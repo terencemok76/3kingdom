@@ -252,8 +252,13 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             var officer = world.GetOfficer(schedule.OfficerId);
             var officerName = officer != null ? localization.GetOfficerName(officer) : "-";
             var stateText = GetScheduleStateText(schedule);
+            var sourceText = schedule.IsAuthorizedPlan
+                ? GetAuthorizedPlanSourceText(city)
+                : localization.T("ui.none");
             var itemIndex = _scheduleList.AddItem(
-                localization.Format("fmt.internal_affairs_schedule_row", GetJobName(schedule.JobType), officerName, schedule.RemainingMonths, stateText));
+                schedule.IsAuthorizedPlan
+                    ? localization.Format("fmt.internal_affairs_schedule_row_with_source", GetJobName(schedule.JobType), officerName, schedule.RemainingMonths, stateText, sourceText)
+                    : localization.Format("fmt.internal_affairs_schedule_row", GetJobName(schedule.JobType), officerName, schedule.RemainingMonths, stateText));
             _scheduleList.SetItemMetadata(itemIndex, schedule.Id);
         }
     }
@@ -521,6 +526,19 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             InternalAffairsScheduleState.Paused => localization.T("ui.internal_affairs_status_paused"),
             _ => schedule.State.ToString()
         };
+    }
+
+    private string GetAuthorizedPlanSourceText(CityData city)
+    {
+        var localization = _context.Localization;
+        if (localization == null)
+        {
+            return city.PrefectPlanIsPlayerDirected ? "Player" : "Prefect";
+        }
+
+        return city.PrefectPlanIsPlayerDirected
+            ? localization.T("ui.prefect_plan_source.player")
+            : localization.T("ui.prefect_plan_source.prefect");
     }
 
     private void HandleScheduleActionResult(CommandResult result)

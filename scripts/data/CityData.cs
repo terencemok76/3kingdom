@@ -61,6 +61,7 @@ public class CityData
     public InternalAffairsJobType PrefectPlanJobType { get; set; } = InternalAffairsJobType.Farm;
     public int PrefectPlanTotalMonths { get; set; }
     public int PrefectPlanRemainingMonths { get; set; }
+    public bool PrefectPlanIsPlayerDirected { get; set; }
 
     public List<int> OfficerIds { get; set; } = new();
     public List<int> ConnectedCityIds { get; set; } = new();

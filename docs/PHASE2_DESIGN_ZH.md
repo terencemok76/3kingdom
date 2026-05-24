@@ -710,3 +710,14 @@
 這屬於過渡實作，不代表最終資料語意。
 
 文件自本節起，以「`Role = 基礎身份`、`職位 = 可多重任命`」作為後續設計準則。
+
+## 13. 實作補充文件
+
+以下文件用來補充目前已落地、但尚未完全整理回主設計章節的實作行為：
+
+- `PHASE2_LOG_PANEL_NOTES_ZH.md`
+  - 日誌面板標題、篩選、player-related log 顯示規則
+- `PHASE2_EVENT_AND_MILITARY_UI_NOTES_ZH.md`
+  - 月事件演出、地圖事件標記、軍事選將互動與視覺狀態
+- `ENCODING_NOTES.md`
+  - 中文文件、locale、source file 在 PowerShell 下應優先使用 UTF-8 的處理規則

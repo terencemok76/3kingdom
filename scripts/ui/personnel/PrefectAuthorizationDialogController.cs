@@ -247,16 +247,27 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         var planText = city.PrefectPlanRemainingMonths > 0
             ? $"{GetJobDisplayName(city.PrefectPlanJobType)} / {city.PrefectPlanRemainingMonths}"
             : _context.Localization.T("ui.none");
+        var currentPlanSourceText = city.PrefectPlanRemainingMonths > 0
+            ? GetPlanSourceDisplayName(city.PrefectPlanIsPlayerDirected)
+            : _context.Localization.T("ui.none");
         var pendingPlanText = GetSelectedAuthorizationType() == PrefectAuthorizationType.Half
             ? $"{GetJobDisplayName(GetSelectedPlanJobType())} / {GetSelectedPlanDuration()}"
             : _context.Localization.T("ui.none");
+        var pendingPlanSourceText = GetSelectedAuthorizationType() switch
+        {
+            PrefectAuthorizationType.Half => GetPlanSourceDisplayName(true),
+            PrefectAuthorizationType.Full => GetPlanSourceDisplayName(false),
+            _ => _context.Localization.T("ui.none")
+        };
 
         _summaryLabel.Text =
             $"{_context.Localization.T("ui.prefect_authorization_prefect")}: {prefectName}\n" +
             $"{_context.Localization.T("ui.prefect_authorization_current")}: {currentMode}\n" +
             $"{_context.Localization.T("ui.prefect_authorization_pending")}: {selectedMode}\n" +
             $"{_context.Localization.T("ui.current_plan")}: {planText}\n" +
-            $"{_context.Localization.T("ui.pending_plan")}: {pendingPlanText}";
+            $"{_context.Localization.T("ui.prefect_plan_source")}: {currentPlanSourceText}\n" +
+            $"{_context.Localization.T("ui.pending_plan")}: {pendingPlanText}\n" +
+            $"{_context.Localization.T("ui.prefect_plan_pending_source")}: {pendingPlanSourceText}";
     }
 
     private PrefectAuthorizationType GetSelectedAuthorizationType()
@@ -366,6 +377,18 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             InternalAffairsJobType.Construction => _context.Localization?.T("command.internal_affairs.construction") ?? jobType.ToString(),
             _ => jobType.ToString()
         };
+    }
+
+    private string GetPlanSourceDisplayName(bool isPlayerDirected)
+    {
+        if (_context.Localization == null)
+        {
+            return isPlayerDirected ? "Player" : "Prefect";
+        }
+
+        return isPlayerDirected
+            ? _context.Localization.T("ui.prefect_plan_source.player")
+            : _context.Localization.T("ui.prefect_plan_source.prefect");
     }
 
     private static OfficerData? GetCityPrefect(WorldState world, CityData city)

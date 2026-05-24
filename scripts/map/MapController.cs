@@ -267,6 +267,28 @@ public partial class MapController : Node2D
         }
     }
 
+    public void HighlightCityEvent(int cityId, Color color, string eventTag, float durationSeconds = 0.0f)
+    {
+        foreach (var entry in _cityNodes)
+        {
+            if (entry.City.Id != cityId)
+            {
+                continue;
+            }
+
+            entry.Node.SetEventOverlay(color, durationSeconds, eventTag);
+            break;
+        }
+    }
+
+    public void ClearMonthlyEventHighlights()
+    {
+        foreach (var entry in _cityNodes)
+        {
+            entry.Node.ClearEventOverlay();
+        }
+    }
+
     public void SelectCityById(int cityId)
     {
         if (_world == null)
@@ -612,4 +634,3 @@ public partial class MapController : Node2D
         ClampWorldRootPosition();
     }
 }
-

@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Godot;
+
 namespace ThreeKingdom.UI;
 
 public sealed class CivilUiController
@@ -38,4 +41,19 @@ public sealed class CivilUiController
     public void ShowCivilDialog() => _commandDialogController.Show();
 
     public void ShowVisitCitizenDialog() => _visitCitizenDialogController.Show();
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        AddVisibleOverlay(overlays, _commandDialogController);
+        AddVisibleOverlay(overlays, _reliefDialogController);
+        AddVisibleOverlay(overlays, _visitCitizenDialogController);
+    }
+
+    private static void AddVisibleOverlay(List<Control> overlays, FloatingOverlayController controller)
+    {
+        if (controller.OverlayControl?.Visible == true)
+        {
+            overlays.Add(controller.OverlayControl);
+        }
+    }
 }

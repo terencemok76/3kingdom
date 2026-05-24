@@ -32,6 +32,8 @@ internal abstract class FloatingOverlayController
     protected PanelContainer? OverlayPanel { get; private set; }
     protected VBoxContainer? OverlayContentRoot { get; private set; }
     protected Label? OverlayTitleLabel { get; private set; }
+    public Control? OverlayControl => OverlayRoot;
+    public bool IsOverlayVisible => OverlayRoot?.Visible == true;
     protected virtual bool AutoFitOverlayHeight => false;
     protected virtual bool AutoFitOverlayWidth => false;
     protected virtual Vector2 MinimumOverlaySize => OverlayPanel?.CustomMinimumSize ?? Vector2.Zero;
@@ -61,17 +63,24 @@ internal abstract class FloatingOverlayController
             return false;
         }
 
+        OverlayRoot.MouseFilter = Control.MouseFilterEnum.Ignore;
         OverlayContentRoot = OverlayRoot.GetNodeOrNull<VBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot");
         OverlayPanel = OverlayRoot.GetNodeOrNull<PanelContainer>("CenterContainer/AdvisorDialogPanel");
+        var centerContainer = OverlayRoot.GetNodeOrNull<Control>("CenterContainer");
         var titleBar = OverlayRoot.GetNodeOrNull<Control>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar");
         OverlayTitleLabel = OverlayRoot.GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/TitleLabel");
         var closeButton = OverlayRoot.GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/CloseButton");
 
-        if (OverlayContentRoot == null || OverlayPanel == null || titleBar == null || closeButton == null)
+        if (OverlayContentRoot == null || OverlayPanel == null || centerContainer == null || titleBar == null || closeButton == null)
         {
             GD.PushError($"Floating overlay chrome not found in '{_scenePath}'.");
             return false;
         }
+
+        centerContainer.MouseFilter = Control.MouseFilterEnum.Ignore;
+        OverlayPanel.MouseFilter = Control.MouseFilterEnum.Stop;
+        OverlayContentRoot.MouseFilter = Control.MouseFilterEnum.Stop;
+        titleBar.MouseFilter = Control.MouseFilterEnum.Stop;
 
         if (!_chromeSignalsConnected)
         {
@@ -130,6 +139,11 @@ internal abstract class FloatingOverlayController
 
     protected T? GetOverlayContentNode<T>(string path) where T : class
         => OverlayContentRoot?.GetNodeOrNull<T>(path);
+
+    protected void ApplyInputThemeToSubtree(Node root)
+    {
+        ApplyOverlayInputThemes(root);
+    }
 
     protected abstract void OnOverlayContentReady(VBoxContainer root);
     protected virtual void OnOverlayCloseRequested() => HideOverlay();
@@ -239,6 +253,21 @@ internal abstract class FloatingOverlayController
         {
             ApplyOptionButtonTheme(optionButton);
         }
+
+        foreach (var spinBox in EnumerateDescendants<SpinBox>(root))
+        {
+            ApplySpinBoxTheme(spinBox);
+        }
+
+        foreach (var lineEdit in EnumerateDescendants<LineEdit>(root))
+        {
+            ApplyLineEditTheme(lineEdit);
+        }
+
+        foreach (var tree in EnumerateDescendants<Tree>(root))
+        {
+            ApplyTreeTheme(tree);
+        }
     }
 
     private static void ApplyOptionButtonTheme(OptionButton optionButton)
@@ -285,8 +314,148 @@ internal abstract class FloatingOverlayController
         optionButton.Modulate = Colors.White;
     }
 
+    private static void ApplySpinBoxTheme(SpinBox spinBox)
+    {
+        var lineEdit = spinBox.GetLineEdit();
+        if (lineEdit != null)
+        {
+            ApplyLineEditTheme(lineEdit);
+        }
+
+        spinBox.CustomMinimumSize = new Vector2(Mathf.Max(spinBox.CustomMinimumSize.X, 96.0f), spinBox.CustomMinimumSize.Y);
+        foreach (Node child in spinBox.GetChildren())
+        {
+            if (child is Button button)
+            {
+                ApplySpinBoxButtonTheme(button);
+            }
+        }
+    }
+
+    private static void ApplySpinBoxButtonTheme(Button button)
+    {
+        var normal = new StyleBoxFlat
+        {
+            BgColor = new Color(0.12f, 0.12f, 0.14f, 0.96f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.62f, 0.53f, 0.36f, 0.95f),
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4
+        };
+        var hover = (StyleBoxFlat)normal.Duplicate();
+        hover.BgColor = new Color(0.18f, 0.17f, 0.14f, 0.98f);
+        hover.BorderColor = new Color(0.82f, 0.7f, 0.46f, 1.0f);
+        var pressed = (StyleBoxFlat)hover.Duplicate();
+        pressed.BgColor = new Color(0.24f, 0.21f, 0.16f, 1.0f);
+
+        button.AddThemeStyleboxOverride("normal", normal);
+        button.AddThemeStyleboxOverride("hover", hover);
+        button.AddThemeStyleboxOverride("pressed", pressed);
+        button.AddThemeColorOverride("font_color", new Color(0.95f, 0.9f, 0.8f, 1.0f));
+        button.AddThemeColorOverride("font_hover_color", Colors.White);
+        button.AddThemeColorOverride("font_pressed_color", Colors.White);
+    }
+
+    private static void ApplyLineEditTheme(LineEdit lineEdit)
+    {
+        var normal = new StyleBoxFlat
+        {
+            BgColor = new Color(0.1f, 0.1f, 0.12f, 0.94f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.62f, 0.53f, 0.36f, 0.95f),
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+            ContentMarginLeft = 8.0f,
+            ContentMarginTop = 4.0f,
+            ContentMarginRight = 8.0f,
+            ContentMarginBottom = 4.0f
+        };
+        var focus = (StyleBoxFlat)normal.Duplicate();
+        focus.BorderColor = new Color(0.88f, 0.76f, 0.53f, 1.0f);
+        focus.BgColor = new Color(0.12f, 0.12f, 0.14f, 0.98f);
+        var readOnly = (StyleBoxFlat)normal.Duplicate();
+        readOnly.BorderColor = new Color(0.46f, 0.43f, 0.35f, 0.9f);
+        readOnly.BgColor = new Color(0.08f, 0.08f, 0.1f, 0.84f);
+
+        lineEdit.AddThemeStyleboxOverride("normal", normal);
+        lineEdit.AddThemeStyleboxOverride("focus", focus);
+        lineEdit.AddThemeStyleboxOverride("read_only", readOnly);
+        lineEdit.AddThemeColorOverride("font_color", new Color(0.95f, 0.91f, 0.84f, 1.0f));
+        lineEdit.AddThemeColorOverride("font_selected_color", Colors.White);
+        lineEdit.AddThemeColorOverride("selection_color", new Color(0.58f, 0.45f, 0.24f, 0.92f));
+        lineEdit.AddThemeColorOverride("caret_color", new Color(0.95f, 0.82f, 0.56f, 1.0f));
+        lineEdit.AddThemeColorOverride("font_placeholder_color", new Color(0.72f, 0.68f, 0.61f, 0.8f));
+    }
+
+    private static void ApplyTreeTheme(Tree tree)
+    {
+        var panel = new StyleBoxFlat
+        {
+            BgColor = new Color(0.08f, 0.08f, 0.1f, 0.9f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.44f, 0.37f, 0.25f, 0.95f)
+        };
+        var focus = (StyleBoxFlat)panel.Duplicate();
+        focus.BorderColor = new Color(0.85f, 0.72f, 0.48f, 1.0f);
+        var selected = new StyleBoxFlat
+        {
+            BgColor = new Color(0.46f, 0.38f, 0.24f, 0.94f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            BorderColor = new Color(0.67f, 0.53f, 0.28f, 1.0f)
+        };
+        var selectedFocus = (StyleBoxFlat)selected.Duplicate();
+        selectedFocus.BgColor = new Color(0.56f, 0.46f, 0.28f, 0.96f);
+        var titleNormal = new StyleBoxFlat
+        {
+            BgColor = new Color(0.14f, 0.13f, 0.11f, 0.98f),
+            BorderWidthBottom = 1,
+            BorderColor = new Color(0.48f, 0.39f, 0.24f, 0.96f)
+        };
+        var titleHover = (StyleBoxFlat)titleNormal.Duplicate();
+        titleHover.BgColor = new Color(0.19f, 0.17f, 0.14f, 1.0f);
+        var titlePressed = (StyleBoxFlat)titleNormal.Duplicate();
+        titlePressed.BgColor = new Color(0.28f, 0.23f, 0.16f, 1.0f);
+
+        tree.AddThemeStyleboxOverride("panel", panel);
+        tree.AddThemeStyleboxOverride("focus", focus);
+        tree.AddThemeStyleboxOverride("selected", selected);
+        tree.AddThemeStyleboxOverride("selected_focus", selectedFocus);
+        tree.AddThemeStyleboxOverride("title_button_normal", titleNormal);
+        tree.AddThemeStyleboxOverride("title_button_hover", titleHover);
+        tree.AddThemeStyleboxOverride("title_button_pressed", titlePressed);
+        tree.AddThemeColorOverride("font_color", new Color(0.95f, 0.91f, 0.84f, 1.0f));
+        tree.AddThemeColorOverride("font_hovered_color", Colors.White);
+        tree.AddThemeColorOverride("font_selected_color", Colors.White);
+        tree.AddThemeColorOverride("font_hovered_selected_color", Colors.White);
+        tree.AddThemeColorOverride("title_button_color", new Color(0.95f, 0.91f, 0.84f, 1.0f));
+        tree.AddThemeColorOverride("title_button_hover_color", Colors.White);
+        tree.AddThemeColorOverride("title_button_pressed_color", Colors.White);
+        tree.AddThemeColorOverride("guide_color", new Color(0.44f, 0.37f, 0.25f, 0.55f));
+    }
+
     private static System.Collections.Generic.IEnumerable<T> EnumerateDescendants<T>(Node root) where T : class
     {
+        if (root is T rootMatch)
+        {
+            yield return rootMatch;
+        }
+
         foreach (Node child in root.GetChildren())
         {
             if (child is T match)
@@ -344,6 +513,13 @@ internal abstract class FloatingOverlayController
             mouseButton.Pressed)
         {
             BringOverlayToFront();
+            OverlayPanel?.AcceptEvent();
+            return;
+        }
+
+        if (@event is InputEventMouseMotion)
+        {
+            OverlayPanel?.AcceptEvent();
         }
     }
 }

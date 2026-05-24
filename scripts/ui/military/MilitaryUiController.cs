@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Godot;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
@@ -116,4 +117,20 @@ public sealed class MilitaryUiController
     public void ResetAttackDialogState() => _attackDialogController.ResetState();
 
     public void ProcessDialogs() => _attackDialogController.Process();
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        AddVisibleOverlay(overlays, _attackDialogController);
+        AddVisibleOverlay(overlays, _commandDialogController);
+        AddVisibleOverlay(overlays, _moveDialogController);
+        AddVisibleOverlay(overlays, _recruitTroopDialogController);
+    }
+
+    private static void AddVisibleOverlay(List<Control> overlays, FloatingOverlayController controller)
+    {
+        if (controller.OverlayControl?.Visible == true)
+        {
+            overlays.Add(controller.OverlayControl);
+        }
+    }
 }

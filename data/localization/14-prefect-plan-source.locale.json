@@ -1,0 +1,22 @@
+{
+  "ui.prefect_plan_source": {
+    "zhHant": "目前來源",
+    "en": "Current Source"
+  },
+  "ui.prefect_plan_pending_source": {
+    "zhHant": "套用後來源",
+    "en": "Pending Source"
+  },
+  "ui.prefect_plan_source.player": {
+    "zhHant": "玩家指定",
+    "en": "Player Directed"
+  },
+  "ui.prefect_plan_source.prefect": {
+    "zhHant": "太守自選",
+    "en": "Prefect Directed"
+  },
+  "fmt.internal_affairs_schedule_row_with_source": {
+    "zhHant": "{0} | {1} | 剩餘 {2} 月 | {3} | {4}",
+    "en": "{0} | {1} | {2} months left | {3} | {4}"
+  }
+}

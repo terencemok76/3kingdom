@@ -332,6 +332,7 @@ public partial class HudController : CanvasLayer
         _selectOfficerDialog.Hide();
         LoadPortraitData();
         AttachClickSfxToButtons(this);
+        InitializeEventPresentationUi();
         LoadOptionSettings();
         ApplyAudioSettings();
     }
@@ -373,6 +374,7 @@ public partial class HudController : CanvasLayer
         _militaryUiController?.ProcessDialogs();
         UpdateFloatingPanelDragging();
         ProcessFloatingPanelDeferredRefresh();
+        ProcessEventPresentation();
     }
 
     private void AttachClickSfxToButtons(Node node)

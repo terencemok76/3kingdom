@@ -255,6 +255,8 @@ public partial class HudController
                 System.Math.Abs(cityEvent.TroopDelta)), isPlayerRelated: city.OwnerFactionId == playerFactionId);
         }
 
+        QueueMonthlyCityEventPresentations(economyResult.AllCityEvents);
+
         AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month), isPlayerRelated: true);
         RefreshMonth();
         AutoSelectPlayerCityForNewRound();

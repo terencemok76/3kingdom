@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Godot;
+
 namespace ThreeKingdom.UI;
 
 public sealed class AdvisorUiController
@@ -63,5 +66,13 @@ public sealed class AdvisorUiController
     private void OnWorldStateChanged(UiEventHub.FactionLeadershipChangedEvent _)
     {
         _dialogController.RefreshIfOpen();
+    }
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        if (_dialogController.OverlayControl?.Visible == true)
+        {
+            overlays.Add(_dialogController.OverlayControl);
+        }
     }
 }

@@ -323,12 +323,13 @@ public partial class CommandResolver
         }
         else if (authorizationType == PrefectAuthorizationType.Full && city.PrefectPlanRemainingMonths <= 0)
         {
-            var plannedJob = ChooseAuthorizedPlanJob(world, city);
+            var plannedJob = ChooseAuthorizedPlanJob(world, city, prefect);
             if (plannedJob.HasValue)
             {
                 city.PrefectPlanJobType = plannedJob.Value;
-                city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value);
+                city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect);
                 city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
+                city.PrefectPlanIsPlayerDirected = false;
             }
         }
 
@@ -389,6 +390,7 @@ public partial class CommandResolver
         city.PrefectPlanJobType = jobType;
         city.PrefectPlanTotalMonths = Math.Min(months, 24);
         city.PrefectPlanRemainingMonths = Math.Min(months, 24);
+        city.PrefectPlanIsPlayerDirected = city.PrefectAuthorizationType == PrefectAuthorizationType.Half;
 
         return LocalizedResult(
             true,

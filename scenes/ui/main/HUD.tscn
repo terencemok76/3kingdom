@@ -321,3 +321,47 @@ grow_horizontal = 2
 grow_vertical = 0
 bbcode_enabled = true
 text = ""
+
+[node name="EventPresentationOverlay" type="Control" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="Root/EventPresentationOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EventPresentationPanel" type="PanelContainer" parent="Root/EventPresentationOverlay/CenterContainer"]
+custom_minimum_size = Vector2(640, 420)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_command_normal")
+
+[node name="EventPresentationRoot" type="VBoxContainer" parent="Root/EventPresentationOverlay/CenterContainer/EventPresentationPanel"]
+custom_minimum_size = Vector2(640, 420)
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+theme_override_constants/separation = 12
+
+[node name="EventPictureRect" type="TextureRect" parent="Root/EventPresentationOverlay/CenterContainer/EventPresentationPanel/EventPresentationRoot"]
+custom_minimum_size = Vector2(612, 340)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EventCaptionLabel" type="Label" parent="Root/EventPresentationOverlay/CenterContainer/EventPresentationPanel/EventPresentationRoot"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+text = "Event"

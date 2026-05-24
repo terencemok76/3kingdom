@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Godot;
+
 namespace ThreeKingdom.UI;
 
 public sealed class SystemUiController
@@ -47,4 +50,19 @@ public sealed class SystemUiController
     public void ShowOptionDialog() => _optionDialogController.Show();
 
     public void CancelPendingConfirmation() => _saveLoadConfirmDialogController.Cancel();
+
+    public void CollectVisibleDialogOverlays(List<Control> overlays)
+    {
+        AddVisibleOverlay(overlays, _optionDialogController);
+        AddVisibleOverlay(overlays, _saveLoadDialogController);
+        AddVisibleOverlay(overlays, _saveLoadConfirmDialogController);
+    }
+
+    private static void AddVisibleOverlay(List<Control> overlays, FloatingOverlayController controller)
+    {
+        if (controller.OverlayControl?.Visible == true)
+        {
+            overlays.Add(controller.OverlayControl);
+        }
+    }
 }

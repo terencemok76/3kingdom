@@ -61,7 +61,10 @@ public partial class HudController : CanvasLayer
         var row = root?.GetFirstChild();
         while (row != null)
         {
-            if (row.IsChecked(checkColumn))
+            var isChecked = row.GetCellMode(checkColumn) == TreeItem.TreeCellMode.Check
+                ? row.IsChecked(checkColumn)
+                : row.GetMetadata(checkColumn).VariantType == Variant.Type.Bool && row.GetMetadata(checkColumn).AsBool();
+            if (isChecked)
             {
                 var metadata = row.GetMetadata(metadataColumn);
                 if (metadata.VariantType == Variant.Type.Int)
@@ -92,9 +95,9 @@ public partial class HudController : CanvasLayer
         tree.Columns = totalColumns;
         if (includeCheck)
         {
-            tree.SetColumnTitle(column, string.Empty);
-            tree.SetColumnCustomMinimumWidth(column, 32);
-            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
+            tree.SetColumnTitle(column, _localization.T("ui.select_short"));
+            tree.SetColumnCustomMinimumWidth(column, 44);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Center);
             column += 1;
         }
 
@@ -157,9 +160,9 @@ public partial class HudController : CanvasLayer
         var column = 0;
         if (includeCheck)
         {
-            row.SetCellMode(column, TreeItem.TreeCellMode.Check);
-            row.SetEditable(column, true);
-            row.SetChecked(column, false);
+            row.SetMetadata(column, false);
+            row.SetText(column, "○");
+            row.SetTextAlignment(column, HorizontalAlignment.Center);
             column += 1;
         }
 

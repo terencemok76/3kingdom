@@ -948,6 +948,7 @@ public partial class CommandResolver
         city.PrefectPlanJobType = InternalAffairsJobType.Farm;
         city.PrefectPlanTotalMonths = 0;
         city.PrefectPlanRemainingMonths = 0;
+        city.PrefectPlanIsPlayerDirected = false;
     }
 
     private static InternalAffairsScheduleData? GetAuthorizedPlanSchedule(WorldState world, int cityId)
@@ -970,20 +971,45 @@ public partial class CommandResolver
         schedule.State = InternalAffairsScheduleState.Terminated;
     }
 
-    private static InternalAffairsJobType? ChooseAuthorizedPlanJob(WorldState world, CityData city)
+    private static InternalAffairsJobType? ChooseAuthorizedPlanJob(WorldState world, CityData city, OfficerData? prefect = null)
     {
         var activeJobs = new HashSet<InternalAffairsJobType>(
             world.InternalAffairsSchedules
                 .Where(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.CityId == city.Id)
                 .Select(schedule => schedule.JobType));
 
+        var politics = prefect?.Politics ?? 50;
+        var intelligence = prefect?.Intelligence ?? 50;
+        var leadership = prefect?.Leadership ?? 50;
+        var ambition = prefect?.Ambition ?? 50;
+        var loyalty = prefect?.Loyalty ?? 50;
+        var balancedCivil = (politics + intelligence) / 2;
+        var defensiveBias = (leadership + intelligence + Math.Max(0, 100 - ambition / 2)) / 3;
+        var growthBias = (politics + Math.Max(0, ambition) + loyalty / 2) / 3;
+        var constructionBias = (leadership + politics + intelligence) / 3;
+
         var candidates = new (InternalAffairsJobType JobType, int Score)[]
         {
-            (InternalAffairsJobType.Farm, city.Farm),
-            (InternalAffairsJobType.Commercial, city.Commercial),
-            (InternalAffairsJobType.Defend, city.Defense),
-            (InternalAffairsJobType.WaterControl, city.DisasterPrevention),
-            (InternalAffairsJobType.Construction, city.Commercial + city.Defense)
+            (
+                InternalAffairsJobType.Farm,
+                city.Farm - (balancedCivil / 6) - ((city.Population < 42000 ? 10 : 0)) - ((city.Food < 1800 ? 14 : 0))
+            ),
+            (
+                InternalAffairsJobType.Commercial,
+                city.Commercial - (growthBias / 6) - ((city.Gold < 700 ? 18 : 0))
+            ),
+            (
+                InternalAffairsJobType.Defend,
+                city.Defense - (defensiveBias / 6) - ((city.Defense < 55 ? 14 : 0)) - ((city.Troops < 1800 ? 6 : 0))
+            ),
+            (
+                InternalAffairsJobType.WaterControl,
+                city.DisasterPrevention - (intelligence / 6) - ((city.DisasterPrevention < 45 ? 12 : 0))
+            ),
+            (
+                InternalAffairsJobType.Construction,
+                ((city.Commercial + city.Defense) / 2) - (constructionBias / 7) - ((city.HasBowWorkshop && city.HasSiegeWorkshop) ? 0 : 8)
+            )
         };
 
         return candidates
@@ -994,14 +1020,23 @@ public partial class CommandResolver
             .FirstOrDefault();
     }
 
-    private static int ChooseAuthorizedPlanDuration(CityData city, InternalAffairsJobType jobType)
+    private static int ChooseAuthorizedPlanDuration(CityData city, InternalAffairsJobType jobType, OfficerData? prefect = null)
     {
+        var politics = prefect?.Politics ?? 50;
+        var intelligence = prefect?.Intelligence ?? 50;
+        var leadership = prefect?.Leadership ?? 50;
+        var ambition = prefect?.Ambition ?? 50;
+
         return jobType switch
         {
-            InternalAffairsJobType.Farm when city.Farm < 50 => 3,
-            InternalAffairsJobType.Commercial when city.Commercial < 50 => 3,
-            InternalAffairsJobType.Defend when city.Defense < 55 => 3,
-            InternalAffairsJobType.WaterControl when city.DisasterPrevention < 40 => 3,
+            InternalAffairsJobType.Farm when city.Farm < 45 => 4,
+            InternalAffairsJobType.Commercial when city.Commercial < 45 => 4,
+            InternalAffairsJobType.Defend when city.Defense < 50 => 4,
+            InternalAffairsJobType.WaterControl when city.DisasterPrevention < 35 => 4,
+            InternalAffairsJobType.Construction when !city.HasBowWorkshop || !city.HasSiegeWorkshop => 3,
+            InternalAffairsJobType.Defend when leadership >= 75 => 3,
+            InternalAffairsJobType.Commercial when politics >= 75 && ambition >= 60 => 3,
+            InternalAffairsJobType.Farm when intelligence >= 70 => 3,
             _ => 2
         };
     }
