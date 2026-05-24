@@ -28,7 +28,9 @@ public partial class HudController
         var pendingResults = _commandResolver.ResolveInternalAffairsSchedules();
         for (var index = 0; index < pendingResults.Count; index += 1)
         {
-            AddLog(GetLocalizedResultMessage(pendingResults[index]), index < activeSchedules.Count && IsPlayerRelatedInternalAffairsSchedule(activeSchedules[index], playerFactionId));
+            var isPlayerRelated = pendingResults[index].IsPlayerRelated ??
+                (index < activeSchedules.Count && IsPlayerRelatedInternalAffairsSchedule(activeSchedules[index], playerFactionId));
+            AddLog(GetLocalizedResultMessage(pendingResults[index]), isPlayerRelated);
             CheckFactionEliminations();
         }
 
@@ -257,6 +259,8 @@ public partial class HudController
         RefreshMonth();
         AutoSelectPlayerCityForNewRound();
         RefreshSelectedCity();
+        _internalAffairsUiController?.RefreshIfOpen();
+        _personnelUiController?.RefreshIfOpen();
         EvaluateWinLose();
         _mapController?.RefreshVisuals();
     }

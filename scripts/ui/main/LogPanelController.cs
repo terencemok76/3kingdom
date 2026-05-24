@@ -1,20 +1,37 @@
+using System.Collections.Generic;
 using Godot;
 
 namespace ThreeKingdom.UI;
 
 internal sealed class LogPanelController
 {
+    private enum LogFilterMode
+    {
+        SelfFaction,
+        All
+    }
+
+    private sealed class LogEntry
+    {
+        public required string Message { get; init; }
+        public required bool IsPlayerRelated { get; init; }
+    }
+
     private readonly MainHudUiContext _context;
+    private readonly List<LogEntry> _entries = new();
     private bool _hasEntries;
     private const float FloatingPanelHeaderHeight = 30.0f;
     private const float FloatingPanelViewportMargin = 8.0f;
     private const float FloatingPanelTopClamp = 8.0f;
-    private const float LogPanelMinimizedWidth = 200.0f;
+    private const float LogPanelMinimizedWidth = 360.0f;
     private const float LogPanelMinimumWidth = 320.0f;
     private const float LogPanelMinimumHeight = 140.0f;
     private const float ResizeHandleSize = 30.0f;
     private PanelContainer? _header;
+    private HBoxContainer? _headerRow;
     private Button? _minimizeButton;
+    private Button? _selfFactionButton;
+    private Button? _allLogButton;
     private Button? _resizeHandle;
     private ColorRect? _background;
     private Vector2 _defaultHeaderPosition;
@@ -27,6 +44,7 @@ internal sealed class LogPanelController
     private Vector2 _contentSize;
     private bool _minimized;
     private bool _isResizing;
+    private LogFilterMode _filterMode = LogFilterMode.SelfFaction;
     private Vector2 _resizeStartMousePosition;
     private Vector2 _resizeStartSize;
 
@@ -40,7 +58,15 @@ internal sealed class LogPanelController
         if (_context.LogText != null)
         {
             _context.LogText.ScrollFollowing = true;
-            _hasEntries = !string.IsNullOrWhiteSpace(_context.LogText.Text);
+            if (!string.IsNullOrWhiteSpace(_context.LogText.Text))
+            {
+                _entries.Add(new LogEntry
+                {
+                    Message = _context.LogText.Text,
+                    IsPlayerRelated = true
+                });
+                _hasEntries = true;
+            }
         }
     }
 
@@ -66,49 +92,40 @@ internal sealed class LogPanelController
         _contentSize = _defaultContentSize;
         _background.MouseFilter = Control.MouseFilterEnum.Ignore;
         logText.MouseFilter = Control.MouseFilterEnum.Ignore;
+        InitializeHeaderButtons();
+        RefreshText();
         ApplyLayout();
     }
 
     public void RefreshText()
     {
+        RefreshPanelTitle();
+        UpdateFilterButtonText();
+        UpdateFilterButtonVisualState();
+        RebuildLogView();
     }
 
     public void RefreshPanelTitle()
     {
         if (_context.LogPanelHeaderLabel != null)
         {
-            _context.LogPanelHeaderLabel.Text = _context.Localization?.T("ui.log_panel_title") ?? "War Log";
+            _context.LogPanelHeaderLabel.Text = _context.Localization?.IsTraditionalChinese == true ? "日誌" : "Log";
         }
     }
 
     public void AddLog(string message, bool isPlayerRelated = false)
     {
-        var logText = _context.LogText;
-        if (logText == null || string.IsNullOrWhiteSpace(message))
+        if (string.IsNullOrWhiteSpace(message))
         {
             return;
         }
 
-        if (_hasEntries)
+        _entries.Add(new LogEntry
         {
-            logText.Newline();
-        }
-
-        if (isPlayerRelated)
-        {
-            logText.PushColor(new Color(0.24f, 0.43f, 0.82f, 1.0f));
-        }
-
-        logText.AddText(message);
-
-        if (isPlayerRelated)
-        {
-            logText.Pop();
-        }
-
-        _hasEntries = true;
-        var lastLine = Mathf.Max(logText.GetLineCount() - 1, 0);
-        logText.CallDeferred("scroll_to_line", lastLine);
+            Message = message,
+            IsPlayerRelated = isPlayerRelated
+        });
+        RebuildLogView();
     }
 
     public Vector2 GetHeaderPosition() => _headerPosition;
@@ -278,4 +295,164 @@ internal sealed class LogPanelController
             Mathf.Clamp(position.X, FloatingPanelViewportMargin, maxX),
             Mathf.Clamp(position.Y, FloatingPanelTopClamp, maxY));
     }
+
+    private void InitializeHeaderButtons()
+    {
+        if (_headerRow != null || _header == null)
+        {
+            return;
+        }
+
+        _headerRow = _header.GetChildCount() > 0 ? _header.GetChild(0) as HBoxContainer : null;
+        if (_headerRow == null)
+        {
+            return;
+        }
+
+        _selfFactionButton = CreateHeaderFilterButton(OnSelfFactionFilterPressed);
+        _allLogButton = CreateHeaderFilterButton(OnAllLogFilterPressed);
+
+        if (_selfFactionButton != null)
+        {
+            _headerRow.AddChild(_selfFactionButton);
+            _headerRow.MoveChild(_selfFactionButton, Mathf.Max(_headerRow.GetChildCount() - 2, 1));
+        }
+
+        if (_allLogButton != null)
+        {
+            _headerRow.AddChild(_allLogButton);
+            _headerRow.MoveChild(_allLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 2));
+        }
+    }
+
+    private Button CreateHeaderFilterButton(System.Action pressedAction)
+    {
+        var button = new Button
+        {
+            CustomMinimumSize = new Vector2(72.0f, 22.0f),
+            FocusMode = Control.FocusModeEnum.None
+        };
+        CopySharedButtonTheme(button);
+        button.Pressed += pressedAction;
+        return button;
+    }
+
+    private void CopySharedButtonTheme(Button target)
+    {
+        var source = _context.ViewButton;
+        if (source == null)
+        {
+            return;
+        }
+
+        foreach (var name in new[] { "normal", "hover", "pressed", "disabled", "focus" })
+        {
+            var style = source.GetThemeStylebox(name);
+            if (style != null)
+            {
+                target.AddThemeStyleboxOverride(name, style);
+            }
+        }
+
+        foreach (var name in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_disabled_color", "font_focus_color" })
+        {
+            if (source.HasThemeColorOverride(name))
+            {
+                target.AddThemeColorOverride(name, source.GetThemeColor(name));
+            }
+        }
+    }
+
+    private void UpdateFilterButtonText()
+    {
+        if (_context.Localization == null)
+        {
+            return;
+        }
+
+        if (_selfFactionButton != null)
+        {
+            _selfFactionButton.Text = _context.Localization?.IsTraditionalChinese == true ? "本勢力" : "Self Faction";
+        }
+
+        if (_allLogButton != null)
+        {
+            _allLogButton.Text = _context.Localization?.IsTraditionalChinese == true ? "全部" : "All";
+        }
+    }
+
+    private void UpdateFilterButtonVisualState()
+    {
+        UpdateSingleFilterButtonState(_selfFactionButton, _filterMode == LogFilterMode.SelfFaction);
+        UpdateSingleFilterButtonState(_allLogButton, _filterMode == LogFilterMode.All);
+    }
+
+    private static void UpdateSingleFilterButtonState(Button? button, bool selected)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        button.Modulate = selected
+            ? Colors.White
+            : new Color(0.82f, 0.82f, 0.82f, 0.92f);
+    }
+
+    private void OnSelfFactionFilterPressed()
+    {
+        _filterMode = LogFilterMode.SelfFaction;
+        UpdateFilterButtonVisualState();
+        RebuildLogView();
+    }
+
+    private void OnAllLogFilterPressed()
+    {
+        _filterMode = LogFilterMode.All;
+        UpdateFilterButtonVisualState();
+        RebuildLogView();
+    }
+
+    private void RebuildLogView()
+    {
+        var logText = _context.LogText;
+        if (logText == null)
+        {
+            return;
+        }
+
+        logText.Clear();
+        _hasEntries = false;
+
+        foreach (var entry in _entries)
+        {
+            if (_filterMode == LogFilterMode.SelfFaction && !entry.IsPlayerRelated)
+            {
+                continue;
+            }
+
+            if (_hasEntries)
+            {
+                logText.Newline();
+            }
+
+            if (entry.IsPlayerRelated)
+            {
+                logText.PushColor(new Color(0.24f, 0.43f, 0.82f, 1.0f));
+            }
+
+            logText.AddText(entry.Message);
+
+            if (entry.IsPlayerRelated)
+            {
+                logText.Pop();
+            }
+
+            _hasEntries = true;
+        }
+
+        var lastLine = Mathf.Max(logText.GetLineCount() - 1, 0);
+        logText.CallDeferred("scroll_to_line", lastLine);
+    }
 }
+

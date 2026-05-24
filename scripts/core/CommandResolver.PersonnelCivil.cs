@@ -316,6 +316,22 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.authorize_prefect.prefect_required");
         }
 
+        if (authorizationType == PrefectAuthorizationType.None)
+        {
+            RemoveAuthorizedPlanSchedule(world, city);
+            ClearCityAuthorizedPlan(city);
+        }
+        else if (authorizationType == PrefectAuthorizationType.Full && city.PrefectPlanRemainingMonths <= 0)
+        {
+            var plannedJob = ChooseAuthorizedPlanJob(world, city);
+            if (plannedJob.HasValue)
+            {
+                city.PrefectPlanJobType = plannedJob.Value;
+                city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value);
+                city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
+            }
+        }
+
         city.PrefectAuthorizationType = authorizationType;
         return LocalizedResult(
             true,
@@ -331,6 +347,63 @@ public partial class CommandResolver
                 GetCityName(city, GameLanguage.English),
                 prefect != null ? GetOfficerDisplayName(prefect, GameLanguage.English) : GetAppointmentName(OfficerAppointmentRules.Governor, GameLanguage.English),
                 GetPrefectAuthorizationTypeName(authorizationType, GameLanguage.English)
+            });
+    }
+
+    public CommandResult ExecuteSetPrefectPlan(int actorFactionId, int cityId, InternalAffairsJobType jobType, int months)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return LocalizedResult(false, "cmd.source_city_not_found");
+        }
+
+        if (city.OwnerFactionId != actorFactionId)
+        {
+            return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        if (city.PrefectAuthorizationType == PrefectAuthorizationType.None)
+        {
+            return LocalizedResult(false, "cmd.prefect_plan.authorization_required");
+        }
+
+        if (months <= 0)
+        {
+            return LocalizedResult(false, "cmd.internal_affairs.invalid_duration");
+        }
+
+        var prefect = GetCityPrefect(world, city);
+        if (prefect == null)
+        {
+            return LocalizedResult(false, "cmd.authorize_prefect.prefect_required");
+        }
+
+        RemoveAuthorizedPlanSchedule(world, city);
+        city.PrefectPlanJobType = jobType;
+        city.PrefectPlanTotalMonths = Math.Min(months, 24);
+        city.PrefectPlanRemainingMonths = Math.Min(months, 24);
+
+        return LocalizedResult(
+            true,
+            "cmd.prefect_plan.set",
+            new object[]
+            {
+                GetCityName(city, GameLanguage.TraditionalChinese),
+                GetInternalAffairsJobName(jobType, GameLanguage.TraditionalChinese),
+                city.PrefectPlanTotalMonths
+            },
+            new object[]
+            {
+                GetCityName(city, GameLanguage.English),
+                GetInternalAffairsJobName(jobType, GameLanguage.English),
+                city.PrefectPlanTotalMonths
             });
     }
 

@@ -35,6 +35,14 @@
 										"zhHant":  "待解除",
 										"en":  "Pending Clear"
 									},
+	"ui.current_plan":  {
+							"zhHant":  "目前計畫",
+							"en":  "Current Plan"
+						},
+	"ui.pending_plan":  {
+							"zhHant":  "待設定計畫",
+							"en":  "Pending Plan"
+						},
 	"ui.advisor_assign_officer":  {
 									  "zhHant":  "任命武將",
 									  "en":  "Officer To Appoint"
@@ -335,6 +343,10 @@
 								 "zhHant":  "確認人事",
 								 "en":  "Confirm Personnel"
 							 },
+	"ui.confirm_plan":  {
+							"zhHant":  "確認計畫",
+							"en":  "Confirm Plan"
+						},
 	"ui.confirm_personnel_bonus":  {
 									   "zhHant":  "確認賞賜",
 									   "en":  "Confirm Bonus"
@@ -828,5 +840,17 @@
 		"ui.option_god_mode":  {
 								   "zhHant":  "God Mode",
 								   "en":  "God Mode"
-							   }
+							   },
+		"ui.log_panel_title":  {
+								   "zhHant":  "??",
+								   "en":  "Log"
+							   },
+		"ui.log_filter_self":  {
+								   "zhHant":  "本勢力",
+								   "en":  "Self"
+							   },
+		"ui.log_filter_all":  {
+								  "zhHant":  "全部",
+								  "en":  "All"
+							  }
 }

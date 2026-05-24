@@ -782,6 +782,7 @@ public partial class CommandResolver
     private static void ClearCityPrefectAuthorization(CityData city)
     {
         city.PrefectAuthorizationType = PrefectAuthorizationType.None;
+        ClearCityAuthorizedPlan(city);
     }
 
     private static bool RequiresAppointedPrefect(PrefectAuthorizationType authorizationType)
@@ -940,6 +941,88 @@ public partial class CommandResolver
             officer.LastAssignedMonth = -1;
             officer.LastAssignedCommand = CommandType.Pass;
         }
+    }
+
+    private static void ClearCityAuthorizedPlan(CityData city)
+    {
+        city.PrefectPlanJobType = InternalAffairsJobType.Farm;
+        city.PrefectPlanTotalMonths = 0;
+        city.PrefectPlanRemainingMonths = 0;
+    }
+
+    private static InternalAffairsScheduleData? GetAuthorizedPlanSchedule(WorldState world, int cityId)
+    {
+        return world.InternalAffairsSchedules.FirstOrDefault(schedule =>
+            schedule.CityId == cityId &&
+            schedule.IsAuthorizedPlan &&
+            schedule.State is not (InternalAffairsScheduleState.Terminated or InternalAffairsScheduleState.Interrupted or InternalAffairsScheduleState.Completed));
+    }
+
+    private static void RemoveAuthorizedPlanSchedule(WorldState world, CityData city)
+    {
+        var schedule = GetAuthorizedPlanSchedule(world, city.Id);
+        if (schedule == null)
+        {
+            return;
+        }
+
+        ReleaseInternalAffairsOfficerAssignment(world, schedule.OfficerId);
+        schedule.State = InternalAffairsScheduleState.Terminated;
+    }
+
+    private static InternalAffairsJobType? ChooseAuthorizedPlanJob(WorldState world, CityData city)
+    {
+        var activeJobs = new HashSet<InternalAffairsJobType>(
+            world.InternalAffairsSchedules
+                .Where(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.CityId == city.Id)
+                .Select(schedule => schedule.JobType));
+
+        var candidates = new (InternalAffairsJobType JobType, int Score)[]
+        {
+            (InternalAffairsJobType.Farm, city.Farm),
+            (InternalAffairsJobType.Commercial, city.Commercial),
+            (InternalAffairsJobType.Defend, city.Defense),
+            (InternalAffairsJobType.WaterControl, city.DisasterPrevention),
+            (InternalAffairsJobType.Construction, city.Commercial + city.Defense)
+        };
+
+        return candidates
+            .Where(candidate => !activeJobs.Contains(candidate.JobType))
+            .OrderBy(candidate => candidate.Score)
+            .ThenBy(candidate => (int)candidate.JobType)
+            .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
+            .FirstOrDefault();
+    }
+
+    private static int ChooseAuthorizedPlanDuration(CityData city, InternalAffairsJobType jobType)
+    {
+        return jobType switch
+        {
+            InternalAffairsJobType.Farm when city.Farm < 50 => 3,
+            InternalAffairsJobType.Commercial when city.Commercial < 50 => 3,
+            InternalAffairsJobType.Defend when city.Defense < 55 => 3,
+            InternalAffairsJobType.WaterControl when city.DisasterPrevention < 40 => 3,
+            _ => 2
+        };
+    }
+
+    private InternalAffairsScheduleData CreateAuthorizedPlanSchedule(WorldState world, CityData city, int officerId)
+    {
+        return new InternalAffairsScheduleData
+        {
+            Id = GetNextInternalAffairsScheduleId(world),
+            CityId = city.Id,
+            OfficerId = officerId,
+            IsAuthorizedPlan = true,
+            JobType = city.PrefectPlanJobType,
+            RemainingMonths = city.PrefectPlanRemainingMonths,
+            TotalMonths = city.PrefectPlanTotalMonths > 0 ? city.PrefectPlanTotalMonths : city.PrefectPlanRemainingMonths,
+            StartedYear = world.Year,
+            StartedMonth = world.Month,
+            State = InternalAffairsScheduleState.Active,
+            SkipExecutionYear = -1,
+            SkipExecutionMonth = -1
+        };
     }
 
     private static OfficerData? TrySelectInternalAffairsOfficerForSchedule(WorldState world, CityData city, InternalAffairsJobType jobType)

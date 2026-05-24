@@ -347,6 +347,8 @@ public partial class HudController : CanvasLayer
         _systemUiController?.Shutdown();
         _viewUiController?.Shutdown();
         _advisorUiController?.Shutdown();
+        _internalAffairsUiController?.Shutdown();
+        _personnelUiController?.Shutdown();
     }
 
     public override void _Notification(int what)
@@ -423,7 +425,6 @@ public partial class HudController : CanvasLayer
 
         ResetAliveFactionSnapshot();
         RefreshAllText();
-        AddLog(_localization.T("log.boot"));
     }
 
     public void OnCitySelected(CityData city)

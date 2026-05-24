@@ -89,6 +89,18 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         UpdateSelectedOfficerSummary();
     }
 
+    public void RefreshIfOpen()
+    {
+        if (OverlayRoot?.Visible != true)
+        {
+            return;
+        }
+
+        RefreshText();
+        Populate();
+        SetWarning(string.Empty);
+    }
+
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _jobOption = root.GetNodeOrNull<OptionButton>("JobRow/JobOption");

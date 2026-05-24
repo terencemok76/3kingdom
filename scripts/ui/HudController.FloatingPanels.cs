@@ -260,8 +260,8 @@ public partial class HudController
         var handle = new Button
         {
             Name = name,
-            Text = "##",
-            MouseFilter = Control.MouseFilterEnum.Stop,
+            Text = "/",
+            
             CustomMinimumSize = new Vector2(ResizeHandleSize, ResizeHandleSize),
             FocusMode = Control.FocusModeEnum.None
         };
@@ -500,3 +500,5 @@ public partial class HudController
         _mainHudUiController.RestoreLogLayout();
     }
 }
+
+

@@ -61,6 +61,7 @@ public partial class CommandResolver
             Id = GetNextInternalAffairsScheduleId(world),
             CityId = city.Id,
             OfficerId = officer.Id,
+            IsAuthorizedPlan = false,
             JobType = jobType,
             RemainingMonths = Math.Min(months, 24),
             TotalMonths = Math.Min(months, 24),
@@ -115,6 +116,11 @@ public partial class CommandResolver
         if (city.OwnerFactionId != actorFactionId)
         {
             return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        if (schedule.IsAuthorizedPlan)
+        {
+            ClearCityAuthorizedPlan(city);
         }
 
         schedule.State = InternalAffairsScheduleState.Terminated;
@@ -300,6 +306,7 @@ public partial class CommandResolver
         }
 
         var world = _turnManager.World;
+        results.AddRange(EnsureAuthorizedPrefectPlans(world));
         foreach (var schedule in world.InternalAffairsSchedules.Where(item => item.State == InternalAffairsScheduleState.Active).ToList())
         {
             if (schedule.SkipExecutionYear == world.Year && schedule.SkipExecutionMonth == world.Month)
@@ -315,6 +322,8 @@ public partial class CommandResolver
                 results.Add(LocalizedResult(false, "cmd.internal_affairs.interrupted"));
                 continue;
             }
+
+            var isPlayerRelated = city.OwnerFactionId == _turnManager.GetPlayerFactionId();
 
             var officer = world.GetOfficer(schedule.OfficerId);
             if (officer == null || officer.CityId != city.Id)
@@ -335,12 +344,24 @@ public partial class CommandResolver
 
             var gains = ApplyInternalAffairsJob(world, city, officer, schedule.JobType);
             schedule.RemainingMonths -= 1;
+            if (schedule.IsAuthorizedPlan)
+            {
+                city.PrefectPlanJobType = schedule.JobType;
+                city.PrefectPlanTotalMonths = schedule.TotalMonths;
+                city.PrefectPlanRemainingMonths = Math.Max(schedule.RemainingMonths, 0);
+            }
+
             if (schedule.RemainingMonths <= 0)
             {
                 schedule.State = InternalAffairsScheduleState.Completed;
+                if (schedule.IsAuthorizedPlan)
+                {
+                    results.Add(BuildAuthorizedPlanCompletedResult(city, officer, schedule, isPlayerRelated));
+                    ClearCityAuthorizedPlan(city);
+                }
             }
 
-            results.Add(LocalizedResult(
+            var resolveResult = LocalizedResult(
                 true,
                 "cmd.internal_affairs.resolved",
                 new object[]
@@ -366,7 +387,9 @@ public partial class CommandResolver
                     gains.DisasterPrevention,
                     gains.Loyalty,
                     Math.Max(schedule.RemainingMonths, 0)
-                }));
+                });
+            resolveResult.IsPlayerRelated = isPlayerRelated;
+            results.Add(resolveResult);
         }
 
         world.InternalAffairsSchedules.RemoveAll(item =>
@@ -374,6 +397,136 @@ public partial class CommandResolver
                 InternalAffairsScheduleState.Interrupted or
                 InternalAffairsScheduleState.Completed);
         return results;
+    }
+
+    private List<CommandResult> EnsureAuthorizedPrefectPlans(WorldState world)
+    {
+        var results = new List<CommandResult>();
+        var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
+        foreach (var city in world.Cities)
+        {
+            if (city.OwnerFactionId <= 0)
+            {
+                continue;
+            }
+
+            if (city.PrefectAuthorizationType == PrefectAuthorizationType.None)
+            {
+                ClearCityAuthorizedPlan(city);
+                continue;
+            }
+
+            var prefect = GetCityPrefect(world, city);
+            if (prefect == null)
+            {
+                ClearCityAuthorizedPlan(city);
+                RemoveAuthorizedPlanSchedule(world, city);
+                continue;
+            }
+
+            var schedule = GetAuthorizedPlanSchedule(world, city.Id);
+            if (schedule != null)
+            {
+                city.PrefectPlanJobType = schedule.JobType;
+                city.PrefectPlanTotalMonths = schedule.TotalMonths;
+                city.PrefectPlanRemainingMonths = schedule.RemainingMonths;
+                continue;
+            }
+
+            if (city.PrefectAuthorizationType == PrefectAuthorizationType.Full && city.PrefectPlanRemainingMonths <= 0)
+            {
+                var plannedJob = ChooseAuthorizedPlanJob(world, city);
+                if (!plannedJob.HasValue)
+                {
+                    continue;
+                }
+
+                city.PrefectPlanJobType = plannedJob.Value;
+                city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value);
+                city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
+            }
+
+            if (city.PrefectPlanRemainingMonths <= 0)
+            {
+                continue;
+            }
+
+            var officer = TrySelectInternalAffairsOfficerForSchedule(world, city, city.PrefectPlanJobType);
+            var newSchedule = CreateAuthorizedPlanSchedule(world, city, officer?.Id ?? 0);
+            world.InternalAffairsSchedules.Add(newSchedule);
+            if (officer != null)
+            {
+                MarkOfficerAssigned(world, officer, CommandType.InternalAffairs);
+            }
+
+            results.Add(BuildAuthorizedPlanStartedResult(
+                city,
+                officer,
+                newSchedule,
+                city.OwnerFactionId == playerFactionId));
+        }
+
+        return results;
+    }
+
+    private CommandResult BuildAuthorizedPlanStartedResult(
+        CityData city,
+        OfficerData? officer,
+        InternalAffairsScheduleData schedule,
+        bool isPlayerRelated)
+    {
+        var officerNameZh = officer != null
+            ? GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese)
+            : _localization?.TForLanguage(GameLanguage.TraditionalChinese, "ui.unassigned") ?? "-";
+        var officerNameEn = officer != null
+            ? GetOfficerDisplayName(officer, GameLanguage.English)
+            : _localization?.TForLanguage(GameLanguage.English, "ui.unassigned") ?? "-";
+        var result = LocalizedResult(
+            true,
+            "cmd.prefect_plan.started",
+            new object[]
+            {
+                GetCityName(city, GameLanguage.TraditionalChinese),
+                GetInternalAffairsJobName(schedule.JobType, GameLanguage.TraditionalChinese),
+                schedule.TotalMonths,
+                officerNameZh
+            },
+            new object[]
+            {
+                GetCityName(city, GameLanguage.English),
+                GetInternalAffairsJobName(schedule.JobType, GameLanguage.English),
+                schedule.TotalMonths,
+                officerNameEn
+            });
+        result.IsPlayerRelated = isPlayerRelated;
+        return result;
+    }
+
+    private CommandResult BuildAuthorizedPlanCompletedResult(
+        CityData city,
+        OfficerData officer,
+        InternalAffairsScheduleData schedule,
+        bool isPlayerRelated)
+    {
+        var result = LocalizedResult(
+            true,
+            "cmd.prefect_plan.completed",
+            new object[]
+            {
+                GetCityName(city, GameLanguage.TraditionalChinese),
+                GetInternalAffairsJobName(schedule.JobType, GameLanguage.TraditionalChinese),
+                schedule.TotalMonths,
+                GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese)
+            },
+            new object[]
+            {
+                GetCityName(city, GameLanguage.English),
+                GetInternalAffairsJobName(schedule.JobType, GameLanguage.English),
+                schedule.TotalMonths,
+                GetOfficerDisplayName(officer, GameLanguage.English)
+            });
+        result.IsPlayerRelated = isPlayerRelated;
+        return result;
     }
 
 

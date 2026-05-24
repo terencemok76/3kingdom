@@ -23,6 +23,7 @@ public class InternalAffairsScheduleData
     public int Id { get; set; }
     public int CityId { get; set; }
     public int OfficerId { get; set; }
+    public bool IsAuthorizedPlan { get; set; }
     public InternalAffairsJobType JobType { get; set; }
     public int RemainingMonths { get; set; }
     public int TotalMonths { get; set; }

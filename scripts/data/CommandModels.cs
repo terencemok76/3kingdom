@@ -121,4 +121,5 @@ public class CommandResult
     public string Message { get; set; } = string.Empty;
     public string MessageZhHant { get; set; } = string.Empty;
     public string MessageEn { get; set; } = string.Empty;
+    public bool? IsPlayerRelated { get; set; }
 }

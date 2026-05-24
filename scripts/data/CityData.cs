@@ -58,6 +58,9 @@ public class CityData
     public int LastCivilReliefYear { get; set; } = -1;
     public int LastCivilReliefMonth { get; set; } = -1;
     public PrefectAuthorizationType PrefectAuthorizationType { get; set; } = PrefectAuthorizationType.None;
+    public InternalAffairsJobType PrefectPlanJobType { get; set; } = InternalAffairsJobType.Farm;
+    public int PrefectPlanTotalMonths { get; set; }
+    public int PrefectPlanRemainingMonths { get; set; }
 
     public List<int> OfficerIds { get; set; } = new();
     public List<int> ConnectedCityIds { get; set; } = new();

@@ -9,10 +9,14 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
 {
     private readonly PersonnelUiContext _context;
     private OptionButton? _authorizationOption;
+    private HBoxContainer? _planJobRow;
+    private HBoxContainer? _planDurationRow;
+    private OptionButton? _planJobOption;
+    private SpinBox? _planDurationSpinBox;
     private Label? _summaryLabel;
     private Button? _confirmButton;
     private bool _signalsConnected;
-    protected override Vector2 MinimumOverlaySize => new(500.0f, 220.0f);
+    protected override Vector2 MinimumOverlaySize => new(500.0f, 320.0f);
 
     public PrefectAuthorizationDialogController(PersonnelUiContext context)
         : base(context, "res://scenes/ui/personnel/PrefectAuthorizationDialog.tscn")
@@ -39,6 +43,17 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         ShowOverlay();
     }
 
+    public void RefreshIfOpen()
+    {
+        if (OverlayRoot?.Visible != true)
+        {
+            return;
+        }
+
+        Populate();
+        RefreshText();
+    }
+
     public void RefreshText()
     {
         if (_context.Localization == null || !EnsureOverlayReady())
@@ -48,9 +63,11 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
 
         SetOverlayTitleText(_context.Localization.T("command.personnel.prefect_authorization"));
         SetLabelText("AuthorizationLabel", _context.Localization.T("ui.prefect_authorization_mode"));
+        SetLabelText("PlanJobRow/PlanJobLabel", _context.Localization.T("ui.internal_affairs_job"));
+        SetLabelText("PlanDurationRow/PlanDurationLabel", _context.Localization.T("ui.internal_affairs_duration"));
         if (_confirmButton != null)
         {
-            _confirmButton.Text = _context.Localization.T("ui.confirm_personnel");
+            _confirmButton.Text = _context.Localization.T("ui.confirm_plan");
         }
 
         UpdateSummary();
@@ -59,6 +76,10 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _authorizationOption = root.GetNodeOrNull<OptionButton>("AuthorizationOption");
+        _planJobRow = root.GetNodeOrNull<HBoxContainer>("PlanJobRow");
+        _planDurationRow = root.GetNodeOrNull<HBoxContainer>("PlanDurationRow");
+        _planJobOption = root.GetNodeOrNull<OptionButton>("PlanJobRow/PlanJobOption");
+        _planDurationSpinBox = root.GetNodeOrNull<SpinBox>("PlanDurationRow/PlanDurationSpinBox");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_confirmButton != null)
@@ -70,7 +91,16 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         {
             if (_authorizationOption != null)
             {
-                _authorizationOption.ItemSelected += _ => UpdateSummary();
+                _authorizationOption.ItemSelected += _ =>
+                {
+                    UpdatePlanInputsVisibility();
+                    UpdateSummary();
+                };
+            }
+
+            if (_planJobOption != null)
+            {
+                _planJobOption.ItemSelected += _ => UpdateSummary();
             }
 
             if (_confirmButton != null)
@@ -93,6 +123,7 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         AddAuthorizationOption(PrefectAuthorizationType.None);
         AddAuthorizationOption(PrefectAuthorizationType.Half);
         AddAuthorizationOption(PrefectAuthorizationType.Full);
+        PopulatePlanJobOptions();
 
         var city = _context.SelectedCity;
         var selectedIndex = 0;
@@ -111,6 +142,27 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             _authorizationOption.Select(selectedIndex);
         }
 
+        if (_planDurationSpinBox != null)
+        {
+            _planDurationSpinBox.Value = city != null && city.PrefectPlanTotalMonths > 0
+                ? city.PrefectPlanTotalMonths
+                : 3;
+        }
+
+        if (_planJobOption != null && city != null)
+        {
+            for (var index = 0; index < _planJobOption.ItemCount; index += 1)
+            {
+                var metadata = _planJobOption.GetItemMetadata(index);
+                if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)city.PrefectPlanJobType)
+                {
+                    _planJobOption.Select(index);
+                    break;
+                }
+            }
+        }
+
+        UpdatePlanInputsVisibility();
         UpdateSummary();
     }
 
@@ -144,11 +196,24 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             return;
         }
 
+        var authorizationType = GetSelectedAuthorizationType();
         var result = commandResolver.ExecuteAuthorizePrefect(
             turnManager.GetPlayerFactionId(),
             city.Id,
-            GetSelectedAuthorizationType());
-        _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
+            authorizationType);
+        var logMessages = new System.Collections.Generic.List<string> { _context.GetLocalizedResultMessage(result) };
+        if (result.Success && authorizationType == PrefectAuthorizationType.Half)
+        {
+            var planResult = commandResolver.ExecuteSetPrefectPlan(
+                turnManager.GetPlayerFactionId(),
+                city.Id,
+                GetSelectedPlanJobType(),
+                GetSelectedPlanDuration());
+            logMessages.Add(_context.GetLocalizedResultMessage(planResult));
+            result = planResult;
+        }
+
+        _context.AddLog(string.Join(" | ", logMessages.Where(message => !string.IsNullOrWhiteSpace(message))), isPlayerRelated: true);
         if (result.Success)
         {
             _context.UiEventHub.PublishCityStateChanged(city.Id, city.OwnerFactionId);
@@ -179,11 +244,19 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
 
         var currentMode = GetAuthorizationDisplayName(city.PrefectAuthorizationType);
         var selectedMode = GetAuthorizationDisplayName(GetSelectedAuthorizationType());
+        var planText = city.PrefectPlanRemainingMonths > 0
+            ? $"{GetJobDisplayName(city.PrefectPlanJobType)} / {city.PrefectPlanRemainingMonths}"
+            : _context.Localization.T("ui.none");
+        var pendingPlanText = GetSelectedAuthorizationType() == PrefectAuthorizationType.Half
+            ? $"{GetJobDisplayName(GetSelectedPlanJobType())} / {GetSelectedPlanDuration()}"
+            : _context.Localization.T("ui.none");
 
         _summaryLabel.Text =
             $"{_context.Localization.T("ui.prefect_authorization_prefect")}: {prefectName}\n" +
             $"{_context.Localization.T("ui.prefect_authorization_current")}: {currentMode}\n" +
-            $"{_context.Localization.T("ui.prefect_authorization_pending")}: {selectedMode}";
+            $"{_context.Localization.T("ui.prefect_authorization_pending")}: {selectedMode}\n" +
+            $"{_context.Localization.T("ui.current_plan")}: {planText}\n" +
+            $"{_context.Localization.T("ui.pending_plan")}: {pendingPlanText}";
     }
 
     private PrefectAuthorizationType GetSelectedAuthorizationType()
@@ -215,6 +288,83 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             PrefectAuthorizationType.Half => _context.Localization.T("ui.prefect_authorization.half"),
             PrefectAuthorizationType.Full => _context.Localization.T("ui.prefect_authorization.full"),
             _ => authorizationType.ToString()
+        };
+    }
+
+    private void PopulatePlanJobOptions()
+    {
+        if (_planJobOption == null)
+        {
+            return;
+        }
+
+        _planJobOption.Clear();
+        AddPlanJobOption(InternalAffairsJobType.Farm);
+        AddPlanJobOption(InternalAffairsJobType.Commercial);
+        AddPlanJobOption(InternalAffairsJobType.Defend);
+        AddPlanJobOption(InternalAffairsJobType.WaterControl);
+        AddPlanJobOption(InternalAffairsJobType.Construction);
+        if (_planJobOption.ItemCount > 0)
+        {
+            _planJobOption.Select(0);
+        }
+    }
+
+    private void AddPlanJobOption(InternalAffairsJobType jobType)
+    {
+        if (_planJobOption == null)
+        {
+            return;
+        }
+
+        _planJobOption.AddItem(GetJobDisplayName(jobType));
+        _planJobOption.SetItemMetadata(_planJobOption.ItemCount - 1, (int)jobType);
+    }
+
+    private void UpdatePlanInputsVisibility()
+    {
+        var visible = GetSelectedAuthorizationType() == PrefectAuthorizationType.Half;
+        if (_planJobRow != null)
+        {
+            _planJobRow.Visible = visible;
+        }
+
+        if (_planDurationRow != null)
+        {
+            _planDurationRow.Visible = visible;
+        }
+    }
+
+    private InternalAffairsJobType GetSelectedPlanJobType()
+    {
+        if (_planJobOption == null || _planJobOption.Selected < 0)
+        {
+            return InternalAffairsJobType.Farm;
+        }
+
+        var metadata = _planJobOption.GetItemMetadata(_planJobOption.Selected);
+        return metadata.VariantType == Variant.Type.Int
+            ? (InternalAffairsJobType)metadata.AsInt32()
+            : InternalAffairsJobType.Farm;
+    }
+
+    private int GetSelectedPlanDuration()
+    {
+        return _planDurationSpinBox != null
+            ? Mathf.Clamp((int)_planDurationSpinBox.Value, 1, 24)
+            : 3;
+    }
+
+    private string GetJobDisplayName(InternalAffairsJobType jobType)
+    {
+        return jobType switch
+        {
+            InternalAffairsJobType.Farm => _context.Localization?.T("command.internal_affairs.farm") ?? jobType.ToString(),
+            InternalAffairsJobType.Commercial => _context.Localization?.T("command.internal_affairs.commercial") ?? jobType.ToString(),
+            InternalAffairsJobType.Defend => _context.Localization?.T("command.internal_affairs.defend") ?? jobType.ToString(),
+            InternalAffairsJobType.WaterControl => _context.Localization?.T("command.internal_affairs.disaster_prevention") ?? jobType.ToString(),
+            InternalAffairsJobType.Construction => _context.Localization?.T("command.internal_affairs.construction") ?? jobType.ToString(),
+            _ => jobType.ToString()
         };
     }
 

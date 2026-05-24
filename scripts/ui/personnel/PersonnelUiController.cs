@@ -3,6 +3,7 @@ namespace ThreeKingdom.UI;
 public sealed class PersonnelUiController
 {
     private readonly PersonnelUiContext _context;
+    private readonly UiEventHub _uiEventHub;
     private readonly PersonnelCommandDialogController _commandDialogController;
     private readonly PersonnelBonusDialogController _bonusDialogController;
     private readonly AssignRoleDialogController _assignRoleDialogController;
@@ -15,6 +16,7 @@ public sealed class PersonnelUiController
     public PersonnelUiController(HudController owner)
     {
         _context = new PersonnelUiContext(owner);
+        _uiEventHub = _context.UiEventHub;
         _bonusDialogController = new PersonnelBonusDialogController(_context);
         _assignRoleDialogController = new AssignRoleDialogController(_context);
         _prefectAuthorizationDialogController = new PrefectAuthorizationDialogController(_context);
@@ -48,6 +50,18 @@ public sealed class PersonnelUiController
         _requestItemDialogController.Initialize();
         _hireOfficerDialogController.Initialize();
         _successionDialogController.Initialize();
+        _uiEventHub.CityStateChanged += OnWorldStateChanged;
+        _uiEventHub.OfficerStateChanged += OnWorldStateChanged;
+        _uiEventHub.OfficerAppointmentsChanged += OnWorldStateChanged;
+        _uiEventHub.FactionLeadershipChanged += OnWorldStateChanged;
+    }
+
+    public void Shutdown()
+    {
+        _uiEventHub.CityStateChanged -= OnWorldStateChanged;
+        _uiEventHub.OfficerStateChanged -= OnWorldStateChanged;
+        _uiEventHub.OfficerAppointmentsChanged -= OnWorldStateChanged;
+        _uiEventHub.FactionLeadershipChanged -= OnWorldStateChanged;
     }
 
     public void HideDialogs()
@@ -78,4 +92,26 @@ public sealed class PersonnelUiController
     public void ShowPersonnelDialog() => _commandDialogController.Show();
 
     public void ShowSuccessionDialog() => _successionDialogController.Show();
+
+    public void RefreshIfOpen() => _prefectAuthorizationDialogController.RefreshIfOpen();
+
+    private void OnWorldStateChanged(UiEventHub.CityStateChangedEvent _)
+    {
+        _prefectAuthorizationDialogController.RefreshIfOpen();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.OfficerStateChangedEvent _)
+    {
+        _prefectAuthorizationDialogController.RefreshIfOpen();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.OfficerAppointmentsChangedEvent _)
+    {
+        _prefectAuthorizationDialogController.RefreshIfOpen();
+    }
+
+    private void OnWorldStateChanged(UiEventHub.FactionLeadershipChangedEvent _)
+    {
+        _prefectAuthorizationDialogController.RefreshIfOpen();
+    }
 }

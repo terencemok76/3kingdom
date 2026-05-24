@@ -70,7 +70,7 @@ corner_radius_top_right = 5
 corner_radius_bottom_left = 5
 corner_radius_bottom_right = 5
 
-[node name="PrefectAuthorizationDialogOverlay" type="Control"]
+[node name="DiplomacyProposalDialogOverlay" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -89,16 +89,16 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(500, 320)
-offset_right = 500.0
-offset_bottom = 320.0
+custom_minimum_size = Vector2(700, 280)
+offset_right = 700.0
+offset_bottom = 280.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(480, 280)
+custom_minimum_size = Vector2(680, 240)
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
@@ -115,7 +115,7 @@ mouse_filter = 2
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
 layout_mode = 2
-text = "Prefect Authorization"
+text = "Diplomacy Proposal"
 horizontal_alignment = 1
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
@@ -135,49 +135,23 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
 
-[node name="AuthorizationLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Authorization"
-
-[node name="AuthorizationOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="PlanJobRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="PlanJobLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PlanJobRow"]
-layout_mode = 2
-text = "Plan"
-
-[node name="PlanJobOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PlanJobRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="PlanDurationRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="PlanDurationLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PlanDurationRow"]
-layout_mode = 2
-text = "Duration"
-
-[node name="PlanDurationSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PlanDurationRow"]
-layout_mode = 2
-min_value = 1.0
-max_value = 24.0
-step = 1.0
-
 [node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
+size_flags_vertical = 3
 autowrap_mode = 3
+theme_override_colors/font_color = Color(0.93, 0.89, 0.82, 1)
 
-[node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="FooterRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 12
 
-[node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
+[node name="AcceptButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterRow"]
 layout_mode = 2
 focus_mode = 0
-text = "OK"
+text = "Accept"
+
+[node name="RejectButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Reject"

@@ -67,6 +67,22 @@
                                            "zhHant":  "已將「{0}」的太守授權模式設為「{2}」。",
                                            "en":  "Set the prefect authorization mode for \"{0}\" to \"{2}\"."
                                        },
+    "cmd.prefect_plan.authorization_required":  {
+                                                    "zhHant":  "此城市尚未進入半授權或全授權，無法設定太守計畫。",
+                                                    "en":  "This city is not in half or full prefect authorization mode, so no prefect plan can be set."
+                                                },
+    "cmd.prefect_plan.set":  {
+                                 "zhHant":  "已將「{0}」的太守計畫設為「{1}」，期間 {2} 個月。",
+                                 "en":  "Set the prefect plan for \"{0}\" to \"{1}\" for {2} months."
+                             },
+    "cmd.prefect_plan.started":  {
+                                     "zhHant":  "「{0}」太守授權計畫開始：目標「{1}」，期間 {2} 個月，指派「{3}」執行。",
+                                     "en":  "\"{0}\" prefect authorized plan started: target \"{1}\", duration {2} months, assigned \"{3}\"."
+                                 },
+    "cmd.prefect_plan.completed":  {
+                                       "zhHant":  "「{0}」太守授權計畫完成：目標「{1}」，期間 {2} 個月，最後由「{3}」執行。",
+                                       "en":  "\"{0}\" prefect authorized plan completed: target \"{1}\", duration {2} months, last executed by \"{3}\"."
+                                   },
     "cmd.attack.blocked_by_diplomacy":  {
                                             "zhHant":  "目前與目標勢力存在同盟或停戰，不能發動攻擊。",
                                             "en":  "An active alliance or truce blocks this attack."

@@ -29,6 +29,7 @@ internal sealed class TopBarController
     public void Initialize()
     {
         ConnectButtons();
+        ApplyButtonThemes();
     }
 
     public void Shutdown()
@@ -59,6 +60,7 @@ internal sealed class TopBarController
         _background.MouseFilter = Control.MouseFilterEnum.Pass;
         _content.MouseFilter = Control.MouseFilterEnum.Pass;
         _content.AddThemeConstantOverride("separation", 10);
+        ApplyButtonThemes();
         ApplyLayout();
     }
 
@@ -182,6 +184,45 @@ internal sealed class TopBarController
             _context.EndTurnButton.Pressed += OnEndTurnButtonPressed;
             _endTurnButtonConnected = true;
         }
+    }
+
+    private void ApplyButtonThemes()
+    {
+        ApplySharedButtonTheme(_context.LanguageButton);
+        ApplySharedButtonTheme(_context.GodModeButton);
+        ApplySharedButtonTheme(_context.EndTurnButton);
+    }
+
+    private void ApplySharedButtonTheme(Button? button)
+    {
+        if (button == null || _context.ViewButton == null)
+        {
+            return;
+        }
+
+        CopyButtonTheme(_context.ViewButton, button);
+    }
+
+    private static void CopyButtonTheme(Button source, Button target)
+    {
+        foreach (var name in new[] { "normal", "hover", "pressed", "disabled", "focus" })
+        {
+            var style = source.GetThemeStylebox(name);
+            if (style != null)
+            {
+                target.AddThemeStyleboxOverride(name, style);
+            }
+        }
+
+        foreach (var name in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_disabled_color", "font_focus_color" })
+        {
+            if (source.HasThemeColorOverride(name))
+            {
+                target.AddThemeColorOverride(name, source.GetThemeColor(name));
+            }
+        }
+
+        target.CustomMinimumSize = source.CustomMinimumSize;
     }
 
     private void DisconnectButtons()
