@@ -23,7 +23,7 @@ internal sealed class LogPanelController
     private const float FloatingPanelHeaderHeight = 30.0f;
     private const float FloatingPanelViewportMargin = 8.0f;
     private const float FloatingPanelTopClamp = 8.0f;
-    private const float LogPanelMinimizedWidth = 360.0f;
+    private const float LogPanelMinimizedWidth = 450.0f;
     private const float LogPanelMinimumWidth = 320.0f;
     private const float LogPanelMinimumHeight = 140.0f;
     private const float ResizeHandleSize = 30.0f;
@@ -32,6 +32,7 @@ internal sealed class LogPanelController
     private Button? _minimizeButton;
     private Button? _selfFactionButton;
     private Button? _allLogButton;
+    private Button? _clearLogButton;
     private Button? _resizeHandle;
     private ColorRect? _background;
     private Vector2 _defaultHeaderPosition;
@@ -58,6 +59,7 @@ internal sealed class LogPanelController
         if (_context.LogText != null)
         {
             _context.LogText.ScrollFollowing = true;
+            _context.LogText.ScrollActive = true;
             if (!string.IsNullOrWhiteSpace(_context.LogText.Text))
             {
                 _entries.Add(new LogEntry
@@ -91,7 +93,7 @@ internal sealed class LogPanelController
         _defaultContentSize = new Vector2(logText.Size.X, logText.Size.Y - FloatingPanelHeaderHeight);
         _contentSize = _defaultContentSize;
         _background.MouseFilter = Control.MouseFilterEnum.Ignore;
-        logText.MouseFilter = Control.MouseFilterEnum.Ignore;
+        logText.MouseFilter = Control.MouseFilterEnum.Stop;
         InitializeHeaderButtons();
         RefreshText();
         ApplyLayout();
@@ -109,7 +111,7 @@ internal sealed class LogPanelController
     {
         if (_context.LogPanelHeaderLabel != null)
         {
-            _context.LogPanelHeaderLabel.Text = _context.Localization?.IsTraditionalChinese == true ? "¤é»x" : "Log";
+            _context.LogPanelHeaderLabel.Text = _context.Localization?.IsTraditionalChinese == true ? "æ—¥èªŒ" : "Log";
         }
     }
 
@@ -309,8 +311,9 @@ internal sealed class LogPanelController
             return;
         }
 
-        _selfFactionButton = CreateHeaderFilterButton(OnSelfFactionFilterPressed);
-        _allLogButton = CreateHeaderFilterButton(OnAllLogFilterPressed);
+        _selfFactionButton = CreateHeaderActionButton(OnSelfFactionFilterPressed);
+        _allLogButton = CreateHeaderActionButton(OnAllLogFilterPressed);
+        _clearLogButton = CreateHeaderActionButton(OnClearLogPressed);
 
         if (_selfFactionButton != null)
         {
@@ -323,9 +326,15 @@ internal sealed class LogPanelController
             _headerRow.AddChild(_allLogButton);
             _headerRow.MoveChild(_allLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 2));
         }
+
+        if (_clearLogButton != null)
+        {
+            _headerRow.AddChild(_clearLogButton);
+            _headerRow.MoveChild(_clearLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 3));
+        }
     }
 
-    private Button CreateHeaderFilterButton(System.Action pressedAction)
+    private Button CreateHeaderActionButton(System.Action pressedAction)
     {
         var button = new Button
         {
@@ -365,29 +374,32 @@ internal sealed class LogPanelController
 
     private void UpdateFilterButtonText()
     {
-        if (_context.Localization == null)
-        {
-            return;
-        }
+        var isTraditionalChinese = _context.Localization?.IsTraditionalChinese == true;
 
         if (_selfFactionButton != null)
         {
-            _selfFactionButton.Text = _context.Localization?.IsTraditionalChinese == true ? "¥»¶Õ¤O" : "Self Faction";
+            _selfFactionButton.Text = isTraditionalChinese ? "æœ¬å‹¢åŠ›" : "Self Faction";
         }
 
         if (_allLogButton != null)
         {
-            _allLogButton.Text = _context.Localization?.IsTraditionalChinese == true ? "¥þ³¡" : "All";
+            _allLogButton.Text = isTraditionalChinese ? "å…¨éƒ¨" : "All";
+        }
+
+        if (_clearLogButton != null)
+        {
+            _clearLogButton.Text = isTraditionalChinese ? "æ¸…é™¤æ—¥èªŒ" : "Clear Log";
         }
     }
 
     private void UpdateFilterButtonVisualState()
     {
-        UpdateSingleFilterButtonState(_selfFactionButton, _filterMode == LogFilterMode.SelfFaction);
-        UpdateSingleFilterButtonState(_allLogButton, _filterMode == LogFilterMode.All);
+        UpdateSingleButtonState(_selfFactionButton, _filterMode == LogFilterMode.SelfFaction);
+        UpdateSingleButtonState(_allLogButton, _filterMode == LogFilterMode.All);
+        UpdateSingleButtonState(_clearLogButton, false);
     }
 
-    private static void UpdateSingleFilterButtonState(Button? button, bool selected)
+    private static void UpdateSingleButtonState(Button? button, bool selected)
     {
         if (button == null)
         {
@@ -410,6 +422,12 @@ internal sealed class LogPanelController
     {
         _filterMode = LogFilterMode.All;
         UpdateFilterButtonVisualState();
+        RebuildLogView();
+    }
+
+    private void OnClearLogPressed()
+    {
+        _entries.Clear();
         RebuildLogView();
     }
 
@@ -455,4 +473,3 @@ internal sealed class LogPanelController
         logText.CallDeferred("scroll_to_line", lastLine);
     }
 }
-
