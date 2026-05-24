@@ -89,14 +89,14 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(500, 280)
+custom_minimum_size = Vector2(500, 360)
 offset_right = 500.0
-offset_bottom = 280.0
+offset_bottom = 360.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(480, 240)
+custom_minimum_size = Vector2(480, 320)
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -155,11 +155,33 @@ layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
 
-[node name="RoleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="ClearOfficerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
 layout_mode = 2
-text = "Role"
+focus_mode = 0
+text = "Clear"
 
-[node name="RoleOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="CurrentAppointmentsLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Appointments"
+
+[node name="CurrentAppointmentsValueLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+autowrap_mode = 3
+text = "-"
+
+[node name="AssignRoleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Assign"
+
+[node name="AssignRoleOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RemoveRoleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Remove"
+
+[node name="RemoveRoleOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -170,8 +192,14 @@ autowrap_mode = 3
 [node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 8
 
-[node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
+[node name="AssignButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
 layout_mode = 2
 focus_mode = 0
-text = "OK"
+text = "Assign"
+
+[node name="RemoveButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Remove"

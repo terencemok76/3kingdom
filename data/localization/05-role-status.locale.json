@@ -11,6 +11,22 @@
                           "zhHant":  "太守",
                           "en":  "Governor"
                       },
+    "role.remove_governor":  {
+                                 "zhHant":  "解除太守",
+                                 "en":  "Remove Governor"
+                             },
+    "role.remove_strategist":  {
+                                   "zhHant":  "解除軍師",
+                                   "en":  "Remove Strategist"
+                               },
+    "role.remove_chancellor":  {
+                                   "zhHant":  "解除丞相",
+                                   "en":  "Remove Chancellor"
+                               },
+    "role.remove_chief_strategist":  {
+                                         "zhHant":  "解除軍師將軍",
+                                         "en":  "Remove Chief Strategist"
+                                     },
     "role.lord":  {
                       "zhHant":  "君主",
                       "en":  "Lord"

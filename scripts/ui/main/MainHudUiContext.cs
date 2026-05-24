@@ -28,7 +28,7 @@ internal sealed class MainHudUiContext
     public Button? EndTurnButton => _owner.MainHudEndTurnButton;
 
     public Label? CityNameLabel => _owner.MainHudCityNameLabel;
-    public RichTextLabel? CityStatsLabel => _owner.MainHudCityStatsLabel;
+    public VBoxContainer? CityStatsPanel => _owner.MainHudCityStatsPanel;
     public Label? CommandsTitle => _owner.MainHudCommandsTitle;
     public Button? DevelopButton => _owner.MainHudDevelopButton;
     public Button? RecruitButton => _owner.MainHudRecruitButton;
@@ -48,7 +48,8 @@ internal sealed class MainHudUiContext
     public Label? LogPanelHeaderLabel => _owner.MainHudLogPanelHeaderLabel;
 
     public string BuildGodModeButtonText() => _owner.MainHudBuildGodModeButtonText();
-    public string BuildCityStatsText(string ownerName, CityData? city, int freeOfficerCount) => _owner.MainHudBuildCityStatsText(ownerName, city, freeOfficerCount);
+    public string BuildCityHeaderText(CityData? city) => _owner.MainHudBuildCityHeaderText(city);
+    public void PopulateCityStats(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount) => _owner.MainHudPopulateCityStats(panel, ownerName, city, freeOfficerCount);
     public void UpdateGameplayButtonStates() => _owner.MainHudUpdateGameplayButtonStates();
     public void RequestFloatingPanelLayoutRefresh() => _owner.MainHudRequestFloatingPanelLayoutRefresh();
     public void MoveToFront(CanvasItem? item) => _owner.MainHudMoveToFront(item);

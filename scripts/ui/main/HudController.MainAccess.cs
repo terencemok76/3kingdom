@@ -20,7 +20,7 @@ public partial class HudController
     internal Button? MainHudEndTurnButton => GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
 
     internal Label? MainHudCityNameLabel => GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");
-    internal RichTextLabel? MainHudCityStatsLabel => GetNodeOrNull<RichTextLabel>("Root/LeftPanel/CityStatsLabel");
+    internal VBoxContainer? MainHudCityStatsPanel => GetNodeOrNull<VBoxContainer>("Root/LeftPanel/CityStatsPanel");
     internal Label? MainHudCommandsTitle => GetNodeOrNull<Label>("Root/LeftPanel/CommandsTitle");
     internal Button? MainHudDevelopButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/DevelopButton");
     internal Button? MainHudRecruitButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/RecruitButton");
@@ -39,7 +39,8 @@ public partial class HudController
     internal Label? MainHudLogPanelHeaderLabel => _logPanelHeaderLabel;
 
     internal string MainHudBuildGodModeButtonText() => BuildGodModeButtonText();
-    internal string MainHudBuildCityStatsText(string ownerName, CityData? city, int freeOfficerCount) => BuildCityStatsTwoColumnText(ownerName, city, freeOfficerCount);
+    internal string MainHudBuildCityHeaderText(CityData? city) => BuildCityHeaderText(city);
+    internal void MainHudPopulateCityStats(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount) => PopulateCityStatsPanel(panel, ownerName, city, freeOfficerCount);
     internal void MainHudUpdateGameplayButtonStates() => UpdateGameplayButtonStates();
     internal void MainHudRequestFloatingPanelLayoutRefresh() => RequestFloatingPanelLayoutRefresh();
     internal void MainHudMoveToFront(CanvasItem? item) => item?.MoveToFront();

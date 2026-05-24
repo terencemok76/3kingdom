@@ -405,11 +405,47 @@ public partial class HudController : CanvasLayer
         return $"{officerName} | {roleName} | {BuildOfficerStatusText(officer)}{cityText} | {_localization?.T("ui.strength") ?? "STR"} {officer.Strength} | {_localization?.T("ui.intelligence") ?? "INT"} {officer.Intelligence}";
     }
 
-    private string BuildCityStatsTwoColumnText(string ownerName, CityData? city, int freeOfficerCount)
+    private readonly record struct CityStatRowDefinition(
+        string LeftLabel,
+        string LeftValue,
+        string RightLabel,
+        string RightValue);
+
+    private void PopulateCityStatsPanel(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount)
+    {
+        foreach (var child in panel.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        foreach (var row in BuildCityStatRows(ownerName, city, freeOfficerCount))
+        {
+            panel.AddChild(CreateCityStatsRowControl(row));
+        }
+    }
+
+    private string BuildCityHeaderText(CityData? city)
     {
         if (_localization == null)
         {
             return string.Empty;
+        }
+
+        if (city == null)
+        {
+            return _localization.FormatCityHeader("-");
+        }
+
+        var cityName = _localization.GetCityName(city);
+        var authorizationSuffix = BuildCityHeaderAuthorizationSuffix(city);
+        return _localization.FormatCityHeader($"{cityName}{authorizationSuffix}");
+    }
+
+    private IReadOnlyList<CityStatRowDefinition> BuildCityStatRows(string ownerName, CityData? city, int freeOfficerCount)
+    {
+        if (_localization == null)
+        {
+            return Array.Empty<CityStatRowDefinition>();
         }
 
         var canViewCity = CanViewCityFullInformation(city);
@@ -417,57 +453,90 @@ public partial class HudController : CanvasLayer
         var ownerValue = string.IsNullOrWhiteSpace(intelDurationText)
             ? ownerName
             : $"{ownerName} | {intelDurationText}";
-        var prefectLabel = city != null ? BuildPrefectLabel() : string.Empty;
-        var prefectValue = city != null ? BuildPrefectNameText(city) : string.Empty;
-        var prefectAuthorizationLabel = city != null ? BuildPrefectAuthorizationLabel() : string.Empty;
-        var prefectAuthorizationValue = city != null ? BuildPrefectAuthorizationText(city) : string.Empty;
+        var showPrefect = city != null && HasAssignedPrefect(city);
+        var prefectLabel = showPrefect ? BuildPrefectLabel() : string.Empty;
+        var prefectValue = showPrefect && city != null ? BuildPrefectNameText(city) : string.Empty;
 
-        var stats = city == null
-            ? new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
-            {
-                (_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
-                (string.Empty, string.Empty, string.Empty, string.Empty),
-                (_localization.T("ui.gold"), "0", _localization.T("ui.food"), "0"),
-                (_localization.T("ui.horse"), "0", _localization.T("ui.population"), "0"),
-                (_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
-                (_localization.T("ui.defense"), "0", _localization.T("ui.disaster_prevention"), "0"),
-                (_localization.T("ui.loyalty"), "0", string.Empty, string.Empty),
-                (_localization.T("ui.officers"), "0", _localization.T("ui.free_officers"), "0"),
-                (_localization.T("ui.troops"), "0", string.Empty, string.Empty),
-                (_localization.T("troop_type.infantry"), "0", _localization.T("troop_type.spearman"), "0"),
-                (_localization.T("troop_type.cavalry"), "0", _localization.T("troop_type.archer"), "0"),
-                (_localization.T("troop_type.crossbow"), "0", _localization.T("troop_type.siege"), "0")
-            }
-            : new (string LeftLabel, string LeftValue, string RightLabel, string RightValue)[]
-            {
-                (_localization.T("ui.faction_owner"), ownerValue, prefectLabel, prefectValue),
-                (prefectAuthorizationLabel, prefectAuthorizationValue, string.Empty, string.Empty),
-                (_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
-                (_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
-                (_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
-                (_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
-                (_localization.T("ui.loyalty"), MaskedNumberText(canViewCity, city.Loyalty), string.Empty, string.Empty),
-                (_localization.T("ui.officers"), MaskedNumberText(canViewCity, city.OfficerIds.Count), _localization.T("ui.free_officers"), MaskedNumberText(canViewCity, freeOfficerCount)),
-                (_localization.T("ui.troops"), MaskedNumberText(canViewCity, city.Troops), string.Empty, string.Empty),
-                (_localization.T("troop_type.infantry"), MaskedNumberText(canViewCity, city.InfantryTroops), _localization.T("troop_type.spearman"), MaskedNumberText(canViewCity, city.SpearmanTroops)),
-                (_localization.T("troop_type.cavalry"), MaskedNumberText(canViewCity, city.CavalryTroops), _localization.T("troop_type.archer"), MaskedNumberText(canViewCity, city.ArcherTroops)),
-                (_localization.T("troop_type.crossbow"), MaskedNumberText(canViewCity, city.CrossbowTroops), _localization.T("troop_type.siege"), MaskedNumberText(canViewCity, city.SiegeTroops))
-            };
-
-        var bb = new System.Text.StringBuilder();
-        bb.Append("[table=4]");
-        foreach (var statRow in stats)
+        if (city == null)
         {
-            AppendCityStatCells(bb, statRow.LeftLabel, statRow.LeftValue);
-            var rightLabel = string.IsNullOrWhiteSpace(statRow.RightLabel)
-                ? string.Empty
-                : $"    {statRow.RightLabel}";
-            AppendCityStatCells(bb, rightLabel, statRow.RightValue);
+            return new[]
+            {
+                new CityStatRowDefinition(_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
+                new CityStatRowDefinition(_localization.T("ui.gold"), "0", _localization.T("ui.food"), "0"),
+                new CityStatRowDefinition(_localization.T("ui.horse"), "0", _localization.T("ui.population"), "0"),
+                new CityStatRowDefinition(_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
+                new CityStatRowDefinition(_localization.T("ui.defense"), "0", _localization.T("ui.disaster_prevention"), "0"),
+                new CityStatRowDefinition(_localization.T("ui.loyalty"), "0", string.Empty, string.Empty),
+                new CityStatRowDefinition(_localization.T("ui.officers"), "0", _localization.T("ui.free_officers"), "0"),
+                new CityStatRowDefinition(_localization.T("ui.troops"), "0", string.Empty, string.Empty),
+                new CityStatRowDefinition(_localization.T("troop_type.infantry"), "0", _localization.T("troop_type.spearman"), "0"),
+                new CityStatRowDefinition(_localization.T("troop_type.cavalry"), "0", _localization.T("troop_type.archer"), "0"),
+                new CityStatRowDefinition(_localization.T("troop_type.crossbow"), "0", _localization.T("troop_type.siege"), "0")
+            };
         }
 
-        bb.Append("[/table]");
+        var rows = new List<CityStatRowDefinition>
+        {
+            new(_localization.T("ui.faction_owner"), ownerValue, prefectLabel, prefectValue)
+        };
 
-        return bb.ToString();
+        rows.AddRange(
+        [
+            new CityStatRowDefinition(_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
+            new CityStatRowDefinition(_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
+            new CityStatRowDefinition(_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
+            new CityStatRowDefinition(_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
+            new CityStatRowDefinition(_localization.T("ui.loyalty"), MaskedNumberText(canViewCity, city.Loyalty), string.Empty, string.Empty),
+            new CityStatRowDefinition(_localization.T("ui.officers"), MaskedNumberText(canViewCity, city.OfficerIds.Count), _localization.T("ui.free_officers"), MaskedNumberText(canViewCity, freeOfficerCount)),
+            new CityStatRowDefinition(_localization.T("ui.troops"), MaskedNumberText(canViewCity, city.Troops), string.Empty, string.Empty),
+            new CityStatRowDefinition(_localization.T("troop_type.infantry"), MaskedNumberText(canViewCity, city.InfantryTroops), _localization.T("troop_type.spearman"), MaskedNumberText(canViewCity, city.SpearmanTroops)),
+            new CityStatRowDefinition(_localization.T("troop_type.cavalry"), MaskedNumberText(canViewCity, city.CavalryTroops), _localization.T("troop_type.archer"), MaskedNumberText(canViewCity, city.ArcherTroops)),
+            new CityStatRowDefinition(_localization.T("troop_type.crossbow"), MaskedNumberText(canViewCity, city.CrossbowTroops), _localization.T("troop_type.siege"), MaskedNumberText(canViewCity, city.SiegeTroops))
+        ]);
+        return rows;
+    }
+
+    private Control CreateCityStatsRowControl(CityStatRowDefinition row)
+    {
+        var container = new HBoxContainer
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        container.AddThemeConstantOverride("separation", 8);
+
+        container.AddChild(CreateCityStatsLabelCell(row.LeftLabel, 56, HorizontalAlignment.Left, true));
+        container.AddChild(CreateCityStatsValueCell(row.LeftValue, 74));
+        container.AddChild(CreateCityStatsLabelCell(row.RightLabel, 56, HorizontalAlignment.Left, false));
+        container.AddChild(CreateCityStatsValueCell(row.RightValue, 0));
+        return container;
+    }
+
+    private static Label CreateCityStatsLabelCell(string text, int minimumWidth, HorizontalAlignment alignment, bool visibleWhenEmpty)
+    {
+        var label = new Label
+        {
+            Text = string.IsNullOrWhiteSpace(text) ? string.Empty : $"{text}:",
+            HorizontalAlignment = alignment,
+            CustomMinimumSize = new Vector2(minimumWidth, 0.0f),
+            Visible = visibleWhenEmpty || !string.IsNullOrWhiteSpace(text)
+        };
+        return label;
+    }
+
+    private static Label CreateCityStatsValueCell(string text, int minimumWidth)
+    {
+        var label = new Label
+        {
+            Text = text ?? string.Empty,
+            SizeFlagsHorizontal = minimumWidth > 0 ? Control.SizeFlags.Fill : Control.SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        if (minimumWidth > 0)
+        {
+            label.CustomMinimumSize = new Vector2(minimumWidth, 0.0f);
+        }
+
+        return label;
     }
 
     private string BuildPrefectLabel()
@@ -502,14 +571,18 @@ public partial class HudController : CanvasLayer
             : _localization.T("ui.unassigned");
     }
 
-    private string BuildPrefectAuthorizationLabel()
+    private bool HasAssignedPrefect(CityData city)
     {
-        if (_localization == null)
+        if (_turnManager?.World == null)
         {
-            return string.Empty;
+            return false;
         }
 
-        return _localization.T("ui.prefect_authorization_mode");
+        return city.OfficerIds
+            .Select(id => _turnManager.World.GetOfficer(id))
+            .Any(officer =>
+                officer != null &&
+                OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor));
     }
 
     private string BuildPrefectAuthorizationText(CityData city)
@@ -531,6 +604,19 @@ public partial class HudController : CanvasLayer
             PrefectAuthorizationType.Full => _localization.T("ui.prefect_authorization.full"),
             _ => city.PrefectAuthorizationType.ToString()
         };
+    }
+
+    private string BuildCityHeaderAuthorizationSuffix(CityData city)
+    {
+        if (!CanViewCityFullInformation(city) || city.PrefectAuthorizationType == PrefectAuthorizationType.None)
+        {
+            return string.Empty;
+        }
+
+        var authorizationText = BuildPrefectAuthorizationText(city);
+        return string.IsNullOrWhiteSpace(authorizationText)
+            ? string.Empty
+            : $" ({authorizationText})";
     }
 
     private string BuildOfficerAppointmentsText(OfficerData officer)
@@ -702,23 +788,6 @@ public partial class HudController : CanvasLayer
         }
 
         return _localization.T("ui.advisor_comment_chief_strategist_layout");
-    }
-
-    private static void AppendCityStatCells(System.Text.StringBuilder bb, string label, string value)
-    {
-        bb.Append("[cell]");
-        if (!string.IsNullOrWhiteSpace(label))
-        {
-            bb.Append(label);
-            bb.Append(":");
-        }
-        bb.Append("[/cell]");
-        bb.Append("[cell]");
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            bb.Append(value);
-        }
-        bb.Append("[/cell]");
     }
 
     private static void AppendOfficerDetailCells(System.Text.StringBuilder bb, string label, string value)

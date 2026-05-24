@@ -7,6 +7,34 @@
 								 "zhHant":  "職位",
 								 "en":  "Appointment"
 							 },
+	"ui.assign_appointment":  {
+								 "zhHant":  "任命職位",
+								 "en":  "Assign Appointment"
+							 },
+	"ui.clear_appointment":  {
+								"zhHant":  "解除職位",
+								"en":  "Clear Appointment"
+							},
+	"ui.clear_selection":  {
+							  "zhHant":  "清除選擇",
+							  "en":  "Clear Selection"
+						  },
+	"ui.confirm_clear_appointment":  {
+										 "zhHant":  "確認解除職位",
+										 "en":  "Confirm Clear Appointment"
+									 },
+	"ui.no_appointment_to_clear":  {
+									   "zhHant":  "這位武將目前沒有可解除的職位。",
+									   "en":  "This officer has no appointment to clear."
+								   },
+	"ui.pending_assign_appointment":  {
+										 "zhHant":  "待任命",
+										 "en":  "Pending Assign"
+									 },
+	"ui.pending_clear_appointment":  {
+										"zhHant":  "待解除",
+										"en":  "Pending Clear"
+									},
 	"ui.advisor_assign_officer":  {
 									  "zhHant":  "任命武將",
 									  "en":  "Officer To Appoint"

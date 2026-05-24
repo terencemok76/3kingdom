@@ -136,17 +136,9 @@ theme_override_constants/separation = 8
 layout_mode = 2
 text = "City: -"
 
-[node name="CityStatsLabel" type="RichTextLabel" parent="Root/LeftPanel" unique_id=1764531722]
+[node name="CityStatsPanel" type="VBoxContainer" parent="Root/LeftPanel" unique_id=1764531722]
 layout_mode = 2
-bbcode_enabled = true
-fit_content = true
-scroll_active = false
-text = "Owner: -
-Gold: 0
-Food: 0
-Troops: 0
-Officers: 0"
-autowrap_mode = 3
+theme_override_constants/separation = 3
 
 [node name="CommandsTitle" type="Label" parent="Root/LeftPanel" unique_id=1378187871]
 layout_mode = 2

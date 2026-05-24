@@ -107,9 +107,18 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
             return new List<int>();
         }
 
-        return city.OfficerIds
-            .Concat(world.Officers.Where(officer => officer.CityId == city.Id).Select(officer => officer.Id))
-            .Distinct()
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction == null)
+        {
+            return new List<int>();
+        }
+
+        return faction.OfficerIds
+            .Where(officerId =>
+            {
+                var officer = world.GetOfficer(officerId);
+                return officer != null && officer.CityId == city.Id;
+            })
             .Where(officerId =>
             {
                 var officer = world.GetOfficer(officerId);
@@ -134,14 +143,6 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         }
 
         return faction.OfficerIds
-            .Concat(world.Officers
-                .Where(officer =>
-                {
-                    var officerCity = world.GetCity(officer.CityId);
-                    return officerCity != null && officerCity.OwnerFactionId == faction.Id;
-                })
-                .Select(officer => officer.Id))
-            .Distinct()
             .Where(officerId =>
             {
                 var officer = world.GetOfficer(officerId);

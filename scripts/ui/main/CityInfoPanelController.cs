@@ -152,12 +152,12 @@ internal sealed class CityInfoPanelController
         {
             if (_context.CityNameLabel != null)
             {
-                _context.CityNameLabel.Text = localization.FormatCityHeader("-");
+                _context.CityNameLabel.Text = _context.BuildCityHeaderText(null);
             }
 
-            if (_context.CityStatsLabel != null)
+            if (_context.CityStatsPanel != null)
             {
-                _context.CityStatsLabel.Text = _context.BuildCityStatsText("-", null, 0);
+                _context.PopulateCityStats(_context.CityStatsPanel, "-", null, 0);
             }
 
             _context.UpdateGameplayButtonStates();
@@ -167,16 +167,16 @@ internal sealed class CityInfoPanelController
 
         if (_context.CityNameLabel != null)
         {
-            _context.CityNameLabel.Text = localization.FormatCityHeader(localization.GetCityName(selectedCity));
+            _context.CityNameLabel.Text = _context.BuildCityHeaderText(selectedCity);
         }
 
-        if (_context.CityStatsLabel != null)
+        if (_context.CityStatsPanel != null)
         {
             var ownerName = localization.GetFactionName(world, selectedCity.OwnerFactionId);
             var freeOfficerCount = world.Officers.Count(officer =>
                 officer.CityId == selectedCity.Id &&
                 FreeOfficerMovement.IsVisibleFreeOfficer(world, officer));
-            _context.CityStatsLabel.Text = _context.BuildCityStatsText(ownerName, selectedCity, freeOfficerCount);
+            _context.PopulateCityStats(_context.CityStatsPanel, ownerName, selectedCity, freeOfficerCount);
         }
 
         _context.UpdateGameplayButtonStates();
@@ -362,17 +362,7 @@ internal sealed class CityInfoPanelController
             }
         }
 
-        if (_context.CityStatsLabel != null)
-        {
-            if (useChineseSizing)
-            {
-                _context.CityStatsLabel.RemoveThemeFontSizeOverride("normal_font_size");
-            }
-            else
-            {
-                _context.CityStatsLabel.AddThemeFontSizeOverride("normal_font_size", CityStatsEnglishFontSize);
-            }
-        }
+        ApplyCityStatsTypography(_context.CityStatsPanel, useChineseSizing);
 
         foreach (var button in new[]
                  {
@@ -411,6 +401,47 @@ internal sealed class CityInfoPanelController
         if (button != null)
         {
             button.Text = text;
+        }
+    }
+
+    private static void ApplyCityStatsTypography(VBoxContainer? panel, bool useChineseSizing)
+    {
+        if (panel == null)
+        {
+            return;
+        }
+
+        foreach (var child in panel.GetChildren())
+        {
+            if (child is not Control control)
+            {
+                continue;
+            }
+
+            ApplyFontSizeToControlTree(control, useChineseSizing);
+        }
+    }
+
+    private static void ApplyFontSizeToControlTree(Control control, bool useChineseSizing)
+    {
+        if (control is Label label)
+        {
+            if (useChineseSizing)
+            {
+                label.RemoveThemeFontSizeOverride("font_size");
+            }
+            else
+            {
+                label.AddThemeFontSizeOverride("font_size", CityStatsEnglishFontSize);
+            }
+        }
+
+        foreach (var child in control.GetChildren())
+        {
+            if (child is Control nestedControl)
+            {
+                ApplyFontSizeToControlTree(nestedControl, useChineseSizing);
+            }
         }
     }
 

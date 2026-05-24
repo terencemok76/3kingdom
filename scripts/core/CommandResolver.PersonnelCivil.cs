@@ -200,6 +200,97 @@ public partial class CommandResolver
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAppointmentName(appointment, GameLanguage.English) });
     }
 
+    public CommandResult ExecuteClearOfficerAppointment(int actorFactionId, int cityId, int officerId, string appointment)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return LocalizedResult(false, "cmd.source_city_not_found");
+        }
+
+        if (city.OwnerFactionId != actorFactionId)
+        {
+            return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        var officer = world.GetOfficer(officerId);
+        if (officer == null || officer.CityId != city.Id || !city.OfficerIds.Contains(officerId))
+        {
+            return LocalizedResult(false, "cmd.assign_role.officer_required");
+        }
+
+        if (!IsValidClearableAppointment(appointment))
+        {
+            return LocalizedResult(false, "cmd.assign_role.invalid_role");
+        }
+
+        if (!HasOfficerAppointment(officer, appointment))
+        {
+            return LocalizedResult(
+                false,
+                "cmd.assign_role.not_assigned",
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetAppointmentName(appointment, GameLanguage.TraditionalChinese) },
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAppointmentName(appointment, GameLanguage.English) });
+        }
+
+        ClearOfficerAppointment(officer, appointment);
+        if (appointment.Equals(OfficerAppointmentRules.Governor, StringComparison.OrdinalIgnoreCase))
+        {
+            ClearCityPrefectAuthorization(city);
+        }
+
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction != null)
+        {
+            if (appointment.Equals(OfficerAppointmentRules.Chancellor, StringComparison.OrdinalIgnoreCase) &&
+                faction.ChancellorOfficerId == officer.Id)
+            {
+                faction.ChancellorOfficerId = 0;
+            }
+
+            if (appointment.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase) &&
+                faction.ChiefStrategistOfficerId == officer.Id)
+            {
+                faction.ChiefStrategistOfficerId = 0;
+            }
+        }
+
+        return LocalizedResult(
+            true,
+            "cmd.assign_role.cleared",
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetAppointmentName(appointment, GameLanguage.TraditionalChinese) },
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetAppointmentName(appointment, GameLanguage.English) });
+    }
+
+    public CommandResult ExecuteClearCityPrefect(int actorFactionId, int cityId)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return LocalizedResult(false, "cmd.source_city_not_found");
+        }
+
+        var prefect = GetCityPrefect(world, city);
+        if (prefect == null)
+        {
+            return LocalizedResult(false, "cmd.assign_role.prefect_not_found");
+        }
+
+        return ExecuteClearOfficerAppointment(actorFactionId, cityId, prefect.Id, OfficerAppointmentRules.Governor);
+    }
+
     public CommandResult ExecuteAuthorizePrefect(int actorFactionId, int cityId, PrefectAuthorizationType authorizationType)
     {
         if (_turnManager?.World == null)

@@ -79,6 +79,9 @@
   - 勢力滅亡
   - 繼位成新君主
 - 對應中央職位需自動清空
+- Player 可主動對單一武將解除既有 appointment
+  - `v1 實作`：目前支援解除 `太守 / 軍師 / 丞相 / 首席軍師`
+  - 解除成功後，應立即刷新該武將的 appointment 顯示與 faction / city 關聯狀態
 
 ## 3A. 地方太守系統
 
@@ -124,6 +127,9 @@
 - `v1 建議`：自動補任時優先選擇同城中最適合行政管理的武將
   - 可先以 `Politics + Intelligence + Loyalty` 作為基礎排序
   - 若同分，再比較 `Charm`
+- Player 可主動解除城市太守
+  - 解除後，該城市 `PrefectAuthorizationType` 必須立即重設為 `None`
+  - HUD / 人事畫面 / 城市狀態顯示需同步更新
 
 ### 3A.6 太守月計畫
 - 每位太守可對其所屬城市持有 `月計畫 / monthly plan`
@@ -239,6 +245,29 @@
   - 忠誠
   - `STR / INT / CHA / LEA / POL`
   - 目前是否已持有中央職位
+
+### 4.2B 指派職位視窗
+- 功能：
+  - 對單一武將執行 `任命職位`
+  - 對單一武將執行 `解除職位`
+  - 查看該武將目前已持有的 appointments
+- `v1 實作行為`：
+  - 可先不選武將，保持 `未選擇`
+  - 可透過 `清除選擇` 回到未選武將狀態
+  - 選將名單只顯示 `本勢力已雇用武將`
+  - 不顯示尚未登用、僅暫時停留在城市中的人物
+  - 任命與解除分成兩個獨立下拉與兩個獨立確認按鈕
+  - `任命職位` 清單不重複列出該武將已持有的 appointments
+  - `解除職位` 清單只顯示該武將目前真的持有的 appointments
+  - 若沒有可解除職位，解除按鈕應禁用
+  - 任命 / 解除完成後，視窗不自動關閉
+  - 結果訊息直接顯示於視窗內，方便玩家連續處理同一武將或下一位武將
+- 建議欄位：
+  - 已選武將
+  - 目前持有職位
+  - 待任命職位
+  - 待解除職位
+  - 當前操作結果訊息
 
 ### 4.2A 太守 / 月計畫視窗
 - 功能：
@@ -504,6 +533,11 @@
   - `CurrentMonthlyPlanSkipExecutionYear`
   - `CurrentMonthlyPlanSkipExecutionMonth`
   - `CurrentMonthlyPlanAssignedOfficerId`
+- `v1 實作備註`：
+  - 目前未額外保存 `PrefectOfficerId`
+  - 城市太守身分是透過城市內武將的 `Appointments` 是否持有 `Governor` 來判定
+  - `PrefectAuthorizationType` 直接保存於 `CityData`
+  - 因此 `太守任命 / 解除` 與 `城市授權模式` 是兩層分開資料
 
 ### 8.2 Save / Load
 - 中央職位資料必須進存檔
@@ -540,6 +574,9 @@
   - 原城市的授權狀態應延續
   - 月計畫可依新任太守 characteristic 與當前局勢重新計算
   - 不需 player 再次手動授權
+- `v1 實作修正`：
+  - 若 Player 主動解除太守，城市授權狀態不延續，需立即清為 `None`
+  - 若城市易主，授權狀態同樣不延續，需由新勢力重新決定
 
 ### 9.3 Fog of War
 - `v1 建議`：

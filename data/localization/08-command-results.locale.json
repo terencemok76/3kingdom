@@ -39,6 +39,22 @@
                                      "zhHant":  "已指派「{0}」為「{1}」。",
                                      "en":  "Assigned \"{0}\" as \"{1}\"."
                                  },
+    "cmd.assign_role.prefect_not_found":  {
+                                              "zhHant":  "此城市目前沒有可解除的太守。",
+                                              "en":  "This city currently has no prefect to remove."
+                                          },
+    "cmd.assign_role.clear_prefect.resolved":  {
+                                                  "zhHant":  "已解除「{0}」在「{1}」的太守職位。",
+                                                  "en":  "Removed \"{0}\" from the prefect post in \"{1}\"."
+                                              },
+    "cmd.assign_role.not_assigned":  {
+                                         "zhHant":  "「{0}」目前沒有「{1}」職位。",
+                                         "en":  "\"{0}\" does not currently hold the \"{1}\" appointment."
+                                     },
+    "cmd.assign_role.cleared":  {
+                                    "zhHant":  "已解除「{0}」的「{1}」職位。",
+                                    "en":  "Removed the \"{1}\" appointment from \"{0}\"."
+                                },
     "cmd.assign_role.ruler_blocked":  {
                                           "zhHant":  "君主不需指派此類官職。",
                                           "en":  "The ruler does not need this type of assigned title."

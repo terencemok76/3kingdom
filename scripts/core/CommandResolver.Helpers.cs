@@ -815,6 +815,13 @@ public partial class CommandResolver
                position.Equals("ChiefStrategist", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsValidClearableAppointment(string appointment)
+    {
+        return OfficerAppointmentRules.IsValidOfficerAppointment(appointment) ||
+               appointment.Equals(OfficerAppointmentRules.Chancellor, StringComparison.OrdinalIgnoreCase) ||
+               appointment.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase);
+    }
+
     private string GetAppointmentName(string position, GameLanguage language)
     {
         if (_localization == null)
