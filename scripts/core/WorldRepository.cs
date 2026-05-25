@@ -420,6 +420,9 @@ public class WorldRepository
             city.ArcherTroops = cityStart.ArcherTroops;
             city.CrossbowTroops = cityStart.CrossbowTroops;
             city.SiegeTroops = cityStart.SiegeTroops;
+            city.BowWorkshopLevel = cityStart.BowWorkshopLevel;
+            city.SiegeWorkshopLevel = cityStart.SiegeWorkshopLevel;
+            city.HorsePastureLevel = cityStart.HorsePastureLevel;
             city.HasBowWorkshop = cityStart.HasBowWorkshop;
             city.HasSiegeWorkshop = cityStart.HasSiegeWorkshop;
             city.EnsureTroopTypesInitialized();

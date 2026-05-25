@@ -22,8 +22,40 @@ public class CityData
     public int Food { get; set; }
     public int Horses { get; set; }
     public int Population { get; set; }
-    public bool HasBowWorkshop { get; set; }
-    public bool HasSiegeWorkshop { get; set; }
+    public int BowWorkshopLevel { get; set; }
+    public int SiegeWorkshopLevel { get; set; }
+    public int HorsePastureLevel { get; set; }
+    public bool HasBowWorkshop
+    {
+        get => BowWorkshopLevel > 0;
+        set
+        {
+            if (value && BowWorkshopLevel <= 0)
+            {
+                BowWorkshopLevel = 1;
+            }
+            else if (!value)
+            {
+                BowWorkshopLevel = 0;
+            }
+        }
+    }
+
+    public bool HasSiegeWorkshop
+    {
+        get => SiegeWorkshopLevel > 0;
+        set
+        {
+            if (value && SiegeWorkshopLevel <= 0)
+            {
+                SiegeWorkshopLevel = 1;
+            }
+            else if (!value)
+            {
+                SiegeWorkshopLevel = 0;
+            }
+        }
+    }
     public int InfantryTroops { get; set; }
     public int SpearmanTroops { get; set; }
     public int CavalryTroops { get; set; }
@@ -59,6 +91,8 @@ public class CityData
     public int LastCivilReliefMonth { get; set; } = -1;
     public PrefectAuthorizationType PrefectAuthorizationType { get; set; } = PrefectAuthorizationType.None;
     public InternalAffairsJobType PrefectPlanJobType { get; set; } = InternalAffairsJobType.Farm;
+    public ConstructionProjectType PrefectPlanConstructionProjectType { get; set; } = ConstructionProjectType.None;
+    public int PrefectPlanInvestedGold { get; set; }
     public int PrefectPlanTotalMonths { get; set; }
     public int PrefectPlanRemainingMonths { get; set; }
     public bool PrefectPlanIsPlayerDirected { get; set; }

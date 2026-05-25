@@ -40,7 +40,7 @@ public class CombatResolver
 
         var attackStat = attackerStrength * 0.3f + attackerLeadership * 0.4f + attackerCombat * 0.3f;
         var deploymentModifier = GetAttackDeploymentModifier(effectiveAttackAllocation);
-        var siegePressure = GetSiegePressureModifier(effectiveAttackAllocation);
+        var siegePressure = GetSiegePressureModifier(effectiveAttackAllocation) + GetSiegeWorkshopPressureBonus(attacker, effectiveAttackAllocation);
         var troopCounterAttackModifier = GetAttackCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
         var troopCounterDefenseModifier = GetDefenseCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
         var attackMultiplier = 1.0f + attackStat / 220.0f + deploymentModifier + troopCounterAttackModifier;
@@ -212,6 +212,17 @@ public class CombatResolver
 
         var siegeTroops = allocation.Siege;
         return Math.Min(0.12f, siegeTroops / (float)totalTroops * 0.20f);
+    }
+
+    private static float GetSiegeWorkshopPressureBonus(CityData attacker, TroopAllocationData allocation)
+    {
+        if (attacker.SiegeWorkshopLevel <= 0 || allocation.Total <= 0 || allocation.Siege <= 0)
+        {
+            return 0.0f;
+        }
+
+        var siegeShare = allocation.Siege / (float)allocation.Total;
+        return Math.Min(0.06f, attacker.SiegeWorkshopLevel * 0.02f * siegeShare);
     }
 
     private static float GetAttackCounterModifier(TroopAllocationData attackerAllocation, TroopAllocationData defenderAllocation)

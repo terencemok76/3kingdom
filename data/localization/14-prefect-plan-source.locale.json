@@ -4,7 +4,7 @@
     "en": "Current Source"
   },
   "ui.prefect_plan_pending_source": {
-    "zhHant": "套用後來源",
+    "zhHant": "待套用來源",
     "en": "Pending Source"
   },
   "ui.prefect_plan_source.player": {
@@ -12,11 +12,11 @@
     "en": "Player Directed"
   },
   "ui.prefect_plan_source.prefect": {
-    "zhHant": "太守自選",
+    "zhHant": "太守自訂",
     "en": "Prefect Directed"
   },
   "fmt.internal_affairs_schedule_row_with_source": {
-    "zhHant": "{0} | {1} | 剩餘 {2} 月 | {3} | {4}",
-    "en": "{0} | {1} | {2} months left | {3} | {4}"
+    "zhHant": "{0} | {1} | 剩餘 {2} 月 | 每月金 {3} | {4} | {5}",
+    "en": "{0} | {1} | {2} months left | Monthly Gold {3} | {4} | {5}"
   }
 }

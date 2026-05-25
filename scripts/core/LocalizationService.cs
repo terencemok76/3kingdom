@@ -219,8 +219,9 @@ public class LocalizationService
             $"{T("ui.farm")}: {city.Farm}\n" +
             $"{T("ui.commercial")}: {city.Commercial}\n" +
             $"{T("ui.disaster_prevention")}: {city.DisasterPrevention}\n" +
-            $"{T("ui.bow_workshop")}: {(city.HasBowWorkshop ? T("ui.yes") : T("ui.no"))}\n" +
-            $"{T("ui.siege_workshop")}: {(city.HasSiegeWorkshop ? T("ui.yes") : T("ui.no"))}\n" +
+            $"{T("ui.bow_workshop")}: {city.BowWorkshopLevel}\n" +
+            $"{T("ui.siege_workshop")}: {city.SiegeWorkshopLevel}\n" +
+            $"{T("ui.horse_pasture")}: {city.HorsePastureLevel}\n" +
             $"{T("ui.defense")}: {city.Defense}\n" +
             $"{T("ui.loyalty")}: {city.Loyalty}";
     }
@@ -244,8 +245,9 @@ public class LocalizationService
             $"{T("ui.farm")}: 0\n" +
             $"{T("ui.commercial")}: 0\n" +
             $"{T("ui.disaster_prevention")}: 0\n" +
-            $"{T("ui.bow_workshop")}: {T("ui.no")}\n" +
-            $"{T("ui.siege_workshop")}: {T("ui.no")}\n" +
+            $"{T("ui.bow_workshop")}: 0\n" +
+            $"{T("ui.siege_workshop")}: 0\n" +
+            $"{T("ui.horse_pasture")}: 0\n" +
             $"{T("ui.defense")}: 0\n" +
             $"{T("ui.loyalty")}: 0";
     }

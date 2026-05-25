@@ -89,16 +89,16 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(500, 420)
+custom_minimum_size = Vector2(500, 498)
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 500.0
-offset_bottom = 420.0
+offset_bottom = 498.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(460, 380)
+custom_minimum_size = Vector2(460, 458)
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -167,6 +167,38 @@ size_flags_horizontal = 3
 min_value = 1.0
 max_value = 24.0
 value = 3.0
+
+[node name="GoldRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="GoldLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/GoldRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Gold"
+
+[node name="GoldSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/GoldRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 9999.0
+step = 1.0
+value = 100.0
+
+[node name="ConstructionProjectRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ConstructionProjectLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConstructionProjectRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Project"
+
+[node name="ConstructionProjectOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConstructionProjectRow"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

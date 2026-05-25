@@ -76,8 +76,8 @@
                                  "en":  "{0} | {1} | Loyalty {2} | {3} | {4}"
                              },
     "fmt.internal_affairs_schedule_row":  {
-                                              "zhHant":  "{0} | {1} | 剩餘 {2} 月 | {3}",
-                                              "en":  "{0} | {1} | {2} months left | {3}"
+                                              "zhHant":  "{0} | {1} | 剩餘 {2} 月 | 每月金 {3} | {4}",
+                                              "en":  "{0} | {1} | {2} months left | Monthly Gold {3} | {4}"
                                           },
     "fmt.item_bonus_compact":  {
                                    "zhHant":  "武{0} 智{1} 魅{2} 統{3} 政{4} 戰{5} 忠{6}",

@@ -1,0 +1,22 @@
+{
+  "ui.internal_affairs_gold": {
+    "zhHant": "每月投入金",
+    "en": "Monthly Gold"
+  },
+  "cmd.internal_affairs.invalid_gold": {
+    "zhHant": "「{0}」的內政每月投入金不足，至少需要 {1} 金。",
+    "en": "\"{0}\" does not meet the minimum monthly gold for internal affairs. At least {1} gold is required."
+  },
+  "cmd.internal_affairs.not_enough_gold": {
+    "zhHant": "「{0}」金不足，無法支付本月 {1} 金執行內政。",
+    "en": "\"{0}\" does not have enough gold to pay this month's {1} gold for internal affairs."
+  },
+  "cmd.internal_affairs.paused_insufficient_gold": {
+    "zhHant": "「{0}」因金不足，無法支付本月 {2} 金，內政「{1}」已自動暫停。",
+    "en": "\"{0}\" could not pay this month's {2} gold, so internal affairs \"{1}\" was automatically paused."
+  },
+  "cmd.internal_affairs.auto_resumed": {
+    "zhHant": "「{0}」資金已足，內政「{1}」由「{2}」自動恢復執行，本月金 {3}。",
+    "en": "\"{0}\" has enough gold again. Internal affairs \"{1}\" automatically resumed under \"{2}\". Monthly Gold {3}."
+  }
+}

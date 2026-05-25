@@ -336,7 +336,7 @@ public partial class HudController
             }
         }
 
-        _eventPresentationUiSuppressed = _temporarilyHiddenUiOverlays.Count > 0;
+        _eventPresentationUiSuppressed = true;
     }
 
     private void RestoreSuppressedUiAfterEventPresentation()

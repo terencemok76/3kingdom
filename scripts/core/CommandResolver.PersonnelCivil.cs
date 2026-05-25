@@ -329,6 +329,7 @@ public partial class CommandResolver
                 city.PrefectPlanJobType = plannedJob.Value;
                 city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect);
                 city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
+                city.PrefectPlanInvestedGold = GetRecommendedInternalAffairsGold(plannedJob.Value, city.PrefectPlanTotalMonths);
                 city.PrefectPlanIsPlayerDirected = false;
             }
         }
@@ -390,6 +391,7 @@ public partial class CommandResolver
         city.PrefectPlanJobType = jobType;
         city.PrefectPlanTotalMonths = Math.Min(months, 24);
         city.PrefectPlanRemainingMonths = Math.Min(months, 24);
+        city.PrefectPlanInvestedGold = GetRecommendedInternalAffairsGold(jobType, city.PrefectPlanTotalMonths);
         city.PrefectPlanIsPlayerDirected = city.PrefectAuthorizationType == PrefectAuthorizationType.Half;
 
         return LocalizedResult(

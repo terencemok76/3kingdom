@@ -516,8 +516,8 @@
                                                      "en":  "Officer \"{0}\" already has an order or internal affairs schedule."
                                                  },
     "cmd.internal_affairs.resolved":  {
-                                          "zhHant":  "「{0}」內政進度：「{1}」執行「{2}」。農業 +{3}，商業 +{4}，防衛 +{5}，防災 +{6}，忠誠 +{7}，剩餘 {8} 月。",
-                                          "en":  "\"{0}\" internal affairs: \"{1}\" worked on \"{2}\". Farm +{3}, Commercial +{4}, Defense +{5}, Disaster Prevention +{6}, Loyalty +{7}, {8} months left."
+                                          "zhHant":  "「{0}」內政進度：「{1}」執行「{2}」。農業 +{3}，商業 +{4}，防衛 +{5}，防災 +{6}，忠誠 +{7}，剩餘 {8} 月，本月金 -{9}。",
+                                          "en":  "\"{0}\" internal affairs: \"{1}\" worked on \"{2}\". Farm +{3}, Commercial +{4}, Defense +{5}, Disaster Prevention +{6}, Loyalty +{7}, {8} months left, Monthly Gold -{9}."
                                       },
     "cmd.internal_affairs.pause_not_available":  {
                                                      "zhHant":  "目前只有進行中的內政計畫可以暫停。",
@@ -552,8 +552,8 @@
                                                     "en":  "No active internal affairs schedule found to terminate."
                                                 },
     "cmd.internal_affairs.scheduled":  {
-                                           "zhHant":  "「{0}」已指派「{1}」執行「{2}」，期間 {3} 個月。",
-                                           "en":  "\"{0}\" assigned \"{1}\" to \"{2}\" for {3} months."
+                                           "zhHant":  "「{0}」已指派「{1}」執行「{2}」，期間 {3} 個月，每月金 {4}，總計 {5}。",
+                                           "en":  "\"{0}\" assigned \"{1}\" to \"{2}\" for {3} months. Monthly Gold {4}, Total {5}."
                                        },
     "cmd.internal_affairs.terminated":  {
                                             "zhHant":  "「{0}」已中止「{1}」內政。",

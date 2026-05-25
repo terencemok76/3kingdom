@@ -392,8 +392,8 @@ public partial class CommandResolver
         return troopType switch
         {
             TroopType.Cavalry => city.Horses > 0,
-            TroopType.Crossbow => city.HasBowWorkshop,
-            TroopType.Siege => city.HasSiegeWorkshop,
+            TroopType.Crossbow => city.BowWorkshopLevel >= 1,
+            TroopType.Siege => city.SiegeWorkshopLevel >= 1,
             _ => true
         };
     }
@@ -942,6 +942,7 @@ public partial class CommandResolver
                 city.PrefectPlanJobType = plannedJob.Value;
                 city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect);
                 city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
+                city.PrefectPlanInvestedGold = GetRecommendedInternalAffairsGold(plannedJob.Value, city.PrefectPlanTotalMonths);
                 city.PrefectPlanIsPlayerDirected = false;
                 return;
             }
@@ -1120,6 +1121,8 @@ public partial class CommandResolver
     private static void ClearCityAuthorizedPlan(CityData city)
     {
         city.PrefectPlanJobType = InternalAffairsJobType.Farm;
+        city.PrefectPlanConstructionProjectType = ConstructionProjectType.None;
+        city.PrefectPlanInvestedGold = 0;
         city.PrefectPlanTotalMonths = 0;
         city.PrefectPlanRemainingMonths = 0;
         city.PrefectPlanIsPlayerDirected = false;
@@ -1182,7 +1185,7 @@ public partial class CommandResolver
             ),
             (
                 InternalAffairsJobType.Construction,
-                ((city.Commercial + city.Defense) / 2) - (constructionBias / 7) - ((city.HasBowWorkshop && city.HasSiegeWorkshop) ? 0 : 8)
+                ((city.Commercial + city.Defense) / 2) - (constructionBias / 7) - (GetMissingFacilityCount(city) > 0 ? 8 : 0)
             )
         };
 
@@ -1207,7 +1210,7 @@ public partial class CommandResolver
             InternalAffairsJobType.Commercial when city.Commercial < 45 => 4,
             InternalAffairsJobType.Defend when city.Defense < 50 => 4,
             InternalAffairsJobType.WaterControl when city.DisasterPrevention < 35 => 4,
-            InternalAffairsJobType.Construction when !city.HasBowWorkshop || !city.HasSiegeWorkshop => 3,
+            InternalAffairsJobType.Construction when GetMissingFacilityCount(city) > 0 => 3,
             InternalAffairsJobType.Defend when leadership >= 75 => 3,
             InternalAffairsJobType.Commercial when politics >= 75 && ambition >= 60 => 3,
             InternalAffairsJobType.Farm when intelligence >= 70 => 3,
@@ -1217,6 +1220,12 @@ public partial class CommandResolver
 
     private InternalAffairsScheduleData CreateAuthorizedPlanSchedule(WorldState world, CityData city, int officerId)
     {
+        var projectType = city.PrefectPlanJobType == InternalAffairsJobType.Construction
+            ? ResolveConstructionProjectType(city, city.PrefectPlanConstructionProjectType)
+            : ConstructionProjectType.None;
+        var investedGold = city.PrefectPlanInvestedGold > 0
+            ? city.PrefectPlanInvestedGold
+            : GetRecommendedInternalAffairsGold(city.PrefectPlanJobType, city.PrefectPlanRemainingMonths);
         return new InternalAffairsScheduleData
         {
             Id = GetNextInternalAffairsScheduleId(world),
@@ -1224,6 +1233,8 @@ public partial class CommandResolver
             OfficerId = officerId,
             IsAuthorizedPlan = true,
             JobType = city.PrefectPlanJobType,
+            ConstructionProjectType = projectType,
+            InvestedGold = investedGold,
             RemainingMonths = city.PrefectPlanRemainingMonths,
             TotalMonths = city.PrefectPlanTotalMonths > 0 ? city.PrefectPlanTotalMonths : city.PrefectPlanRemainingMonths,
             StartedYear = world.Year,
@@ -1248,6 +1259,63 @@ public partial class CommandResolver
             .FirstOrDefault();
     }
 
+    private static int GetMissingFacilityCount(CityData city)
+    {
+        var count = 0;
+        if (city.BowWorkshopLevel <= 0)
+        {
+            count += 1;
+        }
+
+        if (city.SiegeWorkshopLevel <= 0)
+        {
+            count += 1;
+        }
+
+        if (city.HorsePastureLevel <= 0)
+        {
+            count += 1;
+        }
+
+        return count;
+    }
+
+    private static ConstructionProjectType ResolveConstructionProjectType(CityData city, ConstructionProjectType requestedProjectType)
+    {
+        if (requestedProjectType != ConstructionProjectType.None)
+        {
+            return requestedProjectType;
+        }
+
+        if (city.BowWorkshopLevel <= 0)
+        {
+            return ConstructionProjectType.BowWorkshop;
+        }
+
+        if (city.SiegeWorkshopLevel <= 0)
+        {
+            return ConstructionProjectType.SiegeWorkshop;
+        }
+
+        return ConstructionProjectType.HorsePasture;
+    }
+
+    private static void ApplyConstructionProjectCompletion(CityData city, ConstructionProjectType projectType)
+    {
+        switch (projectType)
+        {
+            case ConstructionProjectType.BowWorkshop:
+                city.BowWorkshopLevel += 1;
+                break;
+            case ConstructionProjectType.SiegeWorkshop:
+                city.SiegeWorkshopLevel += 1;
+                break;
+            case ConstructionProjectType.HorsePasture:
+                city.HorsePastureLevel += 1;
+                break;
+        }
+    }
+
     private static int ScoreInternalAffairsOfficer(OfficerData officer, InternalAffairsJobType jobType)
     {
         return jobType switch
@@ -1265,14 +1333,18 @@ public partial class CommandResolver
         WorldState world,
         CityData city,
         OfficerData officer,
-        InternalAffairsJobType jobType)
+        InternalAffairsJobType jobType,
+        int investedGold,
+        int totalMonths)
     {
         var intelligence = GetEffectiveStat(world, officer, data => data.Intelligence, item => item.IntelligenceBonus, OfficerProgressionStat.Intelligence);
         var politics = GetEffectiveStat(world, officer, data => data.Politics, item => item.PoliticsBonus, OfficerProgressionStat.Politics);
         var charm = GetEffectiveStat(world, officer, data => data.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm);
         var officerBonus = Math.Max(0, (intelligence + politics + charm) / 90);
         var progressionBonus = OfficerProgressionRules.GetInternalAffairsOutputBonus(officer, jobType);
-        var primaryGain = 2 + officerBonus + progressionBonus;
+        var monthlyInvestment = investedGold;
+        var goldBonus = 1 + Math.Min(4, Math.Max(0, (monthlyInvestment - 50) / 100));
+        var primaryGain = 2 + officerBonus + progressionBonus + goldBonus;
         var secondaryGain = 1 + Math.Max(0, progressionBonus / 2);
         (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty) gains = jobType switch
         {
@@ -1292,6 +1364,39 @@ public partial class CommandResolver
         OfficerProgressionRules.AwardInternalAffairsExperience(officer, jobType, 40);
         OfficerProgressionRules.AwardCivilExperience(officer, 12);
         return gains;
+    }
+
+    private static int GetInternalAffairsMonthlyGoldCost(InternalAffairsScheduleData schedule)
+    {
+        return GetInternalAffairsMonthlyGoldCost(schedule.InvestedGold, schedule.TotalMonths, schedule.RemainingMonths);
+    }
+
+    private static int GetInternalAffairsMonthlyGoldCost(int investedGold, int totalMonths, int remainingMonths)
+    {
+        if (investedGold <= 0 || totalMonths <= 0 || remainingMonths <= 0)
+        {
+            return 0;
+        }
+
+        return investedGold;
+    }
+
+    private static int GetMinimumInternalAffairsGold(int months)
+    {
+        return 1;
+    }
+
+    private static int GetRecommendedInternalAffairsGold(InternalAffairsJobType jobType, int months)
+    {
+        return jobType switch
+        {
+            InternalAffairsJobType.Farm => 60,
+            InternalAffairsJobType.Commercial => 70,
+            InternalAffairsJobType.Defend => 80,
+            InternalAffairsJobType.WaterControl => 70,
+            InternalAffairsJobType.Construction => 100,
+            _ => 60
+        };
     }
 
     private string GetInternalAffairsJobName(InternalAffairsJobType jobType, GameLanguage language)

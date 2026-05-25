@@ -12,7 +12,9 @@ public partial class CommandResolver
         int cityId,
         int officerId,
         InternalAffairsJobType jobType,
-        int months)
+        int months,
+        ConstructionProjectType constructionProjectType = ConstructionProjectType.None,
+        int investedGold = 0)
     {
         if (_turnManager?.World == null)
         {
@@ -56,6 +58,40 @@ public partial class CommandResolver
                 new object[] { GetCityName(city, GameLanguage.English), GetInternalAffairsJobName(jobType, GameLanguage.English) });
         }
 
+        if (investedGold <= 0)
+        {
+            investedGold = GetRecommendedInternalAffairsGold(jobType, months);
+        }
+
+        var minimumGold = GetMinimumInternalAffairsGold(months);
+        if (investedGold < minimumGold)
+        {
+            return LocalizedResult(
+                false,
+                "cmd.internal_affairs.invalid_gold",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), minimumGold },
+                new object[] { GetCityName(city, GameLanguage.English), minimumGold });
+        }
+
+        var monthlyGold = GetInternalAffairsMonthlyGoldCost(investedGold, Math.Min(months, 24), Math.Min(months, 24));
+        if (city.Gold < monthlyGold)
+        {
+            return LocalizedResult(
+                false,
+                "cmd.internal_affairs.not_enough_gold",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), monthlyGold },
+                new object[] { GetCityName(city, GameLanguage.English), monthlyGold });
+        }
+
+        if (jobType == InternalAffairsJobType.Construction)
+        {
+            constructionProjectType = ResolveConstructionProjectType(city, constructionProjectType);
+        }
+        else
+        {
+            constructionProjectType = ConstructionProjectType.None;
+        }
+
         var schedule = new InternalAffairsScheduleData
         {
             Id = GetNextInternalAffairsScheduleId(world),
@@ -63,6 +99,8 @@ public partial class CommandResolver
             OfficerId = officer.Id,
             IsAuthorizedPlan = false,
             JobType = jobType,
+            ConstructionProjectType = constructionProjectType,
+            InvestedGold = investedGold,
             RemainingMonths = Math.Min(months, 24),
             TotalMonths = Math.Min(months, 24),
             StartedYear = world.Year,
@@ -82,14 +120,18 @@ public partial class CommandResolver
                 GetCityName(city, GameLanguage.TraditionalChinese),
                 GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
                 GetInternalAffairsJobName(jobType, GameLanguage.TraditionalChinese),
-                schedule.RemainingMonths
+                schedule.RemainingMonths,
+                schedule.InvestedGold,
+                schedule.InvestedGold * schedule.TotalMonths
             },
             new object[]
             {
                 GetCityName(city, GameLanguage.English),
                 GetOfficerDisplayName(officer, GameLanguage.English),
                 GetInternalAffairsJobName(jobType, GameLanguage.English),
-                schedule.RemainingMonths
+                schedule.RemainingMonths,
+                schedule.InvestedGold,
+                schedule.InvestedGold * schedule.TotalMonths
             });
     }
 
@@ -307,6 +349,7 @@ public partial class CommandResolver
 
         var world = _turnManager.World;
         results.AddRange(EnsureAuthorizedPrefectPlans(world));
+        results.AddRange(TryAutoResumeGoldPausedSchedules(world));
         foreach (var schedule in world.InternalAffairsSchedules.Where(item => item.State == InternalAffairsScheduleState.Active).ToList())
         {
             if (schedule.SkipExecutionYear == world.Year && schedule.SkipExecutionMonth == world.Month)
@@ -342,17 +385,53 @@ public partial class CommandResolver
                 continue;
             }
 
-            var gains = ApplyInternalAffairsJob(world, city, officer, schedule.JobType);
+            var monthlyGoldCost = GetInternalAffairsMonthlyGoldCost(schedule);
+            if (city.Gold < monthlyGoldCost)
+            {
+                ReleaseInternalAffairsOfficerAssignment(world, schedule.OfficerId);
+                schedule.State = InternalAffairsScheduleState.Paused;
+                schedule.OfficerId = 0;
+                schedule.InterruptedReason = "insufficient_gold";
+                var insufficientGoldResult = LocalizedResult(
+                    true,
+                    "cmd.internal_affairs.paused_insufficient_gold",
+                    new object[]
+                    {
+                        GetCityName(city, GameLanguage.TraditionalChinese),
+                        GetInternalAffairsJobName(schedule.JobType, GameLanguage.TraditionalChinese),
+                        monthlyGoldCost
+                    },
+                    new object[]
+                    {
+                        GetCityName(city, GameLanguage.English),
+                        GetInternalAffairsJobName(schedule.JobType, GameLanguage.English),
+                        monthlyGoldCost
+                    });
+                insufficientGoldResult.IsPlayerRelated = isPlayerRelated;
+                results.Add(insufficientGoldResult);
+                continue;
+            }
+
+            city.Gold -= monthlyGoldCost;
+
+            var gains = ApplyInternalAffairsJob(world, city, officer, schedule.JobType, schedule.InvestedGold, schedule.TotalMonths);
             schedule.RemainingMonths -= 1;
             if (schedule.IsAuthorizedPlan)
             {
                 city.PrefectPlanJobType = schedule.JobType;
+                city.PrefectPlanConstructionProjectType = schedule.ConstructionProjectType;
+                city.PrefectPlanInvestedGold = schedule.InvestedGold;
                 city.PrefectPlanTotalMonths = schedule.TotalMonths;
                 city.PrefectPlanRemainingMonths = Math.Max(schedule.RemainingMonths, 0);
             }
 
             if (schedule.RemainingMonths <= 0)
             {
+                if (schedule.JobType == InternalAffairsJobType.Construction)
+                {
+                    ApplyConstructionProjectCompletion(city, ResolveConstructionProjectType(city, schedule.ConstructionProjectType));
+                }
+
                 schedule.State = InternalAffairsScheduleState.Completed;
                 if (schedule.IsAuthorizedPlan)
                 {
@@ -374,7 +453,8 @@ public partial class CommandResolver
                     gains.Defense,
                     gains.DisasterPrevention,
                     gains.Loyalty,
-                    Math.Max(schedule.RemainingMonths, 0)
+                    Math.Max(schedule.RemainingMonths, 0),
+                    monthlyGoldCost
                 },
                 new object[]
                 {
@@ -386,7 +466,8 @@ public partial class CommandResolver
                     gains.Defense,
                     gains.DisasterPrevention,
                     gains.Loyalty,
-                    Math.Max(schedule.RemainingMonths, 0)
+                    Math.Max(schedule.RemainingMonths, 0),
+                    monthlyGoldCost
                 });
             resolveResult.IsPlayerRelated = isPlayerRelated;
             results.Add(resolveResult);
@@ -396,6 +477,63 @@ public partial class CommandResolver
             item.State is InternalAffairsScheduleState.Terminated or
                 InternalAffairsScheduleState.Interrupted or
                 InternalAffairsScheduleState.Completed);
+        return results;
+    }
+
+    private List<CommandResult> TryAutoResumeGoldPausedSchedules(WorldState world)
+    {
+        var results = new List<CommandResult>();
+        var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
+        foreach (var schedule in world.InternalAffairsSchedules.Where(item =>
+                     item.State == InternalAffairsScheduleState.Paused &&
+                     string.Equals(item.InterruptedReason, "insufficient_gold", StringComparison.OrdinalIgnoreCase)).ToList())
+        {
+            var city = world.GetCity(schedule.CityId);
+            if (city == null)
+            {
+                continue;
+            }
+
+            var monthlyGoldCost = GetInternalAffairsMonthlyGoldCost(schedule);
+            if (city.Gold < monthlyGoldCost)
+            {
+                continue;
+            }
+
+            var officer = TrySelectInternalAffairsOfficerForSchedule(world, city, schedule.JobType);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            schedule.State = InternalAffairsScheduleState.Active;
+            schedule.OfficerId = officer.Id;
+            schedule.InterruptedReason = string.Empty;
+            schedule.SkipExecutionYear = -1;
+            schedule.SkipExecutionMonth = -1;
+            MarkOfficerAssigned(world, officer, CommandType.InternalAffairs);
+
+            var resumeResult = LocalizedResult(
+                true,
+                "cmd.internal_affairs.auto_resumed",
+                new object[]
+                {
+                    GetCityName(city, GameLanguage.TraditionalChinese),
+                    GetInternalAffairsJobName(schedule.JobType, GameLanguage.TraditionalChinese),
+                    GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
+                    monthlyGoldCost
+                },
+                new object[]
+                {
+                    GetCityName(city, GameLanguage.English),
+                    GetInternalAffairsJobName(schedule.JobType, GameLanguage.English),
+                    GetOfficerDisplayName(officer, GameLanguage.English),
+                    monthlyGoldCost
+                });
+            resumeResult.IsPlayerRelated = city.OwnerFactionId == playerFactionId;
+            results.Add(resumeResult);
+        }
+
         return results;
     }
 
@@ -437,6 +575,8 @@ public partial class CommandResolver
             if (schedule != null)
             {
                 city.PrefectPlanJobType = schedule.JobType;
+                city.PrefectPlanConstructionProjectType = schedule.ConstructionProjectType;
+                city.PrefectPlanInvestedGold = schedule.InvestedGold;
                 city.PrefectPlanTotalMonths = schedule.TotalMonths;
                 city.PrefectPlanRemainingMonths = schedule.RemainingMonths;
                 continue;
@@ -451,6 +591,10 @@ public partial class CommandResolver
                 }
 
                 city.PrefectPlanJobType = plannedJob.Value;
+                city.PrefectPlanConstructionProjectType = plannedJob.Value == InternalAffairsJobType.Construction
+                    ? ResolveConstructionProjectType(city, city.PrefectPlanConstructionProjectType)
+                    : ConstructionProjectType.None;
+                city.PrefectPlanInvestedGold = GetRecommendedInternalAffairsGold(plannedJob.Value, ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect));
                 city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect);
                 city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
                 city.PrefectPlanIsPlayerDirected = false;
@@ -461,6 +605,16 @@ public partial class CommandResolver
                 continue;
             }
 
+            var planGold = city.PrefectPlanInvestedGold > 0
+                ? city.PrefectPlanInvestedGold
+                : GetRecommendedInternalAffairsGold(city.PrefectPlanJobType, city.PrefectPlanRemainingMonths);
+            if (city.Gold < planGold)
+            {
+                continue;
+            }
+
+            city.Gold -= planGold;
+            city.PrefectPlanInvestedGold = planGold;
             var officer = TrySelectInternalAffairsOfficerForSchedule(world, city, city.PrefectPlanJobType);
             var newSchedule = CreateAuthorizedPlanSchedule(world, city, officer?.Id ?? 0);
             world.InternalAffairsSchedules.Add(newSchedule);

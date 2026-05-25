@@ -106,17 +106,23 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
 
     private void Populate()
     {
+        var city = _context.SelectedCity;
         var candidateOfficerIds = _context.GetAvailableCityOfficerIds();
         if (!candidateOfficerIds.Contains(_selectedOfficerId))
         {
             _selectedOfficerId = candidateOfficerIds.FirstOrDefault();
         }
 
-        if (_troopTypeOption != null)
+        if (_troopTypeOption != null && city != null)
         {
             _troopTypeOption.Clear();
             foreach (var troopType in TroopTypes)
             {
+                if (!CanRecruitTroopType(city, troopType))
+                {
+                    continue;
+                }
+
                 _troopTypeOption.AddItem(_context.GetTroopTypeDisplayName(troopType));
                 _troopTypeOption.SetItemMetadata(_troopTypeOption.ItemCount - 1, (int)troopType);
             }
@@ -125,6 +131,11 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             {
                 _troopTypeOption.Select(0);
             }
+        }
+
+        if (_confirmButton != null)
+        {
+            _confirmButton.Disabled = city == null || _troopTypeOption == null || _troopTypeOption.ItemCount <= 0;
         }
 
         UpdateSelectedOfficerSummary();
@@ -216,5 +227,16 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         return metadata.VariantType == Variant.Type.Int
             ? (TroopType)metadata.AsInt32()
             : TroopType.Infantry;
+    }
+
+    private static bool CanRecruitTroopType(CityData city, TroopType troopType)
+    {
+        return troopType switch
+        {
+            TroopType.Cavalry => city.Horses > 0,
+            TroopType.Crossbow => city.BowWorkshopLevel >= 1,
+            TroopType.Siege => city.SiegeWorkshopLevel >= 1,
+            _ => true
+        };
     }
 }
