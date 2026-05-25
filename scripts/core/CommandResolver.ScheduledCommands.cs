@@ -540,7 +540,7 @@ public partial class CommandResolver
         var movableGold = GetTransferAmount(pendingCommand.GoldToSend, sourceCity.Gold);
         var movableFood = GetTransferAmount(pendingCommand.FoodToSend, sourceCity.Food);
         var movableHorses = GetTransferAmount(pendingCommand.HorsesToSend, sourceCity.Horses);
-        var movedOfficerCount = TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds);
+        var movedOfficerCount = TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var sourcePrefectOutcome);
 
         if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movedOfficerCount == 0)
         {
@@ -561,11 +561,13 @@ public partial class CommandResolver
         targetCity.Food += movableFood;
         targetCity.Horses += movableHorses;
 
-        return LocalizedResult(
+        var result = LocalizedResult(
             true,
             "cmd.move.resolved",
             new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
             new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
+        AppendPrefectAutoAppointmentOutcome(result, sourcePrefectOutcome);
+        return result;
     }
 
     private CommandResult ResolveAttack(WorldState world, CityData sourceCity, PendingCommandData pendingCommand)
@@ -727,7 +729,7 @@ public partial class CommandResolver
         ClearCityPrefectAuthorization(targetCity);
         AwardBattleExperience(world, pendingCommand.OfficerIds, 26);
         AwardBattleExperience(world, defendingOfficerIds, 12);
-        ResolveCapturedCityOfficers(world, targetCity, defendingFactionId);
+        var defendingPrefectOutcome = ResolveCapturedCityOfficers(world, targetCity, defendingFactionId);
         var garrison = attackingTroops - effectiveAttackerLoss;
         if (garrison < 100)
         {
@@ -738,7 +740,7 @@ public partial class CommandResolver
         targetCity.AddTroopAllocation(garrisonAllocation);
         targetCity.Gold += pendingCommand.GoldToSend;
         targetCity.Food += pendingCommand.FoodToSend;
-        TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds);
+        TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var attackingPrefectOutcome);
         sourceCity.Loyalty = ClampStat(sourceCity.Loyalty + 2);
 
         var successResult = LocalizedResult(
@@ -772,6 +774,8 @@ public partial class CommandResolver
                 string.Join(" ", battleDeathSummaries.Select(item => item.En)));
         }
 
+        AppendPrefectAutoAppointmentOutcome(successResult, defendingPrefectOutcome);
+        AppendPrefectAutoAppointmentOutcome(successResult, attackingPrefectOutcome);
         return successResult;
     }
 

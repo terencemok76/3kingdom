@@ -245,7 +245,7 @@ public partial class CommandResolver
                 var targetFactionNameEn = targetFactionBeforeDeath != null
                     ? GetFactionName(targetFactionBeforeDeath, GameLanguage.English)
                     : targetFactionId.ToString();
-                EliminateOfficer(world, targetOfficer);
+                var prefectOutcome = EliminateOfficer(world, targetOfficer);
                 if (wasRuler && targetFactionId > 0)
                 {
                     ResolveRulerDeath(world, targetFactionId);
@@ -257,7 +257,7 @@ public partial class CommandResolver
                 {
                     if (targetFaction == null || !IsFactionAlive(world, targetFactionId))
                     {
-                        return LocalizedResult(
+                        var result = LocalizedResult(
                             true,
                             "cmd.spy.assassination_success_faction_destroyed",
                             new object[]
@@ -272,6 +272,8 @@ public partial class CommandResolver
                                 GetOfficerDisplayName(targetOfficer, GameLanguage.English),
                                 targetFactionNameEn
                             });
+                        AppendPrefectAutoAppointmentOutcome(result, prefectOutcome);
+                        return result;
                     }
 
                     if (!targetFaction.IsPlayer && targetFaction.RulerOfficerId > 0)
@@ -279,7 +281,7 @@ public partial class CommandResolver
                         var successor = world.GetOfficer(targetFaction.RulerOfficerId);
                         if (successor != null)
                         {
-                            return LocalizedResult(
+                            var result = LocalizedResult(
                                 true,
                                 "cmd.spy.assassination_success_ruler_succeeded",
                                 new object[]
@@ -296,11 +298,13 @@ public partial class CommandResolver
                                     GetOfficerDisplayName(successor, GameLanguage.English),
                                     GetFactionName(targetFaction, GameLanguage.English)
                                 });
+                            AppendPrefectAutoAppointmentOutcome(result, prefectOutcome);
+                            return result;
                         }
                     }
                 }
 
-                return LocalizedResult(
+                var successResult = LocalizedResult(
                     true,
                     "cmd.spy.assassination_success",
                     new object[]
@@ -315,6 +319,8 @@ public partial class CommandResolver
                         GetOfficerDisplayName(targetOfficer, GameLanguage.English),
                         GetCityName(targetCity, GameLanguage.English)
                     });
+                AppendPrefectAutoAppointmentOutcome(successResult, prefectOutcome);
+                return successResult;
             }
             default:
             {

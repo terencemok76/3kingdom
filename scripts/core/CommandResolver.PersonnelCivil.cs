@@ -508,6 +508,8 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.fire_officer.officer_required");
         }
 
+        var removedPrefect = HasOfficerAppointment(officer, OfficerAppointmentRules.Governor);
+
         if (IsFactionRuler(world, officer.Id))
         {
             return LocalizedResult(false, "cmd.fire_officer.ruler_blocked");
@@ -536,12 +538,19 @@ public partial class CommandResolver
         officer.CityId = city.Id;
         officer.FreeOfficerStayMonths = 2;
         officer.Loyalty = Math.Min(officer.Loyalty, HireOfficerDefaultLoyalty);
+        PrefectAutoAppointmentOutcome? prefectOutcome = null;
+        if (removedPrefect)
+        {
+            prefectOutcome = EnsureCityPrefectAppointment(world, city);
+        }
 
-        return LocalizedResult(
+        var result = LocalizedResult(
             true,
             "cmd.fire_officer.resolved",
             new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese) },
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English) });
+        AppendPrefectAutoAppointmentOutcome(result, prefectOutcome);
+        return result;
     }
 
     public CommandResult ExecuteHireOfficer(int actorFactionId, int cityId, int officerId, int goldOffer = 0, int foodOffer = 0, int itemId = 0)
@@ -568,6 +577,8 @@ public partial class CommandResolver
         {
             return LocalizedResult(false, "cmd.hire_officer.officer_required");
         }
+
+        var removedPrefect = HasOfficerAppointment(officer, OfficerAppointmentRules.Governor);
 
         if (IsFactionRuler(world, officer.Id))
         {
@@ -657,7 +668,13 @@ public partial class CommandResolver
             AssignItemToOfficer(world, giftedItem, actorFactionId, officer.Id);
         }
 
-        return LocalizedResult(
+        PrefectAutoAppointmentOutcome? prefectOutcome = null;
+        if (removedPrefect && sourceCity != null && sourceFactionId > 0)
+        {
+            prefectOutcome = EnsureCityPrefectAppointment(world, sourceCity);
+        }
+
+        var result = LocalizedResult(
             true,
             giftedItem == null ? "cmd.hire_officer.resolved" : "cmd.hire_officer.resolved_with_item",
             giftedItem == null
@@ -666,6 +683,8 @@ public partial class CommandResolver
             giftedItem == null
                 ? new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English), HireOfficerGoldCost + goldOffer, foodOffer }
                 : new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English), HireOfficerGoldCost + goldOffer, foodOffer, GetItemDisplayName(giftedItem, GameLanguage.English) });
+        AppendPrefectAutoAppointmentOutcome(result, prefectOutcome);
+        return result;
     }
 
     public CommandResult ExecuteRecallOfficerItem(int actorFactionId, int cityId, int officerId, int itemId)

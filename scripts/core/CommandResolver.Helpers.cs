@@ -7,6 +7,13 @@ namespace ThreeKingdom.Core;
 
 public partial class CommandResolver
 {
+    private sealed class PrefectAutoAppointmentOutcome
+    {
+        public required CityData City { get; init; }
+        public OfficerData? NewPrefect { get; init; }
+        public bool IsVacant => NewPrefect == null;
+    }
+
     private CommandResult LocalizedResult(bool success, string key, object[]? args = null)
     {
         return LocalizedResult(success, key, args, args);
@@ -40,6 +47,38 @@ public partial class CommandResolver
             result.MessageEn = $"{result.MessageEn} {enSuffix}".Trim();
             result.Message = result.MessageEn;
         }
+    }
+
+    private void AppendPrefectAutoAppointmentOutcome(CommandResult result, PrefectAutoAppointmentOutcome? outcome)
+    {
+        if (outcome == null)
+        {
+            return;
+        }
+
+        AppendLocalizedText(
+            result,
+            GetPrefectAutoAppointmentMessage(outcome, GameLanguage.TraditionalChinese),
+            GetPrefectAutoAppointmentMessage(outcome, GameLanguage.English));
+    }
+
+    private string GetPrefectAutoAppointmentMessage(PrefectAutoAppointmentOutcome outcome, GameLanguage language)
+    {
+        if (outcome.IsVacant)
+        {
+            return _localization?.FormatForLanguage(
+                       language,
+                       "cmd.prefect.auto_vacant",
+                       GetCityName(outcome.City, language))
+                   ?? string.Empty;
+        }
+
+        return _localization?.FormatForLanguage(
+                   language,
+                   "cmd.prefect.auto_reassigned",
+                   GetCityName(outcome.City, language),
+                   GetOfficerDisplayName(outcome.NewPrefect!, language))
+               ?? string.Empty;
     }
 
     private object[] GetCityArgs(CityData city, GameLanguage language)
@@ -452,9 +491,10 @@ public partial class CommandResolver
         return world.Cities.Any(city => city.OwnerFactionId == factionId);
     }
 
-    private void EliminateOfficer(WorldState world, OfficerData officer)
+    private PrefectAutoAppointmentOutcome? EliminateOfficer(WorldState world, OfficerData officer)
     {
         var city = officer.CityId > 0 ? world.GetCity(officer.CityId) : null;
+        var removedCityId = city?.Id ?? 0;
         city?.OfficerIds.Remove(officer.Id);
 
         var faction = world.Factions.FirstOrDefault(item =>
@@ -490,6 +530,16 @@ public partial class CommandResolver
         }
 
         ClearFactionAdvisorPosts(world, officer.Id);
+        if (removedCityId > 0)
+        {
+            var removedCity = world.GetCity(removedCityId);
+            if (removedCity != null)
+            {
+                return EnsureCityPrefectAppointment(world, removedCity);
+            }
+        }
+
+        return null;
     }
 
     private void ResolveRulerDeath(WorldState world, int factionId)
@@ -613,7 +663,7 @@ public partial class CommandResolver
         var rulerNameZh = GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese);
         var rulerNameEn = GetOfficerDisplayName(officer, GameLanguage.English);
 
-        EliminateOfficer(world, officer);
+        _ = EliminateOfficer(world, officer);
         ResolveRulerDeath(world, factionId);
 
         var updatedFaction = world.GetFaction(factionId);
@@ -777,6 +827,130 @@ public partial class CommandResolver
         }
 
         return null;
+    }
+
+    private PrefectAutoAppointmentOutcome? EnsureCityPrefectAppointment(WorldState world, CityData city)
+    {
+        if (city.OwnerFactionId <= 0)
+        {
+            ClearCityPrefectAuthorization(city);
+            return null;
+        }
+
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction == null)
+        {
+            ClearCityPrefectAuthorization(city);
+            return null;
+        }
+
+        var currentPrefect = GetCityPrefect(world, city);
+        if (currentPrefect != null && IsEligibleAutoPrefectCandidate(world, city, faction, currentPrefect))
+        {
+            RemoveDuplicateCityGovernorAppointments(world, city, currentPrefect.Id);
+            return null;
+        }
+
+        foreach (var officerId in city.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer != null && HasOfficerAppointment(officer, OfficerAppointmentRules.Governor))
+            {
+                ClearOfficerAppointment(officer, OfficerAppointmentRules.Governor);
+            }
+        }
+
+        var replacement = GetBestAutoPrefectCandidate(world, city, faction);
+        if (replacement == null)
+        {
+            ClearCityPrefectAuthorization(city);
+            return new PrefectAutoAppointmentOutcome
+            {
+                City = city
+            };
+        }
+
+        AssignOfficerAppointment(replacement, OfficerAppointmentRules.Governor);
+        RemoveDuplicateCityGovernorAppointments(world, city, replacement.Id);
+        ResetAuthorizedPlanForNewPrefect(world, city, replacement);
+        return new PrefectAutoAppointmentOutcome
+        {
+            City = city,
+            NewPrefect = replacement
+        };
+    }
+
+    private static bool IsEligibleAutoPrefectCandidate(WorldState world, CityData city, FactionData faction, OfficerData officer)
+    {
+        return officer.CityId == city.Id &&
+               city.OfficerIds.Contains(officer.Id) &&
+               faction.OfficerIds.Contains(officer.Id) &&
+               !IsFactionRuler(world, officer.Id) &&
+               IsOfficerAlive(world, officer);
+    }
+
+    private static OfficerData? GetBestAutoPrefectCandidate(WorldState world, CityData city, FactionData faction)
+    {
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null && IsEligibleAutoPrefectCandidate(world, city, faction, officer))
+            .OrderByDescending(officer => ScoreAutoPrefectCandidate(officer!))
+            .ThenByDescending(officer => officer!.Loyalty)
+            .ThenBy(officer => officer!.Id)
+            .FirstOrDefault();
+    }
+
+    private static int ScoreAutoPrefectCandidate(OfficerData officer)
+    {
+        return officer.Politics * 3 +
+               officer.Intelligence * 2 +
+               officer.Charm +
+               officer.Leadership +
+               officer.FarmRank * 15 +
+               officer.CommercialRank * 15 +
+               officer.DefendRank * 10 +
+               officer.DisasterPreventionRank * 10 +
+               officer.ConstructionRank * 10;
+    }
+
+    private static void RemoveDuplicateCityGovernorAppointments(WorldState world, CityData city, int keeperOfficerId)
+    {
+        foreach (var officerId in city.OfficerIds)
+        {
+            if (officerId == keeperOfficerId)
+            {
+                continue;
+            }
+
+            var officer = world.GetOfficer(officerId);
+            if (officer != null && HasOfficerAppointment(officer, OfficerAppointmentRules.Governor))
+            {
+                ClearOfficerAppointment(officer, OfficerAppointmentRules.Governor);
+            }
+        }
+    }
+
+    private void ResetAuthorizedPlanForNewPrefect(WorldState world, CityData city, OfficerData prefect)
+    {
+        RemoveAuthorizedPlanSchedule(world, city);
+
+        if (city.PrefectAuthorizationType == PrefectAuthorizationType.Full)
+        {
+            var plannedJob = ChooseAuthorizedPlanJob(world, city, prefect);
+            if (plannedJob.HasValue)
+            {
+                city.PrefectPlanJobType = plannedJob.Value;
+                city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect);
+                city.PrefectPlanRemainingMonths = city.PrefectPlanTotalMonths;
+                city.PrefectPlanIsPlayerDirected = false;
+                return;
+            }
+        }
+
+        if (city.PrefectAuthorizationType == PrefectAuthorizationType.None)
+        {
+            ClearCityAuthorizedPlan(city);
+        }
     }
 
     private static void ClearCityPrefectAuthorization(CityData city)
@@ -1158,13 +1332,16 @@ public partial class CommandResolver
         }
     }
 
-    private static int TransferOfficers(
+    private int TransferOfficers(
         WorldState world,
         CityData sourceCity,
         CityData targetCity,
-        List<int> requestedOfficerIds)
+        List<int> requestedOfficerIds,
+        out PrefectAutoAppointmentOutcome? sourceCityPrefectOutcome)
     {
         var movedOfficerCount = 0;
+        var sourcePrefectMoved = false;
+        sourceCityPrefectOutcome = null;
         foreach (var officerId in requestedOfficerIds)
         {
             if (!sourceCity.OfficerIds.Contains(officerId))
@@ -1178,6 +1355,12 @@ public partial class CommandResolver
                 continue;
             }
 
+            if (HasOfficerAppointment(officer, OfficerAppointmentRules.Governor))
+            {
+                ClearOfficerAppointment(officer, OfficerAppointmentRules.Governor);
+                sourcePrefectMoved = true;
+            }
+
             sourceCity.OfficerIds.Remove(officerId);
             if (!targetCity.OfficerIds.Contains(officerId))
             {
@@ -1186,6 +1369,11 @@ public partial class CommandResolver
 
             officer.CityId = targetCity.Id;
             movedOfficerCount += 1;
+        }
+
+        if (sourcePrefectMoved)
+        {
+            sourceCityPrefectOutcome = EnsureCityPrefectAppointment(world, sourceCity);
         }
 
         return movedOfficerCount;
@@ -1553,11 +1741,11 @@ public partial class CommandResolver
         return !string.IsNullOrWhiteSpace(faction.NameEn) ? faction.NameEn : faction.NameZhHant;
     }
 
-    private static void ResolveCapturedCityOfficers(WorldState world, CityData capturedCity, int previousFactionId)
+    private PrefectAutoAppointmentOutcome? ResolveCapturedCityOfficers(WorldState world, CityData capturedCity, int previousFactionId)
     {
         if (capturedCity.OfficerIds.Count == 0)
         {
-            return;
+            return null;
         }
 
         var retreatCity = FindRetreatCity(world, previousFactionId, capturedCity.Id);
@@ -1570,6 +1758,11 @@ public partial class CommandResolver
             if (officer == null)
             {
                 continue;
+            }
+
+            if (HasOfficerAppointment(officer, OfficerAppointmentRules.Governor))
+            {
+                ClearOfficerAppointment(officer, OfficerAppointmentRules.Governor);
             }
 
             if (retreatCity != null)
@@ -1585,6 +1778,13 @@ public partial class CommandResolver
                 officer.CityId = 0;
             }
         }
+
+        if (retreatCity != null)
+        {
+            return EnsureCityPrefectAppointment(world, retreatCity);
+        }
+
+        return null;
     }
 
     private static CityData? FindRetreatCity(WorldState world, int factionId, int excludedCityId)

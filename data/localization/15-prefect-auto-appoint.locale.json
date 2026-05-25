@@ -1,0 +1,10 @@
+{
+  "cmd.prefect.auto_reassigned": {
+    "zhHant": "「{0}」已自動改任「{1}」為新太守。",
+    "en": "\"{0}\" automatically appointed \"{1}\" as the new prefect."
+  },
+  "cmd.prefect.auto_vacant": {
+    "zhHant": "「{0}」目前沒有可自動補任的太守人選，太守職位暫時空缺。",
+    "en": "\"{0}\" has no eligible officer for automatic prefect reassignment, so the prefect post is temporarily vacant."
+  }
+}
