@@ -8,6 +8,7 @@ This tool is the project's logic-level regression test harness for current Phase
 - AI defensive diplomacy (`Truce`)
 - AI spy priority (`Reconnaissance`)
 - AI diplomacy baseline (`Gift / Alliance`)
+- AI faction appointment (`Chancellor / Chief Strategist / Prefect`)
 - AI move scheduling
 - AI `Recruit / Develop / Search`
 - AI immediate resource cost application

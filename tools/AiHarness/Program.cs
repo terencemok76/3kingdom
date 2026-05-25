@@ -53,8 +53,11 @@ internal static class Program
         RunInternalAffairsScheduleTest();
         RunInternalAffairsOfficerLockTest();
         RunPersonnelBonusTest();
-        RunAssignOfficerRoleTest();
+        RunAssignOfficerAppointmentTest();
         RunAssignFactionAdvisorTest();
+        RunAiCentralAppointmentAssignmentTest();
+        RunAiCityPrefectAppointmentTest();
+        RunAiCityPrefectReservedFallbackTest();
         RunFireOfficerTest();
         RunHireOfficerTest();
         RunCivilReliefTest();
@@ -498,7 +501,7 @@ internal static class Program
         Assert(!world.GetFaction(2)!.OfficerIds.Contains(201), "Spy assassination removes ruler target from faction", $"factionHas={world.GetFaction(2)!.OfficerIds.Contains(201)}");
         Assert(world.GetOfficer(201)!.DeathYear == world.Year, "Spy assassination marks ruler dead", $"deathYear={world.GetOfficer(201)!.DeathYear}");
         Assert(world.GetFaction(2)!.RulerOfficerId == 202, "Spy assassination assigns AI successor", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
-        Assert(world.GetOfficer(202)!.Role == "Lord", "Spy assassination successor gets ruler role", $"role={world.GetOfficer(202)!.Role}");
+        Assert(OfficerAppointmentRules.HasAppointment(world.GetOfficer(202)!, OfficerAppointmentRules.Lord), "Spy assassination successor gets ruler appointment", string.Join(',', world.GetOfficer(202)!.Appointments));
         Assert(world.GetFaction(2)!.NameZhHant == "EnemyGeneral軍", "Spy assassination successor updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
         Assert(targetCity.OfficerIds.Contains(202), "Spy assassination keeps successor alive", $"cityHasSuccessor={targetCity.OfficerIds.Contains(202)}");
     }
@@ -575,7 +578,7 @@ internal static class Program
         var resolveResult = services.Resolver.ResolvePlayerSuccession(2, 202);
         Assert(resolveResult.Success, "Player succession resolves", $"success={resolveResult.Success}");
         Assert(world.GetFaction(2)!.RulerOfficerId == 202, "Player succession assigns selected ruler", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
-        Assert(world.GetOfficer(202)!.Role == "Lord", "Player succession assigns ruler role", $"role={world.GetOfficer(202)!.Role}");
+        Assert(OfficerAppointmentRules.HasAppointment(world.GetOfficer(202)!, OfficerAppointmentRules.Lord), "Player succession assigns ruler appointment", string.Join(',', world.GetOfficer(202)!.Appointments));
         Assert(world.GetFaction(2)!.NameZhHant == "LordSuccessor軍", "Player succession updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
         Assert(world.GetPendingSuccession(2) == null, "Player succession clears pending record", $"pending={(world.GetPendingSuccession(2) != null ? 1 : 0)}");
     }
@@ -1506,7 +1509,7 @@ internal static class Program
         Assert(officer.Loyalty == 83, "Personnel bonus loyalty gain", $"loyalty={officer.Loyalty}");
     }
 
-    private static void RunAssignOfficerRoleTest()
+    private static void RunAssignOfficerAppointmentTest()
     {
         var world = TestHelpers.World(month: 2);
         world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 1000, 1000, 1000, new[] { 101, 102 }, Array.Empty<int>()));
@@ -1515,13 +1518,13 @@ internal static class Program
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
         var services = CreateServices(world);
 
-        var result = services.Resolver.ExecuteAssignOfficerRole(1, 1, 102, "Strategist");
-        var blocked = services.Resolver.ExecuteAssignOfficerRole(1, 1, 101, "Strategist");
+        var result = services.Resolver.ExecuteAssignOfficerAppointment(1, 1, 102, OfficerAppointmentRules.Governor);
+        var blocked = services.Resolver.ExecuteAssignOfficerAppointment(1, 1, 101, OfficerAppointmentRules.Governor);
         var officer = world.GetOfficer(102)!;
 
-        Assert(result.Success, "Assign officer role resolves", $"success={result.Success}");
-        Assert(officer.Role == "Strategist", "Assign officer role applies", $"role={officer.Role}");
-        Assert(!blocked.Success, "Assign officer role blocks ruler", $"success={blocked.Success}");
+        Assert(result.Success, "Assign officer appointment resolves", $"success={result.Success}");
+        Assert(OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor), "Assign officer appointment applies", string.Join(',', officer.Appointments));
+        Assert(!blocked.Success, "Assign officer appointment blocks ruler", $"success={blocked.Success}");
     }
 
     private static void RunAssignFactionAdvisorTest()
@@ -1548,6 +1551,124 @@ internal static class Program
         Assert(faction.ChiefStrategistOfficerId == 103, "Assign faction advisor keeps chief strategist slot", $"chiefStrategist={faction.ChiefStrategistOfficerId}");
         Assert(reassignResult.Success, "Assign faction advisor reassign resolves", $"success={reassignResult.Success}");
         Assert(!rulerBlocked.Success, "Assign faction advisor blocks ruler", $"success={rulerBlocked.Success}");
+    }
+
+    private static void RunAiCentralAppointmentAssignmentTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiCapital", 2, 1000, 1000, 1800, new[] { 201, 202, 203 }, Array.Empty<int>()));
+
+        var ruler = TestHelpers.Officer(201, "AiRuler", 1, charm: 75, intelligence: 68);
+        ruler.Politics = 55;
+        ruler.Leadership = 72;
+
+        var chancellorCandidate = TestHelpers.Officer(202, "CivilStar", 1, intelligence: 84, charm: 78);
+        chancellorCandidate.Politics = 95;
+        chancellorCandidate.Leadership = 62;
+
+        var strategistCandidate = TestHelpers.Officer(203, "StrategyStar", 1, intelligence: 97, charm: 70);
+        strategistCandidate.Politics = 70;
+        strategistCandidate.Leadership = 88;
+
+        world.Officers.AddRange(new[] { ruler, chancellorCandidate, strategistCandidate });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201, 202, 203 }));
+        var services = CreateServices(world);
+
+        var results = services.Ai.RunFactionAppointmentDecisions(2);
+        var faction = world.GetFaction(2)!;
+
+        Assert(faction.ChancellorOfficerId == 202, "AI central appointment assigns chancellor", $"chancellor={faction.ChancellorOfficerId}");
+        Assert(faction.ChiefStrategistOfficerId == 203, "AI central appointment assigns chief strategist", $"chiefStrategist={faction.ChiefStrategistOfficerId}");
+        Assert(OfficerAppointmentRules.HasAppointment(chancellorCandidate, OfficerAppointmentRules.Chancellor), "AI central appointment marks chancellor appointment", string.Join(',', chancellorCandidate.Appointments));
+        Assert(OfficerAppointmentRules.HasAppointment(strategistCandidate, OfficerAppointmentRules.ChiefStrategist), "AI central appointment marks chief strategist appointment", string.Join(',', strategistCandidate.Appointments));
+        Assert(results.Count(result => result.Success) >= 2, "AI central appointment returns success results", $"results={results.Count}");
+    }
+
+    private static void RunAiCityPrefectAppointmentTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiCapital", 2, 1000, 1000, 1800, new[] { 201 }, new[] { 2, 3 }));
+        world.Cities.Add(TestHelpers.City(2, "AiFrontier", 2, 900, 900, 1600, new[] { 202, 203 }, new[] { 1 }));
+        world.Cities.Add(TestHelpers.City(3, "AiHarbor", 2, 950, 950, 1500, new[] { 204, 205 }, new[] { 1 }));
+
+        var ruler = TestHelpers.Officer(201, "AiRuler", 1, charm: 78, intelligence: 70);
+        ruler.Politics = 60;
+
+        var reservedChancellor = TestHelpers.Officer(202, "ReservedCivil", 2, intelligence: 88, charm: 82);
+        reservedChancellor.Politics = 92;
+        reservedChancellor.Appointments.Add(OfficerAppointmentRules.Chancellor);
+
+        var frontierPrefect = TestHelpers.Officer(203, "FrontierPrefect", 2, intelligence: 76, charm: 74);
+        frontierPrefect.Politics = 83;
+        frontierPrefect.Leadership = 81;
+
+        var reservedStrategist = TestHelpers.Officer(204, "ReservedStrategist", 3, intelligence: 95, charm: 72);
+        reservedStrategist.Politics = 68;
+        reservedStrategist.Leadership = 89;
+        reservedStrategist.Appointments.Add(OfficerAppointmentRules.ChiefStrategist);
+
+        var harborPrefect = TestHelpers.Officer(205, "HarborPrefect", 3, intelligence: 79, charm: 76);
+        harborPrefect.Politics = 84;
+        harborPrefect.Leadership = 80;
+
+        world.Officers.AddRange(new[] { ruler, reservedChancellor, frontierPrefect, reservedStrategist, harborPrefect });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(new FactionData
+        {
+            Id = 2,
+            NameEn = "AI",
+            NameZhHant = "AI",
+            IsPlayer = false,
+            RulerOfficerId = 201,
+            ChancellorOfficerId = 202,
+            ChiefStrategistOfficerId = 204,
+            OfficerIds = new List<int> { 201, 202, 203, 204, 205 }
+        });
+        var services = CreateServices(world);
+
+        var results = services.Ai.RunFactionAppointmentDecisions(2);
+
+        Assert(GetCityPrefectOfficerId(world, 2) == 203, "AI prefect appointment fills frontier city", $"prefect={GetCityPrefectOfficerId(world, 2)}");
+        Assert(GetCityPrefectOfficerId(world, 3) == 205, "AI prefect appointment fills harbor city", $"prefect={GetCityPrefectOfficerId(world, 3)}");
+        Assert(!OfficerAppointmentRules.HasAppointment(reservedChancellor, OfficerAppointmentRules.Governor), "AI prefect appointment avoids reserved chancellor", string.Join(',', reservedChancellor.Appointments));
+        Assert(!OfficerAppointmentRules.HasAppointment(reservedStrategist, OfficerAppointmentRules.Governor), "AI prefect appointment avoids reserved strategist", string.Join(',', reservedStrategist.Appointments));
+        Assert(results.Count(result => result.Success) >= 2, "AI prefect appointment returns success results", $"results={results.Count}");
+    }
+
+    private static void RunAiCityPrefectReservedFallbackTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiCapital", 2, 1000, 1000, 1800, new[] { 201 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "IsolatedCity", 2, 900, 900, 1200, new[] { 202 }, new[] { 1 }));
+
+        var ruler = TestHelpers.Officer(201, "AiRuler", 1, charm: 78, intelligence: 70);
+        ruler.Politics = 60;
+
+        var reservedOnlyCandidate = TestHelpers.Officer(202, "ReservedOnly", 2, intelligence: 90, charm: 82);
+        reservedOnlyCandidate.Politics = 94;
+        reservedOnlyCandidate.Leadership = 75;
+        reservedOnlyCandidate.Appointments.Add(OfficerAppointmentRules.Chancellor);
+
+        world.Officers.Add(ruler);
+        world.Officers.Add(reservedOnlyCandidate);
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(new FactionData
+        {
+            Id = 2,
+            NameEn = "AI",
+            NameZhHant = "AI",
+            IsPlayer = false,
+            RulerOfficerId = 201,
+            ChancellorOfficerId = 202,
+            OfficerIds = new List<int> { 201, 202 }
+        });
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunFactionAppointmentDecisions(2);
+
+        Assert(GetCityPrefectOfficerId(world, 2) == 202, "AI prefect appointment falls back to reserved officer", $"prefect={GetCityPrefectOfficerId(world, 2)}");
+        Assert(OfficerAppointmentRules.HasAppointment(reservedOnlyCandidate, OfficerAppointmentRules.Governor), "AI prefect appointment fallback marks governor appointment", string.Join(',', reservedOnlyCandidate.Appointments));
     }
 
     private static void RunHireOfficerTest()
@@ -2157,6 +2278,21 @@ internal static class Program
         }
 
         return false;
+    }
+
+    private static int GetCityPrefectOfficerId(WorldState world, int cityId)
+    {
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return 0;
+        }
+
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null && OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor))
+            .Select(officer => officer!.Id)
+            .FirstOrDefault();
     }
 
     private static WorldState CreateMonthlyEventTestWorld(int month, int seed, int disasterPrevention)

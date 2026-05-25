@@ -94,6 +94,23 @@ public class AiController
             }
         }
 
+        foreach (var city in world.Cities.Where(city => city.OwnerFactionId == factionId))
+        {
+            if (HasCityPrefect(world, city))
+            {
+                continue;
+            }
+
+            var prefectCandidate = GetBestCityPrefectCandidate(world, faction, city, reservedOfficerIds);
+            var prefectResult = TryAssignCityPrefect(factionId, city, prefectCandidate);
+            if (prefectResult == null)
+            {
+                continue;
+            }
+
+            results.Add(prefectResult);
+        }
+
         return results;
     }
 
@@ -490,6 +507,20 @@ public class AiController
         return _commandResolver.ExecuteAssignFactionAdvisor(factionId, city.Id, officer.Id, position);
     }
 
+    private CommandResult? TryAssignCityPrefect(int factionId, CityData city, OfficerData? officer)
+    {
+        if (_commandResolver == null || officer == null)
+        {
+            return null;
+        }
+
+        return _commandResolver.ExecuteAssignOfficerAppointment(
+            factionId,
+            city.Id,
+            officer.Id,
+            OfficerAppointmentRules.Governor);
+    }
+
     private static OfficerData? GetBestFactionAdvisorCandidate(
         WorldState world,
         FactionData faction,
@@ -506,6 +537,62 @@ public class AiController
             .ThenByDescending(officer => officer.Loyalty)
             .ThenBy(officer => officer.Id)
             .FirstOrDefault();
+    }
+
+    private static bool HasCityPrefect(WorldState world, CityData city)
+    {
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Any(officer => officer != null && OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor));
+    }
+
+    private static OfficerData? GetBestCityPrefectCandidate(
+        WorldState world,
+        FactionData faction,
+        CityData city,
+        HashSet<int> reservedOfficerIds)
+    {
+        var primaryPool = city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .Where(officer =>
+                officer.CityId == city.Id &&
+                faction.OfficerIds.Contains(officer.Id) &&
+                officer.Id != faction.RulerOfficerId &&
+                !reservedOfficerIds.Contains(officer.Id))
+            .OrderByDescending(ScoreCityPrefectCandidate)
+            .ThenByDescending(officer => officer.Loyalty)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+
+        if (primaryPool != null)
+        {
+            return primaryPool;
+        }
+
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .Where(officer =>
+                officer.CityId == city.Id &&
+                faction.OfficerIds.Contains(officer.Id) &&
+                officer.Id != faction.RulerOfficerId)
+            .OrderByDescending(ScoreCityPrefectCandidate)
+            .ThenByDescending(officer => officer.Loyalty)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+    }
+
+    private static int ScoreCityPrefectCandidate(OfficerData officer)
+    {
+        return officer.Politics * 3 +
+               officer.Intelligence * 2 +
+               officer.Charm +
+               officer.Leadership +
+               (officer.FarmRank + officer.CommercialRank) * 15 +
+               (officer.DefendRank + officer.DisasterPreventionRank + officer.ConstructionRank) * 10;
     }
 
     private CommandResult? TryIssueDiplomacyCommand(
