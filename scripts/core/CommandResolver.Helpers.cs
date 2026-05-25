@@ -346,27 +346,6 @@ public partial class CommandResolver
         }, targetTotal);
     }
 
-    private static int GetTroopTypeRecruitGoldCost(TroopType troopType)
-    {
-        return troopType switch
-        {
-            TroopType.Cavalry => RecruitGoldCost + 40,
-            TroopType.Crossbow => RecruitGoldCost + 20,
-            TroopType.Siege => RecruitGoldCost + 80,
-            _ => RecruitGoldCost
-        };
-    }
-
-    private static int GetTroopTypeRecruitFoodCost(TroopType troopType)
-    {
-        return troopType switch
-        {
-            TroopType.Cavalry => RecruitFoodCost + 40,
-            TroopType.Siege => RecruitFoodCost + 60,
-            _ => RecruitFoodCost
-        };
-    }
-
     private static string GetTroopTypeLocaleKey(TroopType troopType)
     {
         return troopType switch
@@ -387,16 +366,7 @@ public partial class CommandResolver
         return _localization?.TForLanguage(language, key) ?? troopType.ToString();
     }
 
-    private static bool CanRecruitTroopType(CityData city, TroopType troopType)
-    {
-        return troopType switch
-        {
-            TroopType.Cavalry => city.Horses > 0,
-            TroopType.Crossbow => city.BowWorkshopLevel >= 1,
-            TroopType.Siege => city.SiegeWorkshopLevel >= 1,
-            _ => true
-        };
-    }
+    private static bool CanRecruitTroopType(CityData city, TroopType troopType) => RecruitRules.CanRecruitTroopType(city, troopType);
 
     private static List<int> GetMovableOfficerIds(CityData sourceCity, List<int> requestedOfficerIds)
     {

@@ -663,6 +663,14 @@
                                      "zhHant":  "「{0}」本月已執行過徵兵。",
                                      "en":  "\"{0}\" has already used Recruit this month."
                                  },
+    "cmd.recruit.count_exceeds_max":  {
+                                           "zhHant":  "「{0}」徵兵數量 {1} 超過目前可徵募上限 {2}。",
+                                           "en":  "\"{0}\" recruit amount {1} exceeds the current max {2}."
+                                       },
+    "cmd.recruit.count_required":  {
+                                       "zhHant":  "「{0}」徵兵需要指定數量。",
+                                       "en":  "\"{0}\" requires a recruit amount."
+                                   },
     "cmd.recruit.failed_month_end":  {
                                          "zhHant":  "月末徵兵失敗：資源不足。",
                                          "en":  "Recruit failed at month end: not enough resources."
@@ -684,12 +692,12 @@
                                             "en":  "\"{0}\" does not meet the requirement to recruit {1}."
                                         },
     "cmd.recruit.resolved":  {
-                                 "zhHant":  "「{0}」徵兵完成。{1} +{2}，忠誠 -{3}。",
-                                 "en":  "\"{0}\" completed Recruit. {1}+{2}, Loyalty-{3}."
+                                 "zhHant":  "「{0}」徵兵完成。目標 {4}，實際 {1} +{2}，忠誠 -{3}。",
+                                 "en":  "\"{0}\" completed Recruit. Target {4}, actual {1}+{2}, Loyalty-{3}."
                              },
     "cmd.recruit.scheduled":  {
-                                  "zhHant":  "「{0}」已排定徵兵命令，將於月末執行。",
-                                  "en":  "Recruit scheduled for \"{0}\" at month end."
+                                  "zhHant":  "「{0}」已排定徵兵命令：{1} {2}，金 -{3}，糧 -{4}，將於月末執行。",
+                                  "en":  "Recruit scheduled for \"{0}\": {1} {2}, Gold-{3}, Food-{4}, resolving at month end."
                               },
     "cmd.request_item.item_required":  {
                                            "zhHant":  "請選擇要索回的道具。",

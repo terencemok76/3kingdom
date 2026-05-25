@@ -615,6 +615,22 @@
 								  "zhHant":  "徵兵兵種",
 								  "en":  "Recruit Type"
 							  },
+	"ui.recruit_troop_count":  {
+								   "zhHant":  "徵兵數量",
+								   "en":  "Recruit Amount"
+							   },
+	"ui.recruit_max_count_value":  {
+									   "zhHant":  "可徵募上限：{0}",
+									   "en":  "Max Recruitable: {0}"
+								   },
+	"ui.recruit_cost_summary_value":  {
+										  "zhHant":  "消耗：金 {0} / 糧 {1}",
+										  "en":  "Cost: Gold {0} / Food {1}"
+									  },
+	"ui.recruit_cost_summary_with_horse_value":  {
+													"zhHant":  "消耗：金 {0} / 糧 {1} / 馬 {2}",
+													"en":  "Cost: Gold {0} / Food {1} / Horse {2}"
+									  },
 	"ui.request_item":  {
 							"zhHant":  "索回道具",
 							"en":  "Recall Item"

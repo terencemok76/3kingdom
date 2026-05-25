@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using ThreeKingdom.Data;
@@ -218,16 +219,20 @@ public class AiController
         var internalAffairsOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics + officer.Charm);
         var searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
         if (city.Troops < 2200 &&
-            city.Gold >= 120 &&
-            city.Food >= 80 &&
             recruitOfficerId > 0 &&
             !(city.LastRecruitYear == world.Year && city.LastRecruitMonth == world.Month))
         {
+            var recruitTroopType = TroopType.Infantry;
+            var recruitCount = Math.Min(200, RecruitRules.GetMaxRecruitableCount(city, recruitTroopType));
+            if (recruitCount > 0)
+            {
             coreResults.Add(_commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Recruit,
                 ActorFactionId = factionId,
                 SourceCityId = cityId,
+                TroopsToSend = recruitCount,
+                RecruitTroopType = recruitTroopType,
                 OfficerIds = new System.Collections.Generic.List<int> { recruitOfficerId }
             }));
             availableOfficerIds.Remove(recruitOfficerId);
@@ -239,6 +244,7 @@ public class AiController
             if (searchOfficerId == recruitOfficerId)
             {
                 searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
+            }
             }
         }
 

@@ -72,8 +72,12 @@ public partial class CommandResolver
         }
 
         var recruitTroopType = request.RecruitTroopType;
-        var recruitGoldCost = GetTroopTypeRecruitGoldCost(recruitTroopType);
-        var recruitFoodCost = GetTroopTypeRecruitFoodCost(recruitTroopType);
+        var requestedTroopCount = Math.Max(0, request.TroopsToSend);
+        if (requestedTroopCount <= 0)
+        {
+            return LocalizedResult(false, "cmd.recruit.count_required", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
         if (!CanRecruitTroopType(city, recruitTroopType))
         {
             return LocalizedResult(false, "cmd.recruit.requirement_not_met", new object[]
@@ -87,6 +91,24 @@ public partial class CommandResolver
             });
         }
 
+        var maxRecruitableTroops = RecruitRules.GetMaxRecruitableCount(city, recruitTroopType);
+        if (requestedTroopCount > maxRecruitableTroops)
+        {
+            return LocalizedResult(false, "cmd.recruit.count_exceeds_max", new object[]
+            {
+                GetCityName(city, GameLanguage.TraditionalChinese),
+                requestedTroopCount,
+                maxRecruitableTroops
+            }, new object[]
+            {
+                GetCityName(city, GameLanguage.English),
+                requestedTroopCount,
+                maxRecruitableTroops
+            });
+        }
+
+        var recruitGoldCost = RecruitRules.GetRecruitGoldCost(recruitTroopType, requestedTroopCount);
+        var recruitFoodCost = RecruitRules.GetRecruitFoodCost(recruitTroopType, requestedTroopCount);
         if (city.Gold < recruitGoldCost || city.Food < recruitFoodCost)
         {
             return LocalizedResult(false, "cmd.recruit.not_enough_resources", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
@@ -101,31 +123,53 @@ public partial class CommandResolver
             Type = CommandType.Recruit,
             ActorFactionId = request.ActorFactionId,
             SourceCityId = city.Id,
+            TroopsToSend = requestedTroopCount,
             RecruitTroopType = recruitTroopType,
             OfficerIds = new List<int> { assignedOfficer.Id }
         });
 
-        return LocalizedResult(true, "cmd.recruit.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        return LocalizedResult(true, "cmd.recruit.scheduled", new object[]
+        {
+            GetCityName(city, GameLanguage.TraditionalChinese),
+            GetTroopTypeName(recruitTroopType, GameLanguage.TraditionalChinese),
+            requestedTroopCount,
+            recruitGoldCost,
+            recruitFoodCost
+        }, new object[]
+        {
+            GetCityName(city, GameLanguage.English),
+            GetTroopTypeName(recruitTroopType, GameLanguage.English),
+            requestedTroopCount,
+            recruitGoldCost,
+            recruitFoodCost
+        });
     }
 
     private CommandResult ResolveRecruit(WorldState world, CityData city, PendingCommandData pendingCommand)
     {
-        var charm = GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm);
-        var recruits = 80 + charm / 2 + _random.Next(0, 41);
+        var assignedOfficer = pendingCommand.OfficerIds.Count > 0 ? world.GetOfficer(pendingCommand.OfficerIds[0]) : null;
+        var charm = assignedOfficer != null
+            ? GetEffectiveStat(world, assignedOfficer, officer => officer.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm)
+            : GetAverageEffectiveStat(world, city, officer => officer.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm);
+        var requestedTroops = Math.Max(0, pendingCommand.TroopsToSend);
+        var recruits = RecruitRules.CalculateRecruitResult(requestedTroops, charm, city.Loyalty, pendingCommand.RecruitTroopType, _random);
         if (pendingCommand.RecruitTroopType == TroopType.Cavalry)
         {
             recruits = Math.Min(recruits, city.Horses);
             city.Horses = Math.Max(0, city.Horses - recruits);
         }
 
+        recruits = Math.Min(recruits, city.Population);
         city.AddTroops(pendingCommand.RecruitTroopType, recruits);
-        city.Loyalty = ClampStat(city.Loyalty - 3);
+        city.Population = Math.Max(0, city.Population - recruits);
+        var loyaltyPenalty = RecruitRules.GetRecruitLoyaltyPenalty(recruits);
+        city.Loyalty = ClampStat(city.Loyalty - loyaltyPenalty);
 
         return LocalizedResult(
             true,
             "cmd.recruit.resolved",
-            new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetTroopTypeName(pendingCommand.RecruitTroopType, GameLanguage.TraditionalChinese), recruits, 3 },
-            new object[] { GetCityName(city, GameLanguage.English), GetTroopTypeName(pendingCommand.RecruitTroopType, GameLanguage.English), recruits, 3 });
+            new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetTroopTypeName(pendingCommand.RecruitTroopType, GameLanguage.TraditionalChinese), recruits, loyaltyPenalty, requestedTroops },
+            new object[] { GetCityName(city, GameLanguage.English), GetTroopTypeName(pendingCommand.RecruitTroopType, GameLanguage.English), recruits, loyaltyPenalty, requestedTroops });
     }
 
     private CommandResult ScheduleMove(WorldState world, CityData sourceCity, CommandRequest request)

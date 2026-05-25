@@ -8,8 +8,6 @@ namespace ThreeKingdom.Core;
 public partial class CommandResolver
 {
     private const int DevelopGoldCost = 100;
-    private const int RecruitGoldCost = 120;
-    private const int RecruitFoodCost = 80;
     private const int MerchantFoodPerTrade = 100;
     private const int MerchantGoldPerTrade = 10;
     private const int MerchantHorsePerTrade = 10;

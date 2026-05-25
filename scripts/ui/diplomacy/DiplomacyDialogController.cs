@@ -63,8 +63,8 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         SetLabelText("HeaderSection/TargetFactionRow/TargetFactionLabel", _context.Localization.T("ui.diplomacy_target_faction"));
         SetLabelText("MiddleSection/DurationRow/DurationLabel", _context.Localization.T("ui.diplomacy_duration"));
         SetLabelText("MiddleSection/GoldRow/GoldLabel", _context.Localization.T("ui.diplomacy_gift_gold"));
-        SetLabelText("MiddleSection/FoodRow/FoodLabel", _context.Localization.T("ui.diplomacy_demand_food"));
-        SetLabelText("MiddleSection/HorseRow/HorseLabel", _context.Localization.T("ui.diplomacy_demand_horse"));
+        SetLabelText("MiddleSection/FoodRow/FoodLabel", _context.Localization.T("ui.diplomacy_gift_food"));
+        SetLabelText("MiddleSection/HorseRow/HorseLabel", _context.Localization.T("ui.diplomacy_gift_horse"));
         SetLabelText("FooterSection/OfficerListLabel", _context.Localization.T("ui.diplomacy_officer"));
         if (_selectOfficerButton != null)
         {
@@ -322,9 +322,9 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         SetRowVisible("GoldRow", actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand);
         SetRowVisible("FoodRow", actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand);
         SetRowVisible("HorseRow", actionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand);
-        SetLabelText("GoldLabel", actionType == DiplomacyActionType.Demand ? _context.Localization.T("ui.diplomacy_demand_gold") : _context.Localization.T("ui.diplomacy_gift_gold"));
-        SetLabelText("FoodLabel", actionType == DiplomacyActionType.Demand ? _context.Localization.T("ui.diplomacy_demand_food") : _context.Localization.T("ui.diplomacy_gift_food"));
-        SetLabelText("HorseLabel", actionType == DiplomacyActionType.Demand ? _context.Localization.T("ui.diplomacy_demand_horse") : _context.Localization.T("ui.diplomacy_gift_horse"));
+        SetLabelText("MiddleSection/GoldRow/GoldLabel", actionType == DiplomacyActionType.Demand ? _context.Localization.T("ui.diplomacy_demand_gold") : _context.Localization.T("ui.diplomacy_gift_gold"));
+        SetLabelText("MiddleSection/FoodRow/FoodLabel", actionType == DiplomacyActionType.Demand ? _context.Localization.T("ui.diplomacy_demand_food") : _context.Localization.T("ui.diplomacy_gift_food"));
+        SetLabelText("MiddleSection/HorseRow/HorseLabel", actionType == DiplomacyActionType.Demand ? _context.Localization.T("ui.diplomacy_demand_horse") : _context.Localization.T("ui.diplomacy_gift_horse"));
     }
 
     private void UpdateDialogSize()

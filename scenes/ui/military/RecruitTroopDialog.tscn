@@ -89,14 +89,14 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(380, 182)
-offset_right = 380.0
-offset_bottom = 182.0
+custom_minimum_size = Vector2(420, 310)
+offset_right = 420.0
+offset_bottom = 310.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(350, 120)
+custom_minimum_size = Vector2(390, 248)
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -135,6 +135,35 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
 
+[node name="TroopTypeLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Troop Type"
+
+[node name="TroopTypeOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TroopCountLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Troop Count"
+
+[node name="TroopCountSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 9999.0
+step = 1.0
+
+[node name="MaxTroopsLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Max: 0"
+autowrap_mode = 3
+
+[node name="CostSummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Gold 0 / Food 0"
+autowrap_mode = 3
+
 [node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 text = "Officers"
@@ -154,14 +183,6 @@ autowrap_mode = 3
 layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
-
-[node name="TroopTypeLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Troop Type"
-
-[node name="TroopTypeOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
 
 [node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

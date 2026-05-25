@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
@@ -21,10 +22,14 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private OptionButton? _troopTypeOption;
+    private SpinBox? _troopCountSpinBox;
+    private Label? _maxTroopsLabel;
+    private Label? _costSummaryLabel;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
-    protected override Vector2 MinimumOverlaySize => new(380.0f, 182.0f);
+    private bool _isUpdatingTroopCount;
+    protected override Vector2 MinimumOverlaySize => new(420.0f, 310.0f);
 
     public RecruitTroopDialogController(MilitaryUiContext context)
         : base(context, "res://scenes/ui/military/RecruitTroopDialog.tscn")
@@ -61,6 +66,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         SetOverlayTitleText(_context.Localization.T("ui.military_recruit"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.officers"));
         SetLabelText("TroopTypeLabel", _context.Localization.T("ui.recruit_troop_type"));
+        SetLabelText("TroopCountLabel", _context.Localization.T("ui.recruit_troop_count"));
         if (_selectOfficerButton != null)
         {
             _selectOfficerButton.Text = _context.Localization.T("ui.select_officer");
@@ -72,6 +78,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         }
 
         UpdateSelectedOfficerSummary();
+        UpdateRecruitSummary();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -79,6 +86,9 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _troopTypeOption = root.GetNodeOrNull<OptionButton>("TroopTypeOption");
+        _troopCountSpinBox = root.GetNodeOrNull<SpinBox>("TroopCountSpinBox");
+        _maxTroopsLabel = root.GetNodeOrNull<Label>("MaxTroopsLabel");
+        _costSummaryLabel = root.GetNodeOrNull<Label>("CostSummaryLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_selectOfficerButton != null)
         {
@@ -100,6 +110,16 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
                 _confirmButton.Pressed += OnConfirmPressed;
             }
 
+            if (_troopTypeOption != null)
+            {
+                _troopTypeOption.ItemSelected += _ => OnTroopTypeChanged();
+            }
+
+            if (_troopCountSpinBox != null)
+            {
+                _troopCountSpinBox.ValueChanged += _ => OnTroopCountChanged();
+            }
+
             _signalsConnected = true;
         }
     }
@@ -118,7 +138,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             _troopTypeOption.Clear();
             foreach (var troopType in TroopTypes)
             {
-                if (!CanRecruitTroopType(city, troopType))
+                if (!RecruitRules.CanRecruitTroopType(city, troopType))
                 {
                     continue;
                 }
@@ -133,12 +153,9 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             }
         }
 
-        if (_confirmButton != null)
-        {
-            _confirmButton.Disabled = city == null || _troopTypeOption == null || _troopTypeOption.ItemCount <= 0;
-        }
-
         UpdateSelectedOfficerSummary();
+        ConfigureTroopCountInput(resetToSuggested: true);
+        UpdateRecruitSummary();
     }
 
     private void SetLabelText(string nodeName, string text)
@@ -168,7 +185,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         _context.ShowOfficerSelectorDialog(
             localization.T("ui.military_recruit"),
             candidateOfficerIds,
-            HudController.OfficerSelectorPrimaryStat.Strength,
+            HudController.OfficerSelectorPrimaryStat.Charm,
             officerId =>
             {
                 _selectedOfficerId = officerId;
@@ -192,8 +209,11 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             return;
         }
 
+        CommitTroopCountEdit();
+        var recruitCount = GetSelectedRecruitCount();
         var result = _context.ExecutePlayerCommand(
             CommandType.Recruit,
+            troopsToSend: recruitCount,
             officerIds: new System.Collections.Generic.List<int> { _selectedOfficerId },
             recruitTroopType: GetSelectedRecruitTroopType());
         if (result.Success)
@@ -216,6 +236,22 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         _selectedOfficerLabel.Text = $"{_context.Localization.T("ui.officers")}: {officerName}";
     }
 
+    private void OnTroopTypeChanged()
+    {
+        ConfigureTroopCountInput(resetToSuggested: true);
+        UpdateRecruitSummary();
+    }
+
+    private void OnTroopCountChanged()
+    {
+        if (_isUpdatingTroopCount)
+        {
+            return;
+        }
+
+        UpdateRecruitSummary();
+    }
+
     private TroopType GetSelectedRecruitTroopType()
     {
         if (_troopTypeOption == null || _troopTypeOption.Selected < 0)
@@ -229,14 +265,85 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             : TroopType.Infantry;
     }
 
-    private static bool CanRecruitTroopType(CityData city, TroopType troopType)
+    private int GetSelectedRecruitCount()
     {
-        return troopType switch
+        return _troopCountSpinBox == null ? 0 : Mathf.RoundToInt((float)_troopCountSpinBox.Value);
+    }
+
+    private void ConfigureTroopCountInput(bool resetToSuggested)
+    {
+        if (_troopCountSpinBox == null)
         {
-            TroopType.Cavalry => city.Horses > 0,
-            TroopType.Crossbow => city.BowWorkshopLevel >= 1,
-            TroopType.Siege => city.SiegeWorkshopLevel >= 1,
-            _ => true
-        };
+            return;
+        }
+
+        var city = _context.SelectedCity;
+        var maxRecruitCount = city == null ? 0 : RecruitRules.GetMaxRecruitableCount(city, GetSelectedRecruitTroopType());
+        _isUpdatingTroopCount = true;
+        _troopCountSpinBox.MinValue = maxRecruitCount > 0 ? 1 : 0;
+        _troopCountSpinBox.MaxValue = Math.Max(0, maxRecruitCount);
+        if (resetToSuggested)
+        {
+            _troopCountSpinBox.Value = maxRecruitCount <= 0 ? 0 : Math.Min(100, maxRecruitCount);
+        }
+        else
+        {
+            _troopCountSpinBox.Value = Math.Clamp(_troopCountSpinBox.Value, _troopCountSpinBox.MinValue, _troopCountSpinBox.MaxValue);
+        }
+
+        _isUpdatingTroopCount = false;
+    }
+
+    private void UpdateRecruitSummary()
+    {
+        var localization = _context.Localization;
+        var city = _context.SelectedCity;
+        if (localization == null)
+        {
+            return;
+        }
+
+        var troopType = GetSelectedRecruitTroopType();
+        var maxRecruitCount = city == null ? 0 : RecruitRules.GetMaxRecruitableCount(city, troopType);
+        var selectedCount = Math.Clamp(GetSelectedRecruitCount(), 0, maxRecruitCount);
+        var goldCost = RecruitRules.GetRecruitGoldCost(troopType, selectedCount);
+        var foodCost = RecruitRules.GetRecruitFoodCost(troopType, selectedCount);
+        var horseCost = troopType == TroopType.Cavalry ? selectedCount : 0;
+
+        if (_maxTroopsLabel != null)
+        {
+            _maxTroopsLabel.Text = localization.Format("ui.recruit_max_count_value", maxRecruitCount);
+        }
+
+        if (_costSummaryLabel != null)
+        {
+            _costSummaryLabel.Text = troopType == TroopType.Cavalry
+                ? localization.Format("ui.recruit_cost_summary_with_horse_value", goldCost, foodCost, horseCost)
+                : localization.Format("ui.recruit_cost_summary_value", goldCost, foodCost);
+        }
+
+        if (_confirmButton != null)
+        {
+            _confirmButton.Disabled = city == null || _troopTypeOption == null || _troopTypeOption.ItemCount <= 0 || selectedCount <= 0;
+        }
+    }
+
+    private void CommitTroopCountEdit()
+    {
+        if (_troopCountSpinBox?.GetLineEdit() is not LineEdit lineEdit)
+        {
+            return;
+        }
+
+        var text = lineEdit.Text?.Trim();
+        if (!double.TryParse(text, out var parsedValue))
+        {
+            return;
+        }
+
+        _isUpdatingTroopCount = true;
+        _troopCountSpinBox.Value = Math.Clamp(parsedValue, _troopCountSpinBox.MinValue, _troopCountSpinBox.MaxValue);
+        _isUpdatingTroopCount = false;
+        UpdateRecruitSummary();
     }
 }
