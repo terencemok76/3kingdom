@@ -86,3 +86,66 @@
 - Dedicated advisor event chains
 - Complex strategy AI driven by advisor personalities
 - Full stat buffs before the UI / data model stabilizes
+
+## Phase2-Completed-v1
+- Date: `May 25, 2026`
+- Status: completed
+- Scope baseline: `Phase2-Design-Locked-v1`
+- Verification:
+- `dotnet build ThreeKingdom.csproj` passed with `0 warning / 0 error`
+- AI regression harness passed with `PASS=266 FAIL=0`
+
+### Completed Scope
+- Unique faction central posts:
+  - `Chancellor`
+  - `Chief Strategist`
+- City-level prefect appointment system using current appointment data model
+- Prefect authorization modes:
+  - `None`
+  - `Half`
+  - `Full`
+- Authorized monthly city plan storage and execution flow built on top of existing `InternalAffairsSchedule`
+- Authorized plan controls:
+  - `Pause`
+  - `Resume`
+  - `Cancel Current Month`
+  - `Terminate`
+- Prefect reassignment / dismissal flow and generic officer appointment clearing
+- Automatic prefect refill when the prior prefect leaves, dies, is fired, is hired away, or loses city eligibility
+- Faction and city UI coverage for:
+  - advisor appointment
+  - prefect authorization
+  - city info display
+  - internal affairs visibility
+  - log filtering / clearing
+- Grouped monthly event presentation with:
+  - event picture
+  - event sound
+  - city map marker
+  - temporary UI suppression during playback
+- AI appointment baseline:
+  - `Chancellor`
+  - `Chief Strategist`
+  - `Prefect`
+- AI regression harness coverage updated for appointment behavior
+
+### Deferred To Phase 3+
+- Personality-driven prefect autonomy
+- Rich central comment / fallback speaker logic
+- Buff system for central posts and prefects
+- Fog of war and foreign court intelligence visibility
+- Advisor / prefect event chains
+- Deeper AI governance mode selection beyond the current `None / Full` baseline
+
+## Phase3-Started-v1
+- Date: `May 25, 2026`
+- Status: in progress
+- Scope baseline: follows `Phase2-Completed-v1`
+- Purpose: begin Phase 3 work on personality-driven governance, richer advisor systems, and higher-level strategic simulation layers deferred from Phase 2.
+
+### Initial Focus
+- Personality-driven prefect autonomy and governance style
+- Richer central comment quality and fallback speaker behavior
+- Buff system design and implementation
+- Fog of war / intelligence visibility for foreign courts and central posts
+- Advisor / prefect event chain foundations
