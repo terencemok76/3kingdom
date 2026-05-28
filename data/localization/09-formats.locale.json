@@ -55,6 +55,10 @@
                                  "zhHant":  "{0}（{1}）",
                                  "en":  "{0} ({1})"
                              },
+    "fmt.facility_level_progress":  {
+                                        "zhHant":  "{0} ({1}/{2})",
+                                        "en":  "{0} ({1}/{2})"
+                                    },
     "fmt.faction_name_ruler":  {
                                    "zhHant":  "{0}軍",
                                    "en":  "{0} Forces"

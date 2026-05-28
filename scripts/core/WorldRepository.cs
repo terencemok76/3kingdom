@@ -421,8 +421,11 @@ public class WorldRepository
             city.CrossbowTroops = cityStart.CrossbowTroops;
             city.SiegeTroops = cityStart.SiegeTroops;
             city.BowWorkshopLevel = cityStart.BowWorkshopLevel;
+            city.BowWorkshopProgress = cityStart.BowWorkshopProgress;
             city.SiegeWorkshopLevel = cityStart.SiegeWorkshopLevel;
+            city.SiegeWorkshopProgress = cityStart.SiegeWorkshopProgress;
             city.HorsePastureLevel = cityStart.HorsePastureLevel;
+            city.HorsePastureProgress = cityStart.HorsePastureProgress;
             city.HasBowWorkshop = cityStart.HasBowWorkshop;
             city.HasSiegeWorkshop = cityStart.HasSiegeWorkshop;
             city.EnsureTroopTypesInitialized();

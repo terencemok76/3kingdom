@@ -23,8 +23,11 @@ public class CityData
     public int Horses { get; set; }
     public int Population { get; set; }
     public int BowWorkshopLevel { get; set; }
+    public int BowWorkshopProgress { get; set; }
     public int SiegeWorkshopLevel { get; set; }
+    public int SiegeWorkshopProgress { get; set; }
     public int HorsePastureLevel { get; set; }
+    public int HorsePastureProgress { get; set; }
     public bool HasBowWorkshop
     {
         get => BowWorkshopLevel > 0;

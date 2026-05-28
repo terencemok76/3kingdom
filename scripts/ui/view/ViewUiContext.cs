@@ -171,6 +171,7 @@ public sealed class ViewUiContext : IFloatingOverlayContext
     internal TreeItem? GetSelectedOfficerListItem() => _hud.ViewGetSelectedOfficerListItem();
     internal OfficerData? GetOfficerById(int officerId) => _hud.ViewGetOfficerById(officerId);
     internal void ApplyOfficerListSelectionHighlight(TreeItem item) => _hud.ViewApplyOfficerListSelectionHighlight(item);
+    internal void RefreshOfficerListRowStriping() => _hud.ViewRefreshOfficerListRowStriping();
     internal void SetOfficerListModeToView() => _hud.ViewSetOfficerListModeToView();
     internal void ResetOfficerListDialogLayoutToSceneDefaults() => _hud.ViewResetOfficerListDialogLayoutToSceneDefaults();
     internal void HideOfficerListAuxRow() => _hud.ViewHideOfficerListAuxRow();

@@ -153,6 +153,9 @@ public partial class HudController : CanvasLayer
         Farm,
         Commercial,
         Defense,
+        BowWorkshop,
+        SiegeWorkshop,
+        HorsePasture,
         Loyalty
     }
 

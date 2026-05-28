@@ -134,6 +134,7 @@ public partial class HudController
     internal TreeItem? ViewGetSelectedOfficerListItem() => _officerListTable?.GetSelected();
     internal OfficerData? ViewGetOfficerById(int officerId) => _turnManager?.World?.GetOfficer(officerId);
     internal void ViewApplyOfficerListSelectionHighlight(TreeItem item) => ApplyViewTableSelectionHighlight(item);
+    internal void ViewRefreshOfficerListRowStriping() => RefreshViewTableRowStriping();
     internal void ViewSetOfficerListModeToView() => _officerListMode = OfficerListMode.View;
     internal void ViewResetOfficerListDialogLayoutToSceneDefaults() => ResetOfficerListDialogLayoutToSceneDefaults();
     internal void ViewHideOfficerListAuxRow()

@@ -70,6 +70,15 @@ public partial class HudController
             ViewTableSortField.Defense => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Defense : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Defense : int.MinValue),
+            ViewTableSortField.BowWorkshop => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.BowWorkshop) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.BowWorkshop) : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.BowWorkshop) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.BowWorkshop) : int.MinValue),
+            ViewTableSortField.SiegeWorkshop => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.SiegeWorkshop) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.SiegeWorkshop) : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.SiegeWorkshop) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.SiegeWorkshop) : int.MinValue),
+            ViewTableSortField.HorsePasture => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.HorsePasture) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.HorsePasture) : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.HorsePasture) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.HorsePasture) : int.MinValue),
             ViewTableSortField.Loyalty => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue),
@@ -90,7 +99,7 @@ public partial class HudController
 
         if (_officerListContentMode == OfficerListContentMode.Cities)
         {
-            _officerListTable.Columns = 11;
+            _officerListTable.Columns = 14;
             SetViewTableColumn(0, _localization.T("ui.city"), 130, ViewTableSortField.Name);
             SetViewTableColumn(1, _localization.T("ui.faction_owner"), 140, ViewTableSortField.Owner);
             SetViewTableColumn(2, _localization.T("ui.gold"), 90, ViewTableSortField.Gold);
@@ -101,7 +110,11 @@ public partial class HudController
             SetViewTableColumn(7, _localization.T("ui.farm"), 90, ViewTableSortField.Farm);
             SetViewTableColumn(8, _localization.T("ui.commercial"), 110, ViewTableSortField.Commercial);
             SetViewTableColumn(9, _localization.T("ui.defense"), 90, ViewTableSortField.Defense);
-            SetViewTableColumn(10, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
+            SetViewTableColumn(10, _localization.T("ui.bow_workshop"), 140, ViewTableSortField.BowWorkshop);
+            SetViewTableColumn(11, _localization.T("ui.siege_workshop"), 140, ViewTableSortField.SiegeWorkshop);
+            SetViewTableColumn(12, _localization.T("ui.horse_pasture"), 140, ViewTableSortField.HorsePasture);
+            SetViewTableColumn(13, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
+            StretchTrailingViewColumns(14, 10, 130 + 140 + 90 + 90 + 110 + 90 + 90 + 90 + 110 + 90);
             return;
         }
 
@@ -119,6 +132,7 @@ public partial class HudController
             SetViewTableColumn(8, _localization.T("ui.politics"), 70, ViewTableSortField.Politics);
             SetViewTableColumn(9, _localization.T("ui.combat"), 70, ViewTableSortField.Combat);
             SetViewTableColumn(10, _localization.T("ui.loyalty"), 70, ViewTableSortField.OfficerLoyalty);
+            StretchTrailingViewColumns(11, 4, 170 + 130 + 110 + 90);
             return;
         }
 
@@ -129,6 +143,7 @@ public partial class HudController
             SetViewTableColumn(1, _localization.T("ui.relation_status"), 120, ViewTableSortField.RelationStatus);
             SetViewTableColumn(2, _localization.T("ui.remaining_months"), 120, ViewTableSortField.RemainingMonths);
             SetViewTableColumn(3, _localization.T("ui.relation_score"), 110, ViewTableSortField.RelationScore);
+            StretchTrailingViewColumns(4, 1, 160);
             return;
         }
 
@@ -145,6 +160,7 @@ public partial class HudController
             SetViewTableColumn(6, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
             SetViewTableColumn(7, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
             SetViewTableColumn(8, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
+            StretchTrailingViewColumns(9, 6, 170 + 120 + 170 + 100 + 140 + 70);
         }
         else
         {
@@ -152,6 +168,7 @@ public partial class HudController
             SetViewTableColumn(5, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
             SetViewTableColumn(6, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
             SetViewTableColumn(7, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
+            StretchTrailingViewColumns(8, 5, 170 + 120 + 170 + 100 + 70);
         }
     }
 
@@ -160,6 +177,38 @@ public partial class HudController
         _officerListTable?.SetColumnTitle(column, BuildSortableColumnTitle(title, field));
         _officerListTable?.SetColumnCustomMinimumWidth(column, minWidth);
         _officerListTable?.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
+    }
+
+    private void StretchTrailingViewColumns(int columnCount, int trailingColumnStart, int fixedWidth)
+    {
+        if (_officerListTable == null)
+        {
+            return;
+        }
+
+        var totalWidth = (int)Mathf.Round(_officerListTable.Size.X);
+        if (totalWidth <= 0)
+        {
+            totalWidth = (int)Mathf.Round(_officerListTable.CustomMinimumSize.X);
+        }
+
+        var trailingCount = columnCount - trailingColumnStart;
+        if (trailingCount <= 0)
+        {
+            return;
+        }
+
+        var availableWidth = Mathf.Max(0, totalWidth - fixedWidth);
+        var trailingWidth = Mathf.Max(90, availableWidth / trailingCount);
+        for (var column = 0; column < columnCount; column += 1)
+        {
+            var isTrailing = column >= trailingColumnStart;
+            _officerListTable.SetColumnExpand(column, false);
+            if (isTrailing)
+            {
+                _officerListTable.SetColumnCustomMinimumWidth(column, trailingWidth);
+            }
+        }
     }
 
     private string BuildSortableColumnTitle(string title, ViewTableSortField field)
@@ -230,6 +279,39 @@ public partial class HudController
         }
     }
 
+    private void RefreshViewTableRowStriping()
+    {
+        if (_officerListTable == null)
+        {
+            return;
+        }
+
+        var root = _officerListTable.GetRoot();
+        if (root == null)
+        {
+            return;
+        }
+
+        var selectedRow = _officerListTable.GetSelected();
+        var columnCount = _officerListTable.Columns;
+        var row = root.GetFirstChild();
+        var rowIndex = 0;
+        while (row != null)
+        {
+            if (row == selectedRow)
+            {
+                ApplyViewTableSelectedRowStyle(row, columnCount);
+            }
+            else
+            {
+                ApplyViewTableRowStriping(row, rowIndex, columnCount);
+            }
+
+            row = row.GetNext();
+            rowIndex += 1;
+        }
+    }
+
     private void PopulateOfficerTableRow(TreeItem row, OfficerData officer, bool includeCityName)
     {
         if (_localization == null)
@@ -297,7 +379,10 @@ public partial class HudController
         row.SetText(7, MaskedNumberText(canViewCity, city.Farm));
         row.SetText(8, MaskedNumberText(canViewCity, city.Commercial));
         row.SetText(9, MaskedNumberText(canViewCity, city.Defense));
-        row.SetText(10, MaskedNumberText(canViewCity, city.Loyalty));
+        row.SetText(10, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText);
+        row.SetText(11, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText);
+        row.SetText(12, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText);
+        row.SetText(13, MaskedNumberText(canViewCity, city.Loyalty));
     }
 
     private void PopulateItemTableRow(TreeItem row, ItemData item)
@@ -350,7 +435,10 @@ public partial class HudController
                 7 => ViewTableSortField.Farm,
                 8 => ViewTableSortField.Commercial,
                 9 => ViewTableSortField.Defense,
-                10 => ViewTableSortField.Loyalty,
+                10 => ViewTableSortField.BowWorkshop,
+                11 => ViewTableSortField.SiegeWorkshop,
+                12 => ViewTableSortField.HorsePasture,
+                13 => ViewTableSortField.Loyalty,
                 _ => ViewTableSortField.Name
             };
         }

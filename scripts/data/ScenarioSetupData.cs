@@ -24,8 +24,11 @@ public class CityStartData
     public int CrossbowTroops { get; set; }
     public int SiegeTroops { get; set; }
     public int BowWorkshopLevel { get; set; }
+    public int BowWorkshopProgress { get; set; }
     public int SiegeWorkshopLevel { get; set; }
+    public int SiegeWorkshopProgress { get; set; }
     public int HorsePastureLevel { get; set; }
+    public int HorsePastureProgress { get; set; }
     public bool HasBowWorkshop { get; set; }
     public bool HasSiegeWorkshop { get; set; }
     public List<int> OfficerIds { get; set; } = new();

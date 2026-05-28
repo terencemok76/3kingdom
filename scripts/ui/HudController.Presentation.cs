@@ -466,8 +466,8 @@ public partial class HudController : CanvasLayer
                 new CityStatRowDefinition(_localization.T("ui.horse"), "0", _localization.T("ui.population"), "0"),
                 new CityStatRowDefinition(_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
                 new CityStatRowDefinition(_localization.T("ui.defense"), "0", _localization.T("ui.disaster_prevention"), "0"),
-                new CityStatRowDefinition(_localization.T("ui.bow_workshop"), "0", _localization.T("ui.siege_workshop"), "0"),
-                new CityStatRowDefinition(_localization.T("ui.horse_pasture"), "0", string.Empty, string.Empty),
+                new CityStatRowDefinition(_localization.T("ui.bow_workshop"), _localization.Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0)), _localization.T("ui.siege_workshop"), _localization.Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))),
+                new CityStatRowDefinition(_localization.T("ui.horse_pasture"), _localization.Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0)), string.Empty, string.Empty),
                 new CityStatRowDefinition(_localization.T("ui.loyalty"), "0", string.Empty, string.Empty),
                 new CityStatRowDefinition(_localization.T("ui.officers"), "0", _localization.T("ui.free_officers"), "0"),
                 new CityStatRowDefinition(_localization.T("ui.troops"), "0", string.Empty, string.Empty),
@@ -488,8 +488,8 @@ public partial class HudController : CanvasLayer
             new CityStatRowDefinition(_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
             new CityStatRowDefinition(_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
             new CityStatRowDefinition(_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
-            new CityStatRowDefinition(_localization.T("ui.bow_workshop"), MaskedNumberText(canViewCity, city.BowWorkshopLevel), _localization.T("ui.siege_workshop"), MaskedNumberText(canViewCity, city.SiegeWorkshopLevel)),
-            new CityStatRowDefinition(_localization.T("ui.horse_pasture"), MaskedNumberText(canViewCity, city.HorsePastureLevel), string.Empty, string.Empty),
+            new CityStatRowDefinition(_localization.T("ui.bow_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText, _localization.T("ui.siege_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText),
+            new CityStatRowDefinition(_localization.T("ui.horse_pasture"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText, string.Empty, string.Empty),
             new CityStatRowDefinition(_localization.T("ui.loyalty"), MaskedNumberText(canViewCity, city.Loyalty), string.Empty, string.Empty),
             new CityStatRowDefinition(_localization.T("ui.officers"), MaskedNumberText(canViewCity, city.OfficerIds.Count), _localization.T("ui.free_officers"), MaskedNumberText(canViewCity, freeOfficerCount)),
             new CityStatRowDefinition(_localization.T("ui.troops"), MaskedNumberText(canViewCity, city.Troops), string.Empty, string.Empty),
@@ -506,11 +506,11 @@ public partial class HudController : CanvasLayer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        container.AddThemeConstantOverride("separation", 8);
+        container.AddThemeConstantOverride("separation", 6);
 
-        container.AddChild(CreateCityStatsLabelCell(row.LeftLabel, 56, HorizontalAlignment.Left, true));
-        container.AddChild(CreateCityStatsValueCell(row.LeftValue, 74));
-        container.AddChild(CreateCityStatsLabelCell(row.RightLabel, 56, HorizontalAlignment.Left, false));
+        container.AddChild(CreateCityStatsLabelCell(row.LeftLabel, 48, HorizontalAlignment.Left, true));
+        container.AddChild(CreateCityStatsValueCell(row.LeftValue, 90));
+        container.AddChild(CreateCityStatsLabelCell(row.RightLabel, 48, HorizontalAlignment.Left, false));
         container.AddChild(CreateCityStatsValueCell(row.RightValue, 0));
         return container;
     }
@@ -533,7 +533,7 @@ public partial class HudController : CanvasLayer
         {
             Text = text ?? string.Empty,
             SizeFlagsHorizontal = minimumWidth > 0 ? Control.SizeFlags.Fill : Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart
+            AutowrapMode = TextServer.AutowrapMode.Off
         };
         if (minimumWidth > 0)
         {

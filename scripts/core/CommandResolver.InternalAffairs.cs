@@ -414,7 +414,7 @@ public partial class CommandResolver
 
             city.Gold -= monthlyGoldCost;
 
-            var gains = ApplyInternalAffairsJob(world, city, officer, schedule.JobType, schedule.InvestedGold, schedule.TotalMonths);
+            var gains = ApplyInternalAffairsJob(world, city, officer, schedule.JobType, schedule.ConstructionProjectType, schedule.InvestedGold, schedule.TotalMonths);
             schedule.RemainingMonths -= 1;
             if (schedule.IsAuthorizedPlan)
             {
@@ -427,11 +427,6 @@ public partial class CommandResolver
 
             if (schedule.RemainingMonths <= 0)
             {
-                if (schedule.JobType == InternalAffairsJobType.Construction)
-                {
-                    ApplyConstructionProjectCompletion(city, ResolveConstructionProjectType(city, schedule.ConstructionProjectType));
-                }
-
                 schedule.State = InternalAffairsScheduleState.Completed;
                 if (schedule.IsAuthorizedPlan)
                 {

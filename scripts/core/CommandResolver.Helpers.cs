@@ -1270,22 +1270,6 @@ public partial class CommandResolver
         return ConstructionProjectType.HorsePasture;
     }
 
-    private static void ApplyConstructionProjectCompletion(CityData city, ConstructionProjectType projectType)
-    {
-        switch (projectType)
-        {
-            case ConstructionProjectType.BowWorkshop:
-                city.BowWorkshopLevel += 1;
-                break;
-            case ConstructionProjectType.SiegeWorkshop:
-                city.SiegeWorkshopLevel += 1;
-                break;
-            case ConstructionProjectType.HorsePasture:
-                city.HorsePastureLevel += 1;
-                break;
-        }
-    }
-
     private static int ScoreInternalAffairsOfficer(OfficerData officer, InternalAffairsJobType jobType)
     {
         return jobType switch
@@ -1299,31 +1283,33 @@ public partial class CommandResolver
         };
     }
 
-    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty) ApplyInternalAffairsJob(
+    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints) ApplyInternalAffairsJob(
         WorldState world,
         CityData city,
         OfficerData officer,
         InternalAffairsJobType jobType,
+        ConstructionProjectType constructionProjectType,
         int investedGold,
         int totalMonths)
     {
         var intelligence = GetEffectiveStat(world, officer, data => data.Intelligence, item => item.IntelligenceBonus, OfficerProgressionStat.Intelligence);
         var politics = GetEffectiveStat(world, officer, data => data.Politics, item => item.PoliticsBonus, OfficerProgressionStat.Politics);
         var charm = GetEffectiveStat(world, officer, data => data.Charm, item => item.CharmBonus, OfficerProgressionStat.Charm);
+        var leadership = GetEffectiveStat(world, officer, data => data.Leadership, item => item.LeadershipBonus, OfficerProgressionStat.Leadership);
         var officerBonus = Math.Max(0, (intelligence + politics + charm) / 90);
         var progressionBonus = OfficerProgressionRules.GetInternalAffairsOutputBonus(officer, jobType);
         var monthlyInvestment = investedGold;
         var goldBonus = 1 + Math.Min(4, Math.Max(0, (monthlyInvestment - 50) / 100));
         var primaryGain = 2 + officerBonus + progressionBonus + goldBonus;
         var secondaryGain = 1 + Math.Max(0, progressionBonus / 2);
-        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty) gains = jobType switch
+        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints) gains = jobType switch
         {
-            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0),
-            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0),
-            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0),
-            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain),
-            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0),
-            _ => (0, 0, 0, 0, 0)
+            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0),
+            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0),
+            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0),
+            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0),
+            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus)),
+            _ => (0, 0, 0, 0, 0, 0)
         };
 
         city.Farm = ClampStat(city.Farm + gains.Farm);
@@ -1331,6 +1317,11 @@ public partial class CommandResolver
         city.Defense = ClampStat(city.Defense + gains.Defense);
         city.DisasterPrevention = ClampStat(city.DisasterPrevention + gains.DisasterPrevention);
         city.Loyalty = ClampStat(city.Loyalty + gains.Loyalty);
+        if (jobType == InternalAffairsJobType.Construction)
+        {
+            ConstructionRules.ApplyProgress(city, constructionProjectType, gains.ConstructionPoints);
+        }
+
         OfficerProgressionRules.AwardInternalAffairsExperience(officer, jobType, 40);
         OfficerProgressionRules.AwardCivilExperience(officer, 12);
         return gains;

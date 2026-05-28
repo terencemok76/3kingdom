@@ -53,6 +53,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         RefreshChrome();
         PopulateDialog();
         ShowOverlay();
+        RequestDeferredTableStripeRefresh();
     }
 
     public void RefreshChrome()
@@ -83,6 +84,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             }
 
             UpdateDialogTitle();
+            RequestDeferredTableStripeRefresh();
             return;
         }
 
@@ -95,6 +97,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             }
 
             UpdateDialogTitle();
+            RequestDeferredTableStripeRefresh();
             return;
         }
 
@@ -107,6 +110,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             }
 
             UpdateDialogTitle();
+            RequestDeferredTableStripeRefresh();
             return;
         }
 
@@ -137,6 +141,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         UpdateDialogTitle();
+        RequestDeferredTableStripeRefresh();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -331,6 +336,16 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
 
     private void OnOfficerListColumnTitleClicked(long column, long mouseButtonIndex) => _context.HandleOfficerListColumnTitleClicked(column, mouseButtonIndex);
     private void OnOfficerListConfirmPressed() => _context.HandleOfficerListConfirmPressed();
+
+    private void RequestDeferredTableStripeRefresh()
+    {
+        Callable.From(DeferredRefreshTableStripe).CallDeferred();
+    }
+
+    private void DeferredRefreshTableStripe()
+    {
+        _context.RefreshOfficerListRowStriping();
+    }
 
     private void UpdateToolbar()
     {
