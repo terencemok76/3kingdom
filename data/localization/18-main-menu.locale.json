@@ -1,0 +1,70 @@
+{
+  "ui.main_menu": {
+    "zhHant": "主選單",
+    "en": "Main Menu"
+  },
+  "ui.start_game": {
+    "zhHant": "開始遊戲",
+    "en": "Start Game"
+  },
+  "ui.load_game": {
+    "zhHant": "讀取遊戲",
+    "en": "Load Game"
+  },
+  "ui.select_story": {
+    "zhHant": "選擇劇本",
+    "en": "Select Story"
+  },
+  "ui.confirm_story": {
+    "zhHant": "確認劇本",
+    "en": "Confirm Story"
+  },
+  "ui.select_lord": {
+    "zhHant": "選擇君主",
+    "en": "Select Lord"
+  },
+  "ui.start_campaign": {
+    "zhHant": "進入遊戲",
+    "en": "Start Campaign"
+  },
+  "ui.back": {
+    "zhHant": "返回",
+    "en": "Back"
+  },
+  "ui.main_menu_hint": {
+    "zhHant": "請選擇開始新遊戲，或讀取既有存檔。",
+    "en": "Choose a new game or load an existing save."
+  },
+  "ui.select_story_hint": {
+    "zhHant": "先選擇劇本，再進入君主選擇。",
+    "en": "Select a story first, then continue to lord selection."
+  },
+  "ui.select_lord_hint": {
+    "zhHant": "選擇要扮演的君主勢力。",
+    "en": "Choose the lord faction you want to play."
+  },
+  "ui.load_game_hint": {
+    "zhHant": "選擇一個存檔欄位讀取進度。",
+    "en": "Select a save slot to load your progress."
+  },
+  "ui.story_load_failed": {
+    "zhHant": "無法讀取劇本資料。",
+    "en": "Failed to load story data."
+  },
+  "fmt.selected_story": {
+    "zhHant": "劇本：{0}",
+    "en": "Story: {0}"
+  },
+  "fmt.story_summary": {
+    "zhHant": "劇本：{0}\n開始時間：{1} 年 {2} 月\n勢力數：{3}",
+    "en": "Story: {0}\nStart: Year {1}, Month {2}\nFactions: {3}"
+  },
+  "fmt.lord_list_item": {
+    "zhHant": "{0} | 城池 {1} | 武將 {2}",
+    "en": "{0} | Cities {1} | Officers {2}"
+  },
+  "fmt.lord_summary": {
+    "zhHant": "勢力：{0}\n君主：{1}\n持有城池：{2}\n所屬武將：{3}",
+    "en": "Faction: {0}\nRuler: {1}\nCities: {2}\nOfficers: {3}"
+  }
+}

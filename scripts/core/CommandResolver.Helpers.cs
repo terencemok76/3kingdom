@@ -754,7 +754,7 @@ public partial class CommandResolver
             return false;
         }
 
-        return officer.DeathYear <= 0 || world.Year < officer.DeathYear;
+        return officer.DeathYear <= 0 || world.Year <= officer.DeathYear;
     }
 
     private static void ClearFactionAdvisorPosts(WorldState world, int officerId)
@@ -1686,7 +1686,7 @@ public partial class CommandResolver
 
     private static bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer)
     {
-        if (officer.DeathYear > 0 && world.Year >= officer.DeathYear)
+        if (officer.DeathYear > 0 && world.Year > officer.DeathYear)
         {
             return false;
         }

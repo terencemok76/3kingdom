@@ -65,7 +65,7 @@ public partial class HudController
         AddLog(_localization?.T("log.quick_load_success") ?? "Quick load completed.", isPlayerRelated: true);
     }
 
-    private void ApplyLoadedWorld(WorldState loadedWorld)
+    internal void ApplyLoadedWorld(WorldState loadedWorld)
     {
         _turnManager?.Initialize(loadedWorld);
         _gameEnded = false;

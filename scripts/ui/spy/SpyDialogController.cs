@@ -329,7 +329,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             foreach (var officerId in targetCity.OfficerIds)
             {
                 var officer = world.GetOfficer(officerId);
-                if (officer == null || officer.DeathYear > 0 && world.Year >= officer.DeathYear)
+                if (officer == null || officer.DeathYear > 0 && world.Year > officer.DeathYear)
                 {
                     continue;
                 }

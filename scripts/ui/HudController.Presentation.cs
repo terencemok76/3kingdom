@@ -189,6 +189,8 @@ public partial class HudController : CanvasLayer
     private void RefreshSelectedCity()
     {
         _mainHudUiController?.RefreshSelectedCity();
+        _viewUiController?.RefreshOfficerListChrome();
+        _viewUiController?.RefreshOfficerListContent();
     }
 
     private string BuildOfficerDetailText(OfficerData officer)
