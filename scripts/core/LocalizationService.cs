@@ -222,6 +222,9 @@ public class LocalizationService
             $"{T("ui.bow_workshop")}: {FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop)}\n" +
             $"{T("ui.siege_workshop")}: {FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop)}\n" +
             $"{T("ui.horse_pasture")}: {FormatFacilityProgress(city, ConstructionProjectType.HorsePasture)}\n" +
+            $"{T("siege_engine.ram")}: {city.RamCount}\n" +
+            $"{T("siege_engine.catapult")}: {city.CatapultCount}\n" +
+            $"{T("siege_engine.ladder")}: {city.LadderCount}\n" +
             $"{T("ui.defense")}: {city.Defense}\n" +
             $"{T("ui.loyalty")}: {city.Loyalty}";
     }
@@ -248,6 +251,9 @@ public class LocalizationService
             $"{T("ui.bow_workshop")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
             $"{T("ui.siege_workshop")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
             $"{T("ui.horse_pasture")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
+            $"{T("siege_engine.ram")}: 0\n" +
+            $"{T("siege_engine.catapult")}: 0\n" +
+            $"{T("siege_engine.ladder")}: 0\n" +
             $"{T("ui.defense")}: 0\n" +
             $"{T("ui.loyalty")}: 0";
     }
@@ -258,6 +264,22 @@ public class LocalizationService
         var progress = ConstructionRules.GetProgress(city, projectType);
         var required = ConstructionRules.GetRequiredPointsForNextLevel(level);
         return Format("fmt.facility_level_progress", level, progress, required);
+    }
+
+    public string FormatSiegeEngineProgress(CityData city, SiegeEngineType siegeEngineType)
+    {
+        var count = city.GetSiegeEngineCount(siegeEngineType);
+        var progress = city.GetSiegeEngineProgress(siegeEngineType);
+        var required = ConstructionRules.GetRequiredPointsForNextValue(
+            siegeEngineType switch
+            {
+                SiegeEngineType.Ram => ConstructionProjectType.Ram,
+                SiegeEngineType.Catapult => ConstructionProjectType.Catapult,
+                SiegeEngineType.Ladder => ConstructionProjectType.Ladder,
+                _ => ConstructionProjectType.None
+            },
+            count);
+        return Format("fmt.facility_level_progress", count, progress, required);
     }
 
     public string FormatOwnerLine(string ownerName)

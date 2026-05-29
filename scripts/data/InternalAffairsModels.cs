@@ -14,7 +14,10 @@ public enum ConstructionProjectType
     None = 0,
     BowWorkshop = 1,
     SiegeWorkshop = 2,
-    HorsePasture = 3
+    HorsePasture = 3,
+    Ram = 4,
+    Catapult = 5,
+    Ladder = 6
 }
 
 public enum InternalAffairsScheduleState

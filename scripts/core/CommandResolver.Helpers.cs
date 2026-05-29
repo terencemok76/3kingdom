@@ -223,6 +223,33 @@ public partial class CommandResolver
         return allocation;
     }
 
+    private static SiegeEngineAllocationData CreateSiegeEngineAllocationFromAttackDeployments(IEnumerable<AttackOfficerDeploymentData> deployments)
+    {
+        var allocation = new SiegeEngineAllocationData();
+        foreach (var deployment in deployments)
+        {
+            if (deployment.TroopType != TroopType.Siege || deployment.TroopCount <= 0)
+            {
+                continue;
+            }
+
+            switch (deployment.SiegeEngineType)
+            {
+                case SiegeEngineType.Ram:
+                    allocation.Ram += 1;
+                    break;
+                case SiegeEngineType.Catapult:
+                    allocation.Catapult += 1;
+                    break;
+                case SiegeEngineType.Ladder:
+                    allocation.Ladder += 1;
+                    break;
+            }
+        }
+
+        return allocation;
+    }
+
     private static void SetTroopAllocationValue(TroopAllocationData allocation, TroopType troopType, int value)
     {
         switch (troopType)
@@ -443,12 +470,24 @@ public partial class CommandResolver
             schedule.OfficerId == officerId);
     }
 
-    private static bool HasActiveInternalAffairsJob(WorldState world, int cityId, InternalAffairsJobType jobType)
+    private static bool HasActiveInternalAffairsJob(WorldState world, int cityId, InternalAffairsJobType jobType, ConstructionProjectType constructionProjectType = ConstructionProjectType.None)
     {
         return world.InternalAffairsSchedules.Any(schedule =>
-            schedule.State is InternalAffairsScheduleState.Active or InternalAffairsScheduleState.Paused &&
-            schedule.CityId == cityId &&
-            schedule.JobType == jobType);
+        {
+            if (schedule.State is not (InternalAffairsScheduleState.Active or InternalAffairsScheduleState.Paused) ||
+                schedule.CityId != cityId ||
+                schedule.JobType != jobType)
+            {
+                return false;
+            }
+
+            if (jobType != InternalAffairsJobType.Construction)
+            {
+                return true;
+            }
+
+            return schedule.ConstructionProjectType == constructionProjectType;
+        });
     }
 
     private static bool IsFactionRuler(WorldState world, int officerId)
@@ -1124,6 +1163,13 @@ public partial class CommandResolver
             world.InternalAffairsSchedules
                 .Where(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.CityId == city.Id)
                 .Select(schedule => schedule.JobType));
+        var activeConstructionProjects = new HashSet<ConstructionProjectType>(
+            world.InternalAffairsSchedules
+                .Where(schedule =>
+                    schedule.State == InternalAffairsScheduleState.Active &&
+                    schedule.CityId == city.Id &&
+                    schedule.JobType == InternalAffairsJobType.Construction)
+                .Select(schedule => schedule.ConstructionProjectType));
 
         var politics = prefect?.Politics ?? 50;
         var intelligence = prefect?.Intelligence ?? 50;
@@ -1159,12 +1205,28 @@ public partial class CommandResolver
             )
         };
 
-        return candidates
+        var selectedJob = candidates
             .Where(candidate => !activeJobs.Contains(candidate.JobType))
             .OrderBy(candidate => candidate.Score)
             .ThenBy(candidate => (int)candidate.JobType)
             .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
             .FirstOrDefault();
+
+        if (selectedJob == InternalAffairsJobType.Construction)
+        {
+            var projectType = AiConstructionRules.ChooseConstructionProjectType(world, city);
+            if (activeConstructionProjects.Contains(projectType))
+            {
+                return candidates
+                    .Where(candidate => candidate.JobType != InternalAffairsJobType.Construction && !activeJobs.Contains(candidate.JobType))
+                    .OrderBy(candidate => candidate.Score)
+                    .ThenBy(candidate => (int)candidate.JobType)
+                    .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
+                    .FirstOrDefault();
+            }
+        }
+
+        return selectedJob;
     }
 
     private static int ChooseAuthorizedPlanDuration(CityData city, InternalAffairsJobType jobType, OfficerData? prefect = null)
@@ -1191,7 +1253,7 @@ public partial class CommandResolver
     private InternalAffairsScheduleData CreateAuthorizedPlanSchedule(WorldState world, CityData city, int officerId)
     {
         var projectType = city.PrefectPlanJobType == InternalAffairsJobType.Construction
-            ? ResolveConstructionProjectType(city, city.PrefectPlanConstructionProjectType)
+            ? ResolveConstructionProjectType(world, city, city.PrefectPlanConstructionProjectType)
             : ConstructionProjectType.None;
         var investedGold = city.PrefectPlanInvestedGold > 0
             ? city.PrefectPlanInvestedGold
@@ -1250,24 +1312,14 @@ public partial class CommandResolver
         return count;
     }
 
-    private static ConstructionProjectType ResolveConstructionProjectType(CityData city, ConstructionProjectType requestedProjectType)
+    private static ConstructionProjectType ResolveConstructionProjectType(WorldState world, CityData city, ConstructionProjectType requestedProjectType)
     {
         if (requestedProjectType != ConstructionProjectType.None)
         {
             return requestedProjectType;
         }
 
-        if (city.BowWorkshopLevel <= 0)
-        {
-            return ConstructionProjectType.BowWorkshop;
-        }
-
-        if (city.SiegeWorkshopLevel <= 0)
-        {
-            return ConstructionProjectType.SiegeWorkshop;
-        }
-
-        return ConstructionProjectType.HorsePasture;
+        return AiConstructionRules.ChooseConstructionProjectType(world, city);
     }
 
     private static int ScoreInternalAffairsOfficer(OfficerData officer, InternalAffairsJobType jobType)
@@ -1375,6 +1427,24 @@ public partial class CommandResolver
         return string.IsNullOrWhiteSpace(key)
             ? jobType.ToString()
             : _localization?.FormatForLanguage(language, key) ?? jobType.ToString();
+    }
+
+    private string GetConstructionProjectName(ConstructionProjectType projectType, GameLanguage language)
+    {
+        var key = projectType switch
+        {
+            ConstructionProjectType.BowWorkshop => "construction_project.bow_workshop",
+            ConstructionProjectType.SiegeWorkshop => "construction_project.siege_workshop",
+            ConstructionProjectType.HorsePasture => "construction_project.horse_pasture",
+            ConstructionProjectType.Ram => "construction_project.ram",
+            ConstructionProjectType.Catapult => "construction_project.catapult",
+            ConstructionProjectType.Ladder => "construction_project.ladder",
+            _ => string.Empty
+        };
+
+        return string.IsNullOrWhiteSpace(key)
+            ? projectType.ToString()
+            : _localization?.TForLanguage(language, key) ?? projectType.ToString();
     }
 
     private static void MarkOfficerAssigned(WorldState world, OfficerData officer, CommandType commandType)

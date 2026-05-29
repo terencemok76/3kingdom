@@ -251,12 +251,16 @@ public class AiController
         var internalAffairsJob = ChooseInternalAffairsJob(world, city);
         if (internalAffairsJob.HasValue && internalAffairsOfficerId > 0)
         {
+            var constructionProjectType = internalAffairsJob.Value == InternalAffairsJobType.Construction
+                ? AiConstructionRules.ChooseConstructionProjectType(world, city)
+                : ConstructionProjectType.None;
             coreResults.Add(_commandResolver.ScheduleInternalAffairs(
                 factionId,
                 cityId,
                 internalAffairsOfficerId,
                 internalAffairsJob.Value,
-                3));
+                3,
+                constructionProjectType));
             availableOfficerIds.Remove(internalAffairsOfficerId);
             if (searchOfficerId == internalAffairsOfficerId)
             {

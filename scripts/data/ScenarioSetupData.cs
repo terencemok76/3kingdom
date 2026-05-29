@@ -29,6 +29,12 @@ public class CityStartData
     public int SiegeWorkshopProgress { get; set; }
     public int HorsePastureLevel { get; set; }
     public int HorsePastureProgress { get; set; }
+    public int RamCount { get; set; }
+    public int RamProgress { get; set; }
+    public int CatapultCount { get; set; }
+    public int CatapultProgress { get; set; }
+    public int LadderCount { get; set; }
+    public int LadderProgress { get; set; }
     public bool HasBowWorkshop { get; set; }
     public bool HasSiegeWorkshop { get; set; }
     public List<int> OfficerIds { get; set; } = new();

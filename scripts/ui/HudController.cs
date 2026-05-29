@@ -156,6 +156,9 @@ public partial class HudController : CanvasLayer
         BowWorkshop,
         SiegeWorkshop,
         HorsePasture,
+        Ram,
+        Catapult,
+        Ladder,
         Loyalty
     }
 

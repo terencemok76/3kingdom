@@ -316,7 +316,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
                 {
                     OfficerId = officerId,
                     TroopType = GetDefaultTroopType(),
-                    TroopCount = 0
+                    TroopCount = 0,
+                    SiegeEngineType = SiegeEngineType.None
                 };
             }
 
@@ -451,6 +452,11 @@ internal sealed class AttackDialogController : FloatingOverlayController
         troopTypeOption.ItemSelected += _ =>
         {
             deployment.TroopType = GetSelectedTroopType(troopTypeOption);
+            if (deployment.TroopType != TroopType.Siege)
+            {
+                deployment.SiegeEngineType = SiegeEngineType.None;
+            }
+
             deployment.TroopCount = Mathf.Clamp(deployment.TroopCount, 0, GetAvailableTroopCount(deployment.TroopType));
             _deployments[officer.Id] = deployment;
             RefreshDeploymentEditor();
@@ -475,6 +481,25 @@ internal sealed class AttackDialogController : FloatingOverlayController
         ApplyInputThemeToSubtree(troopCountSpinBox);
         row.AddChild(troopCountSpinBox);
 
+        var siegeEngineOption = new OptionButton
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(120.0f, 0.0f)
+        };
+        PopulateSiegeEngineOption(siegeEngineOption, deployment.SiegeEngineType);
+        siegeEngineOption.Disabled = deployment.TroopType != TroopType.Siege;
+        siegeEngineOption.Visible = deployment.TroopType == TroopType.Siege;
+        siegeEngineOption.ItemSelected += _ =>
+        {
+            deployment.SiegeEngineType = deployment.TroopType == TroopType.Siege
+                ? GetSelectedSiegeEngineType(siegeEngineOption)
+                : SiegeEngineType.None;
+            _deployments[officer.Id] = deployment;
+            UpdateDeploymentSummary();
+        };
+        ApplyInputThemeToSubtree(siegeEngineOption);
+        row.AddChild(siegeEngineOption);
+
         return row;
     }
 
@@ -488,6 +513,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
         var activeDeployments = _deployments.Values.Where(item => item.TroopCount > 0).ToList();
         var allocation = BuildTroopAllocation(activeDeployments);
+        var siegeEngineAllocation = BuildSiegeEngineAllocation(activeDeployments);
         var summary = string.Join(" | ", new[]
         {
             FormatSummaryPart(TroopType.Infantry, allocation.Infantry, dialogCity.InfantryTroops),
@@ -497,7 +523,17 @@ internal sealed class AttackDialogController : FloatingOverlayController
             FormatSummaryPart(TroopType.Crossbow, allocation.Crossbow, dialogCity.CrossbowTroops),
             FormatSummaryPart(TroopType.Siege, allocation.Siege, dialogCity.SiegeTroops)
         });
+        var siegeEngineSummary = string.Join(" | ", new[]
+        {
+            FormatSiegeEngineSummaryPart(SiegeEngineType.Ram, siegeEngineAllocation.Ram, dialogCity.RamCount),
+            FormatSiegeEngineSummaryPart(SiegeEngineType.Catapult, siegeEngineAllocation.Catapult, dialogCity.CatapultCount),
+            FormatSiegeEngineSummaryPart(SiegeEngineType.Ladder, siegeEngineAllocation.Ladder, dialogCity.LadderCount)
+        });
         _deploymentSummaryLabel.Text = _context.Localization.Format("fmt.attack_deployment_summary", summary, allocation.Total);
+        if (siegeEngineAllocation.Total > 0 || dialogCity.RamCount > 0 || dialogCity.CatapultCount > 0 || dialogCity.LadderCount > 0)
+        {
+            _deploymentSummaryLabel.Text += $"\n{siegeEngineSummary}";
+        }
     }
 
     private void OnConfirmPressed()
@@ -514,7 +550,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
             {
                 OfficerId = item.OfficerId,
                 TroopType = item.TroopType,
-                TroopCount = item.TroopCount
+                TroopCount = item.TroopCount,
+                SiegeEngineType = item.TroopType == TroopType.Siege ? item.SiegeEngineType : SiegeEngineType.None
             })
             .ToList();
 
@@ -526,6 +563,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
 
         var allocation = BuildTroopAllocation(attackDeployments);
+        var siegeEngineAllocation = BuildSiegeEngineAllocation(attackDeployments);
         if (allocation.Total <= 0)
         {
             SetWarning(_context.Localization?.T("ui.attack_troops_required_warning") ?? "Enter the number of troops to deploy.");
@@ -541,6 +579,15 @@ internal sealed class AttackDialogController : FloatingOverlayController
             allocation.Siege > dialogCity.SiegeTroops)
         {
             SetWarning(_context.Localization?.T("ui.attack_deployment_exceed_warning") ?? "Troop deployment exceeds the city's available troop types.");
+            ShowOverlay();
+            return;
+        }
+
+        if (siegeEngineAllocation.Ram > dialogCity.RamCount ||
+            siegeEngineAllocation.Catapult > dialogCity.CatapultCount ||
+            siegeEngineAllocation.Ladder > dialogCity.LadderCount)
+        {
+            SetWarning(_context.Localization?.T("ui.attack_siege_engine_exceed_warning") ?? "Assigned siege engines exceed the city's available stock.");
             ShowOverlay();
             return;
         }
@@ -654,6 +701,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
     private int GetAvailableTroopCount(TroopType troopType) => GetDialogCityContext()?.GetTroops(troopType) ?? 0;
 
+    private int GetAvailableSiegeEngineCount(SiegeEngineType siegeEngineType) => GetDialogCityContext()?.GetSiegeEngineCount(siegeEngineType) ?? 0;
+
     private string GetTroopTypeDisplayName(TroopType troopType)
     {
         return _context.Localization?.T(troopType switch
@@ -671,6 +720,11 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private string FormatSummaryPart(TroopType troopType, int assigned, int available)
     {
         return string.Format("{0} {1}/{2}", GetTroopTypeDisplayName(troopType), assigned, available);
+    }
+
+    private string FormatSiegeEngineSummaryPart(SiegeEngineType siegeEngineType, int assigned, int available)
+    {
+        return string.Format("{0} {1}/{2}", GetSiegeEngineDisplayName(siegeEngineType), assigned, available);
     }
 
     private void SetWarning(string text)
@@ -745,6 +799,62 @@ internal sealed class AttackDialogController : FloatingOverlayController
         return metadata.VariantType == Variant.Type.Int ? (TroopType)metadata.AsInt32() : TroopType.Infantry;
     }
 
+    private void PopulateSiegeEngineOption(OptionButton optionButton, SiegeEngineType selectedType)
+    {
+        optionButton.Clear();
+        optionButton.AddItem(_context.Localization?.T("ui.none") ?? "None");
+        optionButton.SetItemMetadata(0, (int)SiegeEngineType.None);
+        foreach (var siegeEngineType in Enum.GetValues<SiegeEngineType>())
+        {
+            if (siegeEngineType == SiegeEngineType.None || GetAvailableSiegeEngineCount(siegeEngineType) <= 0)
+            {
+                continue;
+            }
+
+            optionButton.AddItem(GetSiegeEngineDisplayName(siegeEngineType));
+            optionButton.SetItemMetadata(optionButton.ItemCount - 1, (int)siegeEngineType);
+        }
+
+        SelectSiegeEngineTypeOption(optionButton, selectedType);
+    }
+
+    private string GetSiegeEngineDisplayName(SiegeEngineType siegeEngineType)
+    {
+        return _context.Localization?.T(siegeEngineType switch
+        {
+            SiegeEngineType.Ram => "siege_engine.ram",
+            SiegeEngineType.Catapult => "siege_engine.catapult",
+            SiegeEngineType.Ladder => "siege_engine.ladder",
+            _ => "ui.none"
+        }) ?? siegeEngineType.ToString();
+    }
+
+    private static void SelectSiegeEngineTypeOption(OptionButton optionButton, SiegeEngineType siegeEngineType)
+    {
+        for (var index = 0; index < optionButton.ItemCount; index += 1)
+        {
+            var metadata = optionButton.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)siegeEngineType)
+            {
+                optionButton.Select(index);
+                return;
+            }
+        }
+
+        optionButton.Select(0);
+    }
+
+    private static SiegeEngineType GetSelectedSiegeEngineType(OptionButton optionButton)
+    {
+        if (optionButton.Selected < 0)
+        {
+            return SiegeEngineType.None;
+        }
+
+        var metadata = optionButton.GetItemMetadata(optionButton.Selected);
+        return metadata.VariantType == Variant.Type.Int ? (SiegeEngineType)metadata.AsInt32() : SiegeEngineType.None;
+    }
+
     private static TroopAllocationData BuildTroopAllocation(IEnumerable<AttackOfficerDeploymentData> deployments)
     {
         var allocation = new TroopAllocationData();
@@ -769,6 +879,33 @@ internal sealed class AttackDialogController : FloatingOverlayController
                     break;
                 case TroopType.Siege:
                     allocation.Siege += deployment.TroopCount;
+                    break;
+            }
+        }
+
+        return allocation;
+    }
+
+    private static SiegeEngineAllocationData BuildSiegeEngineAllocation(IEnumerable<AttackOfficerDeploymentData> deployments)
+    {
+        var allocation = new SiegeEngineAllocationData();
+        foreach (var deployment in deployments)
+        {
+            if (deployment.TroopType != TroopType.Siege || deployment.TroopCount <= 0)
+            {
+                continue;
+            }
+
+            switch (deployment.SiegeEngineType)
+            {
+                case SiegeEngineType.Ram:
+                    allocation.Ram += 1;
+                    break;
+                case SiegeEngineType.Catapult:
+                    allocation.Catapult += 1;
+                    break;
+                case SiegeEngineType.Ladder:
+                    allocation.Ladder += 1;
                     break;
             }
         }

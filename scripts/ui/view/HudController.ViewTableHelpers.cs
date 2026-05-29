@@ -79,6 +79,15 @@ public partial class HudController
             ViewTableSortField.HorsePasture => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.HorsePasture) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.HorsePasture) : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? ConstructionRules.GetLevel(city, ConstructionProjectType.HorsePasture) * 100000 + ConstructionRules.GetProgress(city, ConstructionProjectType.HorsePasture) : int.MinValue),
+            ViewTableSortField.Ram => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.RamCount * 100000 + city.RamProgress : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.RamCount * 100000 + city.RamProgress : int.MinValue),
+            ViewTableSortField.Catapult => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.CatapultCount * 100000 + city.CatapultProgress : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.CatapultCount * 100000 + city.CatapultProgress : int.MinValue),
+            ViewTableSortField.Ladder => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.LadderCount * 100000 + city.LadderProgress : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.LadderCount * 100000 + city.LadderProgress : int.MinValue),
             ViewTableSortField.Loyalty => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue),
@@ -99,7 +108,7 @@ public partial class HudController
 
         if (_officerListContentMode == OfficerListContentMode.Cities)
         {
-            _officerListTable.Columns = 14;
+            _officerListTable.Columns = 17;
             SetViewTableColumn(0, _localization.T("ui.city"), 130, ViewTableSortField.Name);
             SetViewTableColumn(1, _localization.T("ui.faction_owner"), 140, ViewTableSortField.Owner);
             SetViewTableColumn(2, _localization.T("ui.gold"), 90, ViewTableSortField.Gold);
@@ -113,8 +122,11 @@ public partial class HudController
             SetViewTableColumn(10, _localization.T("ui.bow_workshop"), 140, ViewTableSortField.BowWorkshop);
             SetViewTableColumn(11, _localization.T("ui.siege_workshop"), 140, ViewTableSortField.SiegeWorkshop);
             SetViewTableColumn(12, _localization.T("ui.horse_pasture"), 140, ViewTableSortField.HorsePasture);
-            SetViewTableColumn(13, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
-            StretchTrailingViewColumns(14, 10, 130 + 140 + 90 + 90 + 110 + 90 + 90 + 90 + 110 + 90);
+            SetViewTableColumn(13, _localization.T("siege_engine.ram"), 120, ViewTableSortField.Ram);
+            SetViewTableColumn(14, _localization.T("siege_engine.catapult"), 120, ViewTableSortField.Catapult);
+            SetViewTableColumn(15, _localization.T("siege_engine.ladder"), 120, ViewTableSortField.Ladder);
+            SetViewTableColumn(16, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
+            StretchTrailingViewColumns(17, 10, 130 + 140 + 90 + 90 + 110 + 90 + 90 + 90 + 110 + 90);
             return;
         }
 
@@ -382,7 +394,10 @@ public partial class HudController
         row.SetText(10, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText);
         row.SetText(11, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText);
         row.SetText(12, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText);
-        row.SetText(13, MaskedNumberText(canViewCity, city.Loyalty));
+        row.SetText(13, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ram) : UnknownInfoText);
+        row.SetText(14, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Catapult) : UnknownInfoText);
+        row.SetText(15, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ladder) : UnknownInfoText);
+        row.SetText(16, MaskedNumberText(canViewCity, city.Loyalty));
     }
 
     private void PopulateItemTableRow(TreeItem row, ItemData item)
@@ -438,7 +453,10 @@ public partial class HudController
                 10 => ViewTableSortField.BowWorkshop,
                 11 => ViewTableSortField.SiegeWorkshop,
                 12 => ViewTableSortField.HorsePasture,
-                13 => ViewTableSortField.Loyalty,
+                13 => ViewTableSortField.Ram,
+                14 => ViewTableSortField.Catapult,
+                15 => ViewTableSortField.Ladder,
+                16 => ViewTableSortField.Loyalty,
                 _ => ViewTableSortField.Name
             };
         }

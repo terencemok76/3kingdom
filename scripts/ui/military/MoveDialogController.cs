@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -12,11 +13,14 @@ internal sealed class MoveDialogController : FloatingOverlayController
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private SpinBox? _horseSpinBox;
+    private SpinBox? _ramSpinBox;
+    private SpinBox? _catapultSpinBox;
+    private SpinBox? _ladderSpinBox;
     private Tree? _officerList;
     private bool _signalsConnected;
     private bool _officerListSignalsConnected;
     private bool _officerListGuiInputConnected;
-    protected override Vector2 MinimumOverlaySize => new(460.0f, 560.0f);
+    protected override Vector2 MinimumOverlaySize => new(460.0f, 680.0f);
 
     public MoveDialogController(MilitaryUiContext context)
         : base(context, "res://scenes/ui/military/MoveDialog.tscn")
@@ -63,6 +67,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ConfigureSpinBox(_goldSpinBox, _context.SelectedCity.Gold, _context.SelectedCity.Gold / 2);
         ConfigureSpinBox(_foodSpinBox, _context.SelectedCity.Food, _context.SelectedCity.Food / 2);
         ConfigureSpinBox(_horseSpinBox, _context.SelectedCity.Horses, _context.SelectedCity.Horses / 2);
+        ConfigureSpinBox(_ramSpinBox, _context.SelectedCity.RamCount, 0);
+        ConfigureSpinBox(_catapultSpinBox, _context.SelectedCity.CatapultCount, 0);
+        ConfigureSpinBox(_ladderSpinBox, _context.SelectedCity.LadderCount, 0);
 
         var availableOfficerIds = _context.GetAvailableOfficerIdsForOrder();
         if (_officerList != null)
@@ -113,6 +120,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
         SetLabelText("GoldLabel", _context.Localization.T("ui.transfer_gold"));
         SetLabelText("FoodLabel", _context.Localization.T("ui.transfer_food"));
         SetLabelText("HorseLabel", _context.Localization.T("ui.transfer_horse"));
+        SetLabelText("RamLabel", _context.Localization.T("siege_engine.ram"));
+        SetLabelText("CatapultLabel", _context.Localization.T("siege_engine.catapult"));
+        SetLabelText("LadderLabel", _context.Localization.T("siege_engine.ladder"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.transfer_officers"));
     }
 
@@ -123,6 +133,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodSpinBox");
         _horseSpinBox = root.GetNodeOrNull<SpinBox>("HorseSpinBox");
+        _ramSpinBox = root.GetNodeOrNull<SpinBox>("RamSpinBox");
+        _catapultSpinBox = root.GetNodeOrNull<SpinBox>("CatapultSpinBox");
+        _ladderSpinBox = root.GetNodeOrNull<SpinBox>("LadderSpinBox");
         _officerList = root.GetNodeOrNull<Tree>("OfficerTable");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_confirmButton != null)
@@ -173,12 +186,19 @@ internal sealed class MoveDialogController : FloatingOverlayController
 
         var targetCityId = targetMetadata.AsInt32();
         var movedOfficerIds = _context.GetCheckedTreeMetadataIds(_officerList);
+        var siegeEngineAllocation = new SiegeEngineAllocationData
+        {
+            Ram = _ramSpinBox != null ? (int)_ramSpinBox.Value : 0,
+            Catapult = _catapultSpinBox != null ? (int)_catapultSpinBox.Value : 0,
+            Ladder = _ladderSpinBox != null ? (int)_ladderSpinBox.Value : 0
+        };
         var result = _context.ExecuteMoveCommand(
             targetCityId,
             _troopsSpinBox != null ? (int)_troopsSpinBox.Value : 0,
             _goldSpinBox != null ? (int)_goldSpinBox.Value : 0,
             _foodSpinBox != null ? (int)_foodSpinBox.Value : 0,
             _horseSpinBox != null ? (int)_horseSpinBox.Value : 0,
+            siegeEngineAllocation,
             movedOfficerIds);
         if (result.Success)
         {

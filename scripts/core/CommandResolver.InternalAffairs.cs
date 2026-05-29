@@ -49,15 +49,6 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.internal_affairs.officer_unavailable", GetOfficerArgs(officer, GameLanguage.TraditionalChinese), GetOfficerArgs(officer, GameLanguage.English));
         }
 
-        if (HasActiveInternalAffairsJob(world, city.Id, jobType))
-        {
-            return LocalizedResult(
-                false,
-                "cmd.internal_affairs.job_already_active",
-                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetInternalAffairsJobName(jobType, GameLanguage.TraditionalChinese) },
-                new object[] { GetCityName(city, GameLanguage.English), GetInternalAffairsJobName(jobType, GameLanguage.English) });
-        }
-
         if (investedGold <= 0)
         {
             investedGold = GetRecommendedInternalAffairsGold(jobType, months);
@@ -85,11 +76,34 @@ public partial class CommandResolver
 
         if (jobType == InternalAffairsJobType.Construction)
         {
-            constructionProjectType = ResolveConstructionProjectType(city, constructionProjectType);
+            constructionProjectType = ResolveConstructionProjectType(world, city, constructionProjectType);
+            if (ConstructionRules.IsSiegeEngineProject(constructionProjectType) && city.SiegeWorkshopLevel <= 0)
+            {
+                return LocalizedResult(
+                    false,
+                    "cmd.internal_affairs.siege_workshop_required",
+                    new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetConstructionProjectName(constructionProjectType, GameLanguage.TraditionalChinese) },
+                    new object[] { GetCityName(city, GameLanguage.English), GetConstructionProjectName(constructionProjectType, GameLanguage.English) });
+            }
         }
         else
         {
             constructionProjectType = ConstructionProjectType.None;
+        }
+
+        if (HasActiveInternalAffairsJob(world, city.Id, jobType, constructionProjectType))
+        {
+            var jobNameZh = jobType == InternalAffairsJobType.Construction
+                ? $"{GetInternalAffairsJobName(jobType, GameLanguage.TraditionalChinese)} ({GetConstructionProjectName(constructionProjectType, GameLanguage.TraditionalChinese)})"
+                : GetInternalAffairsJobName(jobType, GameLanguage.TraditionalChinese);
+            var jobNameEn = jobType == InternalAffairsJobType.Construction
+                ? $"{GetInternalAffairsJobName(jobType, GameLanguage.English)} ({GetConstructionProjectName(constructionProjectType, GameLanguage.English)})"
+                : GetInternalAffairsJobName(jobType, GameLanguage.English);
+            return LocalizedResult(
+                false,
+                "cmd.internal_affairs.job_already_active",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), jobNameZh },
+                new object[] { GetCityName(city, GameLanguage.English), jobNameEn });
         }
 
         var schedule = new InternalAffairsScheduleData
@@ -165,7 +179,11 @@ public partial class CommandResolver
             ClearCityAuthorizedPlan(city);
         }
 
+        ReleaseInternalAffairsOfficerAssignment(world, schedule.OfficerId);
         schedule.State = InternalAffairsScheduleState.Terminated;
+        schedule.OfficerId = 0;
+        schedule.SkipExecutionYear = -1;
+        schedule.SkipExecutionMonth = -1;
         return LocalizedResult(
             true,
             "cmd.internal_affairs.terminated",
@@ -587,7 +605,7 @@ public partial class CommandResolver
 
                 city.PrefectPlanJobType = plannedJob.Value;
                 city.PrefectPlanConstructionProjectType = plannedJob.Value == InternalAffairsJobType.Construction
-                    ? ResolveConstructionProjectType(city, city.PrefectPlanConstructionProjectType)
+                    ? ResolveConstructionProjectType(world, city, city.PrefectPlanConstructionProjectType)
                     : ConstructionProjectType.None;
                 city.PrefectPlanInvestedGold = GetRecommendedInternalAffairsGold(plannedJob.Value, ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect));
                 city.PrefectPlanTotalMonths = ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect);

@@ -89,9 +89,9 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(460, 560)
+custom_minimum_size = Vector2(460, 680)
 offset_right = 460.0
-offset_bottom = 560.0
+offset_bottom = 680.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
@@ -183,6 +183,39 @@ layout_mode = 2
 text = "Horse"
 
 [node name="HorseSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="RamLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Battering Ram"
+
+[node name="RamSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="CatapultLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Catapult"
+
+[node name="CatapultSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="LadderLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+text = "Siege Ladder"
+
+[node name="LadderSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.0

@@ -426,6 +426,12 @@ public class WorldRepository
             city.SiegeWorkshopProgress = cityStart.SiegeWorkshopProgress;
             city.HorsePastureLevel = cityStart.HorsePastureLevel;
             city.HorsePastureProgress = cityStart.HorsePastureProgress;
+            city.RamCount = cityStart.RamCount;
+            city.RamProgress = cityStart.RamProgress;
+            city.CatapultCount = cityStart.CatapultCount;
+            city.CatapultProgress = cityStart.CatapultProgress;
+            city.LadderCount = cityStart.LadderCount;
+            city.LadderProgress = cityStart.LadderProgress;
             city.HasBowWorkshop = cityStart.HasBowWorkshop;
             city.HasSiegeWorkshop = cityStart.HasSiegeWorkshop;
             city.EnsureTroopTypesInitialized();

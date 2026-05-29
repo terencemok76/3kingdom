@@ -206,8 +206,14 @@ public partial class CommandResolver
         var movableGold = GetTransferAmount(request.GoldToSend, sourceCity.Gold);
         var movableFood = GetTransferAmount(request.FoodToSend, sourceCity.Food);
         var movableHorses = GetTransferAmount(request.HorsesToSend, sourceCity.Horses);
+        var movableSiegeEngines = new SiegeEngineAllocationData
+        {
+            Ram = GetTransferAmount(request.SiegeEngineAllocation.Ram, sourceCity.RamCount),
+            Catapult = GetTransferAmount(request.SiegeEngineAllocation.Catapult, sourceCity.CatapultCount),
+            Ladder = GetTransferAmount(request.SiegeEngineAllocation.Ladder, sourceCity.LadderCount)
+        };
 
-        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && selectedOfficerIds.Count == 0)
+        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && selectedOfficerIds.Count == 0)
         {
             return LocalizedResult(false, "cmd.move.nothing_to_move");
         }
@@ -224,6 +230,7 @@ public partial class CommandResolver
             GoldToSend = movableGold,
             FoodToSend = movableFood,
             HorsesToSend = movableHorses,
+            SiegeEngineAllocation = movableSiegeEngines,
             OfficerIds = selectedOfficerIds
         });
 
@@ -503,12 +510,14 @@ public partial class CommandResolver
             {
                 OfficerId = item.OfficerId,
                 TroopType = item.TroopType,
-                TroopCount = item.TroopCount
+                TroopCount = item.TroopCount,
+                SiegeEngineType = item.TroopType == TroopType.Siege ? item.SiegeEngineType : SiegeEngineType.None
             })
             .ToList();
         var troopAllocation = validDeployments.Count > 0
             ? CreateTroopAllocationFromAttackDeployments(validDeployments)
             : CreateTroopAllocationFromTotal(sourceCity, request.TroopsToSend);
+        var siegeEngineAllocation = CreateSiegeEngineAllocationFromAttackDeployments(validDeployments);
         var attackingTroops = troopAllocation.Total;
         if (selectedOfficerIds.Count == 0)
         {
@@ -535,10 +544,18 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.attack.too_many_troops", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
+        if (siegeEngineAllocation.Ram > sourceCity.RamCount ||
+            siegeEngineAllocation.Catapult > sourceCity.CatapultCount ||
+            siegeEngineAllocation.Ladder > sourceCity.LadderCount)
+        {
+            return LocalizedResult(false, "cmd.attack.too_many_siege_engines", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+        }
+
         var autoBrokePact = TryBreakDiplomacyBlockForAttack(world, sourceCity.OwnerFactionId, targetCity.OwnerFactionId);
         MarkOfficersAssigned(world, selectedOfficerIds, CommandType.Attack);
         // Reserve attack resources immediately so same-month orders see the reduced stock.
         sourceCity.RemoveTroopAllocation(troopAllocation);
+        sourceCity.RemoveSiegeEngineAllocation(siegeEngineAllocation);
         sourceCity.Gold -= carriedGold;
         sourceCity.Food -= carriedFood;
 
@@ -550,6 +567,7 @@ public partial class CommandResolver
             TargetCityId = targetCity.Id,
             TroopsToSend = attackingTroops,
             TroopAllocation = troopAllocation,
+            SiegeEngineAllocation = siegeEngineAllocation,
             GoldToSend = carriedGold,
             FoodToSend = carriedFood,
             AttackOfficerDeployments = validDeployments,
@@ -584,9 +602,19 @@ public partial class CommandResolver
         var movableGold = GetTransferAmount(pendingCommand.GoldToSend, sourceCity.Gold);
         var movableFood = GetTransferAmount(pendingCommand.FoodToSend, sourceCity.Food);
         var movableHorses = GetTransferAmount(pendingCommand.HorsesToSend, sourceCity.Horses);
+        var movableRam = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Ram, sourceCity.RamCount);
+        var movableCatapult = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Catapult, sourceCity.CatapultCount);
+        var movableLadder = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Ladder, sourceCity.LadderCount);
+        var movableTroopAllocation = ScaleTroopAllocationToTotal(pendingCommand.TroopAllocation, movableTroops);
+        var movableSiegeEngines = new SiegeEngineAllocationData
+        {
+            Ram = movableRam,
+            Catapult = movableCatapult,
+            Ladder = movableLadder
+        };
         var movedOfficerCount = TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var sourcePrefectOutcome);
 
-        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movedOfficerCount == 0)
+        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && movedOfficerCount == 0)
         {
             return LocalizedResult(
                 false,
@@ -595,21 +623,23 @@ public partial class CommandResolver
                 new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
         }
 
-        sourceCity.RemoveTroopAllocation(pendingCommand.TroopAllocation);
+        sourceCity.RemoveTroopAllocation(movableTroopAllocation);
         sourceCity.Gold -= movableGold;
         sourceCity.Food -= movableFood;
         sourceCity.Horses -= movableHorses;
+        sourceCity.RemoveSiegeEngineAllocation(movableSiegeEngines);
 
-        targetCity.AddTroopAllocation(pendingCommand.TroopAllocation);
+        targetCity.AddTroopAllocation(movableTroopAllocation);
         targetCity.Gold += movableGold;
         targetCity.Food += movableFood;
         targetCity.Horses += movableHorses;
+        targetCity.AddSiegeEngineAllocation(movableSiegeEngines);
 
         var result = LocalizedResult(
             true,
             "cmd.move.resolved",
-            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
-            new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
+            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
+            new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
         AppendPrefectAutoAppointmentOutcome(result, sourcePrefectOutcome);
         return result;
     }
@@ -631,6 +661,7 @@ public partial class CommandResolver
         {
             // If the target becomes invalid before month end, return all reserved troops and supplies.
             sourceCity.AddTroopAllocation(pendingCommand.TroopAllocation);
+            sourceCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
             sourceCity.Gold += pendingCommand.GoldToSend;
             sourceCity.Food += pendingCommand.FoodToSend;
 
@@ -732,6 +763,7 @@ public partial class CommandResolver
                 sourceCity.AddTroopAllocation(survivors);
             }
 
+            sourceCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
             sourceCity.Gold += returnedGold;
             sourceCity.Food += returnedFood;
 
@@ -782,6 +814,8 @@ public partial class CommandResolver
 
         var garrisonAllocation = ScaleTroopAllocationToTotal(pendingCommand.TroopAllocation, garrison);
         targetCity.AddTroopAllocation(garrisonAllocation);
+        targetCity.ClearSiegeEngines();
+        targetCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
         targetCity.Gold += pendingCommand.GoldToSend;
         targetCity.Food += pendingCommand.FoodToSend;
         TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var attackingPrefectOutcome);

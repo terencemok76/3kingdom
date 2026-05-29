@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
@@ -276,10 +277,18 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             return;
         }
 
+        var city = _context.SelectedCity;
         _constructionProjectOption.Clear();
         AddConstructionProjectOption(ConstructionProjectType.BowWorkshop);
         AddConstructionProjectOption(ConstructionProjectType.SiegeWorkshop);
         AddConstructionProjectOption(ConstructionProjectType.HorsePasture);
+        if (city?.SiegeWorkshopLevel > 0)
+        {
+            AddConstructionProjectOption(ConstructionProjectType.Ram);
+            AddConstructionProjectOption(ConstructionProjectType.Catapult);
+            AddConstructionProjectOption(ConstructionProjectType.Ladder);
+        }
+
         if (_constructionProjectOption.ItemCount > 0)
         {
             _constructionProjectOption.Select(0);
@@ -322,7 +331,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             var sourceText = schedule.IsAuthorizedPlan
                 ? GetAuthorizedPlanSourceText(city)
                 : localization.T("ui.none");
-            var jobText = GetScheduleJobName(schedule);
+            var jobText = GetScheduleJobName(city, schedule);
             var itemIndex = _scheduleList.AddItem(
                 schedule.IsAuthorizedPlan
                     ? localization.Format("fmt.internal_affairs_schedule_row_with_source", jobText, officerName, schedule.RemainingMonths, schedule.InvestedGold, stateText, sourceText)
@@ -692,11 +701,14 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             ConstructionProjectType.BowWorkshop => _context.Localization.T("construction_project.bow_workshop"),
             ConstructionProjectType.SiegeWorkshop => _context.Localization.T("construction_project.siege_workshop"),
             ConstructionProjectType.HorsePasture => _context.Localization.T("construction_project.horse_pasture"),
+            ConstructionProjectType.Ram => _context.Localization.T("construction_project.ram"),
+            ConstructionProjectType.Catapult => _context.Localization.T("construction_project.catapult"),
+            ConstructionProjectType.Ladder => _context.Localization.T("construction_project.ladder"),
             _ => _context.Localization.T("ui.none")
         };
     }
 
-    private string GetScheduleJobName(InternalAffairsScheduleData schedule)
+    private string GetScheduleJobName(CityData city, InternalAffairsScheduleData schedule)
     {
         var jobName = GetJobName(schedule.JobType);
         if (schedule.JobType != InternalAffairsJobType.Construction)
@@ -704,7 +716,27 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             return jobName;
         }
 
-        return $"{jobName} ({GetConstructionProjectName(schedule.ConstructionProjectType)})";
+        return $"{jobName} ({GetConstructionProjectName(schedule.ConstructionProjectType)} {GetConstructionProjectProgressText(city, schedule.ConstructionProjectType)})";
+    }
+
+    private string GetConstructionProjectProgressText(CityData city, ConstructionProjectType projectType)
+    {
+        var localization = _context.Localization;
+        if (localization == null)
+        {
+            return string.Empty;
+        }
+
+        if (ConstructionRules.IsFacilityProject(projectType))
+        {
+            return localization.FormatFacilityProgress(city, projectType);
+        }
+
+        var siegeEngineType = ConstructionRules.GetSiegeEngineType(projectType);
+        var count = city.GetSiegeEngineCount(siegeEngineType);
+        var progress = city.GetSiegeEngineProgress(siegeEngineType);
+        var required = ConstructionRules.GetRequiredPointsForNextValue(projectType, count);
+        return localization.Format("fmt.facility_level_progress", count, progress, required);
     }
 
     private int GetSuggestedInvestmentGold()

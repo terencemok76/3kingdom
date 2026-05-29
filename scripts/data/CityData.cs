@@ -28,6 +28,12 @@ public class CityData
     public int SiegeWorkshopProgress { get; set; }
     public int HorsePastureLevel { get; set; }
     public int HorsePastureProgress { get; set; }
+    public int RamCount { get; set; }
+    public int RamProgress { get; set; }
+    public int CatapultCount { get; set; }
+    public int CatapultProgress { get; set; }
+    public int LadderCount { get; set; }
+    public int LadderProgress { get; set; }
     public bool HasBowWorkshop
     {
         get => BowWorkshopLevel > 0;
@@ -225,6 +231,110 @@ public class CityData
         CrossbowTroops = System.Math.Max(0, CrossbowTroops - allocation.Crossbow);
         SiegeTroops = System.Math.Max(0, SiegeTroops - allocation.Siege);
         SyncLegacyTroops();
+    }
+
+    public int GetSiegeEngineCount(SiegeEngineType siegeEngineType)
+    {
+        return siegeEngineType switch
+        {
+            SiegeEngineType.Ram => RamCount,
+            SiegeEngineType.Catapult => CatapultCount,
+            SiegeEngineType.Ladder => LadderCount,
+            _ => 0
+        };
+    }
+
+    public int GetSiegeEngineProgress(SiegeEngineType siegeEngineType)
+    {
+        return siegeEngineType switch
+        {
+            SiegeEngineType.Ram => RamProgress,
+            SiegeEngineType.Catapult => CatapultProgress,
+            SiegeEngineType.Ladder => LadderProgress,
+            _ => 0
+        };
+    }
+
+    public void SetSiegeEngineProgress(SiegeEngineType siegeEngineType, int value)
+    {
+        switch (siegeEngineType)
+        {
+            case SiegeEngineType.Ram:
+                RamProgress = System.Math.Max(0, value);
+                break;
+            case SiegeEngineType.Catapult:
+                CatapultProgress = System.Math.Max(0, value);
+                break;
+            case SiegeEngineType.Ladder:
+                LadderProgress = System.Math.Max(0, value);
+                break;
+        }
+    }
+
+    public void AddSiegeEngine(SiegeEngineType siegeEngineType, int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        switch (siegeEngineType)
+        {
+            case SiegeEngineType.Ram:
+                RamCount += amount;
+                break;
+            case SiegeEngineType.Catapult:
+                CatapultCount += amount;
+                break;
+            case SiegeEngineType.Ladder:
+                LadderCount += amount;
+                break;
+        }
+    }
+
+    public void RemoveSiegeEngine(SiegeEngineType siegeEngineType, int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        switch (siegeEngineType)
+        {
+            case SiegeEngineType.Ram:
+                RamCount = System.Math.Max(0, RamCount - amount);
+                break;
+            case SiegeEngineType.Catapult:
+                CatapultCount = System.Math.Max(0, CatapultCount - amount);
+                break;
+            case SiegeEngineType.Ladder:
+                LadderCount = System.Math.Max(0, LadderCount - amount);
+                break;
+        }
+    }
+
+    public void AddSiegeEngineAllocation(SiegeEngineAllocationData allocation)
+    {
+        RamCount += allocation.Ram;
+        CatapultCount += allocation.Catapult;
+        LadderCount += allocation.Ladder;
+    }
+
+    public void RemoveSiegeEngineAllocation(SiegeEngineAllocationData allocation)
+    {
+        RamCount = System.Math.Max(0, RamCount - allocation.Ram);
+        CatapultCount = System.Math.Max(0, CatapultCount - allocation.Catapult);
+        LadderCount = System.Math.Max(0, LadderCount - allocation.Ladder);
+    }
+
+    public void ClearSiegeEngines()
+    {
+        RamCount = 0;
+        RamProgress = 0;
+        CatapultCount = 0;
+        CatapultProgress = 0;
+        LadderCount = 0;
+        LadderProgress = 0;
     }
 }
 

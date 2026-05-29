@@ -1,0 +1,38 @@
+{
+  "construction_project.ram": {
+    "zhHant": "衝車",
+    "en": "Battering Ram"
+  },
+  "construction_project.catapult": {
+    "zhHant": "投石車",
+    "en": "Catapult"
+  },
+  "construction_project.ladder": {
+    "zhHant": "雲梯",
+    "en": "Siege Ladder"
+  },
+  "siege_engine.ram": {
+    "zhHant": "衝車",
+    "en": "Battering Ram"
+  },
+  "siege_engine.catapult": {
+    "zhHant": "投石車",
+    "en": "Catapult"
+  },
+  "siege_engine.ladder": {
+    "zhHant": "雲梯",
+    "en": "Siege Ladder"
+  },
+  "ui.attack_siege_engine_exceed_warning": {
+    "zhHant": "指派的攻城器數量超過城市現有庫存。",
+    "en": "Assigned siege engines exceed the city's available stock."
+  },
+  "cmd.attack.too_many_siege_engines": {
+    "zhHant": "「{0}」指派的攻城器數量不可超過城市現有庫存。",
+    "en": "\"{0}\" cannot assign more siege engines than the city's available stock."
+  },
+  "cmd.internal_affairs.siege_workshop_required": {
+    "zhHant": "「{0}」尚未建成工坊，無法建造「{1}」。",
+    "en": "\"{0}\" needs a Siege Workshop before constructing \"{1}\"."
+  }
+}

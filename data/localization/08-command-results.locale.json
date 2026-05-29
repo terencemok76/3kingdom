@@ -612,8 +612,8 @@
                                               "en":  "\"{0}\" has selected officers already assigned to another command this month."
                                           },
     "cmd.move.resolved":  {
-                              "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、武將 +{5} 已轉移至「{6}」。",
-                              "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Officers+{5} moved to \"{6}\"."
+                              "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、衝車 +{5}、投石車 +{6}、雲梯 +{7}、武將 +{8} 已轉移至「{9}」。",
+                              "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Rams+{5}, Catapults+{6}, Ladders+{7}, Officers+{8} moved to \"{9}\"."
                           },
     "cmd.move.scheduled":  {
                                "zhHant":  "「{0}」已排定移動命令，月末將轉移至「{1}」。",

@@ -44,6 +44,14 @@ public enum TroopType
     Siege
 }
 
+public enum SiegeEngineType
+{
+    None = 0,
+    Ram = 1,
+    Catapult = 2,
+    Ladder = 3
+}
+
 public enum MerchantTradeMode
 {
     BuyFood,
@@ -63,11 +71,21 @@ public class TroopAllocationData
     public int Total => Infantry + Spearman + Cavalry + Archer + Crossbow + Siege;
 }
 
+public class SiegeEngineAllocationData
+{
+    public int Ram { get; set; }
+    public int Catapult { get; set; }
+    public int Ladder { get; set; }
+
+    public int Total => Ram + Catapult + Ladder;
+}
+
 public class AttackOfficerDeploymentData
 {
     public int OfficerId { get; set; }
     public TroopType TroopType { get; set; } = TroopType.Infantry;
     public int TroopCount { get; set; }
+    public SiegeEngineType SiegeEngineType { get; set; } = SiegeEngineType.None;
 }
 
 public class CommandRequest
@@ -87,6 +105,7 @@ public class CommandRequest
     public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
+    public SiegeEngineAllocationData SiegeEngineAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public int? TargetFactionId { get; set; }
     public int DurationMonths { get; set; } = 3;
@@ -108,6 +127,7 @@ public class PendingCommandData
     public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
+    public SiegeEngineAllocationData SiegeEngineAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public List<AttackOfficerDeploymentData> DefenderOfficerDeployments { get; set; } = new();
     public int TargetFactionId { get; set; }

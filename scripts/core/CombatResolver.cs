@@ -37,10 +37,11 @@ public class CombatResolver
         var defenderCombat = GetAverageOfficerStat(world, defender, officer => officer.Combat, item => item.CombatBonus, OfficerProgressionStat.Combat, defendingOfficerIds);
         var effectiveAttackAllocation = GetDeploymentAllocation(attackingAllocation, attackOfficerDeployments);
         var effectiveDefenseAllocation = GetEffectiveDefenseAllocation(defender, defendingAllocation, defenderOfficerDeployments);
+        var siegeEngineAllocation = GetSiegeEngineAllocation(attackOfficerDeployments);
 
         var attackStat = attackerStrength * 0.3f + attackerLeadership * 0.4f + attackerCombat * 0.3f;
-        var deploymentModifier = GetAttackDeploymentModifier(effectiveAttackAllocation);
-        var siegePressure = GetSiegePressureModifier(effectiveAttackAllocation) + GetSiegeWorkshopPressureBonus(attacker, effectiveAttackAllocation);
+        var deploymentModifier = GetAttackDeploymentModifier(effectiveAttackAllocation) + GetSiegeEngineAttackModifier(siegeEngineAllocation);
+        var siegePressure = GetSiegePressureModifier(effectiveAttackAllocation) + GetSiegeWorkshopPressureBonus(attacker, effectiveAttackAllocation) + GetSiegeEnginePressureBonus(siegeEngineAllocation);
         var troopCounterAttackModifier = GetAttackCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
         var troopCounterDefenseModifier = GetDefenseCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
         var attackMultiplier = 1.0f + attackStat / 220.0f + deploymentModifier + troopCounterAttackModifier;
@@ -98,6 +99,38 @@ public class CombatResolver
                     break;
                 case TroopType.Siege:
                     allocation.Siege += deployment.TroopCount;
+                    break;
+            }
+        }
+
+        return allocation;
+    }
+
+    private static SiegeEngineAllocationData GetSiegeEngineAllocation(List<AttackOfficerDeploymentData>? deployments)
+    {
+        var allocation = new SiegeEngineAllocationData();
+        if (deployments == null || deployments.Count == 0)
+        {
+            return allocation;
+        }
+
+        foreach (var deployment in deployments)
+        {
+            if (deployment.TroopType != TroopType.Siege || deployment.TroopCount <= 0)
+            {
+                continue;
+            }
+
+            switch (deployment.SiegeEngineType)
+            {
+                case SiegeEngineType.Ram:
+                    allocation.Ram += 1;
+                    break;
+                case SiegeEngineType.Catapult:
+                    allocation.Catapult += 1;
+                    break;
+                case SiegeEngineType.Ladder:
+                    allocation.Ladder += 1;
                     break;
             }
         }
@@ -223,6 +256,16 @@ public class CombatResolver
 
         var siegeShare = allocation.Siege / (float)allocation.Total;
         return Math.Min(0.06f, attacker.SiegeWorkshopLevel * 0.02f * siegeShare);
+    }
+
+    private static float GetSiegeEnginePressureBonus(SiegeEngineAllocationData allocation)
+    {
+        return Math.Min(0.12f, allocation.Ram * 0.03f + allocation.Catapult * 0.04f);
+    }
+
+    private static float GetSiegeEngineAttackModifier(SiegeEngineAllocationData allocation)
+    {
+        return Math.Min(0.08f, allocation.Ladder * 0.02f + allocation.Catapult * 0.01f);
     }
 
     private static float GetAttackCounterModifier(TroopAllocationData attackerAllocation, TroopAllocationData defenderAllocation)
