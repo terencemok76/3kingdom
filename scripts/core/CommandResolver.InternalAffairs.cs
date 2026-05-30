@@ -482,6 +482,24 @@ public partial class CommandResolver
                     Math.Max(schedule.RemainingMonths, 0),
                     monthlyGoldCost
                 });
+            if (schedule.JobType == InternalAffairsJobType.Construction &&
+                schedule.ConstructionProjectType != ConstructionProjectType.None)
+            {
+                AppendLocalizedText(
+                    resolveResult,
+                    BuildConstructionProgressSuffix(
+                        city,
+                        schedule.ConstructionProjectType,
+                        gains.ConstructionPoints,
+                        gains.ConstructionResult.ValuesGained,
+                        GameLanguage.TraditionalChinese),
+                    BuildConstructionProgressSuffix(
+                        city,
+                        schedule.ConstructionProjectType,
+                        gains.ConstructionPoints,
+                        gains.ConstructionResult.ValuesGained,
+                        GameLanguage.English));
+            }
             resolveResult.IsPlayerRelated = isPlayerRelated;
             results.Add(resolveResult);
         }

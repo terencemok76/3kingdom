@@ -53,7 +53,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         RefreshChrome();
         PopulateDialog();
         ShowOverlay();
-        RequestDeferredTableStripeRefresh();
+        RequestDeferredTableVisualRefresh();
     }
 
     public void RefreshChrome()
@@ -84,7 +84,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             }
 
             UpdateDialogTitle();
-            RequestDeferredTableStripeRefresh();
+            RequestDeferredTableVisualRefresh();
             return;
         }
 
@@ -97,7 +97,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             }
 
             UpdateDialogTitle();
-            RequestDeferredTableStripeRefresh();
+            RequestDeferredTableVisualRefresh();
             return;
         }
 
@@ -110,7 +110,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             }
 
             UpdateDialogTitle();
-            RequestDeferredTableStripeRefresh();
+            RequestDeferredTableVisualRefresh();
             return;
         }
 
@@ -141,7 +141,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         UpdateDialogTitle();
-        RequestDeferredTableStripeRefresh();
+        RequestDeferredTableVisualRefresh();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -337,14 +337,31 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
     private void OnOfficerListColumnTitleClicked(long column, long mouseButtonIndex) => _context.HandleOfficerListColumnTitleClicked(column, mouseButtonIndex);
     private void OnOfficerListConfirmPressed() => _context.HandleOfficerListConfirmPressed();
 
-    private void RequestDeferredTableStripeRefresh()
+    private void RequestDeferredTableVisualRefresh()
     {
-        Callable.From(DeferredRefreshTableStripe).CallDeferred();
+        Callable.From(DeferredRefreshTableVisuals).CallDeferred();
     }
 
-    private void DeferredRefreshTableStripe()
+    private void DeferredRefreshTableVisuals()
     {
         _context.RefreshOfficerListRowStriping();
+        var table = _context.OfficerListTable;
+        if (table == null)
+        {
+            return;
+        }
+
+        table.QueueRedraw();
+        table.ResetSize();
+        if (table.GetParent() is Control parent)
+        {
+            parent.QueueRedraw();
+            parent.ResetSize();
+        }
+
+        OverlayRoot?.QueueRedraw();
+        UpdateOverlayLayoutNow();
+        Callable.From(_context.RefreshOfficerListRowStriping).CallDeferred();
     }
 
     private void UpdateToolbar()

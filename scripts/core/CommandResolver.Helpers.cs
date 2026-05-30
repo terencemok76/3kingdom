@@ -1335,7 +1335,7 @@ public partial class CommandResolver
         };
     }
 
-    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints) ApplyInternalAffairsJob(
+    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult) ApplyInternalAffairsJob(
         WorldState world,
         CityData city,
         OfficerData officer,
@@ -1354,14 +1354,14 @@ public partial class CommandResolver
         var goldBonus = 1 + Math.Min(4, Math.Max(0, (monthlyInvestment - 50) / 100));
         var primaryGain = 2 + officerBonus + progressionBonus + goldBonus;
         var secondaryGain = 1 + Math.Max(0, progressionBonus / 2);
-        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints) gains = jobType switch
+        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult) gains = jobType switch
         {
-            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0),
-            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0),
-            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0),
-            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0),
-            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus)),
-            _ => (0, 0, 0, 0, 0, 0)
+            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0, default),
+            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0, default),
+            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0, default),
+            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0, default),
+            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus), default),
+            _ => (0, 0, 0, 0, 0, 0, default)
         };
 
         city.Farm = ClampStat(city.Farm + gains.Farm);
@@ -1371,7 +1371,7 @@ public partial class CommandResolver
         city.Loyalty = ClampStat(city.Loyalty + gains.Loyalty);
         if (jobType == InternalAffairsJobType.Construction)
         {
-            ConstructionRules.ApplyProgress(city, constructionProjectType, gains.ConstructionPoints);
+            gains.ConstructionResult = ConstructionRules.ApplyProgress(city, constructionProjectType, gains.ConstructionPoints);
         }
 
         OfficerProgressionRules.AwardInternalAffairsExperience(officer, jobType, 40);
@@ -1445,6 +1445,37 @@ public partial class CommandResolver
         return string.IsNullOrWhiteSpace(key)
             ? projectType.ToString()
             : _localization?.TForLanguage(language, key) ?? projectType.ToString();
+    }
+
+    private string FormatConstructionProjectProgress(CityData city, ConstructionProjectType projectType, GameLanguage language)
+    {
+        var projectValue = ConstructionRules.IsFacilityProject(projectType)
+            ? ConstructionRules.GetLevel(city, projectType)
+            : city.GetSiegeEngineCount(ConstructionRules.GetSiegeEngineType(projectType));
+        var projectProgress = ConstructionRules.IsFacilityProject(projectType)
+            ? ConstructionRules.GetProgress(city, projectType)
+            : city.GetSiegeEngineProgress(ConstructionRules.GetSiegeEngineType(projectType));
+        var required = ConstructionRules.GetRequiredPointsForNextValue(projectType, projectValue);
+
+        return _localization?.FormatForLanguage(language, "fmt.facility_level_progress", projectValue, projectProgress, required)
+               ?? $"{projectValue} ({projectProgress}/{required})";
+    }
+
+    private string BuildConstructionProgressSuffix(
+        CityData city,
+        ConstructionProjectType projectType,
+        int constructionPoints,
+        int valuesGained,
+        GameLanguage language)
+    {
+        return _localization?.FormatForLanguage(
+                   language,
+                   "fmt.internal_affairs_construction_progress",
+                   GetConstructionProjectName(projectType, language),
+                   constructionPoints,
+                   FormatConstructionProjectProgress(city, projectType, language),
+                   valuesGained)
+               ?? string.Empty;
     }
 
     private static void MarkOfficerAssigned(WorldState world, OfficerData officer, CommandType commandType)

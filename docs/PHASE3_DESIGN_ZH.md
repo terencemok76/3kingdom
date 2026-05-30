@@ -415,6 +415,41 @@
   - `外交關係`
   都應吃到新的目前選中城市上下文
 
+### 8.6 語言切換與動態控制項
+
+- 目前 Phase 3 已補強多語系 UI 的即時切換行為。
+- 原則上，開著 dialog 切語言時，應同時刷新：
+  - 靜態 label
+  - button
+  - dropdown item text
+  - 動態 table header / row text
+  - 動態建立的 deployment rows
+- 目前已實作的範圍包含：
+  - `Internal Affairs`
+  - `Merchant`
+  - `Diplomacy`
+  - `Spy`
+  - `Military`
+  - `Recruit`
+  - `Move`
+  - `Attack`
+  - `Personnel`
+  - `Assign Role`
+  - `Prefect Authorization`
+  - `Bonus / Request Item / Hire Officer / Fire Officer / Succession`
+- 共用 `Officer Selector` 目前支援：
+  - title 即時切語言
+  - confirm button 即時切語言
+  - table columns / rows 即時切語言
+  - scope buttons 即時切語言
+  - 自訂 display config 重新套用
+- 目前實作會盡量保留使用者當下狀態：
+  - dropdown 選取值
+  - 已勾選 officer
+  - attack deployment 內容
+  - 已輸入數值
+- 因此語言切換不應再被視為需要「重開視窗」的操作。
+
 ## 9. AI 現況
 
 - AI 已經會使用 `internal affairs schedule`

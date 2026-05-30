@@ -294,6 +294,35 @@
 - 目的是讓 `View` dialog 永遠跟隨目前 `_selectedCity`
   - 不需要先關閉 dialog 再重開
 
+### 4.5 語言切換與動態 UI
+
+- 目前多數 overlay dialog 在語言切換時，不只更新靜態 label / button，也會同步重建動態 UI 文字。
+- 目前已支援即時語言切換的動態控制項包含：
+  - `OptionButton / dropdown`
+  - `Officer Selector` table columns / rows / title / confirm button
+  - `Attack` 視窗中的：
+    - target city dropdown
+    - officer table header / row text
+    - deployment editor 動態建立的 troop type / siege engine dropdown
+- 目前實作原則：
+  - 開著 dialog 切語言時，不要求玩家先關閉視窗再重開
+  - 若控制項有使用者當前狀態，應盡量保留：
+    - 已選項目
+    - 已勾選 officer
+    - 已建立 deployment 狀態
+    - 已輸入數值
+- `Officer Selector` 目前已補：
+  - title 可隨語言即時更新
+  - 自訂欄位配置可重建
+  - scope buttons 可隨語言更新
+  - row text 會以目前語系重算
+- 這代表像：
+  - `內政 -> 指派武將`
+  - `外交 -> 選使者`
+  - `間諜 -> 選執行武將`
+  - `人事 -> 指派官職 / 招攬 / 沒收寶物`
+  這類共用 officer selector 的流程，現在開著 selector 也可直接切換語言。
+
 ## 5. 啟動畫面與君主選擇 UI
 
 ### 5.1 啟動流程

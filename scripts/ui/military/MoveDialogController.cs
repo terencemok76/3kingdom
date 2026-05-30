@@ -71,33 +71,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ConfigureSpinBox(_catapultSpinBox, _context.SelectedCity.CatapultCount, 0);
         ConfigureSpinBox(_ladderSpinBox, _context.SelectedCity.LadderCount, 0);
 
-        var availableOfficerIds = _context.GetAvailableOfficerIdsForOrder();
-        if (_officerList != null)
-        {
-            _officerList.Clear();
-            _context.ConfigureCompactOfficerTableColumns(_officerList, includeCheck: true);
-            var tableRoot = _officerList.CreateItem();
-            var rowIndex = 0;
-            foreach (var officerId in _context.SelectedCity.OfficerIds)
-            {
-                if (!availableOfficerIds.Contains(officerId))
-                {
-                    continue;
-                }
-
-                var officer = _context.TurnManager.World.GetOfficer(officerId);
-                if (officer == null)
-                {
-                    continue;
-                }
-
-                var row = _officerList.CreateItem(tableRoot);
-                _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
-                rowIndex += 1;
-            }
-
-            UpdateOfficerCheckHighlights();
-        }
+        PopulateOfficerList();
 
         ShowOverlay();
     }
@@ -125,6 +99,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
         SetLabelText("LadderLabel", _context.Localization.T("siege_engine.ladder"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.transfer_officers"));
         RefreshTargetCityOptionTexts();
+        RefreshOfficerTableText();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -223,6 +198,66 @@ internal sealed class MoveDialogController : FloatingOverlayController
         spinBox.MinValue = 0;
         spinBox.MaxValue = maxValue;
         spinBox.Value = maxValue <= 0 ? 0 : Mathf.Clamp(defaultValue, 0, maxValue);
+    }
+
+    private void PopulateOfficerList()
+    {
+        if (_officerList == null || _context.SelectedCity == null || _context.TurnManager?.World == null)
+        {
+            return;
+        }
+
+        var availableOfficerIds = _context.GetAvailableOfficerIdsForOrder();
+        _officerList.Clear();
+        _context.ConfigureCompactOfficerTableColumns(_officerList, includeCheck: true);
+        var tableRoot = _officerList.CreateItem();
+        var rowIndex = 0;
+        foreach (var officerId in _context.SelectedCity.OfficerIds)
+        {
+            if (!availableOfficerIds.Contains(officerId))
+            {
+                continue;
+            }
+
+            var officer = _context.TurnManager.World.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            var row = _officerList.CreateItem(tableRoot);
+            _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+            rowIndex += 1;
+        }
+
+        UpdateOfficerCheckHighlights();
+    }
+
+    private void RefreshOfficerTableText()
+    {
+        if (_officerList == null || _context.SelectedCity == null)
+        {
+            return;
+        }
+
+        var checkedOfficerIds = _context.GetCheckedTreeMetadataIds(_officerList);
+        var checkedOfficerSet = new HashSet<int>(checkedOfficerIds);
+        PopulateOfficerList();
+
+        var root = _officerList.GetRoot();
+        var row = root?.GetFirstChild();
+        while (row != null)
+        {
+            var metadata = row.GetMetadata(1);
+            if (metadata.VariantType == Variant.Type.Int && checkedOfficerSet.Contains(metadata.AsInt32()))
+            {
+                row.SetMetadata(0, true);
+            }
+
+            row = row.GetNext();
+        }
+
+        UpdateOfficerCheckHighlights();
     }
 
     private void UpdateOfficerCheckHighlights()

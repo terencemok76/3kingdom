@@ -83,6 +83,10 @@
                                               "zhHant":  "{0} | {1} | 剩餘 {2} 月 | 每月金 {3} | {4}",
                                               "en":  "{0} | {1} | {2} months left | Monthly Gold {3} | {4}"
                                           },
+    "fmt.internal_affairs_construction_progress":  {
+                                                       "zhHant":  "建設「{0}」建設點 +{1}，目前 {2}，本月完成 +{3}。",
+                                                       "en":  "Construction \"{0}\" gained +{1} points, now {2}, completed +{3} this month."
+                                                   },
     "fmt.item_bonus_compact":  {
                                    "zhHant":  "武{0} 智{1} 魅{2} 統{3} 政{4} 戰{5} 忠{6}",
                                    "en":  "STR{0} INT{1} CHA{2} LEA{3} POL{4} COM{5} LOY{6}"

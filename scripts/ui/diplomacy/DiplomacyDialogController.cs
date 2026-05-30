@@ -244,7 +244,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
 
     private DiplomacyActionType GetSelectedActionType()
     {
-        if (_actionOption == null)
+        if (_actionOption == null || _actionOption.ItemCount == 0 || _actionOption.Selected < 0)
         {
             return DiplomacyActionType.Alliance;
         }
@@ -257,7 +257,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
 
     private int GetSelectedTargetFactionId()
     {
-        if (_targetFactionOption == null || _targetFactionOption.ItemCount == 0)
+        if (_targetFactionOption == null || _targetFactionOption.ItemCount == 0 || _targetFactionOption.Selected < 0)
         {
             return -1;
         }
