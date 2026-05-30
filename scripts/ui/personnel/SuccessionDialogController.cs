@@ -212,7 +212,8 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
                 {
                     _warningLabel.Text = string.Empty;
                 }
-            });
+            },
+            titleFactory: () => _context.Localization?.T("ui.succession") ?? localization.T("ui.succession"));
     }
 
     private void UpdateSelectedOfficerSummary()

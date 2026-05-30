@@ -80,6 +80,9 @@ internal sealed class AttackDialogController : FloatingOverlayController
             : _context.Localization.T("ui.attack_deployments"));
         SetFieldRowVisible("GoldRow", !isDefenseMode);
         SetFieldRowVisible("FoodRow", !isDefenseMode);
+        RefreshTargetCityOptionTexts();
+        RefreshOfficerTableText();
+        RefreshDeploymentEditor();
         UpdateDeploymentSummary();
     }
 
@@ -272,6 +275,10 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
             var row = _officerList.CreateItem(tableRoot);
             _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+            if (_deployments.ContainsKey(officer.Id))
+            {
+                row.SetMetadata(0, true);
+            }
             rowIndex += 1;
         }
 
@@ -911,5 +918,70 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
 
         return allocation;
+    }
+
+    private void RefreshOfficerTableText()
+    {
+        var dialogCity = GetDialogCityContext();
+        if (_officerList == null || dialogCity == null)
+        {
+            return;
+        }
+
+        var checkedOfficerIds = _context.GetCheckedTreeMetadataIds(_officerList);
+        var checkedOfficerSet = checkedOfficerIds.ToHashSet();
+        PopulateOfficerList(dialogCity, GetCurrentOfficerCandidateIds());
+        var root = _officerList.GetRoot();
+        var row = root?.GetFirstChild();
+        while (row != null)
+        {
+            var metadata = row.GetMetadata(1);
+            if (metadata.VariantType == Variant.Type.Int && checkedOfficerSet.Contains(metadata.AsInt32()))
+            {
+                row.SetMetadata(0, true);
+            }
+
+            row = row.GetNext();
+        }
+
+        UpdateOfficerCheckHighlights();
+    }
+
+    private List<int> GetCurrentOfficerCandidateIds()
+    {
+        var dialogCity = GetDialogCityContext();
+        if (dialogCity == null)
+        {
+            return new List<int>();
+        }
+
+        return _dialogMode == DialogMode.Defense
+            ? dialogCity.OfficerIds.ToList()
+            : _context.GetAvailableOfficerIdsForOrder().ToList();
+    }
+
+    private void RefreshTargetCityOptionTexts()
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (_targetCityOption == null || world == null || localization == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _targetCityOption.ItemCount; index += 1)
+        {
+            var metadata = _targetCityOption.GetItemMetadata(index);
+            if (metadata.VariantType != Variant.Type.Int)
+            {
+                continue;
+            }
+
+            var city = world.GetCity(metadata.AsInt32());
+            if (city != null)
+            {
+                _targetCityOption.SetItemText(index, localization.GetCityName(city));
+            }
+        }
     }
 }

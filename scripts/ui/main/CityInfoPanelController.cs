@@ -8,9 +8,9 @@ namespace ThreeKingdom.UI;
 
 internal sealed class CityInfoPanelController
 {
-    private const int CityNameEnglishFontSize = 15;
-    private const int CityStatsEnglishFontSize = 13;
-    private const int CityCommandButtonEnglishFontSize = 13;
+    private const int CityNameEnglishFontSize = 14;
+    private const int CityStatsEnglishFontSize = 12;
+    private const int CityCommandButtonEnglishFontSize = 12;
     private const float FloatingPanelHeaderHeight = 30.0f;
     private const float FloatingPanelViewportMargin = 8.0f;
     private const float FloatingPanelTopClamp = 8.0f;
@@ -159,6 +159,7 @@ internal sealed class CityInfoPanelController
             if (_context.CityStatsPanel != null)
             {
                 _context.PopulateCityStats(_context.CityStatsPanel, "-", null, 0);
+                ApplyCityStatsTypography(_context.CityStatsPanel, localization.IsTraditionalChinese);
             }
 
             _context.UpdateGameplayButtonStates();
@@ -178,6 +179,7 @@ internal sealed class CityInfoPanelController
                 officer.CityId == selectedCity.Id &&
                 FreeOfficerMovement.IsVisibleFreeOfficer(world, officer));
             _context.PopulateCityStats(_context.CityStatsPanel, ownerName, selectedCity, freeOfficerCount);
+            ApplyCityStatsTypography(_context.CityStatsPanel, localization.IsTraditionalChinese);
         }
 
         _context.UpdateGameplayButtonStates();
@@ -274,7 +276,7 @@ internal sealed class CityInfoPanelController
         }
     }
 
-    public void PopulateSettings(HudController.OptionSettingsData settings)
+    public void PopulateSettings(OptionSettingsData settings)
     {
         settings.LeftPanelMinimized = _minimized;
         settings.LeftPanelX = _headerPosition.X;

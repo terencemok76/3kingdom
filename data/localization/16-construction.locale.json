@@ -1,7 +1,7 @@
 {
   "ui.horse_pasture": {
     "zhHant": "馬場",
-    "en": "Horse Pasture"
+    "en": "Stable"
   },
   "ui.internal_affairs_construction_project": {
     "zhHant": "建設項目",
@@ -9,14 +9,14 @@
   },
   "construction_project.bow_workshop": {
     "zhHant": "弓坊",
-    "en": "Bow Workshop"
+    "en": "Bow Shop"
   },
   "construction_project.siege_workshop": {
     "zhHant": "工坊",
-    "en": "Siege Workshop"
+    "en": "Siege Shop"
   },
   "construction_project.horse_pasture": {
     "zhHant": "馬場",
-    "en": "Horse Pasture"
+    "en": "Stable"
   }
 }

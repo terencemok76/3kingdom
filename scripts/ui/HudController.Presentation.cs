@@ -184,6 +184,7 @@ public partial class HudController : CanvasLayer
         _advisorUiController?.RefreshText();
         _civilUiController?.RefreshText();
         _internalAffairsUiController?.RefreshText();
+        RefreshSelectOfficerDialogText();
     }
 
     private void RefreshSelectedCity()

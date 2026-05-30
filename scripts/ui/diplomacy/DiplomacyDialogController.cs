@@ -75,7 +75,13 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_diplomacy");
         }
 
+        RefreshActionOptionTexts();
+        RefreshTargetFactionOptionTexts();
+        UpdateInputState();
+        UpdateRelationInfo();
         UpdateSelectedOfficerSummary();
+        UpdateSummary();
+        UpdateConfirmButtonState();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -196,6 +202,46 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         _actionOption.SetItemMetadata(_actionOption.ItemCount - 1, (int)actionType);
     }
 
+    private void RefreshActionOptionTexts()
+    {
+        if (_actionOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedActionType = GetSelectedActionType();
+        _actionOption.Clear();
+        AddActionOption(DiplomacyActionType.Alliance);
+        AddActionOption(DiplomacyActionType.Truce);
+        AddActionOption(DiplomacyActionType.Gift);
+        AddActionOption(DiplomacyActionType.Demand);
+        AddActionOption(DiplomacyActionType.BreakPact);
+        SelectActionOption(selectedActionType);
+    }
+
+    private void RefreshTargetFactionOptionTexts()
+    {
+        var world = _context.TurnManager?.World;
+        var city = _context.SelectedCity;
+        var localization = _context.Localization;
+        if (_targetFactionOption == null || world == null || city == null || localization == null)
+        {
+            return;
+        }
+
+        var selectedFactionId = GetSelectedTargetFactionId();
+        _targetFactionOption.Clear();
+        foreach (var faction in world.Factions.Where(faction =>
+                     faction.Id != city.OwnerFactionId &&
+                     world.Cities.Any(mapCity => mapCity.OwnerFactionId == faction.Id)))
+        {
+            _targetFactionOption.AddItem(localization.GetFactionName(world, faction.Id));
+            _targetFactionOption.SetItemMetadata(_targetFactionOption.ItemCount - 1, faction.Id);
+        }
+
+        SelectTargetFactionOption(selectedFactionId);
+    }
+
     private DiplomacyActionType GetSelectedActionType()
     {
         if (_actionOption == null)
@@ -218,6 +264,52 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
 
         var metadata = _targetFactionOption.GetItemMetadata(_targetFactionOption.Selected);
         return metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : -1;
+    }
+
+    private void SelectActionOption(DiplomacyActionType actionType)
+    {
+        if (_actionOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _actionOption.ItemCount; index += 1)
+        {
+            var metadata = _actionOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)actionType)
+            {
+                _actionOption.Select(index);
+                return;
+            }
+        }
+
+        if (_actionOption.ItemCount > 0)
+        {
+            _actionOption.Select(0);
+        }
+    }
+
+    private void SelectTargetFactionOption(int factionId)
+    {
+        if (_targetFactionOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _targetFactionOption.ItemCount; index += 1)
+        {
+            var metadata = _targetFactionOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == factionId)
+            {
+                _targetFactionOption.Select(index);
+                return;
+            }
+        }
+
+        if (_targetFactionOption.ItemCount > 0)
+        {
+            _targetFactionOption.Select(0);
+        }
     }
 
     private void OnActionChanged()
@@ -450,7 +542,8 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
                 UpdateSelectedOfficerSummary();
                 UpdateConfirmButtonState();
                 SetWarning(string.Empty);
-            });
+            },
+            () => _context.Localization?.T("ui.diplomacy_officer") ?? localization.T("ui.diplomacy_officer"));
     }
 
     private void UpdateSelectedOfficerSummary()

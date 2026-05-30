@@ -70,6 +70,8 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             _confirmButton.Text = _context.Localization.T("ui.confirm_plan");
         }
 
+        RefreshAuthorizationOptionTexts();
+        RefreshPlanJobOptionTexts();
         UpdateSummary();
     }
 
@@ -175,6 +177,34 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
 
         _authorizationOption.AddItem(GetAuthorizationDisplayName(authorizationType));
         _authorizationOption.SetItemMetadata(_authorizationOption.ItemCount - 1, (int)authorizationType);
+    }
+
+    private void RefreshAuthorizationOptionTexts()
+    {
+        if (_authorizationOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedAuthorizationType = GetSelectedAuthorizationType();
+        _authorizationOption.Clear();
+        AddAuthorizationOption(PrefectAuthorizationType.None);
+        AddAuthorizationOption(PrefectAuthorizationType.Half);
+        AddAuthorizationOption(PrefectAuthorizationType.Full);
+        SelectAuthorizationOption(selectedAuthorizationType);
+        UpdatePlanInputsVisibility();
+    }
+
+    private void RefreshPlanJobOptionTexts()
+    {
+        if (_planJobOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedJobType = GetSelectedPlanJobType();
+        PopulatePlanJobOptions();
+        SelectPlanJobOption(selectedJobType);
     }
 
     private void SetLabelText(string nodeName, string text)
@@ -286,6 +316,29 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         return PrefectAuthorizationType.None;
     }
 
+    private void SelectAuthorizationOption(PrefectAuthorizationType authorizationType)
+    {
+        if (_authorizationOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _authorizationOption.ItemCount; index += 1)
+        {
+            var metadata = _authorizationOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)authorizationType)
+            {
+                _authorizationOption.Select(index);
+                return;
+            }
+        }
+
+        if (_authorizationOption.ItemCount > 0)
+        {
+            _authorizationOption.Select(0);
+        }
+    }
+
     private string GetAuthorizationDisplayName(PrefectAuthorizationType authorizationType)
     {
         if (_context.Localization == null)
@@ -357,6 +410,29 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         return metadata.VariantType == Variant.Type.Int
             ? (InternalAffairsJobType)metadata.AsInt32()
             : InternalAffairsJobType.Farm;
+    }
+
+    private void SelectPlanJobOption(InternalAffairsJobType jobType)
+    {
+        if (_planJobOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _planJobOption.ItemCount; index += 1)
+        {
+            var metadata = _planJobOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)jobType)
+            {
+                _planJobOption.Select(index);
+                return;
+            }
+        }
+
+        if (_planJobOption.ItemCount > 0)
+        {
+            _planJobOption.Select(0);
+        }
     }
 
     private int GetSelectedPlanDuration()

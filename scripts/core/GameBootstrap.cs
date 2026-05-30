@@ -21,8 +21,14 @@ public partial class GameBootstrap : Node
     public override void _Ready()
     {
         _localization.Load();
+        var optionSettings = OptionSettingsStore.LoadOrDefault();
+        _localization.SetLanguage(optionSettings.Language);
         _audioController = new GameAudioController();
         AddChild(_audioController);
+        _audioController.SetBgmEnabled(optionSettings.BgmEnabled);
+        _audioController.SetSfxEnabled(optionSettings.SfxEnabled);
+        _audioController.SetBgmVolume(optionSettings.BgmVolume);
+        _audioController.SetSfxVolume(optionSettings.SfxVolume);
 
         var mapController = GetNodeOrNull<MapController>("MapScene");
         var hudController = GetNodeOrNull<HudController>("HUD");

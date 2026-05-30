@@ -233,7 +233,7 @@
 						   },
 	"ui.bow_workshop":  {
 							"zhHant":  "弓坊",
-							"en":  "Bow Workshop"
+							"en":  "Bow Shop"
 						},
 	"ui.city":  {
 					"zhHant":  "城市",
@@ -324,8 +324,8 @@
 									"en":  "Confirm Hire"
 								},
 	"ui.confirm_internal_affairs":  {
-										"zhHant":  "確認內政",
-										"en":  "Confirm Internal Affairs"
+										"zhHant":  "新增計畫",
+										"en":  "Add Plan"
 									},
 	"ui.confirm_merchant":  {
 								"zhHant":  "確認交易",
@@ -657,7 +657,7 @@
 								  },
 	"ui.siege_workshop":  {
 							  "zhHant":  "工坊",
-							  "en":  "Siege Workshop"
+							  "en":  "Siege Shop"
 						  },
 	"ui.sort_intelligence":  {
 								 "zhHant":  "排序：智力",

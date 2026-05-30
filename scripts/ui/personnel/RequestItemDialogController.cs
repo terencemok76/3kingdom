@@ -59,6 +59,7 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_request_item");
         }
         UpdateSelectedOfficerSummary();
+        RefreshItemOptionTexts();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -146,6 +147,18 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
         _itemOption.Select(0);
     }
 
+    private void RefreshItemOptionTexts()
+    {
+        if (_itemOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedItemId = _context.GetSelectedItemFromOption(_itemOption)?.Id ?? 0;
+        PopulateItemOption();
+        SelectItemOption(selectedItemId);
+    }
+
     private void OnConfirmPressed()
     {
         var city = _context.SelectedCity;
@@ -206,7 +219,8 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
                 PopulateItemOption();
-            });
+            },
+            titleFactory: () => _context.Localization?.T("ui.request_item_officer") ?? localization.T("ui.request_item_officer"));
     }
 
     private void UpdateSelectedOfficerSummary()
@@ -237,5 +251,28 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
                 return officer != null && world.Items.Any(item => item.EquippedOfficerId == officer.Id);
             })
             .ToList();
+    }
+
+    private void SelectItemOption(int itemId)
+    {
+        if (_itemOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _itemOption.ItemCount; index += 1)
+        {
+            var metadata = _itemOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == itemId)
+            {
+                _itemOption.Select(index);
+                return;
+            }
+        }
+
+        if (_itemOption.ItemCount > 0)
+        {
+            _itemOption.Select(0);
+        }
     }
 }

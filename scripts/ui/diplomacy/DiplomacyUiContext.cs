@@ -60,7 +60,7 @@ internal sealed class DiplomacyUiContext : IFloatingOverlayContext
     public void BringOverlayToFront(CanvasItem? item) => _owner.DiplomacyBringOverlayToFront(item);
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.DiplomacyAddLog(message, isPlayerRelated);
     public void RefreshSelectedCity() => _owner.DiplomacyRefreshSelectedCity();
-    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.DiplomacyShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
+    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction, Func<string>? titleFactory = null) => _owner.DiplomacyShowOfficerSelectorDialog(title, ids, stat, confirmedAction, titleFactory);
     public void CheckFactionEliminations() => _owner.DiplomacyCheckFactionEliminations();
     public void ContinuePendingNonAttackResolution() => _owner.DiplomacyContinuePendingNonAttackResolution();
     public string GetLocalizedResultMessage(CommandResult result) => _owner.DiplomacyGetLocalizedResultMessage(result);

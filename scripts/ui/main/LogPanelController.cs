@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using ThreeKingdom.Core;
 
 namespace ThreeKingdom.UI;
 
@@ -260,7 +261,7 @@ internal sealed class LogPanelController
         }
     }
 
-    public void PopulateSettings(HudController.OptionSettingsData settings)
+    public void PopulateSettings(OptionSettingsData settings)
     {
         settings.LogPanelMinimized = _minimized;
         settings.LogPanelX = _headerPosition.X;

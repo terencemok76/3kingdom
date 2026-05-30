@@ -1,4 +1,5 @@
 using Godot;
+using ThreeKingdom.Core;
 
 namespace ThreeKingdom.UI;
 
@@ -159,7 +160,7 @@ internal sealed class TopBarController
         ApplyLayout();
     }
 
-    public void PopulateSettings(HudController.OptionSettingsData settings)
+    public void PopulateSettings(OptionSettingsData settings)
     {
         settings.TopBarX = _position.X;
         settings.TopBarY = _position.Y;

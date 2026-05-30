@@ -26,8 +26,9 @@ public partial class HudController
         string title,
         List<int> candidateOfficerIds,
         OfficerSelectorPrimaryStat primaryStat,
-        System.Action<int> confirmedAction) =>
-        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction);
+        System.Action<int> confirmedAction,
+        System.Func<string>? titleFactory = null) =>
+        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, titleFactory: titleFactory);
 
     internal void DiplomacyCheckFactionEliminations() => CheckFactionEliminations();
 

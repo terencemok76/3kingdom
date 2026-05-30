@@ -62,7 +62,7 @@ internal sealed class CivilUiContext : IFloatingOverlayContext
     public void RefreshSelectedCity() => _owner.CivilRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.CivilRefreshMapVisuals();
     public void ConfigureMoveSpinBox(SpinBox? spinBox, int maxValue, int value) => _owner.CivilConfigureMoveSpinBox(spinBox, maxValue, value);
-    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.CivilShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
+    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction, Func<string>? titleFactory = null) => _owner.CivilShowOfficerSelectorDialog(title, ids, stat, confirmedAction, titleFactory);
     public List<int> GetAvailableOfficerIdsForOrder() => _owner.CivilGetAvailableOfficerIdsForOrder();
     public CommandResult ExecutePlayerCommand(CommandType commandType, int? targetCityId = null, int troopsToSend = 0, List<int>? officerIds = null) => _owner.CivilExecutePlayerCommand(commandType, targetCityId, troopsToSend, officerIds);
     public string GetCommandName(CommandType commandType) => _owner.CivilGetCommandName(commandType);

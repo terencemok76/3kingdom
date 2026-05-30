@@ -77,6 +77,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         {
             _removeButton.Text = _context.Localization.T("ui.confirm_clear_appointment");
         }
+        RefreshRoleOptionTexts();
         UpdateSelectedOfficerSummary();
     }
 
@@ -206,6 +207,26 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
 
         option.AddItem(GetRoleDisplayName(role));
         option.SetItemMetadata(option.ItemCount - 1, role);
+    }
+
+    private void RefreshRoleOptionTexts()
+    {
+        if (_context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedAssignRole = _assignRoleOption?.Selected >= 0
+            ? _assignRoleOption.GetItemMetadata(_assignRoleOption.Selected).AsString()
+            : string.Empty;
+        var selectedRemoveRole = _removeRoleOption?.Selected >= 0
+            ? _removeRoleOption.GetItemMetadata(_removeRoleOption.Selected).AsString()
+            : string.Empty;
+
+        PopulateAssignRoleOptions();
+        PopulateRemoveRoleOptions();
+        SelectRoleOption(_assignRoleOption, selectedAssignRole);
+        SelectRoleOption(_removeRoleOption, selectedRemoveRole);
     }
 
     private void SetLabelText(string nodeName, string text)
@@ -370,7 +391,24 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
                     CandidateOfficerIds = factionCandidateOfficerIds
                 }
             },
-            initialScopeKey: localCandidateOfficerIds.Count > 0 ? "local" : "faction");
+            initialScopeKey: localCandidateOfficerIds.Count > 0 ? "local" : "faction",
+            titleFactory: () => _context.Localization?.T("ui.assign_role_officer") ?? localization.T("ui.assign_role_officer"),
+            scopeOptionsFactory: () => new[]
+            {
+                new HudController.OfficerSelectorScopeOption
+                {
+                    Key = "local",
+                    Label = _context.Localization?.T("ui.local_place") ?? localization.T("ui.local_place"),
+                    CandidateOfficerIds = localCandidateOfficerIds
+                },
+                new HudController.OfficerSelectorScopeOption
+                {
+                    Key = "faction",
+                    Label = _context.Localization?.T("ui.whole_faction") ?? localization.T("ui.whole_faction"),
+                    CandidateOfficerIds = factionCandidateOfficerIds
+                }
+            },
+            displayConfigFactory: () => _context.BuildAssignRoleOfficerSelectorDisplayConfig());
     }
 
     private void OnClearOfficerPressed()
@@ -460,6 +498,24 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         return string.IsNullOrWhiteSpace(fallbackRole)
             ? _context.Localization?.T("ui.none") ?? string.Empty
             : GetRoleDisplayName(fallbackRole);
+    }
+
+    private static void SelectRoleOption(OptionButton? option, string role)
+    {
+        if (option == null || string.IsNullOrWhiteSpace(role))
+        {
+            return;
+        }
+
+        for (var index = 0; index < option.ItemCount; index += 1)
+        {
+            var metadata = option.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.String && metadata.AsString() == role)
+            {
+                option.Select(index);
+                return;
+            }
+        }
     }
 
     private string BuildCurrentAppointmentsText(OfficerData? officer)

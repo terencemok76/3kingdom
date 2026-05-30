@@ -96,7 +96,8 @@ public sealed partial class SelectOfficerDialog : Control
         Action<int> onConfirmed,
         IReadOnlyList<ScopeOption>? scopeOptions = null,
         string? initialScopeKey = null,
-        Vector2? panelSize = null)
+        Vector2? panelSize = null,
+        int preferredOfficerId = -1)
     {
         if (_officerTable == null || _confirmButton == null)
         {
@@ -148,9 +149,22 @@ public sealed partial class SelectOfficerDialog : Control
             UpdateScopeButtonStates();
         }
 
+        SelectOfficer(preferredOfficerId);
         Show();
         MoveToFront();
         CenterPanel(panelSize ?? new Vector2(620.0f, 320.0f));
+    }
+
+    public int GetSelectedOfficerId()
+    {
+        var selectedItem = _officerTable?.GetSelected();
+        if (selectedItem == null)
+        {
+            return -1;
+        }
+
+        var metadata = selectedItem.GetMetadata(0);
+        return metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : -1;
     }
 
     private void ConfigureColumns(IReadOnlyList<ColumnDefinition> columns)
@@ -223,6 +237,29 @@ public sealed partial class SelectOfficerDialog : Control
         if (_secondaryScopeButton != null)
         {
             _secondaryScopeButton.Disabled = _scopeOptions.Count >= 2 && _activeScopeKey == _scopeOptions[1].Key;
+        }
+    }
+
+    private void SelectOfficer(int officerId)
+    {
+        if (_officerTable == null || officerId <= 0)
+        {
+            return;
+        }
+
+        var root = _officerTable.GetRoot();
+        var row = root?.GetFirstChild();
+        while (row != null)
+        {
+            var metadata = row.GetMetadata(0);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == officerId)
+            {
+                row.Select(0);
+                OnOfficerTableSelected();
+                return;
+            }
+
+            row = row.GetNext();
         }
     }
 

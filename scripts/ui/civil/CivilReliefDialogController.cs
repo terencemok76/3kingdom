@@ -227,7 +227,8 @@ internal sealed class CivilReliefDialogController : FloatingOverlayController
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
                 UpdateConfirmButtonState();
-            });
+            },
+            () => _context.Localization?.T("ui.civil_relief_officer") ?? localization.T("ui.civil_relief_officer"));
     }
 
     private void UpdateSelectedOfficerSummary()

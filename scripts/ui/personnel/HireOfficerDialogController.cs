@@ -67,6 +67,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_hire_officer");
         }
         UpdateSelectedOfficerSummary();
+        RefreshItemOptionTexts();
+        UpdateSummary();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -167,6 +169,18 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         _summaryLabel.Text = summary;
     }
 
+    private void RefreshItemOptionTexts()
+    {
+        if (_itemOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedItemId = _context.GetSelectedItemFromOption(_itemOption)?.Id ?? 0;
+        _context.PopulateFactionInventoryOption(_itemOption);
+        SelectItemOption(selectedItemId);
+    }
+
     private void OnSelectOfficerPressed()
     {
         var world = _context.TurnManager?.World;
@@ -194,7 +208,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
                 UpdateSummary();
-            });
+            },
+            titleFactory: () => _context.Localization?.T("command.personnel.hire_officer") ?? localization.T("command.personnel.hire_officer"));
     }
 
     private void UpdateSelectedOfficerSummary()
@@ -288,6 +303,29 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         if (label != null)
         {
             label.Text = text;
+        }
+    }
+
+    private void SelectItemOption(int itemId)
+    {
+        if (_itemOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _itemOption.ItemCount; index += 1)
+        {
+            var metadata = _itemOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == itemId)
+            {
+                _itemOption.Select(index);
+                return;
+            }
+        }
+
+        if (_itemOption.ItemCount > 0)
+        {
+            _itemOption.Select(0);
         }
     }
 }

@@ -61,6 +61,8 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_military");
         }
+
+        RefreshCommandOptionTexts();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -104,6 +106,35 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
 
         _commandOption.AddItem(_context.Localization.T(localeKey));
         _commandOption.SetItemMetadata(_commandOption.ItemCount - 1, (int)commandType);
+    }
+
+    private void RefreshCommandOptionTexts()
+    {
+        if (_commandOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedCommandType = GetSelectedCommandType();
+        _commandOption.Clear();
+        AddCommandOption("ui.military_recruit", CommandType.Recruit);
+        AddCommandOption("ui.military_move", CommandType.Move);
+        AddCommandOption("ui.military_attack", CommandType.Attack);
+
+        for (var index = 0; index < _commandOption.ItemCount; index += 1)
+        {
+            var metadata = _commandOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)selectedCommandType)
+            {
+                _commandOption.Select(index);
+                return;
+            }
+        }
+
+        if (_commandOption.ItemCount > 0)
+        {
+            _commandOption.Select(0);
+        }
     }
 
     private void OnConfirmPressed()

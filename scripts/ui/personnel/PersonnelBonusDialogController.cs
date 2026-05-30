@@ -63,7 +63,9 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_personnel_bonus");
         }
+        RefreshItemOptionTexts();
         UpdateSelectedOfficerSummary();
+        UpdateSummary();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -167,6 +169,18 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
             : _context.Localization.Format("fmt.personnel_bonus_preview_with_item", gain + Math.Max(1, item.LoyaltyBonus), _context.Localization.GetItemName(item));
     }
 
+    private void RefreshItemOptionTexts()
+    {
+        if (_itemOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedItemId = _context.GetSelectedItemFromOption(_itemOption)?.Id ?? 0;
+        _context.PopulateFactionInventoryOption(_itemOption);
+        SelectItemOption(selectedItemId);
+    }
+
     private void OnConfirmPressed()
     {
         var city = _context.SelectedCity;
@@ -224,7 +238,8 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
             {
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
-            });
+            },
+            titleFactory: () => _context.Localization?.T("ui.personnel_bonus_officer") ?? localization.T("ui.personnel_bonus_officer"));
     }
 
     private void UpdateSelectedOfficerSummary()
@@ -237,5 +252,28 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
         var officer = _selectedOfficerId > 0 ? _context.TurnManager?.World?.GetOfficer(_selectedOfficerId) : null;
         var officerName = officer != null ? _context.Localization.GetOfficerName(officer) : _context.Localization.T("ui.unassigned");
         _selectedOfficerLabel.Text = $"{_context.Localization.T("ui.personnel_bonus_officer")}: {officerName}";
+    }
+
+    private void SelectItemOption(int itemId)
+    {
+        if (_itemOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _itemOption.ItemCount; index += 1)
+        {
+            var metadata = _itemOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == itemId)
+            {
+                _itemOption.Select(index);
+                return;
+            }
+        }
+
+        if (_itemOption.ItemCount > 0)
+        {
+            _itemOption.Select(0);
+        }
     }
 }

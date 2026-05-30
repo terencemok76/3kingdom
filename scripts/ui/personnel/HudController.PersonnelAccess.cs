@@ -35,15 +35,20 @@ public partial class HudController
         OfficerSelectorPrimaryStat primaryStat,
         Action<int> confirmedAction,
         IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
-        string? initialScopeKey = null) =>
-        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey);
+        string? initialScopeKey = null,
+        Func<string>? titleFactory = null,
+        Func<IEnumerable<OfficerSelectorScopeOption>?>? scopeOptionsFactory = null) =>
+        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, titleFactory: titleFactory, scopeOptionsFactory: scopeOptionsFactory);
 
     internal void PersonnelShowAssignRoleOfficerSelectorDialog(
         string title,
         List<int> candidateOfficerIds,
         Action<int> confirmedAction,
         IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
-        string? initialScopeKey = null) =>
+        string? initialScopeKey = null,
+        Func<string>? titleFactory = null,
+        Func<IEnumerable<OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
+        Func<OfficerSelectorDisplayConfig?>? displayConfigFactory = null) =>
         ShowOfficerSelectorDialog(
             title,
             candidateOfficerIds,
@@ -51,7 +56,10 @@ public partial class HudController
             confirmedAction,
             scopeOptions,
             initialScopeKey,
-            BuildAssignRoleOfficerSelectorDisplayConfig());
+            displayConfigFactory?.Invoke() ?? BuildAssignRoleOfficerSelectorDisplayConfig(),
+            titleFactory,
+            scopeOptionsFactory,
+            displayConfigFactory);
 
     internal List<int> PersonnelGetAvailableOfficerIdsForOrder() => GetAvailableOfficerIdsForOrder().ToList();
 
@@ -70,6 +78,9 @@ public partial class HudController
             CopyButtonTheme(MainHudViewButton, button);
         }
     }
+
+    internal OfficerSelectorDisplayConfig PersonnelBuildAssignRoleOfficerSelectorDisplayConfig()
+        => BuildAssignRoleOfficerSelectorDisplayConfig();
 
     private OfficerSelectorDisplayConfig BuildAssignRoleOfficerSelectorDisplayConfig()
     {

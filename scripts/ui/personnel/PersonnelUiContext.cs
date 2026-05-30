@@ -76,16 +76,21 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         HudController.OfficerSelectorPrimaryStat primaryStat,
         Action<int> confirmedAction,
         IEnumerable<HudController.OfficerSelectorScopeOption>? scopeOptions = null,
-        string? initialScopeKey = null) =>
-        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey);
+        string? initialScopeKey = null,
+        Func<string>? titleFactory = null,
+        Func<IEnumerable<HudController.OfficerSelectorScopeOption>?>? scopeOptionsFactory = null) =>
+        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, titleFactory, scopeOptionsFactory);
 
     public void ShowAssignRoleOfficerSelectorDialog(
         string title,
         List<int> candidateOfficerIds,
         Action<int> confirmedAction,
         IEnumerable<HudController.OfficerSelectorScopeOption>? scopeOptions = null,
-        string? initialScopeKey = null) =>
-        _owner.PersonnelShowAssignRoleOfficerSelectorDialog(title, candidateOfficerIds, confirmedAction, scopeOptions, initialScopeKey);
+        string? initialScopeKey = null,
+        Func<string>? titleFactory = null,
+        Func<IEnumerable<HudController.OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
+        Func<HudController.OfficerSelectorDisplayConfig?>? displayConfigFactory = null) =>
+        _owner.PersonnelShowAssignRoleOfficerSelectorDialog(title, candidateOfficerIds, confirmedAction, scopeOptions, initialScopeKey, titleFactory, scopeOptionsFactory, displayConfigFactory);
 
     public void ContinuePendingNonAttackResolution() => _owner.PersonnelContinuePendingNonAttackResolution();
 
@@ -204,4 +209,7 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         var itemId = metadata.AsInt32();
         return itemId > 0 ? world.GetItem(itemId) : null;
     }
+
+    public HudController.OfficerSelectorDisplayConfig BuildAssignRoleOfficerSelectorDisplayConfig()
+        => _owner.PersonnelBuildAssignRoleOfficerSelectorDisplayConfig();
 }

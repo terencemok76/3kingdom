@@ -56,7 +56,7 @@ internal sealed class InternalAffairsUiContext
     public void RefreshSelectedCity() => _owner.InternalAffairsRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.InternalAffairsRefreshMapVisuals();
     public void ApplyCommandButtonTheme(Button button) => _owner.InternalAffairsApplyCommandButtonTheme(button);
-    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.InternalAffairsShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
+    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction, Func<string>? titleFactory = null) => _owner.InternalAffairsShowOfficerSelectorDialog(title, ids, stat, confirmedAction, titleFactory);
     public List<int> GetAvailableOfficerIdsForOrder() => _owner.InternalAffairsGetAvailableOfficerIdsForOrder();
     public string GetLocalizedResultMessage(CommandResult result) => _owner.InternalAffairsGetLocalizedResultMessage(result);
     public int GetRecommendedInternalAffairsOfficerId(int cityId, InternalAffairsJobType jobType) =>

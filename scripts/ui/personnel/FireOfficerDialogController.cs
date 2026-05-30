@@ -177,7 +177,8 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
             {
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
-            });
+            },
+            titleFactory: () => _context.Localization?.T("command.personnel.fire_officer") ?? localization.T("command.personnel.fire_officer"));
     }
 
     private void UpdateSelectedOfficerSummary()

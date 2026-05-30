@@ -236,6 +236,11 @@ public partial class HudController : CanvasLayer
     private Action<int>? _genericOfficerSelectorConfirmedAction;
     private readonly List<int> _genericOfficerSelectorCandidateIds = new();
     private OfficerSelectorPrimaryStat _genericOfficerSelectorPrimaryStat = OfficerSelectorPrimaryStat.Politics;
+    private Func<string>? _genericOfficerSelectorTitleFactory;
+    private Func<IEnumerable<OfficerSelectorScopeOption>?>? _genericOfficerSelectorScopeOptionsFactory;
+    private string? _genericOfficerSelectorInitialScopeKey;
+    private OfficerSelectorDisplayConfig? _genericOfficerSelectorDisplayConfig;
+    private Func<OfficerSelectorDisplayConfig?>? _genericOfficerSelectorDisplayConfigFactory;
     private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
     private bool _isResolvingEndTurn;
@@ -455,6 +460,7 @@ public partial class HudController : CanvasLayer
     private void OnLanguageButtonPressed()
     {
         _localization?.ToggleLanguage();
+        SaveOptionSettings();
     }
 
     private void OnGodModePressed()

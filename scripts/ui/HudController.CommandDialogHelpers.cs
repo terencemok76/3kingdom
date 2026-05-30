@@ -342,7 +342,10 @@ public partial class HudController : CanvasLayer
         Action<int> onConfirmed,
         IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
         string? initialScopeKey = null,
-        OfficerSelectorDisplayConfig? displayConfig = null)
+        OfficerSelectorDisplayConfig? displayConfig = null,
+        Func<string>? titleFactory = null,
+        Func<IEnumerable<OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
+        Func<OfficerSelectorDisplayConfig?>? displayConfigFactory = null)
     {
         if (_turnManager?.World == null || _selectOfficerDialog == null || _localization == null)
         {
@@ -386,13 +389,19 @@ public partial class HudController : CanvasLayer
         _genericOfficerSelectorCandidateIds.AddRange(candidates.Select(officer => officer.Id));
         _genericOfficerSelectorPrimaryStat = primaryStat;
         _genericOfficerSelectorConfirmedAction = onConfirmed;
+        _genericOfficerSelectorTitleFactory = titleFactory ?? (() => title);
+        _genericOfficerSelectorScopeOptionsFactory = scopeOptionsFactory;
+        _genericOfficerSelectorInitialScopeKey = initialScopeKey;
+        _genericOfficerSelectorDisplayConfigFactory = displayConfigFactory;
+        _genericOfficerSelectorDisplayConfig = displayConfigFactory?.Invoke() ?? displayConfig;
         _pendingOfficerCommand = CommandType.Pass;
 
+        var effectiveDisplayConfig = _genericOfficerSelectorDisplayConfig;
         var rows = candidates
             .Select(officer => new SelectOfficerDialog.RowData
             {
                 OfficerId = officer.Id,
-                ColumnTexts = GetOfficerSelectorColumnTexts(officer, primaryStat, displayConfig)
+                ColumnTexts = GetOfficerSelectorColumnTexts(officer, primaryStat, effectiveDisplayConfig)
             })
             .ToList();
         var scopeRows = scopeOptions?
@@ -408,17 +417,94 @@ public partial class HudController : CanvasLayer
         _selectOfficerDialog.ShowSelector(
             title,
             _localization.T("ui.confirm_officer_selection"),
-            BuildOfficerSelectorColumns(primaryStat, displayConfig),
+            BuildOfficerSelectorColumns(primaryStat, effectiveDisplayConfig),
             rows,
             officerId =>
             {
                 _genericOfficerSelectorConfirmedAction?.Invoke(officerId);
                 _genericOfficerSelectorConfirmedAction = null;
+                _genericOfficerSelectorTitleFactory = null;
+                _genericOfficerSelectorScopeOptionsFactory = null;
+                _genericOfficerSelectorInitialScopeKey = null;
+                _genericOfficerSelectorDisplayConfig = null;
+                _genericOfficerSelectorDisplayConfigFactory = null;
                 _genericOfficerSelectorCandidateIds.Clear();
             },
             scopeRows,
             initialScopeKey,
-            displayConfig?.PanelSize);
+            effectiveDisplayConfig?.PanelSize);
+    }
+
+    private void RefreshSelectOfficerDialogText()
+    {
+        if (_turnManager?.World == null || _localization == null || _selectOfficerDialog?.Visible != true || _genericOfficerSelectorConfirmedAction == null)
+        {
+            return;
+        }
+
+        var title = _genericOfficerSelectorTitleFactory?.Invoke() ?? string.Empty;
+        var scopeOptions = _genericOfficerSelectorScopeOptionsFactory?.Invoke();
+        var selectedOfficerId = _selectOfficerDialog.GetSelectedOfficerId();
+        var displayConfig = _genericOfficerSelectorDisplayConfigFactory?.Invoke() ?? _genericOfficerSelectorDisplayConfig;
+        _genericOfficerSelectorDisplayConfig = displayConfig;
+
+        List<OfficerData> BuildCandidates(IEnumerable<int> ids)
+        {
+            return ids
+                .Distinct()
+                .Select(id => _turnManager.World.GetOfficer(id))
+                .Where(officer => officer != null)
+                .Cast<OfficerData>()
+                .OrderByDescending(GetOfficerSelectorPrimaryStatValue)
+                .ThenByDescending(officer => officer.Intelligence)
+                .ThenByDescending(officer => officer.Politics)
+                .ThenByDescending(officer => officer.Charm)
+                .ThenBy(officer => _localization.GetOfficerName(officer))
+                .ToList();
+        }
+
+        List<SelectOfficerDialog.RowData> BuildRows(IEnumerable<int> ids)
+        {
+            return BuildCandidates(ids)
+                .Select(officer => new SelectOfficerDialog.RowData
+                {
+                    OfficerId = officer.Id,
+                    ColumnTexts = GetOfficerSelectorColumnTexts(officer, _genericOfficerSelectorPrimaryStat, displayConfig)
+                })
+                .ToList();
+        }
+
+        var rows = BuildRows(_genericOfficerSelectorCandidateIds);
+        var scopeRows = scopeOptions?
+            .Select(option => new SelectOfficerDialog.ScopeOption
+            {
+                Key = option.Key,
+                Label = option.Label,
+                Rows = BuildRows(option.CandidateOfficerIds)
+            })
+            .Where(option => option.Rows.Count > 0)
+            .ToList();
+
+        _selectOfficerDialog.ShowSelector(
+            title,
+            _localization.T("ui.confirm_officer_selection"),
+            BuildOfficerSelectorColumns(_genericOfficerSelectorPrimaryStat, displayConfig),
+            rows,
+            officerId =>
+            {
+                _genericOfficerSelectorConfirmedAction?.Invoke(officerId);
+                _genericOfficerSelectorConfirmedAction = null;
+                _genericOfficerSelectorTitleFactory = null;
+                _genericOfficerSelectorScopeOptionsFactory = null;
+                _genericOfficerSelectorInitialScopeKey = null;
+                _genericOfficerSelectorDisplayConfig = null;
+                _genericOfficerSelectorDisplayConfigFactory = null;
+                _genericOfficerSelectorCandidateIds.Clear();
+            },
+            scopeRows,
+            _genericOfficerSelectorInitialScopeKey,
+            displayConfig?.PanelSize,
+            selectedOfficerId);
     }
 
     private IReadOnlyList<SelectOfficerDialog.ColumnDefinition> BuildOfficerSelectorColumns(

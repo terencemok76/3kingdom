@@ -94,6 +94,9 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             _confirmButton.Text = _context.Localization.T("ui.confirm_internal_affairs");
         }
 
+        RefreshJobOptionText();
+        RefreshConstructionProjectOptionText();
+        RefreshScheduleList();
         UpdateSelectedOfficerSummary();
     }
 
@@ -259,6 +262,18 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         AddJobOption(InternalAffairsJobType.Construction);
     }
 
+    private void RefreshJobOptionText()
+    {
+        if (_jobOption == null)
+        {
+            return;
+        }
+
+        var selectedJobType = GetSelectedJobType();
+        PopulateJobOptions();
+        SelectJobOption(selectedJobType);
+    }
+
     private void AddJobOption(InternalAffairsJobType jobType)
     {
         if (_jobOption == null)
@@ -295,6 +310,18 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         }
     }
 
+    private void RefreshConstructionProjectOptionText()
+    {
+        if (_constructionProjectOption == null)
+        {
+            return;
+        }
+
+        var selectedProjectType = GetSelectedConstructionProjectType();
+        PopulateConstructionProjectOptions();
+        SelectConstructionProjectOption(selectedProjectType);
+    }
+
     private void AddConstructionProjectOption(ConstructionProjectType projectType)
     {
         if (_constructionProjectOption == null)
@@ -304,6 +331,42 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
 
         _constructionProjectOption.AddItem(GetConstructionProjectName(projectType));
         _constructionProjectOption.SetItemMetadata(_constructionProjectOption.ItemCount - 1, (int)projectType);
+    }
+
+    private void SelectJobOption(InternalAffairsJobType jobType)
+    {
+        if (_jobOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _jobOption.ItemCount; index++)
+        {
+            var metadata = _jobOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)jobType)
+            {
+                _jobOption.Select(index);
+                return;
+            }
+        }
+    }
+
+    private void SelectConstructionProjectOption(ConstructionProjectType projectType)
+    {
+        if (_constructionProjectOption == null || projectType == ConstructionProjectType.None)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _constructionProjectOption.ItemCount; index++)
+        {
+            var metadata = _constructionProjectOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)projectType)
+            {
+                _constructionProjectOption.Select(index);
+                return;
+            }
+        }
     }
 
     private void RefreshScheduleList()
@@ -420,7 +483,8 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
                 SetWarning(string.Empty);
-            });
+            },
+            () => _context.Localization?.T("ui.internal_affairs_officer") ?? localization.T("ui.internal_affairs_officer"));
     }
 
     private void OnScheduleSelected(long _index)

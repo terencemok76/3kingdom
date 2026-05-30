@@ -131,7 +131,8 @@ internal sealed class VisitCitizenDialogController : FloatingOverlayController
             {
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
-            });
+            },
+            () => _context.Localization?.T("command.civil.investigate_people") ?? localization.T("command.civil.investigate_people"));
     }
 
     private void OnConfirmPressed()

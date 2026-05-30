@@ -69,6 +69,8 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_personnel");
         }
+
+        RefreshCommandOptionTexts();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -111,6 +113,35 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
 
         _commandOption.AddItem(_context.Localization.T(localeKey));
         _commandOption.SetItemMetadata(_commandOption.ItemCount - 1, localeKey);
+    }
+
+    private void RefreshCommandOptionTexts()
+    {
+        if (_commandOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedCommandKey = _commandOption.Selected >= 0
+            ? _commandOption.GetItemMetadata(_commandOption.Selected).AsString()
+            : string.Empty;
+
+        PopulateOptions();
+
+        if (string.IsNullOrWhiteSpace(selectedCommandKey))
+        {
+            return;
+        }
+
+        for (var index = 0; index < _commandOption.ItemCount; index += 1)
+        {
+            var metadata = _commandOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.String && metadata.AsString() == selectedCommandKey)
+            {
+                _commandOption.Select(index);
+                return;
+            }
+        }
     }
 
     private void OnConfirmPressed()

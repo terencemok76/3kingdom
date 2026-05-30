@@ -77,6 +77,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_officer_selection");
         }
 
+        RefreshTroopTypeOptionTexts();
         UpdateSelectedOfficerSummary();
         UpdateRecruitSummary();
     }
@@ -190,7 +191,8 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             {
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
-            });
+            },
+            () => _context.Localization?.T("ui.military_recruit") ?? localization.T("ui.military_recruit"));
     }
 
     private void OnConfirmPressed()
@@ -325,6 +327,43 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         if (_confirmButton != null)
         {
             _confirmButton.Disabled = city == null || _troopTypeOption == null || _troopTypeOption.ItemCount <= 0 || selectedCount <= 0;
+        }
+    }
+
+    private void RefreshTroopTypeOptionTexts()
+    {
+        var city = _context.SelectedCity;
+        if (_troopTypeOption == null || _context.Localization == null || city == null)
+        {
+            return;
+        }
+
+        var selectedTroopType = GetSelectedRecruitTroopType();
+        _troopTypeOption.Clear();
+        foreach (var troopType in TroopTypes)
+        {
+            if (!RecruitRules.CanRecruitTroopType(city, troopType))
+            {
+                continue;
+            }
+
+            _troopTypeOption.AddItem(_context.GetTroopTypeDisplayName(troopType));
+            _troopTypeOption.SetItemMetadata(_troopTypeOption.ItemCount - 1, (int)troopType);
+        }
+
+        for (var index = 0; index < _troopTypeOption.ItemCount; index += 1)
+        {
+            var metadata = _troopTypeOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)selectedTroopType)
+            {
+                _troopTypeOption.Select(index);
+                return;
+            }
+        }
+
+        if (_troopTypeOption.ItemCount > 0)
+        {
+            _troopTypeOption.Select(0);
         }
     }
 

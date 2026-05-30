@@ -69,6 +69,13 @@ size_flags_horizontal = 3
 focus_mode = 0
 text = "Load Game"
 
+[node name="OptionButton" type="Button" parent="Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Option"
+
 [node name="MainMenuSpacerBottom" type="Control" parent="Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
@@ -241,3 +248,111 @@ layout_mode = 2
 autowrap_mode = 2
 text = "Select an option."
 theme_override_colors/font_color = Color(0.8, 0.76, 0.69, 1)
+
+[node name="OptionDialogBackdrop" type="ColorRect" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0.01, 0.01, 0.02, 0.55)
+
+[node name="OptionDialogCenter" type="CenterContainer" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="OptionDialogPanel" type="PanelContainer" parent="Root/OptionDialogCenter"]
+custom_minimum_size = Vector2(480, 320)
+layout_mode = 2
+
+[node name="OptionDialogRoot" type="VBoxContainer" parent="Root/OptionDialogCenter/OptionDialogPanel"]
+custom_minimum_size = Vector2(440, 280)
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="OptionDialogTitleLabel" type="Label" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot"]
+layout_mode = 2
+horizontal_alignment = 1
+text = "Options"
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.93, 0.89, 0.8, 1)
+
+[node name="OptionDialogSpacerTop" type="Control" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="OptionLanguageButton" type="Button" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Language: English / 繁體中文"
+
+[node name="BgmAudioRow" type="HBoxContainer" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BgmToggleButton" type="Button" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/BgmAudioRow"]
+custom_minimum_size = Vector2(150, 42)
+layout_mode = 2
+focus_mode = 0
+text = "BGM: On"
+
+[node name="BgmVolumeSlider" type="HSlider" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/BgmAudioRow"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="BgmVolumeValueLabel" type="Label" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/BgmAudioRow"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+horizontal_alignment = 2
+text = "100%"
+
+[node name="SfxAudioRow" type="HBoxContainer" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SfxToggleButton" type="Button" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/SfxAudioRow"]
+custom_minimum_size = Vector2(150, 42)
+layout_mode = 2
+focus_mode = 0
+text = "SFX: On"
+
+[node name="SfxVolumeSlider" type="HSlider" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/SfxAudioRow"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="SfxVolumeValueLabel" type="Label" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/SfxAudioRow"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+horizontal_alignment = 2
+text = "100%"
+
+[node name="OptionDialogSpacerBottom" type="Control" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OptionDialogCloseButton" type="Button" parent="Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Close"

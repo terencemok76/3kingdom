@@ -45,7 +45,7 @@ internal sealed class SpyUiContext : IFloatingOverlayContext
     public void BringOverlayToFront(CanvasItem? item) => _owner.SpyBringOverlayToFront(item);
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.SpyAddLog(message, isPlayerRelated);
     public void RefreshSelectedCity() => _owner.SpyRefreshSelectedCity();
-    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction) => _owner.SpyShowOfficerSelectorDialog(title, ids, stat, confirmedAction);
+    public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction, Func<string>? titleFactory = null) => _owner.SpyShowOfficerSelectorDialog(title, ids, stat, confirmedAction, titleFactory);
     public bool HasActiveInternalAffairsSchedule(int officerId) => _owner.SpyHasActiveInternalAffairsSchedule(officerId);
     public string GetLocalizedResultMessage(CommandResult result) => _owner.SpyGetLocalizedResultMessage(result);
     public void ApplyCommandButtonTheme(Button button) => _owner.SpyApplyCommandButtonTheme(button);

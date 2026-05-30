@@ -66,7 +66,13 @@ internal sealed class SpyDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_spy");
         }
 
+        var selectedTargetOfficerId = GetSelectedTargetOfficerId();
+        RefreshActionOptionTexts();
+        RefreshTargetCityOptionTexts();
+        PopulateTargetOfficerOptions(selectedTargetOfficerId);
         UpdateSelectedOfficerSummary();
+        UpdateSummary();
+        UpdateConfirmButtonState();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -161,6 +167,44 @@ internal sealed class SpyDialogController : FloatingOverlayController
         _actionOption.SetItemMetadata(_actionOption.ItemCount - 1, (int)actionType);
     }
 
+    private void RefreshActionOptionTexts()
+    {
+        if (_actionOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedActionType = GetSelectedActionType();
+        _actionOption.Clear();
+        AddActionOption(SpyActionType.Reconnaissance);
+        AddActionOption(SpyActionType.Sabotage);
+        AddActionOption(SpyActionType.Incite);
+        AddActionOption(SpyActionType.Assassination);
+        SelectActionOption(selectedActionType);
+    }
+
+    private void RefreshTargetCityOptionTexts()
+    {
+        var world = _context.TurnManager?.World;
+        var city = _context.SelectedCity;
+        var localization = _context.Localization;
+        if (world == null || city == null || localization == null || _targetCityOption == null)
+        {
+            return;
+        }
+
+        var selectedTargetCityId = GetSelectedTargetCityId();
+        _targetCityOption.Clear();
+        foreach (var targetCity in world.Cities.Where(target => target.OwnerFactionId != city.OwnerFactionId))
+        {
+            var ownerName = localization.GetFactionName(world, targetCity.OwnerFactionId);
+            _targetCityOption.AddItem($"{localization.GetCityName(targetCity)} | {ownerName}");
+            _targetCityOption.SetItemMetadata(_targetCityOption.ItemCount - 1, targetCity.Id);
+        }
+
+        SelectTargetCityOption(selectedTargetCityId);
+    }
+
     private SpyActionType GetSelectedActionType()
     {
         if (_actionOption == null || _actionOption.Selected < 0)
@@ -194,6 +238,52 @@ internal sealed class SpyDialogController : FloatingOverlayController
 
         var metadata = _targetOfficerOption.GetItemMetadata(_targetOfficerOption.Selected);
         return metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : -1;
+    }
+
+    private void SelectActionOption(SpyActionType actionType)
+    {
+        if (_actionOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _actionOption.ItemCount; index += 1)
+        {
+            var metadata = _actionOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)actionType)
+            {
+                _actionOption.Select(index);
+                return;
+            }
+        }
+
+        if (_actionOption.ItemCount > 0)
+        {
+            _actionOption.Select(0);
+        }
+    }
+
+    private void SelectTargetCityOption(int cityId)
+    {
+        if (_targetCityOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _targetCityOption.ItemCount; index += 1)
+        {
+            var metadata = _targetCityOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == cityId)
+            {
+                _targetCityOption.Select(index);
+                return;
+            }
+        }
+
+        if (_targetCityOption.ItemCount > 0)
+        {
+            _targetCityOption.Select(0);
+        }
     }
 
     private string GetSelectedTargetOfficerName()
@@ -310,7 +400,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         _signalsConnected = true;
     }
 
-    private void PopulateTargetOfficerOptions()
+    private void PopulateTargetOfficerOptions(int preferredOfficerId = -1)
     {
         var world = _context.TurnManager?.World;
         var localization = _context.Localization;
@@ -341,6 +431,19 @@ internal sealed class SpyDialogController : FloatingOverlayController
 
         var isAssassination = GetSelectedActionType() == SpyActionType.Assassination;
         _targetOfficerOption.Disabled = !isAssassination;
+        if (isAssassination && preferredOfficerId > 0)
+        {
+            for (var index = 1; index < _targetOfficerOption.ItemCount; index += 1)
+            {
+                var metadata = _targetOfficerOption.GetItemMetadata(index);
+                if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == preferredOfficerId)
+                {
+                    _targetOfficerOption.Select(index);
+                    return;
+                }
+            }
+        }
+
         if (isAssassination && _targetOfficerOption.ItemCount > 1)
         {
             _targetOfficerOption.Select(1);
@@ -376,7 +479,8 @@ internal sealed class SpyDialogController : FloatingOverlayController
                 UpdateSelectedOfficerSummary();
                 UpdateConfirmButtonState();
                 SetWarning(string.Empty);
-            });
+            },
+            () => _context.Localization?.T("ui.spy_officer") ?? localization.T("ui.spy_officer"));
     }
 
     private void OnConfirmPressed()

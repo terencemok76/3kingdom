@@ -53,6 +53,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_merchant");
         }
 
+        RefreshTradeModeOptionTexts();
         UpdateSummary();
     }
 
@@ -134,6 +135,35 @@ internal sealed class MerchantDialogController : FloatingOverlayController
 
         _tradeModeOption.AddItem(_context.Localization.T(localeKey));
         _tradeModeOption.SetItemMetadata(_tradeModeOption.ItemCount - 1, (int)tradeMode);
+    }
+
+    private void RefreshTradeModeOptionTexts()
+    {
+        if (_tradeModeOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedTradeMode = GetSelectedTradeMode();
+        _tradeModeOption.Clear();
+        AddTradeOption("ui.buy_food", MerchantTradeMode.BuyFood);
+        AddTradeOption("ui.sell_food", MerchantTradeMode.SellFood);
+        AddTradeOption("ui.buy_horse", MerchantTradeMode.BuyHorse);
+
+        for (var index = 0; index < _tradeModeOption.ItemCount; index += 1)
+        {
+            var metadata = _tradeModeOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == (int)selectedTradeMode)
+            {
+                _tradeModeOption.Select(index);
+                return;
+            }
+        }
+
+        if (_tradeModeOption.ItemCount > 0)
+        {
+            _tradeModeOption.Select(0);
+        }
     }
 
     private void OnTradeModeChanged()

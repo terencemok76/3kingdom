@@ -57,6 +57,8 @@ internal sealed class CivilCommandDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_civil");
         }
+
+        RefreshCommandOptionTexts();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -106,6 +108,35 @@ internal sealed class CivilCommandDialogController : FloatingOverlayController
         var index = _commandOption.ItemCount - 1;
         _commandOption.SetItemMetadata(index, localeKey);
         _commandOption.SetItemDisabled(index, disabled);
+    }
+
+    private void RefreshCommandOptionTexts()
+    {
+        if (_commandOption == null || _context.Localization == null || _context.SelectedCity == null || _context.TurnManager?.World == null)
+        {
+            return;
+        }
+
+        var selectedKey = _commandOption.Selected >= 0
+            ? _commandOption.GetItemMetadata(_commandOption.Selected).AsString()
+            : string.Empty;
+
+        Populate();
+
+        if (string.IsNullOrWhiteSpace(selectedKey))
+        {
+            return;
+        }
+
+        for (var index = 0; index < _commandOption.ItemCount; index += 1)
+        {
+            var metadata = _commandOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.String && metadata.AsString() == selectedKey)
+            {
+                _commandOption.Select(index);
+                return;
+            }
+        }
     }
 
     private void SelectFirstEnabledOption()

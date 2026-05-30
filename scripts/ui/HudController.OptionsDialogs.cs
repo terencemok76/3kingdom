@@ -1,37 +1,12 @@
 using System;
-using System.Text.Json;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
-using File = System.IO.File;
-using Directory = System.IO.Directory;
 
 namespace ThreeKingdom.UI;
 
 public partial class HudController
 {
-    private const string OptionSettingsPath = "user://settings/options.json";
-
-    internal sealed class OptionSettingsData
-    {
-        public bool BgmEnabled { get; set; } = true;
-        public bool SfxEnabled { get; set; } = true;
-        public float BgmVolume { get; set; } = 1.0f;
-        public float SfxVolume { get; set; } = 1.0f;
-        public bool LeftPanelMinimized { get; set; }
-        public float LeftPanelX { get; set; } = 10.0f;
-        public float LeftPanelY { get; set; } = 70.0f;
-        public float LeftPanelWidth { get; set; } = 320.0f;
-        public float LeftPanelHeight { get; set; } = 790.0f;
-        public float TopBarX { get; set; } = 10.0f;
-        public float TopBarY { get; set; } = 10.0f;
-        public bool LogPanelMinimized { get; set; }
-        public float LogPanelX { get; set; } = 370.0f;
-        public float LogPanelY { get; set; } = 700.0f;
-        public float LogPanelWidth { get; set; } = 1210.0f;
-        public float LogPanelHeight { get; set; } = 180.0f;
-    }
-
     private static void CopyButtonTheme(Button source, Button target)
     {
         foreach (var state in new[] { "normal", "hover", "pressed", "disabled", "focus" })
@@ -82,23 +57,13 @@ public partial class HudController
 
     private void LoadOptionSettings()
     {
-        var resolvedPath = ProjectSettings.GlobalizePath(OptionSettingsPath);
-        if (!File.Exists(resolvedPath))
-        {
-            return;
-        }
-
-        var json = File.ReadAllText(resolvedPath);
-        var settings = JsonSerializer.Deserialize<OptionSettingsData>(json);
-        if (settings == null)
-        {
-            return;
-        }
+        var settings = OptionSettingsStore.LoadOrDefault();
 
         _bgmEnabled = settings.BgmEnabled;
         _sfxEnabled = settings.SfxEnabled;
         _bgmVolume = Mathf.Clamp(settings.BgmVolume, 0.0f, 1.0f);
         _sfxVolume = Mathf.Clamp(settings.SfxVolume, 0.0f, 1.0f);
+        _localization?.SetLanguage(settings.Language);
         ApplyLoadedFloatingPanelSettings(
             settings.LeftPanelMinimized,
             settings.LeftPanelX,
@@ -116,15 +81,9 @@ public partial class HudController
 
     private void SaveOptionSettings()
     {
-        var resolvedPath = ProjectSettings.GlobalizePath(OptionSettingsPath);
-        var directory = System.IO.Path.GetDirectoryName(resolvedPath);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         var settings = new OptionSettingsData
         {
+            Language = _localization?.CurrentLanguage ?? GameLanguage.TraditionalChinese,
             BgmEnabled = _bgmEnabled,
             SfxEnabled = _sfxEnabled,
             BgmVolume = _bgmVolume,
@@ -132,7 +91,7 @@ public partial class HudController
         };
 
         PopulateFloatingPanelSettings(settings);
-        File.WriteAllText(resolvedPath, JsonSerializer.Serialize(settings));
+        OptionSettingsStore.Save(settings);
     }
 
     private string BuildSaveSlotPath(int slotNumber)

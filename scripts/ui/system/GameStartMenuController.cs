@@ -67,6 +67,7 @@ public partial class GameStartMenuController : CanvasLayer
     private VBoxContainer? _loadPanel;
     private Button? _startGameButton;
     private Button? _loadGameButton;
+    private Button? _optionButton;
     private Button? _storyConfirmButton;
     private Button? _storyBackButton;
     private ItemList? _storyList;
@@ -85,6 +86,17 @@ public partial class GameStartMenuController : CanvasLayer
     private RichTextLabel? _loadSummaryLabel;
     private Button? _loadConfirmButton;
     private Button? _loadBackButton;
+    private ColorRect? _optionDialogBackdrop;
+    private CenterContainer? _optionDialogCenter;
+    private Label? _optionDialogTitleLabel;
+    private Button? _optionLanguageButton;
+    private Button? _bgmToggleButton;
+    private HSlider? _bgmVolumeSlider;
+    private Label? _bgmVolumeValueLabel;
+    private Button? _sfxToggleButton;
+    private HSlider? _sfxVolumeSlider;
+    private Label? _sfxVolumeValueLabel;
+    private Button? _optionDialogCloseButton;
 
     public event Action<string, int>? StartGameConfirmed;
     public event Action<int>? LoadGameConfirmed;
@@ -100,6 +112,7 @@ public partial class GameStartMenuController : CanvasLayer
         _loadPanel = GetNodeOrNull<VBoxContainer>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel");
         _startGameButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/StartGameButton");
         _loadGameButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/LoadGameButton");
+        _optionButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/OptionButton");
         _storySectionLabel = GetNodeOrNull<Label>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StoryLabel");
         _storyList = GetNodeOrNull<ItemList>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StoryList");
         _storySummaryLabel = GetNodeOrNull<RichTextLabel>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StorySummaryLabel");
@@ -118,6 +131,17 @@ public partial class GameStartMenuController : CanvasLayer
         _loadSummaryLabel = GetNodeOrNull<RichTextLabel>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadSummaryLabel");
         _loadBackButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadButtonRow/LoadBackButton");
         _loadConfirmButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadButtonRow/LoadConfirmButton");
+        _optionDialogBackdrop = GetNodeOrNull<ColorRect>("Root/OptionDialogBackdrop");
+        _optionDialogCenter = GetNodeOrNull<CenterContainer>("Root/OptionDialogCenter");
+        _optionDialogTitleLabel = GetNodeOrNull<Label>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/OptionDialogTitleLabel");
+        _optionLanguageButton = GetNodeOrNull<Button>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/OptionLanguageButton");
+        _bgmToggleButton = GetNodeOrNull<Button>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/BgmAudioRow/BgmToggleButton");
+        _bgmVolumeSlider = GetNodeOrNull<HSlider>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/BgmAudioRow/BgmVolumeSlider");
+        _bgmVolumeValueLabel = GetNodeOrNull<Label>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/BgmAudioRow/BgmVolumeValueLabel");
+        _sfxToggleButton = GetNodeOrNull<Button>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/SfxAudioRow/SfxToggleButton");
+        _sfxVolumeSlider = GetNodeOrNull<HSlider>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/SfxAudioRow/SfxVolumeSlider");
+        _sfxVolumeValueLabel = GetNodeOrNull<Label>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/SfxAudioRow/SfxVolumeValueLabel");
+        _optionDialogCloseButton = GetNodeOrNull<Button>("Root/OptionDialogCenter/OptionDialogPanel/OptionDialogRoot/OptionDialogCloseButton");
 
         ConnectSignals();
         ApplyTheme();
@@ -177,6 +201,11 @@ public partial class GameStartMenuController : CanvasLayer
             _loadGameButton.Pressed += OnLoadGamePressed;
         }
 
+        if (_optionButton != null)
+        {
+            _optionButton.Pressed += OnOptionPressed;
+        }
+
         if (_storyList != null)
         {
             _storyList.ItemSelected += OnStorySelected;
@@ -221,6 +250,36 @@ public partial class GameStartMenuController : CanvasLayer
         {
             _loadConfirmButton.Pressed += OnLoadConfirmPressed;
         }
+
+        if (_optionLanguageButton != null)
+        {
+            _optionLanguageButton.Pressed += OnOptionLanguagePressed;
+        }
+
+        if (_bgmToggleButton != null)
+        {
+            _bgmToggleButton.Pressed += OnBgmTogglePressed;
+        }
+
+        if (_sfxToggleButton != null)
+        {
+            _sfxToggleButton.Pressed += OnSfxTogglePressed;
+        }
+
+        if (_bgmVolumeSlider != null)
+        {
+            _bgmVolumeSlider.ValueChanged += OnBgmVolumeChanged;
+        }
+
+        if (_sfxVolumeSlider != null)
+        {
+            _sfxVolumeSlider.ValueChanged += OnSfxVolumeChanged;
+        }
+
+        if (_optionDialogCloseButton != null)
+        {
+            _optionDialogCloseButton.Pressed += HideOptionDialog;
+        }
     }
 
     private void ApplyTheme()
@@ -247,7 +306,29 @@ public partial class GameStartMenuController : CanvasLayer
             });
         }
 
-        foreach (var button in new[] { _startGameButton, _loadGameButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton })
+        var optionDialogPanel = GetNodeOrNull<PanelContainer>("Root/OptionDialogCenter/OptionDialogPanel");
+        if (optionDialogPanel != null)
+        {
+            optionDialogPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = new Color(0.08f, 0.08f, 0.1f, 0.96f),
+                BorderWidthLeft = 2,
+                BorderWidthTop = 2,
+                BorderWidthRight = 2,
+                BorderWidthBottom = 2,
+                BorderColor = new Color(0.58f, 0.46f, 0.28f, 0.98f),
+                CornerRadiusTopLeft = 10,
+                CornerRadiusTopRight = 10,
+                CornerRadiusBottomLeft = 10,
+                CornerRadiusBottomRight = 10,
+                ContentMarginLeft = 18.0f,
+                ContentMarginTop = 18.0f,
+                ContentMarginRight = 18.0f,
+                ContentMarginBottom = 18.0f
+            });
+        }
+
+        foreach (var button in new[] { _startGameButton, _loadGameButton, _optionButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
         {
             ApplyButtonTheme(button);
         }
@@ -352,6 +433,11 @@ public partial class GameStartMenuController : CanvasLayer
             _loadGameButton.Text = _localization.T("ui.load_game");
         }
 
+        if (_optionButton != null)
+        {
+            _optionButton.Text = _localization.T("ui.option");
+        }
+
         if (_storySectionLabel != null)
         {
             _storySectionLabel.Text = _localization.T("ui.select_story");
@@ -397,6 +483,57 @@ public partial class GameStartMenuController : CanvasLayer
             _loadConfirmButton.Text = _localization.T("ui.load");
         }
 
+        if (_optionDialogTitleLabel != null)
+        {
+            _optionDialogTitleLabel.Text = _localization.T("ui.options");
+        }
+
+        if (_optionLanguageButton != null)
+        {
+            _optionLanguageButton.Text = _localization.T("ui.option_language_toggle");
+        }
+
+        var settings = OptionSettingsStore.LoadOrDefault();
+
+        if (_bgmToggleButton != null)
+        {
+            _bgmToggleButton.Text = BuildAudioToggleButtonText(_localization.T("ui.bgm_volume"), settings.BgmEnabled);
+        }
+
+        if (_bgmVolumeSlider != null)
+        {
+            _bgmVolumeSlider.SetValueNoSignal(Math.Round(settings.BgmVolume * 100.0f));
+            _bgmVolumeSlider.Editable = settings.BgmEnabled;
+            _bgmVolumeSlider.TooltipText = _localization.T("ui.bgm_volume");
+        }
+
+        if (_bgmVolumeValueLabel != null)
+        {
+            _bgmVolumeValueLabel.Text = $"{Math.Round(settings.BgmVolume * 100.0f)}%";
+        }
+
+        if (_sfxToggleButton != null)
+        {
+            _sfxToggleButton.Text = BuildAudioToggleButtonText(_localization.T("ui.sfx_volume"), settings.SfxEnabled);
+        }
+
+        if (_sfxVolumeSlider != null)
+        {
+            _sfxVolumeSlider.SetValueNoSignal(Math.Round(settings.SfxVolume * 100.0f));
+            _sfxVolumeSlider.Editable = settings.SfxEnabled;
+            _sfxVolumeSlider.TooltipText = _localization.T("ui.sfx_volume");
+        }
+
+        if (_sfxVolumeValueLabel != null)
+        {
+            _sfxVolumeValueLabel.Text = $"{Math.Round(settings.SfxVolume * 100.0f)}%";
+        }
+
+        if (_optionDialogCloseButton != null)
+        {
+            _optionDialogCloseButton.Text = _localization.T("ui.close");
+        }
+
         if (_mainMenuPanel?.Visible == true)
         {
             SetStatusText(_localization.T("ui.main_menu_hint"));
@@ -411,6 +548,10 @@ public partial class GameStartMenuController : CanvasLayer
     {
         RefreshText();
         PopulateStoryList();
+        if (_lordPanel?.Visible == true && !string.IsNullOrWhiteSpace(_selectedScenarioPath))
+        {
+            PopulateLordList(_selectedScenarioPath);
+        }
         if (_loadPanel?.Visible == true)
         {
             PopulateLoadSlotList();
@@ -427,6 +568,58 @@ public partial class GameStartMenuController : CanvasLayer
     {
         PopulateLoadSlotList();
         SetVisibleScreen(MenuScreen.Load);
+    }
+
+    private void OnOptionPressed()
+    {
+        ShowOptionDialog();
+    }
+
+    private void OnOptionLanguagePressed()
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        _localization.ToggleLanguage();
+        SaveCurrentLanguageSetting();
+    }
+
+    private void OnBgmTogglePressed()
+    {
+        var settings = OptionSettingsStore.LoadOrDefault();
+        settings.BgmEnabled = !settings.BgmEnabled;
+        OptionSettingsStore.Save(settings);
+        ApplyAudioSettings(settings);
+        RefreshText();
+    }
+
+    private void OnSfxTogglePressed()
+    {
+        var settings = OptionSettingsStore.LoadOrDefault();
+        settings.SfxEnabled = !settings.SfxEnabled;
+        OptionSettingsStore.Save(settings);
+        ApplyAudioSettings(settings);
+        RefreshText();
+    }
+
+    private void OnBgmVolumeChanged(double value)
+    {
+        var settings = OptionSettingsStore.LoadOrDefault();
+        settings.BgmVolume = Mathf.Clamp((float)(value / 100.0), 0.0f, 1.0f);
+        OptionSettingsStore.Save(settings);
+        ApplyAudioSettings(settings);
+        RefreshText();
+    }
+
+    private void OnSfxVolumeChanged(double value)
+    {
+        var settings = OptionSettingsStore.LoadOrDefault();
+        settings.SfxVolume = Mathf.Clamp((float)(value / 100.0), 0.0f, 1.0f);
+        OptionSettingsStore.Save(settings);
+        ApplyAudioSettings(settings);
+        RefreshText();
     }
 
     private void PopulateStoryList()
@@ -711,6 +904,8 @@ public partial class GameStartMenuController : CanvasLayer
 
     private void SetVisibleScreen(MenuScreen screen)
     {
+        HideOptionDialog();
+
         if (_mainMenuPanel != null)
         {
             _mainMenuPanel.Visible = screen == MenuScreen.Main;
@@ -752,6 +947,72 @@ public partial class GameStartMenuController : CanvasLayer
         if (_statusLabel != null)
         {
             _statusLabel.Text = text;
+        }
+    }
+
+    private void ShowOptionDialog()
+    {
+        if (_optionDialogBackdrop != null)
+        {
+            _optionDialogBackdrop.Visible = true;
+        }
+
+        if (_optionDialogCenter != null)
+        {
+            _optionDialogCenter.Visible = true;
+        }
+    }
+
+    private void HideOptionDialog()
+    {
+        if (_optionDialogBackdrop != null)
+        {
+            _optionDialogBackdrop.Visible = false;
+        }
+
+        if (_optionDialogCenter != null)
+        {
+            _optionDialogCenter.Visible = false;
+        }
+    }
+
+    private void SaveCurrentLanguageSetting()
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        var settings = OptionSettingsStore.LoadOrDefault();
+        settings.Language = _localization.CurrentLanguage;
+        OptionSettingsStore.Save(settings);
+    }
+
+    private void ApplyAudioSettings(OptionSettingsData settings)
+    {
+        GameAudioController.Instance?.SetBgmEnabled(settings.BgmEnabled);
+        GameAudioController.Instance?.SetSfxEnabled(settings.SfxEnabled);
+        GameAudioController.Instance?.SetBgmVolume(settings.BgmVolume);
+        GameAudioController.Instance?.SetSfxVolume(settings.SfxVolume);
+        SetBusMute(settings.SfxEnabled, "Sfx", "SFX");
+    }
+
+    private string BuildAudioToggleButtonText(string label, bool enabled)
+    {
+        var onText = _localization?.T("ui.on") ?? "On";
+        var offText = _localization?.T("ui.off") ?? "Off";
+        return $"{label}: {(enabled ? onText : offText)}";
+    }
+
+    private static void SetBusMute(bool enabled, params string[] busNames)
+    {
+        foreach (var busName in busNames)
+        {
+            var busIndex = AudioServer.GetBusIndex(busName);
+            if (busIndex >= 0)
+            {
+                AudioServer.SetBusMute(busIndex, !enabled);
+            }
         }
     }
 

@@ -124,6 +124,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
         SetLabelText("CatapultLabel", _context.Localization.T("siege_engine.catapult"));
         SetLabelText("LadderLabel", _context.Localization.T("siege_engine.ladder"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.transfer_officers"));
+        RefreshTargetCityOptionTexts();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -307,6 +308,31 @@ internal sealed class MoveDialogController : FloatingOverlayController
         if (label != null)
         {
             label.Text = text;
+        }
+    }
+
+    private void RefreshTargetCityOptionTexts()
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (_targetCityOption == null || world == null || localization == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _targetCityOption.ItemCount; index += 1)
+        {
+            var metadata = _targetCityOption.GetItemMetadata(index);
+            if (metadata.VariantType != Variant.Type.Int)
+            {
+                continue;
+            }
+
+            var city = world.GetCity(metadata.AsInt32());
+            if (city != null)
+            {
+                _targetCityOption.SetItemText(index, localization.GetCityName(city));
+            }
         }
     }
 }

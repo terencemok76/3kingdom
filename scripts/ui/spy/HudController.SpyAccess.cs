@@ -25,8 +25,9 @@ public partial class HudController
         string title,
         System.Collections.Generic.List<int> candidateOfficerIds,
         OfficerSelectorPrimaryStat primaryStat,
-        System.Action<int> confirmedAction) =>
-        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction);
+        System.Action<int> confirmedAction,
+        System.Func<string>? titleFactory = null) =>
+        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, titleFactory: titleFactory);
 
     internal bool SpyHasActiveInternalAffairsSchedule(int officerId) => HasActiveInternalAffairsSchedule(officerId);
 
