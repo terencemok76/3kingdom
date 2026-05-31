@@ -8,6 +8,8 @@ public partial class CityNode : Node2D
     private const float CircleRadius = 12.0f;
     private const float BorderRadius = 13.0f;
     private const float EventRingRadius = 18.0f;
+    private const float LabelStartY = 30.0f;
+    private const float LabelLineHeight = 16.0f;
 
     private CityData? _city;
     private string _displayLabel = string.Empty;
@@ -163,23 +165,26 @@ public partial class CityNode : Node2D
                 return;
             }
 
+            var font = ThemeDB.FallbackFont;
             var lines = _label.Split('\n');
-            var y = -24.0f;
+            var y = LabelStartY;
             foreach (var line in lines)
             {
                 if (!string.IsNullOrWhiteSpace(line))
                 {
-                    DrawString(ThemeDB.FallbackFont, new Vector2(-44.0f, y), line, modulate: new Color("f5f1e8"));
+                    var lineWidth = font.GetStringSize(line).X;
+                    DrawString(font, new Vector2(-lineWidth * 0.5f, y), line, modulate: new Color("f5f1e8"));
                 }
 
-                y += 16.0f;
+                y += LabelLineHeight;
             }
 
             if (!string.IsNullOrWhiteSpace(_eventLabel))
             {
-                var eventPosition = new Vector2(-44.0f, y);
-                DrawString(ThemeDB.FallbackFont, eventPosition + new Vector2(1.0f, 1.0f), _eventLabel, modulate: new Color(0.05f, 0.05f, 0.05f, 0.85f));
-                DrawString(ThemeDB.FallbackFont, eventPosition, _eventLabel, modulate: _eventLabelColor);
+                var eventWidth = font.GetStringSize(_eventLabel).X;
+                var eventPosition = new Vector2(-eventWidth * 0.5f, y);
+                DrawString(font, eventPosition + new Vector2(1.0f, 1.0f), _eventLabel, modulate: new Color(0.05f, 0.05f, 0.05f, 0.85f));
+                DrawString(font, eventPosition, _eventLabel, modulate: _eventLabelColor);
             }
         }
     }

@@ -14,7 +14,8 @@ namespace ThreeKingdom.Core;
 public class WorldRepository
 {
     private const int MinimumOfficerJoinAge = 18;
-    private const string MapLocationsPath = "res://data/scenarios/map_locations_40.json";
+    private const string MapLocationsPath = "res://data/scenarios/map_locations.json";
+    private const string MapRoadsPath = "res://data/scenarios/map_roads.json";
     private const string OfficerDataDirectoryPath = "res://data/person";
     private const string DefaultOfficerDataPath = "res://data/person/officer_story01.json";
 
@@ -198,62 +199,73 @@ public class WorldRepository
             }
         }
 
-        BuildAutoConnections(cities);
+        BuildDefinedConnections(cities);
         world.Cities = cities;
         SetupInitialOwnershipAndOfficers(world);
     }
 
-    private static void BuildAutoConnections(List<CityData> cities)
+    private static void BuildDefinedConnections(List<CityData> cities)
     {
-        const int neighborCount = 3;
-        const float maxDistance = 260.0f;
-
         foreach (var city in cities)
         {
             city.ConnectedCityIds.Clear();
         }
 
-        for (var i = 0; i < cities.Count; i++)
+        if (!FileAccess.FileExists(MapRoadsPath))
         {
-            var source = cities[i];
-            var distances = new List<(CityData City, float Distance)>();
-            for (var j = 0; j < cities.Count; j++)
-            {
-                if (i == j)
-                {
-                    continue;
-                }
+            GD.PushWarning($"Map roads file missing: {MapRoadsPath}");
+            return;
+        }
 
-                var target = cities[j];
-                var dx = source.MapX - target.MapX;
-                var dy = source.MapY - target.MapY;
-                var distance = Mathf.Sqrt(dx * dx + dy * dy);
-                distances.Add((target, distance));
+        using var file = FileAccess.Open(MapRoadsPath, FileAccess.ModeFlags.Read);
+        var json = file.GetAsText();
+
+        MapRoadDocument? roadDoc;
+        try
+        {
+            roadDoc = JsonSerializer.Deserialize<MapRoadDocument>(json, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            GD.PushWarning($"Map roads file could not be parsed: {MapRoadsPath} ({ex.Message})");
+            return;
+        }
+
+        if (roadDoc?.Roads == null || roadDoc.Roads.Count == 0)
+        {
+            GD.PushWarning($"Map roads file contains no road entries: {MapRoadsPath}");
+            return;
+        }
+
+        var cityByName = new Dictionary<string, CityData>(StringComparer.Ordinal);
+        foreach (var city in cities)
+        {
+            RegisterCityRoadName(cityByName, city.NameZhHant, city);
+            RegisterCityRoadName(cityByName, city.Name, city);
+        }
+
+        foreach (var road in roadDoc.Roads)
+        {
+            var node1 = road.Node1.Trim();
+            var node2 = road.Node2.Trim();
+            if (string.IsNullOrWhiteSpace(node1) || string.IsNullOrWhiteSpace(node2))
+            {
+                continue;
             }
 
-            distances.Sort((a, b) => a.Distance.CompareTo(b.Distance));
-
-            var added = 0;
-            foreach (var candidate in distances)
+            if (!cityByName.TryGetValue(node1, out var cityA))
             {
-                if (added >= neighborCount)
-                {
-                    break;
-                }
-
-                if (candidate.Distance > maxDistance && added > 0)
-                {
-                    continue;
-                }
-
-                AddBidirectionalConnection(source, candidate.City);
-                added += 1;
+                GD.PushWarning($"Map road references unknown city: {node1}");
+                continue;
             }
 
-            if (source.ConnectedCityIds.Count == 0 && distances.Count > 0)
+            if (!cityByName.TryGetValue(node2, out var cityB))
             {
-                AddBidirectionalConnection(source, distances[0].City);
+                GD.PushWarning($"Map road references unknown city: {node2}");
+                continue;
             }
+
+            AddBidirectionalConnection(cityA, cityB);
         }
     }
 
@@ -331,6 +343,20 @@ public class WorldRepository
         }
 
         EnsureFactionRulersAssigned(world);
+    }
+
+    private static void RegisterCityRoadName(Dictionary<string, CityData> cityByName, string name, CityData city)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var trimmedName = name.Trim();
+        if (!cityByName.ContainsKey(trimmedName))
+        {
+            cityByName[trimmedName] = city;
+        }
     }
 
     private static string ResolveWritablePath(string path)
@@ -712,6 +738,12 @@ public class WorldRepository
         public List<MapLocationEntry> Cities { get; set; } = new();
     }
 
+    private sealed class MapRoadDocument
+    {
+        [JsonPropertyName("roads")]
+        public List<MapRoadEntry> Roads { get; set; } = new();
+    }
+
     private sealed class MapMetadata
     {
         [JsonPropertyName("map_border_x")]
@@ -734,5 +766,14 @@ public class WorldRepository
         public string NameChi { get; set; } = string.Empty;
         public float X { get; set; }
         public float Y { get; set; }
+    }
+
+    private sealed class MapRoadEntry
+    {
+        [JsonPropertyName("node1")]
+        public string Node1 { get; set; } = string.Empty;
+
+        [JsonPropertyName("node2")]
+        public string Node2 { get; set; } = string.Empty;
     }
 }

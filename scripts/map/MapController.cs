@@ -431,8 +431,7 @@ public partial class MapController : Node2D
         }
 
         var cityName = _localization.GetCityName(city);
-        var ownerName = _localization.GetFactionName(_world, city.OwnerFactionId);
-        return $"{cityName}({city.Id})\n{ownerName}";
+        return $"{cityName}({city.Id})";
     }
 
     private Vector2 CalculateCenterOffset()

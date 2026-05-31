@@ -34,7 +34,7 @@ public partial class RouteRenderer : Node2D
     {
         foreach (var segment in _segments)
         {
-            DrawLine(segment.From, segment.To, new Color("8e8065"), 3.0f);
+            DrawLine(segment.From, segment.To, new Color("4a90c2"), 3.0f);
         }
     }
 }
