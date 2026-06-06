@@ -1,6 +1,6 @@
 # Phase 3 Remaining Checklist
 
-更新日期：2026-05-30
+更新日期：2026-06-06
 
 ## 1. 文件定位
 
@@ -55,6 +55,9 @@
   - `Construction` 建設點提示 / log
   - `View` redraw / row fill / selection highlight
 - 避免之後回歸時，只記得功能有做，卻沒有固定驗證流程。
+- 目前狀態：
+  - `Prisoner Management` 的完整回歸 checklist 已整理於 `docs/PRISONER_REGRESSION_CHECKLIST_ZH.md`
+  - 其中已補一份可用於收尾的 `Sign-off 快速流程`
 
 ### 2.4 釐清 Phase 3 範圍文件
 
