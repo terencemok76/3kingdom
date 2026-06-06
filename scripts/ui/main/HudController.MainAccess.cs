@@ -17,7 +17,9 @@ public partial class HudController
     internal Label? MainHudStoryLabel => GetNodeOrNull<Label>("Root/TopBar/StoryLabel");
     internal Button? MainHudLanguageButton => GetNodeOrNull<Button>("Root/TopBar/LanguageButton");
     internal Button? MainHudGodModeButton => GetNodeOrNull<Button>("Root/TopBar/GodModeButton");
+    internal Button? MainHudTopBarTestButton => GetNodeOrNull<Button>("Root/TopBar/TestButton");
     internal Button? MainHudEndTurnButton => GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
+    internal Control? MainHudOverlayParent => GetNodeOrNull<Control>("Root");
 
     internal Label? MainHudCityNameLabel => GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");
     internal VBoxContainer? MainHudCityStatsPanel => GetNodeOrNull<VBoxContainer>("Root/LeftPanel/CityStatsPanel");
@@ -34,6 +36,7 @@ public partial class HudController
     internal Button? MainHudCivilButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/CivilButton");
     internal Button? MainHudAttackButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
     internal Button? MainHudViewButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton");
+    internal Button? MainHudTestCaptureButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/TestCaptureButton");
     internal RichTextLabel? MainHudLogText => GetNodeOrNull<RichTextLabel>("Root/LogText");
     internal Label? MainHudCityPanelHeaderLabel => _leftPanelHeaderLabel;
     internal Label? MainHudLogPanelHeaderLabel => _logPanelHeaderLabel;
@@ -46,7 +49,9 @@ public partial class HudController
     internal void MainHudMoveToFront(CanvasItem? item) => item?.MoveToFront();
     internal void MainHudToggleLanguage() => OnLanguageButtonPressed();
     internal void MainHudToggleGodMode() => OnGodModePressed();
+    internal bool MainHudIsGodModeEnabled() => _turnManager?.World?.ViewAllInformationEnabled ?? false;
     internal void MainHudEndTurn() => OnEndTurnPressed();
+    internal void MainHudOpenTestDialog() => _mainHudUiController?.ShowTestToolsDialog();
     internal void MainHudOpenInternalAffairs() => OnDevelopPressed();
     internal void MainHudOpenMilitary() => OnRecruitPressed();
     internal void MainHudOpenMove() => OnMovePressed();
@@ -59,4 +64,7 @@ public partial class HudController
     internal void MainHudOpenCivil() => OnCivilPressed();
     internal void MainHudOpenAttack() => OnAttackPressed();
     internal void MainHudOpenView() => OnViewPressed();
+    internal void MainHudOpenTestCapture() => OnTestCapturePressed();
+    internal void MainHudPopupDialog(Control? dialog) => ShowOverlay(dialog);
+    internal void MainHudPlayUiClickSfx() => PlayUiClickSfx();
 }

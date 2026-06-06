@@ -112,6 +112,10 @@ text = "English"
 layout_mode = 2
 text = "God Mode: Off"
 
+[node name="TestButton" type="Button" parent="Root/TopBar"]
+layout_mode = 2
+text = "Test"
+
 [node name="EndTurnButton" type="Button" parent="Root/TopBar" unique_id=580274708]
 layout_mode = 2
 text = "End Turn"
@@ -292,6 +296,19 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
 text = "View"
+
+[node name="TestCaptureButton" type="Button" parent="Root/LeftPanel/CommandButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.72, 0.72, 0.72, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+text = "Test Capture"
 
 [node name="LogPanelBg" type="ColorRect" parent="Root" unique_id=538340313]
 layout_mode = 1

@@ -62,6 +62,8 @@ public class OfficerData
     public int JailedCityId { get; set; }
     [JsonIgnore]
     public int FreeOfficerStayMonths { get; set; }
+    [JsonIgnore]
+    public bool IsTemporaryDebugOfficer { get; set; }
     public int LastAssignedYear { get; set; } = -1;
     public int LastAssignedMonth { get; set; } = -1;
     public CommandType LastAssignedCommand { get; set; } = CommandType.Pass;

@@ -93,12 +93,6 @@ public partial class HudController
             return;
         }
 
-        if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
-        {
-            _militaryUiController.ShowCapturedOfficerDialog();
-            return;
-        }
-
         var world = _turnManager.World;
         while (_pendingAttackResolutionQueue.Count > 0)
         {
@@ -124,11 +118,6 @@ public partial class HudController
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
             CheckFactionEliminations();
-            if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
-            {
-                _militaryUiController.ShowCapturedOfficerDialog();
-                return;
-            }
             if (_personnelUiController?.HasPendingPlayerSuccession() == true)
             {
                 _personnelUiController.ShowSuccessionDialog();
@@ -292,6 +281,11 @@ public partial class HudController
         _personnelUiController?.RefreshIfOpen();
         EvaluateWinLose();
         _mapController?.RefreshVisuals();
+
+        if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
+        {
+            _militaryUiController.ShowCapturedOfficerDialog();
+        }
     }
 
     private bool IsPlayerRelatedAttackCommand(CityData sourceCity, CityData targetCity)

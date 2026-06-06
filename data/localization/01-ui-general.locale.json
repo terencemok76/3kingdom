@@ -55,6 +55,10 @@
 							 "zhHant":  "此城目前沒有俘虜。",
 							 "en":  "There are currently no prisoners in this city."
 						 },
+	"ui.prisoner_recruit_offer_summary":  {
+											  "zhHant":  "招降加碼：金 {0}，寶物：{1}，官職：{2}",
+											  "en":  "Recruit offer: Gold {0}, Item: {1}, Appointment: {2}"
+										  },
 	"ui.confirm_clear_appointment":  {
 										 "zhHant":  "確認解除職位",
 										 "en":  "Confirm Clear Appointment"

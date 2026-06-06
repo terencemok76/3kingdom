@@ -23,6 +23,7 @@ public class WorldState
         public int WinnerFactionId { get; set; }
         public int WinnerCityId { get; set; }
         public int OfficerId { get; set; }
+        public bool IsTestOnly { get; set; }
     }
 
     public string StoryId { get; set; } = string.Empty;

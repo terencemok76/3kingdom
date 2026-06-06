@@ -76,6 +76,10 @@ internal sealed class MilitaryUiContext : IFloatingOverlayContext
     public CommandResult ExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds) => _owner.MilitaryExecuteAttackCommand(targetCityId, troops, gold, food, deployments, officerIds);
     public string GetLocalizedResultMessage(CommandResult result) => _owner.MilitaryGetLocalizedResultMessage(result);
     public void ContinuePendingAttackResolution() => _owner.MilitaryContinuePendingAttackResolution();
+    public bool IsResolvingEndTurn() => _owner.MilitaryIsResolvingEndTurn();
+    public Texture2D? BuildOfficerPortraitTexture(int officerId) => _owner.MilitaryBuildOfficerPortraitTexture(officerId);
+    public string BuildOfficerDetailText(OfficerData officer) => _owner.MilitaryBuildOfficerDetailText(officer);
+    public string GetPortraitLabel() => _owner.MilitaryGetPortraitLabel();
     public void ApplyCommandButtonTheme(Button button) => _owner.MilitaryApplyCommandButtonTheme(button);
     public UiEventHub UiEventHub => _owner.UiEventHub;
 

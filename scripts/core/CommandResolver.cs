@@ -17,6 +17,14 @@ public partial class CommandResolver
     private const int HireOfficerGoldCost = 200;
     private const int HireOfficerMaxLoyalty = 70;
     private const int HireOfficerDefaultLoyalty = 60;
+    private const double CapturedOfficerRecruitBaseChance = 0.30;
+    private const double CapturedOfficerRecruitRulerFamilyBonus = 0.35;
+    private const double CapturedOfficerRecruitFactionFamilyBonus = 0.18;
+    private const double CapturedOfficerRecruitRulerCharmFactor = 0.0015;
+    private const double CapturedOfficerRecruitLoyaltyPenaltyFactor = 0.0035;
+    private const double CapturedOfficerRecruitAmbitionPenaltyFactor = 0.0025;
+    private const double CapturedOfficerRecruitMinimumChance = 0.05;
+    private const double CapturedOfficerRecruitMaximumChance = 0.95;
     private const int CivilReliefGoldPerTenLoyalty = 100;
     private const int CivilReliefFoodPerTenLoyalty = 1000;
     private const float FailedAttackSupplyReturnRatio = 0.5f;

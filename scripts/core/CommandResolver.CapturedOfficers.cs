@@ -7,7 +7,7 @@ namespace ThreeKingdom.Core;
 
 public partial class CommandResolver
 {
-    public CommandResult ResolveCapturedOfficerDisposition(int actorFactionId, int officerId, CapturedOfficerDisposition disposition)
+    public CommandResult ResolveCapturedOfficerDisposition(int actorFactionId, int officerId, CapturedOfficerDisposition disposition, CapturedOfficerRecruitOfferData? recruitOffer = null)
     {
         if (_turnManager?.World == null)
         {
@@ -45,7 +45,7 @@ public partial class CommandResolver
         CommandResult result = disposition switch
         {
             CapturedOfficerDisposition.Kill => ResolveCapturedOfficerKill(world, city, officer),
-            CapturedOfficerDisposition.Recruit => ResolveCapturedOfficerRecruit(world, city, officer),
+            CapturedOfficerDisposition.Recruit => ResolveCapturedOfficerRecruit(world, city, officer, recruitOffer),
             CapturedOfficerDisposition.Free => ResolveCapturedOfficerFree(world, city, officer),
             CapturedOfficerDisposition.Jail => ResolveCapturedOfficerJail(world, city, officer),
             _ => LocalizedResult(false, "cmd.captured_officer.invalid_action")
@@ -131,7 +131,15 @@ public partial class CommandResolver
             var result = ResolveCapturedOfficerDisposition(winnerFactionId, officer.Id, action);
             if (!result.Success)
             {
-                world.PendingCapturedOfficerRecords.Remove(pendingRecord);
+                if (action == CapturedOfficerDisposition.Recruit)
+                {
+                    result = ResolveCapturedOfficerDisposition(winnerFactionId, officer.Id, CapturedOfficerDisposition.Jail);
+                }
+
+                if (!result.Success)
+                {
+                    world.PendingCapturedOfficerRecords.Remove(pendingRecord);
+                }
             }
         }
     }
@@ -234,7 +242,7 @@ public partial class CommandResolver
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English) });
     }
 
-    private CommandResult ResolveCapturedOfficerRecruit(WorldState world, CityData city, OfficerData officer)
+    private CommandResult ResolveCapturedOfficerRecruit(WorldState world, CityData city, OfficerData officer, CapturedOfficerRecruitOfferData? recruitOffer)
     {
         var faction = world.GetFaction(city.OwnerFactionId);
         if (faction == null)
@@ -242,11 +250,28 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.captured_officer.invalid_owner");
         }
 
+        recruitOffer ??= new CapturedOfficerRecruitOfferData();
+        var offeredItem = recruitOffer.ItemId > 0 ? world.GetItem(recruitOffer.ItemId) : null;
+        if (!ValidateCapturedOfficerRecruitOffer(city, faction.Id, recruitOffer, offeredItem, out var offerValidationFailure))
+        {
+            return offerValidationFailure;
+        }
+
+        if (!DoesCapturedOfficerAcceptRecruit(world, city, faction, officer, recruitOffer, offeredItem))
+        {
+            return LocalizedResult(
+                false,
+                "cmd.captured_officer.recruit_refused",
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese) },
+                new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English) });
+        }
+
         officer.CaptiveFactionId = 0;
         officer.JailedCityId = 0;
         officer.CityId = city.Id;
         officer.FreeOfficerStayMonths = 0;
         officer.Loyalty = Math.Max(officer.Loyalty, HireOfficerDefaultLoyalty);
+        city.Gold -= recruitOffer.GoldAmount;
         if (!city.OfficerIds.Contains(officer.Id))
         {
             city.OfficerIds.Add(officer.Id);
@@ -258,12 +283,214 @@ public partial class CommandResolver
         }
 
         TransferEquippedItemsToFaction(world, officer.Id, faction.Id);
+        if (offeredItem != null)
+        {
+            AssignItemToOfficer(world, offeredItem, faction.Id, officer.Id);
+        }
+
+        if (!string.IsNullOrWhiteSpace(recruitOffer.Appointment))
+        {
+            ApplyCapturedOfficerRecruitAppointment(world, city, faction, officer, recruitOffer.Appointment);
+        }
 
         return LocalizedResult(
             true,
             "cmd.captured_officer.recruit",
             new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese) },
             new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English) });
+    }
+
+    private bool DoesCapturedOfficerAcceptRecruit(WorldState world, CityData city, FactionData faction, OfficerData officer, CapturedOfficerRecruitOfferData recruitOffer, ItemData? offeredItem)
+    {
+        var chance = CapturedOfficerRecruitBaseChance;
+        chance += GetCapturedOfficerRecruitRelationshipBonus(world, faction, officer);
+        chance += GetRulerCharm(world, faction.Id) * CapturedOfficerRecruitRulerCharmFactor;
+        chance -= officer.Loyalty * CapturedOfficerRecruitLoyaltyPenaltyFactor;
+        chance -= officer.Ambition * CapturedOfficerRecruitAmbitionPenaltyFactor;
+        chance += recruitOffer.GoldAmount / 2000.0;
+        chance += GetCapturedOfficerRecruitAppointmentBonus(recruitOffer.Appointment);
+        chance += GetItemGiftAcceptanceBonus(offeredItem) / 100.0;
+
+        if (officer.JailedCityId == city.Id)
+        {
+            chance += Math.Max(0, 60 - city.Loyalty) / 500.0;
+        }
+
+        chance = Math.Clamp(chance, CapturedOfficerRecruitMinimumChance, CapturedOfficerRecruitMaximumChance);
+        return _random.NextDouble() < chance;
+    }
+
+    private bool ValidateCapturedOfficerRecruitOffer(
+        CityData city,
+        int factionId,
+        CapturedOfficerRecruitOfferData recruitOffer,
+        ItemData? offeredItem,
+        out CommandResult failureResult)
+    {
+        if (recruitOffer.GoldAmount < 0 || city.Gold < recruitOffer.GoldAmount)
+        {
+            failureResult = LocalizedResult(false, "cmd.captured_officer.not_enough_offer_resources");
+            return false;
+        }
+
+        if (recruitOffer.ItemId > 0 && (offeredItem == null || !IsItemOwnedByFactionInventory(offeredItem, factionId)))
+        {
+            failureResult = LocalizedResult(false, "cmd.item.invalid_hire_item");
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(recruitOffer.Appointment) &&
+            !IsSupportedCapturedOfficerRecruitAppointment(recruitOffer.Appointment))
+        {
+            failureResult = LocalizedResult(false, "cmd.assign_role.invalid_role");
+            return false;
+        }
+
+        failureResult = default!;
+        return true;
+    }
+
+    private void ApplyCapturedOfficerRecruitAppointment(
+        WorldState world,
+        CityData city,
+        FactionData faction,
+        OfficerData officer,
+        string appointment)
+    {
+        if (appointment.Equals(OfficerAppointmentRules.Chancellor, StringComparison.OrdinalIgnoreCase))
+        {
+            var previousHolder = world.GetOfficer(faction.ChancellorOfficerId);
+            if (previousHolder != null && previousHolder.Id != officer.Id)
+            {
+                ClearOfficerAppointment(previousHolder, OfficerAppointmentRules.Chancellor);
+            }
+
+            faction.ChancellorOfficerId = officer.Id;
+            AssignOfficerAppointment(officer, OfficerAppointmentRules.Chancellor);
+            return;
+        }
+
+        if (appointment.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase))
+        {
+            var previousHolder = world.GetOfficer(faction.ChiefStrategistOfficerId);
+            if (previousHolder != null && previousHolder.Id != officer.Id)
+            {
+                ClearOfficerAppointment(previousHolder, OfficerAppointmentRules.ChiefStrategist);
+            }
+
+            faction.ChiefStrategistOfficerId = officer.Id;
+            AssignOfficerAppointment(officer, OfficerAppointmentRules.ChiefStrategist);
+            return;
+        }
+
+        if (appointment.Equals(OfficerAppointmentRules.Governor, StringComparison.OrdinalIgnoreCase))
+        {
+            foreach (var cityOfficerId in city.OfficerIds)
+            {
+                if (cityOfficerId == officer.Id)
+                {
+                    continue;
+                }
+
+                var cityOfficer = world.GetOfficer(cityOfficerId);
+                if (cityOfficer != null)
+                {
+                    ClearOfficerAppointment(cityOfficer, OfficerAppointmentRules.Governor);
+                }
+            }
+        }
+
+        AssignOfficerAppointment(officer, appointment);
+    }
+
+    private static bool IsSupportedCapturedOfficerRecruitAppointment(string appointment)
+    {
+        return appointment.Equals(OfficerAppointmentRules.Governor, StringComparison.OrdinalIgnoreCase) ||
+               appointment.Equals(OfficerAppointmentRules.Strategist, StringComparison.OrdinalIgnoreCase) ||
+               appointment.Equals(OfficerAppointmentRules.Chancellor, StringComparison.OrdinalIgnoreCase) ||
+               appointment.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static double GetCapturedOfficerRecruitAppointmentBonus(string appointment)
+    {
+        if (string.IsNullOrWhiteSpace(appointment))
+        {
+            return 0.0;
+        }
+
+        return appointment.Trim().ToLowerInvariant() switch
+        {
+            "governor" => 0.18,
+            "strategist" => 0.15,
+            "chancellor" => 0.25,
+            "chiefstrategist" => 0.25,
+            _ => 0.0
+        };
+    }
+
+    private static double GetCapturedOfficerRecruitRelationshipBonus(WorldState world, FactionData faction, OfficerData captiveOfficer)
+    {
+        if (captiveOfficer.RelationshipType == null || captiveOfficer.RelationshipType.Count == 0)
+        {
+            return 0.0;
+        }
+
+        var bonus = 0.0;
+        var ruler = world.GetOfficer(faction.RulerOfficerId);
+        if (ruler != null)
+        {
+            bonus = Math.Max(bonus, GetCapturedOfficerRecruitRelationshipBonus(captiveOfficer, ruler, isRuler: true));
+        }
+
+        foreach (var factionOfficerId in faction.OfficerIds)
+        {
+            var factionOfficer = world.GetOfficer(factionOfficerId);
+            if (factionOfficer == null || factionOfficer.Id == ruler?.Id)
+            {
+                continue;
+            }
+
+            bonus = Math.Max(bonus, GetCapturedOfficerRecruitRelationshipBonus(captiveOfficer, factionOfficer, isRuler: false));
+        }
+
+        return bonus;
+    }
+
+    private static double GetCapturedOfficerRecruitRelationshipBonus(OfficerData captiveOfficer, OfficerData factionOfficer, bool isRuler)
+    {
+        var relationshipType = GetRelationshipTypeBetween(captiveOfficer, factionOfficer);
+        if (string.IsNullOrWhiteSpace(relationshipType))
+        {
+            return 0.0;
+        }
+
+        return relationshipType.Trim().ToLowerInvariant() switch
+        {
+            "family" => isRuler ? CapturedOfficerRecruitRulerFamilyBonus : CapturedOfficerRecruitFactionFamilyBonus,
+            _ => isRuler ? CapturedOfficerRecruitFactionFamilyBonus : CapturedOfficerRecruitFactionFamilyBonus / 2.0
+        };
+    }
+
+    private static string? GetRelationshipTypeBetween(OfficerData sourceOfficer, OfficerData targetOfficer)
+    {
+        foreach (var relationship in sourceOfficer.RelationshipType)
+        {
+            var relatedName = relationship.Key;
+            if (string.IsNullOrWhiteSpace(relatedName))
+            {
+                continue;
+            }
+
+            if ((!string.IsNullOrWhiteSpace(targetOfficer.NameZhHant) &&
+                 relatedName.Equals(targetOfficer.NameZhHant, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(targetOfficer.Name) &&
+                 relatedName.Equals(targetOfficer.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                return relationship.Value;
+            }
+        }
+
+        return null;
     }
 
     private CommandResult ResolveCapturedOfficerFree(WorldState world, CityData city, OfficerData officer)

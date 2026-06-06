@@ -37,8 +37,10 @@ public partial class HudController
         IEnumerable<OfficerSelectorScopeOption>? scopeOptions = null,
         string? initialScopeKey = null,
         Func<string>? titleFactory = null,
-        Func<IEnumerable<OfficerSelectorScopeOption>?>? scopeOptionsFactory = null) =>
-        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, titleFactory: titleFactory, scopeOptionsFactory: scopeOptionsFactory);
+        Func<IEnumerable<OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
+        OfficerSelectorDisplayConfig? displayConfig = null,
+        Func<OfficerSelectorDisplayConfig?>? displayConfigFactory = null) =>
+        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, displayConfig, titleFactory, scopeOptionsFactory, displayConfigFactory);
 
     internal void PersonnelShowAssignRoleOfficerSelectorDialog(
         string title,
@@ -70,6 +72,9 @@ public partial class HudController
     internal bool PersonnelIsFactionRuler(WorldState world, OfficerData officer) => IsFactionRuler(world, officer);
 
     internal bool PersonnelIsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => IsOfficerOldEnoughToJoin(world, officer);
+    internal Texture2D? PersonnelBuildOfficerPortraitTexture(int officerId) => BuildOfficerPortraitTexture(officerId);
+    internal string PersonnelBuildOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer);
+    internal string PersonnelGetPortraitLabel() => _localization?.T("ui.portrait") ?? "Portrait";
 
     internal void PersonnelApplyCommandButtonTheme(Button button)
     {
@@ -81,6 +86,9 @@ public partial class HudController
 
     internal OfficerSelectorDisplayConfig PersonnelBuildAssignRoleOfficerSelectorDisplayConfig()
         => BuildAssignRoleOfficerSelectorDisplayConfig();
+
+    internal OfficerSelectorDisplayConfig PersonnelBuildPrisonerOfficerSelectorDisplayConfig()
+        => BuildPrisonerOfficerSelectorDisplayConfig();
 
     private OfficerSelectorDisplayConfig BuildAssignRoleOfficerSelectorDisplayConfig()
     {
@@ -127,6 +135,57 @@ public partial class HudController
             statusName,
             age.ToString(),
             officer.Loyalty.ToString(),
+            officer.Strength.ToString(),
+            officer.Intelligence.ToString(),
+            officer.Charm.ToString(),
+            officer.Leadership.ToString(),
+            officer.Politics.ToString(),
+            officer.Combat.ToString()
+        ];
+    }
+
+    private OfficerSelectorDisplayConfig BuildPrisonerOfficerSelectorDisplayConfig()
+    {
+        return new OfficerSelectorDisplayConfig
+        {
+            Columns =
+            [
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.officers") ?? "Officer", MinWidth = 150 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.role") ?? "Role", MinWidth = 90 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.status") ?? "Status", MinWidth = 90 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.age") ?? "Age", MinWidth = 60 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.loyalty") ?? "Loyalty", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.ambition") ?? "Ambition", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.strength") ?? "Strength", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.intelligence") ?? "Intelligence", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.charm") ?? "Charm", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.leadership") ?? "Leadership", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.politics") ?? "Politics", MinWidth = 70 },
+                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.combat") ?? "Combat", MinWidth = 70 }
+            ],
+            BuildRowTexts = BuildPrisonerOfficerSelectorRowTexts,
+            PanelSize = new Vector2(1180.0f, 360.0f)
+        };
+    }
+
+    private IReadOnlyList<string> BuildPrisonerOfficerSelectorRowTexts(OfficerData officer)
+    {
+        var age = CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0);
+        var statusName = _turnManager?.World != null && _localization != null
+            ? BuildMaskedOfficerStatus(_turnManager.World, officer)
+            : string.Empty;
+        var loyaltyText = _turnManager?.World != null
+            ? BuildOfficerLoyaltyTableText(_turnManager.World, officer)
+            : officer.Loyalty.ToString();
+
+        return
+        [
+            _localization?.GetOfficerName(officer) ?? officer.Name,
+            GetDisplayedOfficerRole(officer),
+            statusName,
+            age.ToString(),
+            loyaltyText,
+            officer.Ambition.ToString(),
             officer.Strength.ToString(),
             officer.Intelligence.ToString(),
             officer.Charm.ToString(),

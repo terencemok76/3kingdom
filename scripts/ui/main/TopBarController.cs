@@ -20,6 +20,7 @@ internal sealed class TopBarController
     private Vector2 _contentSize;
     private bool _languageButtonConnected;
     private bool _godModeButtonConnected;
+    private bool _testButtonConnected;
     private bool _endTurnButtonConnected;
 
     public TopBarController(MainHudUiContext context)
@@ -97,6 +98,12 @@ internal sealed class TopBarController
         if (_context.GodModeButton != null)
         {
             _context.GodModeButton.Text = _context.BuildGodModeButtonText();
+        }
+
+        if (_context.TestButton != null)
+        {
+            _context.TestButton.Visible = _context.IsGodModeEnabled();
+            _context.TestButton.Text = "Test";
         }
 
         if (_context.LanguageButton != null)
@@ -180,6 +187,12 @@ internal sealed class TopBarController
             _godModeButtonConnected = true;
         }
 
+        if (_context.TestButton != null && !_testButtonConnected)
+        {
+            _context.TestButton.Pressed += OnTestButtonPressed;
+            _testButtonConnected = true;
+        }
+
         if (_context.EndTurnButton != null && !_endTurnButtonConnected)
         {
             _context.EndTurnButton.Pressed += OnEndTurnButtonPressed;
@@ -191,6 +204,7 @@ internal sealed class TopBarController
     {
         ApplySharedButtonTheme(_context.LanguageButton);
         ApplySharedButtonTheme(_context.GodModeButton);
+        ApplySharedButtonTheme(_context.TestButton);
         ApplySharedButtonTheme(_context.EndTurnButton);
     }
 
@@ -240,6 +254,12 @@ internal sealed class TopBarController
             _godModeButtonConnected = false;
         }
 
+        if (_context.TestButton != null && _testButtonConnected)
+        {
+            _context.TestButton.Pressed -= OnTestButtonPressed;
+            _testButtonConnected = false;
+        }
+
         if (_context.EndTurnButton != null && _endTurnButtonConnected)
         {
             _context.EndTurnButton.Pressed -= OnEndTurnButtonPressed;
@@ -255,6 +275,11 @@ internal sealed class TopBarController
     private void OnGodModeButtonPressed()
     {
         _context.ToggleGodMode();
+    }
+
+    private void OnTestButtonPressed()
+    {
+        _context.OpenTestDialog();
     }
 
     private void OnEndTurnButtonPressed()

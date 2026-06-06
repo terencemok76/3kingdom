@@ -10,6 +10,7 @@ internal sealed class MainHudUiController
     private readonly TopBarController _topBarController;
     private readonly CityInfoPanelController _cityInfoPanelController;
     private readonly LogPanelController _logPanelController;
+    private readonly TestToolsDialogController _testToolsDialogController;
 
     public MainHudUiController(HudController owner)
     {
@@ -18,6 +19,7 @@ internal sealed class MainHudUiController
         _topBarController = new TopBarController(_context);
         _cityInfoPanelController = new CityInfoPanelController(_context);
         _logPanelController = new LogPanelController(_context);
+        _testToolsDialogController = new TestToolsDialogController(_context);
     }
 
     public void Initialize()
@@ -25,6 +27,7 @@ internal sealed class MainHudUiController
         _topBarController.Initialize();
         _cityInfoPanelController.Initialize();
         _logPanelController.Initialize();
+        _testToolsDialogController.Initialize();
         _uiEventHub.CityStateChanged += OnWorldStateChanged;
         _uiEventHub.OfficerStateChanged += OnWorldStateChanged;
         _uiEventHub.OfficerAppointmentsChanged += OnWorldStateChanged;
@@ -39,6 +42,7 @@ internal sealed class MainHudUiController
         _uiEventHub.FactionLeadershipChanged -= OnWorldStateChanged;
         _topBarController.Shutdown();
         _cityInfoPanelController.Shutdown();
+        _testToolsDialogController.Hide();
     }
 
     public void RefreshText()
@@ -46,7 +50,10 @@ internal sealed class MainHudUiController
         _topBarController.RefreshText();
         _cityInfoPanelController.RefreshText();
         _logPanelController.RefreshText();
+        _testToolsDialogController.RefreshText();
     }
+
+    public void ShowTestToolsDialog() => _testToolsDialogController.Show();
 
     public void RefreshSelectedCity()
     {

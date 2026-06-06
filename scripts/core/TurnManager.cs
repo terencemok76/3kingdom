@@ -377,6 +377,13 @@ public class TurnManager
                 continue;
             }
 
+            if (World.PendingCapturedOfficerRecords.Any(record =>
+                    record.OfficerId == officer.Id &&
+                    record.WinnerFactionId == officer.CaptiveFactionId))
+            {
+                continue;
+            }
+
             var jailCity = officer.JailedCityId > 0 ? World.GetCity(officer.JailedCityId) : null;
             if (jailCity == null || jailCity.OwnerFactionId != officer.CaptiveFactionId)
             {

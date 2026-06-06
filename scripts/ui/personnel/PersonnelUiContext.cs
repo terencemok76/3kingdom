@@ -78,8 +78,10 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         IEnumerable<HudController.OfficerSelectorScopeOption>? scopeOptions = null,
         string? initialScopeKey = null,
         Func<string>? titleFactory = null,
-        Func<IEnumerable<HudController.OfficerSelectorScopeOption>?>? scopeOptionsFactory = null) =>
-        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, titleFactory, scopeOptionsFactory);
+        Func<IEnumerable<HudController.OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
+        HudController.OfficerSelectorDisplayConfig? displayConfig = null,
+        Func<HudController.OfficerSelectorDisplayConfig?>? displayConfigFactory = null) =>
+        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, titleFactory, scopeOptionsFactory, displayConfig, displayConfigFactory);
 
     public void ShowAssignRoleOfficerSelectorDialog(
         string title,
@@ -99,6 +101,9 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
     public bool IsFactionRuler(WorldState world, OfficerData officer) => _owner.PersonnelIsFactionRuler(world, officer);
 
     public bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => _owner.PersonnelIsOfficerOldEnoughToJoin(world, officer);
+    public Texture2D? BuildOfficerPortraitTexture(int officerId) => _owner.PersonnelBuildOfficerPortraitTexture(officerId);
+    public string BuildOfficerDetailText(OfficerData officer) => _owner.PersonnelBuildOfficerDetailText(officer);
+    public string GetPortraitLabel() => _owner.PersonnelGetPortraitLabel();
     public void ApplyCommandButtonTheme(Button button) => _owner.PersonnelApplyCommandButtonTheme(button);
 
     public List<int> GetAvailableOfficerIdsForOrder() => _owner.PersonnelGetAvailableOfficerIdsForOrder();
@@ -210,6 +215,63 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         return itemId > 0 ? world.GetItem(itemId) : null;
     }
 
+    public void PopulateAppointmentOption(OptionButton? option)
+    {
+        var localization = Localization;
+        if (option == null || localization == null)
+        {
+            return;
+        }
+
+        option.Clear();
+        option.AddItem(localization.T("ui.none"));
+        option.SetItemMetadata(0, string.Empty);
+
+        AddAppointmentOption(option, OfficerAppointmentRules.Governor);
+        AddAppointmentOption(option, OfficerAppointmentRules.Strategist);
+        AddAppointmentOption(option, OfficerAppointmentRules.Chancellor);
+        AddAppointmentOption(option, OfficerAppointmentRules.ChiefStrategist);
+        option.Select(0);
+    }
+
+    public string GetAppointmentDisplayName(string appointment)
+    {
+        var localization = Localization;
+        if (localization == null)
+        {
+            return appointment;
+        }
+
+        return appointment.ToLowerInvariant() switch
+        {
+            "governor" => localization.T("role.governor"),
+            "strategist" => localization.T("role.strategist"),
+            "chancellor" => localization.T("ui.chancellor"),
+            "chiefstrategist" => localization.T("ui.chief_strategist"),
+            _ => appointment
+        };
+    }
+
+    public string GetSelectedAppointmentFromOption(OptionButton? option)
+    {
+        if (option == null || option.Selected < 0)
+        {
+            return string.Empty;
+        }
+
+        var metadata = option.GetItemMetadata(option.Selected);
+        return metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
+    }
+
+    private void AddAppointmentOption(OptionButton option, string appointment)
+    {
+        option.AddItem(GetAppointmentDisplayName(appointment));
+        option.SetItemMetadata(option.ItemCount - 1, appointment);
+    }
+
     public HudController.OfficerSelectorDisplayConfig BuildAssignRoleOfficerSelectorDisplayConfig()
         => _owner.PersonnelBuildAssignRoleOfficerSelectorDisplayConfig();
+
+    public HudController.OfficerSelectorDisplayConfig BuildPrisonerOfficerSelectorDisplayConfig()
+        => _owner.PersonnelBuildPrisonerOfficerSelectorDisplayConfig();
 }

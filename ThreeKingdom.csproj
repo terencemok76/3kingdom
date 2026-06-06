@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="tmpbuild\**\*.cs" />
+    <None Remove="tmpbuild\**\*" />
     <Compile Remove="tools\AiHarness\**\*.cs" />
     <None Include="tools\AiHarness\**\*" />
   </ItemGroup>

@@ -1,0 +1,66 @@
+{
+    "ui.captured_officer.speech_label": {
+        "zhHant": "俘虜陳詞",
+        "en": "Captured Officer's Words"
+    },
+    "ui.captured_officer.speech_accept": {
+        "zhHant": "時勢已變。若你肯善待於我，我願歸降效力。",
+        "en": "Times have changed. Treat me well, and I will serve you."
+    },
+    "ui.captured_officer.speech_kill_me": {
+        "zhHant": "我不願背棄舊主。若無他路，便請賜我一死。",
+        "en": "I will not betray my former lord. If there is no other path, grant me death."
+    },
+    "ui.captured_officer.speech_defiant": {
+        "zhHant": "休想勸我變節。你若要處置，便痛快些。",
+        "en": "Do not think to sway me. If you mean to judge me, then be swift."
+    },
+    "ui.captured_officer.speech_offer_more": {
+        "zhHant": "若真想我歸順，就拿出誠意與位置來談。",
+        "en": "If you truly want my allegiance, come with sincerity and a worthy place."
+    },
+    "ui.captured_officer.speech_wait_and_see": {
+        "zhHant": "是生是死，全在你一念。若肯留我，來日未必無用。",
+        "en": "Life or death rests on your will. Spare me, and I may yet prove useful."
+    },
+    "ui.captured_officer.recruit_prompt_summary": {
+        "zhHant": "你準備招降「{0}」。先聽聽他在「{1}」的回應。",
+        "en": "You are about to recruit \"{0}\". Hear their response in \"{1}\" first."
+    },
+    "ui.captured_officer.free_prompt_summary": {
+        "zhHant": "你準備釋放「{0}」。先聽聽他在「{1}」的回應。",
+        "en": "You are about to free \"{0}\". Hear their response in \"{1}\" first."
+    },
+    "ui.captured_officer.kill_prompt_summary": {
+        "zhHant": "你準備處決「{0}」。先聽聽他在「{1}」的最後之言。",
+        "en": "You are about to execute \"{0}\". Hear their final words in \"{1}\" first."
+    },
+    "ui.captured_officer.jail_prompt_summary": {
+        "zhHant": "你準備將「{0}」下獄。先聽聽他在「{1}」的回應。",
+        "en": "You are about to jail \"{0}\". Hear their response in \"{1}\" first."
+    },
+    "ui.captured_officer.free_label": {
+        "zhHant": "離去之言",
+        "en": "Words on Departure"
+    },
+    "ui.captured_officer.free_speech": {
+        "zhHant": "既然放我一條生路，這筆情分我記下了。來日若再相逢，自有定數。",
+        "en": "Since you spare my life, I will remember this debt. If we meet again, fate will decide the rest."
+    },
+    "ui.captured_officer.kill_label": {
+        "zhHant": "臨終之言",
+        "en": "Final Words"
+    },
+    "ui.captured_officer.kill_speech": {
+        "zhHant": "成敗到此為止，我已無可再言。只願後人知我並未失節。",
+        "en": "My road ends here. Let it at least be known that I did not abandon my honor."
+    },
+    "ui.captured_officer.jail_label": {
+        "zhHant": "下獄之言",
+        "en": "Words Before Imprisonment"
+    },
+    "ui.captured_officer.jail_speech": {
+        "zhHant": "要關便關吧。人還活著，總還有再見天日的時候。",
+        "en": "Then imprison me if you must. So long as I live, I may yet see daylight again."
+    }
+}

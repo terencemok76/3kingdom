@@ -258,6 +258,7 @@ public partial class HudController : CanvasLayer
     {
         var languageButton = MainHudLanguageButton;
         var godModeButton = MainHudGodModeButton;
+        var topBarTestButton = MainHudTopBarTestButton;
         if (languageButton != null)
         {
             languageButton.Visible = false;
@@ -265,6 +266,10 @@ public partial class HudController : CanvasLayer
         if (godModeButton != null)
         {
             godModeButton.Visible = false;
+        }
+        if (topBarTestButton != null)
+        {
+            topBarTestButton.Visible = false;
         }
 
         _commandButtons = GetNodeOrNull<GridContainer>("Root/LeftPanel/CommandButtons");
@@ -295,6 +300,10 @@ public partial class HudController : CanvasLayer
         if (attackButton != null)
         {
             attackButton.Visible = false;
+        }
+        if (MainHudTestCaptureButton != null)
+        {
+            MainHudTestCaptureButton.Visible = false;
         }
         _mainHudUiController = new MainHudUiController(this);
         InitializeFloatingPanels();

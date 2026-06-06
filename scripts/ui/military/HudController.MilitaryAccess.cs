@@ -54,6 +54,10 @@ public partial class HudController
         ExecutePlayerCommand(CommandType.Attack, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, attackOfficerDeployments: deployments, officerIds: officerIds);
     internal string MilitaryGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
     internal void MilitaryContinuePendingAttackResolution() => ContinuePendingAttackResolution();
+    internal bool MilitaryIsResolvingEndTurn() => _isResolvingEndTurn;
+    internal Texture2D? MilitaryBuildOfficerPortraitTexture(int officerId) => BuildOfficerPortraitTexture(officerId);
+    internal string MilitaryBuildOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer);
+    internal string MilitaryGetPortraitLabel() => _localization?.T("ui.portrait") ?? "Portrait";
 
     internal void MilitaryApplyCommandButtonTheme(Button button)
     {

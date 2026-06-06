@@ -70,23 +70,7 @@ corner_radius_top_right = 5
 corner_radius_bottom_left = 5
 corner_radius_bottom_right = 5
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_portrait_panel"]
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-bg_color = Color(0.12, 0.12, 0.14, 0.82)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.52, 0.43, 0.28, 0.9)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[node name="CapturedOfficerDialogOverlay" type="Control"]
+[node name="TestToolsDialogOverlay" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -105,18 +89,18 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(860, 430)
-offset_right = 860.0
-offset_bottom = 430.0
+custom_minimum_size = Vector2(420, 180)
+offset_right = 420.0
+offset_bottom = 180.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(820, 390)
+custom_minimum_size = Vector2(380, 140)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
@@ -133,7 +117,7 @@ mouse_filter = 2
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
 layout_mode = 2
-text = "Captured Officer"
+text = "測試工具"
 horizontal_alignment = 1
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
@@ -156,80 +140,13 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
 [node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 autowrap_mode = 3
-text = "Captured officer summary"
-
-[node name="OfficerInfoRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 12
-
-[node name="PortraitPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerInfoRow"]
-custom_minimum_size = Vector2(200, 260)
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_portrait_panel")
-
-[node name="PortraitCenter" type="CenterContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerInfoRow/PortraitPanel"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="PortraitStack" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerInfoRow/PortraitPanel/PortraitCenter"]
-layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 6
-
-[node name="PortraitRect" type="TextureRect" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerInfoRow/PortraitPanel/PortraitCenter/PortraitStack"]
-custom_minimum_size = Vector2(160, 180)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="PortraitPlaceholder" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerInfoRow/PortraitPanel/PortraitCenter/PortraitStack"]
-visible = false
-layout_mode = 2
-horizontal_alignment = 1
-vertical_alignment = 1
-text = "Portrait"
-
-[node name="OfficerInfoColumn" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerInfoRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="DetailLabel" type="RichTextLabel" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerInfoRow/OfficerInfoColumn"]
-custom_minimum_size = Vector2(0, 250)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-bbcode_enabled = true
-scroll_active = false
-fit_content = true
-
-[node name="WarningLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-autowrap_mode = 3
+text = "開啟測試工具。"
 
 [node name="ActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 10
 
-[node name="KillButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ActionRow"]
+[node name="TestCaptiveButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ActionRow"]
 layout_mode = 2
 focus_mode = 0
-text = "Kill"
-
-[node name="RecruitButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ActionRow"]
-layout_mode = 2
-focus_mode = 0
-text = "Recruit"
-
-[node name="FreeButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ActionRow"]
-layout_mode = 2
-focus_mode = 0
-text = "Free"
-
-[node name="JailButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ActionRow"]
-layout_mode = 2
-focus_mode = 0
-text = "Jail"
+text = "測試俘虜"

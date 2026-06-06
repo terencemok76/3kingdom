@@ -70,6 +70,22 @@ corner_radius_top_right = 5
 corner_radius_bottom_left = 5
 corner_radius_bottom_right = 5
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_portrait_panel"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.12, 0.12, 0.14, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.52, 0.43, 0.28, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [node name="PrisonerManagementDialogOverlay" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -89,14 +105,14 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(760, 250)
-offset_right = 760.0
-offset_bottom = 250.0
+custom_minimum_size = Vector2(920, 560)
+offset_right = 920.0
+offset_bottom = 560.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(720, 210)
+custom_minimum_size = Vector2(880, 520)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -131,7 +147,7 @@ mouse_filter = 2
 layout_mode = 2
 custom_minimum_size = Vector2(28, 22)
 focus_mode = 0
-text = "×"
+text = "X"
 theme_override_colors/font_color = Color(0.12, 0.09, 0.05, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
@@ -142,25 +158,131 @@ layout_mode = 2
 autowrap_mode = 3
 text = "Prisoner summary"
 
-[node name="OfficerSelectorRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="PrisonerInfoRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="PortraitPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow"]
+custom_minimum_size = Vector2(190, 250)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_portrait_panel")
+
+[node name="PortraitCenter" type="CenterContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/PortraitPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="PortraitStack" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/PortraitPanel/PortraitCenter"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 6
+
+[node name="PortraitRect" type="TextureRect" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/PortraitPanel/PortraitCenter/PortraitStack"]
+custom_minimum_size = Vector2(150, 180)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PortraitPlaceholder" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/PortraitPanel/PortraitCenter/PortraitStack"]
+visible = false
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Portrait"
+
+[node name="InfoColumn" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="OfficerSelectorRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/InfoColumn"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="SelectedOfficerLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
+[node name="SelectedOfficerLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/InfoColumn/OfficerSelectorRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Officer: -"
 autowrap_mode = 3
 
-[node name="SelectOfficerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
+[node name="SelectOfficerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/InfoColumn/OfficerSelectorRow"]
 layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
 
-[node name="WarningLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="DetailLabel" type="RichTextLabel" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/InfoColumn"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_active = false
+fit_content = true
+
+[node name="SpeechLabel" type="RichTextLabel" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/PrisonerInfoRow/InfoColumn"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+scroll_active = false
+fit_content = true
+
+[node name="GoldRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GoldLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/GoldRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Gold"
+
+[node name="GoldSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/GoldRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.0
+max_value = 99999.0
+step = 100.0
+
+[node name="ItemRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ItemLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ItemRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Item"
+
+[node name="ItemOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ItemRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AppointmentRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AppointmentLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AppointmentRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Appointment"
+
+[node name="AppointmentOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AppointmentRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="OfferSummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 autowrap_mode = 3
+text = "Offer summary"
+
+[node name="WarningLabel" type="RichTextLabel" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+bbcode_enabled = true
+scroll_active = false
+fit_content = true
 
 [node name="ActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

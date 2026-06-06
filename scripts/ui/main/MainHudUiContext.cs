@@ -1,10 +1,11 @@
+using System;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
-internal sealed class MainHudUiContext
+internal sealed class MainHudUiContext : IFloatingOverlayContext
 {
     private readonly HudController _owner;
 
@@ -25,6 +26,7 @@ internal sealed class MainHudUiContext
     public Label? StoryLabel => _owner.MainHudStoryLabel;
     public Button? LanguageButton => _owner.MainHudLanguageButton;
     public Button? GodModeButton => _owner.MainHudGodModeButton;
+    public Button? TestButton => _owner.MainHudTopBarTestButton;
     public Button? EndTurnButton => _owner.MainHudEndTurnButton;
 
     public Label? CityNameLabel => _owner.MainHudCityNameLabel;
@@ -42,12 +44,14 @@ internal sealed class MainHudUiContext
     public Button? CivilButton => _owner.MainHudCivilButton;
     public Button? AttackButton => _owner.MainHudAttackButton;
     public Button? ViewButton => _owner.MainHudViewButton;
+    public Button? TestCaptureButton => _owner.MainHudTestCaptureButton;
 
     public RichTextLabel? LogText => _owner.MainHudLogText;
     public Label? CityPanelHeaderLabel => _owner.MainHudCityPanelHeaderLabel;
     public Label? LogPanelHeaderLabel => _owner.MainHudLogPanelHeaderLabel;
 
     public string BuildGodModeButtonText() => _owner.MainHudBuildGodModeButtonText();
+    public bool IsGodModeEnabled() => _owner.MainHudIsGodModeEnabled();
     public string BuildCityHeaderText(CityData? city) => _owner.MainHudBuildCityHeaderText(city);
     public void PopulateCityStats(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount) => _owner.MainHudPopulateCityStats(panel, ownerName, city, freeOfficerCount);
     public void UpdateGameplayButtonStates() => _owner.MainHudUpdateGameplayButtonStates();
@@ -55,6 +59,7 @@ internal sealed class MainHudUiContext
     public void MoveToFront(CanvasItem? item) => _owner.MainHudMoveToFront(item);
     public void ToggleLanguage() => _owner.MainHudToggleLanguage();
     public void ToggleGodMode() => _owner.MainHudToggleGodMode();
+    public void OpenTestDialog() => _owner.MainHudOpenTestDialog();
     public void EndTurn() => _owner.MainHudEndTurn();
     public void OpenInternalAffairs() => _owner.MainHudOpenInternalAffairs();
     public void OpenMilitary() => _owner.MainHudOpenMilitary();
@@ -68,4 +73,29 @@ internal sealed class MainHudUiContext
     public void OpenCivil() => _owner.MainHudOpenCivil();
     public void OpenAttack() => _owner.MainHudOpenAttack();
     public void OpenView() => _owner.MainHudOpenView();
+    public void OpenTestCapture() => _owner.MainHudOpenTestCapture();
+
+    public Control CreateOverlay(string scenePath, Action closeAction)
+    {
+        var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
+        dialog.Visible = false;
+        Node parent = _owner;
+        if (_owner.MainHudOverlayParent != null)
+        {
+            parent = _owner.MainHudOverlayParent;
+        }
+
+        parent.AddChild(dialog);
+        return dialog;
+    }
+
+    public void PopupDialog(Control? dialog) => _owner.MainHudPopupDialog(dialog);
+
+    public void CloseOverlay(Action closeAction)
+    {
+        _owner.MainHudPlayUiClickSfx();
+        closeAction();
+    }
+
+    public void BringOverlayToFront(CanvasItem? item) => _owner.MainHudMoveToFront(item);
 }

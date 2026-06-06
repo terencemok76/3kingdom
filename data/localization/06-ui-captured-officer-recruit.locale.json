@@ -1,0 +1,62 @@
+{
+    "ui.captured_officer.recruit_accepted_title": {
+        "zhHant": "歸降",
+        "en": "Officer Joined"
+    },
+    "ui.captured_officer.recruit_accepted_summary": {
+        "zhHant": "武將「{0}」接受招降，願於「{1}」效力。",
+        "en": "Officer \"{0}\" accepted recruitment and will now serve in \"{1}\"."
+    },
+    "ui.captured_officer.recruit_accept_label": {
+        "zhHant": "歸降之言",
+        "en": "Words of Surrender"
+    },
+    "ui.captured_officer.free_title": {
+        "zhHant": "釋放",
+        "en": "Released"
+    },
+    "ui.captured_officer.free_summary": {
+        "zhHant": "武將「{0}」已自「{1}」獲釋。",
+        "en": "Officer \"{0}\" has been released from \"{1}\"."
+    },
+    "ui.captured_officer.free_label": {
+        "zhHant": "離去之言",
+        "en": "Words on Departure"
+    },
+    "ui.captured_officer.free_speech": {
+        "zhHant": "今日得免於難，此情我記下了。來日是敵是友，且看天命。",
+        "en": "I will remember this mercy. Whether we meet as foe or friend again, let fate decide."
+    },
+    "ui.captured_officer.kill_title": {
+        "zhHant": "處決",
+        "en": "Execution"
+    },
+    "ui.captured_officer.kill_summary": {
+        "zhHant": "武將「{0}」在「{1}」被處決。",
+        "en": "Officer \"{0}\" was executed in \"{1}\"."
+    },
+    "ui.captured_officer.kill_label": {
+        "zhHant": "臨終之言",
+        "en": "Final Words"
+    },
+    "ui.captured_officer.kill_speech": {
+        "zhHant": "成王敗寇，事已至此，我無話可說。只願後人記得我曾盡忠。",
+        "en": "The victor writes the end. I have little left to say, save that I served with all my loyalty."
+    },
+    "ui.captured_officer.recruit_accept_speech_default": {
+        "zhHant": "承蒙不棄。自今日起，我願盡心效力，還望明公信任。",
+        "en": "You have shown me mercy. From this day on, I will serve with all I have."
+    },
+    "ui.captured_officer.recruit_accept_speech_gold": {
+        "zhHant": "明公厚待於我，我自當知恩圖報，不負今日之選。",
+        "en": "Your generosity will not be forgotten. I will repay this trust with loyal service."
+    },
+    "ui.captured_officer.recruit_accept_speech_item": {
+        "zhHant": "既賜重禮，又肯容我立足。我願收下此情，效命麾下。",
+        "en": "You grant both honor and a place to stand. I accept, and will serve under your banner."
+    },
+    "ui.captured_officer.recruit_accept_speech_appointment": {
+        "zhHant": "既蒙委以職位，我自當謹守本分，以功績回報知遇。",
+        "en": "Since you entrust me with office, I will answer that faith with worthy deeds."
+    }
+}

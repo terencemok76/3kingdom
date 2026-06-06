@@ -325,6 +325,11 @@ public partial class HudController : CanvasLayer
         {
             MainHudViewButton.Disabled = !enabled;
         }
+
+        if (MainHudTestCaptureButton != null)
+        {
+            MainHudTestCaptureButton.Disabled = !enabled;
+        }
     }
 
     private void UpdateGameplayButtonStates()
@@ -410,6 +415,11 @@ public partial class HudController : CanvasLayer
         if (MainHudViewButton != null)
         {
             MainHudViewButton.Disabled = !baseEnabled || !hasSelectedCity;
+        }
+
+        if (MainHudTestCaptureButton != null)
+        {
+            MainHudTestCaptureButton.Disabled = !baseEnabled || !isPlayerCity;
         }
     }
 

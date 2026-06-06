@@ -1,0 +1,10 @@
+{
+    "ui.captured_officer.speech_accept_after_hire": {
+        "zhHant": "既蒙收納，我便在你麾下效力。從今日起，願以功績回報此恩。",
+        "en": "Now that you have accepted me, I will serve beneath your banner and repay this mercy with deeds."
+    },
+    "ui.captured_officer.recruit_failed_summary": {
+        "zhHant": "你試圖招降「{0}」，但他在「{1}」拒絕歸順。",
+        "en": "You attempted to recruit \"{0}\", but they refused to surrender in \"{1}\"."
+    }
+}

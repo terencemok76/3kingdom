@@ -791,6 +791,14 @@
                                          "zhHant":  "俘虜武將「{0}」已於「{1}」歸降。",
                                          "en":  "Captured officer \"{0}\" has been recruited in \"{1}\"."
                                      },
+    "cmd.captured_officer.recruit_refused":  {
+                                                 "zhHant":  "俘虜武將「{0}」拒絕於「{1}」歸降，仍被關押中。",
+                                                 "en":  "Captured officer \"{0}\" refused recruitment in \"{1}\" and remains imprisoned."
+                                     },
+    "cmd.captured_officer.not_enough_offer_resources":  {
+                                                            "zhHant":  "招降所承諾的金不足，無法提出此條件。",
+                                                            "en":  "There is not enough gold to make this recruitment offer."
+                                                        },
     "cmd.attack.capture_suffix":  {
                                       "zhHant":  "俘虜：{0}。",
                                       "en":  "Captured: {0}."
