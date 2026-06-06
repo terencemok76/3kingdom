@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThreeKingdom.Data;
@@ -50,6 +51,7 @@ public class TurnManager
     private const double BaseHorseBirthRate = 0.10;
     private const double BaseDisasterChance = 0.08;
     private const double BaseBumperHarvestChance = 0.05;
+    private const int NaturalDeathStartAge = 50;
     private const int RebellionLoyaltyThreshold = 55;
     private const int BanditLoyaltyThreshold = 65;
     private const int BanditDefenseThreshold = 45;
@@ -266,6 +268,7 @@ public class TurnManager
 
         AdvanceDiplomacyRelations();
         AdvanceCityIntel();
+        AdvanceOfficerNaturalDeaths();
         FreeOfficerMovement.Advance(World);
     }
 
@@ -312,6 +315,36 @@ public class TurnManager
         }
 
         World.CityIntelRecords.RemoveAll(record => record.RemainingMonths <= 0);
+    }
+
+    private void AdvanceOfficerNaturalDeaths()
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        foreach (var officer in World.Officers.ToList())
+        {
+            if (!ShouldApplyNaturalDeathChance(World, officer))
+            {
+                continue;
+            }
+
+            var deathChance = GetNaturalDeathChance(GetOfficerAge(World, officer));
+            if (deathChance <= 0.0)
+            {
+                continue;
+            }
+
+            var random = new Random(HashCode.Combine(World.RandomSeed, World.Year, World.Month, officer.Id, 4703));
+            if (random.NextDouble() >= deathChance)
+            {
+                continue;
+            }
+
+            EliminateOfficer(World, officer);
+        }
     }
 
     private void ResolvePendingCommandsOfType(
@@ -854,5 +887,229 @@ public class TurnManager
     {
         var facilityBonus = city.HorsePastureLevel * 0.05;
         return BaseHorseBirthRate + facilityBonus;
+    }
+
+    private static bool ShouldApplyNaturalDeathChance(WorldState world, OfficerData officer)
+    {
+        if (officer.DeathYear > 0 || officer.BirthYear <= 0)
+        {
+            return false;
+        }
+
+        return GetOfficerAge(world, officer) >= NaturalDeathStartAge;
+    }
+
+    private static int GetOfficerAge(WorldState world, OfficerData officer)
+    {
+        return world.Year - officer.BirthYear;
+    }
+
+    private static double GetNaturalDeathChance(int age)
+    {
+        return age switch
+        {
+            < 50 => 0.0,
+            <= 59 => 0.0015,
+            <= 69 => 0.0050,
+            <= 79 => 0.0150,
+            <= 89 => 0.0400,
+            _ => 0.0800
+        };
+    }
+
+    private static void EliminateOfficer(WorldState world, OfficerData officer)
+    {
+        var city = officer.CityId > 0 ? world.GetCity(officer.CityId) : null;
+        var faction = world.Factions.FirstOrDefault(item =>
+            item.RulerOfficerId == officer.Id ||
+            item.OfficerIds.Contains(officer.Id));
+        var factionId = faction?.Id ?? 0;
+        var wasRuler = faction?.RulerOfficerId == officer.Id;
+
+        city?.OfficerIds.Remove(officer.Id);
+        faction?.OfficerIds.Remove(officer.Id);
+
+        foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officer.Id))
+        {
+            item.EquippedOfficerId = 0;
+            if (city != null && city.OwnerFactionId > 0)
+            {
+                item.OwnerFactionId = city.OwnerFactionId;
+                item.OwnerCityId = 0;
+            }
+            else
+            {
+                item.OwnerFactionId = 0;
+                item.OwnerCityId = 0;
+            }
+        }
+
+        world.InternalAffairsSchedules.RemoveAll(schedule => schedule.OfficerId == officer.Id);
+        world.PendingCommands.RemoveAll(command => command.OfficerIds.Contains(officer.Id));
+
+        officer.CityId = 0;
+        officer.FreeOfficerStayMonths = 0;
+        officer.DeathYear = world.Year;
+        officer.Appointments.Clear();
+
+        foreach (var otherFaction in world.Factions)
+        {
+            if (otherFaction.ChancellorOfficerId == officer.Id)
+            {
+                otherFaction.ChancellorOfficerId = 0;
+            }
+
+            if (otherFaction.ChiefStrategistOfficerId == officer.Id)
+            {
+                otherFaction.ChiefStrategistOfficerId = 0;
+            }
+        }
+
+        if (faction == null)
+        {
+            return;
+        }
+
+        if (wasRuler)
+        {
+            faction.RulerOfficerId = 0;
+            ResolveRulerDeath(world, factionId);
+        }
+    }
+
+    private static void ResolveRulerDeath(WorldState world, int factionId)
+    {
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return;
+        }
+
+        var candidateIds = faction.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null && IsOfficerAlive(world, officer))
+            .OrderByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
+            .ThenByDescending(officer => officer!.Loyalty)
+            .Select(officer => officer!.Id)
+            .ToList();
+
+        if (candidateIds.Count == 0)
+        {
+            CollapseFaction(world, factionId);
+            return;
+        }
+
+        var successor = world.GetOfficer(candidateIds[0]);
+        if (successor == null)
+        {
+            CollapseFaction(world, factionId);
+            return;
+        }
+
+        ApplyFactionSuccessor(world, faction, successor);
+    }
+
+    private static void ApplyFactionSuccessor(WorldState world, FactionData faction, OfficerData successor)
+    {
+        faction.RulerOfficerId = successor.Id;
+        if (faction.ChancellorOfficerId == successor.Id)
+        {
+            faction.ChancellorOfficerId = 0;
+        }
+
+        if (faction.ChiefStrategistOfficerId == successor.Id)
+        {
+            faction.ChiefStrategistOfficerId = 0;
+        }
+
+        OfficerAppointmentRules.AddAppointment(successor, OfficerAppointmentRules.Lord);
+        successor.Belongs = faction.Id.ToString();
+
+        if (!faction.OfficerIds.Contains(successor.Id))
+        {
+            faction.OfficerIds.Add(successor.Id);
+        }
+
+        foreach (var officerId in faction.OfficerIds)
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            officer.Belongs = faction.Id.ToString();
+            if (officer.Id != successor.Id)
+            {
+                OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
+            }
+        }
+    }
+
+    private static void CollapseFaction(WorldState world, int factionId)
+    {
+        var faction = world.GetFaction(factionId);
+        if (faction == null)
+        {
+            return;
+        }
+
+        var cityIds = world.Cities
+            .Where(city => city.OwnerFactionId == factionId)
+            .Select(city => city.Id)
+            .ToList();
+
+        foreach (var cityId in cityIds)
+        {
+            var city = world.GetCity(cityId);
+            if (city == null)
+            {
+                continue;
+            }
+
+            city.OwnerFactionId = 0;
+            city.Loyalty = 50;
+            city.PrefectAuthorizationType = PrefectAuthorizationType.None;
+            city.PrefectPlanJobType = InternalAffairsJobType.Farm;
+            city.PrefectPlanConstructionProjectType = ConstructionProjectType.None;
+            city.PrefectPlanInvestedGold = 0;
+            city.PrefectPlanTotalMonths = 0;
+            city.PrefectPlanRemainingMonths = 0;
+            city.PrefectPlanIsPlayerDirected = false;
+        }
+
+        foreach (var officerId in faction.OfficerIds.ToList())
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
+            if (officer.CityId > 0)
+            {
+                officer.FreeOfficerStayMonths = Math.Max(officer.FreeOfficerStayMonths, 2);
+            }
+        }
+
+        faction.OfficerIds.Clear();
+        faction.RulerOfficerId = 0;
+        faction.ChancellorOfficerId = 0;
+        faction.ChiefStrategistOfficerId = 0;
+        world.DiplomacyRelations.RemoveAll(relation => relation.FactionAId == factionId || relation.FactionBId == factionId);
+        world.PendingCommands.RemoveAll(command => command.ActorFactionId == factionId);
+        world.InternalAffairsSchedules.RemoveAll(schedule => cityIds.Contains(schedule.CityId));
+        world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == factionId);
+    }
+
+    private static bool IsOfficerAlive(WorldState world, OfficerData? officer)
+    {
+        if (officer == null)
+        {
+            return false;
+        }
+
+        return officer.DeathYear <= 0 || world.Year <= officer.DeathYear;
     }
 }

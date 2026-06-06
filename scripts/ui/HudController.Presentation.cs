@@ -198,7 +198,7 @@ public partial class HudController : CanvasLayer
     {
         var canViewOfficer = CanViewOfficerFullInformation(officer);
         var officerName = canViewOfficer ? (_localization?.GetOfficerName(officer) ?? officer.Name) : UnknownInfoText;
-        var roleName = canViewOfficer ? (_localization?.GetOfficerRole(officer) ?? officer.Role) : UnknownInfoText;
+        var roleName = canViewOfficer ? GetDisplayedOfficerRole(officer) : UnknownInfoText;
         var appointmentName = canViewOfficer ? BuildOfficerAppointmentsText(officer) : UnknownInfoText;
         var generalTitle = _localization?.GetProgressionTitle(officer.GeneralTitle) ?? officer.GeneralTitle;
         var strategistTitle = _localization?.GetProgressionTitle(officer.StrategistTitle) ?? officer.StrategistTitle;
@@ -369,7 +369,7 @@ public partial class HudController : CanvasLayer
 
     private static bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer)
     {
-        return officer.BirthYear <= 0 || world.Year - officer.BirthYear >= 18;
+        return officer.BirthYear <= 0 || world.Year - officer.BirthYear >= 14;
     }
 
     private void EnsureOfficerDetailWidgets()
@@ -394,7 +394,7 @@ public partial class HudController : CanvasLayer
     private string BuildOfficerListRowText(OfficerData officer, bool includeCityName = false)
     {
         var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
-        var roleName = _localization?.GetOfficerRole(officer) ?? officer.Role;
+        var roleName = GetDisplayedOfficerRole(officer);
         var cityText = string.Empty;
         if (includeCityName && _turnManager?.World != null && _localization != null)
         {
@@ -636,6 +636,11 @@ public partial class HudController : CanvasLayer
         var appointments = new List<string>();
         foreach (var appointment in officer.Appointments)
         {
+            if (appointment.Equals(OfficerAppointmentRules.Lord, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             appointments.Add(_localization.GetAppointmentName(appointment));
         }
 

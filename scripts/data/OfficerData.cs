@@ -9,7 +9,7 @@ public class OfficerData
     public string Name { get; set; } = string.Empty;
     [JsonPropertyName("name_cn")]
     public string NameZhHant { get; set; } = string.Empty;
-    public string Role { get; set; } = "General";
+    public string Role { get; set; } = "Common";
     public string Belongs { get; set; } = string.Empty;
     public string Sex { get; set; } = string.Empty;
     [JsonPropertyName("birth_year")]

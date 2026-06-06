@@ -160,7 +160,7 @@ public partial class HudController
         }
 
         var includeCityName = _officerListScope == OfficerListScope.Faction;
-        _officerListTable.Columns = includeCityName ? 9 : 8;
+        _officerListTable.Columns = includeCityName ? 13 : 12;
         SetViewTableColumn(0, _localization.T("ui.officers"), 170, ViewTableSortField.Name);
         SetViewTableColumn(1, _localization.T("ui.role"), 120, ViewTableSortField.Role);
         SetViewTableColumn(2, _localization.T("ui.appointed_titles"), 170, ViewTableSortField.Appointment);
@@ -172,7 +172,11 @@ public partial class HudController
             SetViewTableColumn(6, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
             SetViewTableColumn(7, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
             SetViewTableColumn(8, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
-            StretchTrailingViewColumns(9, 6, 170 + 120 + 170 + 100 + 140 + 70);
+            SetViewTableColumn(9, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
+            SetViewTableColumn(10, _localization.T("ui.leadership"), 90, ViewTableSortField.Leadership);
+            SetViewTableColumn(11, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
+            SetViewTableColumn(12, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
+            StretchTrailingViewColumns(13, 6, 170 + 120 + 170 + 100 + 140 + 70);
         }
         else
         {
@@ -180,7 +184,11 @@ public partial class HudController
             SetViewTableColumn(5, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
             SetViewTableColumn(6, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
             SetViewTableColumn(7, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
-            StretchTrailingViewColumns(8, 5, 170 + 120 + 170 + 100 + 70);
+            SetViewTableColumn(8, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
+            SetViewTableColumn(9, _localization.T("ui.leadership"), 90, ViewTableSortField.Leadership);
+            SetViewTableColumn(10, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
+            SetViewTableColumn(11, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
+            StretchTrailingViewColumns(12, 5, 170 + 120 + 170 + 100 + 70);
         }
     }
 
@@ -348,6 +356,10 @@ public partial class HudController
             row.SetText(6, loyaltyText);
             row.SetText(7, MaskedNumberText(canViewOfficer, officer.Strength));
             row.SetText(8, MaskedNumberText(canViewOfficer, officer.Intelligence));
+            row.SetText(9, MaskedNumberText(canViewOfficer, officer.Charm));
+            row.SetText(10, MaskedNumberText(canViewOfficer, officer.Leadership));
+            row.SetText(11, MaskedNumberText(canViewOfficer, officer.Politics));
+            row.SetText(12, MaskedNumberText(canViewOfficer, officer.Combat));
         }
         else
         {
@@ -355,6 +367,10 @@ public partial class HudController
             row.SetText(5, loyaltyText);
             row.SetText(6, MaskedNumberText(canViewOfficer, officer.Strength));
             row.SetText(7, MaskedNumberText(canViewOfficer, officer.Intelligence));
+            row.SetText(8, MaskedNumberText(canViewOfficer, officer.Charm));
+            row.SetText(9, MaskedNumberText(canViewOfficer, officer.Leadership));
+            row.SetText(10, MaskedNumberText(canViewOfficer, officer.Politics));
+            row.SetText(11, MaskedNumberText(canViewOfficer, officer.Combat));
         }
     }
 
@@ -502,6 +518,10 @@ public partial class HudController
                 6 => ViewTableSortField.OfficerLoyalty,
                 7 => ViewTableSortField.Strength,
                 8 => ViewTableSortField.Intelligence,
+                9 => ViewTableSortField.Charm,
+                10 => ViewTableSortField.Leadership,
+                11 => ViewTableSortField.Politics,
+                12 => ViewTableSortField.Combat,
                 _ => ViewTableSortField.Name
             };
         }
@@ -515,6 +535,10 @@ public partial class HudController
             5 => ViewTableSortField.OfficerLoyalty,
             6 => ViewTableSortField.Strength,
             7 => ViewTableSortField.Intelligence,
+            8 => ViewTableSortField.Charm,
+            9 => ViewTableSortField.Leadership,
+            10 => ViewTableSortField.Politics,
+            11 => ViewTableSortField.Combat,
             _ => ViewTableSortField.Name
         };
     }
@@ -529,8 +553,8 @@ public partial class HudController
         return _viewTableSortField switch
         {
             ViewTableSortField.Role => _viewTableSortAscending
-                ? officers.OrderBy(officer => _localization?.GetOfficerRole(officer) ?? officer.Role)
-                : officers.OrderByDescending(officer => _localization?.GetOfficerRole(officer) ?? officer.Role),
+                ? officers.OrderBy(GetDisplayedOfficerRole)
+                : officers.OrderByDescending(GetDisplayedOfficerRole),
             ViewTableSortField.Appointment => _viewTableSortAscending
                 ? officers.OrderBy(BuildOfficerAppointmentsForSort)
                 : officers.OrderByDescending(BuildOfficerAppointmentsForSort),
@@ -552,6 +576,18 @@ public partial class HudController
             ViewTableSortField.Intelligence => _viewTableSortAscending
                 ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Intelligence : int.MinValue)
                 : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Intelligence : int.MinValue),
+            ViewTableSortField.Charm => _viewTableSortAscending
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Charm : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Charm : int.MinValue),
+            ViewTableSortField.Leadership => _viewTableSortAscending
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Leadership : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Leadership : int.MinValue),
+            ViewTableSortField.Politics => _viewTableSortAscending
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Politics : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Politics : int.MinValue),
+            ViewTableSortField.Combat => _viewTableSortAscending
+                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Combat : int.MinValue)
+                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Combat : int.MinValue),
             ViewTableSortField.SpyExperience => _viewTableSortAscending
                 ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.SpyExperience : int.MinValue)
                 : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.SpyExperience : int.MinValue),

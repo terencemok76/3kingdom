@@ -13,11 +13,11 @@ namespace ThreeKingdom.Core;
 
 public class WorldRepository
 {
-    private const int MinimumOfficerJoinAge = 18;
+    private const int MinimumOfficerJoinAge = 14;
     private const string MapLocationsPath = "res://data/scenarios/map_locations.json";
     private const string MapRoadsPath = "res://data/scenarios/map_roads.json";
     private const string OfficerDataDirectoryPath = "res://data/person";
-    private const string DefaultOfficerDataPath = "res://data/person/officer_story01.json";
+    private const string DefaultOfficerDataPath = "res://data/person/officer_data.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

@@ -7,6 +7,7 @@ public class FactionData
     public int Id { get; set; }
     public string NameEn { get; set; } = string.Empty;
     public string NameZhHant { get; set; } = string.Empty;
+    public string MapColorHex { get; set; } = string.Empty;
     public int RulerOfficerId { get; set; }
     public int ChancellorOfficerId { get; set; }
     public int ChiefStrategistOfficerId { get; set; }

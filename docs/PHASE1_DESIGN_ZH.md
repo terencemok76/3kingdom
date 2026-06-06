@@ -678,7 +678,7 @@ data/
 	officer.json
 	portraits_names.json
   scenarios/
-	phase1_scenario.json
+	story1_scenario.json
 assets/
   portrait/
 scripts/

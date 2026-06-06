@@ -16,6 +16,10 @@ public static class OfficerAppointmentRules
     public static void NormalizeOfficer(OfficerData officer)
     {
         officer.Appointments ??= new List<string>();
+        if (string.IsNullOrWhiteSpace(officer.Role))
+        {
+            officer.Role = "Common";
+        }
 
         if (officer.Role.Equals(Strategist, StringComparison.OrdinalIgnoreCase))
         {

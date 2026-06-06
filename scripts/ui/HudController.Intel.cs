@@ -109,7 +109,7 @@ public partial class HudController
 
     private string BuildMaskedOfficerRole(OfficerData officer)
     {
-        return MaskedText(CanViewOfficerFullInformation(officer), _localization?.GetOfficerRole(officer) ?? officer.Role);
+        return MaskedText(CanViewOfficerFullInformation(officer), GetDisplayedOfficerRole(officer));
     }
 
     private string BuildMaskedOfficerAppointments(OfficerData officer)
@@ -148,5 +148,15 @@ public partial class HudController
             var officer = _turnManager.World.GetOfficer(officerId);
             return officer != null && CanViewOfficerFullInformation(officer);
         });
+    }
+
+    private string GetDisplayedOfficerRole(OfficerData officer)
+    {
+        if (_turnManager?.World != null && IsFactionRuler(_turnManager.World, officer))
+        {
+            return _localization?.GetAppointmentName(OfficerAppointmentRules.Lord) ?? OfficerAppointmentRules.Lord;
+        }
+
+        return _localization?.GetOfficerRole(officer) ?? officer.Role;
     }
 }

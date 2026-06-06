@@ -383,11 +383,21 @@
   - `assets/portrait/team2.png`
   - `assets/portrait/team3.png`
   - `assets/portrait/team4.png`
+  - `assets/portrait/team5.png`
+  - `assets/portrait/team6.png`
+  - `assets/portrait/team7.png`
+  - `assets/portrait/team8.png`
+  - `assets/portrait/team9.png`
 - 裁切定義來源：
   - `data/person/person_image_1.json`
   - `data/person/person_image_2.json`
   - `data/person/person_image_3.json`
   - `data/person/person_image_4.json`
+  - `data/person/person_image_5.json`
+  - `data/person/person_image_6.json`
+  - `data/person/person_image_7.json`
+  - `data/person/person_image_8.json`
+  - `data/person/person_image_9.json`
 - `person_image_*.json` 中的：
   - `x`
   - `y`

@@ -7,7 +7,7 @@ namespace ThreeKingdom.Core;
 
 public partial class GameBootstrap : Node
 {
-    private const string DefaultScenarioPath = "res://data/scenarios/phase1_scenario.json";
+    private const string DefaultScenarioPath = "res://data/scenarios/story1_scenario.json";
 
     private readonly WorldRepository _worldRepository = new();
     private readonly TurnManager _turnManager = new();

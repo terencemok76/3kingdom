@@ -14,6 +14,22 @@ public partial class MapController : Node2D
     private const float DragOverscrollResistance = 0.3f;
     private const float ReturnSpringStrength = 18.0f;
     private const float ReturnSpringDamping = 0.82f;
+    private static readonly string[] FallbackFactionColorPalette =
+    {
+        "3f7f4c",
+        "8a3e2f",
+        "2f5f8a",
+        "b9932f",
+        "7b4fa3",
+        "2f8a83",
+        "a35f2f",
+        "6a3a8d",
+        "3d6f9f",
+        "9a4f66",
+        "5a8c3d",
+        "a8842c"
+    };
+
     private sealed partial class MapPresentationLayer : Node2D
     {
         private readonly Func<Rect2> _mapViewportRectProvider;
@@ -226,7 +242,7 @@ public partial class MapController : Node2D
                 Name = $"City_{city.Id}",
                 Position = new Vector2(city.MapX, city.MapY)
             };
-            cityNode.Bind(city, BuildCityLabel(city));
+            cityNode.Bind(city, BuildCityLabel(city), GetCityFillColor(city));
             _citiesLayer.AddChild(cityNode);
             _cityNodes.Add((city, cityNode));
         }
@@ -258,6 +274,7 @@ public partial class MapController : Node2D
         foreach (var entry in _cityNodes)
         {
             entry.Node.SetDisplayLabel(BuildCityLabel(entry.City));
+            entry.Node.SetFillColor(GetCityFillColor(entry.City));
             entry.Node.QueueRedraw();
         }
 
@@ -432,6 +449,23 @@ public partial class MapController : Node2D
 
         var cityName = _localization.GetCityName(city);
         return $"{cityName}({city.Id})";
+    }
+
+    private Color GetCityFillColor(CityData city)
+    {
+        if (_world == null || city.OwnerFactionId <= 0)
+        {
+            return new Color("6d6d6d");
+        }
+
+        var faction = _world.GetFaction(city.OwnerFactionId);
+        if (faction != null && !string.IsNullOrWhiteSpace(faction.MapColorHex))
+        {
+            return new Color(faction.MapColorHex);
+        }
+
+        var paletteIndex = Mathf.PosMod(city.OwnerFactionId - 1, FallbackFactionColorPalette.Length);
+        return new Color(FallbackFactionColorPalette[paletteIndex]);
     }
 
     private Vector2 CalculateCenterOffset()

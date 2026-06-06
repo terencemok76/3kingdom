@@ -1,0 +1,445 @@
+{
+  "storyId": "yellow_turban_rebellion",
+  "storyNameEn": "Yellow Turban Rebellion",
+  "storyNameZhHant": "黃巾之亂",
+  "year": 184,
+  "month": 1,
+  "randomSeed": 12345,
+  "factions": [
+	{
+	  "id": 1,
+	  "nameEn": "Liu Yan",
+	  "nameZhHant": "劉焉",
+	  "rulerOfficerId": 142
+	},
+	{
+	  "id": 2,
+	  "nameEn": "He Jin",
+	  "nameZhHant": "何進",
+	  "rulerOfficerId": 127
+	},
+	{
+	  "id": 3,
+	  "nameEn": "Sun Jian",
+	  "nameZhHant": "孫堅",
+	  "rulerOfficerId": 43
+	},
+	{
+	  "id": 4,
+	  "nameEn": "Zhang Jiao",
+	  "nameZhHant": "張角",
+	  "rulerOfficerId": 66
+	},
+	{
+	  "id": 5,
+	  "nameEn": "Ding Yuan",
+	  "nameZhHant": "丁原",
+	  "rulerOfficerId": 202
+	},
+	{
+	  "id": 6,
+	  "nameEn": "Dong Zhuo",
+	  "nameZhHant": "董卓",
+	  "rulerOfficerId": 62
+	},
+	{
+	  "id": 7,
+	  "nameEn": "Gongsun Zan",
+	  "nameZhHant": "公孫瓚",
+	  "rulerOfficerId": 65
+	},
+	{
+	  "id": 8,
+	  "nameEn": "Han Sui",
+	  "nameZhHant": "韓遂",
+	  "rulerOfficerId": 75
+	},
+	{
+	  "id": 9,
+	  "nameEn": "Tao Qian",
+	  "nameZhHant": "陶謙",
+	  "rulerOfficerId": 193
+	},
+	{
+	  "id": 10,
+	  "nameEn": "Qiao Mao",
+	  "nameZhHant": "橋瑁",
+	  "rulerOfficerId": 195
+	}
+  ],
+  "cityStarts": [
+
+  	{
+	  "cityId": 1,
+	  "ownerFactionId": 1,
+	  "gold": 800,
+	  "food": 1400,
+	  "horses": 80,
+	  "troops": 1600,
+	  "infantryTroops": 1000,
+	  "spearmanTroops": 300,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [1,2,3,140,142]
+	},
+  	{
+	  "cityId": 3,
+	  "ownerFactionId": 7,
+	  "gold": 800,
+	  "food": 1400,
+	  "horses": 80,
+	  "troops": 1600,
+	  "infantryTroops": 1000,
+	  "spearmanTroops": 300,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [65,206,207,208]
+	},
+  	{
+	  "cityId": 4,
+	  "ownerFactionId": 5,
+	  "gold": 800,
+	  "food": 1400,
+	  "horses": 80,
+	  "troops": 1600,
+	  "infantryTroops": 1000,
+	  "spearmanTroops": 300,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [26,61,202,203]
+	},
+  	{
+	  "cityId": 5,
+	  "ownerFactionId": 4,
+	  "gold": 800,
+	  "food": 1400,
+	  "horses": 80,
+	  "troops": 1600,
+	  "infantryTroops": 1000,
+	  "spearmanTroops": 300,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [66,67,148]
+	},
+	{
+	  "cityId": 6,
+	  "ownerFactionId": 4,
+	  "gold": 950,
+	  "food": 1750,
+	  "horses": 100,
+	  "troops": 2200,
+	  "infantryTroops": 1200,
+	  "spearmanTroops": 400,
+	  "cavalryTroops": 200,
+	  "archerTroops": 300,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [68, 94]
+	},
+	{
+	  "cityId": 7,
+	  "ownerFactionId": 4,
+	  "gold": 950,
+	  "food": 1750,
+	  "horses": 100,
+	  "troops": 2200,
+	  "infantryTroops": 1200,
+	  "spearmanTroops": 400,
+	  "cavalryTroops": 200,
+	  "archerTroops": 300,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [95, 124]
+	},
+	{
+	  "cityId": 8,
+	  "ownerFactionId": 4,
+	  "gold": 1200,
+	  "food": 1800,
+	  "horses": 120,
+	  "troops": 2500,
+	  "infantryTroops": 1200,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 300,
+	  "archerTroops": 400,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [155, 158]
+	},
+	{
+	  "cityId": 9,
+	  "ownerFactionId": 2,
+	  "gold": 1200,
+	  "food": 1800,
+	  "horses": 120,
+	  "troops": 2500,
+	  "infantryTroops": 1200,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 300,
+	  "archerTroops": 400,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [21, 63, 64, 76, 77]
+	},
+	{
+	  "cityId": 10,
+	  "ownerFactionId": 2,
+	  "gold": 1200,
+	  "food": 1800,
+	  "horses": 120,
+	  "troops": 2500,
+	  "infantryTroops": 1200,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 300,
+	  "archerTroops": 400,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [79,113,127,128,129,130,141]
+	},
+	{
+	  "cityId": 11,
+	  "ownerFactionId": 4,
+	  "gold": 1200,
+	  "food": 1800,
+	  "horses": 120,
+	  "troops": 2500,
+	  "infantryTroops": 1200,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 300,
+	  "archerTroops": 400,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [168, 169]
+	},
+	{
+	  "cityId": 12,
+	  "ownerFactionId": 4,
+	  "gold": 1000,
+	  "food": 1700,
+	  "horses": 140,
+	  "troops": 2300,
+	  "infantryTroops": 900,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 500,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [170,175]
+	},
+	{
+	  "cityId": 13,
+	  "ownerFactionId": 10,
+	  "gold": 1000,
+	  "food": 1700,
+	  "horses": 140,
+	  "troops": 2300,
+	  "infantryTroops": 900,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 500,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [195,204]
+	},
+	{
+	  "cityId": 15,
+	  "ownerFactionId": 4,
+	  "gold": 1000,
+	  "food": 1700,
+	  "horses": 140,
+	  "troops": 2300,
+	  "infantryTroops": 900,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 500,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [176,178]
+	},
+	{
+	  "cityId": 16,
+	  "ownerFactionId": 4,
+	  "gold": 1000,
+	  "food": 1700,
+	  "horses": 140,
+	  "troops": 2300,
+	  "infantryTroops": 900,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 500,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [194,198,199]
+	},
+	{
+	  "cityId": 18,
+	  "ownerFactionId": 9,
+	  "gold": 1000,
+	  "food": 1700,
+	  "horses": 140,
+	  "troops": 2300,
+	  "infantryTroops": 900,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 500,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [84,151,193,205]
+	},
+	{
+	  "cityId": 26,
+	  "ownerFactionId": 8,
+	  "gold": 1000,
+	  "food": 1700,
+	  "horses": 140,
+	  "troops": 2300,
+	  "infantryTroops": 900,
+	  "spearmanTroops": 500,
+	  "cavalryTroops": 500,
+	  "archerTroops": 200,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [75,209,210,211]
+	},
+	{
+	  "cityId": 32,
+	  "ownerFactionId": 3,
+	  "gold": 950,
+	  "food": 1750,
+	  "horses": 160,
+	  "troops": 2200,
+	  "infantryTroops": 800,
+	  "spearmanTroops": 400,
+	  "cavalryTroops": 500,
+	  "archerTroops": 300,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [43, 50, 51,52,200,201]
+	},
+	{
+	  "cityId": 43,
+	  "ownerFactionId": 6,
+	  "gold": 950,
+	  "food": 1750,
+	  "horses": 160,
+	  "troops": 2200,
+	  "infantryTroops": 800,
+	  "spearmanTroops": 400,
+	  "cavalryTroops": 500,
+	  "archerTroops": 300,
+	  "crossbowTroops": 0,
+	  "siegeTroops": 0,
+	  "officerIds": [62,69,72,73,188,189,190]
+	}
+  ],
+  "factionStarts": [
+	{
+	  "factionId": 1,
+	  "cityIds": [1],
+	  "officerIds": [1,2,3,140,142]
+	},
+	{
+	  "factionId": 2,
+	  "cityIds": [9,10],
+	  "officerIds": [21,63,64,76,77,79,113,127,128,129,130,141]
+	},
+	{
+	  "factionId": 3,
+	  "cityIds": [32],
+	  "officerIds": [43,50,51,52,200,201]
+	},
+	{
+	  "factionId": 4,
+	  "cityIds": [6,7,8,15,16,11,12,5],
+	  "officerIds": [66,67,68,94,95,124,148,155,158,168,169,170,175,176,178,194,198,199]
+	},
+	{
+	  "factionId": 5,
+	  "cityIds": [4],
+	  "officerIds": [26,61,202,203]
+	},
+	{
+	  "factionId": 6,
+	  "cityIds": [43],
+	  "officerIds": [62,69,72,73,188,189,190]
+	},
+	{
+	  "factionId": 7,
+	  "cityIds": [3],
+	  "officerIds": [65,206,207,208]
+	},
+	{
+	  "factionId": 8,
+	  "cityIds": [26],
+	  "officerIds": [75,209,210,211]
+	},
+	{
+	  "factionId": 9,
+	  "cityIds": [18],
+	  "officerIds": [84,151,193,205]
+	},
+	{
+	  "factionId": 10,
+	  "cityIds": [13],
+	  "officerIds": [195,204]
+	}
+  ],
+  "items": [
+	{
+	  "id": 1,
+	  "nameEn": "Green Dragon Crescent Blade",
+	  "nameZhHant": "青龍偃月刀",
+	  "itemType": "Weapon",
+	  "strengthBonus": 4,
+	  "leadershipBonus": 2,
+	  "combatBonus": 3,
+	  "ownerFactionId": 1,
+	  "ownerCityId": 8,
+	  "equippedOfficerId": 2,
+	  "rarity": "Epic"
+	},
+	{
+	  "id": 2,
+	  "nameEn": "Red Hare",
+	  "nameZhHant": "赤兔馬",
+	  "itemType": "Horse",
+	  "strengthBonus": 1,
+	  "leadershipBonus": 3,
+	  "combatBonus": 2,
+	  "ownerFactionId": 2,
+	  "ownerCityId": 12,
+	  "equippedOfficerId": 0,
+	  "rarity": "Epic"
+	},
+	{
+	  "id": 3,
+	  "nameEn": "Art of War",
+	  "nameZhHant": "孫子兵法",
+	  "itemType": "Book",
+	  "intelligenceBonus": 3,
+	  "leadershipBonus": 1,
+	  "politicsBonus": 2,
+	  "ownerFactionId": 0,
+	  "ownerCityId": 12,
+	  "equippedOfficerId": 0,
+	  "rarity": "Rare"
+	},
+	{
+	  "id": 4,
+	  "nameEn": "Imperial Seal",
+	  "nameZhHant": "傳國玉璽",
+	  "itemType": "Treasure",
+	  "charmBonus": 4,
+	  "leadershipBonus": 2,
+	  "loyaltyBonus": 3,
+	  "ownerFactionId": 0,
+	  "ownerCityId": 6,
+	  "equippedOfficerId": 0,
+	  "rarity": "Epic"
+	}
+  ]
+}

@@ -841,10 +841,10 @@ res://
 	  LogPanel.cs
 	data/
 	  scenarios/
-		phase1_scenario.json
+		story1_scenario.json
 ```
 
-- `phase1_scenario.json` contains the current story metadata, start year/month, factions, `cityStarts`, and `factionStarts`
+- `story1_scenario.json` contains the current story metadata, start year/month, factions, `cityStarts`, and `factionStarts`
 - There is no separate `scenario_setup.json`; scenario setup belongs inside each scenario file
 
 ## 10. UI/UX Flow (Phase 1)

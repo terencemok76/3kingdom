@@ -1797,7 +1797,7 @@ public partial class CommandResolver
             return true;
         }
 
-        return world.Year - officer.BirthYear >= 18;
+        return world.Year - officer.BirthYear >= 14;
     }
 
     private static string GetCityName(CityData city, GameLanguage language)

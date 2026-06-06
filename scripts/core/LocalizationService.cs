@@ -439,6 +439,7 @@ public class LocalizationService
             "lord" => "role.lord",
             "general" => "role.general",
             "advisor" => "role.advisor",
+            "common" => "role.common",
             _ => string.Empty
         };
 

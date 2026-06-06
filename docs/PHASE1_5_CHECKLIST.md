@@ -170,11 +170,17 @@
   - `team2.png` + `person_image_2.json`
   - `team3.png` + `person_image_3.json`
   - `team4.png` + `person_image_4.json`
+  - `team4.png` + `person_image_4.json`
+  - `team5.png` + `person_image_5.json`
+  - `team6.png` + `person_image_6.json`
+  - `team7.png` + `person_image_7.json`
+  - `team8.png` + `person_image_8.json`
+  - `team9.png` + `person_image_9.json`
 - `charId` 已對應 `officer.json id`
 - 已完成：
   - 標準 JSON 解析
   - regex fallback
-  - `person_image_2/3/4.json` 修復為有效 JSON
+  - `person_image_2/3/4/5/6/7/8/9.json` 修復為有效 JSON
   - officer id `1..100` 覆蓋檢查
 
 ## 3. 部分完成

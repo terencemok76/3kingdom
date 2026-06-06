@@ -6,7 +6,7 @@ namespace ThreeKingdom.Core;
 
 public static class FreeOfficerMovement
 {
-    private const int MinimumJoinAge = 18;
+    private const int MinimumJoinAge = 14;
     private const int MinimumStayMonths = 2;
     private const int MaximumStayMonths = 4;
     private const int MinimumHideMonths = 2;
@@ -41,6 +41,11 @@ public static class FreeOfficerMovement
                 continue;
             }
 
+            if (TryAssignRelationshipCity(world, officer, random))
+            {
+                continue;
+            }
+
             if (random.Next(100) < InitialVisiblePercent)
             {
                 AssignRandomVisibleCity(world, officer, random);
@@ -64,6 +69,14 @@ public static class FreeOfficerMovement
         {
             if (IsEmployed(world, officer) || !IsOldEnough(world, officer))
             {
+                continue;
+            }
+
+            if (officer.CityId <= 0 &&
+                officer.FreeOfficerStayMonths <= 0 &&
+                GetOfficerAge(world, officer) == MinimumJoinAge)
+            {
+                InitializeNewlyEligibleOfficer(world, officer, random);
                 continue;
             }
 
@@ -165,11 +178,83 @@ public static class FreeOfficerMovement
         officer.FreeOfficerStayMonths = RollStayMonths(random);
     }
 
+    private static bool TryAssignRelationshipCity(WorldState world, OfficerData officer, Random random)
+    {
+        var relatedCities = world.Officers
+            .Where(candidate => candidate.Id != officer.Id &&
+                                IsOfficerAlive(world, candidate) &&
+                                candidate.CityId > 0 &&
+                                world.GetCity(candidate.CityId) != null &&
+                                HasRelationshipWith(officer, candidate))
+            .Select(candidate => candidate.CityId)
+            .Distinct()
+            .ToList();
+        if (relatedCities.Count == 0)
+        {
+            return false;
+        }
+
+        officer.CityId = relatedCities[random.Next(relatedCities.Count)];
+        officer.FreeOfficerStayMonths = RollStayMonths(random);
+        return true;
+    }
+
+    private static void InitializeNewlyEligibleOfficer(WorldState world, OfficerData officer, Random random)
+    {
+        if (random.Next(100) < InitialVisiblePercent)
+        {
+            if (!TryAssignRelationshipCity(world, officer, random))
+            {
+                AssignRandomVisibleCity(world, officer, random);
+            }
+
+            return;
+        }
+
+        HideOfficer(officer, random);
+    }
+
+    private static bool HasRelationshipWith(OfficerData officer, OfficerData candidate)
+    {
+        if (officer.RelationshipType == null || officer.RelationshipType.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var relatedName in officer.RelationshipType.Keys)
+        {
+            if (string.IsNullOrWhiteSpace(relatedName))
+            {
+                continue;
+            }
+
+            if ((!string.IsNullOrWhiteSpace(candidate.NameZhHant) &&
+                 relatedName.Equals(candidate.NameZhHant, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(candidate.Name) &&
+                 relatedName.Equals(candidate.Name, StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static int CountVisibleFreeOfficers(WorldState world, int cityId)
     {
         return world.Officers.Count(officer =>
             officer.CityId == cityId &&
             IsFreeOfficer(world, officer));
+    }
+
+    private static bool IsOfficerAlive(WorldState world, OfficerData officer)
+    {
+        return officer.DeathYear <= 0 || world.Year <= officer.DeathYear;
+    }
+
+    private static int GetOfficerAge(WorldState world, OfficerData officer)
+    {
+        return officer.BirthYear <= 0 ? MinimumJoinAge : world.Year - officer.BirthYear;
     }
 
     private static Random CreateRandom(WorldState world, int salt)

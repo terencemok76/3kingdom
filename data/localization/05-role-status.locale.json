@@ -1,4 +1,8 @@
-﻿{
+{
+    "role.common":  {
+                        "zhHant":  "一般",
+                        "en":  "Common"
+                    },
     "role.advisor":  {
                          "zhHant":  "謀士",
                          "en":  "Advisor"

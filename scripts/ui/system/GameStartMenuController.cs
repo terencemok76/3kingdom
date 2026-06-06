@@ -17,7 +17,12 @@ public partial class GameStartMenuController : CanvasLayer
         ("res://assets/portrait/team1.png", "res://data/person/person_image_1.json"),
         ("res://assets/portrait/team2.png", "res://data/person/person_image_2.json"),
         ("res://assets/portrait/team3.png", "res://data/person/person_image_3.json"),
-        ("res://assets/portrait/team4.png", "res://data/person/person_image_4.json")
+        ("res://assets/portrait/team4.png", "res://data/person/person_image_4.json"),
+        ("res://assets/portrait/team5.png", "res://data/person/person_image_5.json"),
+        ("res://assets/portrait/team6.png", "res://data/person/person_image_6.json"),
+        ("res://assets/portrait/team7.png", "res://data/person/person_image_7.json"),
+        ("res://assets/portrait/team8.png", "res://data/person/person_image_8.json"),
+        ("res://assets/portrait/team9.png", "res://data/person/person_image_9.json")
     };
 
     public sealed record ScenarioEntry(string Path);

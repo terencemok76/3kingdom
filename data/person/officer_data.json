@@ -1,6 +1,6 @@
 {
   "era": "Three Kingdoms (real figures)",
-  "count": 150,
+  "count": 212,
   "characters": [
 	{
 	  "id": 1,
@@ -10,20 +10,17 @@
 	  "strength": 72,
 	  "charm": 96,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Shu",
 	  "leadership": 88,
 	  "politics": 83,
 	  "loyalty": 95,
 	  "ambition": 78,
 	  "combat": 78,
 	  "relationship_type": {
-		"關羽": "brother",
-		"張飛": "brother",
-		"諸葛亮": "lord"
+		"關羽": "family",
+		"張飛": "family",
+		"劉禪": "family"
 	  },
-	  "birth_year": 161,
-	  "death_year": 223
+	  "birth_year": 161
 	},
 	{
 	  "id": 2,
@@ -33,19 +30,19 @@
 	  "strength": 96,
 	  "charm": 86,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 92,
 	  "politics": 62,
 	  "loyalty": 98,
 	  "ambition": 58,
 	  "combat": 97,
 	  "relationship_type": {
-		"劉備": "brother",
-		"張飛": "brother"
+		"劉備": "family",
+		"張飛": "family",
+		"關平": "family",
+		"關興": "family",
+		"關索": "family"
 	  },
-	  "birth_year": 162,
-	  "death_year": 219
+	  "birth_year": 162
 	},
 	{
 	  "id": 3,
@@ -55,19 +52,17 @@
 	  "strength": 98,
 	  "charm": 68,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 87,
 	  "politics": 38,
 	  "loyalty": 95,
 	  "ambition": 68,
 	  "combat": 96,
 	  "relationship_type": {
-		"劉備": "brother",
-		"關羽": "brother"
+		"劉備": "family",
+		"關羽": "family",
+		"張苞": "family"
 	  },
-	  "birth_year": 167,
-	  "death_year": 219
+	  "birth_year": 166
 	},
 	{
 	  "id": 4,
@@ -77,19 +72,16 @@
 	  "strength": 45,
 	  "charm": 91,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 96,
 	  "politics": 100,
 	  "loyalty": 99,
 	  "ambition": 72,
 	  "combat": 55,
 	  "relationship_type": {
-		"劉備": "servant",
-		"姜維": "mentor"
+		  "諸葛瞻":"family",
+		  "諸葛尚":"family"
 	  },
-	  "birth_year": 181,
-	  "death_year": 234
+	  "birth_year": 181
 	},
 	{
 	  "id": 5,
@@ -99,16 +91,13 @@
 	  "strength": 94,
 	  "charm": 84,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 88,
 	  "politics": 65,
 	  "loyalty": 99,
 	  "ambition": 52,
 	  "combat": 98,
 	  "relationship_type": {},
-	  "birth_year": 157,
-	  "death_year": 229
+	  "birth_year": 158
 	},
 	{
 	  "id": 6,
@@ -118,16 +107,15 @@
 	  "strength": 96,
 	  "charm": 78,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 86,
 	  "politics": 45,
 	  "loyalty": 76,
 	  "ambition": 82,
 	  "combat": 95,
-	  "relationship_type": {},
-	  "birth_year": 176,
-	  "death_year": 222
+	  "relationship_type": {
+		  "馬騰":"family"
+	  },
+	  "birth_year": 176
 	},
 	{
 	  "id": 7,
@@ -137,16 +125,13 @@
 	  "strength": 91,
 	  "charm": 75,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 83,
 	  "politics": 46,
 	  "loyalty": 91,
 	  "ambition": 50,
 	  "combat": 92,
 	  "relationship_type": {},
-	  "birth_year": 148,
-	  "death_year": 220
+	  "birth_year": 148
 	},
 	{
 	  "id": 8,
@@ -156,16 +141,13 @@
 	  "strength": 83,
 	  "charm": 78,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 91,
 	  "politics": 78,
 	  "loyalty": 96,
 	  "ambition": 72,
 	  "combat": 89,
 	  "relationship_type": {},
-	  "birth_year": 202,
-	  "death_year": 264
+	  "birth_year": 202
 	},
 	{
 	  "id": 9,
@@ -175,16 +157,13 @@
 	  "strength": 42,
 	  "charm": 80,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 84,
 	  "politics": 93,
 	  "loyalty": 88,
 	  "ambition": 76,
 	  "combat": 50,
 	  "relationship_type": {},
-	  "birth_year": 179,
-	  "death_year": 214
+	  "birth_year": 179
 	},
 	{
 	  "id": 10,
@@ -194,16 +173,13 @@
 	  "strength": 46,
 	  "charm": 72,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 76,
 	  "politics": 89,
 	  "loyalty": 83,
 	  "ambition": 64,
 	  "combat": 48,
 	  "relationship_type": {},
-	  "birth_year": 176,
-	  "death_year": 220
+	  "birth_year": 176
 	},
 	{
 	  "id": 11,
@@ -213,16 +189,13 @@
 	  "strength": 89,
 	  "charm": 63,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 84,
 	  "politics": 43,
 	  "loyalty": 69,
 	  "ambition": 84,
 	  "combat": 89,
 	  "relationship_type": {},
-	  "birth_year": 185,
-	  "death_year": 234
+	  "birth_year": 175
 	},
 	{
 	  "id": 12,
@@ -232,16 +205,13 @@
 	  "strength": 41,
 	  "charm": 76,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 70,
 	  "politics": 88,
 	  "loyalty": 88,
 	  "ambition": 48,
 	  "combat": 38,
 	  "relationship_type": {},
-	  "birth_year": 193,
-	  "death_year": 246
+	  "birth_year": 175
 	},
 	{
 	  "id": 13,
@@ -251,16 +221,13 @@
 	  "strength": 39,
 	  "charm": 82,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 68,
 	  "politics": 86,
 	  "loyalty": 87,
 	  "ambition": 45,
 	  "combat": 35,
 	  "relationship_type": {},
-	  "birth_year": 193,
-	  "death_year": 253
+	  "birth_year": 193
 	},
 	{
 	  "id": 14,
@@ -270,16 +237,17 @@
 	  "strength": 86,
 	  "charm": 70,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 78,
 	  "politics": 43,
 	  "loyalty": 93,
 	  "ambition": 54,
 	  "combat": 84,
-	  "relationship_type": {},
-	  "birth_year": 178,
-	  "death_year": 220
+	  "relationship_type": {
+		  "關羽":"family",
+		  "關興":"family",
+		  "關索":"family"
+	  },
+	  "birth_year": 182
 	},
 	{
 	  "id": 15,
@@ -289,16 +257,17 @@
 	  "strength": 85,
 	  "charm": 68,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 76,
 	  "politics": 40,
 	  "loyalty": 91,
 	  "ambition": 55,
 	  "combat": 83,
-	  "relationship_type": {},
-	  "birth_year": 204,
-	  "death_year": 230
+	  "relationship_type": {
+		  "關羽":"family",
+		  "關平":"family",
+		  "關索":"family"
+	  },
+	  "birth_year": 193
 	},
 	{
 	  "id": 16,
@@ -308,16 +277,15 @@
 	  "strength": 88,
 	  "charm": 64,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 75,
 	  "politics": 35,
 	  "loyalty": 90,
 	  "ambition": 58,
 	  "combat": 85,
-	  "relationship_type": {},
-	  "birth_year": 201,
-	  "death_year": 231
+	  "relationship_type": {
+		  "張飛":"family"
+	  },
+	  "birth_year": 192
 	},
 	{
 	  "id": 17,
@@ -327,16 +295,13 @@
 	  "strength": 83,
 	  "charm": 66,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 76,
 	  "politics": 43,
 	  "loyalty": 86,
 	  "ambition": 58,
 	  "combat": 82,
 	  "relationship_type": {},
-	  "birth_year": 176,
-	  "death_year": 235
+	  "birth_year": 174
 	},
 	{
 	  "id": 18,
@@ -346,16 +311,13 @@
 	  "strength": 68,
 	  "charm": 62,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 74,
 	  "politics": 82,
 	  "loyalty": 55,
 	  "ambition": 79,
 	  "combat": 64,
 	  "relationship_type": {},
-	  "birth_year": 193,
-	  "death_year": 234
+	  "birth_year": 185
 	},
 	{
 	  "id": 19,
@@ -365,16 +327,15 @@
 	  "strength": 25,
 	  "charm": 62,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 42,
 	  "politics": 45,
 	  "loyalty": 70,
 	  "ambition": 28,
 	  "combat": 22,
-	  "relationship_type": {},
-	  "birth_year": 207,
-	  "death_year": 271
+	  "relationship_type": {
+		  "劉備":"family"
+	  },
+	  "birth_year": 207
 	},
 	{
 	  "id": 20,
@@ -384,16 +345,13 @@
 	  "strength": 36,
 	  "charm": 80,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 45,
 	  "politics": 74,
 	  "loyalty": 86,
 	  "ambition": 35,
 	  "combat": 30,
 	  "relationship_type": {},
-	  "birth_year": 167,
-	  "death_year": 243
+	  "birth_year": 167
 	},
 	{
 	  "id": 21,
@@ -403,20 +361,18 @@
 	  "strength": 76,
 	  "charm": 96,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Wei",
 	  "leadership": 98,
 	  "politics": 96,
 	  "loyalty": 72,
 	  "ambition": 98,
 	  "combat": 80,
 	  "relationship_type": {
-		"郭嘉": "lord",
-		"荀彧": "lord",
-		"司馬懿": "lord"
+		  "曹丕":"family",
+		  "曹叡":"family",
+		  "曹彰":"family"
+		  
 	  },
-	  "birth_year": 155,
-	  "death_year": 220
+	  "birth_year": 155
 	},
 	{
 	  "id": 22,
@@ -426,16 +382,17 @@
 	  "strength": 62,
 	  "charm": 75,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 78,
 	  "politics": 84,
 	  "loyalty": 66,
 	  "ambition": 84,
 	  "combat": 58,
-	  "relationship_type": {},
-	  "birth_year": 187,
-	  "death_year": 226
+	  "relationship_type": {
+		  "曹操":"family",
+		  "曹叡":"family",
+		  "曹彰":"family"
+	  },
+	  "birth_year": 187
 	},
 	{
 	  "id": 23,
@@ -445,16 +402,17 @@
 	  "strength": 56,
 	  "charm": 72,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 76,
 	  "politics": 78,
 	  "loyalty": 70,
 	  "ambition": 75,
 	  "combat": 52,
-	  "relationship_type": {},
-	  "birth_year": 204,
-	  "death_year": 239
+	  "relationship_type": {
+		  "曹操":"family",
+		  "曹丕":"family",
+		  "曹彰":"family"
+	  },
+	  "birth_year": 204
 	},
 	{
 	  "id": 24,
@@ -464,16 +422,14 @@
 	  "strength": 91,
 	  "charm": 78,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 88,
 	  "politics": 57,
 	  "loyalty": 96,
 	  "ambition": 63,
 	  "combat": 88,
-	  "relationship_type": {},
-	  "birth_year": 154,
-	  "death_year": 220
+	  "relationship_type": {
+	  },
+	  "birth_year": 157
 	},
 	{
 	  "id": 25,
@@ -483,16 +439,13 @@
 	  "strength": 90,
 	  "charm": 72,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 87,
 	  "politics": 49,
 	  "loyalty": 94,
 	  "ambition": 61,
 	  "combat": 91,
 	  "relationship_type": {},
-	  "birth_year": 155,
-	  "death_year": 219
+	  "birth_year": 158
 	},
 	{
 	  "id": 26,
@@ -502,16 +455,13 @@
 	  "strength": 91,
 	  "charm": 82,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 94,
 	  "politics": 63,
 	  "loyalty": 92,
 	  "ambition": 67,
 	  "combat": 93,
 	  "relationship_type": {},
-	  "birth_year": 169,
-	  "death_year": 222
+	  "birth_year": 169
 	},
 	{
 	  "id": 27,
@@ -521,16 +471,13 @@
 	  "strength": 88,
 	  "charm": 74,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 89,
 	  "politics": 58,
 	  "loyalty": 91,
 	  "ambition": 58,
 	  "combat": 88,
 	  "relationship_type": {},
-	  "birth_year": 169,
-	  "death_year": 227
+	  "birth_year": 169
 	},
 	{
 	  "id": 28,
@@ -540,16 +487,13 @@
 	  "strength": 87,
 	  "charm": 73,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 88,
 	  "politics": 61,
 	  "loyalty": 84,
 	  "ambition": 61,
 	  "combat": 87,
 	  "relationship_type": {},
-	  "birth_year": 164,
-	  "death_year": 231
+	  "birth_year": 167
 	},
 	{
 	  "id": 29,
@@ -559,16 +503,13 @@
 	  "strength": 85,
 	  "charm": 67,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 80,
 	  "politics": 43,
 	  "loyalty": 88,
 	  "ambition": 57,
 	  "combat": 84,
 	  "relationship_type": {},
-	  "birth_year": 159,
-	  "death_year": 218
+	  "birth_year": 159
 	},
 	{
 	  "id": 30,
@@ -578,16 +519,13 @@
 	  "strength": 82,
 	  "charm": 58,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 82,
 	  "politics": 52,
 	  "loyalty": 45,
 	  "ambition": 54,
 	  "combat": 78,
 	  "relationship_type": {},
-	  "birth_year": 162,
-	  "death_year": 211
+	  "birth_year": 159
 	},
 	{
 	  "id": 31,
@@ -597,16 +535,13 @@
 	  "strength": 98,
 	  "charm": 62,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 68,
 	  "politics": 25,
 	  "loyalty": 97,
 	  "ambition": 46,
 	  "combat": 94,
 	  "relationship_type": {},
-	  "birth_year": 157,
-	  "death_year": 197
+	  "birth_year": 160
 	},
 	{
 	  "id": 32,
@@ -616,16 +551,13 @@
 	  "strength": 97,
 	  "charm": 60,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 70,
 	  "politics": 27,
 	  "loyalty": 96,
 	  "ambition": 43,
 	  "combat": 93,
 	  "relationship_type": {},
-	  "birth_year": 161,
-	  "death_year": 230
+	  "birth_year": 170
 	},
 	{
 	  "id": 33,
@@ -635,19 +567,16 @@
 	  "strength": 55,
 	  "charm": 82,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wei",
 	  "leadership": 96,
 	  "politics": 98,
 	  "loyalty": 48,
 	  "ambition": 97,
 	  "combat": 58,
 	  "relationship_type": {
-		"司馬昭": "father",
-		"司馬師": "father"
+		  "司馬昭":"family",
+		  "司馬師":"family"
 	  },
-	  "birth_year": 179,
-	  "death_year": 251
+	  "birth_year": 179
 	},
 	{
 	  "id": 34,
@@ -657,16 +586,16 @@
 	  "strength": 61,
 	  "charm": 76,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 84,
 	  "politics": 91,
 	  "loyalty": 42,
 	  "ambition": 93,
 	  "combat": 60,
-	  "relationship_type": {},
-	  "birth_year": 211,
-	  "death_year": 265
+	  "relationship_type": {
+			"司馬懿":"family",
+			"司馬師":"family"
+	  },
+	  "birth_year": 211
 	},
 	{
 	  "id": 35,
@@ -676,16 +605,16 @@
 	  "strength": 60,
 	  "charm": 74,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wei",
 	  "leadership": 85,
 	  "politics": 90,
 	  "loyalty": 45,
 	  "ambition": 91,
 	  "combat": 58,
-	  "relationship_type": {},
-	  "birth_year": 208,
-	  "death_year": 255
+	  "relationship_type": {
+		"司馬懿":"family",
+		"司馬昭":"family"
+	  },
+	  "birth_year": 208
 	},
 	{
 	  "id": 36,
@@ -695,16 +624,13 @@
 	  "strength": 35,
 	  "charm": 86,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wei",
 	  "leadership": 74,
 	  "politics": 97,
 	  "loyalty": 88,
 	  "ambition": 52,
 	  "combat": 30,
 	  "relationship_type": {},
-	  "birth_year": 163,
-	  "death_year": 212
+	  "birth_year": 163
 	},
 	{
 	  "id": 37,
@@ -714,16 +640,13 @@
 	  "strength": 34,
 	  "charm": 78,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wei",
 	  "leadership": 72,
 	  "politics": 94,
 	  "loyalty": 86,
 	  "ambition": 50,
 	  "combat": 28,
 	  "relationship_type": {},
-	  "birth_year": 157,
-	  "death_year": 214
+	  "birth_year": 157
 	},
 	{
 	  "id": 38,
@@ -733,16 +656,13 @@
 	  "strength": 36,
 	  "charm": 70,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wei",
 	  "leadership": 76,
 	  "politics": 95,
 	  "loyalty": 58,
 	  "ambition": 62,
 	  "combat": 32,
 	  "relationship_type": {},
-	  "birth_year": 147,
-	  "death_year": 223
+	  "birth_year": 147
 	},
 	{
 	  "id": 39,
@@ -752,16 +672,13 @@
 	  "strength": 39,
 	  "charm": 64,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wei",
 	  "leadership": 70,
 	  "politics": 89,
 	  "loyalty": 82,
 	  "ambition": 55,
 	  "combat": 35,
 	  "relationship_type": {},
-	  "birth_year": 141,
-	  "death_year": 220
+	  "birth_year": 141
 	},
 	{
 	  "id": 40,
@@ -771,16 +688,13 @@
 	  "strength": 35,
 	  "charm": 83,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wei",
 	  "leadership": 78,
 	  "politics": 92,
 	  "loyalty": 88,
 	  "ambition": 61,
 	  "combat": 31,
 	  "relationship_type": {},
-	  "birth_year": 170,
-	  "death_year": 207
+	  "birth_year": 170
 	},
 	{
 	  "id": 41,
@@ -790,20 +704,17 @@
 	  "strength": 65,
 	  "charm": 89,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 90,
 	  "politics": 90,
 	  "loyalty": 82,
 	  "ambition": 84,
 	  "combat": 62,
 	  "relationship_type": {
-		"周瑜": "lord",
-		"魯肅": "lord",
-		"陸遜": "lord"
+		  "孫策":"family",
+		  "孫堅":"family",
+		  "孫尚香":"family"
 	  },
-	  "birth_year": 182,
-	  "death_year": 252
+	  "birth_year": 182
 	},
 	{
 	  "id": 42,
@@ -813,16 +724,18 @@
 	  "strength": 93,
 	  "charm": 90,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 93,
 	  "politics": 74,
 	  "loyalty": 82,
 	  "ambition": 93,
 	  "combat": 91,
-	  "relationship_type": {},
-	  "birth_year": 175,
-	  "death_year": 200
+	  "relationship_type": {
+		  "孫權":"family",
+		  "孫堅":"family",
+		  "孫尚香":"family",
+		  "大喬":"family"
+	  },
+	  "birth_year": 175
 	},
 	{
 	  "id": 43,
@@ -832,16 +745,17 @@
 	  "strength": 90,
 	  "charm": 82,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Wu",
 	  "leadership": 90,
 	  "politics": 67,
 	  "loyalty": 84,
 	  "ambition": 80,
 	  "combat": 87,
-	  "relationship_type": {},
-	  "birth_year": 155,
-	  "death_year": 191
+	  "relationship_type": {
+		  "孫策":"family",
+		  "孫權":"family",
+		  "孫尚香":"family"
+	  },
+	  "birth_year": 155
 	},
 	{
 	  "id": 44,
@@ -851,19 +765,15 @@
 	  "strength": 74,
 	  "charm": 94,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 96,
 	  "politics": 89,
 	  "loyalty": 95,
 	  "ambition": 70,
 	  "combat": 78,
 	  "relationship_type": {
-		"孫權": "servant",
-		"魯肅": "ally"
+		  "小喬":"family"
 	  },
-	  "birth_year": 175,
-	  "death_year": 210
+	  "birth_year": 175
 	},
 	{
 	  "id": 45,
@@ -873,16 +783,13 @@
 	  "strength": 42,
 	  "charm": 88,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wu",
 	  "leadership": 78,
 	  "politics": 94,
 	  "loyalty": 94,
 	  "ambition": 48,
 	  "combat": 36,
 	  "relationship_type": {},
-	  "birth_year": 172,
-	  "death_year": 217
+	  "birth_year": 172
 	},
 	{
 	  "id": 46,
@@ -892,16 +799,13 @@
 	  "strength": 83,
 	  "charm": 75,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 89,
 	  "politics": 82,
 	  "loyalty": 92,
 	  "ambition": 67,
 	  "combat": 86,
 	  "relationship_type": {},
-	  "birth_year": 178,
-	  "death_year": 217
+	  "birth_year": 178
 	},
 	{
 	  "id": 47,
@@ -911,16 +815,13 @@
 	  "strength": 72,
 	  "charm": 82,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 95,
 	  "politics": 91,
 	  "loyalty": 93,
 	  "ambition": 70,
 	  "combat": 82,
 	  "relationship_type": {},
-	  "birth_year": 183,
-	  "death_year": 245
+	  "birth_year": 182
 	},
 	{
 	  "id": 48,
@@ -930,16 +831,13 @@
 	  "strength": 92,
 	  "charm": 72,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 84,
 	  "politics": 42,
 	  "loyalty": 82,
 	  "ambition": 68,
 	  "combat": 92,
 	  "relationship_type": {},
-	  "birth_year": 174,
-	  "death_year": 215
+	  "birth_year": 175
 	},
 	{
 	  "id": 49,
@@ -949,16 +847,13 @@
 	  "strength": 91,
 	  "charm": 76,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 86,
 	  "politics": 50,
 	  "loyalty": 88,
 	  "ambition": 62,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "birth_year": 166,
-	  "death_year": 206
+	  "birth_year": 169
 	},
 	{
 	  "id": 50,
@@ -968,16 +863,13 @@
 	  "strength": 87,
 	  "charm": 72,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 81,
 	  "politics": 54,
 	  "loyalty": 94,
 	  "ambition": 45,
 	  "combat": 85,
 	  "relationship_type": {},
-	  "birth_year": 145,
-	  "death_year": 215
+	  "birth_year": 145
 	},
 	{
 	  "id": 51,
@@ -987,16 +879,13 @@
 	  "strength": 84,
 	  "charm": 70,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 82,
 	  "politics": 55,
 	  "loyalty": 90,
 	  "ambition": 48,
 	  "combat": 82,
 	  "relationship_type": {},
-	  "birth_year": 154,
-	  "death_year": 210
+	  "birth_year": 154
 	},
 	{
 	  "id": 52,
@@ -1006,16 +895,13 @@
 	  "strength": 83,
 	  "charm": 66,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 78,
 	  "politics": 44,
 	  "loyalty": 88,
 	  "ambition": 50,
 	  "combat": 80,
 	  "relationship_type": {},
-	  "birth_year": 156,
-	  "death_year": 226
+	  "birth_year": 156
 	},
 	{
 	  "id": 53,
@@ -1025,16 +911,13 @@
 	  "strength": 92,
 	  "charm": 64,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 76,
 	  "politics": 36,
 	  "loyalty": 95,
 	  "ambition": 46,
 	  "combat": 89,
 	  "relationship_type": {},
-	  "birth_year": 175,
-	  "death_year": 222
+	  "birth_year": 163
 	},
 	{
 	  "id": 54,
@@ -1044,16 +927,13 @@
 	  "strength": 87,
 	  "charm": 69,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 78,
 	  "politics": 45,
 	  "loyalty": 86,
 	  "ambition": 60,
 	  "combat": 86,
 	  "relationship_type": {},
-	  "birth_year": 189,
-	  "death_year": 217
+	  "birth_year": 189
 	},
 	{
 	  "id": 55,
@@ -1063,16 +943,13 @@
 	  "strength": 30,
 	  "charm": 72,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wu",
 	  "leadership": 62,
 	  "politics": 92,
 	  "loyalty": 82,
 	  "ambition": 43,
 	  "combat": 24,
 	  "relationship_type": {},
-	  "birth_year": 156,
-	  "death_year": 236
+	  "birth_year": 156
 	},
 	{
 	  "id": 56,
@@ -1082,16 +959,13 @@
 	  "strength": 32,
 	  "charm": 76,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wu",
 	  "leadership": 60,
 	  "politics": 91,
 	  "loyalty": 86,
 	  "ambition": 38,
 	  "combat": 23,
 	  "relationship_type": {},
-	  "birth_year": 168,
-	  "death_year": 243
+	  "birth_year": 168
 	},
 	{
 	  "id": 57,
@@ -1101,16 +975,13 @@
 	  "strength": 36,
 	  "charm": 84,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wu",
 	  "leadership": 64,
 	  "politics": 86,
 	  "loyalty": 89,
 	  "ambition": 40,
 	  "combat": 27,
 	  "relationship_type": {},
-	  "birth_year": 174,
-	  "death_year": 214
+	  "birth_year": 174
 	},
 	{
 	  "id": 58,
@@ -1120,16 +991,17 @@
 	  "strength": 72,
 	  "charm": 84,
 	  "sex": "Female",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 58,
 	  "politics": 42,
 	  "loyalty": 75,
 	  "ambition": 61,
 	  "combat": 74,
-	  "relationship_type": {},
-	  "birth_year": 182,
-	  "death_year": 211
+	  "relationship_type": {
+		  "孫權":"family",
+		  "孫策":"family",
+		  "孫堅":"family"
+	  },
+	  "birth_year": 182
 	},
 	{
 	  "id": 59,
@@ -1139,16 +1011,13 @@
 	  "strength": 38,
 	  "charm": 70,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Wu",
 	  "leadership": 66,
 	  "politics": 85,
 	  "loyalty": 84,
 	  "ambition": 45,
 	  "combat": 30,
 	  "relationship_type": {},
-	  "birth_year": 180,
-	  "death_year": 247
+	  "birth_year": 180
 	},
 	{
 	  "id": 60,
@@ -1158,16 +1027,13 @@
 	  "strength": 86,
 	  "charm": 66,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Wu",
 	  "leadership": 82,
 	  "politics": 49,
 	  "loyalty": 87,
 	  "ambition": 57,
 	  "combat": 84,
 	  "relationship_type": {},
-	  "birth_year": 195,
-	  "death_year": 271
+	  "birth_year": 190
 	},
 	{
 	  "id": 61,
@@ -1177,19 +1043,14 @@
 	  "strength": 100,
 	  "charm": 78,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 78,
 	  "politics": 18,
 	  "loyalty": 18,
 	  "ambition": 92,
 	  "combat": 100,
 	  "relationship_type": {
-		"董卓": "betray",
-		"貂蟬": "lover"
 	  },
-	  "birth_year": 161,
-	  "death_year": 198
+	  "birth_year": 156
 	},
 	{
 	  "id": 62,
@@ -1199,18 +1060,14 @@
 	  "strength": 86,
 	  "charm": 32,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Qun",
 	  "leadership": 72,
 	  "politics": 34,
 	  "loyalty": 15,
 	  "ambition": 94,
 	  "combat": 78,
 	  "relationship_type": {
-		"呂布": "adopted_son"
 	  },
-	  "birth_year": 139,
-	  "death_year": 192
+	  "birth_year": 139
 	},
 	{
 	  "id": 63,
@@ -1220,19 +1077,14 @@
 	  "strength": 68,
 	  "charm": 82,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Qun",
 	  "leadership": 79,
 	  "politics": 64,
 	  "loyalty": 52,
 	  "ambition": 88,
 	  "combat": 62,
 	  "relationship_type": {
-		"顏良": "lord",
-		"文醜": "lord"
 	  },
-	  "birth_year": 154,
-	  "death_year": 202
+	  "birth_year": 154
 	},
 	{
 	  "id": 64,
@@ -1242,16 +1094,13 @@
 	  "strength": 62,
 	  "charm": 55,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Qun",
 	  "leadership": 60,
 	  "politics": 42,
 	  "loyalty": 28,
 	  "ambition": 92,
 	  "combat": 55,
 	  "relationship_type": {},
-	  "birth_year": 155,
-	  "death_year": 199
+	  "birth_year": 155
 	},
 	{
 	  "id": 65,
@@ -1261,16 +1110,14 @@
 	  "strength": 86,
 	  "charm": 66,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 82,
 	  "politics": 44,
 	  "loyalty": 64,
 	  "ambition": 78,
 	  "combat": 86,
-	  "relationship_type": {},
-	  "birth_year": 153,
-	  "death_year": 199
+	  "relationship_type": {
+	  },
+	  "birth_year": 153
 	},
 	{
 	  "id": 66,
@@ -1280,19 +1127,16 @@
 	  "strength": 40,
 	  "charm": 91,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "YellowTurban",
 	  "leadership": 82,
 	  "politics": 72,
 	  "loyalty": 80,
 	  "ambition": 88,
 	  "combat": 42,
 	  "relationship_type": {
-		"張寶": "brother",
-		"張梁": "brother"
+		"張寶": "family",
+		"張梁": "family"
 	  },
-	  "birth_year": 140,
-	  "death_year": 184
+	  "birth_year": 140
 	},
 	{
 	  "id": 67,
@@ -1302,19 +1146,16 @@
 	  "strength": 72,
 	  "charm": 66,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "YellowTurban",
 	  "leadership": 73,
 	  "politics": 45,
 	  "loyalty": 82,
 	  "ambition": 70,
 	  "combat": 70,
 	  "relationship_type": {
-		"張角": "brother",
-		"張梁": "brother"
+		"張角": "family",
+		"張梁": "family"
 	  },
-	  "birth_year": 148,
-	  "death_year": 184
+	  "birth_year": 148
 	},
 	{
 	  "id": 68,
@@ -1324,19 +1165,16 @@
 	  "strength": 78,
 	  "charm": 62,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "YellowTurban",
 	  "leadership": 75,
 	  "politics": 40,
 	  "loyalty": 83,
 	  "ambition": 72,
 	  "combat": 76,
 	  "relationship_type": {
-		"張角": "brother",
-		"張寶": "brother"
+		"張角": "family",
+		"張寶": "family"
 	  },
-	  "birth_year": 153,
-	  "death_year": 184
+	  "birth_year": 153
 	},
 	{
 	  "id": 69,
@@ -1346,16 +1184,13 @@
 	  "strength": 91,
 	  "charm": 55,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 68,
 	  "politics": 25,
 	  "loyalty": 70,
 	  "ambition": 60,
 	  "combat": 88,
 	  "relationship_type": {},
-	  "birth_year": 155,
-	  "death_year": 191
+	  "birth_year": 155
 	},
 	{
 	  "id": 70,
@@ -1365,16 +1200,13 @@
 	  "strength": 93,
 	  "charm": 60,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 74,
 	  "politics": 32,
 	  "loyalty": 82,
 	  "ambition": 55,
 	  "combat": 90,
 	  "relationship_type": {},
-	  "birth_year": 160,
-	  "death_year": 200
+	  "birth_year": 160
 	},
 	{
 	  "id": 71,
@@ -1384,16 +1216,13 @@
 	  "strength": 92,
 	  "charm": 58,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 73,
 	  "politics": 30,
 	  "loyalty": 81,
 	  "ambition": 55,
 	  "combat": 89,
 	  "relationship_type": {},
-	  "birth_year": 160,
-	  "death_year": 200
+	  "birth_year": 161
 	},
 	{
 	  "id": 72,
@@ -1403,16 +1232,13 @@
 	  "strength": 82,
 	  "charm": 35,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 70,
 	  "politics": 32,
 	  "loyalty": 38,
 	  "ambition": 82,
 	  "combat": 78,
 	  "relationship_type": {},
-	  "birth_year": 148,
-	  "death_year": 198
+	  "birth_year": 148
 	},
 	{
 	  "id": 73,
@@ -1422,16 +1248,13 @@
 	  "strength": 81,
 	  "charm": 34,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 68,
 	  "politics": 30,
 	  "loyalty": 35,
 	  "ambition": 80,
 	  "combat": 77,
 	  "relationship_type": {},
-	  "birth_year": 146,
-	  "death_year": 197
+	  "birth_year": 146
 	},
 	{
 	  "id": 74,
@@ -1441,16 +1264,15 @@
 	  "strength": 86,
 	  "charm": 78,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Qun",
 	  "leadership": 84,
 	  "politics": 62,
 	  "loyalty": 76,
 	  "ambition": 84,
 	  "combat": 82,
-	  "relationship_type": {},
-	  "birth_year": 142,
-	  "death_year": 212
+	  "relationship_type": {
+		  "馬超":"family"
+	  },
+	  "birth_year": 156
 	},
 	{
 	  "id": 75,
@@ -1460,16 +1282,13 @@
 	  "strength": 75,
 	  "charm": 70,
 	  "sex": "Male",
-	  "role": "Lord",
-	  "belongs": "Qun",
 	  "leadership": 82,
 	  "politics": 76,
 	  "loyalty": 42,
 	  "ambition": 88,
 	  "combat": 70,
 	  "relationship_type": {},
-	  "birth_year": 146,
-	  "death_year": 215
+	  "birth_year": 146
 	},
 	{
 	  "id": 76,
@@ -1479,16 +1298,13 @@
 	  "strength": 28,
 	  "charm": 71,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Qun",
 	  "leadership": 42,
 	  "politics": 80,
 	  "loyalty": 68,
 	  "ambition": 38,
 	  "combat": 20,
 	  "relationship_type": {},
-	  "birth_year": 153,
-	  "death_year": 208
+	  "birth_year": 153
 	},
 	{
 	  "id": 77,
@@ -1498,16 +1314,13 @@
 	  "strength": 22,
 	  "charm": 76,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Qun",
 	  "leadership": 30,
 	  "politics": 70,
 	  "loyalty": 72,
 	  "ambition": 25,
 	  "combat": 15,
 	  "relationship_type": {},
-	  "birth_year": 132,
-	  "death_year": 192
+	  "birth_year": 132
 	},
 	{
 	  "id": 78,
@@ -1517,16 +1330,13 @@
 	  "strength": 25,
 	  "charm": 42,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Qun",
 	  "leadership": 25,
 	  "politics": 55,
 	  "loyalty": 35,
 	  "ambition": 45,
 	  "combat": 18,
 	  "relationship_type": {},
-	  "birth_year": 173,
-	  "death_year": 198
+	  "birth_year": 173
 	},
 	{
 	  "id": 79,
@@ -1536,16 +1346,13 @@
 	  "strength": 28,
 	  "charm": 68,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Qun",
 	  "leadership": 40,
 	  "politics": 81,
 	  "loyalty": 61,
 	  "ambition": 58,
 	  "combat": 20,
 	  "relationship_type": {},
-	  "birth_year": 137,
-	  "death_year": 192
+	  "birth_year": 137
 	},
 	{
 	  "id": 80,
@@ -1555,16 +1362,13 @@
 	  "strength": 28,
 	  "charm": 99,
 	  "sex": "Female",
-	  "role": "General",
-	  "belongs": "Qun",
 	  "leadership": 25,
 	  "politics": 68,
 	  "loyalty": 55,
 	  "ambition": 42,
 	  "combat": 18,
 	  "relationship_type": {},
-	  "birth_year": 180,
-	  "death_year": 230
+	  "birth_year": 180
 	},
 	{
 	  "id": 81,
@@ -1574,16 +1378,13 @@
 	  "strength": 30,
 	  "charm": 72,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 58,
 	  "politics": 88,
 	  "loyalty": 90,
 	  "ambition": 35,
 	  "combat": 22,
 	  "relationship_type": {},
-	  "birth_year": 176,
-	  "death_year": 246
+	  "birth_year": 174
 	},
 	{
 	  "id": 82,
@@ -1593,16 +1394,13 @@
 	  "strength": 82,
 	  "charm": 62,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 74,
 	  "politics": 36,
 	  "loyalty": 96,
 	  "ambition": 42,
 	  "combat": 80,
 	  "relationship_type": {},
-	  "birth_year": 152,
-	  "death_year": 222
+	  "birth_year": 168
 	},
 	{
 	  "id": 83,
@@ -1611,17 +1409,14 @@
 	  "intelligence": 78,
 	  "strength": 32,
 	  "charm": 77,
-	  "role": "Advisor",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 42,
 	  "politics": 76,
 	  "loyalty": 87,
 	  "ambition": 35,
 	  "combat": 22,
 	  "relationship_type": {},
-	  "birth_year": 154,
-	  "death_year": 214
+	  "birth_year": 165
 	},
 	{
 	  "id": 84,
@@ -1630,17 +1425,14 @@
 	  "intelligence": 76,
 	  "strength": 30,
 	  "charm": 82,
-	  "role": "Advisor",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 38,
 	  "politics": 78,
 	  "loyalty": 88,
 	  "ambition": 32,
 	  "combat": 18,
 	  "relationship_type": {},
-	  "birth_year": 151,
-	  "death_year": 221
+	  "birth_year": 165
 	},
 	{
 	  "id": 85,
@@ -1650,16 +1442,13 @@
 	  "strength": 65,
 	  "charm": 45,
 	  "sex": "Male",
-	  "role": "General",
-	  "belongs": "Shu",
 	  "leadership": 52,
 	  "politics": 35,
 	  "loyalty": 25,
 	  "ambition": 55,
 	  "combat": 54,
 	  "relationship_type": {},
-	  "birth_year": 153,
-	  "death_year": 223
+	  "birth_year": 169
 	},
 	{
 	  "id": 86,
@@ -1669,16 +1458,13 @@
 	  "strength": 30,
 	  "charm": 76,
 	  "sex": "Male",
-	  "role": "Advisor",
-	  "belongs": "Shu",
 	  "leadership": 55,
 	  "politics": 85,
 	  "loyalty": 88,
 	  "ambition": 38,
 	  "combat": 22,
 	  "relationship_type": {},
-	  "birth_year": 187,
-	  "death_year": 222
+	  "birth_year": 187
 	},
 	{
 	  "id": 87,
@@ -1687,17 +1473,14 @@
 	  "intelligence": 84,
 	  "strength": 38,
 	  "charm": 65,
-	  "role": "Advisor",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 55,
 	  "politics": 76,
 	  "loyalty": 78,
 	  "ambition": 74,
 	  "combat": 30,
 	  "relationship_type": {},
-	  "birth_year": 190,
-	  "death_year": 228
+	  "birth_year": 187
 	},
 	{
 	  "id": 88,
@@ -1706,17 +1489,14 @@
 	  "intelligence": 76,
 	  "strength": 80,
 	  "charm": 68,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 84,
 	  "politics": 52,
 	  "loyalty": 88,
 	  "ambition": 50,
 	  "combat": 79,
 	  "relationship_type": {},
-	  "birth_year": 190,
-	  "death_year": 248
+	  "birth_year": 182
 	},
 	{
 	  "id": 89,
@@ -1725,17 +1505,14 @@
 	  "intelligence": 82,
 	  "strength": 35,
 	  "charm": 78,
-	  "role": "Advisor",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 58,
 	  "politics": 86,
 	  "loyalty": 90,
 	  "ambition": 36,
 	  "combat": 25,
 	  "relationship_type": {},
-	  "birth_year": 178,
-	  "death_year": 251
+	  "birth_year": 182
 	},
 	{
 	  "id": 90,
@@ -1744,17 +1521,14 @@
 	  "intelligence": 80,
 	  "strength": 38,
 	  "charm": 70,
-	  "role": "Advisor",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 68,
 	  "politics": 82,
 	  "loyalty": 84,
 	  "ambition": 52,
 	  "combat": 32,
 	  "relationship_type": {},
-	  "birth_year": 161,
-	  "death_year": 231
+	  "birth_year": 175
 	},
 	{
 	  "id": 91,
@@ -1763,17 +1537,14 @@
 	  "intelligence": 72,
 	  "strength": 78,
 	  "charm": 66,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 82,
 	  "politics": 48,
 	  "loyalty": 91,
 	  "ambition": 45,
 	  "combat": 77,
 	  "relationship_type": {},
-	  "birth_year": 180,
-	  "death_year": 217
+	  "birth_year": 178
 	},
 	{
 	  "id": 92,
@@ -1782,17 +1553,14 @@
 	  "intelligence": 64,
 	  "strength": 84,
 	  "charm": 66,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 74,
 	  "politics": 42,
 	  "loyalty": 82,
 	  "ambition": 46,
 	  "combat": 83,
 	  "relationship_type": {},
-	  "birth_year": 153,
-	  "death_year": 222
+	  "birth_year": 153
 	},
 	{
 	  "id": 93,
@@ -1801,17 +1569,14 @@
 	  "intelligence": 74,
 	  "strength": 78,
 	  "charm": 70,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 81,
 	  "politics": 55,
 	  "loyalty": 88,
 	  "ambition": 50,
 	  "combat": 78,
 	  "relationship_type": {},
-	  "birth_year": 196,
-	  "death_year": 254
+	  "birth_year": 190
 	},
 	{
 	  "id": 94,
@@ -1820,17 +1585,14 @@
 	  "intelligence": 65,
 	  "strength": 78,
 	  "charm": 62,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 76,
 	  "politics": 42,
 	  "loyalty": 86,
 	  "ambition": 48,
 	  "combat": 76,
 	  "relationship_type": {},
-	  "birth_year": 172,
-	  "death_year": 264
+	  "birth_year": 172
 	},
 	{
 	  "id": 95,
@@ -1839,17 +1601,14 @@
 	  "intelligence": 42,
 	  "strength": 86,
 	  "charm": 58,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 60,
 	  "politics": 25,
 	  "loyalty": 96,
 	  "ambition": 35,
 	  "combat": 84,
 	  "relationship_type": {},
-	  "birth_year": 164,
-	  "death_year": 219
+	  "birth_year": 164
 	},
 	{
 	  "id": 96,
@@ -1858,17 +1617,18 @@
 	  "intelligence": 55,
 	  "strength": 83,
 	  "charm": 68,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 66,
 	  "politics": 34,
 	  "loyalty": 85,
 	  "ambition": 52,
 	  "combat": 82,
-	  "relationship_type": {},
-	  "birth_year": 179,
-	  "death_year": 244
+	  "relationship_type": {
+		  "關羽":"family",
+		  "關平":"family",
+		  "關興":"family"
+	  },
+	  "birth_year": 194
 	},
 	{
 	  "id": 97,
@@ -1877,17 +1637,17 @@
 	  "intelligence": 72,
 	  "strength": 45,
 	  "charm": 70,
-	  "role": "Advisor",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 58,
 	  "politics": 74,
 	  "loyalty": 92,
 	  "ambition": 44,
 	  "combat": 42,
-	  "relationship_type": {},
-	  "birth_year": 227,
-	  "death_year": 263
+	  "relationship_type": {
+		  "諸葛亮":"family",
+		  "諸葛尚":"family"
+	  },
+	  "birth_year": 227
 	},
 	{
 	  "id": 98,
@@ -1896,17 +1656,17 @@
 	  "intelligence": 58,
 	  "strength": 75,
 	  "charm": 65,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 52,
 	  "politics": 35,
 	  "loyalty": 95,
 	  "ambition": 38,
 	  "combat": 73,
-	  "relationship_type": {},
-	  "birth_year": 244,
-	  "death_year": 263
+	  "relationship_type": {
+		  "諸葛亮":"family",
+		  "諸葛瞻":"family"
+	  },
+	  "birth_year": 244
 	},
 	{
 	  "id": 99,
@@ -1915,17 +1675,14 @@
 	  "intelligence": 70,
 	  "strength": 72,
 	  "charm": 55,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Wei",
 	  "leadership": 70,
 	  "politics": 60,
 	  "loyalty": 32,
 	  "ambition": 82,
 	  "combat": 66,
 	  "relationship_type": {},
-	  "birth_year": 158,
-	  "death_year": 228
+	  "birth_year": 172
 	},
 	{
 	  "id": 100,
@@ -1934,17 +1691,14 @@
 	  "intelligence": 35,
 	  "strength": 90,
 	  "charm": 42,
-	  "role": "General",
 	  "sex": "Male",
-	  "belongs": "Shu",
 	  "leadership": 62,
 	  "politics": 20,
 	  "loyalty": 60,
 	  "ambition": 70,
 	  "combat": 88,
 	  "relationship_type": {},
-	  "birth_year": 162,
-	  "death_year": 222
+	  "birth_year": 167
 	},
 	{
 		"id": 101,
@@ -1953,17 +1707,14 @@
 		"intelligence":92,
 		"strength":72,
 		"charm":67,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":95,
 		"politics":86,
 		"loyalty":88,
 		"ambition":90,
 		"combat":86,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 197
 	},
 	{
 		"id": 102,
@@ -1972,17 +1723,14 @@
 		"intelligence":95,
 		"strength":58,
 		"charm":76,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":88,
 		"politics":87,
 		"loyalty":45,
 		"ambition":98,
 		"combat":72,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 225
 	},
 	{
 		"id": 103,
@@ -1991,17 +1739,14 @@
 		"intelligence":84,
 		"strength":67,
 		"charm":70,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":89,
 		"politics":78,
 		"loyalty":93,
 		"ambition":62,
 		"combat":79,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 187
 	},
 	{
 		"id": 104,
@@ -2010,17 +1755,15 @@
 		"intelligence":82,
 		"strength":76,
 		"charm":72,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":88,
 		"politics":74,
 		"loyalty":94,
 		"ambition":70,
 		"combat":83,
-		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"relationship_type": {
+		},
+		"birth_year": 185
 	},
 	{
 		"id": 105,
@@ -2029,17 +1772,14 @@
 		"intelligence":80,
 		"strength":85,
 		"charm":66,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":93,
 		"politics":68,
 		"loyalty":96,
 		"ambition":64,
 		"combat":88,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 168
 	},
 	{
 		"id": 106,
@@ -2048,17 +1788,14 @@
 		"intelligence":84,
 		"strength":63,
 		"charm":58,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":86,
 		"politics":83,
 		"loyalty":95,
 		"ambition":60,
 		"combat":72,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 170
 	},
 	{
 		"id": 107,
@@ -2067,17 +1804,14 @@
 		"intelligence":81,
 		"strength":72,
 		"charm":78,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":83,
 		"politics":68,
 		"loyalty":93,
 		"ambition":55,
 		"combat":76,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 174
 	},
 	{
 		"id": 108,
@@ -2086,17 +1820,14 @@
 		"intelligence":65,
 		"strength":81,
 		"charm":63,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":78,
 		"politics":52,
 		"loyalty":94,
 		"ambition":72,
 		"combat":81,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 169
 	},
 	{
 		"id": 109,
@@ -2105,17 +1836,14 @@
 		"intelligence":62,
 		"strength":92,
 		"charm":61,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":84,
 		"politics":36,
 		"loyalty":97,
 		"ambition":65,
 		"combat":92,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 179
 	},
 	{
 		"id": 110,
@@ -2124,17 +1852,14 @@
 		"intelligence":76,
 		"strength":77,
 		"charm":65,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":87,
 		"politics":63,
 		"loyalty":94,
 		"ambition":56,
 		"combat":80,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 178
 	},
 	{
 		"id": 111,
@@ -2143,17 +1868,14 @@
 		"intelligence":88,
 		"strength":42,
 		"charm":60,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":65,
 		"politics":90,
 		"loyalty":85,
 		"ambition":70,
 		"combat":40,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 191
 	},
 	{
 		"id": 112,
@@ -2162,17 +1884,14 @@
 		"intelligence":86,
 		"strength":35,
 		"charm":72,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":58,
 		"politics":97,
 		"loyalty":94,
 		"ambition":52,
 		"combat":32,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 175
 	},
 	{
 		"id": 113,
@@ -2181,17 +1900,14 @@
 		"intelligence":58,
 		"strength":76,
 		"charm":52,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":72,
 		"politics":36,
 		"loyalty":82,
 		"ambition":48,
 		"combat":74,
 		"relationship_type": {},
-		"birth_year": 146,
-		"death_year": 200
+		"birth_year": 146
 	},
 	{
 		"id": 114,
@@ -2200,17 +1916,14 @@
 		"intelligence":91,
 		"strength":58,
 		"charm":90,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":92,
 		"politics":93,
 		"loyalty":92,
 		"ambition":55,
 		"combat":63,
 		"relationship_type": {},
-		"birth_year": 221,
-		"death_year": 278
+		"birth_year": 221
 	},
 	{
 		"id": 115,
@@ -2219,17 +1932,14 @@
 		"intelligence":93,
 		"strength":54,
 		"charm":79,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":91,
 		"politics":95,
 		"loyalty":93,
 		"ambition":60,
 		"combat":60,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 222
 	},
 	{
 		"id": 116,
@@ -2238,17 +1948,14 @@
 		"intelligence":92,
 		"strength":75,
 		"charm":78,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":95,
 		"politics":88,
 		"loyalty":97,
 		"ambition":65,
 		"combat":86,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 226
 	},
 	{
 		"id": 117,
@@ -2257,17 +1964,14 @@
 		"intelligence":78,
 		"strength":79,
 		"charm":66,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":88,
 		"politics":62,
 		"loyalty":93,
 		"ambition":58,
 		"combat":83,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 182
 	},
 	{
 		"id": 118,
@@ -2276,17 +1980,14 @@
 		"intelligence":74,
 		"strength":84,
 		"charm":65,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":88,
 		"politics":55,
 		"loyalty":92,
 		"ambition":60,
 		"combat":86,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 177
 	},
 	{
 		"id": 119,
@@ -2295,17 +1996,14 @@
 		"intelligence":68,
 		"strength":80,
 		"charm":62,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":83,
 		"politics":48,
 		"loyalty":90,
 		"ambition":58,
 		"combat":84,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 168
 	},
 	{
 		"id": 120,
@@ -2314,17 +2012,14 @@
 		"intelligence":54,
 		"strength":83,
 		"charm":42,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":75,
 		"politics":33,
 		"loyalty":72,
 		"ambition":85,
 		"combat":84,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 171
 	},
 	{
 		"id": 121,
@@ -2333,17 +2028,14 @@
 		"intelligence":83,
 		"strength":78,
 		"charm":72,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":90,
 		"politics":69,
 		"loyalty":93,
 		"ambition":63,
 		"combat":84,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 177
 	},
 	{
 		"id": 122,
@@ -2352,17 +2044,14 @@
 		"intelligence":75,
 		"strength":74,
 		"charm":71,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":82,
 		"politics":65,
 		"loyalty":88,
 		"ambition":70,
 		"combat":77,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 183
 	},
 	{
 		"id": 123,
@@ -2371,36 +2060,30 @@
 		"intelligence":78,
 		"strength":79,
 		"charm":64,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":85,
 		"politics":66,
 		"loyalty":91,
 		"ambition":60,
 		"combat":80,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 174
 	},
 	{
 		"id": 124,
-		"name":"Sun Luban",
-		"name_cn":"孫魯班",
-		"intelligence":72,
-		"strength":20,
-		"charm":90,
-		"role": "Advisor",
+		"name":"Guan Hai",
+		"name_cn":"管亥",
+		"intelligence":46,
+		"strength":88,
+		"charm":58,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":18,
-		"politics":80,
-		"loyalty":30,
-		"ambition":92,
-		"combat":10,
+		"leadership":74,
+		"politics":18,
+		"loyalty":90,
+		"ambition":76,
+		"combat":89,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 160
 	},
 	{
 		"id": 125,
@@ -2409,17 +2092,16 @@
 		"intelligence":63,
 		"strength":10,
 		"charm":98,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":12,
 		"politics":54,
 		"loyalty":88,
 		"ambition":28,
 		"combat":5,
-		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"relationship_type": {
+			"孫策":"family"
+		},
+		"birth_year": 181
 	},
 	{
 		"id": 126,
@@ -2428,17 +2110,16 @@
 		"intelligence":66,
 		"strength":10,
 		"charm":99,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":12,
 		"politics":55,
 		"loyalty":89,
 		"ambition":25,
 		"combat":5,
-		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"relationship_type": {
+			"周瑜":"family"
+		},
+		"birth_year": 183
 	},
 	{
 		"id": 127,
@@ -2447,17 +2128,14 @@
 		"intelligence":52,
 		"strength":74,
 		"charm":48,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":55,
 		"politics":35,
 		"loyalty":75,
 		"ambition":82,
 		"combat":66,
 		"relationship_type": {},
-		"birth_year": 135,
-		"death_year": 222
+		"birth_year": 135
 	},
 	{
 		"id": 128,
@@ -2466,17 +2144,14 @@
 		"intelligence":91,
 		"strength":55,
 		"charm":81,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":88,
 		"politics":89,
 		"loyalty":96,
 		"ambition":35,
 		"combat":55,
 		"relationship_type": {},
-		"birth_year": 139,
-		"death_year": 222
+		"birth_year": 139
 	},
 	{
 		"id": 129,
@@ -2485,17 +2160,14 @@
 		"intelligence":88,
 		"strength":72,
 		"charm":77,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":93,
 		"politics":78,
 		"loyalty":95,
 		"ambition":45,
 		"combat":81,
 		"relationship_type": {},
-		"birth_year": 139,
-		"death_year": 222
+		"birth_year": 139
 	},
 	{
 		"id": 130,
@@ -2504,17 +2176,14 @@
 		"intelligence":84,
 		"strength":71,
 		"charm":73,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":89,
 		"politics":72,
 		"loyalty":93,
 		"ambition":52,
 		"combat":78,
 		"relationship_type": {},
-		"birth_year": 149,
-		"death_year": 222
+		"birth_year": 149
 	},
 	{
 		"id": 131,
@@ -2523,17 +2192,14 @@
 		"intelligence":91,
 		"strength":51,
 		"charm":68,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":79,
 		"politics":86,
 		"loyalty":60,
 		"ambition":72,
 		"combat":48,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 154
 	},
 	{
 		"id": 132,
@@ -2542,17 +2208,14 @@
 		"intelligence":72,
 		"strength":87,
 		"charm":55,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":93,
 		"politics":40,
 		"loyalty":98,
 		"ambition":28,
 		"combat":90,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 158
 	},
 	{
 		"id": 133,
@@ -2561,17 +2224,14 @@
 		"intelligence":70,
 		"strength":84,
 		"charm":71,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":87,
 		"politics":49,
 		"loyalty":82,
 		"ambition":74,
 		"combat":84,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 172
 	},
 	{
 		"id": 134,
@@ -2580,17 +2240,14 @@
 		"intelligence":94,
 		"strength":42,
 		"charm":61,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":71,
 		"politics":91,
 		"loyalty":95,
 		"ambition":40,
 		"combat":35,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 162
 	},
 	{
 		"id": 135,
@@ -2599,17 +2256,14 @@
 		"intelligence":92,
 		"strength":40,
 		"charm":63,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":75,
 		"politics":90,
 		"loyalty":96,
 		"ambition":38,
 		"combat":35,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 156
 	},
 	{
 		"id": 136,
@@ -2618,17 +2272,14 @@
 		"intelligence":82,
 		"strength":60,
 		"charm":52,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":80,
 		"politics":79,
 		"loyalty":98,
 		"ambition":40,
 		"combat":63,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 156
 	},
 	{
 		"id": 137,
@@ -2637,17 +2288,14 @@
 		"intelligence":88,
 		"strength":42,
 		"charm":48,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":55,
 		"politics":78,
 		"loyalty":25,
 		"ambition":88,
 		"combat":30,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 155
 	},
 	{
 		"id": 138,
@@ -2656,17 +2304,14 @@
 		"intelligence":84,
 		"strength":38,
 		"charm":62,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":52,
 		"politics":88,
 		"loyalty":91,
 		"ambition":35,
 		"combat":22,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 163
 	},
 	{
 		"id": 139,
@@ -2675,17 +2320,14 @@
 		"intelligence":78,
 		"strength":85,
 		"charm":63,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":88,
 		"politics":48,
 		"loyalty":97,
 		"ambition":40,
 		"combat":89,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 169
 	},
 	{
 		"id": 140,
@@ -2694,17 +2336,14 @@
 		"intelligence":58,
 		"strength":35,
 		"charm":74,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":40,
 		"politics":61,
 		"loyalty":82,
 		"ambition":18,
 		"combat":25,
 		"relationship_type": {},
-		"birth_year": 167,
-		"death_year": 222
+		"birth_year": 167
 	},
 	{
 		"id": 141,
@@ -2713,17 +2352,14 @@
 		"intelligence":80,
 		"strength":40,
 		"charm":82,
-		"role": "Lord",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":68,
 		"politics":80,
 		"loyalty":86,
 		"ambition":42,
 		"combat":35,
 		"relationship_type": {},
-		"birth_year": 142,
-		"death_year": 222
+		"birth_year": 142
 	},
 	{
 		"id": 142,
@@ -2732,17 +2368,14 @@
 		"intelligence":82,
 		"strength":38,
 		"charm":76,
-		"role": "Lord",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":66,
 		"politics":81,
 		"loyalty":83,
 		"ambition":75,
 		"combat":28,
 		"relationship_type": {},
-		"birth_year": 137,
-		"death_year": 222
+		"birth_year": 137
 	},
 	{
 		"id": 143,
@@ -2751,17 +2384,14 @@
 		"intelligence":79,
 		"strength":55,
 		"charm":89,
-		"role": "Lord",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":73,
 		"politics":80,
 		"loyalty":90,
 		"ambition":58,
 		"combat":48,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 163
 	},
 	{
 		"id": 144,
@@ -2770,17 +2400,14 @@
 		"intelligence":55,
 		"strength":91,
 		"charm":78,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":81,
 		"politics":35,
 		"loyalty":89,
 		"ambition":82,
 		"combat":90,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 195
 	},
 	{
 		"id": 145,
@@ -2789,17 +2416,14 @@
 		"intelligence":60,
 		"strength":86,
 		"charm":88,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":77,
 		"politics":36,
 		"loyalty":90,
 		"ambition":72,
 		"combat":88,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 205
 	},
 	{
 		"id": 146,
@@ -2808,17 +2432,14 @@
 		"intelligence":42,
 		"strength":88,
 		"charm":55,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":70,
 		"politics":18,
 		"loyalty":75,
 		"ambition":68,
 		"combat":84,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 198
 	},
 	{
 		"id": 147,
@@ -2827,36 +2448,30 @@
 		"intelligence":28,
 		"strength":97,
 		"charm":40,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":68,
 		"politics":12,
 		"loyalty":82,
 		"ambition":55,
 		"combat":95,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 199
 	},
 	{
 		"id": 148,
-		"name":"Ma Yunlu",
-		"name_cn":"馬雲祿",
-		"intelligence":64,
-		"strength":79,
-		"charm":89,
-		"role": "Advisor",
+		"name":"Cheng Yuanzhi",
+		"name_cn":"程遠志",
+		"intelligence":32,
+		"strength":76,
+		"charm":45,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":68,
-		"politics":42,
-		"loyalty":93,
-		"ambition":60,
-		"combat":82,
+		"leadership":58,
+		"politics":10,
+		"loyalty":88,
+		"ambition":72,
+		"combat":74,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 145
 	},
 	{
 		"id": 149,
@@ -2865,17 +2480,14 @@
 		"intelligence":55,
 		"strength":10,
 		"charm":92,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":8,
 		"politics":52,
 		"loyalty":65,
 		"ambition":70,
 		"combat":5,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 177
 	},
 	{
 		"id": 150,
@@ -2884,17 +2496,14 @@
 		"intelligence":79,
 		"strength":10,
 		"charm":88,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":30,
 		"politics":84,
 		"loyalty":96,
 		"ambition":45,
 		"combat":5,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 161
 	},
 	
 	{
@@ -2904,17 +2513,14 @@
 		"intelligence":84,
 		"strength":28,
 		"charm":71,
-		"role": "Lord",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":55,
 		"politics":88,
 		"loyalty":90,
 		"ambition":48,
 		"combat":20,
 		"relationship_type": {},
-		"birth_year": 152,
-		"death_year": 222
+		"birth_year": 152
 	},
 	{
 		"id": 152,
@@ -2923,17 +2529,14 @@
 		"intelligence":85,
 		"strength":22,
 		"charm":68,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":50,
 		"politics":92,
 		"loyalty":82,
 		"ambition":52,
 		"combat":18,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 157
 	},
 	{
 		"id": 153,
@@ -2942,17 +2545,14 @@
 		"intelligence":88,
 		"strength":32,
 		"charm":79,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":67,
 		"politics":93,
 		"loyalty":95,
 		"ambition":28,
 		"combat":25,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 180
 	},
 	{
 		"id": 154,
@@ -2961,36 +2561,30 @@
 		"intelligence":87,
 		"strength":56,
 		"charm":72,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":86,
 		"politics":84,
 		"loyalty":92,
 		"ambition":54,
 		"combat":67,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 190
 	},
 	{
 		"id": 155,
-		"name":"Tian Yu",
-		"name_cn":"田豫",
-		"intelligence":82,
-		"strength":70,
-		"charm":69,
-		"role": "Advisor",
+		"name":"Pei Yuanshao",
+		"name_cn":"裴元紹",
+		"intelligence":40,
+		"strength":72,
+		"charm":48,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":88,
-		"politics":65,
-		"loyalty":95,
-		"ambition":42,
-		"combat":78,
+		"leadership":56,
+		"politics":12,
+		"loyalty":84,
+		"ambition":60,
+		"combat":73,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 168
 	},
 	{
 		"id": 156,
@@ -2999,17 +2593,14 @@
 		"intelligence":73,
 		"strength":78,
 		"charm":70,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":83,
 		"politics":58,
 		"loyalty":95,
 		"ambition":68,
 		"combat":80,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 190
 	},
 	{
 		"id": 157,
@@ -3018,36 +2609,34 @@
 		"intelligence":52,
 		"strength":94,
 		"charm":62,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":79,
 		"politics":32,
 		"loyalty":94,
 		"ambition":74,
 		"combat":93,
-		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"relationship_type": {
+		  "曹操":"family",
+		  "曹叡":"family",
+		  "曹丕":"family"
+		},
+		"birth_year": 190
 	},
 	{
 		"id": 158,
-		"name":"Wen Qin",
-		"name_cn":"文欽",
-		"intelligence":68,
-		"strength":83,
-		"charm":60,
-		"role": "Advisor",
+		"name":"Zhang Kai",
+		"name_cn":"張闓",
+		"intelligence":52,
+		"strength":67,
+		"charm":38,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":82,
-		"politics":46,
-		"loyalty":55,
-		"ambition":82,
-		"combat":85,
+		"leadership":54,
+		"politics":26,
+		"loyalty":20,
+		"ambition":84,
+		"combat":66,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 163
 	},
 	{
 		"id": 159,
@@ -3056,17 +2645,14 @@
 		"intelligence":84,
 		"strength":72,
 		"charm":71,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":87,
 		"politics":76,
 		"loyalty":50,
 		"ambition":88,
 		"combat":78,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 184
 	},
 	{
 		"id": 160,
@@ -3075,17 +2661,14 @@
 		"intelligence":74,
 		"strength":82,
 		"charm":68,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":84,
 		"politics":50,
 		"loyalty":58,
 		"ambition":70,
 		"combat":84,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 185
 	},
 
 	{
@@ -3095,17 +2678,14 @@
 		"intelligence":91,
 		"strength":41,
 		"charm":67,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":66,
 		"politics":90,
 		"loyalty":89,
 		"ambition":60,
 		"combat":38,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 171
 	},
 	{
 		"id": 162,
@@ -3114,17 +2694,14 @@
 		"intelligence":88,
 		"strength":36,
 		"charm":62,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":58,
 		"politics":92,
 		"loyalty":86,
 		"ambition":74,
 		"combat":28,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 156
 	},
 	{
 		"id": 163,
@@ -3133,17 +2710,14 @@
 		"intelligence":83,
 		"strength":34,
 		"charm":59,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":55,
 		"politics":85,
 		"loyalty":91,
 		"ambition":45,
 		"combat":26,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 171
 	},
 	{
 		"id": 164,
@@ -3152,17 +2726,14 @@
 		"intelligence":81,
 		"strength":30,
 		"charm":75,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":52,
 		"politics":84,
 		"loyalty":94,
 		"ambition":30,
 		"combat":22,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 171
 	},
 	{
 		"id": 165,
@@ -3171,17 +2742,14 @@
 		"intelligence":62,
 		"strength":22,
 		"charm":74,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":31,
 		"politics":56,
 		"loyalty":78,
 		"ambition":44,
 		"combat":15,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 175
 	},
 
 	{
@@ -3191,17 +2759,14 @@
 		"intelligence":87,
 		"strength":35,
 		"charm":40,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":45,
 		"politics":85,
 		"loyalty":88,
 		"ambition":40,
 		"combat":25,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 164
 	},
 	{
 		"id": 167,
@@ -3210,74 +2775,62 @@
 		"intelligence":79,
 		"strength":50,
 		"charm":71,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":76,
 		"politics":81,
 		"loyalty":94,
 		"ambition":52,
 		"combat":54,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 169
 	},
 	{
 		"id": 168,
-		"name":"Sun Deng",
-		"name_cn":"孫登",
-		"intelligence":82,
-		"strength":40,
-		"charm":86,
-		"role": "Advisor",
+		"name":"Bian Xi",
+		"name_cn":"卞喜",
+		"intelligence":48,
+		"strength":69,
+		"charm":40,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":63,
-		"politics":84,
-		"loyalty":95,
-		"ambition":35,
-		"combat":28,
+		"leadership":52,
+		"politics":18,
+		"loyalty":60,
+		"ambition":65,
+		"combat":68,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 169
 	},
 	{
 		"id": 169,
-		"name":"Sun Hao",
-		"name_cn":"孫皓",
-		"intelligence":55,
-		"strength":44,
-		"charm":28,
-		"role": "Advisor",
+		"name":"Gong Du",
+		"name_cn":"龔都",
+		"intelligence":50,
+		"strength":78,
+		"charm":55,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":30,
+		"leadership":72,
 		"politics":18,
-		"loyalty":12,
-		"ambition":88,
-		"combat":22,
+		"loyalty":88,
+		"ambition":70,
+		"combat":80,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 164
 	},
 	{
 		"id": 170,
-		"name":"Zhang Ti",
-		"name_cn":"張悌",
-		"intelligence":86,
-		"strength":58,
-		"charm":70,
-		"role": "Advisor",
+		"name":"Liu Pi",
+		"name_cn":"劉辟",
+		"intelligence":58,
+		"strength":76,
+		"charm":59,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":82,
-		"politics":87,
-		"loyalty":97,
-		"ambition":38,
-		"combat":63,
+		"leadership":74,
+		"politics":22,
+		"loyalty":72,
+		"ambition":76,
+		"combat":79,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 169
 	},
 	{
 		"id": 171,
@@ -3286,17 +2839,14 @@
 		"intelligence":69,
 		"strength":76,
 		"charm":78,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":74,
 		"politics":52,
 		"loyalty":98,
 		"ambition":42,
 		"combat":78,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 175
 	},
 	{
 		"id": 172,
@@ -3305,17 +2855,14 @@
 		"intelligence":71,
 		"strength":82,
 		"charm":66,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":89,
 		"politics":48,
 		"loyalty":96,
 		"ambition":61,
 		"combat":86,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 168
 	},
 	{
 		"id": 173,
@@ -3324,17 +2871,14 @@
 		"intelligence":76,
 		"strength":10,
 		"charm":89,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":26,
 		"politics":82,
 		"loyalty":97,
 		"ambition":28,
 		"combat":5,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 161
 	},
 	{
 		"id": 174,
@@ -3343,55 +2887,46 @@
 		"intelligence":72,
 		"strength":10,
 		"charm":97,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":18,
 		"politics":66,
 		"loyalty":88,
 		"ambition":20,
 		"combat":5,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 183
 	},
 	{	
 		"id": 175,
-		"name":"Empress Guo",
-		"name_cn":"郭皇后",
-		"intelligence":77,
-		"strength":10,
-		"charm":88,
-		"role": "Advisor",
+		"name":"Han Zhong",
+		"name_cn":"韓忠",
+		"intelligence":48,
+		"strength":72,
+		"charm":50,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":24,
-		"politics":83,
-		"loyalty":72,
-		"ambition":76,
-		"combat":5,
+		"leadership":66,
+		"politics":16,
+		"loyalty":86,
+		"ambition":70,
+		"combat":74,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 156
 	},
 	{
 		"id": 176,
-		"name":"Yan Pu",
-		"name_cn":"閻圃",
-		"intelligence":85,
-		"strength":25,
-		"charm":63,
-		"role": "Advisor",
+		"name":"Zhao Hong",
+		"name_cn":"趙弘",
+		"intelligence":54,
+		"strength":75,
+		"charm":55,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":52,
-		"politics":88,
-		"loyalty":94,
-		"ambition":26,
-		"combat":15,
+		"leadership":72,
+		"politics":20,
+		"loyalty":88,
+		"ambition":74,
+		"combat":77,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 156
 	},
 	{
 		"id": 177,
@@ -3400,36 +2935,30 @@
 		"intelligence":68,
 		"strength":20,
 		"charm":30,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":20,
 		"politics":58,
 		"loyalty":20,
 		"ambition":80,
 		"combat":10,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 167
 	},
 	{
 		"id": 178,
-		"name":"Fa Miao",
-		"name_cn":"法苗",
-		"intelligence":73,
-		"strength":28,
-		"charm":61,
-		"role": "Advisor",
+		"name":"Sun Zhong",
+		"name_cn":"孫仲",
+		"intelligence":44,
+		"strength":68,
+		"charm":48,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":42,
-		"politics":76,
-		"loyalty":82,
-		"ambition":33,
-		"combat":20,
+		"leadership":60,
+		"politics":15,
+		"loyalty":85,
+		"ambition":68,
+		"combat":69,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 157
 	},
 	{
 		"id": 179,
@@ -3438,17 +2967,14 @@
 		"intelligence":92,
 		"strength":20,
 		"charm":35,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":38,
 		"politics":95,
 		"loyalty":94,
 		"ambition":24,
 		"combat":10,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 175
 	},
 	{
 		"id": 180,
@@ -3457,17 +2983,14 @@
 		"intelligence":84,
 		"strength":22,
 		"charm":62,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":34,
 		"politics":83,
 		"loyalty":90,
 		"ambition":25,
 		"combat":12,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 182
 	},
 	{
 		"id": 181,
@@ -3476,17 +2999,14 @@
 		"intelligence":55,
 		"strength":52,
 		"charm":48,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":44,
 		"politics":52,
 		"loyalty":46,
 		"ambition":72,
 		"combat":46,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 158
 	},
 	{
 		"id": 182,
@@ -3495,17 +3015,14 @@
 		"intelligence":61,
 		"strength":82,
 		"charm":63,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":76,
 		"politics":40,
 		"loyalty":52,
 		"ambition":78,
 		"combat":83,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 190
 	},
 	{
 		"id": 183,
@@ -3514,17 +3031,14 @@
 		"intelligence":42,
 		"strength":79,
 		"charm":51,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":58,
 		"politics":22,
 		"loyalty":87,
 		"ambition":66,
 		"combat":76,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 200
 	},
 	{
 		"id": 184,
@@ -3533,17 +3047,14 @@
 		"intelligence":36,
 		"strength":95,
 		"charm":50,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":74,
 		"politics":15,
 		"loyalty":82,
 		"ambition":60,
 		"combat":93,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 191
 	},
 	{
 		"id": 185,
@@ -3552,17 +3063,14 @@
 		"intelligence":60,
 		"strength":66,
 		"charm":57,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":63,
 		"politics":40,
 		"loyalty":75,
 		"ambition":58,
 		"combat":64,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 180
 	},
 
 	{
@@ -3572,17 +3080,14 @@
 		"intelligence":46,
 		"strength":74,
 		"charm":52,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":61,
 		"politics":28,
 		"loyalty":38,
 		"ambition":80,
 		"combat":75,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 162
 	},
 	{
 		"id": 187,
@@ -3591,17 +3096,14 @@
 		"intelligence":55,
 		"strength":73,
 		"charm":58,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":68,
 		"politics":36,
 		"loyalty":42,
 		"ambition":77,
 		"combat":76,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 160
 	},
 	{
 		"id": 188,
@@ -3610,17 +3112,14 @@
 		"intelligence":93,
 		"strength":18,
 		"charm":40,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":40,
 		"politics":91,
 		"loyalty":92,
 		"ambition":58,
 		"combat":8,
 		"relationship_type": {},
-		"birth_year": 150,
-		"death_year": 222
+		"birth_year": 150
 	},
 	{
 		"id": 189,
@@ -3629,17 +3128,14 @@
 		"intelligence":44,
 		"strength":72,
 		"charm":38,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":55,
 		"politics":22,
 		"loyalty":61,
 		"ambition":73,
 		"combat":72,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 159
 	},
 	{
 		"id": 190,
@@ -3648,17 +3144,14 @@
 		"intelligence":77,
 		"strength":79,
 		"charm":60,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":90,
 		"politics":45,
 		"loyalty":90,
 		"ambition":48,
 		"combat":84,
 		"relationship_type": {},
-		"birth_year": 147,
-		"death_year": 222
+		"birth_year": 147
 	},
 	{
 		"id": 191,
@@ -3667,17 +3160,14 @@
 		"intelligence":72,
 		"strength":74,
 		"charm":69,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":80,
 		"politics":58,
 		"loyalty":94,
 		"ambition":35,
 		"combat":76,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 152
 	},
 	{
 		"id": 192,
@@ -3686,17 +3176,14 @@
 		"intelligence":60,
 		"strength":38,
 		"charm":62,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":42,
 		"politics":63,
 		"loyalty":84,
 		"ambition":30,
 		"combat":28,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 140
 	},
 	{
 		"id": 193,
@@ -3705,36 +3192,30 @@
 		"intelligence":76,
 		"strength":34,
 		"charm":85,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":66,
 		"politics":81,
 		"loyalty":93,
 		"ambition":26,
 		"combat":25,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 162
 	},
 	{
 		"id": 194,
-		"name":"Liu Dai",
-		"name_cn":"劉岱",
-		"intelligence":63,
-		"strength":58,
-		"charm":61,
-		"role": "Advisor",
+		"name":"Gao Sheng",
+		"name_cn":"高昇",
+		"intelligence":40,
+		"strength":71,
+		"charm":46,
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":56,
-		"politics":58,
-		"loyalty":81,
-		"ambition":48,
-		"combat":52,
+		"politics":12,
+		"loyalty":88,
+		"ambition":72,
+		"combat":73,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 145
 	},
 	{
 		"id": 195,
@@ -3743,17 +3224,14 @@
 		"intelligence":68,
 		"strength":45,
 		"charm":64,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":52,
 		"politics":66,
 		"loyalty":78,
 		"ambition":44,
 		"combat":38,
 		"relationship_type": {},
-		"birth_year": 150,
-		"death_year": 222
+		"birth_year": 150
 	},
 	{
 		"id": 196,
@@ -3762,17 +3240,14 @@
 		"intelligence":55,
 		"strength":76,
 		"charm":62,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":70,
 		"politics":36,
 		"loyalty":90,
 		"ambition":55,
 		"combat":78,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 178
 	},
 	{
 		"id": 197,
@@ -3781,77 +3256,256 @@
 		"intelligence":54,
 		"strength":77,
 		"charm":60,
-		"role": "Advisor",
 		"sex": "Male",
-		"belongs": "Shu",
 		"leadership":68,
 		"politics":35,
 		"loyalty":90,
 		"ambition":53,
 		"combat":77,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 180
 	},
 	{
 		"id": 198,
-		"name":"Zhao E",
-		"name_cn":"趙娥",
-		"intelligence":72,
-		"strength":68,
-		"charm":84,
-		"role": "Advisor",
+		"name":"Deng Mao",
+		"name_cn":"鄧茂",
+		"intelligence":34,
+		"strength":78,
+		"charm":44,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":58,
-		"politics":63,
-		"loyalty":99,
-		"ambition":22,
-		"combat":74,
+		"leadership":54,
+		"politics":8,
+		"loyalty":90,
+		"ambition":66,
+		"combat":77,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 147
 	},
 	{
 		"id": 199,
-		"name":"Lady Wu",
-		"name_cn":"吳國太",
-		"intelligence":74,
-		"strength":10,
-		"charm":91,
-		"role": "Advisor",
+		"name":"He Yi",
+		"name_cn":"何儀",
+		"intelligence":58,
+		"strength":75,
+		"charm":58,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":20,
-		"politics":78,
-		"loyalty":95,
-		"ambition":15,
-		"combat":5,
+		"leadership":76,
+		"politics":22,
+		"loyalty":86,
+		"ambition":73,
+		"combat":78,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 161
 	},
 	{
 		"id": 200,
-		"name":"Lady Gan",
-		"name_cn":"甘夫人",
-		"intelligence":68,
-		"strength":10,
-		"charm":93,
-		"role": "Advisor",
+		"name":"Zu Mao",
+		"name_cn":"祖茂",
+		"intelligence":56,
+		"strength":81,
+		"charm":64,
 		"sex": "Male",
-		"belongs": "Shu",
-		"leadership":12,
-		"politics":60,
-		"loyalty":98,
-		"ambition":10,
-		"combat":5,
+		"leadership":79,
+		"politics":32,
+		"loyalty":96,
+		"ambition":42,
+		"combat":84,
 		"relationship_type": {},
-		"birth_year": 162,
-		"death_year": 222
+		"birth_year": 155
+	},
+	{
+		"id": 201,
+		"name":"Zhu Zhi",
+		"name_cn":"朱治",
+		"intelligence":74,
+		"strength":68,
+		"charm":76,
+		"sex": "Male",
+		"leadership":84,
+		"politics":78,
+		"loyalty":97,
+		"ambition":38,
+		"combat":70,
+		"relationship_type": {},
+		"birth_year": 156
+	},
+	{
+		"id": 202,
+		"name":"Ding Yuan",
+		"name_cn":"丁原",
+		"intelligence":65,
+		"strength":70,
+		"charm":66,
+		"sex": "Male",
+		"leadership":76,
+		"politics":60,
+		"loyalty":82,
+		"ambition":58,
+		"combat":68,
+		"relationship_type": {},
+		"birth_year": 137
+	},
+	{
+		"id": 203,
+		"name":"Zhang Yang",
+		"name_cn":"張楊",
+		"intelligence":66,
+		"strength":74,
+		"charm":78,
+		"sex": "Male",
+		"leadership":79,
+		"politics":62,
+		"loyalty":84,
+		"ambition":52,
+		"combat":74,
+		"relationship_type": {},
+		"birth_year": 138
+	},
+	{
+		"id": 204,
+		"name":"Qiao Xuan",
+		"name_cn":"橋玄",
+		"intelligence":88,
+		"strength":20,
+		"charm":84,
+		"sex": "Male",
+		"leadership":52,
+		"politics":92,
+		"loyalty":96,
+		"ambition":18,
+		"combat":10,
+		"relationship_type": {},
+		"birth_year": 110
+	},
+	{
+		"id": 205,
+		"name":"Chen Gui",
+		"name_cn":"陳珪",
+		"intelligence":85,
+		"strength":18,
+		"charm":72,
+		"sex": "Male",
+		"leadership":48,
+		"politics":91,
+		"loyalty":88,
+		"ambition":28,
+		"combat":10,
+		"relationship_type": {},
+		"birth_year": 132
+	},
+	{
+		"id": 206,
+		"name":"Gongsun Yue",
+		"name_cn":"公孫越",
+		"intelligence":62,
+		"strength":77,
+		"charm":64,
+		"sex": "Male",
+		"leadership":76,
+		"politics":38,
+		"loyalty":94,
+		"ambition":45,
+		"combat":79,
+		"relationship_type": {},
+		"birth_year": 132
+	},
+	{
+		"id": 207,
+		"name":"Gongsun Fan",
+		"name_cn":"公孫範",
+		"intelligence":60,
+		"strength":74,
+		"charm":60,
+		"sex": "Male",
+		"leadership":72,
+		"politics":34,
+		"loyalty":92,
+		"ambition":16,
+		"combat":74,
+		"relationship_type": {},
+		"birth_year": 158
+	},
+	{
+		"id": 208,
+		"name":"Yan Gang",
+		"name_cn":"嚴綱",
+		"intelligence":64,
+		"strength":80,
+		"charm":63,
+		"sex": "Male",
+		"leadership":84,
+		"politics":36,
+		"loyalty":96,
+		"ambition":38,
+		"combat":83,
+		"relationship_type": {},
+		"birth_year": 163
+	},
+	{
+		"id": 209,
+		"name":"Yan Gang",
+		"name_cn":"梁興",
+		"intelligence":50,
+		"strength":76,
+		"charm":48,
+		"sex": "Male",
+		"leadership":70,
+		"politics":18,
+		"loyalty":70,
+		"ambition":78,
+		"combat":77,
+		"relationship_type": {},
+		"birth_year": 169
+	},
+	{
+		"id": 210,
+		"name":"Yan Gang",
+		"name_cn":"程銀",
+		"intelligence":54,
+		"strength":74,
+		"charm":52,
+		"sex": "Male",
+		"leadership":69,
+		"politics":20,
+		"loyalty":72,
+		"ambition":76,
+		"combat":76,
+		"relationship_type": {},
+		"birth_year": 169
+	},
+	{
+		"id": 211,
+		"name":"Ma Wan",
+		"name_cn":"馬玩",
+		"intelligence":52,
+		"strength":78,
+		"charm":54,
+		"sex": "Male",
+		"leadership":72,
+		"politics":18,
+		"loyalty":74,
+		"ambition":77,
+		"combat":79,
+		"relationship_type": {},
+		"birth_year": 169
+	},
+	{
+		"id": 212,
+		"name":"Cao Bao",
+		"name_cn":"曹豹",
+		"intelligence":58,
+		"strength":68,
+		"charm":52,
+		"sex": "Male",
+		"leadership":64,
+		"politics":35,
+		"loyalty":42,
+		"ambition":64,
+		"combat":65,
+		"relationship_type": {},
+		"birth_year": 169
 	}
 
-	
 	
   ],
   "stat_range": {
