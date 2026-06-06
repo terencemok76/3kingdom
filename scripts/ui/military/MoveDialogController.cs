@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ThreeKingdom.Data;
 
@@ -17,10 +18,13 @@ internal sealed class MoveDialogController : FloatingOverlayController
     private SpinBox? _catapultSpinBox;
     private SpinBox? _ladderSpinBox;
     private Tree? _officerList;
+    private Tree? _prisonerList;
     private bool _signalsConnected;
     private bool _officerListSignalsConnected;
     private bool _officerListGuiInputConnected;
-    protected override Vector2 MinimumOverlaySize => new(460.0f, 680.0f);
+    private bool _prisonerListSignalsConnected;
+    private bool _prisonerListGuiInputConnected;
+    protected override Vector2 MinimumOverlaySize => new(520.0f, 860.0f);
 
     public MoveDialogController(MilitaryUiContext context)
         : base(context, "res://scenes/ui/military/MoveDialog.tscn")
@@ -72,6 +76,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ConfigureSpinBox(_ladderSpinBox, _context.SelectedCity.LadderCount, 0);
 
         PopulateOfficerList();
+        PopulatePrisonerList();
 
         ShowOverlay();
     }
@@ -98,8 +103,10 @@ internal sealed class MoveDialogController : FloatingOverlayController
         SetLabelText("CatapultLabel", _context.Localization.T("siege_engine.catapult"));
         SetLabelText("LadderLabel", _context.Localization.T("siege_engine.ladder"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.transfer_officers"));
+        SetLabelText("PrisonerListLabel", _context.Localization.T("ui.transfer_prisoners"));
         RefreshTargetCityOptionTexts();
         RefreshOfficerTableText();
+        RefreshPrisonerTableText();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -113,6 +120,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
         _catapultSpinBox = root.GetNodeOrNull<SpinBox>("CatapultSpinBox");
         _ladderSpinBox = root.GetNodeOrNull<SpinBox>("LadderSpinBox");
         _officerList = root.GetNodeOrNull<Tree>("OfficerTable");
+        _prisonerList = root.GetNodeOrNull<Tree>("PrisonerTable");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_confirmButton != null)
         {
@@ -129,6 +137,18 @@ internal sealed class MoveDialogController : FloatingOverlayController
         {
             _officerList.GuiInput += OnOfficerListGuiInput;
             _officerListGuiInputConnected = true;
+        }
+
+        if (!_prisonerListSignalsConnected && _prisonerList != null)
+        {
+            _prisonerList.ItemSelected += UpdatePrisonerCheckHighlights;
+            _prisonerListSignalsConnected = true;
+        }
+
+        if (!_prisonerListGuiInputConnected && _prisonerList != null)
+        {
+            _prisonerList.GuiInput += OnPrisonerListGuiInput;
+            _prisonerListGuiInputConnected = true;
         }
 
         if (_signalsConnected || _confirmButton == null)
@@ -162,6 +182,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
 
         var targetCityId = targetMetadata.AsInt32();
         var movedOfficerIds = _context.GetCheckedTreeMetadataIds(_officerList);
+        var movedCaptiveOfficerIds = _context.GetCheckedTreeMetadataIds(_prisonerList);
         var siegeEngineAllocation = new SiegeEngineAllocationData
         {
             Ram = _ramSpinBox != null ? (int)_ramSpinBox.Value : 0,
@@ -175,7 +196,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
             _foodSpinBox != null ? (int)_foodSpinBox.Value : 0,
             _horseSpinBox != null ? (int)_horseSpinBox.Value : 0,
             siegeEngineAllocation,
-            movedOfficerIds);
+            movedOfficerIds,
+            movedCaptiveOfficerIds);
         if (result.Success)
         {
             _context.UiEventHub.PublishCityStateChanged(sourceCity.Id, sourceCity.OwnerFactionId);
@@ -233,6 +255,30 @@ internal sealed class MoveDialogController : FloatingOverlayController
         UpdateOfficerCheckHighlights();
     }
 
+    private void PopulatePrisonerList()
+    {
+        if (_prisonerList == null || _context.SelectedCity == null || _context.TurnManager?.World == null)
+        {
+            return;
+        }
+
+        _prisonerList.Clear();
+        _context.ConfigureCompactOfficerTableColumns(_prisonerList, includeCheck: true);
+        var tableRoot = _prisonerList.CreateItem();
+        var rowIndex = 0;
+        foreach (var officer in _context.TurnManager.World.Officers
+                     .Where(officer => officer.CaptiveFactionId == _context.SelectedCity.OwnerFactionId && officer.JailedCityId == _context.SelectedCity.Id)
+                     .OrderBy(officer => officer.NameZhHant)
+                     .ThenBy(officer => officer.Name))
+        {
+            var row = _prisonerList.CreateItem(tableRoot);
+            _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+            rowIndex += 1;
+        }
+
+        UpdatePrisonerCheckHighlights();
+    }
+
     private void RefreshOfficerTableText()
     {
         if (_officerList == null || _context.SelectedCity == null)
@@ -260,6 +306,33 @@ internal sealed class MoveDialogController : FloatingOverlayController
         UpdateOfficerCheckHighlights();
     }
 
+    private void RefreshPrisonerTableText()
+    {
+        if (_prisonerList == null || _context.SelectedCity == null)
+        {
+            return;
+        }
+
+        var checkedOfficerIds = _context.GetCheckedTreeMetadataIds(_prisonerList);
+        var checkedOfficerSet = new HashSet<int>(checkedOfficerIds);
+        PopulatePrisonerList();
+
+        var root = _prisonerList.GetRoot();
+        var row = root?.GetFirstChild();
+        while (row != null)
+        {
+            var metadata = row.GetMetadata(1);
+            if (metadata.VariantType == Variant.Type.Int && checkedOfficerSet.Contains(metadata.AsInt32()))
+            {
+                row.SetMetadata(0, true);
+            }
+
+            row = row.GetNext();
+        }
+
+        UpdatePrisonerCheckHighlights();
+    }
+
     private void UpdateOfficerCheckHighlights()
     {
         if (_officerList == null)
@@ -273,6 +346,24 @@ internal sealed class MoveDialogController : FloatingOverlayController
         while (row != null)
         {
             ApplyOfficerRowVisualState(row, rowIndex, _officerList.Columns, IsOfficerRowChecked(row));
+            row = row.GetNext();
+            rowIndex += 1;
+        }
+    }
+
+    private void UpdatePrisonerCheckHighlights()
+    {
+        if (_prisonerList == null)
+        {
+            return;
+        }
+
+        var root = _prisonerList.GetRoot();
+        var row = root?.GetFirstChild();
+        var rowIndex = 0;
+        while (row != null)
+        {
+            ApplyOfficerRowVisualState(row, rowIndex, _prisonerList.Columns, IsOfficerRowChecked(row));
             row = row.GetNext();
             rowIndex += 1;
         }
@@ -300,13 +391,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
         row.SetText(0, isChecked ? "●" : "○");
     }
 
-    private void ToggleOfficerRow(TreeItem row)
+    private static void ToggleOfficerRow(TreeItem row)
     {
-        if (row == null)
-        {
-            return;
-        }
-
         var current = row.GetMetadata(0).VariantType == Variant.Type.Bool && row.GetMetadata(0).AsBool();
         row.SetMetadata(0, !current);
     }
@@ -318,23 +404,33 @@ internal sealed class MoveDialogController : FloatingOverlayController
 
     private void OnOfficerListGuiInput(InputEvent @event)
     {
+        ToggleTreeRowFromMouseInput(_officerList, @event, UpdateOfficerCheckHighlights);
+    }
+
+    private void OnPrisonerListGuiInput(InputEvent @event)
+    {
+        ToggleTreeRowFromMouseInput(_prisonerList, @event, UpdatePrisonerCheckHighlights);
+    }
+
+    private static void ToggleTreeRowFromMouseInput(Tree? tree, InputEvent @event, System.Action refreshAction)
+    {
         if (@event is not InputEventMouseButton mouseButton ||
             mouseButton.ButtonIndex != MouseButton.Left ||
             !mouseButton.Pressed ||
-            _officerList == null)
+            tree == null)
         {
             return;
         }
 
-        var clickedRow = _officerList.GetItemAtPosition(mouseButton.Position);
+        var clickedRow = tree.GetItemAtPosition(mouseButton.Position);
         if (clickedRow == null)
         {
             return;
         }
 
         ToggleOfficerRow(clickedRow);
-        UpdateOfficerCheckHighlights();
-        _officerList.AcceptEvent();
+        refreshAction();
+        tree.AcceptEvent();
     }
 
     private void SetLabelText(string nodeName, string text)

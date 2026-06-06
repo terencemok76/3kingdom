@@ -123,7 +123,7 @@ public static class FreeOfficerMovement
 
     public static bool IsFreeOfficer(WorldState world, OfficerData officer)
     {
-        return !IsEmployed(world, officer) && IsOldEnough(world, officer);
+        return !IsCaptive(officer) && !IsEmployed(world, officer) && IsOldEnough(world, officer);
     }
 
     public static bool IsVisibleFreeOfficer(WorldState world, OfficerData officer)
@@ -140,6 +140,11 @@ public static class FreeOfficerMovement
     {
         return world.Cities.Any(city => city.OfficerIds.Contains(officer.Id)) ||
                world.Factions.Any(faction => faction.OfficerIds.Contains(officer.Id) || faction.RulerOfficerId == officer.Id);
+    }
+
+    public static bool IsCaptive(OfficerData officer)
+    {
+        return officer.CaptiveFactionId > 0;
     }
 
     private static bool IsOldEnough(WorldState world, OfficerData officer)

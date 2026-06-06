@@ -615,6 +615,10 @@
                               "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、衝車 +{5}、投石車 +{6}、雲梯 +{7}、武將 +{8} 已轉移至「{9}」。",
                               "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Rams+{5}, Catapults+{6}, Ladders+{7}, Officers+{8} moved to \"{9}\"."
                           },
+    "cmd.move.captive_suffix":  {
+                                    "zhHant":  " 另有俘虜 +{0} 一併轉移。",
+                                    "en":  " Captives+{0} were also transferred."
+                                },
     "cmd.move.scheduled":  {
                                "zhHant":  "「{0}」已排定移動命令，月末將轉移至「{1}」。",
                                "en":  "\"{0}\" scheduled a Move to \"{1}\"."
@@ -750,6 +754,46 @@
     "cmd.source_city_not_found":  {
                                       "zhHant":  "找不到來源城市。",
                                       "en":  "Source city not found."
+                                  },
+    "cmd.captured_officer.free":  {
+                                      "zhHant":  "已釋放武將「{0}」，其離開「{1}」成為自由武將。",
+                                      "en":  "Released officer \"{0}\" from \"{1}\" as a free officer."
+                                  },
+    "cmd.captured_officer.invalid_action":  {
+                                                "zhHant":  "無效的俘虜處置方式。",
+                                                "en":  "Invalid captured officer action."
+                                            },
+    "cmd.captured_officer.invalid_city":  {
+                                              "zhHant":  "俘虜處置所在城市已無效。",
+                                              "en":  "The captured officer handling city is no longer valid."
+                                          },
+    "cmd.captured_officer.invalid_owner":  {
+                                               "zhHant":  "此俘虜不屬於當前勢力處置。",
+                                               "en":  "This captured officer does not belong to the current faction's custody."
+                                           },
+    "cmd.captured_officer.jail":  {
+                                      "zhHant":  "已將武將「{0}」押入「{1}」獄中。",
+                                      "en":  "Imprisoned officer \"{0}\" in \"{1}\"."
+                                  },
+    "cmd.captured_officer.kill":  {
+                                      "zhHant":  "已處決俘虜武將「{0}」。",
+                                      "en":  "Executed captured officer \"{0}\"."
+                                  },
+    "cmd.captured_officer.not_found":  {
+                                          "zhHant":  "找不到要處置的俘虜武將。",
+                                          "en":  "Captured officer not found."
+                                      },
+    "cmd.captured_officer.not_pending":  {
+                                            "zhHant":  "目前沒有此武將的待處置俘虜紀錄。",
+                                            "en":  "There is no pending captured-officer record for this officer."
+                                        },
+    "cmd.captured_officer.recruit":  {
+                                         "zhHant":  "俘虜武將「{0}」已於「{1}」歸降。",
+                                         "en":  "Captured officer \"{0}\" has been recruited in \"{1}\"."
+                                     },
+    "cmd.attack.capture_suffix":  {
+                                      "zhHant":  "俘虜：{0}。",
+                                      "en":  "Captured: {0}."
                                   },
     "cmd.target_city_not_connected":  {
                                           "zhHant":  "目標城市與當前城市不相連。",

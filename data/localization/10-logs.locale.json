@@ -67,6 +67,10 @@
                                            "zhHant":  "已選擇人事指令：{0}。",
                                            "en":  "Personnel command selected: {0}."
                                        },
+    "log.captured_officer_escaped":  {
+                                         "zhHant":  "俘虜武將「{0}」已自「{1}」脫逃。",
+                                         "en":  "Captured officer \"{0}\" escaped from \"{1}\"."
+                                     },
     "log.player_city_food_income_header":  {
                                                "zhHant":  "秋季糧收入（玩家勢力各城）：",
                                                "en":  "Autumn food income (player cities):"

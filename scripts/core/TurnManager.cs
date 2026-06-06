@@ -45,6 +45,13 @@ public class MonthlyCityEvent
     public int TroopDelta { get; set; }
 }
 
+public class OfficerEscapeEvent
+{
+    public int OfficerId { get; set; }
+    public int CaptorFactionId { get; set; }
+    public int JailedCityId { get; set; }
+}
+
 public class TurnManager
 {
     private const int MonthlyUpkeepDivisor = 40;
@@ -55,6 +62,7 @@ public class TurnManager
     private const int RebellionLoyaltyThreshold = 55;
     private const int BanditLoyaltyThreshold = 65;
     private const int BanditDefenseThreshold = 45;
+    private readonly List<OfficerEscapeEvent> _latestOfficerEscapeEvents = new();
 
     public WorldState? World { get; private set; }
     public int ActiveFactionId { get; private set; }
@@ -269,7 +277,15 @@ public class TurnManager
         AdvanceDiplomacyRelations();
         AdvanceCityIntel();
         AdvanceOfficerNaturalDeaths();
+        AdvanceCapturedOfficerEscapes();
         FreeOfficerMovement.Advance(World);
+    }
+
+    public List<OfficerEscapeEvent> ConsumeOfficerEscapeEvents()
+    {
+        var events = _latestOfficerEscapeEvents.ToList();
+        _latestOfficerEscapeEvents.Clear();
+        return events;
     }
 
     private void AdvanceDiplomacyRelations()
@@ -344,6 +360,44 @@ public class TurnManager
             }
 
             EliminateOfficer(World, officer);
+        }
+    }
+
+    private void AdvanceCapturedOfficerEscapes()
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        foreach (var officer in World.Officers.ToList())
+        {
+            if (officer.CaptiveFactionId <= 0)
+            {
+                continue;
+            }
+
+            var jailCity = officer.JailedCityId > 0 ? World.GetCity(officer.JailedCityId) : null;
+            if (jailCity == null || jailCity.OwnerFactionId != officer.CaptiveFactionId)
+            {
+                ReleaseCapturedOfficerAsFreeOfficer(officer);
+                continue;
+            }
+
+            var escapeChance = GetCapturedOfficerEscapeChance(jailCity, officer);
+            var random = new Random(HashCode.Combine(World.RandomSeed, World.Year, World.Month, officer.Id, 8811));
+            if (random.NextDouble() >= escapeChance)
+            {
+                continue;
+            }
+
+            _latestOfficerEscapeEvents.Add(new OfficerEscapeEvent
+            {
+                OfficerId = officer.Id,
+                CaptorFactionId = officer.CaptiveFactionId,
+                JailedCityId = jailCity.Id
+            });
+            ReleaseCapturedOfficerAsFreeOfficer(officer);
         }
     }
 
@@ -915,6 +969,25 @@ public class TurnManager
             <= 89 => 0.0400,
             _ => 0.0800
         };
+    }
+
+    private static double GetCapturedOfficerEscapeChance(CityData jailCity, OfficerData officer)
+    {
+        var baseChance = 0.015;
+        var lowDefenseBonus = Math.Max(0, 70 - jailCity.Defense) / 900.0;
+        var lowLoyaltyBonus = Math.Max(0, 70 - jailCity.Loyalty) / 700.0;
+        var officerAbilityBonus = Math.Max(0, officer.Intelligence + officer.Combat + officer.Charm - 180) / 2500.0;
+        var ambitionBonus = Math.Max(0, officer.Ambition - 50) / 1200.0;
+        var total = baseChance + lowDefenseBonus + lowLoyaltyBonus + officerAbilityBonus + ambitionBonus;
+        return Math.Clamp(total, 0.01, 0.35);
+    }
+
+    private static void ReleaseCapturedOfficerAsFreeOfficer(OfficerData officer)
+    {
+        officer.CaptiveFactionId = 0;
+        officer.JailedCityId = 0;
+        officer.CityId = 0;
+        officer.FreeOfficerStayMonths = 2;
     }
 
     private static void EliminateOfficer(WorldState world, OfficerData officer)

@@ -93,6 +93,12 @@ public partial class HudController
             return;
         }
 
+        if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
+        {
+            _militaryUiController.ShowCapturedOfficerDialog();
+            return;
+        }
+
         var world = _turnManager.World;
         while (_pendingAttackResolutionQueue.Count > 0)
         {
@@ -118,6 +124,11 @@ public partial class HudController
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
             CheckFactionEliminations();
+            if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
+            {
+                _militaryUiController.ShowCapturedOfficerDialog();
+                return;
+            }
             if (_personnelUiController?.HasPendingPlayerSuccession() == true)
             {
                 _personnelUiController.ShowSuccessionDialog();
@@ -170,7 +181,24 @@ public partial class HudController
         }
         _militaryUiController?.ResetAttackDialogState();
 
+        var playerFactionId = _turnManager.GetPlayerFactionId();
         _turnManager.AdvanceMonth();
+        foreach (var escapeEvent in _turnManager.ConsumeOfficerEscapeEvents())
+        {
+            var officer = world.GetOfficer(escapeEvent.OfficerId);
+            var city = world.GetCity(escapeEvent.JailedCityId);
+            if (officer == null || city == null)
+            {
+                continue;
+            }
+
+            AddLog(
+                _localization.Format(
+                    "log.captured_officer_escaped",
+                    _localization.GetOfficerName(officer),
+                    _localization.GetCityName(city)),
+                isPlayerRelated: escapeEvent.CaptorFactionId == playerFactionId);
+        }
         var economyMonth = world.Month;
         var economyResult = _turnManager.ApplyMonthlyEconomy();
         AddLog(_localization.T("log.monthly_economy"), isPlayerRelated: true);
@@ -219,7 +247,6 @@ public partial class HudController
             }
         }
 
-        var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
         foreach (var cityEvent in economyResult.AllCityEvents)
         {
             var city = world.GetCity(cityEvent.CityId);

@@ -336,6 +336,14 @@ public partial class HudController
                 }
             }
 
+            foreach (var officer in _turnManager.World.Officers)
+            {
+                if (officer.CaptiveFactionId == _selectedCity.OwnerFactionId)
+                {
+                    officers.Add(officer);
+                }
+            }
+
             emptyMessage = _localization?.T("ui.no_officer_in_faction") ?? "No officers available in this faction.";
             includeCityName = true;
         }
@@ -363,10 +371,18 @@ public partial class HudController
                 }
             }
 
+            foreach (var officer in _turnManager.World.Officers)
+            {
+                if (officer.CaptiveFactionId == _selectedCity.OwnerFactionId && officer.JailedCityId == _selectedCity.Id)
+                {
+                    officers.Add(officer);
+                }
+            }
+
             emptyMessage = _localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.";
         }
 
-        return (GetSortedOfficers(officers).ToList(), includeCityName, emptyMessage);
+        return (GetSortedOfficers(officers).DistinctBy(officer => officer.Id).ToList(), includeCityName, emptyMessage);
     }
 
     internal void ViewPopulateOfficerRow(TreeItem row, OfficerData officer, bool includeCityName) => PopulateOfficerTableRow(row, officer, includeCityName);

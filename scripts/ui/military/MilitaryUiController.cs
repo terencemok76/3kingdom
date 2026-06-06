@@ -7,6 +7,7 @@ namespace ThreeKingdom.UI;
 public sealed class MilitaryUiController
 {
     private readonly AttackDialogController _attackDialogController;
+    private readonly CapturedOfficerDialogController _capturedOfficerDialogController;
     private readonly MilitaryCommandDialogController _commandDialogController;
     private readonly MoveDialogController _moveDialogController;
     private readonly RecruitTroopDialogController _recruitTroopDialogController;
@@ -16,6 +17,7 @@ public sealed class MilitaryUiController
     {
         _context = new MilitaryUiContext(owner);
         _attackDialogController = new AttackDialogController(_context);
+        _capturedOfficerDialogController = new CapturedOfficerDialogController(_context);
         _moveDialogController = new MoveDialogController(_context);
         _recruitTroopDialogController = new RecruitTroopDialogController(_context);
         _commandDialogController = new MilitaryCommandDialogController(
@@ -28,6 +30,7 @@ public sealed class MilitaryUiController
     public void Initialize()
     {
         _attackDialogController.Initialize();
+        _capturedOfficerDialogController.Initialize();
         _commandDialogController.Initialize();
         _moveDialogController.Initialize();
         _recruitTroopDialogController.Initialize();
@@ -36,6 +39,7 @@ public sealed class MilitaryUiController
     public void HideDialogs()
     {
         _attackDialogController.Hide();
+        _capturedOfficerDialogController.Hide();
         _commandDialogController.Hide();
         _moveDialogController.Hide();
         _recruitTroopDialogController.Hide();
@@ -44,6 +48,7 @@ public sealed class MilitaryUiController
     public void RefreshText()
     {
         _attackDialogController.RefreshText();
+        _capturedOfficerDialogController.RefreshText();
         _commandDialogController.RefreshText();
         _moveDialogController.RefreshText();
         _recruitTroopDialogController.RefreshText();
@@ -114,6 +119,10 @@ public sealed class MilitaryUiController
     public void ShowDefenseAttackDialog(PendingCommandData pendingCommand, CityData defendingCity, CityData attackingCity) =>
         _attackDialogController.ShowDefense(pendingCommand, defendingCity, attackingCity);
 
+    public bool HasPendingPlayerCapturedOfficer() => _capturedOfficerDialogController.HasPendingPlayerCapturedOfficer();
+
+    public void ShowCapturedOfficerDialog() => _capturedOfficerDialogController.Show();
+
     public void ResetAttackDialogState() => _attackDialogController.ResetState();
 
     public void ProcessDialogs() => _attackDialogController.Process();
@@ -121,6 +130,7 @@ public sealed class MilitaryUiController
     public void CollectVisibleDialogOverlays(List<Control> overlays)
     {
         AddVisibleOverlay(overlays, _attackDialogController);
+        AddVisibleOverlay(overlays, _capturedOfficerDialogController);
         AddVisibleOverlay(overlays, _commandDialogController);
         AddVisibleOverlay(overlays, _moveDialogController);
         AddVisibleOverlay(overlays, _recruitTroopDialogController);

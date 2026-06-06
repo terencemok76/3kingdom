@@ -56,6 +56,12 @@ public partial class HudController
             return true;
         }
 
+        if (officer.CaptiveFactionId > 0)
+        {
+            var jailedCity = officer.JailedCityId > 0 ? _turnManager.World.GetCity(officer.JailedCityId) : null;
+            return CanViewCityFullInformation(jailedCity);
+        }
+
         var city = _turnManager.World.GetCity(officer.CityId);
         return CanViewCityFullInformation(city);
     }
@@ -121,6 +127,9 @@ public partial class HudController
     {
         return MaskedText(
             CanViewOfficerFullInformation(officer),
+            officer.CaptiveFactionId > 0
+                ? _localization?.T("ui.captured_officer.jail") ?? "Jail"
+                :
             FreeOfficerMovement.IsFreeOfficer(world, officer)
                 ? _localization?.T("ui.free_officer") ?? "Free Officer"
                 : _localization?.GetOfficerStatus(world, officer) ?? "Idle");
@@ -152,6 +161,11 @@ public partial class HudController
 
     private string GetDisplayedOfficerRole(OfficerData officer)
     {
+        if (officer.CaptiveFactionId > 0)
+        {
+            return _localization?.T("role.captive") ?? "Captive";
+        }
+
         if (_turnManager?.World != null && IsFactionRuler(_turnManager.World, officer))
         {
             return _localization?.GetAppointmentName(OfficerAppointmentRules.Lord) ?? OfficerAppointmentRules.Lord;

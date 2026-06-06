@@ -350,7 +350,7 @@ public partial class HudController
         var loyaltyText = BuildMaskedOfficerLoyalty(world, officer);
         if (includeCityName)
         {
-            var city = _turnManager?.World?.GetCity(officer.CityId);
+            var city = _turnManager?.World?.GetCity(officer.CaptiveFactionId > 0 ? officer.JailedCityId : officer.CityId);
             row.SetText(4, canViewOfficer && city != null ? _localization.GetCityName(city) : UnknownInfoText);
             row.SetText(5, MaskedNumberText(canViewOfficer, officerAge));
             row.SetText(6, loyaltyText);
@@ -776,7 +776,7 @@ public partial class HudController
             return UnknownInfoText;
         }
 
-        var city = _turnManager.World.GetCity(officer.CityId);
+        var city = _turnManager.World.GetCity(officer.CaptiveFactionId > 0 ? officer.JailedCityId : officer.CityId);
         return city != null ? _localization.GetCityName(city) : string.Empty;
     }
 

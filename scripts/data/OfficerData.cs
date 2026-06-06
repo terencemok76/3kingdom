@@ -58,6 +58,8 @@ public class OfficerData
     [JsonPropertyName("relationship_type")]
     public Dictionary<string, string> RelationshipType { get; set; } = new();
     public int CityId { get; set; }
+    public int CaptiveFactionId { get; set; }
+    public int JailedCityId { get; set; }
     [JsonIgnore]
     public int FreeOfficerStayMonths { get; set; }
     public int LastAssignedYear { get; set; } = -1;

@@ -51,6 +51,7 @@
 - 應把下列測試步驟落到文件：
   - `Move` live localization
   - `Attack` live localization
+  - `Prisoner Management` 操作與俘虜逃脫
   - `Construction` 建設點提示 / log
   - `View` redraw / row fill / selection highlight
 - 避免之後回歸時，只記得功能有做，卻沒有固定驗證流程。
@@ -103,6 +104,23 @@
   - 排序後高亮行為一致
   - 非 officer 類內容與 officer 類內容切換時，detail pane 行為更一致
 
+### 3.5 補齊俘虜管理 UX
+
+- 目前已支援：
+  - 戰鬥後俘虜處置 `招降 / 釋放 / 處決 / 下獄`
+  - `Personnel -> 管理俘虜`
+  - `Move` 轉移俘虜
+  - `View officer dialog` 直接顯示俘虜
+  - 俘虜每月依城防、民忠與武將能力等因素脫逃
+- 仍建議驗證：
+  - 關押城市切換語言時，`Prisoner Management` 對話框文案是否即時更新
+  - `Move` 選取俘虜後，月底是否正確改到目標城關押
+  - `View officer dialog` 中俘虜是否顯示為 `官職 = 俘虜`
+  - 勢力清單中的俘虜 `城市` 欄是否顯示關押城，而非空白
+  - 處置後 city / officer / log 是否同步刷新
+  - 城防低、忠誠低時脫逃 log 是否符合預期
+  - 俘虜所在城失守後，原俘虜是否正確轉為自由武將
+
 ## 4. Nice-to-have
 
 ### 4.1 faction-level Technology 最小版
@@ -135,7 +153,7 @@
 
 - 建議補：
   - 固定測試種子
-  - 針對建設 / 徵兵 / 攻城器 / View UI 的回歸案例
+  - 針對建設 / 徵兵 / 攻城器 / 俘虜管理 / View UI 的回歸案例
 - 讓 Phase 3 後續收尾不只靠手動點 UI 驗證。
 
 ## 5. 目前已補但仍需驗證的項目
@@ -143,6 +161,9 @@
 - `Move` dialog 的 officer table 已補 live localization refresh
 - `Construction` 月底結果已補建設點 / 進度提示
 - `View` dialog 已補較強制的 deferred table visual refresh
+- 俘虜管理與每月脫逃機制已接上
+- `Move` 已可轉移俘虜
+- `View officer dialog` 已把俘虜併入 officer list，並在 `官職` 欄顯示 `俘虜`
 
 以上項目建議都視為：
 - `implemented`

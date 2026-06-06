@@ -11,6 +11,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
     private readonly System.Action _showFireOfficerDialog;
     private readonly System.Action _showRequestItemDialog;
     private readonly System.Action _showHireOfficerDialog;
+    private readonly System.Action _showPrisonerManagementDialog;
 
     private OptionButton? _commandOption;
     private Button? _confirmButton;
@@ -24,7 +25,8 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         System.Action showPrefectAuthorizationDialog,
         System.Action showFireOfficerDialog,
         System.Action showRequestItemDialog,
-        System.Action showHireOfficerDialog)
+        System.Action showHireOfficerDialog,
+        System.Action showPrisonerManagementDialog)
         : base(context, "res://scenes/ui/personnel/PersonnelDialog.tscn")
     {
         _context = context;
@@ -34,6 +36,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         _showFireOfficerDialog = showFireOfficerDialog;
         _showRequestItemDialog = showRequestItemDialog;
         _showHireOfficerDialog = showHireOfficerDialog;
+        _showPrisonerManagementDialog = showPrisonerManagementDialog;
     }
 
     public void Initialize()
@@ -102,6 +105,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         AddOption("command.personnel.fire_officer");
         AddOption("command.personnel.request_item");
         AddOption("command.personnel.hire_officer");
+        AddOption("command.personnel.manage_prisoners");
     }
 
     private void AddOption(string localeKey)
@@ -178,6 +182,9 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
                 return;
             case "command.personnel.hire_officer":
                 _showHireOfficerDialog();
+                return;
+            case "command.personnel.manage_prisoners":
+                _showPrisonerManagementDialog();
                 return;
             default:
                 _context.AddLog(

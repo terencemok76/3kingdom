@@ -14,6 +14,7 @@ public sealed class PersonnelUiController
     private readonly FireOfficerDialogController _fireOfficerDialogController;
     private readonly RequestItemDialogController _requestItemDialogController;
     private readonly HireOfficerDialogController _hireOfficerDialogController;
+    private readonly PrisonerManagementDialogController _prisonerManagementDialogController;
     private readonly SuccessionDialogController _successionDialogController;
 
     public PersonnelUiController(HudController owner)
@@ -26,6 +27,7 @@ public sealed class PersonnelUiController
         _fireOfficerDialogController = new FireOfficerDialogController(_context);
         _requestItemDialogController = new RequestItemDialogController(_context);
         _hireOfficerDialogController = new HireOfficerDialogController(_context);
+        _prisonerManagementDialogController = new PrisonerManagementDialogController(_context);
         _successionDialogController = new SuccessionDialogController(_context);
         _commandDialogController = new PersonnelCommandDialogController(
             _context,
@@ -34,7 +36,8 @@ public sealed class PersonnelUiController
             _prefectAuthorizationDialogController.Show,
             _fireOfficerDialogController.Show,
             _requestItemDialogController.Show,
-            _hireOfficerDialogController.Show);
+            _hireOfficerDialogController.Show,
+            _prisonerManagementDialogController.Show);
     }
 
     public int PendingSuccessionFactionId
@@ -52,6 +55,7 @@ public sealed class PersonnelUiController
         _fireOfficerDialogController.Initialize();
         _requestItemDialogController.Initialize();
         _hireOfficerDialogController.Initialize();
+        _prisonerManagementDialogController.Initialize();
         _successionDialogController.Initialize();
         _uiEventHub.CityStateChanged += OnWorldStateChanged;
         _uiEventHub.OfficerStateChanged += OnWorldStateChanged;
@@ -76,6 +80,7 @@ public sealed class PersonnelUiController
         _fireOfficerDialogController.Hide();
         _requestItemDialogController.Hide();
         _hireOfficerDialogController.Hide();
+        _prisonerManagementDialogController.Hide();
         _successionDialogController.Hide();
     }
 
@@ -88,6 +93,7 @@ public sealed class PersonnelUiController
         _fireOfficerDialogController.RefreshText();
         _requestItemDialogController.RefreshText();
         _hireOfficerDialogController.RefreshText();
+        _prisonerManagementDialogController.RefreshText();
     }
 
     public bool HasPendingPlayerSuccession() => _successionDialogController.HasPendingPlayerSuccession();
@@ -127,6 +133,7 @@ public sealed class PersonnelUiController
         AddVisibleOverlay(overlays, _fireOfficerDialogController);
         AddVisibleOverlay(overlays, _requestItemDialogController);
         AddVisibleOverlay(overlays, _hireOfficerDialogController);
+        AddVisibleOverlay(overlays, _prisonerManagementDialogController);
         AddVisibleOverlay(overlays, _successionDialogController);
     }
 

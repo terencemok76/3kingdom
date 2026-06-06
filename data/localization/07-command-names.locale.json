@@ -83,6 +83,10 @@
                                            "zhHant":  "登用人士",
                                            "en":  "Hire Officer"
                                        },
+    "command.personnel.manage_prisoners":  {
+                                              "zhHant":  "管理俘虜",
+                                              "en":  "Manage Prisoners"
+                                          },
     "command.personnel.request_item":  {
                                            "zhHant":  "索回道具",
                                            "en":  "Recall Item"

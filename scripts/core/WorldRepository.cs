@@ -324,6 +324,7 @@ public class WorldRepository
         world.InternalAffairsSchedules ??= new List<InternalAffairsScheduleData>();
         world.CityIntelRecords ??= new List<WorldState.CityIntelData>();
         world.PendingSuccessionRecords ??= new List<WorldState.PendingSuccessionData>();
+        world.PendingCapturedOfficerRecords ??= new List<WorldState.PendingCapturedOfficerData>();
 
         foreach (var city in world.Cities)
         {

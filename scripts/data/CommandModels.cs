@@ -59,6 +59,14 @@ public enum MerchantTradeMode
     BuyHorse
 }
 
+public enum CapturedOfficerDisposition
+{
+    Kill,
+    Recruit,
+    Free,
+    Jail
+}
+
 public class TroopAllocationData
 {
     public int Infantry { get; set; }
@@ -110,6 +118,7 @@ public class CommandRequest
     public int? TargetFactionId { get; set; }
     public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();
+    public List<int> CaptiveOfficerIds { get; set; } = new();
 }
 
 public class PendingCommandData
@@ -133,6 +142,7 @@ public class PendingCommandData
     public int TargetFactionId { get; set; }
     public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();
+    public List<int> CaptiveOfficerIds { get; set; } = new();
 }
 
 public class CommandResult

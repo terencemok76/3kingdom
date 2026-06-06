@@ -39,6 +39,10 @@
                             "zhHant":  "軍師",
                             "en":  "Strategist"
                         },
+    "role.captive":  {
+                         "zhHant":  "俘虜",
+                         "en":  "Captive"
+                        },
     "status.attack":  {
                           "zhHant":  "攻擊",
                           "en":  "Attack"

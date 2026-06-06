@@ -21,6 +21,7 @@ public partial class HudController : CanvasLayer
         SiegeEngineAllocationData? siegeEngineAllocation = null,
         List<AttackOfficerDeploymentData>? attackOfficerDeployments = null,
         List<int>? officerIds = null,
+        List<int>? captiveOfficerIds = null,
         bool sellFood = false,
         MerchantTradeMode merchantTradeMode = MerchantTradeMode.BuyFood,
         TroopType recruitTroopType = TroopType.Infantry)
@@ -51,7 +52,8 @@ public partial class HudController : CanvasLayer
             MerchantTradeMode = merchantTradeMode,
             RecruitTroopType = recruitTroopType,
             AttackOfficerDeployments = type == CommandType.Attack ? (attackOfficerDeployments ?? new List<AttackOfficerDeploymentData>()) : new List<AttackOfficerDeploymentData>(),
-            OfficerIds = type is CommandType.Merchant or CommandType.Pass ? new List<int>() : (officerIds ?? new List<int>())
+            OfficerIds = type is CommandType.Merchant or CommandType.Pass ? new List<int>() : (officerIds ?? new List<int>()),
+            CaptiveOfficerIds = type == CommandType.Move ? (captiveOfficerIds ?? new List<int>()) : new List<int>()
         };
 
         var result = _commandResolver.Execute(request);

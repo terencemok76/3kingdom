@@ -18,6 +18,13 @@ public class WorldState
         public int RemainingMonths { get; set; }
     }
 
+    public class PendingCapturedOfficerData
+    {
+        public int WinnerFactionId { get; set; }
+        public int WinnerCityId { get; set; }
+        public int OfficerId { get; set; }
+    }
+
     public string StoryId { get; set; } = string.Empty;
     public string StoryNameEn { get; set; } = string.Empty;
     public string StoryNameZhHant { get; set; } = string.Empty;
@@ -35,6 +42,7 @@ public class WorldState
     public List<InternalAffairsScheduleData> InternalAffairsSchedules { get; set; } = new();
     public List<CityIntelData> CityIntelRecords { get; set; } = new();
     public List<PendingSuccessionData> PendingSuccessionRecords { get; set; } = new();
+    public List<PendingCapturedOfficerData> PendingCapturedOfficerRecords { get; set; } = new();
     public bool ViewAllInformationEnabled { get; set; }
 
     public CityData? GetCity(int cityId)
@@ -77,6 +85,18 @@ public class WorldState
     public PendingSuccessionData? GetPendingSuccession(int factionId)
     {
         return PendingSuccessionRecords.FirstOrDefault(record => record.FactionId == factionId);
+    }
+
+    public List<PendingCapturedOfficerData> GetPendingCapturedOfficers(int factionId)
+    {
+        return PendingCapturedOfficerRecords
+            .Where(record => record.WinnerFactionId == factionId)
+            .ToList();
+    }
+
+    public PendingCapturedOfficerData? GetNextPendingCapturedOfficer(int factionId)
+    {
+        return PendingCapturedOfficerRecords.FirstOrDefault(record => record.WinnerFactionId == factionId);
     }
 
     public bool HasActiveCityIntel(int viewerFactionId, int cityId)

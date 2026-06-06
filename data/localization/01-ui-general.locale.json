@@ -19,6 +19,42 @@
 							  "zhHant":  "清除選擇",
 							  "en":  "Clear Selection"
 						  },
+	"ui.captured_officer":  {
+								"zhHant":  "俘虜處置",
+								"en":  "Captured Officer"
+							},
+	"ui.captured_officer_summary":  {
+										"zhHant":  "武將「{0}」已被俘。請決定其在「{1}」的處置。",
+										"en":  "Officer \"{0}\" has been captured. Decide their fate in \"{1}\"."
+									},
+	"ui.captured_officer.kill":  {
+									 "zhHant":  "處決",
+									 "en":  "Kill"
+								 },
+	"ui.captured_officer.recruit":  {
+										"zhHant":  "招降",
+										"en":  "Recruit"
+									},
+	"ui.captured_officer.free":  {
+									 "zhHant":  "釋放",
+									 "en":  "Free"
+								 },
+	"ui.captured_officer.jail":  {
+									 "zhHant":  "下獄",
+									 "en":  "Jail"
+								 },
+	"ui.prisoner_management":  {
+								   "zhHant":  "俘虜管理",
+								   "en":  "Prisoner Management"
+							   },
+	"ui.prisoner_management_summary":  {
+										   "zhHant":  "「{0}」目前關押俘虜 {1} 名。",
+										   "en":  "\"{0}\" is currently holding {1} prisoners."
+									   },
+	"ui.no_prisoners":  {
+							 "zhHant":  "此城目前沒有俘虜。",
+							 "en":  "There are currently no prisoners in this city."
+						 },
 	"ui.confirm_clear_appointment":  {
 										 "zhHant":  "確認解除職位",
 										 "en":  "Confirm Clear Appointment"
@@ -691,6 +727,10 @@
 								 "zhHant":  "移動武將",
 								 "en":  "Officers To Send"
 							 },
+	"ui.transfer_prisoners":  {
+								  "zhHant":  "移動俘虜",
+								  "en":  "Prisoners To Transfer"
+							  },
 	"ui.transfer_troops":  {
 							   "zhHant":  "移動兵力",
 							   "en":  "Troops To Send"

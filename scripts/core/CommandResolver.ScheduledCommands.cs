@@ -201,6 +201,7 @@ public partial class CommandResolver
         }
 
         var selectedOfficerIds = GetMovableOfficerIds(sourceCity, request.OfficerIds);
+        var selectedCaptiveOfficerIds = GetMovableCaptiveOfficerIds(world, sourceCity, request.CaptiveOfficerIds);
         var troopAllocation = CreateTroopAllocationFromTotal(sourceCity, request.TroopsToSend);
         var movableTroops = troopAllocation.Total;
         var movableGold = GetTransferAmount(request.GoldToSend, sourceCity.Gold);
@@ -213,7 +214,7 @@ public partial class CommandResolver
             Ladder = GetTransferAmount(request.SiegeEngineAllocation.Ladder, sourceCity.LadderCount)
         };
 
-        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && selectedOfficerIds.Count == 0)
+        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && selectedOfficerIds.Count == 0 && selectedCaptiveOfficerIds.Count == 0)
         {
             return LocalizedResult(false, "cmd.move.nothing_to_move");
         }
@@ -231,7 +232,8 @@ public partial class CommandResolver
             FoodToSend = movableFood,
             HorsesToSend = movableHorses,
             SiegeEngineAllocation = movableSiegeEngines,
-            OfficerIds = selectedOfficerIds
+            OfficerIds = selectedOfficerIds,
+            CaptiveOfficerIds = selectedCaptiveOfficerIds
         });
 
         return LocalizedResult(
@@ -613,8 +615,9 @@ public partial class CommandResolver
             Ladder = movableLadder
         };
         var movedOfficerCount = TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var sourcePrefectOutcome);
+        var movedCaptiveCount = TransferCaptiveOfficers(world, sourceCity, targetCity, pendingCommand.CaptiveOfficerIds);
 
-        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && movedOfficerCount == 0)
+        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && movedOfficerCount == 0 && movedCaptiveCount == 0)
         {
             return LocalizedResult(
                 false,
@@ -640,8 +643,61 @@ public partial class CommandResolver
             "cmd.move.resolved",
             new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
             new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
+        AppendMoveCaptiveSummary(result, movedCaptiveCount);
         AppendPrefectAutoAppointmentOutcome(result, sourcePrefectOutcome);
         return result;
+    }
+
+    private static List<int> GetMovableCaptiveOfficerIds(WorldState world, CityData sourceCity, IEnumerable<int> requestedOfficerIds)
+    {
+        var requestedSet = requestedOfficerIds
+            .Where(id => id > 0)
+            .ToHashSet();
+        if (requestedSet.Count == 0)
+        {
+            return new List<int>();
+        }
+
+        return world.Officers
+            .Where(officer =>
+                requestedSet.Contains(officer.Id) &&
+                officer.CaptiveFactionId == sourceCity.OwnerFactionId &&
+                officer.JailedCityId == sourceCity.Id)
+            .Select(officer => officer.Id)
+            .Distinct()
+            .ToList();
+    }
+
+    private static int TransferCaptiveOfficers(WorldState world, CityData sourceCity, CityData targetCity, IEnumerable<int> captiveOfficerIds)
+    {
+        var movedCount = 0;
+        foreach (var officerId in captiveOfficerIds.Distinct())
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null ||
+                officer.CaptiveFactionId != sourceCity.OwnerFactionId ||
+                officer.JailedCityId != sourceCity.Id)
+            {
+                continue;
+            }
+
+            officer.JailedCityId = targetCity.Id;
+            movedCount += 1;
+        }
+
+        return movedCount;
+    }
+
+    private void AppendMoveCaptiveSummary(CommandResult result, int movedCaptiveCount)
+    {
+        if (movedCaptiveCount <= 0 || _localization == null)
+        {
+            return;
+        }
+
+        result.MessageZhHant = $"{result.MessageZhHant}{_localization.FormatForLanguage(GameLanguage.TraditionalChinese, "cmd.move.captive_suffix", movedCaptiveCount)}";
+        result.MessageEn = $"{result.MessageEn}{_localization.FormatForLanguage(GameLanguage.English, "cmd.move.captive_suffix", movedCaptiveCount)}";
+        result.Message = _localization.CurrentLanguage == GameLanguage.TraditionalChinese ? result.MessageZhHant : result.MessageEn;
     }
 
     private CommandResult ResolveAttack(WorldState world, CityData sourceCity, PendingCommandData pendingCommand)
@@ -719,6 +775,7 @@ public partial class CommandResolver
         {
             effectiveAttackerLoss = attackingTroops;
         }
+        var attackerLossAllocation = ScaleTroopAllocationToTotal(pendingCommand.TroopAllocation, effectiveAttackerLoss);
 
         var defendingTroopsBeforeBattle = targetCity.Troops;
         var defenderLoss = combat.DefenderLosses;
@@ -751,6 +808,21 @@ public partial class CommandResolver
 
         if (!combat.AttackerWon)
         {
+            var capturedAttackerOfficerIds = CaptureBattleLoserOfficers(
+                world,
+                defendingFactionId,
+                targetCity.Id,
+                pendingCommand.OfficerIds,
+                pendingCommand.AttackOfficerDeployments,
+                attackerLossAllocation,
+                attackingTroops,
+                effectiveAttackerLoss);
+            QueueCapturedOfficersForWinner(world, defendingFactionId, targetCity.Id, capturedAttackerOfficerIds);
+            if (defendingFactionId != _turnManager?.GetPlayerFactionId())
+            {
+                AutoResolvePendingCapturedOfficers(world, defendingFactionId);
+            }
+
             AwardBattleExperience(world, pendingCommand.OfficerIds, 16);
             AwardBattleExperience(world, defendingOfficerIds, 22);
             var returnedGold = (int)(pendingCommand.GoldToSend * FailedAttackSupplyReturnRatio);
@@ -797,12 +869,27 @@ public partial class CommandResolver
                     string.Join(" ", battleDeathSummaries.Select(item => item.ZhHant)),
                     string.Join(" ", battleDeathSummaries.Select(item => item.En)));
             }
+            AppendCaptureSummaryText(failedResult, world, capturedAttackerOfficerIds);
 
             return failedResult;
         }
 
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
         ClearCityPrefectAuthorization(targetCity);
+        var capturedDefenderOfficerIds = CaptureBattleLoserOfficers(
+            world,
+            sourceCity.OwnerFactionId,
+            targetCity.Id,
+            defendingBattleOfficerIds,
+            pendingCommand.DefenderOfficerDeployments,
+            defenderLossAllocation,
+            defendingTroopsBeforeBattle,
+            defenderLoss);
+        QueueCapturedOfficersForWinner(world, sourceCity.OwnerFactionId, targetCity.Id, capturedDefenderOfficerIds);
+        if (sourceCity.OwnerFactionId != _turnManager?.GetPlayerFactionId())
+        {
+            AutoResolvePendingCapturedOfficers(world, sourceCity.OwnerFactionId);
+        }
         AwardBattleExperience(world, pendingCommand.OfficerIds, 26);
         AwardBattleExperience(world, defendingOfficerIds, 12);
         var defendingPrefectOutcome = ResolveCapturedCityOfficers(world, targetCity, defendingFactionId);
@@ -851,6 +938,7 @@ public partial class CommandResolver
                 string.Join(" ", battleDeathSummaries.Select(item => item.ZhHant)),
                 string.Join(" ", battleDeathSummaries.Select(item => item.En)));
         }
+        AppendCaptureSummaryText(successResult, world, capturedDefenderOfficerIds);
 
         AppendPrefectAutoAppointmentOutcome(successResult, defendingPrefectOutcome);
         AppendPrefectAutoAppointmentOutcome(successResult, attackingPrefectOutcome);
