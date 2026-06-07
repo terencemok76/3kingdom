@@ -5,10 +5,24 @@ namespace ThreeKingdom.Map;
 
 public partial class CityNode : Node2D
 {
+    private static readonly Texture2D? CityTexture = GD.Load<Texture2D>("res://assets/map/city_1.png");
+    private static readonly Texture2D? FlagTexture = GD.Load<Texture2D>("res://assets/map/flag_1.png");
+    private static readonly Texture2D? ArrowTexture = GD.Load<Texture2D>("res://assets/map/arrow_1.png");
+
+    private const float MarkerSize = 56.0f;
+    private const float FlagWidth = 48.0f;
+    private const float FlagHeight = 48.0f;
+    private const float FlagOffsetX = 10.0f;
+    private const float FlagOffsetY = -24.0f;
+    private const float ArrowWidth = 64.0f;
+    private const float ArrowHeight = 64.0f;
+    private const float ArrowOffsetX = 0.0f;
+    private const float ArrowOffsetY = -42.0f;
+    private const float ArrowBobAmplitude = 4.0f;
+    private const float ArrowBobSpeed = 3.4f;
     private const float CircleRadius = 12.0f;
-    private const float BorderRadius = 13.0f;
-    private const float EventRingRadius = 18.0f;
-    private const float LabelStartY = 30.0f;
+    private const float EventRingRadius = 22.0f;
+    private const float LabelStartY = 40.0f;
     private const float LabelLineHeight = 16.0f;
 
     private CityData? _city;
@@ -24,6 +38,11 @@ public partial class CityNode : Node2D
 
     public override void _Process(double delta)
     {
+        if (_isSelected)
+        {
+            QueueRedraw();
+        }
+
         if (!_hasEventOverlay)
         {
             return;
@@ -106,11 +125,20 @@ public partial class CityNode : Node2D
 
     public override void _Draw()
     {
-        var borderColor = _isSelected ? new Color("fffbeb") : new Color("2d2a26");
-        var borderWidth = _isSelected ? 3.0f : 2.0f;
-
-        DrawCircle(Vector2.Zero, CircleRadius, _fillColor);
-        DrawCircle(Vector2.Zero, BorderRadius, borderColor, false, borderWidth);
+        if (CityTexture != null)
+        {
+            var textureRect = new Rect2(new Vector2(-MarkerSize * 0.5f, -MarkerSize * 0.5f), new Vector2(MarkerSize, MarkerSize));
+            DrawTextureRect(CityTexture, textureRect, false, Colors.White);
+            DrawFactionFlag();
+            DrawSelectionArrow();
+        }
+        else
+        {
+            var borderColor = _isSelected ? new Color("fffbeb") : new Color("2d2a26");
+            var borderWidth = _isSelected ? 3.0f : 2.0f;
+            DrawCircle(Vector2.Zero, CircleRadius, _fillColor);
+            DrawCircle(Vector2.Zero, CircleRadius + 1.0f, borderColor, false, borderWidth);
+        }
 
         if (_hasEventOverlay)
         {
@@ -124,6 +152,47 @@ public partial class CityNode : Node2D
             DrawCircle(Vector2.Zero, EventRingRadius + 2.5f, glowColor, false, 7.0f);
             DrawCircle(Vector2.Zero, EventRingRadius, ringColor, false, 3.5f);
         }
+    }
+
+    private void DrawSelectionArrow()
+    {
+        if (!_isSelected || ArrowTexture == null)
+        {
+            return;
+        }
+
+        var arrowRect = new Rect2(
+            new Vector2(ArrowOffsetX - (ArrowWidth * 0.5f), GetAnimatedArrowOffsetY() - (ArrowHeight * 0.5f)),
+            new Vector2(ArrowWidth, ArrowHeight));
+        DrawTextureRect(ArrowTexture, arrowRect, false, Colors.White);
+    }
+
+    private float GetAnimatedArrowOffsetY()
+    {
+        var time = (float)(Time.GetTicksMsec() / 1000.0);
+        return Mathf.Round(ArrowOffsetY + (Mathf.Sin(time * ArrowBobSpeed) * ArrowBobAmplitude));
+    }
+
+    private void DrawFactionFlag()
+    {
+        if (FlagTexture == null || _city == null || _city.OwnerFactionId <= 0)
+        {
+            return;
+        }
+
+        var flagRect = new Rect2(
+            new Vector2(FlagOffsetX - (FlagWidth * 0.5f), FlagOffsetY - (FlagHeight * 0.5f)),
+            new Vector2(FlagWidth, FlagHeight));
+        var flagTint = GetFlagTintColor(_fillColor);
+        DrawTextureRect(FlagTexture, flagRect, false, flagTint);
+    }
+
+    private static Color GetFlagTintColor(Color sourceColor)
+    {
+        var hue = sourceColor.H;
+        var saturation = Mathf.Max(sourceColor.S, 0.9f);
+        var vividColor = Color.FromHsv(hue, saturation, 1.0f, 1.0f);
+        return vividColor.Lerp(Colors.White, 0.12f);
     }
 
     private void RefreshLabelOverlay()
