@@ -1,0 +1,123 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/BattlePrototypeSceneController.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/battle/BattlePrototypeMapRenderer.cs" id="2"]
+[ext_resource type="Script" path="res://scripts/battle/BattlePieceMarker.cs" id="3"]
+
+[node name="BattlePrototypeScene" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+position = Vector2(800, 430)
+zoom = Vector2(1, 1)
+
+[node name="MapRoot" type="Node2D" parent="."]
+position = Vector2(800, 40)
+
+[node name="GroundLayer" type="TileMapLayer" parent="MapRoot"]
+
+[node name="TerrainLayer" type="TileMapLayer" parent="MapRoot"]
+z_index = 5
+
+[node name="StructureLayer" type="Node2D" parent="MapRoot"]
+z_index = 10
+script = ExtResource("2")
+
+[node name="OverlayLayer" type="TileMapLayer" parent="MapRoot"]
+z_index = 15
+
+[node name="UnitLayer" type="Node2D" parent="MapRoot"]
+z_index = 20
+
+[node name="AttackerA" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
+[node name="AttackerB" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
+[node name="AttackerC" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
+[node name="DefenderA" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
+[node name="DefenderB" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
+[node name="DefenderC" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
+[node name="SiegeEngineLayer" type="Node2D" parent="MapRoot"]
+z_index = 22
+
+[node name="Ram" type="Node2D" parent="MapRoot/SiegeEngineLayer"]
+script = ExtResource("3")
+
+[node name="Ladder" type="Node2D" parent="MapRoot/SiegeEngineLayer"]
+script = ExtResource("3")
+
+[node name="Catapult" type="Node2D" parent="MapRoot/SiegeEngineLayer"]
+script = ExtResource("3")
+
+[node name="EffectLayer" type="Node2D" parent="MapRoot"]
+z_index = 30
+
+[node name="UiLayer" type="CanvasLayer" parent="."]
+layer = 1
+
+[node name="TopBar" type="ColorRect" parent="UiLayer"]
+offset_right = 1600.0
+offset_bottom = 104.0
+color = Color(0.13, 0.20, 0.10, 0.92)
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/TopBar"]
+offset_left = 20.0
+offset_top = 12.0
+offset_right = 1580.0
+offset_bottom = 92.0
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="TopBarContent" type="VBoxContainer" parent="UiLayer/TopBar/Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Battle Prototype"
+
+[node name="SummaryLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "-"
+
+[node name="CoordinateLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Hover: -    Click: -"
+
+[node name="SidePanel" type="ColorRect" parent="UiLayer"]
+offset_left = 1260.0
+offset_top = 116.0
+offset_right = 1570.0
+offset_bottom = 360.0
+color = Color(0.16, 0.13, 0.10, 0.82)
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/SidePanel"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 298.0
+offset_bottom = 232.0
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="LayoutLabel" type="Label" parent="UiLayer/SidePanel/Margin"]
+theme_override_font_sizes/font_size = 18
+text = "-"

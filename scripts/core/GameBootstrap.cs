@@ -8,6 +8,7 @@ namespace ThreeKingdom.Core;
 public partial class GameBootstrap : Node
 {
     private const string DefaultScenarioPath = "res://data/scenarios/story1_scenario.json";
+    private const string BattlePrototypeScenePath = "res://scenes/battle/BattlePrototypeScene.tscn";
 
     private readonly WorldRepository _worldRepository = new();
     private readonly TurnManager _turnManager = new();
@@ -51,6 +52,7 @@ public partial class GameBootstrap : Node
             });
         startMenuController.StartGameConfirmed += OnStartGameConfirmed;
         startMenuController.LoadGameConfirmed += OnLoadGameConfirmed;
+        startMenuController.BattlePrototypeRequested += OnBattlePrototypeRequested;
         startMenuController.ShowMainMenu();
     }
 
@@ -77,6 +79,11 @@ public partial class GameBootstrap : Node
         }
 
         EnterGameplay(world);
+    }
+
+    private void OnBattlePrototypeRequested()
+    {
+        GetTree().ChangeSceneToFile(BattlePrototypeScenePath);
     }
 
     private void EnterGameplay(WorldState world)

@@ -72,6 +72,7 @@ public partial class GameStartMenuController : CanvasLayer
     private VBoxContainer? _loadPanel;
     private Button? _startGameButton;
     private Button? _loadGameButton;
+    private Button? _battlePrototypeButton;
     private Button? _optionButton;
     private Button? _storyConfirmButton;
     private Button? _storyBackButton;
@@ -105,6 +106,7 @@ public partial class GameStartMenuController : CanvasLayer
 
     public event Action<string, int>? StartGameConfirmed;
     public event Action<int>? LoadGameConfirmed;
+    public event Action? BattlePrototypeRequested;
 
     public override void _Ready()
     {
@@ -117,6 +119,7 @@ public partial class GameStartMenuController : CanvasLayer
         _loadPanel = GetNodeOrNull<VBoxContainer>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel");
         _startGameButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/StartGameButton");
         _loadGameButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/LoadGameButton");
+        _battlePrototypeButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/BattlePrototypeButton");
         _optionButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/OptionButton");
         _storySectionLabel = GetNodeOrNull<Label>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StoryLabel");
         _storyList = GetNodeOrNull<ItemList>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StoryList");
@@ -204,6 +207,11 @@ public partial class GameStartMenuController : CanvasLayer
         if (_loadGameButton != null)
         {
             _loadGameButton.Pressed += OnLoadGamePressed;
+        }
+
+        if (_battlePrototypeButton != null)
+        {
+            _battlePrototypeButton.Pressed += OnBattlePrototypePressed;
         }
 
         if (_optionButton != null)
@@ -333,7 +341,7 @@ public partial class GameStartMenuController : CanvasLayer
             });
         }
 
-        foreach (var button in new[] { _startGameButton, _loadGameButton, _optionButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
+        foreach (var button in new[] { _startGameButton, _loadGameButton, _battlePrototypeButton, _optionButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
         {
             ApplyButtonTheme(button);
         }
@@ -436,6 +444,13 @@ public partial class GameStartMenuController : CanvasLayer
         if (_loadGameButton != null)
         {
             _loadGameButton.Text = _localization.T("ui.load_game");
+        }
+
+        if (_battlePrototypeButton != null)
+        {
+            _battlePrototypeButton.Text = _localization.IsTraditionalChinese
+                ? "戰鬥原型"
+                : "Battle Prototype";
         }
 
         if (_optionButton != null)
@@ -578,6 +593,11 @@ public partial class GameStartMenuController : CanvasLayer
     private void OnOptionPressed()
     {
         ShowOptionDialog();
+    }
+
+    private void OnBattlePrototypePressed()
+    {
+        BattlePrototypeRequested?.Invoke();
     }
 
     private void OnOptionLanguagePressed()

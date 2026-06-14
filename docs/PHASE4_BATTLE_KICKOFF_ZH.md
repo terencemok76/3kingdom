@@ -29,6 +29,19 @@
   - attack deployment UI
   之上繼續深化。
 
+## 2.1 目前 Prototype 狀態
+
+- 主選單已可切入 `Battle Prototype / 戰鬥原型`
+- 已有 `25x25` isometric 攻城戰原型場景
+- 已支援：
+  - 滑鼠右鍵拖曳地圖
+  - top bar 顯示 hover / click tile 座標
+  - 攻方 / 守方 / 攻城器 marker 顯示
+- 地圖表現現況：
+  - `Ground / Terrain / Overlay` 進入 `TileMapLayer` 流程
+  - `Structure / Unit / Effect / UI` 暫時維持節點式混合架構
+- 目前仍屬 battle prototype，尚未進入正式素材管線與完整戰鬥規則階段
+
 ## 3. Phase 4 目標
 
 - 讓戰鬥從目前可運作基線版，提升到更清楚、更可調、更有策略差異的系統。
@@ -88,7 +101,56 @@
 3. 接著改善 `Attack` UI 與結果顯示。
 4. 最後補 AI 的部署與出兵判斷。
 
-## 7. 完成判定
+## 7. Prototype -> 正式 TileMap 版拆分
+
+### 7.1 工作包
+
+1. 戰場資料模型定型
+   - 固定 `25x25` 戰場格資料結構
+   - 每格至少有：`ground_type`、`terrain_type`、`structure_type`、`height_tag`、`move_cost`、`block_state`
+   - 攻城戰專用欄位至少有：`wall_segment`、`gate_segment`、`inside_city`、`siege_deploy_zone`
+2. TileSet 規格定型
+   - 正式 tile 尺寸先以 `128x64` 為基準
+   - 圖層建議切為：`Ground`、`Road/Terrain`、`StructureBase`、`StructureOverlay`
+   - 部隊、攻城器、選取提示、浮字與特效暫不 tile 化
+3. 建立正式 battle tilemap scene
+   - 用多層 `TileMapLayer` 取代 prototype 的地表層
+   - 保留 `UnitLayer`、`EffectLayer`、`UiLayer`
+   - 保留 hover / click / drag camera 的互動流程
+4. 先落地最小可用 TileSet
+   - 草地
+   - 土路
+   - 城內地面
+   - 城牆步道
+   - 部分樹叢 / 區域 overlay
+5. 結構層採混合式
+   - 地表交給 TileMap
+   - 城牆、城門、塔樓、主建物可先保留獨立 scene / node
+   - 等規則穩定後再決定要不要完全 tile 化
+6. 全面改成 grid-first 戰鬥互動
+   - 視覺用 TileMap
+   - 邏輯用獨立 grid data
+   - 所有 hover、click、移動、阻擋、射程都以 `Vector2I grid` 為主
+7. 建立場景維護流程
+   - 先支援 battle map data 檔或 code-defined layout
+   - 早期不強制自製 editor
+   - 等地圖數量擴大後再評估 battle map editor tool
+8. 再進入正式戰鬥系統
+   - 部隊選取
+   - 可移動格
+   - 攻擊 / 射程
+   - 城門耐久
+   - 爬梯 / 衝車 / 投石互動
+   - AI 攻守行為
+
+### 7.2 里程碑建議
+
+1. `P4-A`：TileMap 地表替換完成
+2. `P4-B`：攻城結構混合式完成
+3. `P4-C`：格子規則層完成
+4. `P4-D`：第一個可操作攻城戰 prototype
+
+## 8. 完成判定
 
 - 玩家可理解為什麼戰鬥勝負發生。
 - 兵種與攻城器選擇有實際差異。
