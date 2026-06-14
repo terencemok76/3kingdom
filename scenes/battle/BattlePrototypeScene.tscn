@@ -1,123 +1,195 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://dxuj10r5yy13h"]
 
-[ext_resource type="Script" path="res://scripts/battle/BattlePrototypeSceneController.cs" id="1"]
-[ext_resource type="Script" path="res://scripts/battle/BattlePrototypeMapRenderer.cs" id="2"]
-[ext_resource type="Script" path="res://scripts/battle/BattlePieceMarker.cs" id="3"]
+[ext_resource type="Script" uid="uid://j0how0jrctcb" path="res://scripts/battle/BattlePrototypeSceneController.cs" id="1"]
+[ext_resource type="Script" uid="uid://p8l01vahmlpb" path="res://scripts/battle/BattlePrototypeMapRenderer.cs" id="2"]
+[ext_resource type="Script" uid="uid://dy0u0cwc0nnma" path="res://scripts/battle/BattlePieceMarker.cs" id="3"]
+[ext_resource type="Script" uid="uid://cttp0flcgwx0t" path="res://scripts/battle/BattlePrototypeHighlightRenderer.cs" id="4"]
 
-[node name="BattlePrototypeScene" type="Node2D"]
+[node name="BattlePrototypeScene" type="Node2D" unique_id=1970255355]
 script = ExtResource("1")
 
-[node name="Camera2D" type="Camera2D" parent="."]
-enabled = true
+[node name="Camera2D" type="Camera2D" parent="." unique_id=595103095]
 position = Vector2(800, 430)
-zoom = Vector2(1, 1)
 
-[node name="MapRoot" type="Node2D" parent="."]
+[node name="MapRoot" type="Node2D" parent="." unique_id=105299395]
 position = Vector2(800, 40)
 
-[node name="GroundLayer" type="TileMapLayer" parent="MapRoot"]
+[node name="GroundLayer" type="TileMapLayer" parent="MapRoot" unique_id=1972652565]
 
-[node name="TerrainLayer" type="TileMapLayer" parent="MapRoot"]
+[node name="TerrainLayer" type="TileMapLayer" parent="MapRoot" unique_id=1405019962]
 z_index = 5
 
-[node name="StructureLayer" type="Node2D" parent="MapRoot"]
+[node name="StructureLayer" type="Node2D" parent="MapRoot" unique_id=20053611]
 z_index = 10
 script = ExtResource("2")
 
-[node name="OverlayLayer" type="TileMapLayer" parent="MapRoot"]
+[node name="OverlayLayer" type="TileMapLayer" parent="MapRoot" unique_id=1900053212]
 z_index = 15
 
-[node name="UnitLayer" type="Node2D" parent="MapRoot"]
+[node name="HighlightLayer" type="Node2D" parent="MapRoot" unique_id=1655506300]
+z_index = 18
+script = ExtResource("4")
+
+[node name="UnitLayer" type="Node2D" parent="MapRoot" unique_id=1166056561]
 z_index = 20
 
-[node name="AttackerA" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="AttackerA" type="Node2D" parent="MapRoot/UnitLayer" unique_id=209305753]
 script = ExtResource("3")
 
-[node name="AttackerB" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="AttackerB" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1510682842]
 script = ExtResource("3")
 
-[node name="AttackerC" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="AttackerC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1617047366]
 script = ExtResource("3")
 
-[node name="DefenderA" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="DefenderA" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1187741692]
 script = ExtResource("3")
 
-[node name="DefenderB" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="DefenderB" type="Node2D" parent="MapRoot/UnitLayer" unique_id=91544792]
 script = ExtResource("3")
 
-[node name="DefenderC" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="DefenderC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=498644608]
 script = ExtResource("3")
 
-[node name="SiegeEngineLayer" type="Node2D" parent="MapRoot"]
+[node name="SiegeEngineLayer" type="Node2D" parent="MapRoot" unique_id=1292689697]
 z_index = 22
 
-[node name="Ram" type="Node2D" parent="MapRoot/SiegeEngineLayer"]
+[node name="Ram" type="Node2D" parent="MapRoot/SiegeEngineLayer" unique_id=1833571858]
 script = ExtResource("3")
 
-[node name="Ladder" type="Node2D" parent="MapRoot/SiegeEngineLayer"]
+[node name="Ladder" type="Node2D" parent="MapRoot/SiegeEngineLayer" unique_id=1172912405]
 script = ExtResource("3")
 
-[node name="Catapult" type="Node2D" parent="MapRoot/SiegeEngineLayer"]
+[node name="Catapult" type="Node2D" parent="MapRoot/SiegeEngineLayer" unique_id=838561412]
 script = ExtResource("3")
 
-[node name="EffectLayer" type="Node2D" parent="MapRoot"]
+[node name="EffectLayer" type="Node2D" parent="MapRoot" unique_id=1324073802]
 z_index = 30
 
-[node name="UiLayer" type="CanvasLayer" parent="."]
-layer = 1
+[node name="UiLayer" type="CanvasLayer" parent="." unique_id=338083734]
 
-[node name="TopBar" type="ColorRect" parent="UiLayer"]
+[node name="TopBar" type="ColorRect" parent="UiLayer" unique_id=1605276365]
 offset_right = 1600.0
-offset_bottom = 104.0
-color = Color(0.13, 0.20, 0.10, 0.92)
+offset_bottom = 142.0
+color = Color(0.13, 0.2, 0.1, 0.92)
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/TopBar"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/TopBar" unique_id=2060358279]
+layout_mode = 0
 offset_left = 20.0
 offset_top = 12.0
 offset_right = 1580.0
-offset_bottom = 92.0
+offset_bottom = 130.0
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="TopBarContent" type="VBoxContainer" parent="UiLayer/TopBar/Margin"]
+[node name="TopBarContent" type="VBoxContainer" parent="UiLayer/TopBar/Margin" unique_id=1499492291]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="TitleLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
+[node name="TopHeaderRow" type="HBoxContainer" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=1217757]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-text = "Battle Prototype"
+theme_override_constants/separation = 16
 
-[node name="SummaryLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
+[node name="TitleLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1919964614]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "-"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
+text = "Date / Weather"
 
-[node name="CoordinateLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
+[node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
+layout_mode = 2
+text = "End Turn"
+
+[node name="SummaryLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=972321462]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
+text = "-"
+
+[node name="TeamBLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=1873090564]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "-"
+
+[node name="CoordinateLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=166900311]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
 text = "Hover: -    Click: -"
 
-[node name="SidePanel" type="ColorRect" parent="UiLayer"]
+[node name="SidePanel" type="ColorRect" parent="UiLayer" unique_id=991802699]
 offset_left = 1260.0
-offset_top = 116.0
+offset_top = 154.0
 offset_right = 1570.0
-offset_bottom = 360.0
-color = Color(0.16, 0.13, 0.10, 0.82)
+offset_bottom = 520.0
+color = Color(0.16, 0.13, 0.1, 0.82)
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/SidePanel"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/SidePanel" unique_id=1281471013]
+layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 298.0
-offset_bottom = 232.0
+offset_bottom = 392.0
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 6
 
-[node name="LayoutLabel" type="Label" parent="UiLayer/SidePanel/Margin"]
-theme_override_font_sizes/font_size = 18
-text = "-"
+[node name="PanelContent" type="VBoxContainer" parent="UiLayer/SidePanel/Margin" unique_id=1472170231]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="InfoLabel" type="Label" parent="UiLayer/SidePanel/Margin/PanelContent" unique_id=1526984529]
+layout_mode = 2
+theme_override_constants/line_spacing = -8
+theme_override_font_sizes/font_size = 17
+text = "Click a tile to inspect."
+autowrap_mode = 3
+
+[node name="CommandMenu" type="PanelContainer" parent="UiLayer" unique_id=2044591462]
+visible = false
+custom_minimum_size = Vector2(280, 0)
+offset_left = 20.0
+offset_top = 160.0
+offset_right = 300.0
+offset_bottom = 160.0
+
+[node name="MenuMargin" type="MarginContainer" parent="UiLayer/CommandMenu" unique_id=825828224]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="MenuButtons" type="VBoxContainer" parent="UiLayer/CommandMenu/MenuMargin" unique_id=2142726475]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WindowTitleLabel" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1950406964]
+layout_mode = 2
+mouse_filter = 0
+theme_override_font_sizes/font_size = 17
+text = "Unit Command"
+
+[node name="UnitMenuInfoLabel" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1345767573]
+layout_mode = 2
+theme_override_constants/line_spacing = -4
+theme_override_font_sizes/font_size = 16
+text = "Team: -
+Officer: -
+Type: -
+Troops: -"
+autowrap_mode = 3
+
+[node name="MoveButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1368341891]
+layout_mode = 2
+text = "Move"
+
+[node name="AttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1661440229]
+layout_mode = 2
+text = "Attack"
+
+[node name="StrategyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=851977861]
+layout_mode = 2
+text = "Strategy"
