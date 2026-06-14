@@ -139,7 +139,7 @@
 
 ## Phase3-Started-v1
 - Date: `May 25, 2026`
-- Status: in progress
+- Status: superseded by `Phase3-Completed-v1`
 - Scope baseline: follows `Phase2-Completed-v1`
 - Purpose: begin Phase 3 work on personality-driven governance, richer advisor systems, and higher-level strategic simulation layers deferred from Phase 2.
 
@@ -149,3 +149,64 @@
 - Buff system design and implementation
 - Fog of war / intelligence visibility for foreign courts and central posts
 - Advisor / prefect event chain foundations
+
+## Phase3-Completed-v1
+- Date: `June 7, 2026`
+- Status: completed
+- Scope baseline:
+  - `docs/PHASE3_DESIGN_ZH.md`
+  - practical close-out tracked in `docs/PHASE3_REMAINING_CHECKLIST.md`
+- Verification:
+- Core player-facing scope landed and accepted for close-out:
+  - facilities / construction points / recruit unlocks / siege engines
+  - prisoner management flow and regression checklist
+  - View refresh and live-localization support
+  - map marker polish: city icons, flags, selected arrow, generated road rendering
+
+### Completed Scope
+- City facility system:
+  - `BowWorkshop`
+  - `SiegeWorkshop`
+  - `HorsePasture`
+- Construction points flow and facility upgrade progression
+- Siege engine inventory and build progression:
+  - `Ram`
+  - `Catapult`
+  - `Ladder`
+- Recruit cost / unlock model tied to facility and resource state
+- Attack / Move UI support for siege engine allocation and transfer
+- View / city info display for facilities and siege engines
+- Live localization refresh for major dynamic command dialogs
+- Captured officer flow:
+  - post-battle handling
+  - prisoner management
+  - transfer via `Move`
+  - monthly escape handling
+  - View integration
+- Map presentation polish:
+  - city image markers
+  - faction flags
+  - selected arrow marker
+  - generated curved road rendering
+
+### Deferred Beyond Phase 3
+- faction-level `Technology`
+- siege engine system v2:
+  - durability
+  - transport capacity
+  - defender-side siege devices
+- deeper AI construction heuristics beyond current baseline and targeted fixes
+- further View redraw / interaction polish if later regressions appear
+
+## Phase4-Started-v1
+- Date: `June 7, 2026`
+- Status: in progress
+- Scope baseline: follows `Phase3-Completed-v1`
+- Purpose: begin focused battle-system work after Phase 3 city / economy / prisoner / map presentation line is closed.
+
+### Initial Focus
+- Battle resolution structure and clearer combat phases
+- Troop-type interaction rebalance
+- Siege / defense / siege-engine combat integration pass
+- Battle UI readability and deployment clarity
+- AI battle decision baseline improvement

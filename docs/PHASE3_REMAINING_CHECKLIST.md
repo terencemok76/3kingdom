@@ -1,6 +1,21 @@
 # Phase 3 Remaining Checklist
 
-更新日期：2026-06-06
+更新日期：2026-06-07
+
+## 0. 目前狀態
+
+- 這份 checklist 目前轉為 `close-out record` 用途。
+- 依 2026-06-07 的專案狀態：
+  - `Phase 3` 設施 / 建設 / 徵兵 / 攻城器 / 俘虜 / View / map UI 這條線
+  - 已可視為 `completed`
+- 收尾判定理由：
+  - 主要功能已落地
+  - 俘虜管理 sign-off quick flow 已補文件
+  - map 城市 / 旗幟 / 選取標記 / 土色曲線道路已完成可用版
+  - 後續剩餘內容多屬 `Phase 3+ polish` 或 `Phase 4` 前置，不再阻擋 Phase 3 結案
+- 因此本文件以下條目：
+  - 保留作為歷史追蹤與後續 polish 參考
+  - 不再作為 `Phase 3 complete` 的阻擋清單
 
 ## 1. 文件定位
 
@@ -20,7 +35,7 @@
   規劃。
 - 因此實作追蹤時，應避免把兩條 `Phase 3` 範圍混為同一份完成清單。
 
-## 2. Must
+## 2. 原收尾項
 
 ### 2.1 驗證 View 表格 redraw 收尾
 
@@ -68,7 +83,7 @@
   - 哪一份追的是設施 / 建設 / 徵兵 / 攻城器
   - 哪一份追的是 prefect / comment / fog / event
 
-## 3. Should
+## 3. 後續可延伸
 
 ### 3.1 補排程列表中的建設點變化提示
 
@@ -124,7 +139,7 @@
   - 城防低、忠誠低時脫逃 log 是否符合預期
   - 俘虜所在城失守後，原俘虜是否正確轉為自由武將
 
-## 4. Nice-to-have
+## 4. Phase 3+ / Nice-to-have
 
 ### 4.1 faction-level Technology 最小版
 
@@ -159,7 +174,7 @@
   - 針對建設 / 徵兵 / 攻城器 / 俘虜管理 / View UI 的回歸案例
 - 讓 Phase 3 後續收尾不只靠手動點 UI 驗證。
 
-## 5. 目前已補但仍需驗證的項目
+## 5. 結案備註
 
 - `Move` dialog 的 officer table 已補 live localization refresh
 - `Construction` 月底結果已補建設點 / 進度提示
@@ -167,9 +182,13 @@
 - 俘虜管理與每月脫逃機制已接上
 - `Move` 已可轉移俘虜
 - `View officer dialog` 已把俘虜併入 officer list，並在 `官職` 欄顯示 `俘虜`
-
-以上項目建議都視為：
-- `implemented`
-- 但尚未 `fully signed off`
-
-在正式標記 `Phase 3 complete` 前，應至少再做一輪 focused playtest。
+- map UI 已補：
+  - 城市圖示貼圖化
+  - faction 旗幟
+  - selected arrow marker
+  - 土色曲線道路
+- 以上項目在本輪收尾後，統一視為：
+  - `implemented`
+  - `accepted for Phase 3 close-out`
+- 若後續仍需調整：
+  - 以 `polish` 或 `Phase 4` 並行 UI 優化追蹤
