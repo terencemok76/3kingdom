@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://dxuj10r5yy13h"]
 
 [ext_resource type="Script" uid="uid://j0how0jrctcb" path="res://scripts/battle/BattlePrototypeSceneController.cs" id="1"]
-[ext_resource type="Script" uid="uid://p8l01vahmlpb" path="res://scripts/battle/BattlePrototypeMapRenderer.cs" id="2"]
 [ext_resource type="Script" uid="uid://dy0u0cwc0nnma" path="res://scripts/battle/BattlePieceMarker.cs" id="3"]
 [ext_resource type="Script" uid="uid://cttp0flcgwx0t" path="res://scripts/battle/BattlePrototypeHighlightRenderer.cs" id="4"]
 
@@ -16,12 +15,11 @@ position = Vector2(800, 40)
 
 [node name="GroundLayer" type="TileMapLayer" parent="MapRoot" unique_id=1972652565]
 
-[node name="TerrainLayer" type="TileMapLayer" parent="MapRoot" unique_id=1405019962]
+[node name="ObjectLayer" type="TileMapLayer" parent="MapRoot" unique_id=1405019962]
 z_index = 5
 
-[node name="StructureLayer" type="Node2D" parent="MapRoot" unique_id=20053611]
+[node name="CastleLayer" type="TileMapLayer" parent="MapRoot" unique_id=20053611]
 z_index = 10
-script = ExtResource("2")
 
 [node name="OverlayLayer" type="TileMapLayer" parent="MapRoot" unique_id=1900053212]
 z_index = 15

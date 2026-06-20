@@ -102,9 +102,21 @@ public partial class BattlePrototypeMapRenderer : Node2D
         switch (cell.Structure)
         {
             case BattleStructureType.Wall:
+                if (cell.IsBroken)
+                {
+                    DrawBrokenWall(center);
+                    break;
+                }
+
                 DrawWallBlock(center, new Color("8d7458"), new Color("705940"));
                 break;
             case BattleStructureType.Gate:
+                if (cell.IsBroken)
+                {
+                    DrawBrokenGate(center);
+                    break;
+                }
+
                 DrawWallBlock(center, new Color("8f7252"), new Color("6f553c"));
                 DrawRect(new Rect2(center + new Vector2(-18.0f, -4.0f), new Vector2(36.0f, 36.0f)), new Color("5a3822"));
                 break;
@@ -184,6 +196,21 @@ public partial class BattlePrototypeMapRenderer : Node2D
         var sideColors = new[] { sideColor, sideColor, sideColor, sideColor };
         DrawPolygon(leftFace, sideColors);
         DrawPolygon(rightFace, sideColors);
+    }
+
+    private void DrawBrokenWall(Vector2 center)
+    {
+        DrawDiamond(center + new Vector2(0.0f, 6.0f), 44.0f, 20.0f, new Color("7a6248", 0.85f), new Color("4d3a29", 0.5f));
+        DrawRect(new Rect2(center + new Vector2(-28.0f, -6.0f), new Vector2(16.0f, 10.0f)), new Color("6b523b"));
+        DrawRect(new Rect2(center + new Vector2(-6.0f, -10.0f), new Vector2(18.0f, 12.0f)), new Color("755c43"));
+        DrawRect(new Rect2(center + new Vector2(18.0f, -4.0f), new Vector2(12.0f, 8.0f)), new Color("6e5640"));
+    }
+
+    private void DrawBrokenGate(Vector2 center)
+    {
+        DrawBrokenWall(center);
+        DrawRect(new Rect2(center + new Vector2(-14.0f, -2.0f), new Vector2(10.0f, 24.0f)), new Color("5a3822", 0.7f));
+        DrawRect(new Rect2(center + new Vector2(2.0f, 4.0f), new Vector2(12.0f, 16.0f)), new Color("5a3822", 0.55f));
     }
 
     private void DrawBuilding(Vector2 center)

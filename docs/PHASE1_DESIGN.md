@@ -1,4 +1,4 @@
-# Three Kingdoms Strategy (Godot 4.6.2, C#)
+# Three Kingdoms Strategy (Godot 4.7, C#)
 ## Phase 1 Design Document
 
 ## Feature Freeze
@@ -62,7 +62,7 @@
 - New additions require explicit post-freeze approval and a new lock tag revision
 ## 1. Overview
 - Working title: `3Kingdom`
-- Target: 2D desktop strategy game in Godot 4.6.2 using C#
+- Target: 2D desktop strategy game in Godot 4.7 using C#
 - Inspiration: Romance of the Three Kingdoms I (early-era strategic flow), with simplified Phase 1 scope
 - Core loop: Monthly turn-based empire management and expansion through city commands and AI faction turns
 

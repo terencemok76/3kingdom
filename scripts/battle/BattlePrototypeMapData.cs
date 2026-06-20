@@ -19,7 +19,9 @@ public enum BattleStructureType
     Gate,
     Tower,
     Building,
-    Tree
+    Tree,
+    RockBig,
+    RockSmall
 }
 
 public enum BattleDeploymentZone
@@ -31,12 +33,21 @@ public enum BattleDeploymentZone
 
 public sealed class BattlePrototypeCellData
 {
+    public const int WallMaxHealth = 1200;
+    public const int GateMaxHealth = 1800;
+
     public Vector2I Grid { get; init; }
     public BattleTerrainType Terrain { get; set; } = BattleTerrainType.Plain;
     public BattleStructureType Structure { get; set; } = BattleStructureType.None;
     public BattleDeploymentZone DeploymentZone { get; set; } = BattleDeploymentZone.None;
     public bool BlocksMovement { get; set; }
     public int HeightLevel { get; set; }
+    public int StructureMaxHealth { get; set; }
+    public int StructureHealth { get; set; }
+
+    public bool HasStructureHealth => StructureMaxHealth > 0;
+    public bool IsBroken => HasStructureHealth && StructureHealth <= 0;
+    public bool IsBlockingStructure => BlocksMovement && !IsBroken;
 }
 
 public sealed class BattlePrototypeMapData
@@ -69,6 +80,28 @@ public sealed class BattlePrototypeMapData
     }
 
     public BattlePrototypeCellData GetCell(int x, int y) => Cells[x, y];
+
+    public void ApplyStructureDamage(Vector2I grid, int damage)
+    {
+        var cell = GetCell(grid.X, grid.Y);
+        if (!cell.HasStructureHealth || damage <= 0)
+        {
+            return;
+        }
+
+        cell.StructureHealth = Mathf.Max(0, cell.StructureHealth - damage);
+    }
+
+    public void SetStructureHealth(Vector2I grid, int health)
+    {
+        var cell = GetCell(grid.X, grid.Y);
+        if (!cell.HasStructureHealth)
+        {
+            return;
+        }
+
+        cell.StructureHealth = Mathf.Clamp(health, 0, cell.StructureMaxHealth);
+    }
 
     private void BuildSiegeAssaultLayout()
     {
@@ -118,6 +151,10 @@ public sealed class BattlePrototypeMapData
             wallCell.Structure = x is >= 11 and <= 13 ? BattleStructureType.Gate : BattleStructureType.Wall;
             wallCell.BlocksMovement = true;
             wallCell.HeightLevel = 2;
+            wallCell.StructureMaxHealth = wallCell.Structure == BattleStructureType.Gate
+                ? BattlePrototypeCellData.GateMaxHealth
+                : BattlePrototypeCellData.WallMaxHealth;
+            wallCell.StructureHealth = wallCell.StructureMaxHealth;
 
             var wallWalkCell = GetCell(x, 6);
             wallWalkCell.Terrain = BattleTerrainType.WallWalk;
@@ -144,21 +181,44 @@ public sealed class BattlePrototypeMapData
 
         for (var x = 2; x <= 4; x++)
         {
-            GetCell(x, 14 + (x % 2)).Structure = BattleStructureType.Tree;
-            GetCell(x, 14 + (x % 2)).BlocksMovement = true;
+            PlaceTree(x, 14 + (x % 2));
         }
 
         for (var x = 18; x <= 21; x++)
         {
-            GetCell(x, 16 + (x % 2)).Structure = BattleStructureType.Tree;
-            GetCell(x, 16 + (x % 2)).BlocksMovement = true;
+            PlaceTree(x, 16 + (x % 2));
         }
 
         for (var x = 7; x <= 9; x++)
         {
-            GetCell(x, 20 + (x % 2)).Structure = BattleStructureType.Tree;
-            GetCell(x, 20 + (x % 2)).BlocksMovement = true;
+            PlaceTree(x, 20 + (x % 2));
         }
+
+        PlaceRockBig(5, 18);
+        PlaceRockBig(16, 19);
+        PlaceRockSmall(10, 22);
+        PlaceRockSmall(22, 15);
+    }
+
+    private void PlaceTree(int x, int y)
+    {
+        var cell = GetCell(x, y);
+        cell.Structure = BattleStructureType.Tree;
+        cell.BlocksMovement = true;
+    }
+
+    private void PlaceRockBig(int x, int y)
+    {
+        var cell = GetCell(x, y);
+        cell.Structure = BattleStructureType.RockBig;
+        cell.BlocksMovement = true;
+    }
+
+    private void PlaceRockSmall(int x, int y)
+    {
+        var cell = GetCell(x, y);
+        cell.Structure = BattleStructureType.RockSmall;
+        cell.BlocksMovement = true;
     }
 
     private void PaintForests()

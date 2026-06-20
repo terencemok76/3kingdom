@@ -118,15 +118,9 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         ConfigureTileMapLayer("MapRoot/GroundLayer", BattlePrototypeTileLayerKind.Ground);
-        ConfigureTileMapLayer("MapRoot/TerrainLayer", BattlePrototypeTileLayerKind.TerrainDetail);
-        ConfigureRenderer("MapRoot/StructureLayer", BattlePrototypeRenderLayer.Structure);
+        ConfigureTileMapLayer("MapRoot/ObjectLayer", BattlePrototypeTileLayerKind.Object);
+        ConfigureTileMapLayer("MapRoot/CastleLayer", BattlePrototypeTileLayerKind.Castle);
         ConfigureTileMapLayer("MapRoot/OverlayLayer", BattlePrototypeTileLayerKind.DeploymentOverlay);
-    }
-
-    private void ConfigureRenderer(string path, BattlePrototypeRenderLayer renderLayer)
-    {
-        var renderer = GetNodeOrNull<BattlePrototypeMapRenderer>(path);
-        renderer?.Configure(_mapData!, renderLayer);
     }
 
     private void ConfigureTileMapLayer(string path, BattlePrototypeTileLayerKind layerKind)
@@ -377,9 +371,15 @@ public partial class BattlePrototypeSceneController : Node2D
         builder.AppendLine($"座標: ({grid.X}, {grid.Y})");
         builder.AppendLine($"地形: {FormatTerrain(cell.Terrain)}");
         builder.AppendLine($"建物: {FormatStructure(cell.Structure)}");
+        if (cell.HasStructureHealth)
+        {
+            builder.AppendLine($"耐久: {cell.StructureHealth}/{cell.StructureMaxHealth}");
+            builder.AppendLine($"狀態: {(cell.IsBroken ? "已破壞" : "完整")}");
+        }
+
         builder.AppendLine($"部署區: {FormatDeploymentZone(cell.DeploymentZone)}");
         builder.AppendLine($"高度: {cell.HeightLevel}");
-        builder.AppendLine($"移動阻擋: {(cell.BlocksMovement ? "是" : "否")}");
+        builder.AppendLine($"移動阻擋: {(IsCellBlockingMovement(cell) ? "是" : "否")}");
         builder.AppendLine("Occupants");
 
         if (_occupantsByGrid.TryGetValue(grid, out var occupants) && occupants.Count > 0)
@@ -525,9 +525,12 @@ public partial class BattlePrototypeSceneController : Node2D
                 }
 
                 var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
-                if (cell.BlocksMovement)
+                if (IsCellBlockingMovement(cell))
                 {
-                    continue;
+                    if (!CanTraverseBlockedCell(neighbor, cell))
+                    {
+                        continue;
+                    }
                 }
 
                 if (neighbor != startGrid && HasBlockingOccupant(neighbor))
@@ -769,6 +772,38 @@ public partial class BattlePrototypeSceneController : Node2D
         return _currentTurnSide == BattleTurnSide.TeamA ? "Team A / 攻方" : "Team B / 守方";
     }
 
+    private bool CanTraverseBlockedCell(Vector2I grid, BattlePrototypeCellData cell)
+    {
+        _ = grid;
+
+        if (!cell.IsBlockingStructure)
+        {
+            return true;
+        }
+
+        if (_selectedUnit == null)
+        {
+            return false;
+        }
+
+        if (cell.Structure == BattleStructureType.Gate && IsDefenderPiece(_selectedUnit) && _selectedUnit.Category == "部隊")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsCellBlockingMovement(BattlePrototypeCellData cell)
+    {
+        return cell.IsBlockingStructure;
+    }
+
+    private static bool IsDefenderPiece(BattleOccupantInfo occupant)
+    {
+        return occupant.TeamName.Contains("守方");
+    }
+
     private Vector2 ClampCommandMenuPosition(Vector2 desiredPosition)
     {
         if (_commandMenu == null)
@@ -858,6 +893,8 @@ public partial class BattlePrototypeSceneController : Node2D
             BattleStructureType.Tower => "箭塔",
             BattleStructureType.Building => "建物",
             BattleStructureType.Tree => "樹木",
+            BattleStructureType.RockBig => "大岩石",
+            BattleStructureType.RockSmall => "小岩石",
             _ => "無"
         };
     }
