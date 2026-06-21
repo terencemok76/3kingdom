@@ -9,6 +9,7 @@ public enum BattlePrototypeTileLayerKind
     Ground,
     Object,
     Castle,
+    WallWalkOverlay,
     DeploymentOverlay
 }
 
@@ -30,19 +31,27 @@ internal enum BattlePrototypeObjectTileVisual
 
 internal enum BattlePrototypeCastleTileVisual
 {
-    Wall = 0,
-    Gate = 1,
-    Tower = 2,
-    Building = 3,
-    WallCorner = 4,
-    BrokenWall = 5,
-    BrokenGate = 6
+    Wall0 = 0,
+    Wall1 = 1,
+    Wall2 = 2,
+    Wall3 = 3,
+    Wall4 = 4,
+    Wall5 = 5,
+    GateLeft = 6,
+    GateRight = 7,
+    Wall8 = 8,
+    Wall9 = 9
 }
 
 internal enum BattlePrototypeOverlayTileVisual
 {
     AttackerZone = 0,
     DefenderZone = 1
+}
+
+internal enum BattlePrototypeWallWalkOverlayTileVisual
+{
+    WallTop = 0
 }
 
 public static class BattlePrototypeTileMapBuilder
@@ -70,8 +79,7 @@ public static class BattlePrototypeTileMapBuilder
 
     public static void ConfigureLayer(TileMapLayer layer, BattlePrototypeMapData mapData, BattlePrototypeTileLayerKind layerKind)
     {
-        layer.TileSet = CreateSharedTileSet(layerKind);
-        layer.RenderingQuadrantSize = 8;
+        AssignLayerTileSet(layer, layerKind);
 
         foreach (var coords in layer.GetUsedCells())
         {
@@ -96,6 +104,13 @@ public static class BattlePrototypeTileMapBuilder
         layer.UpdateInternals();
     }
 
+    public static void AssignLayerTileSet(TileMapLayer layer, BattlePrototypeTileLayerKind layerKind)
+    {
+        layer.TileSet = CreateSharedTileSet(layerKind);
+        layer.RenderingQuadrantSize = 8;
+        layer.UpdateInternals();
+    }
+
     private static Vector2I? ResolveAtlasCoords(BattlePrototypeCellData cell, BattlePrototypeTileLayerKind layerKind)
     {
         return layerKind switch
@@ -103,6 +118,7 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeTileLayerKind.Ground => ResolveFloorVisual(cell),
             BattlePrototypeTileLayerKind.Object => ResolveObjectVisual(cell),
             BattlePrototypeTileLayerKind.Castle => ResolveCastleVisual(cell),
+            BattlePrototypeTileLayerKind.WallWalkOverlay => ResolveWallWalkOverlayVisual(cell),
             BattlePrototypeTileLayerKind.DeploymentOverlay => ResolveOverlayVisual(cell),
             _ => null
         };
@@ -138,14 +154,10 @@ public static class BattlePrototypeTileMapBuilder
     {
         BattlePrototypeCastleTileVisual? visual = cell.Structure switch
         {
-            BattleStructureType.Wall => cell.IsBroken
-                ? BattlePrototypeCastleTileVisual.BrokenWall
-                : BattlePrototypeCastleTileVisual.Wall,
-            BattleStructureType.Gate => cell.IsBroken
-                ? BattlePrototypeCastleTileVisual.BrokenGate
-                : BattlePrototypeCastleTileVisual.Gate,
-            BattleStructureType.Tower => BattlePrototypeCastleTileVisual.Tower,
-            BattleStructureType.Building => BattlePrototypeCastleTileVisual.Building,
+            BattleStructureType.Gate => cell.Grid.X % 2 == 0
+                ? BattlePrototypeCastleTileVisual.GateRight
+                : BattlePrototypeCastleTileVisual.GateLeft,
+            BattleStructureType.Wall or BattleStructureType.Tower or BattleStructureType.Building => BattlePrototypeCastleTileVisual.Wall0,
             _ => null
         };
 
@@ -162,6 +174,13 @@ public static class BattlePrototypeTileMapBuilder
         };
 
         return visual.HasValue ? new Vector2I((int)visual.Value, 0) : null;
+    }
+
+    private static Vector2I? ResolveWallWalkOverlayVisual(BattlePrototypeCellData cell)
+    {
+        return cell.Terrain == BattleTerrainType.WallWalk
+            ? new Vector2I((int)BattlePrototypeWallWalkOverlayTileVisual.WallTop, 0)
+            : null;
     }
 
     private static TileSet BuildTileSet(BattlePrototypeTileLayerKind layerKind)
@@ -238,6 +257,7 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeTileLayerKind.Ground => FloorAtlasPath,
             BattlePrototypeTileLayerKind.Object => ObjectAtlasPath,
             BattlePrototypeTileLayerKind.Castle => CastleAtlasPath,
+            BattlePrototypeTileLayerKind.WallWalkOverlay => string.Empty,
             BattlePrototypeTileLayerKind.DeploymentOverlay => OverlayAtlasPath,
             _ => string.Empty
         };
@@ -250,6 +270,7 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeTileLayerKind.Ground => Enum.GetValues<BattlePrototypeFloorTileVisual>().Length,
             BattlePrototypeTileLayerKind.Object => Enum.GetValues<BattlePrototypeObjectTileVisual>().Length,
             BattlePrototypeTileLayerKind.Castle => Enum.GetValues<BattlePrototypeCastleTileVisual>().Length,
+            BattlePrototypeTileLayerKind.WallWalkOverlay => Enum.GetValues<BattlePrototypeWallWalkOverlayTileVisual>().Length,
             BattlePrototypeTileLayerKind.DeploymentOverlay => Enum.GetValues<BattlePrototypeOverlayTileVisual>().Length,
             _ => 0
         };
@@ -273,6 +294,9 @@ public static class BattlePrototypeTileMapBuilder
                     break;
                 case BattlePrototypeTileLayerKind.Castle:
                     DrawCastleTile(image, tileOffsetX, metrics, (BattlePrototypeCastleTileVisual)tileIndex);
+                    break;
+                case BattlePrototypeTileLayerKind.WallWalkOverlay:
+                    DrawWallWalkOverlayTile(image, tileOffsetX, metrics, (BattlePrototypeWallWalkOverlayTileVisual)tileIndex);
                     break;
                 case BattlePrototypeTileLayerKind.DeploymentOverlay:
                     DrawOverlayTile(image, tileOffsetX, metrics, (BattlePrototypeOverlayTileVisual)tileIndex);
@@ -375,30 +399,20 @@ public static class BattlePrototypeTileMapBuilder
         _ = metrics;
         switch (visual)
         {
-            case BattlePrototypeCastleTileVisual.Wall:
+            case BattlePrototypeCastleTileVisual.Wall0:
+            case BattlePrototypeCastleTileVisual.Wall1:
+            case BattlePrototypeCastleTileVisual.Wall2:
+            case BattlePrototypeCastleTileVisual.Wall3:
+            case BattlePrototypeCastleTileVisual.Wall4:
+            case BattlePrototypeCastleTileVisual.Wall5:
+            case BattlePrototypeCastleTileVisual.Wall8:
+            case BattlePrototypeCastleTileVisual.Wall9:
                 DrawWallBlock(image, tileOffsetX, new Color("90755a"), new Color("725a43"));
                 break;
-            case BattlePrototypeCastleTileVisual.Gate:
+            case BattlePrototypeCastleTileVisual.GateLeft:
+            case BattlePrototypeCastleTileVisual.GateRight:
                 DrawWallBlock(image, tileOffsetX, new Color("927659"), new Color("725941"));
                 DrawFilledRect(image, tileOffsetX, new Rect2(50.0f, 30.0f, 28.0f, 22.0f), new Color("573722"));
-                break;
-            case BattlePrototypeCastleTileVisual.Tower:
-                DrawWallBlock(image, tileOffsetX, new Color("9e8468"), new Color("7a6148"));
-                DrawFilledRect(image, tileOffsetX, new Rect2(44.0f, 8.0f, 40.0f, 18.0f), new Color("6c5038"));
-                break;
-            case BattlePrototypeCastleTileVisual.Building:
-                DrawBuildingTile(image, tileOffsetX);
-                break;
-            case BattlePrototypeCastleTileVisual.WallCorner:
-                DrawWallCorner(image, tileOffsetX);
-                break;
-            case BattlePrototypeCastleTileVisual.BrokenWall:
-                DrawBrokenWallTile(image, tileOffsetX);
-                break;
-            case BattlePrototypeCastleTileVisual.BrokenGate:
-                DrawBrokenWallTile(image, tileOffsetX);
-                DrawFilledRect(image, tileOffsetX, new Rect2(55.0f, 36.0f, 9.0f, 14.0f), new Color("5a3822", 0.7f));
-                DrawFilledRect(image, tileOffsetX, new Rect2(69.0f, 40.0f, 10.0f, 10.0f), new Color("5a3822", 0.55f));
                 break;
         }
     }
@@ -413,6 +427,41 @@ public static class BattlePrototypeTileMapBuilder
             : new Color(0.70f, 0.94f, 1.0f, 0.42f);
 
         DrawDiamond(image, tileOffsetX, metrics, fillColor, borderColor, (_, _, _) => fillColor, 0.86f);
+    }
+
+    private static void DrawWallWalkOverlayTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattlePrototypeWallWalkOverlayTileVisual visual)
+    {
+        _ = visual;
+
+        DrawDiamond(
+            image,
+            tileOffsetX,
+            metrics,
+            new Color(0.88f, 0.82f, 0.62f, 0.13f),
+            new Color(1.0f, 0.95f, 0.70f, 0.46f),
+            (localX, localY, edge) =>
+            {
+                var centerLine = Mathf.Abs(localY - 32.0f) < 3.0f;
+                var frontRim = localY > 42.0f && edge > 0.62f;
+                var rearRim = localY < 23.0f && edge > 0.60f;
+                if (centerLine)
+                {
+                    return new Color(1.0f, 0.94f, 0.68f, 0.18f);
+                }
+
+                if (frontRim)
+                {
+                    return new Color(1.0f, 0.95f, 0.72f, 0.32f);
+                }
+
+                if (rearRim)
+                {
+                    return new Color(0.38f, 0.50f, 0.48f, 0.20f);
+                }
+
+                return new Color(0.88f, 0.82f, 0.62f, 0.13f);
+            },
+            0.92f);
     }
 
     private static void DrawWallBlock(Image image, int tileOffsetX, Color topColor, Color sideColor)
@@ -634,7 +683,8 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeTileLayerKind.Ground => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             // object_01.png uses 128x128 tiles; tune the footprint origin against the 128x64 map cell.
             BattlePrototypeTileLayerKind.Object => new BattleAtlasMetrics(TileWidth, 128, FootprintTopY: 32),
-            BattlePrototypeTileLayerKind.Castle => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
+            BattlePrototypeTileLayerKind.Castle => new BattleAtlasMetrics(TileWidth, 320, FootprintTopY: 128),
+            BattlePrototypeTileLayerKind.WallWalkOverlay => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             BattlePrototypeTileLayerKind.DeploymentOverlay => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             _ => new BattleAtlasMetrics(TileWidth, BaseTileHeight)
         };

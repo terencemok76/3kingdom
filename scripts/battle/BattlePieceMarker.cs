@@ -9,6 +9,8 @@ public partial class BattlePieceMarker : Node2D
     private Color _borderColor = Colors.Black;
     private float _radius = 19.0f;
 
+    public float Radius => _radius;
+
     public void Setup(string label, Color fillColor, Color borderColor, float radius = 19.0f)
     {
         _label = label;

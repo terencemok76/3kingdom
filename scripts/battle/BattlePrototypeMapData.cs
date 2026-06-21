@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 namespace ThreeKingdom.Battle;
 
@@ -79,6 +80,21 @@ public sealed class BattlePrototypeMapData
         return map;
     }
 
+    public static BattlePrototypeMapData CreateFromTileMapLayers(
+        TileMapLayer? groundLayer,
+        TileMapLayer? objectLayer,
+        TileMapLayer? castleLayer,
+        TileMapLayer? overlayLayer)
+    {
+        var map = new BattlePrototypeMapData();
+        map.ReadGroundLayer(groundLayer);
+        map.ReadObjectLayer(objectLayer);
+        map.ReadCastleLayer(castleLayer);
+        map.ReadOverlayLayer(overlayLayer);
+        map.ApplyDerivedCellRules();
+        return map;
+    }
+
     public BattlePrototypeCellData GetCell(int x, int y) => Cells[x, y];
 
     public void ApplyStructureDamage(Vector2I grid, int damage)
@@ -101,6 +117,158 @@ public sealed class BattlePrototypeMapData
         }
 
         cell.StructureHealth = Mathf.Clamp(health, 0, cell.StructureMaxHealth);
+    }
+
+    private void ReadGroundLayer(TileMapLayer? layer)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        ForEachGrid(grid =>
+        {
+            if (layer.GetCellSourceId(grid) < 0)
+            {
+                return;
+            }
+
+            var atlas = layer.GetCellAtlasCoords(grid);
+            GetCell(grid.X, grid.Y).Terrain = atlas.X switch
+            {
+                1 => BattleTerrainType.Road,
+                2 => BattleTerrainType.Courtyard,
+                3 => BattleTerrainType.WallWalk,
+                4 => BattleTerrainType.Forest,
+                _ => BattleTerrainType.Grass
+            };
+        });
+    }
+
+    private void ReadObjectLayer(TileMapLayer? layer)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        ForEachGrid(grid =>
+        {
+            if (layer.GetCellSourceId(grid) < 0)
+            {
+                return;
+            }
+
+            var atlas = layer.GetCellAtlasCoords(grid);
+            var cell = GetCell(grid.X, grid.Y);
+            cell.Structure = atlas.X switch
+            {
+                0 => BattleStructureType.Tree,
+                1 => BattleStructureType.RockBig,
+                2 => BattleStructureType.RockSmall,
+                _ => cell.Structure
+            };
+        });
+    }
+
+    private void ReadCastleLayer(TileMapLayer? layer)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        ForEachGrid(grid =>
+        {
+            if (layer.GetCellSourceId(grid) < 0)
+            {
+                return;
+            }
+
+            var atlas = layer.GetCellAtlasCoords(grid);
+            var cell = GetCell(grid.X, grid.Y);
+            if (atlas.X is 6 or 7)
+            {
+                cell.Structure = BattleStructureType.Gate;
+                return;
+            }
+
+            cell.Structure = BattleStructureType.Wall;
+        });
+    }
+
+    private void ReadOverlayLayer(TileMapLayer? layer)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        ForEachGrid(grid =>
+        {
+            if (layer.GetCellSourceId(grid) < 0)
+            {
+                return;
+            }
+
+            var atlas = layer.GetCellAtlasCoords(grid);
+            GetCell(grid.X, grid.Y).DeploymentZone = atlas.X switch
+            {
+                0 => BattleDeploymentZone.Attacker,
+                1 => BattleDeploymentZone.Defender,
+                _ => BattleDeploymentZone.None
+            };
+        });
+    }
+
+    private void ApplyDerivedCellRules()
+    {
+        ForEachGrid(grid =>
+        {
+            var cell = GetCell(grid.X, grid.Y);
+            var isBrokenWall = cell.Structure == BattleStructureType.Wall && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
+            var isBrokenGate = cell.Structure == BattleStructureType.Gate && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
+            cell.BlocksMovement = false;
+            cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
+
+            switch (cell.Structure)
+            {
+                case BattleStructureType.Wall:
+                    cell.BlocksMovement = true;
+                    cell.HeightLevel = 2;
+                    cell.StructureMaxHealth = BattlePrototypeCellData.WallMaxHealth;
+                    cell.StructureHealth = isBrokenWall ? 0 : BattlePrototypeCellData.WallMaxHealth;
+                    break;
+                case BattleStructureType.Gate:
+                    cell.BlocksMovement = true;
+                    cell.HeightLevel = 2;
+                    cell.StructureMaxHealth = BattlePrototypeCellData.GateMaxHealth;
+                    cell.StructureHealth = isBrokenGate ? 0 : BattlePrototypeCellData.GateMaxHealth;
+                    break;
+                case BattleStructureType.Tower:
+                    cell.BlocksMovement = true;
+                    cell.HeightLevel = 3;
+                    break;
+                case BattleStructureType.Building:
+                case BattleStructureType.Tree:
+                case BattleStructureType.RockBig:
+                case BattleStructureType.RockSmall:
+                    cell.BlocksMovement = true;
+                    break;
+            }
+
+        });
+    }
+
+    private void ForEachGrid(Action<Vector2I> action)
+    {
+        for (var y = 0; y < Height; y++)
+        {
+            for (var x = 0; x < Width; x++)
+            {
+                action(new Vector2I(x, y));
+            }
+        }
     }
 
     private void BuildSiegeAssaultLayout()

@@ -5,6 +5,7 @@ using System.Text;
 
 namespace ThreeKingdom.Battle;
 
+[Tool]
 public partial class BattlePrototypeSceneController : Node2D
 {
     private const float MapPaddingLeft = 220.0f;
@@ -20,6 +21,10 @@ public partial class BattlePrototypeSceneController : Node2D
     private Node2D? _mapRoot;
     private Camera2D? _camera;
     private TileMapLayer? _groundLayer;
+    private TileMapLayer? _objectLayer;
+    private TileMapLayer? _castleLayer;
+    private TileMapLayer? _wallWalkOverlayLayer;
+    private TileMapLayer? _overlayLayer;
     private BattlePrototypeHighlightRenderer? _highlightLayer;
     private Control? _commandMenu;
     private Label? _windowTitleLabel;
@@ -42,21 +47,55 @@ public partial class BattlePrototypeSceneController : Node2D
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
+    private bool _editorBakePrototypeLayout;
+    private bool _editorClearTileLayout;
+
+    [Export]
+    public bool EditorBakePrototypeLayout
+    {
+        get => _editorBakePrototypeLayout;
+        set
+        {
+            if (!value || !Engine.IsEditorHint())
+            {
+                _editorBakePrototypeLayout = value;
+                return;
+            }
+
+            CacheSceneNodes();
+            BakePrototypeLayoutInEditor();
+            _editorBakePrototypeLayout = false;
+            NotifyPropertyListChanged();
+        }
+    }
+
+    [Export]
+    public bool EditorClearTileLayout
+    {
+        get => _editorClearTileLayout;
+        set
+        {
+            if (!value || !Engine.IsEditorHint())
+            {
+                _editorClearTileLayout = value;
+                return;
+            }
+
+            CacheSceneNodes();
+            ClearTileLayoutInEditor();
+            _editorClearTileLayout = false;
+            NotifyPropertyListChanged();
+        }
+    }
 
     public override void _Ready()
     {
-        _mapData = BattlePrototypeMapData.CreateSiegeAssault();
-        _mapRoot = GetNodeOrNull<Node2D>("MapRoot");
-        _camera = GetNodeOrNull<Camera2D>("Camera2D");
-        _groundLayer = GetNodeOrNull<TileMapLayer>("MapRoot/GroundLayer");
-        _highlightLayer = GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
-        _commandMenu = GetNodeOrNull<Control>("UiLayer/CommandMenu");
-        _windowTitleLabel = GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WindowTitleLabel");
-        _unitMenuInfoLabel = GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
-        _endTurnButton = GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
-        _moveButton = GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/MoveButton");
-        _attackButton = GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
-        _strategyButton = GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/StrategyButton");
+        CacheSceneNodes();
+        if (Engine.IsEditorHint())
+        {
+            return;
+        }
+
         if (_endTurnButton != null)
         {
             _endTurnButton.Pressed += OnEndTurnButtonPressed;
@@ -82,7 +121,7 @@ public partial class BattlePrototypeSceneController : Node2D
             _windowTitleLabel.GuiInput += OnCommandMenuTitleGuiInput;
         }
 
-        ConfigureMapLayers();
+        InitializeMapDataAndLayers();
         PopulateMarkers();
         ConfigureHud();
 
@@ -90,6 +129,25 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             _mapRoot.Position = GetClampedMapPosition(_mapRoot.Position);
         }
+    }
+
+    private void CacheSceneNodes()
+    {
+        _mapRoot ??= GetNodeOrNull<Node2D>("MapRoot");
+        _camera ??= GetNodeOrNull<Camera2D>("Camera2D");
+        _groundLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/GroundLayer");
+        _objectLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/ObjectLayer");
+        _castleLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/CastleLayer");
+        _wallWalkOverlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/WallWalkOverlayLayer");
+        _overlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/OverlayLayer");
+        _highlightLayer ??= GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
+        _commandMenu ??= GetNodeOrNull<Control>("UiLayer/CommandMenu");
+        _windowTitleLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WindowTitleLabel");
+        _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
+        _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
+        _moveButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/MoveButton");
+        _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
+        _strategyButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/StrategyButton");
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -110,17 +168,78 @@ public partial class BattlePrototypeSceneController : Node2D
         UpdateHoverGrid();
     }
 
-    private void ConfigureMapLayers()
+    private void InitializeMapDataAndLayers()
     {
-        if (_mapData == null)
+        if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _wallWalkOverlayLayer == null || _overlayLayer == null)
         {
             return;
         }
 
+        if (HasEditorAuthoredLayout())
+        {
+            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_groundLayer, BattlePrototypeTileLayerKind.Ground);
+            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_objectLayer, BattlePrototypeTileLayerKind.Object);
+            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_castleLayer, BattlePrototypeTileLayerKind.Castle);
+            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
+            _mapData = BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _objectLayer, _castleLayer, _overlayLayer);
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_wallWalkOverlayLayer, _mapData, BattlePrototypeTileLayerKind.WallWalkOverlay);
+            return;
+        }
+
+        _mapData = BattlePrototypeMapData.CreateSiegeAssault();
         ConfigureTileMapLayer("MapRoot/GroundLayer", BattlePrototypeTileLayerKind.Ground);
         ConfigureTileMapLayer("MapRoot/ObjectLayer", BattlePrototypeTileLayerKind.Object);
         ConfigureTileMapLayer("MapRoot/CastleLayer", BattlePrototypeTileLayerKind.Castle);
+        ConfigureTileMapLayer("MapRoot/WallWalkOverlayLayer", BattlePrototypeTileLayerKind.WallWalkOverlay);
         ConfigureTileMapLayer("MapRoot/OverlayLayer", BattlePrototypeTileLayerKind.DeploymentOverlay);
+    }
+
+    private bool HasEditorAuthoredLayout()
+    {
+        return (_groundLayer?.GetUsedCells().Count ?? 0) > 0 ||
+               (_objectLayer?.GetUsedCells().Count ?? 0) > 0 ||
+               (_castleLayer?.GetUsedCells().Count ?? 0) > 0 ||
+               (_overlayLayer?.GetUsedCells().Count ?? 0) > 0;
+    }
+
+    private void BakePrototypeLayoutInEditor()
+    {
+        if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _wallWalkOverlayLayer == null || _overlayLayer == null)
+        {
+            return;
+        }
+
+        _mapData = BattlePrototypeMapData.CreateSiegeAssault();
+        BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
+        BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+        BattlePrototypeTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattlePrototypeTileLayerKind.Castle);
+        BattlePrototypeTileMapBuilder.ConfigureLayer(_wallWalkOverlayLayer, _mapData, BattlePrototypeTileLayerKind.WallWalkOverlay);
+        BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
+    }
+
+    private void ClearTileLayoutInEditor()
+    {
+        ClearLayer(_groundLayer, BattlePrototypeTileLayerKind.Ground);
+        ClearLayer(_objectLayer, BattlePrototypeTileLayerKind.Object);
+        ClearLayer(_castleLayer, BattlePrototypeTileLayerKind.Castle);
+        ClearLayer(_wallWalkOverlayLayer, BattlePrototypeTileLayerKind.WallWalkOverlay);
+        ClearLayer(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
+    }
+
+    private static void ClearLayer(TileMapLayer? layer, BattlePrototypeTileLayerKind layerKind)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        BattlePrototypeTileMapBuilder.AssignLayerTileSet(layer, layerKind);
+        foreach (var coords in layer.GetUsedCells())
+        {
+            layer.EraseCell(coords);
+        }
+
+        layer.UpdateInternals();
     }
 
     private void ConfigureTileMapLayer(string path, BattlePrototypeTileLayerKind layerKind)
@@ -143,9 +262,9 @@ public partial class BattlePrototypeSceneController : Node2D
         CreateMarker("MapRoot/SiegeEngineLayer/Ladder", new Vector2I(10, 15), "梯", "雲梯隊", "攻城器", "Team A / 攻方", "于禁", "雲梯", 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
         CreateMarker("MapRoot/SiegeEngineLayer/Catapult", new Vector2I(14, 15), "投", "投石機", "攻城器", "Team A / 攻方", "劉曄", "投石車", 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
-        CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(11, 5), "守", "守軍步兵 A", "部隊", "Team B / 守方", "董卓", "步兵", 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(13, 5), "弩", "守軍弩兵 B", "部隊", "Team B / 守方", "李傕", "弩兵", 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 3), "將", "守軍主將", "部隊", "Team B / 守方", "郭汜", "親衛", 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 6), "守", "守軍步兵 A", "部隊", "Team B / 守方", "董卓", "步兵", 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 6), "弩", "守軍弩兵 B", "部隊", "Team B / 守方", "李傕", "弩兵", 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 6), "將", "守軍主將", "部隊", "Team B / 守方", "郭汜", "親衛", 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
     }
 
     private void CreateMarker(string path, Vector2I grid, string label, string displayName, string category, string teamName, string officerName, string troopType, int troopCount, Color fillColor, Color borderColor, float radius = 19.0f, int moveRange = 0, int attackRange = 1)
@@ -156,10 +275,15 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        var markerBasePosition = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
-        marker.Position = markerBasePosition + new Vector2(0.0f, -16.0f);
+        marker.Position = GetMarkerPosition(grid);
         marker.Setup(label, fillColor, borderColor, radius);
         RegisterOccupant(grid, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
+    }
+
+    private Vector2 GetMarkerPosition(Vector2I grid)
+    {
+        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
+        return gridCenter + new Vector2(0.0f, -16.0f);
     }
 
     private void ConfigureHud()
@@ -303,8 +427,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         var localMouse = _groundLayer.ToLocal(GetGlobalMousePosition());
-        var candidate = _groundLayer.LocalToMap(localMouse);
-        Vector2I? newHoverGrid = IsWithinMap(candidate) ? candidate : null;
+        Vector2I? newHoverGrid = ResolvePointerGrid(localMouse);
         if (_hoverGrid == newHoverGrid)
         {
             return;
@@ -312,6 +435,45 @@ public partial class BattlePrototypeSceneController : Node2D
 
         _hoverGrid = newHoverGrid;
         RefreshCoordinateLabel();
+    }
+
+    private Vector2I? ResolvePointerGrid(Vector2 localMouse)
+    {
+        if (_groundLayer == null || _mapData == null)
+        {
+            return null;
+        }
+
+        var markerGrid = ResolvePointerMarkerGrid(localMouse);
+        if (markerGrid.HasValue)
+        {
+            return markerGrid.Value;
+        }
+
+        var groundCandidate = _groundLayer.LocalToMap(localMouse);
+        return IsWithinMap(groundCandidate) ? groundCandidate : null;
+    }
+
+    private Vector2I? ResolvePointerMarkerGrid(Vector2 localMouse)
+    {
+        foreach (var (grid, occupants) in _occupantsByGrid)
+        {
+            foreach (var occupant in occupants)
+            {
+                if (occupant.Marker == null || occupant.Category is not ("部隊" or "攻城器"))
+                {
+                    continue;
+                }
+
+                var markerRadius = Mathf.Max(20.0f, occupant.Marker.Radius + 8.0f);
+                if (localMouse.DistanceTo(occupant.Marker.Position) <= markerRadius)
+                {
+                    return grid;
+                }
+            }
+        }
+
+        return null;
     }
 
     private bool IsWithinMap(Vector2I grid)
@@ -461,7 +623,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker };
         destinationOccupants.Add(movedOccupant);
-        movingOccupant.Marker.Position = _groundLayer.MapToLocal(destinationGrid) + new Vector2(0.0f, -16.0f);
+        movingOccupant.Marker.Position = GetMarkerPosition(destinationGrid);
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
