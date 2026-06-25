@@ -12,6 +12,9 @@ public partial class BattlePrototypeSceneController : Node2D
     private const float MapPaddingTop = 220.0f;
     private const float MapPaddingRight = 220.0f;
     private const float MapPaddingBottom = 320.0f;
+    private const float DefaultUnitVisualLift = -16.0f;
+    private const float WallWalkUnitVisualLift = -58.0f;
+    private const float WallWalkHighlightVisualLift = -42.0f;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
     private const string BattleDateText = "191年 4月 4日";
@@ -23,7 +26,6 @@ public partial class BattlePrototypeSceneController : Node2D
     private TileMapLayer? _groundLayer;
     private TileMapLayer? _objectLayer;
     private TileMapLayer? _castleLayer;
-    private TileMapLayer? _wallWalkOverlayLayer;
     private TileMapLayer? _overlayLayer;
     private BattlePrototypeHighlightRenderer? _highlightLayer;
     private Control? _commandMenu;
@@ -138,7 +140,6 @@ public partial class BattlePrototypeSceneController : Node2D
         _groundLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/GroundLayer");
         _objectLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/ObjectLayer");
         _castleLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/CastleLayer");
-        _wallWalkOverlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/WallWalkOverlayLayer");
         _overlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/OverlayLayer");
         _highlightLayer ??= GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
         _commandMenu ??= GetNodeOrNull<Control>("UiLayer/CommandMenu");
@@ -170,7 +171,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void InitializeMapDataAndLayers()
     {
-        if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _wallWalkOverlayLayer == null || _overlayLayer == null)
+        if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _overlayLayer == null)
         {
             return;
         }
@@ -182,7 +183,6 @@ public partial class BattlePrototypeSceneController : Node2D
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_castleLayer, BattlePrototypeTileLayerKind.Castle);
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
             _mapData = BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _objectLayer, _castleLayer, _overlayLayer);
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_wallWalkOverlayLayer, _mapData, BattlePrototypeTileLayerKind.WallWalkOverlay);
             return;
         }
 
@@ -190,7 +190,6 @@ public partial class BattlePrototypeSceneController : Node2D
         ConfigureTileMapLayer("MapRoot/GroundLayer", BattlePrototypeTileLayerKind.Ground);
         ConfigureTileMapLayer("MapRoot/ObjectLayer", BattlePrototypeTileLayerKind.Object);
         ConfigureTileMapLayer("MapRoot/CastleLayer", BattlePrototypeTileLayerKind.Castle);
-        ConfigureTileMapLayer("MapRoot/WallWalkOverlayLayer", BattlePrototypeTileLayerKind.WallWalkOverlay);
         ConfigureTileMapLayer("MapRoot/OverlayLayer", BattlePrototypeTileLayerKind.DeploymentOverlay);
     }
 
@@ -204,7 +203,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void BakePrototypeLayoutInEditor()
     {
-        if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _wallWalkOverlayLayer == null || _overlayLayer == null)
+        if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _overlayLayer == null)
         {
             return;
         }
@@ -213,7 +212,6 @@ public partial class BattlePrototypeSceneController : Node2D
         BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
         BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
         BattlePrototypeTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattlePrototypeTileLayerKind.Castle);
-        BattlePrototypeTileMapBuilder.ConfigureLayer(_wallWalkOverlayLayer, _mapData, BattlePrototypeTileLayerKind.WallWalkOverlay);
         BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
     }
 
@@ -222,7 +220,6 @@ public partial class BattlePrototypeSceneController : Node2D
         ClearLayer(_groundLayer, BattlePrototypeTileLayerKind.Ground);
         ClearLayer(_objectLayer, BattlePrototypeTileLayerKind.Object);
         ClearLayer(_castleLayer, BattlePrototypeTileLayerKind.Castle);
-        ClearLayer(_wallWalkOverlayLayer, BattlePrototypeTileLayerKind.WallWalkOverlay);
         ClearLayer(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
     }
 
@@ -283,7 +280,28 @@ public partial class BattlePrototypeSceneController : Node2D
     private Vector2 GetMarkerPosition(Vector2I grid)
     {
         var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
-        return gridCenter + new Vector2(0.0f, -16.0f);
+        return gridCenter + new Vector2(0.0f, GetUnitVisualLift(grid));
+    }
+
+    private float GetUnitVisualLift(Vector2I grid)
+    {
+        if (_mapData != null && IsWithinMap(grid) && _mapData.GetCell(grid.X, grid.Y).Terrain == BattleTerrainType.WallWalk)
+        {
+            return WallWalkUnitVisualLift;
+        }
+
+        return DefaultUnitVisualLift;
+    }
+
+    private Vector2 GetHighlightPosition(Vector2I grid)
+    {
+        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
+        if (_mapData != null && IsWithinMap(grid) && _mapData.GetCell(grid.X, grid.Y).Terrain == BattleTerrainType.WallWalk)
+        {
+            return gridCenter + new Vector2(0.0f, WallWalkHighlightVisualLift);
+        }
+
+        return gridCenter;
     }
 
     private void ConfigureHud()
@@ -444,6 +462,12 @@ public partial class BattlePrototypeSceneController : Node2D
             return null;
         }
 
+        var highlightedGrid = ResolvePointerHighlightedGrid(localMouse);
+        if (highlightedGrid.HasValue)
+        {
+            return highlightedGrid.Value;
+        }
+
         var markerGrid = ResolvePointerMarkerGrid(localMouse);
         if (markerGrid.HasValue)
         {
@@ -452,6 +476,38 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var groundCandidate = _groundLayer.LocalToMap(localMouse);
         return IsWithinMap(groundCandidate) ? groundCandidate : null;
+    }
+
+    private Vector2I? ResolvePointerHighlightedGrid(Vector2 localMouse)
+    {
+        var activeGrids = _commandMode switch
+        {
+            BattleCommandMode.MoveSelect => _movableGrids,
+            BattleCommandMode.AttackSelect => _attackableGrids,
+            _ => null
+        };
+
+        if (activeGrids == null)
+        {
+            return null;
+        }
+
+        foreach (var grid in activeGrids)
+        {
+            if (PointInDiamond(localMouse, GetHighlightPosition(grid), 46.0f, 24.0f))
+            {
+                return grid;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool PointInDiamond(Vector2 point, Vector2 center, float halfWidth, float halfHeight)
+    {
+        var dx = Mathf.Abs(point.X - center.X) / halfWidth;
+        var dy = Mathf.Abs(point.Y - center.Y) / halfHeight;
+        return dx + dy <= 1.0f;
     }
 
     private Vector2I? ResolvePointerMarkerGrid(Vector2 localMouse)
@@ -687,6 +743,11 @@ public partial class BattlePrototypeSceneController : Node2D
                 }
 
                 var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
+                if (!CanEnterCell(neighbor, cell))
+                {
+                    continue;
+                }
+
                 if (IsCellBlockingMovement(cell))
                 {
                     if (!CanTraverseBlockedCell(neighbor, cell))
@@ -757,9 +818,9 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        Vector2? selectedCenter = _selectedGrid.HasValue ? _groundLayer.MapToLocal(_selectedGrid.Value) : null;
-        var movableCenters = _movableGrids.Select(_groundLayer.MapToLocal);
-        var attackCenters = _attackableGrids.Select(_groundLayer.MapToLocal);
+        Vector2? selectedCenter = _selectedGrid.HasValue ? GetHighlightPosition(_selectedGrid.Value) : null;
+        var movableCenters = _movableGrids.Select(GetHighlightPosition);
+        var attackCenters = _attackableGrids.Select(GetHighlightPosition);
         _highlightLayer.SetHighlights(selectedCenter, movableCenters, attackCenters);
     }
 
@@ -956,9 +1017,31 @@ public partial class BattlePrototypeSceneController : Node2D
         return false;
     }
 
+    private bool CanEnterCell(Vector2I grid, BattlePrototypeCellData cell)
+    {
+        _ = grid;
+
+        if (_selectedUnit == null)
+        {
+            return false;
+        }
+
+        if (cell.Terrain == BattleTerrainType.WallWalk && IsAttackerPiece(_selectedUnit))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private static bool IsCellBlockingMovement(BattlePrototypeCellData cell)
     {
         return cell.IsBlockingStructure;
+    }
+
+    private static bool IsAttackerPiece(BattleOccupantInfo occupant)
+    {
+        return occupant.TeamName.Contains("攻方");
     }
 
     private static bool IsDefenderPiece(BattleOccupantInfo occupant)

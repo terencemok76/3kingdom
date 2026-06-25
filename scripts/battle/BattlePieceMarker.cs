@@ -22,6 +22,8 @@ public partial class BattlePieceMarker : Node2D
 
     public override void _Draw()
     {
+        DrawFilledEllipse(new Vector2(0.0f, _radius * 0.68f), _radius * 0.95f, _radius * 0.28f, new Color(0.05f, 0.04f, 0.03f, 0.28f));
+        DrawArc(Vector2.Zero + new Vector2(0.0f, _radius * 0.66f), _radius * 0.72f, 0.05f, Mathf.Pi - 0.05f, 24, new Color("f5e0a8", 0.42f), 2.0f, true);
         DrawCircle(Vector2.Zero, _radius + 3.0f, new Color(0.08f, 0.08f, 0.08f, 0.30f));
         DrawCircle(Vector2.Zero, _radius, _fillColor);
         DrawArc(Vector2.Zero, _radius, 0.0f, Mathf.Tau, 36, _borderColor, 2.0f, true);
@@ -29,5 +31,20 @@ public partial class BattlePieceMarker : Node2D
         var font = ThemeDB.FallbackFont;
         var size = font.GetStringSize(_label);
         DrawString(font, new Vector2(-size.X * 0.5f, 7.0f), _label, modulate: new Color("fff7e6"), fontSize: 24);
+    }
+
+    private void DrawFilledEllipse(Vector2 center, float radiusX, float radiusY, Color color)
+    {
+        const int pointCount = 32;
+        var points = new Vector2[pointCount];
+        var colors = new Color[pointCount];
+        for (var index = 0; index < pointCount; index++)
+        {
+            var angle = Mathf.Tau * index / pointCount;
+            points[index] = center + new Vector2(Mathf.Cos(angle) * radiusX, Mathf.Sin(angle) * radiusY);
+            colors[index] = color;
+        }
+
+        DrawPolygon(points, colors);
     }
 }

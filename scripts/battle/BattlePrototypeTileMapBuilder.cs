@@ -9,7 +9,6 @@ public enum BattlePrototypeTileLayerKind
     Ground,
     Object,
     Castle,
-    WallWalkOverlay,
     DeploymentOverlay
 }
 
@@ -47,11 +46,6 @@ internal enum BattlePrototypeOverlayTileVisual
 {
     AttackerZone = 0,
     DefenderZone = 1
-}
-
-internal enum BattlePrototypeWallWalkOverlayTileVisual
-{
-    WallTop = 0
 }
 
 public static class BattlePrototypeTileMapBuilder
@@ -118,7 +112,6 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeTileLayerKind.Ground => ResolveFloorVisual(cell),
             BattlePrototypeTileLayerKind.Object => ResolveObjectVisual(cell),
             BattlePrototypeTileLayerKind.Castle => ResolveCastleVisual(cell),
-            BattlePrototypeTileLayerKind.WallWalkOverlay => ResolveWallWalkOverlayVisual(cell),
             BattlePrototypeTileLayerKind.DeploymentOverlay => ResolveOverlayVisual(cell),
             _ => null
         };
@@ -174,13 +167,6 @@ public static class BattlePrototypeTileMapBuilder
         };
 
         return visual.HasValue ? new Vector2I((int)visual.Value, 0) : null;
-    }
-
-    private static Vector2I? ResolveWallWalkOverlayVisual(BattlePrototypeCellData cell)
-    {
-        return cell.Terrain == BattleTerrainType.WallWalk
-            ? new Vector2I((int)BattlePrototypeWallWalkOverlayTileVisual.WallTop, 0)
-            : null;
     }
 
     private static TileSet BuildTileSet(BattlePrototypeTileLayerKind layerKind)
@@ -257,7 +243,6 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeTileLayerKind.Ground => FloorAtlasPath,
             BattlePrototypeTileLayerKind.Object => ObjectAtlasPath,
             BattlePrototypeTileLayerKind.Castle => CastleAtlasPath,
-            BattlePrototypeTileLayerKind.WallWalkOverlay => string.Empty,
             BattlePrototypeTileLayerKind.DeploymentOverlay => OverlayAtlasPath,
             _ => string.Empty
         };
@@ -270,7 +255,6 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeTileLayerKind.Ground => Enum.GetValues<BattlePrototypeFloorTileVisual>().Length,
             BattlePrototypeTileLayerKind.Object => Enum.GetValues<BattlePrototypeObjectTileVisual>().Length,
             BattlePrototypeTileLayerKind.Castle => Enum.GetValues<BattlePrototypeCastleTileVisual>().Length,
-            BattlePrototypeTileLayerKind.WallWalkOverlay => Enum.GetValues<BattlePrototypeWallWalkOverlayTileVisual>().Length,
             BattlePrototypeTileLayerKind.DeploymentOverlay => Enum.GetValues<BattlePrototypeOverlayTileVisual>().Length,
             _ => 0
         };
@@ -294,9 +278,6 @@ public static class BattlePrototypeTileMapBuilder
                     break;
                 case BattlePrototypeTileLayerKind.Castle:
                     DrawCastleTile(image, tileOffsetX, metrics, (BattlePrototypeCastleTileVisual)tileIndex);
-                    break;
-                case BattlePrototypeTileLayerKind.WallWalkOverlay:
-                    DrawWallWalkOverlayTile(image, tileOffsetX, metrics, (BattlePrototypeWallWalkOverlayTileVisual)tileIndex);
                     break;
                 case BattlePrototypeTileLayerKind.DeploymentOverlay:
                     DrawOverlayTile(image, tileOffsetX, metrics, (BattlePrototypeOverlayTileVisual)tileIndex);
@@ -427,41 +408,6 @@ public static class BattlePrototypeTileMapBuilder
             : new Color(0.70f, 0.94f, 1.0f, 0.42f);
 
         DrawDiamond(image, tileOffsetX, metrics, fillColor, borderColor, (_, _, _) => fillColor, 0.86f);
-    }
-
-    private static void DrawWallWalkOverlayTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattlePrototypeWallWalkOverlayTileVisual visual)
-    {
-        _ = visual;
-
-        DrawDiamond(
-            image,
-            tileOffsetX,
-            metrics,
-            new Color(0.88f, 0.82f, 0.62f, 0.13f),
-            new Color(1.0f, 0.95f, 0.70f, 0.46f),
-            (localX, localY, edge) =>
-            {
-                var centerLine = Mathf.Abs(localY - 32.0f) < 3.0f;
-                var frontRim = localY > 42.0f && edge > 0.62f;
-                var rearRim = localY < 23.0f && edge > 0.60f;
-                if (centerLine)
-                {
-                    return new Color(1.0f, 0.94f, 0.68f, 0.18f);
-                }
-
-                if (frontRim)
-                {
-                    return new Color(1.0f, 0.95f, 0.72f, 0.32f);
-                }
-
-                if (rearRim)
-                {
-                    return new Color(0.38f, 0.50f, 0.48f, 0.20f);
-                }
-
-                return new Color(0.88f, 0.82f, 0.62f, 0.13f);
-            },
-            0.92f);
     }
 
     private static void DrawWallBlock(Image image, int tileOffsetX, Color topColor, Color sideColor)
@@ -684,7 +630,6 @@ public static class BattlePrototypeTileMapBuilder
             // object_01.png uses 128x128 tiles; tune the footprint origin against the 128x64 map cell.
             BattlePrototypeTileLayerKind.Object => new BattleAtlasMetrics(TileWidth, 128, FootprintTopY: 32),
             BattlePrototypeTileLayerKind.Castle => new BattleAtlasMetrics(TileWidth, 320, FootprintTopY: 128),
-            BattlePrototypeTileLayerKind.WallWalkOverlay => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             BattlePrototypeTileLayerKind.DeploymentOverlay => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             _ => new BattleAtlasMetrics(TileWidth, BaseTileHeight)
         };
