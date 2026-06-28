@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://c2gtn7ytd06g0"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_gr8bh"]
+[ext_resource type="Texture2D" path="res://assets/battle/unit/infantry_attack_nw.png" id="2_fxwyi"]
+
+[node name="InfantryAttackNe" type="Node2D"]
+script = ExtResource("1_gr8bh")
+SpriteSheet = ExtResource("2_fxwyi")
+FrameCount = 6
+FramesPerRow = 3
+FramesPerSecond = 10.0
+BaseOffset = Vector2(0, -20)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(-15.5, 0), Vector2(10, 0), Vector2(4.5, 0), Vector2(3.5, 7), Vector2(3, 7), Vector2(13.5, 7)])
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_fxwyi")
+offset = Vector2(15.5, -20)
+hframes = 3
+vframes = 2
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

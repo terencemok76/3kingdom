@@ -56,6 +56,14 @@ public partial class BattlePieceMarker : Node2D
         tween.TweenCallback(Callable.From(() => SetupSpriteAnimationScene(idleScenePath)));
     }
 
+    public void PlayAction(string actionScenePath, string idleScenePath, double duration)
+    {
+        SetupSpriteAnimationScene(actionScenePath);
+        var tween = CreateTween();
+        tween.TweenInterval(duration);
+        tween.TweenCallback(Callable.From(() => SetupSpriteAnimationScene(idleScenePath)));
+    }
+
     public override void _Draw()
     {
         DrawFilledEllipse(new Vector2(0.0f, _radius * 0.68f), _radius * 0.95f, _radius * 0.28f, new Color(0.05f, 0.04f, 0.03f, 0.28f));

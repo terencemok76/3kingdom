@@ -23,7 +23,12 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string InfantryMoveSouthWestScenePath = "res://scenes/battle/unit/InfantryMoveSw.tscn";
     private const string InfantryMoveNorthEastScenePath = "res://scenes/battle/unit/InfantryMoveNe.tscn";
     private const string InfantryMoveNorthWestScenePath = "res://scenes/battle/unit/InfantryMoveNw.tscn";
+    private const string InfantryAttackSouthEastScenePath = "res://scenes/battle/unit/InfantryAttackSe.tscn";
+    private const string InfantryAttackSouthWestScenePath = "res://scenes/battle/unit/InfantryAttackSw.tscn";
+    private const string InfantryAttackNorthEastScenePath = "res://scenes/battle/unit/InfantryAttackNe.tscn";
+    private const string InfantryAttackNorthWestScenePath = "res://scenes/battle/unit/InfantryAttackNw.tscn";
     private const double InfantryMoveAnimationDurationSeconds = 0.8;
+    private const double InfantryAttackAnimationDurationSeconds = 0.62;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
     private const string BattleDateText = "191年 4月 4日";
@@ -369,7 +374,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
             if (_commandMode == BattleCommandMode.AttackSelect)
             {
-                if (!_selectedGrid.HasValue || !_attackableGrids.Contains(_selectedGrid.Value))
+                if (!TryAttackSelectedTarget())
                 {
                     CancelCommandAction(clearSelection: true);
                 }
@@ -706,6 +711,27 @@ public partial class BattlePrototypeSceneController : Node2D
         return true;
     }
 
+    private bool TryAttackSelectedTarget()
+    {
+        if (!_selectedGrid.HasValue || !_selectedUnitGrid.HasValue || _selectedUnit == null)
+        {
+            return false;
+        }
+
+        var targetGrid = _selectedGrid.Value;
+        if (!_attackableGrids.Contains(targetGrid))
+        {
+            return false;
+        }
+
+        ApplyAttackAnimation(_selectedUnit, _selectedUnitGrid.Value, targetGrid);
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        HideCommandMenu();
+        return true;
+    }
+
     private static void ApplyMoveAnimation(BattleOccupantInfo occupant, Vector2I sourceGrid, Vector2I destinationGrid, Vector2 destinationPosition)
     {
         if (occupant.Marker == null)
@@ -725,6 +751,20 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         occupant.Marker.Position = destinationPosition;
+    }
+
+    private static void ApplyAttackAnimation(BattleOccupantInfo occupant, Vector2I sourceGrid, Vector2I targetGrid)
+    {
+        if (occupant.Marker == null || occupant.Category != "部隊" || occupant.TroopType != "步兵")
+        {
+            return;
+        }
+
+        var direction = GetInfantryDirection(sourceGrid, targetGrid);
+        occupant.Marker.PlayAction(
+            GetInfantryAttackScene(direction),
+            GetInfantryIdleScene(direction),
+            InfantryAttackAnimationDurationSeconds);
     }
 
     private static string GetInitialInfantryDirectionScene(string teamName)
@@ -793,6 +833,17 @@ public partial class BattlePrototypeSceneController : Node2D
             BattleSpriteDirection.NorthWest => InfantryMoveNorthWestScenePath,
             BattleSpriteDirection.SouthWest => InfantryMoveSouthWestScenePath,
             _ => InfantryMoveSouthEastScenePath
+        };
+    }
+
+    private static string GetInfantryAttackScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => InfantryAttackNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => InfantryAttackNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => InfantryAttackSouthWestScenePath,
+            _ => InfantryAttackSouthEastScenePath
         };
     }
 

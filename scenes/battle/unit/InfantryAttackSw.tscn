@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://db4f3mwsx1cmx"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_jkffm"]
+[ext_resource type="Texture2D" uid="uid://btsh8ogbpdfqc" path="res://assets/battle/unit/infantry_attack_se.png" id="2_4m2on"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mpruu"]
+atlas = ExtResource("2_4m2on")
+region = Rect2(188, 95, 112, 95)
+filter_clip = true
+
+[node name="InfantryAttackSw" type="Node2D" unique_id=454189353]
+script = ExtResource("1_jkffm")
+SpriteSheet = ExtResource("2_4m2on")
+FrameCount = 6
+FramesPerRow = 3
+FramesPerSecond = 10.0
+PreviewFrame = 5
+BaseOffset = Vector2(0, 16)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 12), Vector2(-12, 0)])
+FrameOffsets = Array[Vector2]([Vector2(0, -24), Vector2(2, -24), Vector2(10, -25), Vector2(-1.5, -18), Vector2(0.5, -20), Vector2(0, -20)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1530062999]
+texture_filter = 1
+texture = SubResource("AtlasTexture_mpruu")
+offset = Vector2(0, -4)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1253739968]
