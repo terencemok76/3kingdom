@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://5rjaor1uh4n4"
-path="res://.godot/imported/object_01.png-d460463a5b4c52714152169256e6ba09.ctex"
+uid="uid://boprgkvape1vi"
+path="res://.godot/imported/infantry_idle_nw.png-65b9d29adea06a292dd216fbb5dd29e4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/battle/object_01.png"
-dest_files=["res://.godot/imported/object_01.png-d460463a5b4c52714152169256e6ba09.ctex"]
+source_file="res://assets/battle/unit/infantry_idle_nw.png"
+dest_files=["res://.godot/imported/infantry_idle_nw.png-65b9d29adea06a292dd216fbb5dd29e4.ctex"]
 
 [params]
 

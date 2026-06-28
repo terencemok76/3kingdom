@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://b1dnwn0m4l8fa"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_n5acp"]
+[ext_resource type="Texture2D" uid="uid://dgga0qq828g1g" path="res://assets/battle/unit/infantry_idle_se.png" id="2_v3ulh"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jxkhq"]
+atlas = ExtResource("2_v3ulh")
+region = Rect2(1, 0, 56, 155)
+filter_clip = true
+
+[node name="InfantryIdleSe" type="Node2D" unique_id=511928118]
+script = ExtResource("1_n5acp")
+SpriteSheet = ExtResource("2_v3ulh")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2016125216]
+texture_filter = 1
+texture = SubResource("AtlasTexture_jxkhq")
+offset = Vector2(-4.5, -6)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=254464293]

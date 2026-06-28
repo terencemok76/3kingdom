@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c510c1l7ai20q"
-path="res://.godot/imported/overlay.png-302230ae4e670121058d90023b7eb254.ctex"
+uid="uid://cxgy8jyeja1y8"
+path="res://.godot/imported/floor.png-108a6136ba45c5bf4102651f2c69dec6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/battle/overlay.png"
-dest_files=["res://.godot/imported/overlay.png-302230ae4e670121058d90023b7eb254.ctex"]
+source_file="res://assets/battle/floor/floor.png"
+dest_files=["res://.godot/imported/floor.png-108a6136ba45c5bf4102651f2c69dec6.ctex"]
 
 [params]
 

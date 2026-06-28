@@ -1,12 +1,12 @@
 [gd_scene format=4 uid="uid://dxuj10r5yy13h"]
 
 [ext_resource type="Script" uid="uid://j0how0jrctcb" path="res://scripts/battle/BattlePrototypeSceneController.cs" id="1"]
-[ext_resource type="Texture2D" uid="uid://cxgy8jyeja1y8" path="res://assets/battle/floor.png" id="2_625j4"]
+[ext_resource type="Texture2D" uid="uid://cxgy8jyeja1y8" path="res://assets/battle/floor/floor.png" id="2_625j4"]
 [ext_resource type="Script" uid="uid://dy0u0cwc0nnma" path="res://scripts/battle/BattlePieceMarker.cs" id="3"]
-[ext_resource type="Texture2D" uid="uid://5rjaor1uh4n4" path="res://assets/battle/object_01.png" id="3_bkj5p"]
+[ext_resource type="Texture2D" uid="uid://5rjaor1uh4n4" path="res://assets/battle/object/object_01.png" id="3_bkj5p"]
 [ext_resource type="Script" uid="uid://cttp0flcgwx0t" path="res://scripts/battle/BattlePrototypeHighlightRenderer.cs" id="4"]
-[ext_resource type="Texture2D" uid="uid://bvm6spy5bxnj5" path="res://assets/battle/castle.png" id="4_bkj5p"]
-[ext_resource type="Texture2D" uid="uid://c510c1l7ai20q" path="res://assets/battle/overlay.png" id="4_pxx3e"]
+[ext_resource type="Texture2D" uid="uid://bvm6spy5bxnj5" path="res://assets/battle/wall/castle.png" id="4_bkj5p"]
+[ext_resource type="Texture2D" uid="uid://c510c1l7ai20q" path="res://assets/battle/overlay/overlay.png" id="4_pxx3e"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bkj5p"]
 texture = ExtResource("2_625j4")

@@ -15,6 +15,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private const float DefaultUnitVisualLift = -16.0f;
     private const float WallWalkUnitVisualLift = -58.0f;
     private const float WallWalkHighlightVisualLift = -42.0f;
+    private const string InfantryIdleSouthEastScenePath = "res://scenes/battle/unit/InfantryIdleSe.tscn";
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
     private const string BattleDateText = "191年 4月 4日";
@@ -274,6 +275,11 @@ public partial class BattlePrototypeSceneController : Node2D
 
         marker.Position = GetMarkerPosition(grid);
         marker.Setup(label, fillColor, borderColor, radius);
+        if (category == "部隊" && troopType == "步兵")
+        {
+            marker.SetupSpriteAnimationScene(InfantryIdleSouthEastScenePath);
+        }
+
         RegisterOccupant(grid, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
     }
 

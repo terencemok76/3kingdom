@@ -8,6 +8,8 @@ public partial class BattlePieceMarker : Node2D
     private Color _fillColor = Colors.White;
     private Color _borderColor = Colors.Black;
     private float _radius = 19.0f;
+    private BattleSpriteAnimationPlayer? _spriteVisual;
+    private bool _usesSpriteVisual;
 
     public float Radius => _radius;
 
@@ -20,9 +22,38 @@ public partial class BattlePieceMarker : Node2D
         QueueRedraw();
     }
 
+    public void SetupSpriteAnimationScene(string scenePath)
+    {
+        var scene = GD.Load<PackedScene>(scenePath);
+        if (scene == null)
+        {
+            GD.PushWarning($"Battle unit animation scene could not be loaded: {scenePath}");
+            return;
+        }
+
+        _spriteVisual?.QueueFree();
+        _spriteVisual = scene.InstantiateOrNull<BattleSpriteAnimationPlayer>();
+        if (_spriteVisual == null)
+        {
+            GD.PushWarning($"Battle unit animation scene has unexpected root type: {scenePath}");
+            return;
+        }
+
+        _spriteVisual.ZIndex = 1;
+        AddChild(_spriteVisual);
+        _usesSpriteVisual = true;
+        _radius = Mathf.Max(_radius, _spriteVisual.ClickRadius);
+        QueueRedraw();
+    }
+
     public override void _Draw()
     {
         DrawFilledEllipse(new Vector2(0.0f, _radius * 0.68f), _radius * 0.95f, _radius * 0.28f, new Color(0.05f, 0.04f, 0.03f, 0.28f));
+        if (_usesSpriteVisual)
+        {
+            return;
+        }
+
         DrawArc(Vector2.Zero + new Vector2(0.0f, _radius * 0.66f), _radius * 0.72f, 0.05f, Mathf.Pi - 0.05f, 24, new Color("f5e0a8", 0.42f), 2.0f, true);
         DrawCircle(Vector2.Zero, _radius + 3.0f, new Color(0.08f, 0.08f, 0.08f, 0.30f));
         DrawCircle(Vector2.Zero, _radius, _fillColor);
@@ -47,4 +78,5 @@ public partial class BattlePieceMarker : Node2D
 
         DrawPolygon(points, colors);
     }
+
 }

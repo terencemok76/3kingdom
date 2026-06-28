@@ -1,0 +1,22 @@
+[gd_scene format=4 uid="uid://bn8xhv0a4u7jo"]
+
+[ext_resource type="Script" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_jgt0r"]
+[ext_resource type="Texture2D" path="res://assets/battle/unit/infantry_idle_nw.png" id="2_w3bsm"]
+
+[node name="InfantryIdleNw" type="Node2D"]
+script = ExtResource("1_jgt0r")
+SpriteSheet = ExtResource("2_w3bsm")
+PreviewInEditor = false
+PreviewFrame = 0
+BaseOffset = Vector2(0, -4)
+FrameInsetPixels = 1
+FrameOffsets = Array[Vector2]([Vector2(-1.125, 0), Vector2(-0.125, 0), Vector2(-0.125, 0), Vector2(1.375, 0)])
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_w3bsm")
+centered = true
+offset = Vector2(0, -4)
+hframes = 4
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

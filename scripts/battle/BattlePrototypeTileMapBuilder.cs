@@ -53,10 +53,10 @@ public static class BattlePrototypeTileMapBuilder
     private const int TileWidth = 128;
     private const int BaseTileHeight = 64;
     private const int AtlasSourceId = 0;
-    private const string FloorAtlasPath = "res://assets/battle/floor.png";
-    private const string ObjectAtlasPath = "res://assets/battle/object_01.png";
-    private const string CastleAtlasPath = "res://assets/battle/castle.png";
-    private const string OverlayAtlasPath = "res://assets/battle/overlay.png";
+    private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
+    private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
+    private const string CastleAtlasPath = "res://assets/battle/wall/castle.png";
+    private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
 
     private static readonly Dictionary<BattlePrototypeTileLayerKind, TileSet> SharedTileSets = new();
 
