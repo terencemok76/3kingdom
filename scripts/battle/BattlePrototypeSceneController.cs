@@ -16,6 +16,14 @@ public partial class BattlePrototypeSceneController : Node2D
     private const float WallWalkUnitVisualLift = -58.0f;
     private const float WallWalkHighlightVisualLift = -42.0f;
     private const string InfantryIdleSouthEastScenePath = "res://scenes/battle/unit/InfantryIdleSe.tscn";
+    private const string InfantryIdleSouthWestScenePath = "res://scenes/battle/unit/InfantryIdleSw.tscn";
+    private const string InfantryIdleNorthEastScenePath = "res://scenes/battle/unit/InfantryIdleNe.tscn";
+    private const string InfantryIdleNorthWestScenePath = "res://scenes/battle/unit/InfantryIdleNw.tscn";
+    private const string InfantryMoveSouthEastScenePath = "res://scenes/battle/unit/InfantryMoveSe.tscn";
+    private const string InfantryMoveSouthWestScenePath = "res://scenes/battle/unit/InfantryMoveSw.tscn";
+    private const string InfantryMoveNorthEastScenePath = "res://scenes/battle/unit/InfantryMoveNe.tscn";
+    private const string InfantryMoveNorthWestScenePath = "res://scenes/battle/unit/InfantryMoveNw.tscn";
+    private const double InfantryMoveAnimationDurationSeconds = 0.8;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
     private const string BattleDateText = "191年 4月 4日";
@@ -277,7 +285,7 @@ public partial class BattlePrototypeSceneController : Node2D
         marker.Setup(label, fillColor, borderColor, radius);
         if (category == "部隊" && troopType == "步兵")
         {
-            marker.SetupSpriteAnimationScene(InfantryIdleSouthEastScenePath);
+            marker.SetupSpriteAnimationScene(GetInitialInfantryDirectionScene(teamName));
         }
 
         RegisterOccupant(grid, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
@@ -685,7 +693,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker };
         destinationOccupants.Add(movedOccupant);
-        movingOccupant.Marker.Position = GetMarkerPosition(destinationGrid);
+        ApplyMoveAnimation(movingOccupant, sourceGrid, destinationGrid, GetMarkerPosition(destinationGrid));
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
@@ -696,6 +704,96 @@ public partial class BattlePrototypeSceneController : Node2D
         HideCommandMenu();
 
         return true;
+    }
+
+    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, Vector2I sourceGrid, Vector2I destinationGrid, Vector2 destinationPosition)
+    {
+        if (occupant.Marker == null)
+        {
+            return;
+        }
+
+        if (occupant.Category == "部隊" && occupant.TroopType == "步兵")
+        {
+            var direction = GetInfantryDirection(sourceGrid, destinationGrid);
+            occupant.Marker.MoveTo(
+                destinationPosition,
+                InfantryMoveAnimationDurationSeconds,
+                GetInfantryMoveScene(direction),
+                GetInfantryIdleScene(direction));
+            return;
+        }
+
+        occupant.Marker.Position = destinationPosition;
+    }
+
+    private static string GetInitialInfantryDirectionScene(string teamName)
+    {
+        _ = teamName;
+        return InfantryIdleSouthEastScenePath;
+    }
+
+    private static BattleSpriteDirection GetInfantryDirection(Vector2I sourceGrid, Vector2I destinationGrid)
+    {
+        var delta = destinationGrid - sourceGrid;
+        if (delta == Vector2I.Zero)
+        {
+            return BattleSpriteDirection.SouthEast;
+        }
+
+        if (delta.Y == 0)
+        {
+            return delta.X > 0
+                ? BattleSpriteDirection.SouthEast
+                : BattleSpriteDirection.NorthWest;
+        }
+
+        if (delta.X == 0)
+        {
+            return delta.Y > 0
+                ? BattleSpriteDirection.SouthWest
+                : BattleSpriteDirection.NorthEast;
+        }
+
+        if (delta.X > 0)
+        {
+            return delta.Y > 0
+                ? BattleSpriteDirection.SouthEast
+                : BattleSpriteDirection.NorthEast;
+        }
+
+        if (delta.X < 0)
+        {
+            return delta.Y > 0
+                ? BattleSpriteDirection.SouthWest
+                : BattleSpriteDirection.NorthWest;
+        }
+
+        return delta.Y > 0
+            ? BattleSpriteDirection.SouthWest
+            : BattleSpriteDirection.NorthEast;
+    }
+
+    private static string GetInfantryIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => InfantryIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => InfantryIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => InfantryIdleSouthWestScenePath,
+            _ => InfantryIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetInfantryMoveScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => InfantryMoveNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => InfantryMoveNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => InfantryMoveSouthWestScenePath,
+            _ => InfantryMoveSouthEastScenePath
+        };
     }
 
     private void UpdateUnitSelection()
@@ -1226,5 +1324,13 @@ public partial class BattlePrototypeSceneController : Node2D
     {
         TeamA,
         TeamB
+    }
+
+    private enum BattleSpriteDirection
+    {
+        NorthEast,
+        NorthWest,
+        SouthEast,
+        SouthWest
     }
 }

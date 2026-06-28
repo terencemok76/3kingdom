@@ -46,6 +46,16 @@ public partial class BattlePieceMarker : Node2D
         QueueRedraw();
     }
 
+    public void MoveTo(Vector2 destination, double duration, string moveScenePath, string idleScenePath)
+    {
+        SetupSpriteAnimationScene(moveScenePath);
+        var tween = CreateTween();
+        tween.SetEase(Tween.EaseType.InOut);
+        tween.SetTrans(Tween.TransitionType.Linear);
+        tween.TweenProperty(this, "position", destination, duration);
+        tween.TweenCallback(Callable.From(() => SetupSpriteAnimationScene(idleScenePath)));
+    }
+
     public override void _Draw()
     {
         DrawFilledEllipse(new Vector2(0.0f, _radius * 0.68f), _radius * 0.95f, _radius * 0.28f, new Color(0.05f, 0.04f, 0.03f, 0.28f));

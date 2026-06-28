@@ -1,22 +1,25 @@
-[gd_scene format=4 uid="uid://bn8xhv0a4u7jo"]
+[gd_scene format=3 uid="uid://bn8xhv0a4u7jo"]
 
-[ext_resource type="Script" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_jgt0r"]
-[ext_resource type="Texture2D" path="res://assets/battle/unit/infantry_idle_nw.png" id="2_w3bsm"]
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_jgt0r"]
+[ext_resource type="Texture2D" uid="uid://boprgkvape1vi" path="res://assets/battle/unit/infantry_idle_nw.png" id="2_w3bsm"]
 
-[node name="InfantryIdleNw" type="Node2D"]
+[sub_resource type="AtlasTexture" id="AtlasTexture_ubkhc"]
+atlas = ExtResource("2_w3bsm")
+region = Rect2(0, 0, 58, 155)
+filter_clip = true
+
+[node name="InfantryIdleNw" type="Node2D" unique_id=350194238]
 script = ExtResource("1_jgt0r")
 SpriteSheet = ExtResource("2_w3bsm")
-PreviewInEditor = false
-PreviewFrame = 0
+PreviewInEditor = true
 BaseOffset = Vector2(0, -4)
-FrameInsetPixels = 1
-FrameOffsets = Array[Vector2]([Vector2(-1.125, 0), Vector2(-0.125, 0), Vector2(-0.125, 0), Vector2(1.375, 0)])
+MirrorFrameOffsetsWhenFlipped = true
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(0, 4), Vector2(0, 1), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(2, 0), Vector2(0, 0), Vector2(9, 0), Vector2(7, 0)])
 
-[node name="Sprite" type="Sprite2D" parent="."]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=154867676]
 texture_filter = 1
-texture = ExtResource("2_w3bsm")
-centered = true
-offset = Vector2(0, -4)
-hframes = 4
+texture = SubResource("AtlasTexture_ubkhc")
+offset = Vector2(2, -4)
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=592770445]

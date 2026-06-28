@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://ddfik65yd566n"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_twtev"]
+[ext_resource type="Texture2D" uid="uid://boprgkvape1vi" path="res://assets/battle/unit/infantry_idle_nw.png" id="2_vnqwa"]
+
+[node name="InfantryIdleNe" type="Node2D"]
+script = ExtResource("1_twtev")
+SpriteSheet = ExtResource("2_vnqwa")
+BaseOffset = Vector2(0, -4)
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(0, 4), Vector2(0, 1), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(3, 0), Vector2(0, 0), Vector2(8, 0), Vector2(8, 0)])
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_vnqwa")
+offset = Vector2(-3, -4)
+hframes = 4
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

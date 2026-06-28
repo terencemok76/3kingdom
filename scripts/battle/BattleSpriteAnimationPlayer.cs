@@ -13,13 +13,18 @@ public partial class BattleSpriteAnimationPlayer : Node2D
     private readonly Godot.Collections.Array<Texture2D> _frameTextures = new();
     private Texture2D? _builtFromTexture;
     private int _builtFrameCount;
+    private int _builtFramesPerRow;
     private int _builtInsetPixels;
+    private string _builtCropSignature = string.Empty;
 
     [Export]
     public Texture2D? SpriteSheet { get; set; }
 
     [Export(PropertyHint.Range, "1,32,1")]
     public int FrameCount { get; set; } = 4;
+
+    [Export(PropertyHint.Range, "1,32,1")]
+    public int FramesPerRow { get; set; } = 4;
 
     [Export(PropertyHint.Range, "1,24,0.5")]
     public float FramesPerSecond { get; set; } = 5.0f;
@@ -36,11 +41,26 @@ public partial class BattleSpriteAnimationPlayer : Node2D
     [Export]
     public Vector2 SpriteScale { get; set; } = Vector2.One;
 
+    [Export]
+    public bool FlipH { get; set; }
+
+    [Export]
+    public bool MirrorFrameOffsetsWhenFlipped { get; set; }
+
     [Export(PropertyHint.Range, "8,96,1")]
     public float ClickRadius { get; set; } = 32.0f;
 
     [Export(PropertyHint.Range, "0,8,1")]
-    public int FrameInsetPixels { get; set; } = 1;
+    public int FrameInsetPixels { get; set; }
+
+    [Export]
+    public Godot.Collections.Array<Vector2> FrameCropPixels { get; set; } = new()
+    {
+        Vector2.Zero,
+        Vector2.Zero,
+        Vector2.Zero,
+        Vector2.Zero
+    };
 
     [Export]
     public Godot.Collections.Array<Vector2> FrameOffsets { get; set; } = new()
@@ -125,6 +145,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
         SpriteSheet ??= GD.Load<Texture2D>(DefaultSpriteSheetPath);
         _sprite.Vframes = 1;
         _sprite.Scale = SpriteScale;
+        _sprite.FlipH = FlipH;
         RebuildFrameTexturesIfNeeded();
         if (_frameTextures.Count > 0)
         {
@@ -140,8 +161,13 @@ public partial class BattleSpriteAnimationPlayer : Node2D
 
     private void RebuildFrameTexturesIfNeeded()
     {
+        var cropSignature = BuildCropSignature();
         if (SpriteSheet == null ||
-            (_builtFromTexture == SpriteSheet && _builtFrameCount == FrameCount && _builtInsetPixels == FrameInsetPixels))
+            (_builtFromTexture == SpriteSheet &&
+             _builtFrameCount == FrameCount &&
+             _builtFramesPerRow == FramesPerRow &&
+             _builtInsetPixels == FrameInsetPixels &&
+             _builtCropSignature == cropSignature))
         {
             return;
         }
@@ -149,27 +175,66 @@ public partial class BattleSpriteAnimationPlayer : Node2D
         _frameTextures.Clear();
         _builtFromTexture = SpriteSheet;
         _builtFrameCount = FrameCount;
+        _builtFramesPerRow = FramesPerRow;
         _builtInsetPixels = FrameInsetPixels;
+        _builtCropSignature = cropSignature;
 
-        if (FrameCount <= 0)
+        var framesPerRow = Mathf.Clamp(FramesPerRow, 1, Mathf.Max(1, FrameCount));
+        if (FrameCount <= 0 || framesPerRow <= 0)
         {
             return;
         }
 
-        var frameWidth = SpriteSheet.GetWidth() / FrameCount;
+        var frameWidth = SpriteSheet.GetWidth() / framesPerRow;
+        var frameHeight = SpriteSheet.GetHeight() / Mathf.CeilToInt((float)FrameCount / framesPerRow);
         var inset = Mathf.Clamp(FrameInsetPixels, 0, Mathf.Max(0, (frameWidth / 2) - 1));
         var regionWidth = frameWidth - (inset * 2);
-        if (regionWidth <= 0)
+        if (regionWidth <= 0 || frameHeight <= 0)
         {
             return;
         }
 
         for (var frame = 0; frame < FrameCount; frame++)
         {
+            var frameColumn = frame % framesPerRow;
+            var frameRow = frame / framesPerRow;
+            var crop = GetFrameCrop(frame);
+            var cropLeft = Mathf.RoundToInt(crop.X);
+            var cropRight = Mathf.RoundToInt(crop.Y);
+            var frameRegionWidth = regionWidth - cropLeft - cropRight;
+            if (frameRegionWidth <= 0)
+            {
+                _frameTextures.Add(new AtlasTexture
+                {
+                    Atlas = SpriteSheet,
+                    Region = new Rect2(frameColumn * frameWidth, frameRow * frameHeight, frameWidth, frameHeight),
+                    FilterClip = true
+                });
+                continue;
+            }
+
+            var sourceX = (frameColumn * frameWidth) + inset + cropLeft;
+            var sourceY = frameRow * frameHeight;
+            if (sourceX < 0)
+            {
+                frameRegionWidth += sourceX;
+                sourceX = 0;
+            }
+
+            if (sourceX + frameRegionWidth > SpriteSheet.GetWidth())
+            {
+                frameRegionWidth = SpriteSheet.GetWidth() - sourceX;
+            }
+
+            if (frameRegionWidth <= 0)
+            {
+                continue;
+            }
+
             _frameTextures.Add(new AtlasTexture
             {
                 Atlas = SpriteSheet,
-                Region = new Rect2((frame * frameWidth) + inset, 0.0f, regionWidth, SpriteSheet.GetHeight()),
+                Region = new Rect2(sourceX, sourceY, frameRegionWidth, frameHeight),
                 FilterClip = true
             });
         }
@@ -177,8 +242,32 @@ public partial class BattleSpriteAnimationPlayer : Node2D
 
     private Vector2 GetFrameOffset(int frame)
     {
-        return frame >= 0 && frame < FrameOffsets.Count
+        var offset = frame >= 0 && frame < FrameOffsets.Count
             ? FrameOffsets[frame]
             : Vector2.Zero;
+        if (FlipH && MirrorFrameOffsetsWhenFlipped)
+        {
+            offset.X *= -1.0f;
+        }
+
+        return offset;
+    }
+
+    private Vector2 GetFrameCrop(int frame)
+    {
+        return frame >= 0 && frame < FrameCropPixels.Count
+            ? FrameCropPixels[frame]
+            : Vector2.Zero;
+    }
+
+    private string BuildCropSignature()
+    {
+        var signature = string.Empty;
+        foreach (var crop in FrameCropPixels)
+        {
+            signature += $"{crop.X:0.###},{crop.Y:0.###};";
+        }
+
+        return signature;
     }
 }

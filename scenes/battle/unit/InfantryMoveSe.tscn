@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://dfhm6u7p8a2uo"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_lmjbr"]
+[ext_resource type="Texture2D" uid="uid://b5s83i6ic7n82" path="res://assets/battle/unit/infantry_move_se.png" id="2_yrohu"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fgk2j"]
+atlas = ExtResource("2_yrohu")
+region = Rect2(170, 85, 85, 85)
+filter_clip = true
+
+[node name="InfantryMoveSe" type="Node2D" unique_id=1047789015]
+script = ExtResource("1_lmjbr")
+SpriteSheet = ExtResource("2_yrohu")
+FrameCount = 6
+FramesPerRow = 3
+FramesPerSecond = 8.0
+PreviewFrame = 6
+BaseOffset = Vector2(0, 0)
+FrameCropPixels = Array[Vector2]([Vector2(0, -10), Vector2(-10, 0), Vector2(-5, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(-0.5, -6), Vector2(-2, -8), Vector2(6, -8), Vector2(-10, 0), Vector2(5, 2), Vector2(8, -2)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1023705846]
+texture_filter = 1
+texture = SubResource("AtlasTexture_fgk2j")
+offset = Vector2(8, -2)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=876215594]
