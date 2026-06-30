@@ -14,6 +14,8 @@ public partial class BattleSpriteAnimationPlayer : Node2D
     private Texture2D? _builtFromTexture;
     private int _builtFrameCount;
     private int _builtFramesPerRow;
+    private int _builtFrameWidthOverride;
+    private int _builtFrameHeightOverride;
     private int _builtInsetPixels;
     private string _builtCropSignature = string.Empty;
 
@@ -25,6 +27,12 @@ public partial class BattleSpriteAnimationPlayer : Node2D
 
     [Export(PropertyHint.Range, "1,32,1")]
     public int FramesPerRow { get; set; } = 4;
+
+    [Export(PropertyHint.Range, "0,512,1")]
+    public int FrameWidthOverride { get; set; }
+
+    [Export(PropertyHint.Range, "0,512,1")]
+    public int FrameHeightOverride { get; set; }
 
     [Export(PropertyHint.Range, "1,24,0.5")]
     public float FramesPerSecond { get; set; } = 5.0f;
@@ -166,6 +174,8 @@ public partial class BattleSpriteAnimationPlayer : Node2D
             (_builtFromTexture == SpriteSheet &&
              _builtFrameCount == FrameCount &&
              _builtFramesPerRow == FramesPerRow &&
+             _builtFrameWidthOverride == FrameWidthOverride &&
+             _builtFrameHeightOverride == FrameHeightOverride &&
              _builtInsetPixels == FrameInsetPixels &&
              _builtCropSignature == cropSignature))
         {
@@ -176,6 +186,8 @@ public partial class BattleSpriteAnimationPlayer : Node2D
         _builtFromTexture = SpriteSheet;
         _builtFrameCount = FrameCount;
         _builtFramesPerRow = FramesPerRow;
+        _builtFrameWidthOverride = FrameWidthOverride;
+        _builtFrameHeightOverride = FrameHeightOverride;
         _builtInsetPixels = FrameInsetPixels;
         _builtCropSignature = cropSignature;
 
@@ -185,8 +197,8 @@ public partial class BattleSpriteAnimationPlayer : Node2D
             return;
         }
 
-        var frameWidth = SpriteSheet.GetWidth() / framesPerRow;
-        var frameHeight = SpriteSheet.GetHeight() / Mathf.CeilToInt((float)FrameCount / framesPerRow);
+        var frameWidth = FrameWidthOverride > 0 ? FrameWidthOverride : SpriteSheet.GetWidth() / framesPerRow;
+        var frameHeight = FrameHeightOverride > 0 ? FrameHeightOverride : SpriteSheet.GetHeight() / Mathf.CeilToInt((float)FrameCount / framesPerRow);
         var inset = Mathf.Clamp(FrameInsetPixels, 0, Mathf.Max(0, (frameWidth / 2) - 1));
         var regionWidth = frameWidth - (inset * 2);
         if (regionWidth <= 0 || frameHeight <= 0)

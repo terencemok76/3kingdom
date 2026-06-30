@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://dohqflteqqb0w"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_m6p5d"]
+[ext_resource type="Texture2D" uid="uid://dqvvvkyxmkq3l" path="res://assets/battle/unit/infantry_hurt_se.png" id="2_byksr"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_h7hoh"]
+atlas = ExtResource("2_byksr")
+region = Rect2(0, 0, 64, 168)
+filter_clip = true
+
+[node name="InfantryHurtSw" type="Node2D" unique_id=40917806]
+script = ExtResource("1_m6p5d")
+SpriteSheet = ExtResource("2_byksr")
+FramesPerSecond = 8.0
+BaseOffset = Vector2(0, 4)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+FrameOffsets = Array[Vector2]([Vector2(-2, 0), Vector2(2, 0), Vector2(0.5, -2), Vector2(2, -5)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1291299413]
+texture_filter = 1
+texture = SubResource("AtlasTexture_h7hoh")
+offset = Vector2(2, 4)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1853086329]

@@ -27,8 +27,13 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string InfantryAttackSouthWestScenePath = "res://scenes/battle/unit/InfantryAttackSw.tscn";
     private const string InfantryAttackNorthEastScenePath = "res://scenes/battle/unit/InfantryAttackNe.tscn";
     private const string InfantryAttackNorthWestScenePath = "res://scenes/battle/unit/InfantryAttackNw.tscn";
+    private const string InfantryHurtSouthEastScenePath = "res://scenes/battle/unit/InfantryHurtSe.tscn";
+    private const string InfantryHurtSouthWestScenePath = "res://scenes/battle/unit/InfantryHurtSw.tscn";
+    private const string InfantryHurtNorthEastScenePath = "res://scenes/battle/unit/InfantryHurtNe.tscn";
+    private const string InfantryHurtNorthWestScenePath = "res://scenes/battle/unit/InfantryHurtNw.tscn";
     private const double InfantryMoveAnimationDurationSeconds = 0.8;
     private const double InfantryAttackAnimationDurationSeconds = 0.62;
+    private const double InfantryHurtAnimationDurationSeconds = 0.5;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
     private const string BattleDateText = "191年 4月 4日";
@@ -656,7 +661,7 @@ public partial class BattlePrototypeSceneController : Node2D
             _occupantsByGrid[grid] = occupants;
         }
 
-        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker));
+        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
     }
 
     private bool TryMoveSelectedUnit()
@@ -696,9 +701,10 @@ public partial class BattlePrototypeSceneController : Node2D
             _occupantsByGrid[destinationGrid] = destinationOccupants;
         }
 
-        var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker };
+        var moveDirection = GetInfantryDirection(sourceGrid, destinationGrid);
+        var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker, FacingDirection = moveDirection };
         destinationOccupants.Add(movedOccupant);
-        ApplyMoveAnimation(movingOccupant, sourceGrid, destinationGrid, GetMarkerPosition(destinationGrid));
+        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid));
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
@@ -724,7 +730,13 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        ApplyAttackAnimation(_selectedUnit, _selectedUnitGrid.Value, targetGrid);
+        var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value, targetGrid);
+        var attackingUnit = _selectedUnit with { FacingDirection = attackDirection };
+        ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, attackingUnit);
+        _selectedUnit = attackingUnit;
+
+        ApplyAttackAnimation(attackingUnit, attackDirection);
+        ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid);
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
@@ -732,7 +744,21 @@ public partial class BattlePrototypeSceneController : Node2D
         return true;
     }
 
-    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, Vector2I sourceGrid, Vector2I destinationGrid, Vector2 destinationPosition)
+    private void ReplaceOccupantAtGrid(Vector2I grid, BattleOccupantInfo oldOccupant, BattleOccupantInfo newOccupant)
+    {
+        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
+        {
+            return;
+        }
+
+        var index = occupants.IndexOf(oldOccupant);
+        if (index >= 0)
+        {
+            occupants[index] = newOccupant;
+        }
+    }
+
+    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition)
     {
         if (occupant.Marker == null)
         {
@@ -741,7 +767,6 @@ public partial class BattlePrototypeSceneController : Node2D
 
         if (occupant.Category == "部隊" && occupant.TroopType == "步兵")
         {
-            var direction = GetInfantryDirection(sourceGrid, destinationGrid);
             occupant.Marker.MoveTo(
                 destinationPosition,
                 InfantryMoveAnimationDurationSeconds,
@@ -753,18 +778,40 @@ public partial class BattlePrototypeSceneController : Node2D
         occupant.Marker.Position = destinationPosition;
     }
 
-    private static void ApplyAttackAnimation(BattleOccupantInfo occupant, Vector2I sourceGrid, Vector2I targetGrid)
+    private static void ApplyAttackAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction)
     {
         if (occupant.Marker == null || occupant.Category != "部隊" || occupant.TroopType != "步兵")
         {
             return;
         }
 
-        var direction = GetInfantryDirection(sourceGrid, targetGrid);
         occupant.Marker.PlayAction(
             GetInfantryAttackScene(direction),
             GetInfantryIdleScene(direction),
             InfantryAttackAnimationDurationSeconds);
+    }
+
+    private void ApplyTargetHurtAnimation(Vector2I attackerGrid, Vector2I targetGrid)
+    {
+        if (!_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
+        {
+            return;
+        }
+
+        var target = targetOccupants.FirstOrDefault(static occupant =>
+            occupant.Marker != null &&
+            occupant.Category == "部隊" &&
+            occupant.TroopType == "步兵");
+        if (target?.Marker == null)
+        {
+            return;
+        }
+
+        var hurtDirection = GetInfantryDirection(attackerGrid, targetGrid);
+        target.Marker.PlayAction(
+            GetInfantryHurtScene(hurtDirection),
+            GetInfantryIdleScene(target.FacingDirection),
+            InfantryHurtAnimationDurationSeconds);
     }
 
     private static string GetInitialInfantryDirectionScene(string teamName)
@@ -844,6 +891,17 @@ public partial class BattlePrototypeSceneController : Node2D
             BattleSpriteDirection.NorthWest => InfantryAttackNorthWestScenePath,
             BattleSpriteDirection.SouthWest => InfantryAttackSouthWestScenePath,
             _ => InfantryAttackSouthEastScenePath
+        };
+    }
+
+    private static string GetInfantryHurtScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => InfantryHurtNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => InfantryHurtNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => InfantryHurtSouthWestScenePath,
+            _ => InfantryHurtSouthEastScenePath
         };
     }
 
@@ -1359,7 +1417,8 @@ public partial class BattlePrototypeSceneController : Node2D
         int TroopCount,
         int MoveRange,
         int AttackRange,
-        BattlePieceMarker? Marker);
+        BattlePieceMarker? Marker,
+        BattleSpriteDirection FacingDirection);
     private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int TotalGold, int TotalFood);
 
     private enum BattleCommandMode
