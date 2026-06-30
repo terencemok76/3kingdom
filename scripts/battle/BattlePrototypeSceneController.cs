@@ -15,6 +15,16 @@ public partial class BattlePrototypeSceneController : Node2D
     private const float DefaultUnitVisualLift = -16.0f;
     private const float WallWalkUnitVisualLift = -58.0f;
     private const float WallWalkHighlightVisualLift = -42.0f;
+    private const string CategoryUnit = "Unit";
+    private const string CategorySiegeEngine = "SiegeEngine";
+    private const string TroopInfantry = "Infantry";
+    private const string TroopArcher = "Archer";
+    private const string TroopCavalry = "Cavalry";
+    private const string TroopCrossbow = "Crossbow";
+    private const string TroopGuard = "Guard";
+    private const string TroopRam = "Ram";
+    private const string TroopLadder = "Ladder";
+    private const string TroopCatapult = "Catapult";
     private const string InfantryIdleSouthEastScenePath = "res://scenes/battle/unit/InfantryIdleSe.tscn";
     private const string InfantryIdleSouthWestScenePath = "res://scenes/battle/unit/InfantryIdleSw.tscn";
     private const string InfantryIdleNorthEastScenePath = "res://scenes/battle/unit/InfantryIdleNe.tscn";
@@ -31,9 +41,14 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string InfantryHurtSouthWestScenePath = "res://scenes/battle/unit/InfantryHurtSw.tscn";
     private const string InfantryHurtNorthEastScenePath = "res://scenes/battle/unit/InfantryHurtNe.tscn";
     private const string InfantryHurtNorthWestScenePath = "res://scenes/battle/unit/InfantryHurtNw.tscn";
+    private const string CarIdleSouthEastScenePath = "res://scenes/battle/unit/CarIdleSe.tscn";
+    private const string CarIdleSouthWestScenePath = "res://scenes/battle/unit/CarIdleSw.tscn";
+    private const string CarIdleNorthEastScenePath = "res://scenes/battle/unit/CarIdleNe.tscn";
+    private const string CarIdleNorthWestScenePath = "res://scenes/battle/unit/CarIdleNw.tscn";
     private const double InfantryMoveAnimationDurationSeconds = 0.8;
     private const double InfantryAttackAnimationDurationSeconds = 0.62;
     private const double InfantryHurtAnimationDurationSeconds = 0.5;
+    private const double CarMoveAnimationDurationSeconds = 0.8;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
     private const string BattleDateText = "191年 4月 4日";
@@ -271,16 +286,16 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void PopulateMarkers()
     {
-        CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "步", "攻方步兵 A", "部隊", "Team A / 攻方", "夏侯淵", "步兵", 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "弓", "攻方弓兵 B", "部隊", "Team A / 攻方", "張郃", "弓兵", 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "騎", "攻方騎兵 C", "部隊", "Team A / 攻方", "曹純", "騎兵", 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
-        CreateMarker("MapRoot/SiegeEngineLayer/Ram", new Vector2I(12, 16), "衝", "衝車", "攻城器", "Team A / 攻方", "樂進", "衝車", 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/SiegeEngineLayer/Ladder", new Vector2I(10, 15), "梯", "雲梯隊", "攻城器", "Team A / 攻方", "于禁", "雲梯", 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/SiegeEngineLayer/Catapult", new Vector2I(14, 15), "投", "投石機", "攻城器", "Team A / 攻方", "劉曄", "投石車", 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
+        CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "步", "攻方步兵 A", CategoryUnit, "Team A / 攻方", "夏侯淵", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "弓", "攻方弓兵 B", CategoryUnit, "Team A / 攻方", "張郃", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "騎", "攻方騎兵 C", CategoryUnit, "Team A / 攻方", "曹純", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
+        CreateMarker("MapRoot/SiegeEngineLayer/Ram", new Vector2I(12, 16), "衝", "衝車", CategorySiegeEngine, "Team A / 攻方", "樂進", TroopRam, 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/SiegeEngineLayer/Ladder", new Vector2I(10, 15), "梯", "雲梯隊", CategorySiegeEngine, "Team A / 攻方", "于禁", TroopLadder, 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/SiegeEngineLayer/Catapult", new Vector2I(14, 15), "投", "投石機", CategorySiegeEngine, "Team A / 攻方", "劉曄", TroopCatapult, 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
-        CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 6), "守", "守軍步兵 A", "部隊", "Team B / 守方", "董卓", "步兵", 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 6), "弩", "守軍弩兵 B", "部隊", "Team B / 守方", "李傕", "弩兵", 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 6), "將", "守軍主將", "部隊", "Team B / 守方", "郭汜", "親衛", 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 6), "守", "守軍步兵 A", CategoryUnit, "Team B / 守方", "董卓", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 6), "弩", "守軍弩兵 B", CategoryUnit, "Team B / 守方", "李傕", TroopCrossbow, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 6), "將", "守軍主將", CategoryUnit, "Team B / 守方", "郭汜", TroopGuard, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
     }
 
     private void CreateMarker(string path, Vector2I grid, string label, string displayName, string category, string teamName, string officerName, string troopType, int troopCount, Color fillColor, Color borderColor, float radius = 19.0f, int moveRange = 0, int attackRange = 1)
@@ -293,9 +308,13 @@ public partial class BattlePrototypeSceneController : Node2D
 
         marker.Position = GetMarkerPosition(grid);
         marker.Setup(label, fillColor, borderColor, radius);
-        if (category == "部隊" && troopType == "步兵")
+        if (category == CategoryUnit && troopType == TroopInfantry)
         {
             marker.SetupSpriteAnimationScene(GetInitialInfantryDirectionScene(teamName));
+        }
+        else if (category == CategorySiegeEngine && troopType == TroopRam)
+        {
+            marker.SetupSpriteAnimationScene(CarIdleSouthEastScenePath);
         }
 
         RegisterOccupant(grid, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
@@ -540,7 +559,7 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             foreach (var occupant in occupants)
             {
-                if (occupant.Marker == null || occupant.Category is not ("部隊" or "攻城器"))
+                if (occupant.Marker == null || !IsBattlePiece(occupant))
                 {
                     continue;
                 }
@@ -683,7 +702,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        var movingOccupant = sourceOccupants.FirstOrDefault(static occupant => occupant.Marker != null && (occupant.Category == "部隊" || occupant.Category == "攻城器"));
+        var movingOccupant = sourceOccupants.FirstOrDefault(static occupant => occupant.Marker != null && IsBattlePiece(occupant));
         if (movingOccupant == null || movingOccupant.Marker == null)
         {
             return false;
@@ -765,7 +784,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        if (occupant.Category == "部隊" && occupant.TroopType == "步兵")
+        if (occupant.Category == CategoryUnit && occupant.TroopType == TroopInfantry)
         {
             occupant.Marker.MoveTo(
                 destinationPosition,
@@ -775,12 +794,23 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
+        if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopRam)
+        {
+            var carIdleScene = GetCarIdleScene(direction);
+            occupant.Marker.MoveTo(
+                destinationPosition,
+                CarMoveAnimationDurationSeconds,
+                carIdleScene,
+                carIdleScene);
+            return;
+        }
+
         occupant.Marker.Position = destinationPosition;
     }
 
     private static void ApplyAttackAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction)
     {
-        if (occupant.Marker == null || occupant.Category != "部隊" || occupant.TroopType != "步兵")
+        if (occupant.Marker == null || occupant.Category != CategoryUnit || occupant.TroopType != TroopInfantry)
         {
             return;
         }
@@ -800,8 +830,8 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var target = targetOccupants.FirstOrDefault(static occupant =>
             occupant.Marker != null &&
-            occupant.Category == "部隊" &&
-            occupant.TroopType == "步兵");
+            occupant.Category == CategoryUnit &&
+            occupant.TroopType == TroopInfantry);
         if (target?.Marker == null)
         {
             return;
@@ -905,6 +935,17 @@ public partial class BattlePrototypeSceneController : Node2D
         };
     }
 
+    private static string GetCarIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CarIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CarIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CarIdleSouthWestScenePath,
+            _ => CarIdleSouthEastScenePath
+        };
+    }
+
     private void UpdateUnitSelection()
     {
         _selectedUnit = null;
@@ -923,7 +964,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        var selectedUnit = occupants.FirstOrDefault(static occupant => occupant.Category is "部隊" or "攻城器");
+        var selectedUnit = occupants.FirstOrDefault(static occupant => IsBattlePiece(occupant));
         if (selectedUnit == null)
         {
             return;
@@ -1012,7 +1053,12 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        return occupants.Any(static occupant => occupant.Category is "部隊" or "攻城器");
+        return occupants.Any(static occupant => IsBattlePiece(occupant));
+    }
+
+    private static bool IsBattlePiece(BattleOccupantInfo occupant)
+    {
+        return occupant.Category == CategoryUnit || occupant.Category == CategorySiegeEngine;
     }
 
     private static int GetMoveCost(BattlePrototypeCellData cell)
@@ -1222,7 +1268,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        if (cell.Structure == BattleStructureType.Gate && IsDefenderPiece(_selectedUnit) && _selectedUnit.Category == "部隊")
+        if (cell.Structure == BattleStructureType.Gate && IsDefenderPiece(_selectedUnit) && _selectedUnit.Category == CategoryUnit)
         {
             return true;
         }

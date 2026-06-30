@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://dgw86jdiprel5"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_32qpa"]
+[ext_resource type="Texture2D" path="res://assets/battle/unit/car_idle_ne.png" id="2_2rx33"]
+
+[node name="CarIdleNw" type="Node2D"]
+script = ExtResource("1_32qpa")
+SpriteSheet = ExtResource("2_2rx33")
+FrameCount = 1
+FramesPerRow = 1
+FrameWidthOverride = 128
+FrameHeightOverride = 128
+FramesPerSecond = 1.0
+BaseOffset = Vector2(-8.5, 2)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+ClickRadius = 36.0
+FrameOffsets = Array[Vector2]([Vector2(0, 0)])
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_2rx33")
+offset = Vector2(-8.5, 2)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
