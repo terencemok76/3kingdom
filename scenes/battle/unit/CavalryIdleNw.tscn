@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://ddhxm5bwlvdhf"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_43v2k"]
+[ext_resource type="Texture2D" uid="uid://bbhbr3iadewuy" path="res://assets/battle/unit/cavalry_idle_ne.png" id="2_bfyxl"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ha3iw"]
+atlas = ExtResource("2_bfyxl")
+region = Rect2(0, 0, 71, 150)
+filter_clip = true
+
+[node name="CavalryIdleNw" type="Node2D" unique_id=1252911510]
+script = ExtResource("1_43v2k")
+SpriteSheet = ExtResource("2_bfyxl")
+FrameWidthOverride = 71
+FrameHeightOverride = 150
+BaseOffset = Vector2(0, 20)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+ClickRadius = 38.0
+FrameOffsets = Array[Vector2]([Vector2(0.5, -51), Vector2(2.5, -51), Vector2(3.5, -51), Vector2(4, -51)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1282138346]
+texture_filter = 1
+texture = SubResource("AtlasTexture_ha3iw")
+offset = Vector2(-0.5, -31)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=2050600054]

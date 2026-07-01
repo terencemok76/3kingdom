@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://cncs0r6hu6t85"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_vro61"]
+[ext_resource type="Texture2D" uid="uid://brp54eufa0iyy" path="res://assets/battle/unit/cavalry_move_se.png" id="2_u83cn"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_t6d30"]
+atlas = ExtResource("2_u83cn")
+region = Rect2(0, 0, 104, 105)
+filter_clip = true
+
+[node name="CavalryMoveSe" type="Node2D" unique_id=1082386181]
+script = ExtResource("1_vro61")
+SpriteSheet = ExtResource("2_u83cn")
+FrameCount = 6
+FramesPerRow = 3
+FrameWidthOverride = 104
+FrameHeightOverride = 105
+FramesPerSecond = 8.0
+BaseOffset = Vector2(0, 20)
+ClickRadius = 38.0
+FrameOffsets = Array[Vector2]([Vector2(-5.5, -46.5), Vector2(-1, -40.5), Vector2(6, -44.5), Vector2(-5, -40.5), Vector2(-3, -34.5), Vector2(4, -39.5)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=868186271]
+texture_filter = 1
+texture = SubResource("AtlasTexture_t6d30")
+offset = Vector2(-5.5, -26.5)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=407360443]

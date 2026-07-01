@@ -58,16 +58,35 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string ArcherHurtSouthWestScenePath = "res://scenes/battle/unit/ArcherHurtSw.tscn";
     private const string ArcherHurtNorthEastScenePath = "res://scenes/battle/unit/ArcherHurtNe.tscn";
     private const string ArcherHurtNorthWestScenePath = "res://scenes/battle/unit/ArcherHurtNw.tscn";
+    private const string CavalryIdleSouthEastScenePath = "res://scenes/battle/unit/CavalryIdleSe.tscn";
+    private const string CavalryIdleSouthWestScenePath = "res://scenes/battle/unit/CavalryIdleSw.tscn";
+    private const string CavalryIdleNorthEastScenePath = "res://scenes/battle/unit/CavalryIdleNe.tscn";
+    private const string CavalryIdleNorthWestScenePath = "res://scenes/battle/unit/CavalryIdleNw.tscn";
+    private const string CavalryMoveSouthEastScenePath = "res://scenes/battle/unit/CavalryMoveSe.tscn";
+    private const string CavalryMoveSouthWestScenePath = "res://scenes/battle/unit/CavalryMoveSw.tscn";
+    private const string CavalryMoveNorthEastScenePath = "res://scenes/battle/unit/CavalryMoveNe.tscn";
+    private const string CavalryMoveNorthWestScenePath = "res://scenes/battle/unit/CavalryMoveNw.tscn";
+    private const string CavalryAttackSouthEastScenePath = "res://scenes/battle/unit/CavalryAttackSe.tscn";
+    private const string CavalryAttackSouthWestScenePath = "res://scenes/battle/unit/CavalryAttackSw.tscn";
+    private const string CavalryAttackNorthEastScenePath = "res://scenes/battle/unit/CavalryAttackNe.tscn";
+    private const string CavalryAttackNorthWestScenePath = "res://scenes/battle/unit/CavalryAttackNw.tscn";
+    private const string CavalryHurtSouthEastScenePath = "res://scenes/battle/unit/CavalryHurtSe.tscn";
+    private const string CavalryHurtSouthWestScenePath = "res://scenes/battle/unit/CavalryHurtSw.tscn";
+    private const string CavalryHurtNorthEastScenePath = "res://scenes/battle/unit/CavalryHurtNe.tscn";
+    private const string CavalryHurtNorthWestScenePath = "res://scenes/battle/unit/CavalryHurtNw.tscn";
     private const string CarIdleSouthEastScenePath = "res://scenes/battle/unit/CarIdleSe.tscn";
     private const string CarIdleSouthWestScenePath = "res://scenes/battle/unit/CarIdleSw.tscn";
     private const string CarIdleNorthEastScenePath = "res://scenes/battle/unit/CarIdleNe.tscn";
     private const string CarIdleNorthWestScenePath = "res://scenes/battle/unit/CarIdleNw.tscn";
     private const double InfantryMoveAnimationDurationSeconds = 0.8;
     private const double ArcherMoveAnimationDurationSeconds = 0.8;
+    private const double CavalryMoveAnimationDurationSeconds = 0.8;
     private const double InfantryAttackAnimationDurationSeconds = 0.62;
     private const double ArcherAttackAnimationDurationSeconds = 0.62;
+    private const double CavalryAttackAnimationDurationSeconds = 0.5;
     private const double InfantryHurtAnimationDurationSeconds = 0.5;
     private const double ArcherHurtAnimationDurationSeconds = 0.5;
+    private const double CavalryHurtAnimationDurationSeconds = 0.5;
     private const double CarMoveAnimationDurationSeconds = 0.8;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
@@ -341,6 +360,10 @@ public partial class BattlePrototypeSceneController : Node2D
         else if (category == CategoryUnit && troopType == TroopArcher)
         {
             marker.SetupSpriteAnimationScene(ArcherIdleSouthEastScenePath);
+        }
+        else if (category == CategoryUnit && troopType == TroopCavalry)
+        {
+            marker.SetupSpriteAnimationScene(CavalryIdleSouthEastScenePath);
         }
         else if (category == CategorySiegeEngine && troopType == TroopRam)
         {
@@ -845,6 +868,16 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
+        if (occupant.Category == CategoryUnit && occupant.TroopType == TroopCavalry)
+        {
+            occupant.Marker.MoveTo(
+                destinationPosition,
+                CavalryMoveAnimationDurationSeconds,
+                GetCavalryMoveScene(direction),
+                GetCavalryIdleScene(direction));
+            return;
+        }
+
         occupant.Marker.Position = destinationPosition;
     }
 
@@ -870,6 +903,15 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetArcherAttackScene(direction),
                 GetArcherIdleScene(direction),
                 ArcherAttackAnimationDurationSeconds);
+            return;
+        }
+
+        if (occupant.TroopType == TroopCavalry)
+        {
+            occupant.Marker.PlayAction(
+                GetCavalryAttackScene(direction),
+                GetCavalryIdleScene(direction),
+                CavalryAttackAnimationDurationSeconds);
         }
     }
 
@@ -883,7 +925,7 @@ public partial class BattlePrototypeSceneController : Node2D
         var target = targetOccupants.FirstOrDefault(static occupant =>
             occupant.Marker != null &&
             occupant.Category == CategoryUnit &&
-            (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopArcher));
+            (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopArcher || occupant.TroopType == TroopCavalry));
         if (target?.Marker == null)
         {
             return;
@@ -896,6 +938,15 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetArcherHurtScene(hurtDirection),
                 GetArcherIdleScene(target.FacingDirection),
                 ArcherHurtAnimationDurationSeconds);
+            return;
+        }
+
+        if (target.TroopType == TroopCavalry)
+        {
+            target.Marker.PlayAction(
+                GetCavalryHurtScene(hurtDirection),
+                GetCavalryIdleScene(target.FacingDirection),
+                CavalryHurtAnimationDurationSeconds);
             return;
         }
 
@@ -1048,6 +1099,50 @@ public partial class BattlePrototypeSceneController : Node2D
             BattleSpriteDirection.NorthWest => ArcherHurtNorthWestScenePath,
             BattleSpriteDirection.SouthWest => ArcherHurtSouthWestScenePath,
             _ => ArcherHurtSouthEastScenePath
+        };
+    }
+
+    private static string GetCavalryIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CavalryIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CavalryIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CavalryIdleSouthWestScenePath,
+            _ => CavalryIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetCavalryMoveScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CavalryMoveNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CavalryMoveNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CavalryMoveSouthWestScenePath,
+            _ => CavalryMoveSouthEastScenePath
+        };
+    }
+
+    private static string GetCavalryAttackScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CavalryAttackNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CavalryAttackNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CavalryAttackSouthWestScenePath,
+            _ => CavalryAttackSouthEastScenePath
+        };
+    }
+
+    private static string GetCavalryHurtScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CavalryHurtNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CavalryHurtNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CavalryHurtSouthWestScenePath,
+            _ => CavalryHurtSouthEastScenePath
         };
     }
 

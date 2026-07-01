@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://dysqf8742puni"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_idjsc"]
+[ext_resource type="Texture2D" uid="uid://umvkq3lfg3a1" path="res://assets/battle/unit/cavalry_attack_ne.png" id="2_x6qcn"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_l3b21"]
+atlas = ExtResource("2_x6qcn")
+region = Rect2(194, 0, 106, 150)
+filter_clip = true
+
+[node name="CavalryAttackNe" type="Node2D" unique_id=1797198444]
+script = ExtResource("1_idjsc")
+SpriteSheet = ExtResource("2_x6qcn")
+FrameCount = 3
+FramesPerRow = 3
+FrameWidthOverride = 100
+FrameHeightOverride = 150
+FramesPerSecond = 7.0
+PreviewFrame = 2
+BaseOffset = Vector2(0, 20)
+ClickRadius = 42.0
+FrameCropPixels = Array[Vector2]([Vector2(0, 10), Vector2(-10, 10), Vector2(-6, 0), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(-2.5, -51), Vector2(0.5, -51), Vector2(4.5, -50)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=520391237]
+texture_filter = 1
+texture = SubResource("AtlasTexture_l3b21")
+offset = Vector2(4.5, -30)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=114956838]
