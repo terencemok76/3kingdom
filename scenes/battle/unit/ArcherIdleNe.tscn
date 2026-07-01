@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bhogqn2uidgfl"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_l2mxp"]
+[ext_resource type="Texture2D" uid="uid://clcegmtql5khf" path="res://assets/battle/unit/archer_idle_ne.png" id="2_djmyh"]
+
+[node name="ArcherIdleNe" type="Node2D" unique_id=437755203]
+script = ExtResource("1_l2mxp")
+SpriteSheet = ExtResource("2_djmyh")
+FrameWidthOverride = 58
+FrameHeightOverride = 128
+BaseOffset = Vector2(0, 18)
+FrameOffsets = Array[Vector2]([Vector2(10, -32), Vector2(10, -32), Vector2(7, -32), Vector2(5, -32)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=476318939]
+texture_filter = 1
+texture = ExtResource("2_djmyh")
+offset = Vector2(10, -14)
+hframes = 4
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1061666874]

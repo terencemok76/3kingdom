@@ -66,7 +66,8 @@ public partial class BattlePieceMarker : Node2D
 
     public override void _Draw()
     {
-        DrawFilledEllipse(new Vector2(0.0f, _radius * 0.68f), _radius * 0.95f, _radius * 0.28f, new Color(0.05f, 0.04f, 0.03f, 0.28f));
+        var shadowCenterY = _usesSpriteVisual ? _radius * 0.48f : _radius * 0.68f;
+        DrawFilledEllipse(new Vector2(0.0f, shadowCenterY), _radius * 0.95f, _radius * 0.28f, new Color(0.05f, 0.04f, 0.03f, 0.28f));
         if (_usesSpriteVisual)
         {
             return;

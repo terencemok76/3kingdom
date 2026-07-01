@@ -123,6 +123,7 @@ script = ExtResource("4")
 
 [node name="UnitLayer" type="Node2D" parent="MapRoot" unique_id=1166056561]
 z_index = 20
+y_sort_enabled = true
 
 [node name="AttackerA" type="Node2D" parent="MapRoot/UnitLayer" unique_id=209305753]
 script = ExtResource("3")
@@ -142,17 +143,17 @@ script = ExtResource("3")
 [node name="DefenderC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=498644608]
 script = ExtResource("3")
 
+[node name="Ram" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1833571858]
+script = ExtResource("3")
+
+[node name="Ladder" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1172912405]
+script = ExtResource("3")
+
+[node name="Catapult" type="Node2D" parent="MapRoot/UnitLayer" unique_id=838561412]
+script = ExtResource("3")
+
 [node name="SiegeEngineLayer" type="Node2D" parent="MapRoot" unique_id=1292689697]
-z_index = 22
-
-[node name="Ram" type="Node2D" parent="MapRoot/SiegeEngineLayer" unique_id=1833571858]
-script = ExtResource("3")
-
-[node name="Ladder" type="Node2D" parent="MapRoot/SiegeEngineLayer" unique_id=1172912405]
-script = ExtResource("3")
-
-[node name="Catapult" type="Node2D" parent="MapRoot/SiegeEngineLayer" unique_id=838561412]
-script = ExtResource("3")
+z_index = 20
 
 [node name="EffectLayer" type="Node2D" parent="MapRoot" unique_id=1324073802]
 z_index = 30

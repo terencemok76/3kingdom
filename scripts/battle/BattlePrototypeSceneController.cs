@@ -41,6 +41,10 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string InfantryHurtSouthWestScenePath = "res://scenes/battle/unit/InfantryHurtSw.tscn";
     private const string InfantryHurtNorthEastScenePath = "res://scenes/battle/unit/InfantryHurtNe.tscn";
     private const string InfantryHurtNorthWestScenePath = "res://scenes/battle/unit/InfantryHurtNw.tscn";
+    private const string ArcherIdleSouthEastScenePath = "res://scenes/battle/unit/ArcherIdleSe.tscn";
+    private const string ArcherIdleSouthWestScenePath = "res://scenes/battle/unit/ArcherIdleSw.tscn";
+    private const string ArcherIdleNorthEastScenePath = "res://scenes/battle/unit/ArcherIdleNe.tscn";
+    private const string ArcherIdleNorthWestScenePath = "res://scenes/battle/unit/ArcherIdleNw.tscn";
     private const string CarIdleSouthEastScenePath = "res://scenes/battle/unit/CarIdleSe.tscn";
     private const string CarIdleSouthWestScenePath = "res://scenes/battle/unit/CarIdleSw.tscn";
     private const string CarIdleNorthEastScenePath = "res://scenes/battle/unit/CarIdleNe.tscn";
@@ -289,9 +293,9 @@ public partial class BattlePrototypeSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "步", "攻方步兵 A", CategoryUnit, "Team A / 攻方", "夏侯淵", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "弓", "攻方弓兵 B", CategoryUnit, "Team A / 攻方", "張郃", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "騎", "攻方騎兵 C", CategoryUnit, "Team A / 攻方", "曹純", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
-        CreateMarker("MapRoot/SiegeEngineLayer/Ram", new Vector2I(12, 16), "衝", "衝車", CategorySiegeEngine, "Team A / 攻方", "樂進", TroopRam, 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/SiegeEngineLayer/Ladder", new Vector2I(10, 15), "梯", "雲梯隊", CategorySiegeEngine, "Team A / 攻方", "于禁", TroopLadder, 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/SiegeEngineLayer/Catapult", new Vector2I(14, 15), "投", "投石機", CategorySiegeEngine, "Team A / 攻方", "劉曄", TroopCatapult, 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
+        CreateMarker("MapRoot/UnitLayer/Ram", new Vector2I(12, 16), "衝", "衝車", CategorySiegeEngine, "Team A / 攻方", "樂進", TroopRam, 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Ladder", new Vector2I(10, 15), "梯", "雲梯隊", CategorySiegeEngine, "Team A / 攻方", "于禁", TroopLadder, 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Catapult", new Vector2I(14, 15), "投", "投石機", CategorySiegeEngine, "Team A / 攻方", "劉曄", TroopCatapult, 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
         CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 6), "守", "守軍步兵 A", CategoryUnit, "Team B / 守方", "董卓", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 6), "弩", "守軍弩兵 B", CategoryUnit, "Team B / 守方", "李傕", TroopCrossbow, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
@@ -311,6 +315,10 @@ public partial class BattlePrototypeSceneController : Node2D
         if (category == CategoryUnit && troopType == TroopInfantry)
         {
             marker.SetupSpriteAnimationScene(GetInitialInfantryDirectionScene(teamName));
+        }
+        else if (category == CategoryUnit && troopType == TroopArcher)
+        {
+            marker.SetupSpriteAnimationScene(ArcherIdleSouthEastScenePath);
         }
         else if (category == CategorySiegeEngine && troopType == TroopRam)
         {
@@ -805,6 +813,11 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
+        if (occupant.Category == CategoryUnit && occupant.TroopType == TroopArcher)
+        {
+            occupant.Marker.SetupSpriteAnimationScene(GetArcherIdleScene(direction));
+        }
+
         occupant.Marker.Position = destinationPosition;
     }
 
@@ -943,6 +956,17 @@ public partial class BattlePrototypeSceneController : Node2D
             BattleSpriteDirection.NorthWest => CarIdleNorthWestScenePath,
             BattleSpriteDirection.SouthWest => CarIdleSouthWestScenePath,
             _ => CarIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetArcherIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => ArcherIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => ArcherIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => ArcherIdleSouthWestScenePath,
+            _ => ArcherIdleSouthEastScenePath
         };
     }
 
