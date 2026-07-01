@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://bl7ici6ruolwb"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_4a68l"]
+[ext_resource type="Texture2D" uid="uid://ddj3oqm2fx007" path="res://assets/battle/unit/archer_move_ne.png" id="2_kp88n"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mvx6u"]
+atlas = ExtResource("2_kp88n")
+region = Rect2(170, 90, 85, 90)
+filter_clip = true
+
+[node name="ArcherMoveNw" type="Node2D" unique_id=784945228]
+script = ExtResource("1_4a68l")
+SpriteSheet = ExtResource("2_kp88n")
+FrameCount = 6
+FramesPerRow = 3
+FrameWidthOverride = 85
+FrameHeightOverride = 90
+FramesPerSecond = 8.0
+PreviewInEditor = true
+BaseOffset = Vector2(0, 0)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+FrameOffsets = Array[Vector2]([Vector2(5.5, -15), Vector2(-1.5, -16), Vector2(-10, -17), Vector2(9, -3), Vector2(2.5, -3), Vector2(-3.5, -5)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1694376288]
+texture_filter = 1
+texture = SubResource("AtlasTexture_mvx6u")
+offset = Vector2(3.5, -5)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1525174008]

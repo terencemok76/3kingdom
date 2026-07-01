@@ -19,6 +19,11 @@ public partial class GameBootstrap : Node
     private GameAudioController? _audioController;
     private bool _mapHudSignalsConnected;
 
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        ScreenshotShortcut.HandleInput(this, @event);
+    }
+
     public override void _Ready()
     {
         _localization.Load();

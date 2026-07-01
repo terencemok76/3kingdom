@@ -1,0 +1,28 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_e83v7"]
+[ext_resource type="Texture2D" path="res://assets/battle/unit/archer_attack_se.png" id="2_hx0vf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_frame0"]
+atlas = ExtResource("2_hx0vf")
+region = Rect2(0, 0, 85, 90)
+filter_clip = true
+
+[node name="ArcherAttackSe" type="Node2D"]
+script = ExtResource("1_e83v7")
+SpriteSheet = ExtResource("2_hx0vf")
+FrameCount = 6
+FramesPerRow = 3
+FrameWidthOverride = 85
+FrameHeightOverride = 90
+FramesPerSecond = 8.0
+BaseOffset = Vector2(0, 0)
+ClickRadius = 32.0
+FrameOffsets = Array[Vector2]([Vector2(7.5, -17), Vector2(-1.5, -18), Vector2(-6, -18), Vector2(7, 0), Vector2(3, 0), Vector2(-2.5, 0)])
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = SubResource("AtlasTexture_frame0")
+offset = Vector2(7.5, -17)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]

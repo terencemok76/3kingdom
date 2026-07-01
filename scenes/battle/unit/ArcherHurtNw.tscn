@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_3q3bp"]
+[ext_resource type="Texture2D" path="res://assets/battle/unit/archer_hurt_ne.png" id="2_j6flx"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_frame0"]
+atlas = ExtResource("2_j6flx")
+region = Rect2(0, 0, 66, 128)
+filter_clip = true
+
+[node name="ArcherHurtNw" type="Node2D"]
+script = ExtResource("1_3q3bp")
+SpriteSheet = ExtResource("2_j6flx")
+FrameCount = 4
+FramesPerRow = 4
+FrameWidthOverride = 66
+FrameHeightOverride = 128
+FramesPerSecond = 8.0
+BaseOffset = Vector2(0, 1)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+ClickRadius = 32.0
+FrameOffsets = Array[Vector2]([Vector2(6, -18), Vector2(2.5, -18), Vector2(-0.5, -18), Vector2(-1.5, -18)])
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = SubResource("AtlasTexture_frame0")
+offset = Vector2(-6, -17)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
