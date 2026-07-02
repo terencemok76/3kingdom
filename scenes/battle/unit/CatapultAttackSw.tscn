@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://wh0ek10xk0xu"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_jb3ml"]
+[ext_resource type="Texture2D" uid="uid://c8jxd5s66kjwr" path="res://assets/battle/unit/catapult_attack_se.png" id="2_flwq1"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_x4tk6"]
+atlas = ExtResource("2_flwq1")
+region = Rect2(274, 0, 137, 180)
+filter_clip = true
+
+[node name="CatapultAttackSw" type="Node2D" unique_id=1272791628]
+script = ExtResource("1_jb3ml")
+SpriteSheet = ExtResource("2_flwq1")
+FrameCount = 3
+FramesPerRow = 3
+FrameWidthOverride = 137
+FrameHeightOverride = 180
+FramesPerSecond = 6.0
+PreviewFrame = 2
+BaseOffset = Vector2(0, 35)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+ClickRadius = 48.0
+FrameOffsets = Array[Vector2]([Vector2(-6, -64), Vector2(-10, -63), Vector2(4.5, -63)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1783597012]
+texture_filter = 1
+texture = SubResource("AtlasTexture_x4tk6")
+offset = Vector2(-4.5, -28)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1258192262]

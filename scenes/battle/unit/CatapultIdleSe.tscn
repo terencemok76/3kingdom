@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://ciiinjuav87ng"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_af30c"]
+[ext_resource type="Texture2D" uid="uid://d07rxgo883etm" path="res://assets/battle/unit/catapult_idle_se.png" id="2_jqi73"]
+
+[node name="CatapultIdleSe" type="Node2D" unique_id=1439128436]
+script = ExtResource("1_af30c")
+SpriteSheet = ExtResource("2_jqi73")
+FrameWidthOverride = 110
+FrameHeightOverride = 150
+BaseOffset = Vector2(0, 35)
+ClickRadius = 46.0
+FrameOffsets = Array[Vector2]([Vector2(-4.5, -59), Vector2(2, -59), Vector2(4.5, -59), Vector2(6.5, -59)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1945524965]
+texture_filter = 1
+texture = ExtResource("2_jqi73")
+offset = Vector2(-4.5, -24)
+hframes = 4
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=64993339]

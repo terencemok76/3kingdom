@@ -78,16 +78,26 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string CarIdleSouthWestScenePath = "res://scenes/battle/unit/CarIdleSw.tscn";
     private const string CarIdleNorthEastScenePath = "res://scenes/battle/unit/CarIdleNe.tscn";
     private const string CarIdleNorthWestScenePath = "res://scenes/battle/unit/CarIdleNw.tscn";
+    private const string CatapultIdleSouthEastScenePath = "res://scenes/battle/unit/CatapultIdleSe.tscn";
+    private const string CatapultIdleSouthWestScenePath = "res://scenes/battle/unit/CatapultIdleSw.tscn";
+    private const string CatapultIdleNorthEastScenePath = "res://scenes/battle/unit/CatapultIdleNe.tscn";
+    private const string CatapultIdleNorthWestScenePath = "res://scenes/battle/unit/CatapultIdleNw.tscn";
+    private const string CatapultAttackSouthEastScenePath = "res://scenes/battle/unit/CatapultAttackSe.tscn";
+    private const string CatapultAttackSouthWestScenePath = "res://scenes/battle/unit/CatapultAttackSw.tscn";
+    private const string CatapultAttackNorthEastScenePath = "res://scenes/battle/unit/CatapultAttackNe.tscn";
+    private const string CatapultAttackNorthWestScenePath = "res://scenes/battle/unit/CatapultAttackNw.tscn";
     private const double InfantryMoveAnimationDurationSeconds = 0.8;
     private const double ArcherMoveAnimationDurationSeconds = 0.8;
     private const double CavalryMoveAnimationDurationSeconds = 0.8;
     private const double InfantryAttackAnimationDurationSeconds = 0.62;
     private const double ArcherAttackAnimationDurationSeconds = 0.62;
     private const double CavalryAttackAnimationDurationSeconds = 0.5;
+    private const double CatapultAttackAnimationDurationSeconds = 0.72;
     private const double InfantryHurtAnimationDurationSeconds = 0.5;
     private const double ArcherHurtAnimationDurationSeconds = 0.5;
     private const double CavalryHurtAnimationDurationSeconds = 0.5;
     private const double CarMoveAnimationDurationSeconds = 0.8;
+    private const double CatapultMoveAnimationDurationSeconds = 0.8;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
     private const string BattleDateText = "191年 4月 4日";
@@ -368,6 +378,10 @@ public partial class BattlePrototypeSceneController : Node2D
         else if (category == CategorySiegeEngine && troopType == TroopRam)
         {
             marker.SetupSpriteAnimationScene(CarIdleSouthEastScenePath);
+        }
+        else if (category == CategorySiegeEngine && troopType == TroopCatapult)
+        {
+            marker.SetupSpriteAnimationScene(CatapultIdleSouthEastScenePath);
         }
 
         RegisterOccupant(grid, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
@@ -878,12 +892,37 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
+        if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopCatapult)
+        {
+            var catapultIdleScene = GetCatapultIdleScene(direction);
+            occupant.Marker.MoveTo(
+                destinationPosition,
+                CatapultMoveAnimationDurationSeconds,
+                catapultIdleScene,
+                catapultIdleScene);
+            return;
+        }
+
         occupant.Marker.Position = destinationPosition;
     }
 
     private static void ApplyAttackAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction)
     {
-        if (occupant.Marker == null || occupant.Category != CategoryUnit)
+        if (occupant.Marker == null)
+        {
+            return;
+        }
+
+        if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopCatapult)
+        {
+            occupant.Marker.PlayAction(
+                GetCatapultAttackScene(direction),
+                GetCatapultIdleScene(direction),
+                CatapultAttackAnimationDurationSeconds);
+            return;
+        }
+
+        if (occupant.Category != CategoryUnit)
         {
             return;
         }
@@ -1055,6 +1094,28 @@ public partial class BattlePrototypeSceneController : Node2D
             BattleSpriteDirection.NorthWest => CarIdleNorthWestScenePath,
             BattleSpriteDirection.SouthWest => CarIdleSouthWestScenePath,
             _ => CarIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetCatapultIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CatapultIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CatapultIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CatapultIdleSouthWestScenePath,
+            _ => CatapultIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetCatapultAttackScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CatapultAttackNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CatapultAttackNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CatapultAttackSouthWestScenePath,
+            _ => CatapultAttackSouthEastScenePath
         };
     }
 
