@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://c1nsaje7hcvtm"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_18qpr"]
+[ext_resource type="Texture2D" uid="uid://n6oqx8u1f6wc" path="res://assets/battle/unit/spearman_attack_se.png" id="2_of785"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wcx2i"]
+atlas = ExtResource("2_of785")
+region = Rect2(220, 105, 110, 105)
+filter_clip = true
+
+[node name="SpearmanAttackSe" type="Node2D" unique_id=713925713]
+script = ExtResource("1_18qpr")
+SpriteSheet = ExtResource("2_of785")
+FrameCount = 6
+FramesPerRow = 3
+FrameWidthOverride = 110
+FrameHeightOverride = 105
+FramesPerSecond = 8.0
+PreviewFrame = 6
+BaseOffset = Vector2(0, 0)
+ClickRadius = 42.0
+FrameCropPixels = Array[Vector2]([Vector2(0, 10), Vector2(-5, 25), Vector2(-22, 0), Vector2(0, -4), Vector2(8, 0), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(-5.5, -29), Vector2(6, -27), Vector2(15, -26), Vector2(-3.5, -16), Vector2(3, -16), Vector2(0, -17)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=55392779]
+texture_filter = 1
+texture = SubResource("AtlasTexture_wcx2i")
+offset = Vector2(0, -17)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1011904489]

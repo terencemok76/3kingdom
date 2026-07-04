@@ -134,6 +134,9 @@ script = ExtResource("3")
 [node name="AttackerC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1617047366]
 script = ExtResource("3")
 
+[node name="Spearman" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
 [node name="DefenderA" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1187741692]
 script = ExtResource("3")
 
@@ -285,3 +288,7 @@ text = "Attack"
 [node name="StrategyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=851977861]
 layout_mode = 2
 text = "Strategy"
+
+[node name="OpenGateButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Open Gate"

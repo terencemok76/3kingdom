@@ -18,6 +18,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
     private int _builtFrameHeightOverride;
     private int _builtInsetPixels;
     private string _builtCropSignature = string.Empty;
+    private string _builtVerticalCropSignature = string.Empty;
 
     [Export]
     public Texture2D? SpriteSheet { get; set; }
@@ -63,6 +64,15 @@ public partial class BattleSpriteAnimationPlayer : Node2D
 
     [Export]
     public Godot.Collections.Array<Vector2> FrameCropPixels { get; set; } = new()
+    {
+        Vector2.Zero,
+        Vector2.Zero,
+        Vector2.Zero,
+        Vector2.Zero
+    };
+
+    [Export]
+    public Godot.Collections.Array<Vector2> FrameCropTopBottomPixels { get; set; } = new()
     {
         Vector2.Zero,
         Vector2.Zero,
@@ -170,6 +180,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
     private void RebuildFrameTexturesIfNeeded()
     {
         var cropSignature = BuildCropSignature();
+        var verticalCropSignature = BuildVerticalCropSignature();
         if (SpriteSheet == null ||
             (_builtFromTexture == SpriteSheet &&
              _builtFrameCount == FrameCount &&
@@ -177,7 +188,8 @@ public partial class BattleSpriteAnimationPlayer : Node2D
              _builtFrameWidthOverride == FrameWidthOverride &&
              _builtFrameHeightOverride == FrameHeightOverride &&
              _builtInsetPixels == FrameInsetPixels &&
-             _builtCropSignature == cropSignature))
+             _builtCropSignature == cropSignature &&
+             _builtVerticalCropSignature == verticalCropSignature))
         {
             return;
         }
@@ -190,6 +202,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
         _builtFrameHeightOverride = FrameHeightOverride;
         _builtInsetPixels = FrameInsetPixels;
         _builtCropSignature = cropSignature;
+        _builtVerticalCropSignature = verticalCropSignature;
 
         var framesPerRow = Mathf.Clamp(FramesPerRow, 1, Mathf.Max(1, FrameCount));
         if (FrameCount <= 0 || framesPerRow <= 0)
@@ -211,10 +224,14 @@ public partial class BattleSpriteAnimationPlayer : Node2D
             var frameColumn = frame % framesPerRow;
             var frameRow = frame / framesPerRow;
             var crop = GetFrameCrop(frame);
+            var verticalCrop = GetFrameVerticalCrop(frame);
             var cropLeft = Mathf.RoundToInt(crop.X);
             var cropRight = Mathf.RoundToInt(crop.Y);
+            var cropTop = Mathf.RoundToInt(verticalCrop.X);
+            var cropBottom = Mathf.RoundToInt(verticalCrop.Y);
             var frameRegionWidth = regionWidth - cropLeft - cropRight;
-            if (frameRegionWidth <= 0)
+            var frameRegionHeight = frameHeight - cropTop - cropBottom;
+            if (frameRegionWidth <= 0 || frameRegionHeight <= 0)
             {
                 _frameTextures.Add(new AtlasTexture
                 {
@@ -226,11 +243,17 @@ public partial class BattleSpriteAnimationPlayer : Node2D
             }
 
             var sourceX = (frameColumn * frameWidth) + inset + cropLeft;
-            var sourceY = frameRow * frameHeight;
+            var sourceY = (frameRow * frameHeight) + cropTop;
             if (sourceX < 0)
             {
                 frameRegionWidth += sourceX;
                 sourceX = 0;
+            }
+
+            if (sourceY < 0)
+            {
+                frameRegionHeight += sourceY;
+                sourceY = 0;
             }
 
             if (sourceX + frameRegionWidth > SpriteSheet.GetWidth())
@@ -238,7 +261,12 @@ public partial class BattleSpriteAnimationPlayer : Node2D
                 frameRegionWidth = SpriteSheet.GetWidth() - sourceX;
             }
 
-            if (frameRegionWidth <= 0)
+            if (sourceY + frameRegionHeight > SpriteSheet.GetHeight())
+            {
+                frameRegionHeight = SpriteSheet.GetHeight() - sourceY;
+            }
+
+            if (frameRegionWidth <= 0 || frameRegionHeight <= 0)
             {
                 continue;
             }
@@ -246,7 +274,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
             _frameTextures.Add(new AtlasTexture
             {
                 Atlas = SpriteSheet,
-                Region = new Rect2(sourceX, sourceY, frameRegionWidth, frameHeight),
+                Region = new Rect2(sourceX, sourceY, frameRegionWidth, frameRegionHeight),
                 FilterClip = true
             });
         }
@@ -272,10 +300,28 @@ public partial class BattleSpriteAnimationPlayer : Node2D
             : Vector2.Zero;
     }
 
+    private Vector2 GetFrameVerticalCrop(int frame)
+    {
+        return frame >= 0 && frame < FrameCropTopBottomPixels.Count
+            ? FrameCropTopBottomPixels[frame]
+            : Vector2.Zero;
+    }
+
     private string BuildCropSignature()
     {
         var signature = string.Empty;
         foreach (var crop in FrameCropPixels)
+        {
+            signature += $"{crop.X:0.###},{crop.Y:0.###};";
+        }
+
+        return signature;
+    }
+
+    private string BuildVerticalCropSignature()
+    {
+        var signature = string.Empty;
+        foreach (var crop in FrameCropTopBottomPixels)
         {
             signature += $"{crop.X:0.###},{crop.Y:0.###};";
         }

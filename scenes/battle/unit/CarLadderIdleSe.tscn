@@ -1,0 +1,29 @@
+[gd_scene format=3 uid="uid://b6jxoxdk0yrff"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_0q0gw"]
+[ext_resource type="Texture2D" uid="uid://bwhjdtnfuxe7v" path="res://assets/battle/unit/carladder_idle_sw.png" id="2_vl2m0"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_57hej"]
+atlas = ExtResource("2_vl2m0")
+region = Rect2(0, 0, 100, 128)
+filter_clip = true
+
+[node name="CarLadderIdleSe" type="Node2D" unique_id=690971035]
+script = ExtResource("1_0q0gw")
+SpriteSheet = ExtResource("2_vl2m0")
+FrameWidthOverride = 100
+FrameHeightOverride = 128
+BaseOffset = Vector2(0, 20)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+ClickRadius = 42.0
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(1, 0), Vector2(0, 0), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(-8, -37), Vector2(-2, -38), Vector2(4, -37), Vector2(6, -37)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1000433347]
+texture_filter = 1
+texture = SubResource("AtlasTexture_57hej")
+offset = Vector2(8, -17)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=525205202]

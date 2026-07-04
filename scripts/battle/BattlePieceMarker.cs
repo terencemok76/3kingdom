@@ -4,6 +4,8 @@ namespace ThreeKingdom.Battle;
 
 public partial class BattlePieceMarker : Node2D
 {
+    private const int MovingZIndexBoost = 100;
+
     private string _label = string.Empty;
     private Color _fillColor = Colors.White;
     private Color _borderColor = Colors.Black;
@@ -49,11 +51,56 @@ public partial class BattlePieceMarker : Node2D
     public void MoveTo(Vector2 destination, double duration, string moveScenePath, string idleScenePath)
     {
         SetupSpriteAnimationScene(moveScenePath);
+        var originalZIndex = ZIndex;
+        ZIndex = originalZIndex + MovingZIndexBoost;
         var tween = CreateTween();
         tween.SetEase(Tween.EaseType.InOut);
         tween.SetTrans(Tween.TransitionType.Linear);
         tween.TweenProperty(this, "position", destination, duration);
-        tween.TweenCallback(Callable.From(() => SetupSpriteAnimationScene(idleScenePath)));
+        tween.TweenCallback(Callable.From(() =>
+        {
+            SetupSpriteAnimationScene(idleScenePath);
+            ZIndex = originalZIndex;
+        }));
+    }
+
+    public void MoveVia(Vector2 waypoint, Vector2 destination, double duration, string moveScenePath, string idleScenePath)
+    {
+        MoveAlong(new[] { waypoint, destination }, duration, moveScenePath, idleScenePath);
+    }
+
+    public void MoveAlong(Vector2[] points, double duration, string moveScenePath, string idleScenePath)
+    {
+        MoveAlong(points, duration, BuildRepeatedScenePathArray(points.Length, moveScenePath), idleScenePath);
+    }
+
+    public void MoveAlong(Vector2[] points, double duration, string[] moveScenePaths, string idleScenePath)
+    {
+        if (points.Length == 0)
+        {
+            SetupSpriteAnimationScene(idleScenePath);
+            return;
+        }
+
+        var originalZIndex = ZIndex;
+        ZIndex = originalZIndex + MovingZIndexBoost;
+        var tween = CreateTween();
+        tween.SetEase(Tween.EaseType.InOut);
+        tween.SetTrans(Tween.TransitionType.Linear);
+        var segmentDuration = duration / points.Length;
+        for (var index = 0; index < points.Length; index++)
+        {
+            var point = points[index];
+            var scenePath = index < moveScenePaths.Length ? moveScenePaths[index] : moveScenePaths[^1];
+            tween.TweenCallback(Callable.From(() => SetupSpriteAnimationScene(scenePath)));
+            tween.TweenProperty(this, "position", point, segmentDuration);
+        }
+
+        tween.TweenCallback(Callable.From(() =>
+        {
+            SetupSpriteAnimationScene(idleScenePath);
+            ZIndex = originalZIndex;
+        }));
     }
 
     public void PlayAction(string actionScenePath, string idleScenePath, double duration)
@@ -96,6 +143,17 @@ public partial class BattlePieceMarker : Node2D
         }
 
         DrawPolygon(points, colors);
+    }
+
+    private static string[] BuildRepeatedScenePathArray(int count, string scenePath)
+    {
+        var scenePaths = new string[count];
+        for (var index = 0; index < count; index++)
+        {
+            scenePaths[index] = scenePath;
+        }
+
+        return scenePaths;
     }
 
 }

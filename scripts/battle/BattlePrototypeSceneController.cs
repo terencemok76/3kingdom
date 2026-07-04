@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,6 +20,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string CategoryUnit = "Unit";
     private const string CategorySiegeEngine = "SiegeEngine";
     private const string TroopInfantry = "Infantry";
+    private const string TroopSpearman = "Spearman";
     private const string TroopArcher = "Archer";
     private const string TroopCavalry = "Cavalry";
     private const string TroopCrossbow = "Crossbow";
@@ -42,6 +44,22 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string InfantryHurtSouthWestScenePath = "res://scenes/battle/unit/InfantryHurtSw.tscn";
     private const string InfantryHurtNorthEastScenePath = "res://scenes/battle/unit/InfantryHurtNe.tscn";
     private const string InfantryHurtNorthWestScenePath = "res://scenes/battle/unit/InfantryHurtNw.tscn";
+    private const string SpearmanIdleSouthEastScenePath = "res://scenes/battle/unit/SpearmanIdleSe.tscn";
+    private const string SpearmanIdleSouthWestScenePath = "res://scenes/battle/unit/SpearmanIdleSw.tscn";
+    private const string SpearmanIdleNorthEastScenePath = "res://scenes/battle/unit/SpearmanIdleNe.tscn";
+    private const string SpearmanIdleNorthWestScenePath = "res://scenes/battle/unit/SpearmanIdleNw.tscn";
+    private const string SpearmanMoveSouthEastScenePath = "res://scenes/battle/unit/SpearmanMoveSe.tscn";
+    private const string SpearmanMoveSouthWestScenePath = "res://scenes/battle/unit/SpearmanMoveSw.tscn";
+    private const string SpearmanMoveNorthEastScenePath = "res://scenes/battle/unit/SpearmanMoveNe.tscn";
+    private const string SpearmanMoveNorthWestScenePath = "res://scenes/battle/unit/SpearmanMoveNw.tscn";
+    private const string SpearmanAttackSouthEastScenePath = "res://scenes/battle/unit/SpearmanAttackSe.tscn";
+    private const string SpearmanAttackSouthWestScenePath = "res://scenes/battle/unit/SpearmanAttackSw.tscn";
+    private const string SpearmanAttackNorthEastScenePath = "res://scenes/battle/unit/SpearmanAttackNe.tscn";
+    private const string SpearmanAttackNorthWestScenePath = "res://scenes/battle/unit/SpearmanAttackNw.tscn";
+    private const string SpearmanHurtSouthEastScenePath = "res://scenes/battle/unit/SpearmanHurtSe.tscn";
+    private const string SpearmanHurtSouthWestScenePath = "res://scenes/battle/unit/SpearmanHurtSw.tscn";
+    private const string SpearmanHurtNorthEastScenePath = "res://scenes/battle/unit/SpearmanHurtNe.tscn";
+    private const string SpearmanHurtNorthWestScenePath = "res://scenes/battle/unit/SpearmanHurtNw.tscn";
     private const string ArcherIdleSouthEastScenePath = "res://scenes/battle/unit/ArcherIdleSe.tscn";
     private const string ArcherIdleSouthWestScenePath = "res://scenes/battle/unit/ArcherIdleSw.tscn";
     private const string ArcherIdleNorthEastScenePath = "res://scenes/battle/unit/ArcherIdleNe.tscn";
@@ -78,6 +96,10 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string CarIdleSouthWestScenePath = "res://scenes/battle/unit/CarIdleSw.tscn";
     private const string CarIdleNorthEastScenePath = "res://scenes/battle/unit/CarIdleNe.tscn";
     private const string CarIdleNorthWestScenePath = "res://scenes/battle/unit/CarIdleNw.tscn";
+    private const string CarLadderIdleSouthEastScenePath = "res://scenes/battle/unit/CarLadderIdleSe.tscn";
+    private const string CarLadderIdleSouthWestScenePath = "res://scenes/battle/unit/CarLadderIdleSw.tscn";
+    private const string CarLadderIdleNorthEastScenePath = "res://scenes/battle/unit/CarLadderIdleNe.tscn";
+    private const string CarLadderIdleNorthWestScenePath = "res://scenes/battle/unit/CarLadderIdleNw.tscn";
     private const string CatapultIdleSouthEastScenePath = "res://scenes/battle/unit/CatapultIdleSe.tscn";
     private const string CatapultIdleSouthWestScenePath = "res://scenes/battle/unit/CatapultIdleSw.tscn";
     private const string CatapultIdleNorthEastScenePath = "res://scenes/battle/unit/CatapultIdleNe.tscn";
@@ -87,13 +109,16 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string CatapultAttackNorthEastScenePath = "res://scenes/battle/unit/CatapultAttackNe.tscn";
     private const string CatapultAttackNorthWestScenePath = "res://scenes/battle/unit/CatapultAttackNw.tscn";
     private const double InfantryMoveAnimationDurationSeconds = 0.8;
+    private const double SpearmanMoveAnimationDurationSeconds = 0.8;
     private const double ArcherMoveAnimationDurationSeconds = 0.8;
     private const double CavalryMoveAnimationDurationSeconds = 0.8;
     private const double InfantryAttackAnimationDurationSeconds = 0.62;
+    private const double SpearmanAttackAnimationDurationSeconds = 0.72;
     private const double ArcherAttackAnimationDurationSeconds = 0.62;
     private const double CavalryAttackAnimationDurationSeconds = 0.5;
     private const double CatapultAttackAnimationDurationSeconds = 0.72;
     private const double InfantryHurtAnimationDurationSeconds = 0.5;
+    private const double SpearmanHurtAnimationDurationSeconds = 0.65;
     private const double ArcherHurtAnimationDurationSeconds = 0.5;
     private const double CavalryHurtAnimationDurationSeconds = 0.5;
     private const double CarMoveAnimationDurationSeconds = 0.8;
@@ -118,6 +143,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private Button? _moveButton;
     private Button? _attackButton;
     private Button? _strategyButton;
+    private Button? _openGateButton;
     private bool _isDraggingMap;
     private bool _isDraggingCommandMenu;
     private Vector2 _lastMousePosition;
@@ -201,6 +227,11 @@ public partial class BattlePrototypeSceneController : Node2D
             _strategyButton.Pressed += OnStrategyButtonPressed;
         }
 
+        if (_openGateButton != null)
+        {
+            _openGateButton.Pressed += OnOpenGateButtonPressed;
+        }
+
         if (_windowTitleLabel != null)
         {
             _windowTitleLabel.GuiInput += OnCommandMenuTitleGuiInput;
@@ -232,6 +263,7 @@ public partial class BattlePrototypeSceneController : Node2D
         _moveButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/MoveButton");
         _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
         _strategyButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/StrategyButton");
+        _openGateButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OpenGateButton");
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -342,6 +374,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private void PopulateMarkers()
     {
         CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "步", "攻方步兵 A", CategoryUnit, "Team A / 攻方", "夏侯淵", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Spearman", new Vector2I(8, 18), "槍", "攻方槍兵", CategoryUnit, "Team A / 攻方", "曹洪", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "弓", "攻方弓兵 B", CategoryUnit, "Team A / 攻方", "張郃", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "騎", "攻方騎兵 C", CategoryUnit, "Team A / 攻方", "曹純", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Ram", new Vector2I(12, 16), "衝", "衝車", CategorySiegeEngine, "Team A / 攻方", "樂進", TroopRam, 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
@@ -367,6 +400,10 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             marker.SetupSpriteAnimationScene(GetInitialInfantryDirectionScene(teamName));
         }
+        else if (category == CategoryUnit && troopType == TroopSpearman)
+        {
+            marker.SetupSpriteAnimationScene(SpearmanIdleSouthEastScenePath);
+        }
         else if (category == CategoryUnit && troopType == TroopArcher)
         {
             marker.SetupSpriteAnimationScene(ArcherIdleSouthEastScenePath);
@@ -378,6 +415,10 @@ public partial class BattlePrototypeSceneController : Node2D
         else if (category == CategorySiegeEngine && troopType == TroopRam)
         {
             marker.SetupSpriteAnimationScene(CarIdleSouthEastScenePath);
+        }
+        else if (category == CategorySiegeEngine && troopType == TroopLadder)
+        {
+            marker.SetupSpriteAnimationScene(CarLadderIdleSouthEastScenePath);
         }
         else if (category == CategorySiegeEngine && troopType == TroopCatapult)
         {
@@ -708,6 +749,11 @@ public partial class BattlePrototypeSceneController : Node2D
         builder.AppendLine($"部署區: {FormatDeploymentZone(cell.DeploymentZone)}");
         builder.AppendLine($"高度: {cell.HeightLevel}");
         builder.AppendLine($"移動阻擋: {(IsCellBlockingMovement(cell) ? "是" : "否")}");
+        if (cell.Structure == BattleStructureType.Gate)
+        {
+            builder.AppendLine($"Gate: {(cell.IsGateOpen ? "Open" : "Closed")}");
+        }
+
         builder.AppendLine("Occupants");
 
         if (_occupantsByGrid.TryGetValue(grid, out var occupants) && occupants.Count > 0)
@@ -787,10 +833,20 @@ public partial class BattlePrototypeSceneController : Node2D
             _occupantsByGrid[destinationGrid] = destinationOccupants;
         }
 
-        var moveDirection = GetInfantryDirection(sourceGrid, destinationGrid);
+        if (!TryBuildMovePath(sourceGrid, destinationGrid, movingOccupant.MoveRange, out var movePath))
+        {
+            movePath = [destinationGrid];
+        }
+
+        movePath = ExpandMovePathWithCarLadderWaypoints(sourceGrid, movePath, movingOccupant);
+        var pathPositions = movePath.Select(GetMarkerPosition).ToArray();
+        var pathDirections = BuildPathDirections(sourceGrid, movePath);
+        var moveDirection = pathDirections.Length > 0
+            ? pathDirections[^1]
+            : GetInfantryDirection(sourceGrid, destinationGrid);
         var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker, FacingDirection = moveDirection };
         destinationOccupants.Add(movedOccupant);
-        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid));
+        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections);
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
@@ -844,7 +900,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
-    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition)
+    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition, Vector2[]? pathPositions = null, BattleSpriteDirection[]? pathDirections = null)
     {
         if (occupant.Marker == null)
         {
@@ -853,11 +909,13 @@ public partial class BattlePrototypeSceneController : Node2D
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopInfantry)
         {
-            occupant.Marker.MoveTo(
-                destinationPosition,
-                InfantryMoveAnimationDurationSeconds,
-                GetInfantryMoveScene(direction),
-                GetInfantryIdleScene(direction));
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetInfantryMoveScene), InfantryMoveAnimationDurationSeconds, GetInfantryMoveScene(direction), GetInfantryIdleScene(direction));
+            return;
+        }
+
+        if (occupant.Category == CategoryUnit && occupant.TroopType == TroopSpearman)
+        {
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetSpearmanMoveScene), SpearmanMoveAnimationDurationSeconds, GetSpearmanMoveScene(direction), GetSpearmanIdleScene(direction));
             return;
         }
 
@@ -872,13 +930,20 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        if (occupant.Category == CategoryUnit && occupant.TroopType == TroopArcher)
+        if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopLadder)
         {
+            var carLadderIdleScene = GetCarLadderIdleScene(direction);
             occupant.Marker.MoveTo(
                 destinationPosition,
-                ArcherMoveAnimationDurationSeconds,
-                GetArcherMoveScene(direction),
-                GetArcherIdleScene(direction));
+                CarMoveAnimationDurationSeconds,
+                carLadderIdleScene,
+                carLadderIdleScene);
+            return;
+        }
+
+        if (occupant.Category == CategoryUnit && occupant.TroopType == TroopArcher)
+        {
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetArcherMoveScene), ArcherMoveAnimationDurationSeconds, GetArcherMoveScene(direction), GetArcherIdleScene(direction));
             return;
         }
 
@@ -904,6 +969,39 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         occupant.Marker.Position = destinationPosition;
+    }
+
+    private static void MoveMarker(BattlePieceMarker marker, Vector2 destinationPosition, Vector2[]? pathPositions, string[]? pathMoveScenePaths, double duration, string moveScenePath, string idleScenePath)
+    {
+        if (pathPositions is { Length: > 0 })
+        {
+            if (pathMoveScenePaths is { Length: > 0 })
+            {
+                marker.MoveAlong(pathPositions, duration, pathMoveScenePaths, idleScenePath);
+                return;
+            }
+
+            marker.MoveAlong(pathPositions, duration, moveScenePath, idleScenePath);
+            return;
+        }
+
+        marker.MoveTo(destinationPosition, duration, moveScenePath, idleScenePath);
+    }
+
+    private static string[]? GetMoveScenePathArray(BattleSpriteDirection[]? directions, Func<BattleSpriteDirection, string> getMoveScene)
+    {
+        if (directions is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        var scenePaths = new string[directions.Length];
+        for (var index = 0; index < directions.Length; index++)
+        {
+            scenePaths[index] = getMoveScene(directions[index]);
+        }
+
+        return scenePaths;
     }
 
     private static void ApplyAttackAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction)
@@ -936,6 +1034,15 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
+        if (occupant.TroopType == TroopSpearman)
+        {
+            occupant.Marker.PlayAction(
+                GetSpearmanAttackScene(direction),
+                GetSpearmanIdleScene(direction),
+                SpearmanAttackAnimationDurationSeconds);
+            return;
+        }
+
         if (occupant.TroopType == TroopArcher)
         {
             occupant.Marker.PlayAction(
@@ -964,13 +1071,22 @@ public partial class BattlePrototypeSceneController : Node2D
         var target = targetOccupants.FirstOrDefault(static occupant =>
             occupant.Marker != null &&
             occupant.Category == CategoryUnit &&
-            (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopArcher || occupant.TroopType == TroopCavalry));
+            (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopSpearman || occupant.TroopType == TroopArcher || occupant.TroopType == TroopCavalry));
         if (target?.Marker == null)
         {
             return;
         }
 
         var hurtDirection = GetInfantryDirection(attackerGrid, targetGrid);
+        if (target.TroopType == TroopSpearman)
+        {
+            target.Marker.PlayAction(
+                GetSpearmanHurtScene(hurtDirection),
+                GetSpearmanIdleScene(target.FacingDirection),
+                SpearmanHurtAnimationDurationSeconds);
+            return;
+        }
+
         if (target.TroopType == TroopArcher)
         {
             target.Marker.PlayAction(
@@ -1086,6 +1202,50 @@ public partial class BattlePrototypeSceneController : Node2D
         };
     }
 
+    private static string GetSpearmanIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => SpearmanIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => SpearmanIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => SpearmanIdleSouthWestScenePath,
+            _ => SpearmanIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetSpearmanMoveScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => SpearmanMoveNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => SpearmanMoveNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => SpearmanMoveSouthWestScenePath,
+            _ => SpearmanMoveSouthEastScenePath
+        };
+    }
+
+    private static string GetSpearmanAttackScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => SpearmanAttackNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => SpearmanAttackNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => SpearmanAttackSouthWestScenePath,
+            _ => SpearmanAttackSouthEastScenePath
+        };
+    }
+
+    private static string GetSpearmanHurtScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => SpearmanHurtNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => SpearmanHurtNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => SpearmanHurtSouthWestScenePath,
+            _ => SpearmanHurtSouthEastScenePath
+        };
+    }
+
     private static string GetCarIdleScene(BattleSpriteDirection direction)
     {
         return direction switch
@@ -1094,6 +1254,17 @@ public partial class BattlePrototypeSceneController : Node2D
             BattleSpriteDirection.NorthWest => CarIdleNorthWestScenePath,
             BattleSpriteDirection.SouthWest => CarIdleSouthWestScenePath,
             _ => CarIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetCarLadderIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => CarLadderIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => CarLadderIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => CarLadderIdleSouthWestScenePath,
+            _ => CarLadderIdleSouthEastScenePath
         };
     }
 
@@ -1250,22 +1421,23 @@ public partial class BattlePrototypeSceneController : Node2D
         while (frontier.Count > 0)
         {
             var current = frontier.Dequeue();
-            foreach (var neighbor in GetOrthogonalNeighbors(current.Grid))
+            foreach (var step in GetMovementNeighbors(current.Grid))
             {
+                var neighbor = step.Grid;
                 if (!IsWithinMap(neighbor))
                 {
                     continue;
                 }
 
                 var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
-                if (!CanEnterCell(neighbor, cell))
+                if (!CanEnterCell(current.Grid, neighbor, cell, step.UsesLadderBridge))
                 {
                     continue;
                 }
 
                 if (IsCellBlockingMovement(cell))
                 {
-                    if (!CanTraverseBlockedCell(neighbor, cell))
+                    if (!CanTraverseBlockedCell(neighbor, cell, step.UsesLadderBridge))
                     {
                         continue;
                     }
@@ -1299,6 +1471,422 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
+    private bool TryBuildMovePath(Vector2I startGrid, Vector2I destinationGrid, int moveRange, out List<Vector2I> path)
+    {
+        path = [];
+        if (_mapData == null || moveRange <= 0)
+        {
+            return false;
+        }
+
+        var frontier = new Queue<(Vector2I Grid, int RemainingMove)>();
+        var bestRemaining = new Dictionary<Vector2I, int> { [startGrid] = moveRange };
+        var previousByGrid = new Dictionary<Vector2I, Vector2I>();
+        frontier.Enqueue((startGrid, moveRange));
+
+        while (frontier.Count > 0)
+        {
+            var current = frontier.Dequeue();
+            if (current.Grid == destinationGrid)
+            {
+                path = RebuildMovePath(startGrid, destinationGrid, previousByGrid);
+                return path.Count > 0;
+            }
+
+            foreach (var step in GetMovementNeighbors(current.Grid))
+            {
+                var neighbor = step.Grid;
+                if (!IsWithinMap(neighbor))
+                {
+                    continue;
+                }
+
+                var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
+                if (!CanEnterCell(current.Grid, neighbor, cell, step.UsesLadderBridge))
+                {
+                    continue;
+                }
+
+                if (IsCellBlockingMovement(cell) && !CanTraverseBlockedCell(neighbor, cell, step.UsesLadderBridge))
+                {
+                    continue;
+                }
+
+                if (neighbor != startGrid && HasBlockingOccupant(neighbor))
+                {
+                    continue;
+                }
+
+                var remainingMove = current.RemainingMove - GetMoveCost(cell);
+                if (remainingMove < 0)
+                {
+                    continue;
+                }
+
+                if (bestRemaining.TryGetValue(neighbor, out var knownRemaining) && knownRemaining >= remainingMove)
+                {
+                    continue;
+                }
+
+                bestRemaining[neighbor] = remainingMove;
+                previousByGrid[neighbor] = current.Grid;
+                frontier.Enqueue((neighbor, remainingMove));
+            }
+        }
+
+        return false;
+    }
+
+    private static List<Vector2I> RebuildMovePath(Vector2I startGrid, Vector2I destinationGrid, IReadOnlyDictionary<Vector2I, Vector2I> previousByGrid)
+    {
+        var path = new List<Vector2I>();
+        var current = destinationGrid;
+        while (current != startGrid)
+        {
+            path.Add(current);
+            if (!previousByGrid.TryGetValue(current, out current))
+            {
+                return [];
+            }
+        }
+
+        path.Reverse();
+        return path;
+    }
+
+    private List<Vector2I> ExpandMovePathWithCarLadderWaypoints(Vector2I sourceGrid, IReadOnlyList<Vector2I> movePath, BattleOccupantInfo movingOccupant)
+    {
+        if (_mapData == null || movePath.Count == 0 || !CanUseCarLadderBridge(movingOccupant))
+        {
+            return movePath.ToList();
+        }
+
+        var expandedPath = new List<Vector2I>();
+        var previousGrid = sourceGrid;
+        foreach (var nextGrid in movePath)
+        {
+            if (TryGetCarLadderGridForTransition(previousGrid, nextGrid, out var ladderGrid))
+            {
+                AddPathGrid(expandedPath, ladderGrid, previousGrid);
+            }
+
+            AddPathGrid(expandedPath, nextGrid, previousGrid);
+            previousGrid = nextGrid;
+        }
+
+        return expandedPath;
+    }
+
+    private bool TryGetCarLadderGridForTransition(Vector2I fromGrid, Vector2I toGrid, out Vector2I ladderGrid)
+    {
+        ladderGrid = default;
+        if (_mapData == null || !IsWithinMap(fromGrid) || !IsWithinMap(toGrid))
+        {
+            return false;
+        }
+
+        var fromCell = _mapData.GetCell(fromGrid.X, fromGrid.Y);
+        var toCell = _mapData.GetCell(toGrid.X, toGrid.Y);
+        if (!ShouldUseCarLadderBridgeForMove(fromCell, toCell))
+        {
+            return false;
+        }
+
+        foreach (var candidateLadderGrid in GetUsableCarLadderGrids())
+        {
+            var groundGrids = GetCarLadderGroundEndpoints(candidateLadderGrid).ToList();
+            var wallWalkGrids = GetCarLadderWallWalkEndpoints(candidateLadderGrid).ToList();
+            var matchesGroundToWall = fromCell.Terrain != BattleTerrainType.WallWalk &&
+                                      groundGrids.Contains(fromGrid) &&
+                                      wallWalkGrids.Contains(toGrid);
+            var matchesWallToGround = fromCell.Terrain == BattleTerrainType.WallWalk &&
+                                      wallWalkGrids.Contains(fromGrid) &&
+                                      groundGrids.Contains(toGrid);
+            if (!matchesGroundToWall && !matchesWallToGround)
+            {
+                continue;
+            }
+
+            ladderGrid = candidateLadderGrid;
+            return true;
+        }
+
+        return false;
+    }
+
+    private IEnumerable<(Vector2I Grid, bool UsesLadderBridge)> GetMovementNeighbors(Vector2I grid)
+    {
+        foreach (var neighbor in GetOrthogonalNeighbors(grid))
+        {
+            yield return (neighbor, false);
+        }
+
+        foreach (var bridgeNeighbor in GetCarLadderBridgeNeighbors(grid))
+        {
+            yield return (bridgeNeighbor, true);
+        }
+    }
+
+    private IEnumerable<Vector2I> GetCarLadderBridgeNeighbors(Vector2I grid)
+    {
+        if (_mapData == null || _selectedUnit == null || !CanUseCarLadderBridge(_selectedUnit) || !IsWithinMap(grid))
+        {
+            yield break;
+        }
+
+        var currentCell = _mapData.GetCell(grid.X, grid.Y);
+        foreach (var ladderGrid in GetUsableCarLadderGrids())
+        {
+            var bridgeGroundGrids = GetCarLadderGroundEndpoints(ladderGrid).ToList();
+            var bridgeWallWalkGrids = GetCarLadderWallWalkEndpoints(ladderGrid).ToList();
+            if (currentCell.Terrain == BattleTerrainType.WallWalk)
+            {
+                if (!bridgeWallWalkGrids.Contains(grid))
+                {
+                    continue;
+                }
+
+                foreach (var groundGrid in bridgeGroundGrids)
+                {
+                    yield return groundGrid;
+                }
+
+                continue;
+            }
+
+            if (!bridgeGroundGrids.Contains(grid))
+            {
+                continue;
+            }
+
+            foreach (var wallWalkGrid in bridgeWallWalkGrids)
+            {
+                yield return wallWalkGrid;
+            }
+        }
+    }
+
+    private bool TryGetCarLadderBridgePath(Vector2I sourceGrid, Vector2I destinationGrid, BattleOccupantInfo movingOccupant, out Vector2[] pathPositions, out BattleSpriteDirection[] pathDirections)
+    {
+        pathPositions = [];
+        pathDirections = [];
+        if (_mapData == null || !CanUseCarLadderBridge(movingOccupant) || !IsWithinMap(sourceGrid) || !IsWithinMap(destinationGrid))
+        {
+            return false;
+        }
+
+        var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
+        var destinationCell = _mapData.GetCell(destinationGrid.X, destinationGrid.Y);
+        if (!ShouldUseCarLadderBridgeForMove(sourceCell, destinationCell))
+        {
+            return false;
+        }
+
+        if (sourceCell.Terrain == destinationCell.Terrain ||
+            (sourceCell.Terrain != BattleTerrainType.WallWalk && destinationCell.Terrain != BattleTerrainType.WallWalk))
+        {
+            return false;
+        }
+
+        foreach (var ladderGrid in GetUsableCarLadderGrids())
+        {
+            var groundGrids = GetCarLadderGroundEndpoints(ladderGrid).ToList();
+            var wallWalkGrids = GetCarLadderWallWalkEndpoints(ladderGrid).ToList();
+            var pathGrids = new List<Vector2I>();
+            if (sourceCell.Terrain != BattleTerrainType.WallWalk && wallWalkGrids.Contains(destinationGrid))
+            {
+                var entryGrid = GetNearestGrid(sourceGrid, groundGrids);
+                if (!entryGrid.HasValue)
+                {
+                    continue;
+                }
+
+                AddPathGrid(pathGrids, entryGrid.Value, sourceGrid);
+                AddPathGrid(pathGrids, ladderGrid, sourceGrid);
+                AddPathGrid(pathGrids, destinationGrid, sourceGrid);
+            }
+            else if (sourceCell.Terrain == BattleTerrainType.WallWalk && wallWalkGrids.Contains(sourceGrid))
+            {
+                var exitGrid = GetNearestGrid(destinationGrid, groundGrids);
+                if (!exitGrid.HasValue)
+                {
+                    continue;
+                }
+
+                AddPathGrid(pathGrids, ladderGrid, sourceGrid);
+                AddPathGrid(pathGrids, exitGrid.Value, sourceGrid);
+                AddPathGrid(pathGrids, destinationGrid, sourceGrid);
+            }
+            else
+            {
+                continue;
+            }
+
+            if (pathGrids.Count == 0)
+            {
+                continue;
+            }
+
+            pathPositions = pathGrids.Select(GetMarkerPosition).ToArray();
+            pathDirections = BuildPathDirections(sourceGrid, pathGrids);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static Vector2I? GetNearestGrid(Vector2I fromGrid, IEnumerable<Vector2I> candidates)
+    {
+        Vector2I? nearestGrid = null;
+        var nearestDistance = int.MaxValue;
+        foreach (var candidate in candidates)
+        {
+            var distance = Mathf.Abs(candidate.X - fromGrid.X) + Mathf.Abs(candidate.Y - fromGrid.Y);
+            if (distance >= nearestDistance)
+            {
+                continue;
+            }
+
+            nearestGrid = candidate;
+            nearestDistance = distance;
+        }
+
+        return nearestGrid;
+    }
+
+    private static void AddPathGrid(List<Vector2I> pathGrids, Vector2I grid, Vector2I sourceGrid)
+    {
+        if (grid == sourceGrid || (pathGrids.Count > 0 && pathGrids[^1] == grid))
+        {
+            return;
+        }
+
+        pathGrids.Add(grid);
+    }
+
+    private static BattleSpriteDirection[] BuildPathDirections(Vector2I sourceGrid, IReadOnlyList<Vector2I> pathGrids)
+    {
+        var directions = new BattleSpriteDirection[pathGrids.Count];
+        var previousGrid = sourceGrid;
+        for (var index = 0; index < pathGrids.Count; index++)
+        {
+            directions[index] = GetInfantryDirection(previousGrid, pathGrids[index]);
+            previousGrid = pathGrids[index];
+        }
+
+        return directions;
+    }
+
+    private static bool ShouldUseCarLadderBridgeForMove(BattlePrototypeCellData sourceCell, BattlePrototypeCellData destinationCell)
+    {
+        if (sourceCell.Terrain == BattleTerrainType.WallWalk)
+        {
+            return !IsCastleInnerTerrain(destinationCell.Terrain);
+        }
+
+        if (destinationCell.Terrain == BattleTerrainType.WallWalk)
+        {
+            return !IsCastleInnerTerrain(sourceCell.Terrain);
+        }
+
+        return false;
+    }
+
+    private static bool IsCastleInnerTerrain(BattleTerrainType terrain)
+    {
+        return terrain == BattleTerrainType.Courtyard;
+    }
+
+    private IEnumerable<Vector2I> GetUsableCarLadderGrids()
+    {
+        foreach (var (grid, occupants) in _occupantsByGrid)
+        {
+            if (!IsWithinMap(grid))
+            {
+                continue;
+            }
+
+            if (occupants.Any(static occupant =>
+                    occupant.Category == CategorySiegeEngine &&
+                    occupant.TroopType == TroopLadder &&
+                    occupant.Marker != null))
+            {
+                yield return grid;
+            }
+        }
+    }
+
+    private IEnumerable<Vector2I> GetCarLadderGroundEndpoints(Vector2I ladderGrid)
+    {
+        if (_mapData == null)
+        {
+            yield break;
+        }
+
+        foreach (var neighbor in GetOrthogonalNeighbors(ladderGrid))
+        {
+            if (!IsWithinMap(neighbor))
+            {
+                continue;
+            }
+
+            var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
+            if (cell.Terrain != BattleTerrainType.WallWalk && !cell.IsBlockingStructure)
+            {
+                yield return neighbor;
+            }
+        }
+    }
+
+    private IEnumerable<Vector2I> GetCarLadderWallWalkEndpoints(Vector2I ladderGrid)
+    {
+        if (_mapData == null)
+        {
+            yield break;
+        }
+
+        foreach (var direction in GetOrthogonalDirections())
+        {
+            var adjacentGrid = ladderGrid + direction;
+            if (!IsWithinMap(adjacentGrid))
+            {
+                continue;
+            }
+
+            var adjacentCell = _mapData.GetCell(adjacentGrid.X, adjacentGrid.Y);
+            if (adjacentCell.Terrain == BattleTerrainType.WallWalk)
+            {
+                yield return adjacentGrid;
+                continue;
+            }
+
+            if (adjacentCell.Structure is not (BattleStructureType.Wall or BattleStructureType.Gate))
+            {
+                continue;
+            }
+
+            var behindWallGrid = adjacentGrid + direction;
+            if (!IsWithinMap(behindWallGrid))
+            {
+                continue;
+            }
+
+            var behindWallCell = _mapData.GetCell(behindWallGrid.X, behindWallGrid.Y);
+            if (behindWallCell.Terrain == BattleTerrainType.WallWalk)
+            {
+                yield return behindWallGrid;
+            }
+        }
+    }
+
+    private static IEnumerable<Vector2I> GetOrthogonalDirections()
+    {
+        yield return new Vector2I(1, 0);
+        yield return new Vector2I(-1, 0);
+        yield return new Vector2I(0, 1);
+        yield return new Vector2I(0, -1);
+    }
+
     private IEnumerable<Vector2I> GetOrthogonalNeighbors(Vector2I grid)
     {
         yield return new Vector2I(grid.X + 1, grid.Y);
@@ -1320,6 +1908,13 @@ public partial class BattlePrototypeSceneController : Node2D
     private static bool IsBattlePiece(BattleOccupantInfo occupant)
     {
         return occupant.Category == CategoryUnit || occupant.Category == CategorySiegeEngine;
+    }
+
+    private static bool CanUseCarLadderBridge(BattleOccupantInfo occupant)
+    {
+        return IsAttackerPiece(occupant) &&
+               occupant.Category == CategoryUnit &&
+               (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopSpearman || occupant.TroopType == TroopArcher);
     }
 
     private static int GetMoveCost(BattlePrototypeCellData cell)
@@ -1399,6 +1994,65 @@ public partial class BattlePrototypeSceneController : Node2D
         RefreshHighlights();
     }
 
+    private void OnOpenGateButtonPressed()
+    {
+        if (!TryGetAdjacentOpenableGate(out var gateGrid) || _mapData == null)
+        {
+            return;
+        }
+
+        var gateCell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
+        gateCell.IsGateOpen = true;
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private bool TryGetAdjacentOpenableGate(out Vector2I gateGrid)
+    {
+        gateGrid = default;
+        if (_mapData == null ||
+            _selectedUnit == null ||
+            !_selectedUnitGrid.HasValue ||
+            _selectedUnit.Category != CategoryUnit ||
+            !IsAttackerPiece(_selectedUnit))
+        {
+            return false;
+        }
+
+        var unitGrid = _selectedUnitGrid.Value;
+        if (!IsWithinMap(unitGrid))
+        {
+            return false;
+        }
+
+        var unitCell = _mapData.GetCell(unitGrid.X, unitGrid.Y);
+        if (unitCell.Terrain is not (BattleTerrainType.Courtyard or BattleTerrainType.WallWalk))
+        {
+            return false;
+        }
+
+        foreach (var neighbor in GetOrthogonalNeighbors(unitGrid))
+        {
+            if (!IsWithinMap(neighbor))
+            {
+                continue;
+            }
+
+            var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
+            if (cell.Structure == BattleStructureType.Gate && !cell.IsGateOpen && !cell.IsBroken)
+            {
+                gateGrid = neighbor;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private IEnumerable<Vector2I> CalculateAttackableGrids(Vector2I startGrid, int attackRange)
     {
         if (attackRange <= 0)
@@ -1443,6 +2097,11 @@ public partial class BattlePrototypeSceneController : Node2D
             }
         }
 
+        if (_openGateButton != null)
+        {
+            _openGateButton.Visible = TryGetAdjacentOpenableGate(out _);
+        }
+
         var desiredPosition = screenPosition + new Vector2(12.0f, 12.0f);
         _commandMenu.Position = ClampCommandMenuPosition(desiredPosition);
         _commandMenu.Visible = true;
@@ -1461,6 +2120,11 @@ public partial class BattlePrototypeSceneController : Node2D
         if (_unitMenuInfoLabel != null)
         {
             _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nTroops: -";
+        }
+
+        if (_openGateButton != null)
+        {
+            _openGateButton.Visible = false;
         }
     }
 
@@ -1515,7 +2179,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return _currentTurnSide == BattleTurnSide.TeamA ? "Team A / 攻方" : "Team B / 守方";
     }
 
-    private bool CanTraverseBlockedCell(Vector2I grid, BattlePrototypeCellData cell)
+    private bool CanTraverseBlockedCell(Vector2I grid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
     {
         _ = grid;
 
@@ -1534,19 +2198,33 @@ public partial class BattlePrototypeSceneController : Node2D
             return true;
         }
 
+        if (usesLadderBridge && cell.Terrain == BattleTerrainType.WallWalk && CanUseCarLadderBridge(_selectedUnit))
+        {
+            return true;
+        }
+
         return false;
     }
 
-    private bool CanEnterCell(Vector2I grid, BattlePrototypeCellData cell)
+    private bool CanEnterCell(Vector2I sourceGrid, Vector2I destinationGrid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
     {
-        _ = grid;
+        _ = destinationGrid;
 
         if (_selectedUnit == null)
         {
             return false;
         }
 
-        if (cell.Terrain == BattleTerrainType.WallWalk && IsAttackerPiece(_selectedUnit))
+        var sourceCell = _mapData != null && IsWithinMap(sourceGrid)
+            ? _mapData.GetCell(sourceGrid.X, sourceGrid.Y)
+            : null;
+        var sourceIsWallWalk = sourceCell?.Terrain == BattleTerrainType.WallWalk;
+        var sourceIsCourtyard = sourceCell?.Terrain == BattleTerrainType.Courtyard;
+        if (cell.Terrain == BattleTerrainType.WallWalk &&
+            IsAttackerPiece(_selectedUnit) &&
+            !sourceIsWallWalk &&
+            !sourceIsCourtyard &&
+            !(usesLadderBridge && CanUseCarLadderBridge(_selectedUnit)))
         {
             return false;
         }

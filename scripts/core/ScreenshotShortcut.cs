@@ -6,7 +6,7 @@ namespace ThreeKingdom.Core;
 
 internal static class ScreenshotShortcut
 {
-    private const string ScreenshotDirectory = "user://screenshots";
+    private const string ScreenshotDirectory = "res://screenshot";
 
     public static void HandleInput(Node owner, InputEvent @event)
     {

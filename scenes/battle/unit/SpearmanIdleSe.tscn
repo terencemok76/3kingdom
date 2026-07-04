@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://csuo3nmviqkvs"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_6hcyp"]
+[ext_resource type="Texture2D" uid="uid://bhkdpswufdd08" path="res://assets/battle/unit/spearman_idle_se.png" id="2_qk0p6"]
+
+[node name="SpearmanIdleSe" type="Node2D" unique_id=22725270]
+script = ExtResource("1_6hcyp")
+SpriteSheet = ExtResource("2_qk0p6")
+FrameWidthOverride = 74
+FrameHeightOverride = 128
+BaseOffset = Vector2(0, 12)
+ClickRadius = 34.0
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(3, 6), Vector2(-6, 5), Vector2(-5, 0)])
+FrameOffsets = Array[Vector2]([Vector2(-4, -27), Vector2(6, -27), Vector2(6, -27), Vector2(4.5, -28)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2133447017]
+texture_filter = 1
+texture = ExtResource("2_qk0p6")
+offset = Vector2(-4, -15)
+hframes = 4
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1028070076]

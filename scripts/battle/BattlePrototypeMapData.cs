@@ -42,13 +42,14 @@ public sealed class BattlePrototypeCellData
     public BattleStructureType Structure { get; set; } = BattleStructureType.None;
     public BattleDeploymentZone DeploymentZone { get; set; } = BattleDeploymentZone.None;
     public bool BlocksMovement { get; set; }
+    public bool IsGateOpen { get; set; }
     public int HeightLevel { get; set; }
     public int StructureMaxHealth { get; set; }
     public int StructureHealth { get; set; }
 
     public bool HasStructureHealth => StructureMaxHealth > 0;
     public bool IsBroken => HasStructureHealth && StructureHealth <= 0;
-    public bool IsBlockingStructure => BlocksMovement && !IsBroken;
+    public bool IsBlockingStructure => BlocksMovement && !IsBroken && !(Structure == BattleStructureType.Gate && IsGateOpen);
 }
 
 public sealed class BattlePrototypeMapData

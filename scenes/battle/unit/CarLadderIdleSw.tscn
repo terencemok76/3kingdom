@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://bix4xpfkk00ln"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_7ogjg"]
+[ext_resource type="Texture2D" uid="uid://bwhjdtnfuxe7v" path="res://assets/battle/unit/carladder_idle_sw.png" id="2_qmyeg"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wufkv"]
+atlas = ExtResource("2_qmyeg")
+region = Rect2(300, 0, 100, 128)
+filter_clip = true
+
+[node name="CarLadderIdleSw" type="Node2D" unique_id=333527261]
+script = ExtResource("1_7ogjg")
+SpriteSheet = ExtResource("2_qmyeg")
+FrameWidthOverride = 100
+FrameHeightOverride = 128
+PreviewFrame = 4
+BaseOffset = Vector2(0, 20)
+ClickRadius = 42.0
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(1, 0), Vector2(0, 0), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(-8, -37), Vector2(-2, -38), Vector2(4, -37), Vector2(6, -37)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1424542940]
+texture_filter = 1
+texture = SubResource("AtlasTexture_wufkv")
+offset = Vector2(6, -17)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1930767310]
