@@ -2001,8 +2001,16 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        var gateCell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
-        gateCell.IsGateOpen = true;
+        foreach (var groupGateGrid in GetConnectedGateGroup(gateGrid))
+        {
+            var gateCell = _mapData.GetCell(groupGateGrid.X, groupGateGrid.Y);
+            gateCell.IsGateOpen = true;
+            if (_castleLayer != null)
+            {
+                BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: true);
+            }
+        }
+
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
@@ -2051,6 +2059,49 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         return false;
+    }
+
+    private List<Vector2I> GetConnectedGateGroup(Vector2I startGateGrid)
+    {
+        var group = new List<Vector2I>();
+        if (_mapData == null || !IsWithinMap(startGateGrid))
+        {
+            return group;
+        }
+
+        var startCell = _mapData.GetCell(startGateGrid.X, startGateGrid.Y);
+        if (startCell.Structure != BattleStructureType.Gate)
+        {
+            return group;
+        }
+
+        var visited = new HashSet<Vector2I> { startGateGrid };
+        var frontier = new Queue<Vector2I>();
+        frontier.Enqueue(startGateGrid);
+
+        while (frontier.Count > 0)
+        {
+            var current = frontier.Dequeue();
+            group.Add(current);
+
+            foreach (var neighbor in GetOrthogonalNeighbors(current))
+            {
+                if (!IsWithinMap(neighbor) || !visited.Add(neighbor))
+                {
+                    continue;
+                }
+
+                var neighborCell = _mapData.GetCell(neighbor.X, neighbor.Y);
+                if (neighborCell.Structure != BattleStructureType.Gate)
+                {
+                    continue;
+                }
+
+                frontier.Enqueue(neighbor);
+            }
+        }
+
+        return group;
     }
 
     private IEnumerable<Vector2I> CalculateAttackableGrids(Vector2I startGrid, int attackRange)

@@ -53,9 +53,11 @@ public static class BattlePrototypeTileMapBuilder
     private const int TileWidth = 128;
     private const int BaseTileHeight = 64;
     private const int AtlasSourceId = 0;
+    private const int CastleOpenGateAtlasSourceId = 1;
     private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
     private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
     private const string CastleAtlasPath = "res://assets/battle/wall/castle.png";
+    private const string CastleOpenGateAtlasPath = "res://assets/battle/wall/castle_gate_open.png";
     private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
 
     private static readonly Dictionary<BattlePrototypeTileLayerKind, TileSet> SharedTileSets = new();
@@ -102,6 +104,23 @@ public static class BattlePrototypeTileMapBuilder
     {
         layer.TileSet = CreateSharedTileSet(layerKind);
         layer.RenderingQuadrantSize = 8;
+        layer.UpdateInternals();
+    }
+
+    public static void SetCastleGateVisual(TileMapLayer layer, Vector2I grid, bool isOpen)
+    {
+        if (isOpen)
+        {
+            layer.SetCell(grid, CastleOpenGateAtlasSourceId, new Vector2I(grid.X % 2 == 0 ? 1 : 0, 0));
+        }
+        else
+        {
+            var visual = grid.X % 2 == 0
+                ? BattlePrototypeCastleTileVisual.GateRight
+                : BattlePrototypeCastleTileVisual.GateLeft;
+            layer.SetCell(grid, AtlasSourceId, new Vector2I((int)visual, 0));
+        }
+
         layer.UpdateInternals();
     }
 
@@ -200,7 +219,57 @@ public static class BattlePrototypeTileMapBuilder
         };
 
         tileSet.AddSource(atlasSource, AtlasSourceId);
+        if (layerKind == BattlePrototypeTileLayerKind.Castle)
+        {
+            AddCastleOpenGateSource(tileSet, metrics);
+        }
+
         return tileSet;
+    }
+
+    private static void AddCastleOpenGateSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        if (!ResourceLoader.Exists(CastleOpenGateAtlasPath))
+        {
+            return;
+        }
+
+        var atlasTexture = GD.Load<Texture2D>(CastleOpenGateAtlasPath);
+        if (atlasTexture == null)
+        {
+            GD.PushWarning($"Battle open gate atlas could not be loaded: {CastleOpenGateAtlasPath}");
+            return;
+        }
+
+        var tileCount = 2;
+        var requiredWidth = tileCount * metrics.RegionWidth;
+        if (atlasTexture.GetWidth() < requiredWidth || atlasTexture.GetHeight() < metrics.RegionHeight)
+        {
+            GD.PushWarning(
+                $"Battle open gate atlas too small: {CastleOpenGateAtlasPath}. " +
+                $"Expected at least {requiredWidth}x{metrics.RegionHeight}, got {atlasTexture.GetWidth()}x{atlasTexture.GetHeight()}.");
+            return;
+        }
+
+        var atlasSource = new TileSetAtlasSource
+        {
+            Texture = atlasTexture,
+            TextureRegionSize = new Vector2I(metrics.RegionWidth, metrics.RegionHeight),
+            UseTexturePadding = false
+        };
+
+        for (var tileIndex = 0; tileIndex < tileCount; tileIndex++)
+        {
+            var atlasCoords = new Vector2I(tileIndex, 0);
+            atlasSource.CreateTile(atlasCoords);
+            var textureOrigin = metrics.GetTextureOrigin();
+            if (textureOrigin != Vector2I.Zero)
+            {
+                atlasSource.GetTileData(atlasCoords, 0).TextureOrigin = textureOrigin;
+            }
+        }
+
+        tileSet.AddSource(atlasSource, CastleOpenGateAtlasSourceId);
     }
 
     private static Texture2D? LoadExternalAtlasTexture(BattlePrototypeTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
