@@ -33,6 +33,9 @@ public partial class BattlePrototypeSceneController : Node2D
     private const float WallWalkHighlightVisualLift = -42.0f;
 //    private static readonly Vector2 WallTopVisualOffset = new(32.0f, -8.0f);
     private static readonly Vector2 WallTopVisualOffset = new(32.0f, -60.0f);
+    // A wall-top unit must render after the NE wall segments that overlap it from the right.
+    private const int WallTopLevelDepthOffset = 3;
+    private const int NorthEastWallOcclusionDepth = 2;
     private const string CategoryUnit = "Unit";
     private const string CategorySiegeEngine = "SiegeEngine";
     private const string TroopInfantry = "Infantry";
@@ -560,11 +563,6 @@ public partial class BattlePrototypeSceneController : Node2D
             return leftDepth.CompareTo(rightDepth);
         }
 
-        if (left.Grid.Level != right.Grid.Level)
-        {
-            return left.Grid.Level.CompareTo(right.Grid.Level);
-        }
-
         if (left.LocalOrder != right.LocalOrder)
         {
             return left.LocalOrder.CompareTo(right.LocalOrder);
@@ -580,7 +578,12 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private static int GetBattleDepth(BattleGridKey grid)
     {
-        return grid.X + grid.Y;
+        return grid.X + grid.Y + GetBattleLevelDepthOffset(grid.Level);
+    }
+
+    private static int GetBattleLevelDepthOffset(int level)
+    {
+        return level * WallTopLevelDepthOffset;
     }
 
     private static int GetBattleDepthLocalOrder(BattleDepthRenderKind kind)
@@ -645,17 +648,20 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        if (grid.Level == 2)
-        {
-            return IsWallTopGrid(grid.Grid);
-        }
-
         if (grid.Level != 0)
         {
             return false;
         }
 
-        for (var yOffset = 1; yOffset <= 2; yOffset++)
+        if (IsWallTopGrid(grid.Grid))
+        {
+            return false;
+        }
+
+        // NE-facing castle walls visually cover the L0 cells behind them:
+        // wall grid (x, wallY) occludes (x, wallY - 1) and (x, wallY - 2).
+        // Since this check starts from the occupant grid, look forward to y + depth.
+        for (var yOffset = 1; yOffset <= NorthEastWallOcclusionDepth; yOffset++)
         {
             var blockingGrid = new Vector2I(grid.X, grid.Y + yOffset);
             if (IsWithinMap(blockingGrid) && IsWallTopGrid(blockingGrid))
@@ -685,8 +691,8 @@ public partial class BattlePrototypeSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/Catapult", new Vector2I(14, 15), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
         CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 7), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 7), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopCrossbow, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 7), "G", "Defender Commander", CategoryUnit, "Team B / Defender", "Guo Si", TroopGuard, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 7), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 7), "G", "Defender Commander", CategoryUnit, "Team B / Defender", "Guo Si", TroopSpearman, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
     }
 
     private void CreateMarker(string path, Vector2I grid, string label, string displayName, string category, string teamName, string officerName, string troopType, int troopCount, Color fillColor, Color borderColor, float radius = 19.0f, int moveRange = 0, int attackRange = 1)
@@ -1372,7 +1378,7 @@ public partial class BattlePrototypeSceneController : Node2D
             movedOccupant.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         RefreshBattleDepthLayerOrder();
         ClearOccludedUnitSilhouettes();
-        var onMoveComplete = CreateMoveCompleteCallback(movedOccupant, destinationGrid);
+        var onMoveComplete = CreateMoveCompleteCallback(movedOccupant, sourceGrid, destinationGrid);
         ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections, onMoveComplete);
 
         _selectedUnitGrid = destinationGrid;
@@ -1387,9 +1393,9 @@ public partial class BattlePrototypeSceneController : Node2D
         return true;
     }
 
-    private Action CreateMoveCompleteCallback(BattleOccupantInfo movedOccupant, BattleGridKey destinationGrid)
+    private Action CreateMoveCompleteCallback(BattleOccupantInfo movedOccupant, BattleGridKey sourceGrid, BattleGridKey destinationGrid)
     {
-        if (movedOccupant.Marker == null || !ShouldUseOccludedMovingSilhouette(destinationGrid))
+        if (movedOccupant.Marker == null || !ShouldUseOccludedMovingSilhouette(sourceGrid, destinationGrid))
         {
             return RefreshOccludedUnitSilhouettes;
         }
@@ -1404,9 +1410,10 @@ public partial class BattlePrototypeSceneController : Node2D
         };
     }
 
-    private bool ShouldUseOccludedMovingSilhouette(BattleGridKey destinationGrid)
+    private bool ShouldUseOccludedMovingSilhouette(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
     {
-        return IsUnitOccludedByCastleVisual(destinationGrid);
+        return IsUnitOccludedByCastleVisual(sourceGrid) &&
+               IsUnitOccludedByCastleVisual(destinationGrid);
     }
 
     private bool TryAttackSelectedTarget()
