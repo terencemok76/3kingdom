@@ -106,6 +106,7 @@ tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
 
 [node name="CastleLayer" type="TileMapLayer" parent="MapRoot" unique_id=20053611]
+visible = false
 z_index = 10
 tile_map_data = PackedByteArray("AAAGAAcAAAABAAAAAAAHAAcAAAACAAAAAAAIAAcAAAADAAAAAAANAAcAAAAIAAAAAAAOAAcAAAAAAAAAAAATAAcAAAAEAAAAAAAFAAcAAAAAAAAAAAAJAAcAAAAEAAAAAAAKAAcAAAAFAAAAAAALAAcAAAAGAAAAAAAMAAcAAAAHAAAAAAAPAAcAAAABAAAAAAAQAAcAAAACAAAAAAAUAAcAAAAEAAAAAAARAAcAAAADAAAAAAASAAcAAAAEAAAAAAAVAAcAAAAEAAAAAAAWAAcAAAAEAAAAAAAXAAcAAAAEAAAAAAAYAAcAAAAEAAAAAAAEAAcAAAAAAAAAAAADAAcAAAAAAAAAAAACAAcAAAAAAAAAAAABAAcAAAAAAAAAAAAAAAcAAAAAAAAAAAA=")
 tile_set = SubResource("TileSet_g6a14")
@@ -118,10 +119,14 @@ tile_set = SubResource("TileSet_ngogi")
 rendering_quadrant_size = 8
 
 [node name="HighlightLayer" type="Node2D" parent="MapRoot" unique_id=1655506300]
-z_index = 18
+z_index = 25
 script = ExtResource("4")
 
+[node name="BattleDepthLayer" type="Node2D" parent="MapRoot" unique_id=1361408469]
+z_index = 20
+
 [node name="UnitLayer" type="Node2D" parent="MapRoot" unique_id=1166056561]
+visible = false
 z_index = 20
 y_sort_enabled = true
 

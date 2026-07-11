@@ -41,7 +41,7 @@ public partial class BattlePieceMarker : Node2D
             return;
         }
 
-        _spriteVisual.ZIndex = 1;
+        _spriteVisual.ZIndex = 0;
         AddChild(_spriteVisual);
         _usesSpriteVisual = true;
         _radius = Mathf.Max(_radius, _spriteVisual.ClickRadius);

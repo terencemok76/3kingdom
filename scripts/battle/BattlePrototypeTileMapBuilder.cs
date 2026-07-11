@@ -61,6 +61,10 @@ public static class BattlePrototypeTileMapBuilder
     private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
 
     private static readonly Dictionary<BattlePrototypeTileLayerKind, TileSet> SharedTileSets = new();
+    private static readonly Dictionary<BattlePrototypeTileLayerKind, Texture2D> SharedAtlasTextures = new();
+    private static Texture2D? SharedCastleOpenGateAtlasTexture;
+
+    public readonly record struct BattleTileSpriteSpec(Texture2D Texture, Rect2 Region, Vector2 Pivot);
 
     public static TileSet CreateSharedTileSet(BattlePrototypeTileLayerKind layerKind)
     {
@@ -124,6 +128,33 @@ public static class BattlePrototypeTileMapBuilder
         layer.UpdateInternals();
     }
 
+    public static bool TryGetCastleSpriteSpec(BattlePrototypeCellData cell, out BattleTileSpriteSpec spec)
+    {
+        var metrics = GetAtlasMetrics(BattlePrototypeTileLayerKind.Castle);
+        var pivot = metrics.GetSpriteFootPivot();
+        if (cell.Structure == BattleStructureType.Gate && cell.IsGateOpen)
+        {
+            var openTexture = GetCastleOpenGateAtlasTexture(metrics);
+            if (openTexture != null)
+            {
+                var openAtlasCoords = new Vector2I(cell.Grid.X % 2 == 0 ? 1 : 0, 0);
+                spec = CreateSpriteSpec(openTexture, metrics, openAtlasCoords, pivot);
+                return true;
+            }
+        }
+
+        var atlasCoords = ResolveCastleVisual(cell);
+        if (!atlasCoords.HasValue)
+        {
+            spec = default;
+            return false;
+        }
+
+        var texture = GetAtlasTexture(BattlePrototypeTileLayerKind.Castle);
+        spec = CreateSpriteSpec(texture, metrics, atlasCoords.Value, pivot);
+        return true;
+    }
+
     private static Vector2I? ResolveAtlasCoords(BattlePrototypeCellData cell, BattlePrototypeTileLayerKind layerKind)
     {
         return layerKind switch
@@ -169,11 +200,56 @@ public static class BattlePrototypeTileMapBuilder
             BattleStructureType.Gate => cell.Grid.X % 2 == 0
                 ? BattlePrototypeCastleTileVisual.GateRight
                 : BattlePrototypeCastleTileVisual.GateLeft,
-            BattleStructureType.Wall or BattleStructureType.Tower or BattleStructureType.Building => BattlePrototypeCastleTileVisual.Wall0,
+            BattleStructureType.Wall => ResolveWallVisual(cell.Grid.X),
+            
+            BattleStructureType.Tower or BattleStructureType.Building => BattlePrototypeCastleTileVisual.Wall0,
             _ => null
         };
 
         return visual.HasValue ? new Vector2I((int)visual.Value, 0) : null;
+    }
+
+    private static BattlePrototypeCastleTileVisual ResolveWallVisual(int x)
+    {
+        if (x < 6)
+            return BattlePrototypeCastleTileVisual.Wall0;
+        else if (x == 6)
+            return BattlePrototypeCastleTileVisual.Wall1;
+        else if (x == 7)
+            return BattlePrototypeCastleTileVisual.Wall2;
+        else if (x == 8)
+            return BattlePrototypeCastleTileVisual.Wall3;
+        else if (x == 9)
+            return BattlePrototypeCastleTileVisual.Wall4;
+        else if (x == 10)
+            return BattlePrototypeCastleTileVisual.Wall5;
+        else if (x == 13)
+            return BattlePrototypeCastleTileVisual.Wall8;
+        else if (x == 14)
+            return BattlePrototypeCastleTileVisual.Wall0;
+        else if (x == 15)
+            return BattlePrototypeCastleTileVisual.Wall1;
+        else if (x == 16)
+            return BattlePrototypeCastleTileVisual.Wall2;
+        else if (x == 17)
+            return BattlePrototypeCastleTileVisual.Wall3;
+        else if (x >= 18)
+            return BattlePrototypeCastleTileVisual.Wall4;
+        else
+            return BattlePrototypeCastleTileVisual.Wall0;
+
+        // return x switch
+        // {
+        //     0 => BattlePrototypeCastleTileVisual.Wall0,
+        //     1 => BattlePrototypeCastleTileVisual.Wall1,
+        //     2 => BattlePrototypeCastleTileVisual.Wall2,
+        //     3 => BattlePrototypeCastleTileVisual.Wall3,
+        //     4 => BattlePrototypeCastleTileVisual.Wall4,
+        //     5 => BattlePrototypeCastleTileVisual.Wall5,
+        //     8 => BattlePrototypeCastleTileVisual.Wall8,
+        //     9 => BattlePrototypeCastleTileVisual.Wall9,
+        //     _ => BattlePrototypeCastleTileVisual.Wall0
+        // };
     }
 
     private static Vector2I? ResolveOverlayVisual(BattlePrototypeCellData cell)
@@ -297,6 +373,63 @@ public static class BattlePrototypeTileMapBuilder
         }
 
         return texture;
+    }
+
+    private static Texture2D GetAtlasTexture(BattlePrototypeTileLayerKind layerKind)
+    {
+        if (SharedAtlasTextures.TryGetValue(layerKind, out var texture))
+        {
+            return texture;
+        }
+
+        var metrics = GetAtlasMetrics(layerKind);
+        var tileCount = GetTileCount(layerKind);
+        texture = LoadExternalAtlasTexture(layerKind, tileCount, metrics) ?? BuildGeneratedAtlasTexture(layerKind, tileCount, metrics);
+        SharedAtlasTextures[layerKind] = texture;
+        return texture;
+    }
+
+    private static Texture2D? GetCastleOpenGateAtlasTexture(BattleAtlasMetrics metrics)
+    {
+        if (SharedCastleOpenGateAtlasTexture != null)
+        {
+            return SharedCastleOpenGateAtlasTexture;
+        }
+
+        if (!ResourceLoader.Exists(CastleOpenGateAtlasPath))
+        {
+            return null;
+        }
+
+        var atlasTexture = GD.Load<Texture2D>(CastleOpenGateAtlasPath);
+        if (atlasTexture == null)
+        {
+            GD.PushWarning($"Battle open gate atlas could not be loaded: {CastleOpenGateAtlasPath}");
+            return null;
+        }
+
+        var tileCount = 2;
+        var requiredWidth = tileCount * metrics.RegionWidth;
+        if (atlasTexture.GetWidth() < requiredWidth || atlasTexture.GetHeight() < metrics.RegionHeight)
+        {
+            GD.PushWarning(
+                $"Battle open gate atlas too small: {CastleOpenGateAtlasPath}. " +
+                $"Expected at least {requiredWidth}x{metrics.RegionHeight}, got {atlasTexture.GetWidth()}x{atlasTexture.GetHeight()}.");
+            return null;
+        }
+
+        SharedCastleOpenGateAtlasTexture = atlasTexture;
+        return SharedCastleOpenGateAtlasTexture;
+    }
+
+    private static BattleTileSpriteSpec CreateSpriteSpec(Texture2D texture, BattleAtlasMetrics metrics, Vector2I atlasCoords, Vector2 pivot)
+    {
+        var region = new Rect2(
+            atlasCoords.X * metrics.RegionWidth,
+            atlasCoords.Y * metrics.RegionHeight,
+            metrics.RegionWidth,
+            metrics.RegionHeight);
+        return new BattleTileSpriteSpec(texture, region, pivot);
     }
 
     private static Texture2D BuildGeneratedAtlasTexture(BattlePrototypeTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
@@ -711,6 +844,11 @@ public static class BattlePrototypeTileMapBuilder
             return FootprintTopY.HasValue
                 ? new Vector2I(0, FootprintTopY.Value)
                 : Vector2I.Zero;
+        }
+
+        public Vector2 GetSpriteFootPivot()
+        {
+            return new Vector2(RegionWidth * 0.5f, RegionHeight - (BaseTileHeight * 0.5f));
         }
     }
 }

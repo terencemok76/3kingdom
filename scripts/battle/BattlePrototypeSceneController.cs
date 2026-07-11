@@ -14,6 +14,13 @@ public readonly record struct BattleGridKey(int X, int Y, int Level)
     public override string ToString() => $"({X}, {Y}, L{Level})";
 }
 
+internal enum BattleDepthRenderKind
+{
+    CastleVisual,
+    SiegeEngine,
+    Unit
+}
+
 [Tool]
 public partial class BattlePrototypeSceneController : Node2D
 {
@@ -145,6 +152,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private TileMapLayer? _castleLayer;
     private TileMapLayer? _overlayLayer;
     private BattlePrototypeHighlightRenderer? _highlightLayer;
+    private Node2D? _battleDepthLayer;
     private Control? _commandMenu;
     private Label? _windowTitleLabel;
     private Label? _unitMenuInfoLabel;
@@ -166,11 +174,15 @@ public partial class BattlePrototypeSceneController : Node2D
     private readonly HashSet<BattleGridKey> _movableGrids = new();
     private readonly HashSet<BattleGridKey> _attackableGrids = new();
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
+    private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
+    private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
     private bool _editorBakePrototypeLayout;
     private bool _editorClearTileLayout;
+
+    private readonly record struct BattleDepthEntry(Node2D Node, BattleGridKey Grid, BattleDepthRenderKind Kind, int LocalOrder);
 
     [Export]
     public bool EditorBakePrototypeLayout
@@ -249,7 +261,9 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         InitializeMapDataAndLayers();
+        BuildCastleDepthVisuals();
         PopulateMarkers();
+        RefreshBattleDepthLayerOrder();
         ConfigureHud();
 
         if (_mapRoot != null)
@@ -267,6 +281,17 @@ public partial class BattlePrototypeSceneController : Node2D
         _castleLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/CastleLayer");
         _overlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/OverlayLayer");
         _highlightLayer ??= GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
+        _battleDepthLayer ??= GetNodeOrNull<Node2D>("MapRoot/BattleDepthLayer");
+        if (_battleDepthLayer == null && _mapRoot != null && !Engine.IsEditorHint())
+        {
+            _battleDepthLayer = new Node2D
+            {
+                Name = "BattleDepthLayer",
+                ZIndex = 20
+            };
+            _mapRoot.AddChild(_battleDepthLayer);
+        }
+
         _commandMenu ??= GetNodeOrNull<Control>("UiLayer/CommandMenu");
         _windowTitleLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WindowTitleLabel");
         _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
@@ -382,6 +407,179 @@ public partial class BattlePrototypeSceneController : Node2D
         BattlePrototypeTileMapBuilder.ConfigureLayer(tileMapLayer, _mapData!, layerKind);
     }
 
+    private void BuildCastleDepthVisuals()
+    {
+        ClearCastleDepthVisuals();
+        if (_battleDepthLayer == null || _groundLayer == null || _mapData == null)
+        {
+            return;
+        }
+
+        if (_castleLayer != null)
+        {
+            _castleLayer.Visible = false;
+        }
+
+        for (var y = 0; y < BattlePrototypeMapData.Height; y++)
+        {
+            for (var x = 0; x < BattlePrototypeMapData.Width; x++)
+            {
+                var cell = _mapData.GetCell(x, y);
+                if (!BattlePrototypeTileMapBuilder.TryGetCastleSpriteSpec(cell, out var spec))
+                {
+                    continue;
+                }
+
+                var sprite = CreateCastleDepthSprite(cell.Grid, spec);
+                _battleDepthLayer.AddChild(sprite);
+                _castleDepthSpritesByGrid[cell.Grid] = sprite;
+                RegisterBattleDepthEntry(sprite, ToGroundGridKey(cell.Grid), BattleDepthRenderKind.CastleVisual);
+            }
+        }
+    }
+
+    private void ClearCastleDepthVisuals()
+    {
+        foreach (var sprite in _castleDepthSpritesByGrid.Values)
+        {
+            _battleDepthEntries.Remove(sprite);
+            sprite.QueueFree();
+        }
+
+        _castleDepthSpritesByGrid.Clear();
+    }
+
+    private Sprite2D CreateCastleDepthSprite(Vector2I grid, BattlePrototypeTileMapBuilder.BattleTileSpriteSpec spec)
+    {
+        var sprite = new Sprite2D
+        {
+            Name = $"Castle_{grid.X}_{grid.Y}",
+            Texture = spec.Texture,
+            RegionEnabled = true,
+            RegionRect = spec.Region,
+            Centered = false,
+            Offset = -spec.Pivot,
+            Position = GetCastleDepthSpritePosition(grid),
+            ZIndex = 0
+        };
+        return sprite;
+    }
+
+    private Vector2 GetCastleDepthSpritePosition(Vector2I grid)
+    {
+        return _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
+    }
+
+    private void RefreshCastleDepthVisual(Vector2I grid)
+    {
+        if (_battleDepthLayer == null || _mapData == null || !IsWithinMap(grid))
+        {
+            return;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (!BattlePrototypeTileMapBuilder.TryGetCastleSpriteSpec(cell, out var spec))
+        {
+            if (_castleDepthSpritesByGrid.Remove(grid, out var removedSprite))
+            {
+                _battleDepthEntries.Remove(removedSprite);
+                removedSprite.QueueFree();
+            }
+
+            RefreshBattleDepthLayerOrder();
+            return;
+        }
+
+        if (!_castleDepthSpritesByGrid.TryGetValue(grid, out var sprite))
+        {
+            sprite = CreateCastleDepthSprite(grid, spec);
+            _battleDepthLayer.AddChild(sprite);
+            _castleDepthSpritesByGrid[grid] = sprite;
+        }
+        else
+        {
+            sprite.Texture = spec.Texture;
+            sprite.RegionRect = spec.Region;
+            sprite.Offset = -spec.Pivot;
+            sprite.Position = GetCastleDepthSpritePosition(grid);
+        }
+
+        RegisterBattleDepthEntry(sprite, ToGroundGridKey(grid), BattleDepthRenderKind.CastleVisual);
+        RefreshBattleDepthLayerOrder();
+    }
+
+    private void RegisterBattleDepthEntry(Node2D node, BattleGridKey grid, BattleDepthRenderKind kind)
+    {
+        if (_battleDepthLayer != null && node.GetParent() != _battleDepthLayer)
+        {
+            node.Reparent(_battleDepthLayer);
+        }
+
+        node.ZIndex = 0;
+        _battleDepthEntries[node] = new BattleDepthEntry(node, grid, kind, GetBattleDepthLocalOrder(kind));
+    }
+
+    private void RefreshBattleDepthLayerOrder()
+    {
+        if (_battleDepthLayer == null)
+        {
+            return;
+        }
+
+        var sortedEntries = _battleDepthEntries.Values
+            .Where(entry => GodotObject.IsInstanceValid(entry.Node) && entry.Node.GetParent() == _battleDepthLayer)
+            .OrderBy(entry => entry, Comparer<BattleDepthEntry>.Create(CompareBattleDepthEntries))
+            .ToList();
+
+        for (var index = 0; index < sortedEntries.Count; index++)
+        {
+            _battleDepthLayer.MoveChild(sortedEntries[index].Node, index);
+        }
+    }
+
+    private static int CompareBattleDepthEntries(BattleDepthEntry left, BattleDepthEntry right)
+    {
+        var leftDepth = GetBattleDepth(left.Grid);
+        var rightDepth = GetBattleDepth(right.Grid);
+        if (leftDepth != rightDepth)
+        {
+            return leftDepth.CompareTo(rightDepth);
+        }
+
+        if (left.Grid.Level != right.Grid.Level)
+        {
+            return left.Grid.Level.CompareTo(right.Grid.Level);
+        }
+
+        if (left.LocalOrder != right.LocalOrder)
+        {
+            return left.LocalOrder.CompareTo(right.LocalOrder);
+        }
+
+        if (left.Grid.Y != right.Grid.Y)
+        {
+            return left.Grid.Y.CompareTo(right.Grid.Y);
+        }
+
+        return left.Grid.X.CompareTo(right.Grid.X);
+    }
+
+    private static int GetBattleDepth(BattleGridKey grid)
+    {
+        return grid.X + grid.Y;
+    }
+
+    private static int GetBattleDepthLocalOrder(BattleDepthRenderKind kind)
+    {
+        return kind switch
+        {
+            BattleDepthRenderKind.CastleVisual => 0,
+            BattleDepthRenderKind.SiegeEngine => 10,
+            BattleDepthRenderKind.Unit => 20,
+            _ => 0
+        };
+    }
+
     private void PopulateMarkers()
     {
         CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "I", "Attacker Infantry A", CategoryUnit, "Team A / Attacker", "Xiahou Yuan", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
@@ -438,6 +636,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         RegisterOccupant(gridKey, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
+        RegisterBattleDepthEntry(marker, gridKey, category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
     }
 
     private Vector2 GetMarkerPosition(Vector2I grid)
@@ -1044,6 +1243,11 @@ public partial class BattlePrototypeSceneController : Node2D
             : GetInfantryDirection(sourceGrid.Grid, destinationGrid.Grid);
         var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker, FacingDirection = moveDirection };
         destinationOccupants.Add(movedOccupant);
+        RegisterBattleDepthEntry(
+            movedOccupant.Marker!,
+            destinationGrid,
+            movedOccupant.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
+        RefreshBattleDepthLayerOrder();
         ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections);
 
         _selectedUnitGrid = destinationGrid;
@@ -2185,6 +2389,8 @@ public partial class BattlePrototypeSceneController : Node2D
             {
                 BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: true);
             }
+
+            RefreshCastleDepthVisual(groupGateGrid);
         }
 
         _commandMode = BattleCommandMode.None;

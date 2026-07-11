@@ -314,7 +314,7 @@ public sealed class BattlePrototypeMapData
 
     private void PaintWallsAndGate()
     {
-        for (var x = 2; x <= 22; x++)
+        for (var x = 0; x <= 24; x++)
         {
             var wallCell = GetCell(x, 7);
             wallCell.Structure = x is >= 11 and <= 13 ? BattleStructureType.Gate : BattleStructureType.Wall;
@@ -330,10 +330,10 @@ public sealed class BattlePrototypeMapData
             innerCourtyardCell.HeightLevel = 0;
         }
 
-        GetCell(2, 6).Structure = BattleStructureType.Tower;
-        GetCell(22, 6).Structure = BattleStructureType.Tower;
-        GetCell(2, 6).HeightLevel = 3;
-        GetCell(22, 6).HeightLevel = 3;
+        // GetCell(2, 6).Structure = BattleStructureType.Tower;
+        // GetCell(22, 6).Structure = BattleStructureType.Tower;
+        // GetCell(2, 6).HeightLevel = 3;
+        // GetCell(22, 6).HeightLevel = 3;
     }
 
     private void PaintStructures()
