@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 namespace ThreeKingdom.Battle;
 
@@ -11,6 +12,7 @@ public partial class BattlePieceMarker : Node2D
     private Color _borderColor = Colors.Black;
     private float _radius = 19.0f;
     private BattleSpriteAnimationPlayer? _spriteVisual;
+    private string _spriteScenePath = string.Empty;
     private bool _usesSpriteVisual;
 
     public float Radius => _radius;
@@ -26,6 +28,7 @@ public partial class BattlePieceMarker : Node2D
 
     public void SetupSpriteAnimationScene(string scenePath)
     {
+        _spriteScenePath = scenePath;
         var scene = GD.Load<PackedScene>(scenePath);
         if (scene == null)
         {
@@ -48,7 +51,31 @@ public partial class BattlePieceMarker : Node2D
         QueueRedraw();
     }
 
-    public void MoveTo(Vector2 destination, double duration, string moveScenePath, string idleScenePath)
+    public BattleSpriteAnimationPlayer? CreateSilhouetteVisual(Color modulate)
+    {
+        if (string.IsNullOrWhiteSpace(_spriteScenePath))
+        {
+            return null;
+        }
+
+        var scene = GD.Load<PackedScene>(_spriteScenePath);
+        if (scene == null)
+        {
+            return null;
+        }
+
+        var silhouette = scene.InstantiateOrNull<BattleSpriteAnimationPlayer>();
+        if (silhouette == null)
+        {
+            return null;
+        }
+
+        silhouette.Modulate = modulate;
+        silhouette.ZIndex = 0;
+        return silhouette;
+    }
+
+    public void MoveTo(Vector2 destination, double duration, string moveScenePath, string idleScenePath, Action? onComplete = null)
     {
         SetupSpriteAnimationScene(moveScenePath);
         var originalZIndex = ZIndex;
@@ -61,6 +88,7 @@ public partial class BattlePieceMarker : Node2D
         {
             SetupSpriteAnimationScene(idleScenePath);
             ZIndex = originalZIndex;
+            onComplete?.Invoke();
         }));
     }
 
@@ -69,16 +97,17 @@ public partial class BattlePieceMarker : Node2D
         MoveAlong(new[] { waypoint, destination }, duration, moveScenePath, idleScenePath);
     }
 
-    public void MoveAlong(Vector2[] points, double duration, string moveScenePath, string idleScenePath)
+    public void MoveAlong(Vector2[] points, double duration, string moveScenePath, string idleScenePath, Action? onComplete = null)
     {
-        MoveAlong(points, duration, BuildRepeatedScenePathArray(points.Length, moveScenePath), idleScenePath);
+        MoveAlong(points, duration, BuildRepeatedScenePathArray(points.Length, moveScenePath), idleScenePath, onComplete);
     }
 
-    public void MoveAlong(Vector2[] points, double duration, string[] moveScenePaths, string idleScenePath)
+    public void MoveAlong(Vector2[] points, double duration, string[] moveScenePaths, string idleScenePath, Action? onComplete = null)
     {
         if (points.Length == 0)
         {
             SetupSpriteAnimationScene(idleScenePath);
+            onComplete?.Invoke();
             return;
         }
 
@@ -100,6 +129,7 @@ public partial class BattlePieceMarker : Node2D
         {
             SetupSpriteAnimationScene(idleScenePath);
             ZIndex = originalZIndex;
+            onComplete?.Invoke();
         }));
     }
 

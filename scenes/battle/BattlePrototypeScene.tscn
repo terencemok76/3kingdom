@@ -125,6 +125,9 @@ script = ExtResource("4")
 [node name="BattleDepthLayer" type="Node2D" parent="MapRoot" unique_id=1361408469]
 z_index = 20
 
+[node name="OccludedUnitSilhouetteLayer" type="Node2D" parent="MapRoot"]
+z_index = 28
+
 [node name="UnitLayer" type="Node2D" parent="MapRoot" unique_id=1166056561]
 visible = false
 z_index = 20

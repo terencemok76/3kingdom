@@ -153,6 +153,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private TileMapLayer? _overlayLayer;
     private BattlePrototypeHighlightRenderer? _highlightLayer;
     private Node2D? _battleDepthLayer;
+    private Node2D? _occludedUnitSilhouetteLayer;
     private Control? _commandMenu;
     private Label? _windowTitleLabel;
     private Label? _unitMenuInfoLabel;
@@ -176,6 +177,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
+    private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
@@ -264,6 +266,7 @@ public partial class BattlePrototypeSceneController : Node2D
         BuildCastleDepthVisuals();
         PopulateMarkers();
         RefreshBattleDepthLayerOrder();
+        RefreshOccludedUnitSilhouettes();
         ConfigureHud();
 
         if (_mapRoot != null)
@@ -282,6 +285,7 @@ public partial class BattlePrototypeSceneController : Node2D
         _overlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/OverlayLayer");
         _highlightLayer ??= GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
         _battleDepthLayer ??= GetNodeOrNull<Node2D>("MapRoot/BattleDepthLayer");
+        _occludedUnitSilhouetteLayer ??= GetNodeOrNull<Node2D>("MapRoot/OccludedUnitSilhouetteLayer");
         if (_battleDepthLayer == null && _mapRoot != null && !Engine.IsEditorHint())
         {
             _battleDepthLayer = new Node2D
@@ -290,6 +294,16 @@ public partial class BattlePrototypeSceneController : Node2D
                 ZIndex = 20
             };
             _mapRoot.AddChild(_battleDepthLayer);
+        }
+
+        if (_occludedUnitSilhouetteLayer == null && _mapRoot != null && !Engine.IsEditorHint())
+        {
+            _occludedUnitSilhouetteLayer = new Node2D
+            {
+                Name = "OccludedUnitSilhouetteLayer",
+                ZIndex = 28
+            };
+            _mapRoot.AddChild(_occludedUnitSilhouetteLayer);
         }
 
         _commandMenu ??= GetNodeOrNull<Control>("UiLayer/CommandMenu");
@@ -580,6 +594,86 @@ public partial class BattlePrototypeSceneController : Node2D
         };
     }
 
+    private void RefreshOccludedUnitSilhouettes()
+    {
+        ClearOccludedUnitSilhouettes();
+        if (_occludedUnitSilhouetteLayer == null || _mapData == null)
+        {
+            return;
+        }
+
+        foreach (var (grid, occupants) in _occupantsByGrid)
+        {
+            if (!IsUnitOccludedByCastleVisual(grid))
+            {
+                continue;
+            }
+
+            var occupant = occupants.FirstOrDefault(static candidate => candidate.Marker != null && IsBattlePiece(candidate));
+            if (occupant?.Marker == null)
+            {
+                continue;
+            }
+
+            var silhouette = occupant.Marker.CreateSilhouetteVisual(GetOccludedUnitSilhouetteColor(occupant));
+            if (silhouette == null)
+            {
+                continue;
+            }
+
+            silhouette.Name = $"Occluded_{occupant.ShortLabel}_{grid.X}_{grid.Y}_L{grid.Level}";
+            silhouette.Position = GetMarkerPosition(grid);
+            _occludedUnitSilhouetteLayer.AddChild(silhouette);
+            _occludedUnitSilhouettesByGrid[grid] = silhouette;
+        }
+    }
+
+    private void ClearOccludedUnitSilhouettes()
+    {
+        foreach (var silhouette in _occludedUnitSilhouettesByGrid.Values)
+        {
+            silhouette.QueueFree();
+        }
+
+        _occludedUnitSilhouettesByGrid.Clear();
+    }
+
+    private bool IsUnitOccludedByCastleVisual(BattleGridKey grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid.Grid))
+        {
+            return false;
+        }
+
+        if (grid.Level == 2)
+        {
+            return IsWallTopGrid(grid.Grid);
+        }
+
+        if (grid.Level != 0)
+        {
+            return false;
+        }
+
+        for (var yOffset = 1; yOffset <= 2; yOffset++)
+        {
+            var blockingGrid = new Vector2I(grid.X, grid.Y + yOffset);
+            if (IsWithinMap(blockingGrid) && IsWallTopGrid(blockingGrid))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Color GetOccludedUnitSilhouetteColor(BattleOccupantInfo occupant)
+    {
+        return IsAttackerPiece(occupant)
+            ? new Color(1.0f, 0.18f, 0.10f, 0.42f)
+            : new Color(0.25f, 0.62f, 1.0f, 0.42f);
+    }
+
     private void PopulateMarkers()
     {
         CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "I", "Attacker Infantry A", CategoryUnit, "Team A / Attacker", "Xiahou Yuan", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
@@ -851,6 +945,12 @@ public partial class BattlePrototypeSceneController : Node2D
             return highlightedGrid.Value;
         }
 
+        var occludedUnitGrid = ResolvePointerOccludedUnitSilhouetteGridKey(localMouse);
+        if (occludedUnitGrid.HasValue)
+        {
+            return occludedUnitGrid.Value;
+        }
+
         var groundCandidate = _groundLayer.LocalToMap(localMouse);
         var layeredGrid = ResolvePointerLayeredGridKey(localMouse, groundCandidate);
         if (layeredGrid.HasValue)
@@ -946,6 +1046,29 @@ public partial class BattlePrototypeSceneController : Node2D
                 {
                     return grid;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    private BattleGridKey? ResolvePointerOccludedUnitSilhouetteGridKey(Vector2 localMouse)
+    {
+        if (_commandMode is BattleCommandMode.MoveSelect or BattleCommandMode.AttackSelect or BattleCommandMode.StrategySelect)
+        {
+            return null;
+        }
+
+        foreach (var (grid, silhouette) in _occludedUnitSilhouettesByGrid)
+        {
+            if (!GodotObject.IsInstanceValid(silhouette))
+            {
+                continue;
+            }
+
+            if (localMouse.DistanceTo(silhouette.Position) <= 32.0f)
+            {
+                return grid;
             }
         }
 
@@ -1248,7 +1371,9 @@ public partial class BattlePrototypeSceneController : Node2D
             destinationGrid,
             movedOccupant.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         RefreshBattleDepthLayerOrder();
-        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections);
+        ClearOccludedUnitSilhouettes();
+        var onMoveComplete = CreateMoveCompleteCallback(movedOccupant, destinationGrid);
+        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections, onMoveComplete);
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
@@ -1260,6 +1385,28 @@ public partial class BattlePrototypeSceneController : Node2D
         HideCommandMenu();
 
         return true;
+    }
+
+    private Action CreateMoveCompleteCallback(BattleOccupantInfo movedOccupant, BattleGridKey destinationGrid)
+    {
+        if (movedOccupant.Marker == null || !ShouldUseOccludedMovingSilhouette(destinationGrid))
+        {
+            return RefreshOccludedUnitSilhouettes;
+        }
+
+        var marker = movedOccupant.Marker;
+        var originalModulate = marker.Modulate;
+        marker.Modulate = GetOccludedUnitSilhouetteColor(movedOccupant);
+        return () =>
+        {
+            marker.Modulate = originalModulate;
+            RefreshOccludedUnitSilhouettes();
+        };
+    }
+
+    private bool ShouldUseOccludedMovingSilhouette(BattleGridKey destinationGrid)
+    {
+        return IsUnitOccludedByCastleVisual(destinationGrid);
     }
 
     private bool TryAttackSelectedTarget()
@@ -1303,22 +1450,23 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
-    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition, Vector2[]? pathPositions = null, BattleSpriteDirection[]? pathDirections = null)
+    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition, Vector2[]? pathPositions = null, BattleSpriteDirection[]? pathDirections = null, Action? onComplete = null)
     {
         if (occupant.Marker == null)
         {
+            onComplete?.Invoke();
             return;
         }
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopInfantry)
         {
-            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetInfantryMoveScene), InfantryMoveAnimationDurationSeconds, GetInfantryMoveScene(direction), GetInfantryIdleScene(direction));
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetInfantryMoveScene), InfantryMoveAnimationDurationSeconds, GetInfantryMoveScene(direction), GetInfantryIdleScene(direction), onComplete);
             return;
         }
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopSpearman)
         {
-            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetSpearmanMoveScene), SpearmanMoveAnimationDurationSeconds, GetSpearmanMoveScene(direction), GetSpearmanIdleScene(direction));
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetSpearmanMoveScene), SpearmanMoveAnimationDurationSeconds, GetSpearmanMoveScene(direction), GetSpearmanIdleScene(direction), onComplete);
             return;
         }
 
@@ -1329,7 +1477,8 @@ public partial class BattlePrototypeSceneController : Node2D
                 destinationPosition,
                 CarMoveAnimationDurationSeconds,
                 carIdleScene,
-                carIdleScene);
+                carIdleScene,
+                onComplete);
             return;
         }
 
@@ -1340,13 +1489,14 @@ public partial class BattlePrototypeSceneController : Node2D
                 destinationPosition,
                 CarMoveAnimationDurationSeconds,
                 carLadderIdleScene,
-                carLadderIdleScene);
+                carLadderIdleScene,
+                onComplete);
             return;
         }
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopArcher)
         {
-            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetArcherMoveScene), ArcherMoveAnimationDurationSeconds, GetArcherMoveScene(direction), GetArcherIdleScene(direction));
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetArcherMoveScene), ArcherMoveAnimationDurationSeconds, GetArcherMoveScene(direction), GetArcherIdleScene(direction), onComplete);
             return;
         }
 
@@ -1356,7 +1506,8 @@ public partial class BattlePrototypeSceneController : Node2D
                 destinationPosition,
                 CavalryMoveAnimationDurationSeconds,
                 GetCavalryMoveScene(direction),
-                GetCavalryIdleScene(direction));
+                GetCavalryIdleScene(direction),
+                onComplete);
             return;
         }
 
@@ -1367,28 +1518,30 @@ public partial class BattlePrototypeSceneController : Node2D
                 destinationPosition,
                 CatapultMoveAnimationDurationSeconds,
                 catapultIdleScene,
-                catapultIdleScene);
+                catapultIdleScene,
+                onComplete);
             return;
         }
 
         occupant.Marker.Position = destinationPosition;
+        onComplete?.Invoke();
     }
 
-    private static void MoveMarker(BattlePieceMarker marker, Vector2 destinationPosition, Vector2[]? pathPositions, string[]? pathMoveScenePaths, double duration, string moveScenePath, string idleScenePath)
+    private static void MoveMarker(BattlePieceMarker marker, Vector2 destinationPosition, Vector2[]? pathPositions, string[]? pathMoveScenePaths, double duration, string moveScenePath, string idleScenePath, Action? onComplete = null)
     {
         if (pathPositions is { Length: > 0 })
         {
             if (pathMoveScenePaths is { Length: > 0 })
             {
-                marker.MoveAlong(pathPositions, duration, pathMoveScenePaths, idleScenePath);
+                marker.MoveAlong(pathPositions, duration, pathMoveScenePaths, idleScenePath, onComplete);
                 return;
             }
 
-            marker.MoveAlong(pathPositions, duration, moveScenePath, idleScenePath);
+            marker.MoveAlong(pathPositions, duration, moveScenePath, idleScenePath, onComplete);
             return;
         }
 
-        marker.MoveTo(destinationPosition, duration, moveScenePath, idleScenePath);
+        marker.MoveTo(destinationPosition, duration, moveScenePath, idleScenePath, onComplete);
     }
 
     private static string[]? GetMoveScenePathArray(BattleSpriteDirection[]? directions, Func<BattleSpriteDirection, string> getMoveScene)
@@ -2337,6 +2490,7 @@ public partial class BattlePrototypeSceneController : Node2D
         HideCommandMenu();
         RefreshInfoPanel();
         RefreshHighlights();
+        RefreshOccludedUnitSilhouettes();
     }
 
     private void OnAttackButtonPressed()
