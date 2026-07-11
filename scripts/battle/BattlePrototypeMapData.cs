@@ -325,9 +325,9 @@ public sealed class BattlePrototypeMapData
                 : BattlePrototypeCellData.WallMaxHealth;
             wallCell.StructureHealth = wallCell.StructureMaxHealth;
 
-            var wallWalkCell = GetCell(x, 6);
-            wallWalkCell.Terrain = BattleTerrainType.WallWalk;
-            wallWalkCell.HeightLevel = 2;
+            var innerCourtyardCell = GetCell(x, 6);
+            innerCourtyardCell.Terrain = BattleTerrainType.Courtyard;
+            innerCourtyardCell.HeightLevel = 0;
         }
 
         GetCell(2, 6).Structure = BattleStructureType.Tower;

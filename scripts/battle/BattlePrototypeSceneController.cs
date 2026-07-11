@@ -7,6 +7,13 @@ using ThreeKingdom.Core;
 
 namespace ThreeKingdom.Battle;
 
+public readonly record struct BattleGridKey(int X, int Y, int Level)
+{
+    public Vector2I Grid => new(X, Y);
+
+    public override string ToString() => $"({X}, {Y}, L{Level})";
+}
+
 [Tool]
 public partial class BattlePrototypeSceneController : Node2D
 {
@@ -17,6 +24,8 @@ public partial class BattlePrototypeSceneController : Node2D
     private const float DefaultUnitVisualLift = -16.0f;
     private const float WallWalkUnitVisualLift = -58.0f;
     private const float WallWalkHighlightVisualLift = -42.0f;
+//    private static readonly Vector2 WallTopVisualOffset = new(32.0f, -8.0f);
+    private static readonly Vector2 WallTopVisualOffset = new(32.0f, -60.0f);
     private const string CategoryUnit = "Unit";
     private const string CategorySiegeEngine = "SiegeEngine";
     private const string TroopInfantry = "Infantry";
@@ -123,10 +132,10 @@ public partial class BattlePrototypeSceneController : Node2D
     private const double CavalryHurtAnimationDurationSeconds = 0.5;
     private const double CarMoveAnimationDurationSeconds = 0.8;
     private const double CatapultMoveAnimationDurationSeconds = 0.8;
-    private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / 攻方", 18000, 8200, 26000);
-    private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / 守方", 12500, 6400, 19800);
-    private const string BattleDateText = "191年 4月 4日";
-    private const string WeatherText = "晴";
+    private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 18000, 8200, 26000);
+    private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 12500, 6400, 19800);
+    private const string BattleDateText = "191 Apr 4";
+    private const string WeatherText = "Sunny";
 
     private BattlePrototypeMapData? _mapData;
     private Node2D? _mapRoot;
@@ -150,11 +159,13 @@ public partial class BattlePrototypeSceneController : Node2D
     private Vector2 _commandMenuDragOffset;
     private Vector2I? _hoverGrid;
     private Vector2I? _selectedGrid;
-    private Vector2I? _selectedUnitGrid;
+    private BattleGridKey? _hoverGridKey;
+    private BattleGridKey? _selectedGridKey;
+    private BattleGridKey? _selectedUnitGrid;
     private BattleOccupantInfo? _selectedUnit;
-    private readonly HashSet<Vector2I> _movableGrids = new();
-    private readonly HashSet<Vector2I> _attackableGrids = new();
-    private readonly Dictionary<Vector2I, List<BattleOccupantInfo>> _occupantsByGrid = new();
+    private readonly HashSet<BattleGridKey> _movableGrids = new();
+    private readonly HashSet<BattleGridKey> _attackableGrids = new();
+    private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
@@ -373,17 +384,17 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void PopulateMarkers()
     {
-        CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "步", "攻方步兵 A", CategoryUnit, "Team A / 攻方", "夏侯淵", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Spearman", new Vector2I(8, 18), "槍", "攻方槍兵", CategoryUnit, "Team A / 攻方", "曹洪", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "弓", "攻方弓兵 B", CategoryUnit, "Team A / 攻方", "張郃", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "騎", "攻方騎兵 C", CategoryUnit, "Team A / 攻方", "曹純", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ram", new Vector2I(12, 16), "衝", "衝車", CategorySiegeEngine, "Team A / 攻方", "樂進", TroopRam, 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ladder", new Vector2I(10, 15), "梯", "雲梯隊", CategorySiegeEngine, "Team A / 攻方", "于禁", TroopLadder, 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Catapult", new Vector2I(14, 15), "投", "投石機", CategorySiegeEngine, "Team A / 攻方", "劉曄", TroopCatapult, 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
+        CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "I", "Attacker Infantry A", CategoryUnit, "Team A / Attacker", "Xiahou Yuan", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Spearman", new Vector2I(8, 18), "S", "Attacker Spearman", CategoryUnit, "Team A / Attacker", "Cao Hong", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "A", "Attacker Archer B", CategoryUnit, "Team A / Attacker", "Zhang He", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "C", "Attacker Cavalry C", CategoryUnit, "Team A / Attacker", "Cao Chun", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Ram", new Vector2I(12, 16), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", "Yue Jin", TroopRam, 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Ladder", new Vector2I(10, 15), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", "Yu Jin", TroopLadder, 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Catapult", new Vector2I(14, 15), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
-        CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 6), "守", "守軍步兵 A", CategoryUnit, "Team B / 守方", "董卓", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 6), "弩", "守軍弩兵 B", CategoryUnit, "Team B / 守方", "李傕", TroopCrossbow, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 6), "將", "守軍主將", CategoryUnit, "Team B / 守方", "郭汜", TroopGuard, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 7), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 7), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopCrossbow, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 7), "G", "Defender Commander", CategoryUnit, "Team B / Defender", "Guo Si", TroopGuard, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
     }
 
     private void CreateMarker(string path, Vector2I grid, string label, string displayName, string category, string teamName, string officerName, string troopType, int troopCount, Color fillColor, Color borderColor, float radius = 19.0f, int moveRange = 0, int attackRange = 1)
@@ -394,7 +405,8 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        marker.Position = GetMarkerPosition(grid);
+        var gridKey = GetDefaultGridKey(grid);
+        marker.Position = GetMarkerPosition(gridKey);
         marker.Setup(label, fillColor, borderColor, radius);
         if (category == CategoryUnit && troopType == TroopInfantry)
         {
@@ -425,18 +437,30 @@ public partial class BattlePrototypeSceneController : Node2D
             marker.SetupSpriteAnimationScene(CatapultIdleSouthEastScenePath);
         }
 
-        RegisterOccupant(grid, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
+        RegisterOccupant(gridKey, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
     }
 
     private Vector2 GetMarkerPosition(Vector2I grid)
     {
+        return GetMarkerPosition(GetDefaultGridKey(grid));
+    }
+
+    private Vector2 GetMarkerPosition(BattleGridKey gridKey)
+    {
+        var grid = gridKey.Grid;
         var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
-        return gridCenter + new Vector2(0.0f, GetUnitVisualLift(grid));
+        var wallTopOffset = gridKey.Level == 2 ? WallTopVisualOffset : Vector2.Zero;
+        return gridCenter + wallTopOffset + new Vector2(0.0f, GetUnitVisualLift(gridKey));
     }
 
     private float GetUnitVisualLift(Vector2I grid)
     {
-        if (_mapData != null && IsWithinMap(grid) && _mapData.GetCell(grid.X, grid.Y).Terrain == BattleTerrainType.WallWalk)
+        return GetUnitVisualLift(GetDefaultGridKey(grid));
+    }
+
+    private float GetUnitVisualLift(BattleGridKey gridKey)
+    {
+        if (gridKey.Level == 2)
         {
             return WallWalkUnitVisualLift;
         }
@@ -446,10 +470,16 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private Vector2 GetHighlightPosition(Vector2I grid)
     {
+        return GetHighlightPosition(GetDefaultGridKey(grid));
+    }
+
+    private Vector2 GetHighlightPosition(BattleGridKey gridKey)
+    {
+        var grid = gridKey.Grid;
         var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
-        if (_mapData != null && IsWithinMap(grid) && _mapData.GetCell(grid.X, grid.Y).Terrain == BattleTerrainType.WallWalk)
+        if (gridKey.Level == 2)
         {
-            return gridCenter + new Vector2(0.0f, WallWalkHighlightVisualLift);
+            return gridCenter + WallTopVisualOffset + new Vector2(0.0f, WallWalkHighlightVisualLift);
         }
 
         return gridCenter;
@@ -464,7 +494,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
         if (titleLabel != null)
         {
-            titleLabel.Text = $"日期: {BattleDateText}   天氣: {WeatherText}   回合: {_turnNumber}   行動方: {GetCurrentTurnSideName()}";
+            titleLabel.Text = $"Date: {BattleDateText}   Weather: {WeatherText}   Turn: {_turnNumber}   Acting Side: {GetCurrentTurnSideName()}";
         }
 
         if (summaryLabel != null)
@@ -491,6 +521,7 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             UpdateHoverGrid();
             _selectedGrid = _hoverGrid;
+            _selectedGridKey = _hoverGridKey;
             if (_commandMode == BattleCommandMode.MoveSelect)
             {
                 if (!TryMoveSelectedUnit())
@@ -596,17 +627,19 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         var localMouse = _groundLayer.ToLocal(GetGlobalMousePosition());
-        Vector2I? newHoverGrid = ResolvePointerGrid(localMouse);
-        if (_hoverGrid == newHoverGrid)
+        var newHoverGridKey = ResolvePointerGridKey(localMouse);
+        var newHoverGrid = newHoverGridKey?.Grid;
+        if (_hoverGrid == newHoverGrid && _hoverGridKey == newHoverGridKey)
         {
             return;
         }
 
         _hoverGrid = newHoverGrid;
+        _hoverGridKey = newHoverGridKey;
         RefreshCoordinateLabel();
     }
 
-    private Vector2I? ResolvePointerGrid(Vector2 localMouse)
+    private BattleGridKey? ResolvePointerGridKey(Vector2 localMouse)
     {
         if (_groundLayer == null || _mapData == null)
         {
@@ -619,17 +652,54 @@ public partial class BattlePrototypeSceneController : Node2D
             return highlightedGrid.Value;
         }
 
-        var markerGrid = ResolvePointerMarkerGrid(localMouse);
-        if (markerGrid.HasValue)
+        var groundCandidate = _groundLayer.LocalToMap(localMouse);
+        var layeredGrid = ResolvePointerLayeredGridKey(localMouse, groundCandidate);
+        if (layeredGrid.HasValue)
         {
-            return markerGrid.Value;
+            return layeredGrid.Value;
         }
 
-        var groundCandidate = _groundLayer.LocalToMap(localMouse);
-        return IsWithinMap(groundCandidate) ? groundCandidate : null;
+        var markerGridKey = ResolvePointerMarkerGridKey(localMouse);
+        if (markerGridKey.HasValue)
+        {
+            return markerGridKey.Value;
+        }
+
+        return IsWithinMap(groundCandidate) ? GetDefaultGridKey(groundCandidate) : null;
     }
 
-    private Vector2I? ResolvePointerHighlightedGrid(Vector2 localMouse)
+    private BattleGridKey? ResolvePointerLayeredGridKey(Vector2 localMouse, Vector2I groundCandidate)
+    {
+        if (_groundLayer == null || !IsWithinMap(groundCandidate) || !IsGateGroundPassage(groundCandidate))
+        {
+            return null;
+        }
+
+        var groundKey = ToGroundGridKey(groundCandidate);
+        var wallTopKey = ToWallWalkGridKey(groundCandidate);
+        var inGroundDiamond = PointInDiamond(localMouse, GetHighlightPosition(groundKey), 46.0f, 24.0f);
+        var inWallTopDiamond = PointInDiamond(localMouse, GetHighlightPosition(wallTopKey), 46.0f, 24.0f);
+        if (inGroundDiamond && !inWallTopDiamond)
+        {
+            return groundKey;
+        }
+
+        if (inWallTopDiamond && !inGroundDiamond)
+        {
+            return wallTopKey;
+        }
+
+        if (inGroundDiamond && inWallTopDiamond)
+        {
+            var groundDistance = localMouse.DistanceSquaredTo(GetHighlightPosition(groundKey));
+            var wallTopDistance = localMouse.DistanceSquaredTo(GetHighlightPosition(wallTopKey));
+            return groundDistance <= wallTopDistance ? groundKey : wallTopKey;
+        }
+
+        return null;
+    }
+
+    private BattleGridKey? ResolvePointerHighlightedGrid(Vector2 localMouse)
     {
         var activeGrids = _commandMode switch
         {
@@ -661,7 +731,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return dx + dy <= 1.0f;
     }
 
-    private Vector2I? ResolvePointerMarkerGrid(Vector2 localMouse)
+    private BattleGridKey? ResolvePointerMarkerGridKey(Vector2 localMouse)
     {
         foreach (var (grid, occupants) in _occupantsByGrid)
         {
@@ -691,6 +761,86 @@ public partial class BattlePrototypeSceneController : Node2D
                grid.Y < BattlePrototypeMapData.Height;
     }
 
+    private BattleGridKey GetDefaultGridKey(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return ToGroundGridKey(grid);
+        }
+
+        return IsWallTopGrid(grid)
+            ? ToWallWalkGridKey(grid)
+            : ToGroundGridKey(grid);
+    }
+
+    private static BattleGridKey ToGroundGridKey(Vector2I grid)
+    {
+        return new BattleGridKey(grid.X, grid.Y, 0);
+    }
+
+    private static BattleGridKey ToWallWalkGridKey(Vector2I grid)
+    {
+        return new BattleGridKey(grid.X, grid.Y, 2);
+    }
+
+    private bool IsWallTopGrid(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.Structure is BattleStructureType.Wall or BattleStructureType.Gate or BattleStructureType.Tower;
+    }
+
+    private BattleGridKey? ResolveStepGridKey(BattleGridKey sourceGrid, Vector2I destinationGrid)
+    {
+        if (_mapData == null || !IsWithinMap(destinationGrid))
+        {
+            return null;
+        }
+
+        var destinationCell = _mapData.GetCell(destinationGrid.X, destinationGrid.Y);
+        var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
+        if (sourceGrid.Level == 2)
+        {
+            if (IsWallTopGrid(destinationGrid))
+            {
+                return ToWallWalkGridKey(destinationGrid);
+            }
+
+            return destinationCell.Terrain == BattleTerrainType.Courtyard
+                ? ToGroundGridKey(destinationGrid)
+                : null;
+        }
+
+        if (IsWallTopGrid(destinationGrid))
+        {
+            if (IsGateGroundPassage(destinationGrid) && sourceGrid.Level == 0)
+            {
+                return ToGroundGridKey(destinationGrid);
+            }
+
+            return sourceCell.Terrain == BattleTerrainType.Courtyard
+                ? ToWallWalkGridKey(destinationGrid)
+                : null;
+        }
+
+        return ToGroundGridKey(destinationGrid);
+    }
+
+    private bool IsGateGroundPassage(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.Structure == BattleStructureType.Gate && (cell.IsGateOpen || cell.IsBroken);
+    }
+
     private void RefreshCoordinateLabel()
     {
         var coordinateLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/CoordinateLabel");
@@ -713,12 +863,12 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private string BuildCoordinateText()
     {
-        return $"Hover: {FormatGrid(_hoverGrid)}    Click: {FormatGrid(_selectedGrid)}";
+        return $"Hover: {FormatGrid(_hoverGridKey, _hoverGrid)}    Click: {FormatGrid(_selectedGridKey, _selectedGrid)}";
     }
 
     private static string BuildTeamHudText(BattleHudTeamInfo info)
     {
-        return $"{info.Name}   兵力: {info.TotalTroops:N0}   金: {info.TotalGold:N0}   糧: {info.TotalFood:N0}";
+        return $"{info.Name}   Troops: {info.TotalTroops:N0}   Gold: {info.TotalGold:N0}   Food: {info.TotalFood:N0}";
     }
 
     private static string FormatGrid(Vector2I? grid)
@@ -726,29 +876,39 @@ public partial class BattlePrototypeSceneController : Node2D
         return grid.HasValue ? $"({grid.Value.X}, {grid.Value.Y})" : "-";
     }
 
+    private static string FormatGrid(BattleGridKey? gridKey, Vector2I? fallbackGrid)
+    {
+        if (gridKey.HasValue)
+        {
+            return gridKey.Value.ToString();
+        }
+
+        return FormatGrid(fallbackGrid);
+    }
+
     private string BuildInfoText()
     {
         if (!_selectedGrid.HasValue || _mapData == null)
         {
-            return "Tile Info\n座標: -\n請先 click 一格查看。\n會顯示地形、建物、部署區與單位資訊。";
+            return "Tile Info\nCoordinate: -\nClick a tile to inspect terrain, structure, deployment zone, and units.";
         }
 
         var grid = _selectedGrid.Value;
         var cell = _mapData.GetCell(grid.X, grid.Y);
         var builder = new StringBuilder();
         builder.AppendLine("Tile Info");
-        builder.AppendLine($"座標: ({grid.X}, {grid.Y})");
-        builder.AppendLine($"地形: {FormatTerrain(cell.Terrain)}");
-        builder.AppendLine($"建物: {FormatStructure(cell.Structure)}");
+        builder.AppendLine($"Coordinate: {FormatGrid(_selectedGridKey, _selectedGrid)}");
+        builder.AppendLine($"Terrain: {FormatTerrain(cell.Terrain)}");
+        builder.AppendLine($"Structure: {FormatStructure(cell.Structure)}");
         if (cell.HasStructureHealth)
         {
-            builder.AppendLine($"耐久: {cell.StructureHealth}/{cell.StructureMaxHealth}");
-            builder.AppendLine($"狀態: {(cell.IsBroken ? "已破壞" : "完整")}");
+            builder.AppendLine($"Durability: {cell.StructureHealth}/{cell.StructureMaxHealth}");
+            builder.AppendLine($"Status: {(cell.IsBroken ? "Broken" : "Intact")}");
         }
 
-        builder.AppendLine($"部署區: {FormatDeploymentZone(cell.DeploymentZone)}");
-        builder.AppendLine($"高度: {cell.HeightLevel}");
-        builder.AppendLine($"移動阻擋: {(IsCellBlockingMovement(cell) ? "是" : "否")}");
+        builder.AppendLine($"Deployment: {FormatDeploymentZone(cell.DeploymentZone)}");
+        builder.AppendLine($"Height: {cell.HeightLevel}");
+        builder.AppendLine($"Blocks Move: {(IsCellBlockingMovement(cell) ? "Yes" : "No")}");
         if (cell.Structure == BattleStructureType.Gate)
         {
             builder.AppendLine($"Gate: {(cell.IsGateOpen ? "Open" : "Closed")}");
@@ -756,36 +916,37 @@ public partial class BattlePrototypeSceneController : Node2D
 
         builder.AppendLine("Occupants");
 
-        if (_occupantsByGrid.TryGetValue(grid, out var occupants) && occupants.Count > 0)
+        var occupantsAtGrid = GetOccupantsAtSelectedGrid(grid).ToList();
+        if (occupantsAtGrid.Count > 0)
         {
-            foreach (var occupant in occupants)
+            foreach (var (gridKey, occupant) in occupantsAtGrid)
             {
-                builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}]");
+                builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}");
             }
         }
         else
         {
-            builder.AppendLine("- 無");
+            builder.AppendLine("- None");
         }
 
         if (_selectedUnit != null && _selectedUnitGrid.HasValue)
         {
             builder.AppendLine("Selected Piece");
             builder.AppendLine($"- {_selectedUnit.DisplayName} [{_selectedUnit.ShortLabel}]");
-            builder.AppendLine($"- 類型: {_selectedUnit.Category}");
-            builder.AppendLine($"- 所在格: ({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y})");
-            builder.AppendLine($"- 移動力: {_selectedUnit.MoveRange}");
-            builder.AppendLine($"- 攻擊距離: {_selectedUnit.AttackRange}");
-            builder.AppendLine($"- 可移動格數: {_movableGrids.Count}");
-            builder.AppendLine($"- 可攻擊格數: {_attackableGrids.Count}");
-            builder.AppendLine($"- 指令狀態: {FormatCommandMode(_commandMode)}");
-            builder.AppendLine($"- 當前回合: {GetCurrentTurnSideName()}");
+            builder.AppendLine($"- Category: {_selectedUnit.Category}");
+            builder.AppendLine($"- Grid: ({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y}, L{_selectedUnitGrid.Value.Level})");
+            builder.AppendLine($"- Move Range: {_selectedUnit.MoveRange}");
+            builder.AppendLine($"- Attack Range: {_selectedUnit.AttackRange}");
+            builder.AppendLine($"- Reachable Tiles: {_movableGrids.Count}");
+            builder.AppendLine($"- Attackable Tiles: {_attackableGrids.Count}");
+            builder.AppendLine($"- Command State: {FormatCommandMode(_commandMode)}");
+            builder.AppendLine($"- Current Turn: {GetCurrentTurnSideName()}");
         }
 
         return builder.ToString().TrimEnd();
     }
 
-    private void RegisterOccupant(Vector2I grid, string displayName, string category, string shortLabel, string teamName, string officerName, string troopType, int troopCount, int moveRange, int attackRange, BattlePieceMarker? marker)
+    private void RegisterOccupant(BattleGridKey grid, string displayName, string category, string shortLabel, string teamName, string officerName, string troopType, int troopCount, int moveRange, int attackRange, BattlePieceMarker? marker)
     {
         if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
         {
@@ -796,6 +957,43 @@ public partial class BattlePrototypeSceneController : Node2D
         occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
     }
 
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetOccupantsAtGrid(Vector2I grid)
+    {
+        foreach (var (gridKey, occupants) in _occupantsByGrid)
+        {
+            if (gridKey.X != grid.X || gridKey.Y != grid.Y)
+            {
+                continue;
+            }
+
+            foreach (var occupant in occupants)
+            {
+                yield return (gridKey, occupant);
+            }
+        }
+    }
+
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetOccupantsAtSelectedGrid(Vector2I grid)
+    {
+        if (_selectedGridKey.HasValue)
+        {
+            if (_occupantsByGrid.TryGetValue(_selectedGridKey.Value, out var selectedOccupants))
+            {
+                foreach (var occupant in selectedOccupants)
+                {
+                    yield return (_selectedGridKey.Value, occupant);
+                }
+            }
+
+            yield break;
+        }
+
+        foreach (var occupant in GetOccupantsAtGrid(grid))
+        {
+            yield return occupant;
+        }
+    }
+
     private bool TryMoveSelectedUnit()
     {
         if (!_selectedGrid.HasValue || !_selectedUnitGrid.HasValue || _selectedUnit == null || _groundLayer == null)
@@ -803,7 +1001,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        var destinationGrid = _selectedGrid.Value;
+        var destinationGrid = _selectedGridKey ?? GetDefaultGridKey(_selectedGrid.Value);
         var sourceGrid = _selectedUnitGrid.Value;
         if (destinationGrid == sourceGrid || !_movableGrids.Contains(destinationGrid))
         {
@@ -843,14 +1041,15 @@ public partial class BattlePrototypeSceneController : Node2D
         var pathDirections = BuildPathDirections(sourceGrid, movePath);
         var moveDirection = pathDirections.Length > 0
             ? pathDirections[^1]
-            : GetInfantryDirection(sourceGrid, destinationGrid);
+            : GetInfantryDirection(sourceGrid.Grid, destinationGrid.Grid);
         var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker, FacingDirection = moveDirection };
         destinationOccupants.Add(movedOccupant);
         ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections);
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
-        _selectedGrid = destinationGrid;
+        _selectedGrid = destinationGrid.Grid;
+        _selectedGridKey = destinationGrid;
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
@@ -866,13 +1065,13 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        var targetGrid = _selectedGrid.Value;
+        var targetGrid = _selectedGridKey ?? GetDefaultGridKey(_selectedGrid.Value);
         if (!_attackableGrids.Contains(targetGrid))
         {
             return false;
         }
 
-        var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value, targetGrid);
+        var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value.Grid, targetGrid.Grid);
         var attackingUnit = _selectedUnit with { FacingDirection = attackDirection };
         ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, attackingUnit);
         _selectedUnit = attackingUnit;
@@ -886,7 +1085,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return true;
     }
 
-    private void ReplaceOccupantAtGrid(Vector2I grid, BattleOccupantInfo oldOccupant, BattleOccupantInfo newOccupant)
+    private void ReplaceOccupantAtGrid(BattleGridKey grid, BattleOccupantInfo oldOccupant, BattleOccupantInfo newOccupant)
     {
         if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
         {
@@ -1061,7 +1260,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
-    private void ApplyTargetHurtAnimation(Vector2I attackerGrid, Vector2I targetGrid)
+    private void ApplyTargetHurtAnimation(BattleGridKey attackerGrid, BattleGridKey targetGrid)
     {
         if (!_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
         {
@@ -1077,7 +1276,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        var hurtDirection = GetInfantryDirection(attackerGrid, targetGrid);
+        var hurtDirection = GetInfantryDirection(attackerGrid.Grid, targetGrid.Grid);
         if (target.TroopType == TroopSpearman)
         {
             target.Marker.PlayAction(
@@ -1391,7 +1590,13 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        if (!_occupantsByGrid.TryGetValue(_selectedGrid.Value, out var occupants))
+        var selectedGridKey = _selectedGridKey;
+        if (!selectedGridKey.HasValue)
+        {
+            return;
+        }
+
+        if (!_occupantsByGrid.TryGetValue(selectedGridKey.Value, out var occupants))
         {
             return;
         }
@@ -1403,19 +1608,19 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         _selectedUnit = selectedUnit;
-        _selectedUnitGrid = _selectedGrid;
+        _selectedUnitGrid = selectedGridKey.Value;
         _commandMode = BattleCommandMode.AwaitingCommand;
     }
 
-    private IEnumerable<Vector2I> CalculateReachableGrids(Vector2I startGrid, int moveRange)
+    private IEnumerable<BattleGridKey> CalculateReachableGrids(BattleGridKey startGrid, int moveRange)
     {
         if (_mapData == null || moveRange <= 0)
         {
             yield break;
         }
 
-        var frontier = new Queue<(Vector2I Grid, int RemainingMove)>();
-        var bestRemaining = new Dictionary<Vector2I, int> { [startGrid] = moveRange };
+        var frontier = new Queue<(BattleGridKey Grid, int RemainingMove)>();
+        var bestRemaining = new Dictionary<BattleGridKey, int> { [startGrid] = moveRange };
         frontier.Enqueue((startGrid, moveRange));
 
         while (frontier.Count > 0)
@@ -1424,7 +1629,7 @@ public partial class BattlePrototypeSceneController : Node2D
             foreach (var step in GetMovementNeighbors(current.Grid))
             {
                 var neighbor = step.Grid;
-                if (!IsWithinMap(neighbor))
+                if (!IsWithinMap(neighbor.Grid))
                 {
                     continue;
                 }
@@ -1471,7 +1676,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
-    private bool TryBuildMovePath(Vector2I startGrid, Vector2I destinationGrid, int moveRange, out List<Vector2I> path)
+    private bool TryBuildMovePath(BattleGridKey startGrid, BattleGridKey destinationGrid, int moveRange, out List<BattleGridKey> path)
     {
         path = [];
         if (_mapData == null || moveRange <= 0)
@@ -1479,9 +1684,9 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        var frontier = new Queue<(Vector2I Grid, int RemainingMove)>();
-        var bestRemaining = new Dictionary<Vector2I, int> { [startGrid] = moveRange };
-        var previousByGrid = new Dictionary<Vector2I, Vector2I>();
+        var frontier = new Queue<(BattleGridKey Grid, int RemainingMove)>();
+        var bestRemaining = new Dictionary<BattleGridKey, int> { [startGrid] = moveRange };
+        var previousByGrid = new Dictionary<BattleGridKey, BattleGridKey>();
         frontier.Enqueue((startGrid, moveRange));
 
         while (frontier.Count > 0)
@@ -1496,7 +1701,7 @@ public partial class BattlePrototypeSceneController : Node2D
             foreach (var step in GetMovementNeighbors(current.Grid))
             {
                 var neighbor = step.Grid;
-                if (!IsWithinMap(neighbor))
+                if (!IsWithinMap(neighbor.Grid))
                 {
                     continue;
                 }
@@ -1537,9 +1742,9 @@ public partial class BattlePrototypeSceneController : Node2D
         return false;
     }
 
-    private static List<Vector2I> RebuildMovePath(Vector2I startGrid, Vector2I destinationGrid, IReadOnlyDictionary<Vector2I, Vector2I> previousByGrid)
+    private static List<BattleGridKey> RebuildMovePath(BattleGridKey startGrid, BattleGridKey destinationGrid, IReadOnlyDictionary<BattleGridKey, BattleGridKey> previousByGrid)
     {
-        var path = new List<Vector2I>();
+        var path = new List<BattleGridKey>();
         var current = destinationGrid;
         while (current != startGrid)
         {
@@ -1554,14 +1759,14 @@ public partial class BattlePrototypeSceneController : Node2D
         return path;
     }
 
-    private List<Vector2I> ExpandMovePathWithCarLadderWaypoints(Vector2I sourceGrid, IReadOnlyList<Vector2I> movePath, BattleOccupantInfo movingOccupant)
+    private List<BattleGridKey> ExpandMovePathWithCarLadderWaypoints(BattleGridKey sourceGrid, IReadOnlyList<BattleGridKey> movePath, BattleOccupantInfo movingOccupant)
     {
         if (_mapData == null || movePath.Count == 0 || !CanUseCarLadderBridge(movingOccupant))
         {
             return movePath.ToList();
         }
 
-        var expandedPath = new List<Vector2I>();
+        var expandedPath = new List<BattleGridKey>();
         var previousGrid = sourceGrid;
         foreach (var nextGrid in movePath)
         {
@@ -1577,29 +1782,27 @@ public partial class BattlePrototypeSceneController : Node2D
         return expandedPath;
     }
 
-    private bool TryGetCarLadderGridForTransition(Vector2I fromGrid, Vector2I toGrid, out Vector2I ladderGrid)
+    private bool TryGetCarLadderGridForTransition(BattleGridKey fromGrid, BattleGridKey toGrid, out BattleGridKey ladderGrid)
     {
         ladderGrid = default;
-        if (_mapData == null || !IsWithinMap(fromGrid) || !IsWithinMap(toGrid))
+        if (_mapData == null || !IsWithinMap(fromGrid.Grid) || !IsWithinMap(toGrid.Grid))
         {
             return false;
         }
 
-        var fromCell = _mapData.GetCell(fromGrid.X, fromGrid.Y);
-        var toCell = _mapData.GetCell(toGrid.X, toGrid.Y);
-        if (!ShouldUseCarLadderBridgeForMove(fromCell, toCell))
+        if (!ShouldUseCarLadderBridgeForMove(fromGrid, toGrid))
         {
             return false;
         }
 
         foreach (var candidateLadderGrid in GetUsableCarLadderGrids())
         {
-            var groundGrids = GetCarLadderGroundEndpoints(candidateLadderGrid).ToList();
-            var wallWalkGrids = GetCarLadderWallWalkEndpoints(candidateLadderGrid).ToList();
-            var matchesGroundToWall = fromCell.Terrain != BattleTerrainType.WallWalk &&
+            var groundGrids = GetCarLadderGroundEndpoints(candidateLadderGrid.Grid).Select(ToGroundGridKey).ToList();
+            var wallWalkGrids = GetCarLadderWallTopEndpoints(candidateLadderGrid.Grid).Select(ToWallWalkGridKey).ToList();
+            var matchesGroundToWall = fromGrid.Level != 2 &&
                                       groundGrids.Contains(fromGrid) &&
                                       wallWalkGrids.Contains(toGrid);
-            var matchesWallToGround = fromCell.Terrain == BattleTerrainType.WallWalk &&
+            var matchesWallToGround = fromGrid.Level == 2 &&
                                       wallWalkGrids.Contains(fromGrid) &&
                                       groundGrids.Contains(toGrid);
             if (!matchesGroundToWall && !matchesWallToGround)
@@ -1614,11 +1817,15 @@ public partial class BattlePrototypeSceneController : Node2D
         return false;
     }
 
-    private IEnumerable<(Vector2I Grid, bool UsesLadderBridge)> GetMovementNeighbors(Vector2I grid)
+    private IEnumerable<(BattleGridKey Grid, bool UsesLadderBridge)> GetMovementNeighbors(BattleGridKey grid)
     {
-        foreach (var neighbor in GetOrthogonalNeighbors(grid))
+        foreach (var neighbor in GetOrthogonalNeighbors(grid.Grid))
         {
-            yield return (neighbor, false);
+            var neighborKey = ResolveStepGridKey(grid, neighbor);
+            if (neighborKey.HasValue)
+            {
+                yield return (neighborKey.Value, false);
+            }
         }
 
         foreach (var bridgeNeighbor in GetCarLadderBridgeNeighbors(grid))
@@ -1627,9 +1834,9 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
-    private IEnumerable<Vector2I> GetCarLadderBridgeNeighbors(Vector2I grid)
+    private IEnumerable<BattleGridKey> GetCarLadderBridgeNeighbors(BattleGridKey grid)
     {
-        if (_mapData == null || _selectedUnit == null || !CanUseCarLadderBridge(_selectedUnit) || !IsWithinMap(grid))
+        if (_mapData == null || _selectedUnit == null || !CanUseCarLadderBridge(_selectedUnit) || !IsWithinMap(grid.Grid))
         {
             yield break;
         }
@@ -1637,9 +1844,9 @@ public partial class BattlePrototypeSceneController : Node2D
         var currentCell = _mapData.GetCell(grid.X, grid.Y);
         foreach (var ladderGrid in GetUsableCarLadderGrids())
         {
-            var bridgeGroundGrids = GetCarLadderGroundEndpoints(ladderGrid).ToList();
-            var bridgeWallWalkGrids = GetCarLadderWallWalkEndpoints(ladderGrid).ToList();
-            if (currentCell.Terrain == BattleTerrainType.WallWalk)
+            var bridgeGroundGrids = GetCarLadderGroundEndpoints(ladderGrid.Grid).Select(ToGroundGridKey).ToList();
+            var bridgeWallWalkGrids = GetCarLadderWallTopEndpoints(ladderGrid.Grid).Select(ToWallWalkGridKey).ToList();
+            if (grid.Level == 2)
             {
                 if (!bridgeWallWalkGrids.Contains(grid))
                 {
@@ -1666,34 +1873,32 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
-    private bool TryGetCarLadderBridgePath(Vector2I sourceGrid, Vector2I destinationGrid, BattleOccupantInfo movingOccupant, out Vector2[] pathPositions, out BattleSpriteDirection[] pathDirections)
+    private bool TryGetCarLadderBridgePath(BattleGridKey sourceGrid, BattleGridKey destinationGrid, BattleOccupantInfo movingOccupant, out Vector2[] pathPositions, out BattleSpriteDirection[] pathDirections)
     {
         pathPositions = [];
         pathDirections = [];
-        if (_mapData == null || !CanUseCarLadderBridge(movingOccupant) || !IsWithinMap(sourceGrid) || !IsWithinMap(destinationGrid))
+        if (_mapData == null || !CanUseCarLadderBridge(movingOccupant) || !IsWithinMap(sourceGrid.Grid) || !IsWithinMap(destinationGrid.Grid))
         {
             return false;
         }
 
-        var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
-        var destinationCell = _mapData.GetCell(destinationGrid.X, destinationGrid.Y);
-        if (!ShouldUseCarLadderBridgeForMove(sourceCell, destinationCell))
+        if (!ShouldUseCarLadderBridgeForMove(sourceGrid, destinationGrid))
         {
             return false;
         }
 
-        if (sourceCell.Terrain == destinationCell.Terrain ||
-            (sourceCell.Terrain != BattleTerrainType.WallWalk && destinationCell.Terrain != BattleTerrainType.WallWalk))
+        if (sourceGrid.Level == destinationGrid.Level ||
+            (sourceGrid.Level != 2 && destinationGrid.Level != 2))
         {
             return false;
         }
 
         foreach (var ladderGrid in GetUsableCarLadderGrids())
         {
-            var groundGrids = GetCarLadderGroundEndpoints(ladderGrid).ToList();
-            var wallWalkGrids = GetCarLadderWallWalkEndpoints(ladderGrid).ToList();
-            var pathGrids = new List<Vector2I>();
-            if (sourceCell.Terrain != BattleTerrainType.WallWalk && wallWalkGrids.Contains(destinationGrid))
+            var groundGrids = GetCarLadderGroundEndpoints(ladderGrid.Grid).Select(ToGroundGridKey).ToList();
+            var wallWalkGrids = GetCarLadderWallTopEndpoints(ladderGrid.Grid).Select(ToWallWalkGridKey).ToList();
+            var pathGrids = new List<BattleGridKey>();
+            if (sourceGrid.Level != 2 && wallWalkGrids.Contains(destinationGrid))
             {
                 var entryGrid = GetNearestGrid(sourceGrid, groundGrids);
                 if (!entryGrid.HasValue)
@@ -1705,7 +1910,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 AddPathGrid(pathGrids, ladderGrid, sourceGrid);
                 AddPathGrid(pathGrids, destinationGrid, sourceGrid);
             }
-            else if (sourceCell.Terrain == BattleTerrainType.WallWalk && wallWalkGrids.Contains(sourceGrid))
+            else if (sourceGrid.Level == 2 && wallWalkGrids.Contains(sourceGrid))
             {
                 var exitGrid = GetNearestGrid(destinationGrid, groundGrids);
                 if (!exitGrid.HasValue)
@@ -1735,9 +1940,9 @@ public partial class BattlePrototypeSceneController : Node2D
         return false;
     }
 
-    private static Vector2I? GetNearestGrid(Vector2I fromGrid, IEnumerable<Vector2I> candidates)
+    private static BattleGridKey? GetNearestGrid(BattleGridKey fromGrid, IEnumerable<BattleGridKey> candidates)
     {
-        Vector2I? nearestGrid = null;
+        BattleGridKey? nearestGrid = null;
         var nearestDistance = int.MaxValue;
         foreach (var candidate in candidates)
         {
@@ -1754,7 +1959,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return nearestGrid;
     }
 
-    private static void AddPathGrid(List<Vector2I> pathGrids, Vector2I grid, Vector2I sourceGrid)
+    private static void AddPathGrid(List<BattleGridKey> pathGrids, BattleGridKey grid, BattleGridKey sourceGrid)
     {
         if (grid == sourceGrid || (pathGrids.Count > 0 && pathGrids[^1] == grid))
         {
@@ -1764,44 +1969,30 @@ public partial class BattlePrototypeSceneController : Node2D
         pathGrids.Add(grid);
     }
 
-    private static BattleSpriteDirection[] BuildPathDirections(Vector2I sourceGrid, IReadOnlyList<Vector2I> pathGrids)
+    private static BattleSpriteDirection[] BuildPathDirections(BattleGridKey sourceGrid, IReadOnlyList<BattleGridKey> pathGrids)
     {
         var directions = new BattleSpriteDirection[pathGrids.Count];
         var previousGrid = sourceGrid;
         for (var index = 0; index < pathGrids.Count; index++)
         {
-            directions[index] = GetInfantryDirection(previousGrid, pathGrids[index]);
+            directions[index] = GetInfantryDirection(previousGrid.Grid, pathGrids[index].Grid);
             previousGrid = pathGrids[index];
         }
 
         return directions;
     }
 
-    private static bool ShouldUseCarLadderBridgeForMove(BattlePrototypeCellData sourceCell, BattlePrototypeCellData destinationCell)
+    private static bool ShouldUseCarLadderBridgeForMove(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
     {
-        if (sourceCell.Terrain == BattleTerrainType.WallWalk)
-        {
-            return !IsCastleInnerTerrain(destinationCell.Terrain);
-        }
-
-        if (destinationCell.Terrain == BattleTerrainType.WallWalk)
-        {
-            return !IsCastleInnerTerrain(sourceCell.Terrain);
-        }
-
-        return false;
+        return sourceGrid.Level != destinationGrid.Level &&
+               (sourceGrid.Level == 2 || destinationGrid.Level == 2);
     }
 
-    private static bool IsCastleInnerTerrain(BattleTerrainType terrain)
-    {
-        return terrain == BattleTerrainType.Courtyard;
-    }
-
-    private IEnumerable<Vector2I> GetUsableCarLadderGrids()
+    private IEnumerable<BattleGridKey> GetUsableCarLadderGrids()
     {
         foreach (var (grid, occupants) in _occupantsByGrid)
         {
-            if (!IsWithinMap(grid))
+            if (!IsWithinMap(grid.Grid))
             {
                 continue;
             }
@@ -1831,14 +2022,14 @@ public partial class BattlePrototypeSceneController : Node2D
             }
 
             var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
-            if (cell.Terrain != BattleTerrainType.WallWalk && !cell.IsBlockingStructure)
+            if (!IsWallTopGrid(neighbor) && !cell.IsBlockingStructure)
             {
                 yield return neighbor;
             }
         }
     }
 
-    private IEnumerable<Vector2I> GetCarLadderWallWalkEndpoints(Vector2I ladderGrid)
+    private IEnumerable<Vector2I> GetCarLadderWallTopEndpoints(Vector2I ladderGrid)
     {
         if (_mapData == null)
         {
@@ -1853,29 +2044,12 @@ public partial class BattlePrototypeSceneController : Node2D
                 continue;
             }
 
-            var adjacentCell = _mapData.GetCell(adjacentGrid.X, adjacentGrid.Y);
-            if (adjacentCell.Terrain == BattleTerrainType.WallWalk)
-            {
-                yield return adjacentGrid;
-                continue;
-            }
-
-            if (adjacentCell.Structure is not (BattleStructureType.Wall or BattleStructureType.Gate))
+            if (!IsWallTopGrid(adjacentGrid))
             {
                 continue;
             }
 
-            var behindWallGrid = adjacentGrid + direction;
-            if (!IsWithinMap(behindWallGrid))
-            {
-                continue;
-            }
-
-            var behindWallCell = _mapData.GetCell(behindWallGrid.X, behindWallGrid.Y);
-            if (behindWallCell.Terrain == BattleTerrainType.WallWalk)
-            {
-                yield return behindWallGrid;
-            }
+            yield return adjacentGrid;
         }
     }
 
@@ -1895,7 +2069,7 @@ public partial class BattlePrototypeSceneController : Node2D
         yield return new Vector2I(grid.X, grid.Y - 1);
     }
 
-    private bool HasBlockingOccupant(Vector2I grid)
+    private bool HasBlockingOccupant(BattleGridKey grid)
     {
         if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
         {
@@ -1933,7 +2107,9 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        Vector2? selectedCenter = _selectedGrid.HasValue ? GetHighlightPosition(_selectedGrid.Value) : null;
+        Vector2? selectedCenter = _selectedGridKey.HasValue
+            ? GetHighlightPosition(_selectedGridKey.Value)
+            : _selectedGrid.HasValue ? GetHighlightPosition(_selectedGrid.Value) : null;
         var movableCenters = _movableGrids.Select(GetHighlightPosition);
         var attackCenters = _attackableGrids.Select(GetHighlightPosition);
         _highlightLayer.SetHighlights(selectedCenter, movableCenters, attackCenters);
@@ -2032,18 +2208,18 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         var unitGrid = _selectedUnitGrid.Value;
-        if (!IsWithinMap(unitGrid))
+        if (!IsWithinMap(unitGrid.Grid))
         {
             return false;
         }
 
         var unitCell = _mapData.GetCell(unitGrid.X, unitGrid.Y);
-        if (unitCell.Terrain is not (BattleTerrainType.Courtyard or BattleTerrainType.WallWalk))
+        if (unitCell.Terrain != BattleTerrainType.Courtyard && !IsWallTopGrid(unitGrid.Grid))
         {
             return false;
         }
 
-        foreach (var neighbor in GetOrthogonalNeighbors(unitGrid))
+        foreach (var neighbor in GetOrthogonalNeighbors(unitGrid.Grid))
         {
             if (!IsWithinMap(neighbor))
             {
@@ -2104,7 +2280,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return group;
     }
 
-    private IEnumerable<Vector2I> CalculateAttackableGrids(Vector2I startGrid, int attackRange)
+    private IEnumerable<BattleGridKey> CalculateAttackableGrids(BattleGridKey startGrid, int attackRange)
     {
         if (attackRange <= 0)
         {
@@ -2116,13 +2292,25 @@ public partial class BattlePrototypeSceneController : Node2D
             for (var x = 0; x < BattlePrototypeMapData.Width; x++)
             {
                 var grid = new Vector2I(x, y);
-                var distance = Mathf.Abs(grid.X - startGrid.X) + Mathf.Abs(grid.Y - startGrid.Y);
-                if (distance > 0 && distance <= attackRange)
+                var gridKey = startGrid.Level == 2 ? ToWallWalkGridKey(grid) : ToGroundGridKey(grid);
+                var distance = Mathf.Abs(gridKey.X - startGrid.X) + Mathf.Abs(gridKey.Y - startGrid.Y);
+                if (distance > 0 && distance <= attackRange && IsAttackLevelCompatible(startGrid, gridKey))
                 {
-                    yield return grid;
+                    yield return gridKey;
                 }
             }
         }
+    }
+
+    private bool IsAttackLevelCompatible(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    {
+        if (_mapData == null || !IsWithinMap(targetGrid.Grid))
+        {
+            return false;
+        }
+
+        return sourceGrid.Level == targetGrid.Level &&
+               (targetGrid.Level != 2 || IsWallTopGrid(targetGrid.Grid));
     }
 
     private void ShowCommandMenu(Vector2 screenPosition)
@@ -2190,6 +2378,7 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             _selectedUnit = null;
             _selectedUnitGrid = null;
+            _selectedGridKey = null;
         }
     }
 
@@ -2217,22 +2406,27 @@ public partial class BattlePrototypeSceneController : Node2D
     {
         return commandMode switch
         {
-            BattleCommandMode.MoveSelect => "選擇移動目標",
-            BattleCommandMode.AttackSelect => "選擇攻擊目標",
-            BattleCommandMode.StrategySelect => "策略指令待定",
-            BattleCommandMode.AwaitingCommand => "等待指令",
-            _ => "無"
+            BattleCommandMode.MoveSelect => "Select Move Target",
+            BattleCommandMode.AttackSelect => "Select Attack Target",
+            BattleCommandMode.StrategySelect => "Strategy Pending",
+            BattleCommandMode.AwaitingCommand => "Awaiting Command",
+            _ => "None"
         };
     }
 
     private string GetCurrentTurnSideName()
     {
-        return _currentTurnSide == BattleTurnSide.TeamA ? "Team A / 攻方" : "Team B / 守方";
+        return _currentTurnSide == BattleTurnSide.TeamA ? "Team A / Attacker" : "Team B / Defender";
     }
 
-    private bool CanTraverseBlockedCell(Vector2I grid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
+    private bool CanTraverseBlockedCell(BattleGridKey grid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
     {
         _ = grid;
+
+        if (grid.Level == 2 && IsWallTopGrid(grid.Grid))
+        {
+            return true;
+        }
 
         if (!cell.IsBlockingStructure)
         {
@@ -2249,7 +2443,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return true;
         }
 
-        if (usesLadderBridge && cell.Terrain == BattleTerrainType.WallWalk && CanUseCarLadderBridge(_selectedUnit))
+        if (usesLadderBridge && grid.Level == 2 && IsWallTopGrid(grid.Grid) && CanUseCarLadderBridge(_selectedUnit))
         {
             return true;
         }
@@ -2257,7 +2451,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return false;
     }
 
-    private bool CanEnterCell(Vector2I sourceGrid, Vector2I destinationGrid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
+    private bool CanEnterCell(BattleGridKey sourceGrid, BattleGridKey destinationGrid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
     {
         _ = destinationGrid;
 
@@ -2266,12 +2460,12 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        var sourceCell = _mapData != null && IsWithinMap(sourceGrid)
+        var sourceCell = _mapData != null && IsWithinMap(sourceGrid.Grid)
             ? _mapData.GetCell(sourceGrid.X, sourceGrid.Y)
             : null;
-        var sourceIsWallWalk = sourceCell?.Terrain == BattleTerrainType.WallWalk;
+        var sourceIsWallWalk = sourceGrid.Level == 2;
         var sourceIsCourtyard = sourceCell?.Terrain == BattleTerrainType.Courtyard;
-        if (cell.Terrain == BattleTerrainType.WallWalk &&
+        if (destinationGrid.Level == 2 &&
             IsAttackerPiece(_selectedUnit) &&
             !sourceIsWallWalk &&
             !sourceIsCourtyard &&
@@ -2290,12 +2484,12 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private static bool IsAttackerPiece(BattleOccupantInfo occupant)
     {
-        return occupant.TeamName.Contains("攻方");
+        return occupant.TeamName.Contains("Attacker");
     }
 
     private static bool IsDefenderPiece(BattleOccupantInfo occupant)
     {
-        return occupant.TeamName.Contains("守方");
+        return occupant.TeamName.Contains("Defender");
     }
 
     private Vector2 ClampCommandMenuPosition(Vector2 desiredPosition)
@@ -2369,12 +2563,12 @@ public partial class BattlePrototypeSceneController : Node2D
     {
         return terrain switch
         {
-            BattleTerrainType.Road => "道路",
-            BattleTerrainType.Courtyard => "城內庭地",
-            BattleTerrainType.Forest => "林地",
-            BattleTerrainType.WallWalk => "城牆步道",
-            BattleTerrainType.Grass => "草地",
-            _ => "平地"
+            BattleTerrainType.Road => "Road",
+            BattleTerrainType.Courtyard => "Courtyard",
+            BattleTerrainType.Forest => "Forest",
+            BattleTerrainType.WallWalk => "Wall Top",
+            BattleTerrainType.Grass => "Grass",
+            _ => "Plain"
         };
     }
 
@@ -2382,14 +2576,14 @@ public partial class BattlePrototypeSceneController : Node2D
     {
         return structure switch
         {
-            BattleStructureType.Wall => "城牆",
-            BattleStructureType.Gate => "城門",
-            BattleStructureType.Tower => "箭塔",
-            BattleStructureType.Building => "建物",
-            BattleStructureType.Tree => "樹木",
-            BattleStructureType.RockBig => "大岩石",
-            BattleStructureType.RockSmall => "小岩石",
-            _ => "無"
+            BattleStructureType.Wall => "Wall",
+            BattleStructureType.Gate => "Gate",
+            BattleStructureType.Tower => "Tower",
+            BattleStructureType.Building => "Building",
+            BattleStructureType.Tree => "Tree",
+            BattleStructureType.RockBig => "Large Rock",
+            BattleStructureType.RockSmall => "Small Rock",
+            _ => "None"
         };
     }
 
@@ -2397,9 +2591,9 @@ public partial class BattlePrototypeSceneController : Node2D
     {
         return zone switch
         {
-            BattleDeploymentZone.Attacker => "攻方部署區",
-            BattleDeploymentZone.Defender => "守方部署區",
-            _ => "無"
+            BattleDeploymentZone.Attacker => "Attacker Zone",
+            BattleDeploymentZone.Defender => "Defender Zone",
+            _ => "None"
         };
     }
 
