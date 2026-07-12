@@ -730,6 +730,12 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (cell.Structure == BattleStructureType.Gate)
+        {
+            return !cell.IsGateOpen && !cell.IsBroken;
+        }
+
         if (IsWallTopGrid(grid.Grid))
         {
             return false;
@@ -1216,7 +1222,6 @@ public partial class BattlePrototypeSceneController : Node2D
             return null;
         }
 
-        var destinationCell = _mapData.GetCell(destinationGrid.X, destinationGrid.Y);
         var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
         if (sourceGrid.Level == 2)
         {
@@ -1225,14 +1230,12 @@ public partial class BattlePrototypeSceneController : Node2D
                 return ToWallWalkGridKey(destinationGrid);
             }
 
-            return destinationCell.Terrain == BattleTerrainType.Courtyard
-                ? ToGroundGridKey(destinationGrid)
-                : null;
+            return null;
         }
 
         if (IsWallTopGrid(destinationGrid))
         {
-            if (IsGateGroundPassage(destinationGrid) && sourceGrid.Level == 0)
+            if (CanUseGateGroundPassage(destinationGrid) && sourceGrid.Level == 0)
             {
                 return ToGroundGridKey(destinationGrid);
             }
@@ -1254,6 +1257,22 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var cell = _mapData.GetCell(grid.X, grid.Y);
         return cell.Structure == BattleStructureType.Gate && (cell.IsGateOpen || cell.IsBroken);
+    }
+
+    private bool CanUseGateGroundPassage(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (cell.Structure != BattleStructureType.Gate)
+        {
+            return false;
+        }
+
+        return cell.IsGateOpen || cell.IsBroken;
     }
 
     private bool IsGateGrid(Vector2I grid)
@@ -1772,6 +1791,11 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private double ApplyTargetHurtAnimation(BattleGridKey attackerGrid, BattleGridKey targetGrid)
     {
+        if (IsClosedGateStructureTarget(targetGrid))
+        {
+            return 0.0;
+        }
+
         if (!_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
         {
             return 0.0;
@@ -1825,6 +1849,12 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void ApplyAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid, double effectDelaySeconds)
     {
+        if (IsClosedGateStructureTarget(targetGrid))
+        {
+            ApplyStructureAttackDamage(attacker, targetGrid);
+            return;
+        }
+
         if (!_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
         {
             ApplyStructureAttackDamage(attacker, targetGrid);
@@ -1838,7 +1868,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        var damage = GetStructureAttackDamage(attacker);
+        var damage = GetAttackDamage(attacker);
         if (damage <= 0)
         {
             return;
@@ -1882,7 +1912,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        var damage = GetAttackDamage(attacker);
+        var damage = GetStructureAttackDamage(attacker);
         if (damage <= 0)
         {
             return;
@@ -1891,6 +1921,20 @@ public partial class BattlePrototypeSceneController : Node2D
         var actualDamage = ApplyGateGroupDamage(targetGrid.Grid, damage);
         ShowDamagePopup(targetGrid, actualDamage);
         RefreshInfoPanel();
+    }
+
+    private bool IsClosedGateStructureTarget(BattleGridKey targetGrid)
+    {
+        if (_mapData == null || targetGrid.Level != 0 || !IsWithinMap(targetGrid.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
+        return cell.Structure == BattleStructureType.Gate &&
+               cell.HasStructureHealth &&
+               !cell.IsGateOpen &&
+               !cell.IsBroken;
     }
 
     private int ApplyGateGroupDamage(Vector2I gateGrid, int damage)
@@ -2574,6 +2618,12 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private IEnumerable<(BattleGridKey Grid, bool UsesLadderBridge)> GetMovementNeighbors(BattleGridKey grid)
     {
+        var verticalGateStep = ResolveGateVerticalStepGridKey(grid);
+        if (verticalGateStep.HasValue)
+        {
+            yield return (verticalGateStep.Value, false);
+        }
+
         foreach (var neighbor in GetOrthogonalNeighbors(grid.Grid))
         {
             var neighborKey = ResolveStepGridKey(grid, neighbor);
@@ -2587,6 +2637,47 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             yield return (bridgeNeighbor, true);
         }
+    }
+
+    private BattleGridKey? ResolveGateVerticalStepGridKey(BattleGridKey grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid.Grid) || !CanUseGateVerticalStep(grid))
+        {
+            return null;
+        }
+
+        return grid.Level switch
+        {
+            2 => ToGroundGridKey(grid.Grid),
+            0 => ToWallWalkGridKey(grid.Grid),
+            _ => null
+        };
+    }
+
+    private bool CanUseGateVerticalStep(BattleGridKey grid)
+    {
+        if (_mapData == null || _selectedUnit == null || !IsWithinMap(grid.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (cell.Structure != BattleStructureType.Gate)
+        {
+            return false;
+        }
+
+        if (cell.IsGateOpen || cell.IsBroken)
+        {
+            return true;
+        }
+
+        if (_selectedUnit.Category != CategoryUnit)
+        {
+            return false;
+        }
+
+        return IsDefenderPiece(_selectedUnit) || grid.Level == 2;
     }
 
     private IEnumerable<BattleGridKey> GetCarLadderBridgeNeighbors(BattleGridKey grid)
@@ -2973,12 +3064,12 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void OnOpenGateButtonPressed()
     {
-        if (!TryGetAdjacentOpenableGate(out var gateGrid) || _mapData == null)
+        if (!TryGetSwitchableGate(out var gateGrid) || _mapData == null)
         {
             return;
         }
 
-        OpenGateGroup(GetConnectedGateGroup(gateGrid));
+        ToggleGateGroup(GetConnectedGateGroup(gateGrid));
 
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
@@ -2999,7 +3090,6 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             var gateCell = _mapData.GetCell(groupGateGrid.X, groupGateGrid.Y);
             gateCell.IsGateOpen = true;
-            gateCell.StructureHealth = 0;
             if (_castleLayer != null)
             {
                 BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: true);
@@ -3007,16 +3097,54 @@ public partial class BattlePrototypeSceneController : Node2D
 
             RefreshCastleDepthVisual(groupGateGrid);
         }
+
+        RefreshOccludedUnitSilhouettes();
     }
 
-    private bool TryGetAdjacentOpenableGate(out Vector2I gateGrid)
+    private void ToggleGateGroup(IEnumerable<Vector2I> gateGroup)
+    {
+        if (_mapData == null)
+        {
+            return;
+        }
+
+        var gates = gateGroup.ToList();
+        if (gates.Count == 0)
+        {
+            return;
+        }
+
+        var shouldOpen = gates.Any(grid => !_mapData.GetCell(grid.X, grid.Y).IsGateOpen);
+        foreach (var groupGateGrid in gates)
+        {
+            var gateCell = _mapData.GetCell(groupGateGrid.X, groupGateGrid.Y);
+            if (gateCell.IsBroken)
+            {
+                gateCell.IsGateOpen = true;
+            }
+            else
+            {
+                gateCell.IsGateOpen = shouldOpen;
+            }
+
+            if (_castleLayer != null)
+            {
+                BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: gateCell.IsGateOpen);
+            }
+
+            RefreshCastleDepthVisual(groupGateGrid);
+        }
+
+        RefreshOccludedUnitSilhouettes();
+    }
+
+    private bool TryGetSwitchableGate(out Vector2I gateGrid)
     {
         gateGrid = default;
         if (_mapData == null ||
             _selectedUnit == null ||
             !_selectedUnitGrid.HasValue ||
-            _selectedUnit.Category != CategoryUnit ||
-            !IsAttackerPiece(_selectedUnit))
+            _selectedUnit.Category != CategoryUnit)
         {
             return false;
         }
@@ -3028,24 +3156,10 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         var unitCell = _mapData.GetCell(unitGrid.X, unitGrid.Y);
-        if (unitCell.Terrain != BattleTerrainType.Courtyard && !IsWallTopGrid(unitGrid.Grid))
+        if (unitGrid.Level == 2 && unitCell.Structure == BattleStructureType.Gate && !unitCell.IsBroken)
         {
-            return false;
-        }
-
-        foreach (var neighbor in GetOrthogonalNeighbors(unitGrid.Grid))
-        {
-            if (!IsWithinMap(neighbor))
-            {
-                continue;
-            }
-
-            var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
-            if (cell.Structure == BattleStructureType.Gate && !cell.IsGateOpen && !cell.IsBroken)
-            {
-                gateGrid = neighbor;
-                return true;
-            }
+            gateGrid = unitGrid.Grid;
+            return true;
         }
 
         return false;
@@ -3110,13 +3224,32 @@ public partial class BattlePrototypeSceneController : Node2D
                 foreach (var gridKey in GetAttackCandidateGridKeys(startGrid, attacker, grid))
                 {
                     var distance = Mathf.Abs(gridKey.X - startGrid.X) + Mathf.Abs(gridKey.Y - startGrid.Y);
-                    if (distance > 0 && distance <= attackRange && IsAttackLevelCompatible(startGrid, attacker, gridKey))
+                    if (distance > 0 &&
+                        distance <= attackRange &&
+                        IsAttackLevelCompatible(startGrid, attacker, gridKey) &&
+                        !IsClosedGateExteriorAttackBlocked(startGrid, gridKey))
                     {
                         yield return gridKey;
                     }
                 }
             }
         }
+    }
+
+    private bool IsClosedGateExteriorAttackBlocked(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    {
+        if (_mapData == null || sourceGrid.Level != 0 || !IsWithinMap(sourceGrid.Grid))
+        {
+            return false;
+        }
+
+        var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
+        if (sourceCell.Structure != BattleStructureType.Gate || sourceCell.IsGateOpen || sourceCell.IsBroken)
+        {
+            return false;
+        }
+
+        return targetGrid.Level == 0 && !IsInsideCityGroundGrid(targetGrid.Grid);
     }
 
     private IEnumerable<BattleGridKey> GetAttackCandidateGridKeys(BattleGridKey sourceGrid, BattleOccupantInfo attacker, Vector2I targetGrid)
@@ -3131,7 +3264,7 @@ public partial class BattlePrototypeSceneController : Node2D
             if (IsWallTopGrid(targetGrid))
             {
                 yield return ToWallWalkGridKey(targetGrid);
-                if (IsAttackableStructureGroundGrid(targetGrid))
+                if (IsAttackableStructureGroundGrid(targetGrid) || IsOpenGateGroundGrid(targetGrid))
                 {
                     yield return ToGroundGridKey(targetGrid);
                 }
@@ -3149,7 +3282,7 @@ public partial class BattlePrototypeSceneController : Node2D
             if (IsWallTopGrid(targetGrid))
             {
                 yield return ToWallWalkGridKey(targetGrid);
-                if (IsAttackableStructureGroundGrid(targetGrid))
+                if (IsAttackableStructureGroundGrid(targetGrid) || IsOpenGateGroundGrid(targetGrid))
                 {
                     yield return ToGroundGridKey(targetGrid);
                 }
@@ -3180,7 +3313,10 @@ public partial class BattlePrototypeSceneController : Node2D
 
         return (sourceGrid.Level, targetGrid.Level) is (0, 2) or (2, 0) &&
                (targetGrid.Level != 2 || IsWallTopGrid(targetGrid.Grid)) &&
-               (targetGrid.Level != 0 || !IsWallTopGrid(targetGrid.Grid) || IsAttackableStructureGroundGrid(targetGrid.Grid));
+               (targetGrid.Level != 0 ||
+                !IsWallTopGrid(targetGrid.Grid) ||
+                IsAttackableStructureGroundGrid(targetGrid.Grid) ||
+                IsOpenGateGroundGrid(targetGrid.Grid));
     }
 
     private bool IsAttackableStructureGroundGrid(Vector2I grid)
@@ -3192,6 +3328,17 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var cell = _mapData.GetCell(grid.X, grid.Y);
         return cell.Structure == BattleStructureType.Gate && cell.HasStructureHealth && !cell.IsBroken;
+    }
+
+    private bool IsOpenGateGroundGrid(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.Structure == BattleStructureType.Gate && (cell.IsGateOpen || cell.IsBroken);
     }
 
     private static bool IsCrossLevelRangedAttacker(BattleOccupantInfo attacker, BattleGridKey sourceGrid)
@@ -3234,7 +3381,16 @@ public partial class BattlePrototypeSceneController : Node2D
 
         if (_openGateButton != null)
         {
-            _openGateButton.Visible = TryGetAdjacentOpenableGate(out _);
+            if (TryGetSwitchableGate(out var switchGateGrid) && _mapData != null)
+            {
+                var switchGateCell = _mapData.GetCell(switchGateGrid.X, switchGateGrid.Y);
+                _openGateButton.Text = switchGateCell.IsGateOpen ? "Close Gate" : "Open Gate";
+                _openGateButton.Visible = true;
+            }
+            else
+            {
+                _openGateButton.Visible = false;
+            }
         }
 
         var desiredPosition = screenPosition + new Vector2(12.0f, 12.0f);
@@ -3334,9 +3490,9 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        if (cell.Structure == BattleStructureType.Gate && IsDefenderPiece(_selectedUnit) && _selectedUnit.Category == CategoryUnit)
+        if (cell.Structure == BattleStructureType.Gate && _selectedUnit.Category == CategoryUnit)
         {
-            return true;
+            return IsDefenderPiece(_selectedUnit) || grid.Level == 0;
         }
 
         if (usesLadderBridge && grid.Level == 2 && IsWallTopGrid(grid.Grid) && CanUseCarLadderBridge(_selectedUnit))
@@ -3366,6 +3522,11 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
+        if (IsClosedGateExteriorGroundMove(sourceGrid, destinationGrid))
+        {
+            return false;
+        }
+
         var sourceCell = _mapData != null && IsWithinMap(sourceGrid.Grid)
             ? _mapData.GetCell(sourceGrid.X, sourceGrid.Y)
             : null;
@@ -3381,6 +3542,34 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         return true;
+    }
+
+    private bool IsClosedGateExteriorGroundMove(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
+    {
+        if (_mapData == null ||
+            sourceGrid.Level != 0 ||
+            destinationGrid.Level != 0 ||
+            sourceGrid.Grid == destinationGrid.Grid)
+        {
+            return false;
+        }
+
+        var sourceIsGate = IsGateGrid(sourceGrid.Grid);
+        var destinationIsGate = IsGateGrid(destinationGrid.Grid);
+        if (sourceIsGate == destinationIsGate)
+        {
+            return false;
+        }
+
+        var gateGrid = sourceIsGate ? sourceGrid.Grid : destinationGrid.Grid;
+        var otherGrid = sourceIsGate ? destinationGrid.Grid : sourceGrid.Grid;
+        var gateCell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
+        if (gateCell.IsGateOpen || gateCell.IsBroken)
+        {
+            return false;
+        }
+
+        return !IsInsideCityGroundGrid(otherGrid);
     }
 
     private bool CanSiegeEngineEnterCell(BattleGridKey sourceGrid, BattleGridKey destinationGrid)

@@ -316,7 +316,7 @@ public sealed class BattlePrototypeMapData
         for (var x = 0; x <= 24; x++)
         {
             var wallCell = GetCell(x, 7);
-            wallCell.Structure = x is >= 11 and <= 13 ? BattleStructureType.Gate : BattleStructureType.Wall;
+            wallCell.Structure = x is >= 11 and <= 12 ? BattleStructureType.Gate : BattleStructureType.Wall;
             wallCell.BlocksMovement = true;
             wallCell.HeightLevel = 2;
             wallCell.StructureMaxHealth = wallCell.Structure == BattleStructureType.Gate
