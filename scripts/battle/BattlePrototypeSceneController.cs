@@ -17,6 +17,9 @@ public readonly record struct BattleGridKey(int X, int Y, int Level)
 internal enum BattleDepthRenderKind
 {
     CastleVisual,
+    MoveHighlight,
+    AttackHighlight,
+    SelectedHighlight,
     SiegeEngine,
     Unit
 }
@@ -142,6 +145,22 @@ public partial class BattlePrototypeSceneController : Node2D
     private const double CavalryHurtAnimationDurationSeconds = 0.5;
     private const double CarMoveAnimationDurationSeconds = 0.8;
     private const double CatapultMoveAnimationDurationSeconds = 0.8;
+    private const int InfantryAttackDamage = 850;
+    private const int SpearmanAttackDamage = 800;
+    private const int ArcherAttackDamage = 900;
+    private const int CavalryAttackDamage = 1100;
+    private const int RamAttackDamage = 500;
+    private const int CatapultAttackDamage = 1300;
+    private const int InfantryStructureDamage = 180;
+    private const int SpearmanStructureDamage = 160;
+    private const int ArcherStructureDamage = 120;
+    private const int CavalryStructureDamage = 220;
+    private const int RamStructureDamage = 900;
+    private const int CatapultStructureDamage = 700;
+    private const int RamMaxHitPoints = 2800;
+    private const int LadderMaxHitPoints = 2200;
+    private const int CatapultMaxHitPoints = 1800;
+    private const double DamagePopupDurationSeconds = 2.0;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 12500, 6400, 19800);
     private const string BattleDateText = "191 Apr 4";
@@ -180,6 +199,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
+    private readonly List<BattlePrototypeHighlightRenderer> _highlightDepthVisuals = new();
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private int _turnNumber = 1;
@@ -289,6 +309,11 @@ public partial class BattlePrototypeSceneController : Node2D
         _highlightLayer ??= GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
         _battleDepthLayer ??= GetNodeOrNull<Node2D>("MapRoot/BattleDepthLayer");
         _occludedUnitSilhouetteLayer ??= GetNodeOrNull<Node2D>("MapRoot/OccludedUnitSilhouetteLayer");
+        if (_highlightLayer != null && !Engine.IsEditorHint())
+        {
+            _highlightLayer.Visible = false;
+        }
+
         if (_battleDepthLayer == null && _mapRoot != null && !Engine.IsEditorHint())
         {
             _battleDepthLayer = new Node2D
@@ -466,6 +491,17 @@ public partial class BattlePrototypeSceneController : Node2D
         _castleDepthSpritesByGrid.Clear();
     }
 
+    private void ClearHighlightDepthVisuals()
+    {
+        foreach (var visual in _highlightDepthVisuals)
+        {
+            _battleDepthEntries.Remove(visual);
+            visual.QueueFree();
+        }
+
+        _highlightDepthVisuals.Clear();
+    }
+
     private Sprite2D CreateCastleDepthSprite(Vector2I grid, BattlePrototypeTileMapBuilder.BattleTileSpriteSpec spec)
     {
         var sprite = new Sprite2D
@@ -556,6 +592,13 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private static int CompareBattleDepthEntries(BattleDepthEntry left, BattleDepthEntry right)
     {
+        var leftBand = GetBattleDepthRenderBand(left.Kind);
+        var rightBand = GetBattleDepthRenderBand(right.Kind);
+        if (leftBand != rightBand)
+        {
+            return leftBand.CompareTo(rightBand);
+        }
+
         var leftDepth = GetBattleDepth(left.Grid);
         var rightDepth = GetBattleDepth(right.Grid);
         if (leftDepth != rightDepth)
@@ -576,6 +619,20 @@ public partial class BattlePrototypeSceneController : Node2D
         return left.Grid.X.CompareTo(right.Grid.X);
     }
 
+    private static int GetBattleDepthRenderBand(BattleDepthRenderKind kind)
+    {
+        return kind switch
+        {
+            BattleDepthRenderKind.CastleVisual => 0,
+            BattleDepthRenderKind.MoveHighlight or
+            BattleDepthRenderKind.AttackHighlight or
+            BattleDepthRenderKind.SelectedHighlight => 1,
+            BattleDepthRenderKind.SiegeEngine or
+            BattleDepthRenderKind.Unit => 2,
+            _ => 0
+        };
+    }
+
     private static int GetBattleDepth(BattleGridKey grid)
     {
         return grid.X + grid.Y + GetBattleLevelDepthOffset(grid.Level);
@@ -591,6 +648,9 @@ public partial class BattlePrototypeSceneController : Node2D
         return kind switch
         {
             BattleDepthRenderKind.CastleVisual => 0,
+            BattleDepthRenderKind.MoveHighlight => 4,
+            BattleDepthRenderKind.AttackHighlight => 5,
+            BattleDepthRenderKind.SelectedHighlight => 6,
             BattleDepthRenderKind.SiegeEngine => 10,
             BattleDepthRenderKind.Unit => 20,
             _ => 0
@@ -618,9 +678,11 @@ public partial class BattlePrototypeSceneController : Node2D
                 continue;
             }
 
+            occupant.Marker.Visible = false;
             var silhouette = occupant.Marker.CreateSilhouetteVisual(GetOccludedUnitSilhouetteColor(occupant));
             if (silhouette == null)
             {
+                occupant.Marker.Visible = true;
                 continue;
             }
 
@@ -633,12 +695,27 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void ClearOccludedUnitSilhouettes()
     {
+        RestoreOccludedMarkerVisibility();
         foreach (var silhouette in _occludedUnitSilhouettesByGrid.Values)
         {
             silhouette.QueueFree();
         }
 
         _occludedUnitSilhouettesByGrid.Clear();
+    }
+
+    private void RestoreOccludedMarkerVisibility()
+    {
+        foreach (var occupants in _occupantsByGrid.Values)
+        {
+            foreach (var occupant in occupants)
+            {
+                if (occupant.Marker != null && IsBattlePiece(occupant))
+                {
+                    occupant.Marker.Visible = true;
+                }
+            }
+        }
     }
 
     private bool IsUnitOccludedByCastleVisual(BattleGridKey grid)
@@ -686,9 +763,9 @@ public partial class BattlePrototypeSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/Spearman", new Vector2I(8, 18), "S", "Attacker Spearman", CategoryUnit, "Team A / Attacker", "Cao Hong", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "A", "Attacker Archer B", CategoryUnit, "Team A / Attacker", "Zhang He", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "C", "Attacker Cavalry C", CategoryUnit, "Team A / Attacker", "Cao Chun", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ram", new Vector2I(12, 16), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", "Yue Jin", TroopRam, 900, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ladder", new Vector2I(10, 15), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", "Yu Jin", TroopLadder, 800, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Catapult", new Vector2I(14, 15), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, 600, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
+        CreateMarker("MapRoot/UnitLayer/Ram", new Vector2I(12, 16), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", "Yue Jin", TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Ladder", new Vector2I(10, 15), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", "Yu Jin", TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Catapult", new Vector2I(14, 15), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
         CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 7), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 7), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
@@ -706,6 +783,9 @@ public partial class BattlePrototypeSceneController : Node2D
         var gridKey = GetDefaultGridKey(grid);
         marker.Position = GetMarkerPosition(gridKey);
         marker.Setup(label, fillColor, borderColor, radius);
+        marker.SetupNamePlate(officerName);
+        marker.SetupTeamArrow(GetTeamArrowColor(teamName));
+        marker.SetupHealthBar(troopCount, troopCount);
         if (category == CategoryUnit && troopType == TroopInfantry)
         {
             marker.SetupSpriteAnimationScene(GetInitialInfantryDirectionScene(teamName));
@@ -737,6 +817,13 @@ public partial class BattlePrototypeSceneController : Node2D
 
         RegisterOccupant(gridKey, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
         RegisterBattleDepthEntry(marker, gridKey, category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
+    }
+
+    private static Color GetTeamArrowColor(string teamName)
+    {
+        return teamName.Contains("Attacker")
+            ? new Color(1.0f, 0.18f, 0.12f, 0.96f)
+            : new Color(0.18f, 0.58f, 1.0f, 0.96f);
     }
 
     private Vector2 GetMarkerPosition(Vector2I grid)
@@ -975,7 +1062,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private BattleGridKey? ResolvePointerLayeredGridKey(Vector2 localMouse, Vector2I groundCandidate)
     {
-        if (_groundLayer == null || !IsWithinMap(groundCandidate) || !IsGateGroundPassage(groundCandidate))
+        if (_groundLayer == null || !IsWithinMap(groundCandidate) || !IsGateGrid(groundCandidate))
         {
             return null;
         }
@@ -1169,6 +1256,16 @@ public partial class BattlePrototypeSceneController : Node2D
         return cell.Structure == BattleStructureType.Gate && (cell.IsGateOpen || cell.IsBroken);
     }
 
+    private bool IsGateGrid(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return false;
+        }
+
+        return _mapData.GetCell(grid.X, grid.Y).Structure == BattleStructureType.Gate;
+    }
+
     private void RefreshCoordinateLabel()
     {
         var coordinateLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/CoordinateLabel");
@@ -1230,7 +1327,8 @@ public partial class BattlePrototypeSceneController : Node2D
         builder.AppendLine($"Structure: {FormatStructure(cell.Structure)}");
         if (cell.HasStructureHealth)
         {
-            builder.AppendLine($"Durability: {cell.StructureHealth}/{cell.StructureMaxHealth}");
+            var durability = GetDisplayStructureDurability(grid, cell);
+            builder.AppendLine($"Durability: {durability.Current}/{durability.Max}");
             builder.AppendLine($"Status: {(cell.IsBroken ? "Broken" : "Intact")}");
         }
 
@@ -1249,7 +1347,10 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             foreach (var (gridKey, occupant) in occupantsAtGrid)
             {
-                builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}");
+                var hpText = occupant.Category == CategorySiegeEngine
+                    ? $" HP {occupant.HitPoints}/{occupant.MaxHitPoints}"
+                    : $" Troops {occupant.TroopCount:N0}/{occupant.MaxHitPoints:N0}";
+                builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}{hpText}");
             }
         }
         else
@@ -1265,6 +1366,15 @@ public partial class BattlePrototypeSceneController : Node2D
             builder.AppendLine($"- Grid: ({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y}, L{_selectedUnitGrid.Value.Level})");
             builder.AppendLine($"- Move Range: {_selectedUnit.MoveRange}");
             builder.AppendLine($"- Attack Range: {_selectedUnit.AttackRange}");
+            if (_selectedUnit.Category == CategorySiegeEngine)
+            {
+                builder.AppendLine($"- HP: {_selectedUnit.HitPoints}/{_selectedUnit.MaxHitPoints}");
+            }
+            else
+            {
+                builder.AppendLine($"- Troops: {_selectedUnit.TroopCount:N0}/{_selectedUnit.MaxHitPoints:N0}");
+            }
+
             builder.AppendLine($"- Reachable Tiles: {_movableGrids.Count}");
             builder.AppendLine($"- Attackable Tiles: {_attackableGrids.Count}");
             builder.AppendLine($"- Command State: {FormatCommandMode(_commandMode)}");
@@ -1272,6 +1382,25 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    private (int Current, int Max) GetDisplayStructureDurability(Vector2I grid, BattlePrototypeCellData cell)
+    {
+        if (cell.Structure != BattleStructureType.Gate || _mapData == null)
+        {
+            return (cell.StructureHealth, cell.StructureMaxHealth);
+        }
+
+        var group = GetConnectedGateGroup(grid);
+        if (group.Count == 0)
+        {
+            return (cell.StructureHealth, cell.StructureMaxHealth);
+        }
+
+        var current = group
+            .Select(gateGrid => _mapData.GetCell(gateGrid.X, gateGrid.Y).StructureHealth)
+            .Min();
+        return (current, BattlePrototypeCellData.GateMaxHealth);
     }
 
     private void RegisterOccupant(BattleGridKey grid, string displayName, string category, string shortLabel, string teamName, string officerName, string troopType, int troopCount, int moveRange, int attackRange, BattlePieceMarker? marker)
@@ -1282,7 +1411,7 @@ public partial class BattlePrototypeSceneController : Node2D
             _occupantsByGrid[grid] = occupants;
         }
 
-        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
+        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
     }
 
     private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetOccupantsAtGrid(Vector2I grid)
@@ -1434,8 +1563,22 @@ public partial class BattlePrototypeSceneController : Node2D
         ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, attackingUnit);
         _selectedUnit = attackingUnit;
 
-        ApplyAttackAnimation(attackingUnit, attackDirection);
-        ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid);
+        var shouldTemporarilyRevealOccludedUnits =
+            IsUnitOccludedByCastleVisual(_selectedUnitGrid.Value) ||
+            IsUnitOccludedByCastleVisual(targetGrid);
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            ClearOccludedUnitSilhouettes();
+        }
+
+        var attackAnimationDuration = ApplyAttackAnimation(attackingUnit, attackDirection);
+        var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid);
+        ApplyAttackDamage(attackingUnit, targetGrid, Math.Max(attackAnimationDuration, hurtAnimationDuration));
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            RefreshOccludedUnitSilhouettesAfterDelay(Math.Max(attackAnimationDuration, hurtAnimationDuration));
+        }
+
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
@@ -1567,11 +1710,11 @@ public partial class BattlePrototypeSceneController : Node2D
         return scenePaths;
     }
 
-    private static void ApplyAttackAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction)
+    private double ApplyAttackAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction)
     {
         if (occupant.Marker == null)
         {
-            return;
+            return 0.0;
         }
 
         if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopCatapult)
@@ -1580,12 +1723,12 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetCatapultAttackScene(direction),
                 GetCatapultIdleScene(direction),
                 CatapultAttackAnimationDurationSeconds);
-            return;
+            return CatapultAttackAnimationDurationSeconds;
         }
 
         if (occupant.Category != CategoryUnit)
         {
-            return;
+            return 0.0;
         }
 
         if (occupant.TroopType == TroopInfantry)
@@ -1594,7 +1737,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetInfantryAttackScene(direction),
                 GetInfantryIdleScene(direction),
                 InfantryAttackAnimationDurationSeconds);
-            return;
+            return InfantryAttackAnimationDurationSeconds;
         }
 
         if (occupant.TroopType == TroopSpearman)
@@ -1603,7 +1746,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetSpearmanAttackScene(direction),
                 GetSpearmanIdleScene(direction),
                 SpearmanAttackAnimationDurationSeconds);
-            return;
+            return SpearmanAttackAnimationDurationSeconds;
         }
 
         if (occupant.TroopType == TroopArcher)
@@ -1612,7 +1755,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetArcherAttackScene(direction),
                 GetArcherIdleScene(direction),
                 ArcherAttackAnimationDurationSeconds);
-            return;
+            return ArcherAttackAnimationDurationSeconds;
         }
 
         if (occupant.TroopType == TroopCavalry)
@@ -1621,23 +1764,28 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetCavalryAttackScene(direction),
                 GetCavalryIdleScene(direction),
                 CavalryAttackAnimationDurationSeconds);
+            return CavalryAttackAnimationDurationSeconds;
         }
+
+        return 0.0;
     }
 
-    private void ApplyTargetHurtAnimation(BattleGridKey attackerGrid, BattleGridKey targetGrid)
+    private double ApplyTargetHurtAnimation(BattleGridKey attackerGrid, BattleGridKey targetGrid)
     {
         if (!_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
         {
-            return;
+            return 0.0;
         }
 
-        var target = targetOccupants.FirstOrDefault(static occupant =>
-            occupant.Marker != null &&
-            occupant.Category == CategoryUnit &&
-            (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopSpearman || occupant.TroopType == TroopArcher || occupant.TroopType == TroopCavalry));
+        var target = GetAttackTarget(targetOccupants);
         if (target?.Marker == null)
         {
-            return;
+            return 0.0;
+        }
+
+        if (target.Category == CategorySiegeEngine)
+        {
+            return 0.0;
         }
 
         var hurtDirection = GetInfantryDirection(attackerGrid.Grid, targetGrid.Grid);
@@ -1647,7 +1795,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetSpearmanHurtScene(hurtDirection),
                 GetSpearmanIdleScene(target.FacingDirection),
                 SpearmanHurtAnimationDurationSeconds);
-            return;
+            return SpearmanHurtAnimationDurationSeconds;
         }
 
         if (target.TroopType == TroopArcher)
@@ -1656,7 +1804,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetArcherHurtScene(hurtDirection),
                 GetArcherIdleScene(target.FacingDirection),
                 ArcherHurtAnimationDurationSeconds);
-            return;
+            return ArcherHurtAnimationDurationSeconds;
         }
 
         if (target.TroopType == TroopCavalry)
@@ -1665,13 +1813,256 @@ public partial class BattlePrototypeSceneController : Node2D
                 GetCavalryHurtScene(hurtDirection),
                 GetCavalryIdleScene(target.FacingDirection),
                 CavalryHurtAnimationDurationSeconds);
-            return;
+            return CavalryHurtAnimationDurationSeconds;
         }
 
         target.Marker.PlayAction(
             GetInfantryHurtScene(hurtDirection),
             GetInfantryIdleScene(target.FacingDirection),
             InfantryHurtAnimationDurationSeconds);
+        return InfantryHurtAnimationDurationSeconds;
+    }
+
+    private void ApplyAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid, double effectDelaySeconds)
+    {
+        if (!_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
+        {
+            ApplyStructureAttackDamage(attacker, targetGrid);
+            return;
+        }
+
+        var target = GetAttackTarget(targetOccupants);
+        if (target == null)
+        {
+            ApplyStructureAttackDamage(attacker, targetGrid);
+            return;
+        }
+
+        var damage = GetStructureAttackDamage(attacker);
+        if (damage <= 0)
+        {
+            return;
+        }
+
+        var actualDamage = Mathf.Min(target.HitPoints, damage);
+        var remainingHp = Mathf.Max(0, target.HitPoints - damage);
+        var remainingTroops = target.Category == CategoryUnit
+            ? Mathf.Max(0, target.TroopCount - damage)
+            : target.TroopCount;
+        var updatedTarget = target with
+        {
+            TroopCount = remainingTroops,
+            HitPoints = remainingHp
+        };
+        updatedTarget.Marker?.SetupHealthBar(updatedTarget.HitPoints, updatedTarget.MaxHitPoints);
+        ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
+        if (_selectedUnit == target)
+        {
+            _selectedUnit = updatedTarget;
+        }
+
+        ShowDamagePopup(targetGrid, actualDamage);
+        RefreshInfoPanel();
+        if (remainingHp <= 0)
+        {
+            DestroyOccupantAfterDelay(targetGrid, updatedTarget, effectDelaySeconds);
+        }
+    }
+
+    private void ApplyStructureAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid)
+    {
+        if (_mapData == null || targetGrid.Level != 0 || !IsWithinMap(targetGrid.Grid))
+        {
+            return;
+        }
+
+        var cell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
+        if (cell.Structure != BattleStructureType.Gate || !cell.HasStructureHealth || cell.IsBroken)
+        {
+            return;
+        }
+
+        var damage = GetAttackDamage(attacker);
+        if (damage <= 0)
+        {
+            return;
+        }
+
+        var actualDamage = ApplyGateGroupDamage(targetGrid.Grid, damage);
+        ShowDamagePopup(targetGrid, actualDamage);
+        RefreshInfoPanel();
+    }
+
+    private int ApplyGateGroupDamage(Vector2I gateGrid, int damage)
+    {
+        if (_mapData == null)
+        {
+            return 0;
+        }
+
+        var gateGroup = GetConnectedGateGroup(gateGrid);
+        if (gateGroup.Count == 0)
+        {
+            return 0;
+        }
+
+        var groupHealth = gateGroup
+            .Select(grid => _mapData.GetCell(grid.X, grid.Y).StructureHealth)
+            .Min();
+        var actualDamage = Mathf.Min(groupHealth, damage);
+        var remainingHealth = Mathf.Max(0, groupHealth - damage);
+        foreach (var groupGateGrid in gateGroup)
+        {
+            var gateCell = _mapData.GetCell(groupGateGrid.X, groupGateGrid.Y);
+            gateCell.StructureHealth = remainingHealth;
+        }
+
+        if (remainingHealth <= 0)
+        {
+            OpenGateGroup(gateGroup);
+            return actualDamage;
+        }
+
+        foreach (var groupGateGrid in gateGroup)
+        {
+            RefreshCastleDepthVisual(groupGateGrid);
+        }
+
+        return actualDamage;
+    }
+
+    private void ShowDamagePopup(BattleGridKey targetGrid, int damage)
+    {
+        if (_battleDepthLayer == null || damage <= 0)
+        {
+            return;
+        }
+
+        var popup = new Label
+        {
+            Text = $"-{damage:N0}",
+            Position = GetMarkerPosition(targetGrid) + new Vector2(-18.0f, -88.0f),
+            ZIndex = 500,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Modulate = new Color(1.0f, 0.12f, 0.08f, 1.0f)
+        };
+        popup.AddThemeColorOverride("font_color", new Color(1.0f, 0.10f, 0.06f, 1.0f));
+        popup.AddThemeColorOverride("font_outline_color", new Color(0.05f, 0.02f, 0.01f, 0.95f));
+        popup.AddThemeConstantOverride("outline_size", 4);
+        popup.AddThemeFontSizeOverride("font_size", 22);
+        _battleDepthLayer.AddChild(popup);
+
+        var tween = popup.CreateTween();
+        tween.SetParallel(true);
+        tween.SetEase(Tween.EaseType.Out);
+        tween.SetTrans(Tween.TransitionType.Cubic);
+        tween.TweenProperty(popup, "position", popup.Position + new Vector2(0.0f, -34.0f), DamagePopupDurationSeconds);
+        tween.TweenProperty(popup, "modulate:a", 0.0f, DamagePopupDurationSeconds);
+        tween.SetParallel(false);
+        tween.TweenCallback(Callable.From(() => popup.QueueFree()));
+    }
+
+    private async void DestroyOccupantAfterDelay(BattleGridKey grid, BattleOccupantInfo occupant, double delaySeconds)
+    {
+        if (delaySeconds > 0.0)
+        {
+            await ToSignal(GetTree().CreateTimer(delaySeconds), SceneTreeTimer.SignalName.Timeout);
+        }
+
+        RemoveOccupant(grid, occupant);
+        RefreshBattleDepthLayerOrder();
+        RefreshOccludedUnitSilhouettes();
+        RefreshInfoPanel();
+    }
+
+    private void RemoveOccupant(BattleGridKey grid, BattleOccupantInfo occupant)
+    {
+        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
+        {
+            return;
+        }
+
+        if (!occupants.Remove(occupant))
+        {
+            return;
+        }
+
+        if (occupant.Marker != null)
+        {
+            _battleDepthEntries.Remove(occupant.Marker);
+            occupant.Marker.QueueFree();
+        }
+
+        if (occupants.Count == 0)
+        {
+            _occupantsByGrid.Remove(grid);
+        }
+
+        if (_selectedUnit == occupant)
+        {
+            _selectedUnit = null;
+            _selectedUnitGrid = null;
+            _selectedGridKey = null;
+        }
+    }
+
+    private static BattleOccupantInfo? GetAttackTarget(IEnumerable<BattleOccupantInfo> occupants)
+    {
+        return occupants.FirstOrDefault(static occupant => occupant.Marker != null && IsBattlePiece(occupant));
+    }
+
+    private static int GetAttackDamage(BattleOccupantInfo attacker)
+    {
+        if (attacker.Category == CategorySiegeEngine)
+        {
+            return attacker.TroopType switch
+            {
+                TroopRam => RamAttackDamage,
+                TroopCatapult => CatapultAttackDamage,
+                _ => 0
+            };
+        }
+
+        return attacker.TroopType switch
+        {
+            TroopInfantry => InfantryAttackDamage,
+            TroopSpearman => SpearmanAttackDamage,
+            TroopArcher or TroopCrossbow => ArcherAttackDamage,
+            TroopCavalry => CavalryAttackDamage,
+            _ => 0
+        };
+    }
+
+    private static int GetStructureAttackDamage(BattleOccupantInfo attacker)
+    {
+        if (attacker.Category == CategorySiegeEngine)
+        {
+            return attacker.TroopType switch
+            {
+                TroopRam => RamStructureDamage,
+                TroopCatapult => CatapultStructureDamage,
+                _ => 0
+            };
+        }
+
+        return attacker.TroopType switch
+        {
+            TroopInfantry => InfantryStructureDamage,
+            TroopSpearman => SpearmanStructureDamage,
+            TroopArcher or TroopCrossbow => ArcherStructureDamage,
+            TroopCavalry => CavalryStructureDamage,
+            _ => 0
+        };
+    }
+
+    private async void RefreshOccludedUnitSilhouettesAfterDelay(double durationSeconds)
+    {
+        if (durationSeconds > 0.0)
+        {
+            await ToSignal(GetTree().CreateTimer(durationSeconds), SceneTreeTimer.SignalName.Timeout);
+        }
+
+        RefreshOccludedUnitSilhouettes();
     }
 
     private static string GetInitialInfantryDirectionScene(string teamName)
@@ -2466,17 +2857,62 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void RefreshHighlights()
     {
-        if (_highlightLayer == null || _groundLayer == null)
+        ClearHighlightDepthVisuals();
+        if (_battleDepthLayer == null || _groundLayer == null)
         {
             return;
         }
 
-        Vector2? selectedCenter = _selectedGridKey.HasValue
-            ? GetHighlightPosition(_selectedGridKey.Value)
-            : _selectedGrid.HasValue ? GetHighlightPosition(_selectedGrid.Value) : null;
-        var movableCenters = _movableGrids.Select(GetHighlightPosition);
-        var attackCenters = _attackableGrids.Select(GetHighlightPosition);
-        _highlightLayer.SetHighlights(selectedCenter, movableCenters, attackCenters);
+        foreach (var grid in _movableGrids)
+        {
+            AddHighlightDepthVisual(grid, BattlePrototypeHighlightVisualKind.Movable);
+        }
+
+        foreach (var grid in _attackableGrids)
+        {
+            AddHighlightDepthVisual(grid, BattlePrototypeHighlightVisualKind.Attackable);
+        }
+
+        if (_selectedGridKey.HasValue)
+        {
+            AddHighlightDepthVisual(_selectedGridKey.Value, BattlePrototypeHighlightVisualKind.Selected);
+        }
+        else if (_selectedGrid.HasValue)
+        {
+            AddHighlightDepthVisual(GetDefaultGridKey(_selectedGrid.Value), BattlePrototypeHighlightVisualKind.Selected);
+        }
+
+        RefreshBattleDepthLayerOrder();
+    }
+
+    private void AddHighlightDepthVisual(BattleGridKey grid, BattlePrototypeHighlightVisualKind visualKind)
+    {
+        if (_battleDepthLayer == null)
+        {
+            return;
+        }
+
+        var visual = new BattlePrototypeHighlightRenderer
+        {
+            Name = $"Highlight_{visualKind}_{grid.X}_{grid.Y}_L{grid.Level}",
+            Position = GetHighlightPosition(grid),
+            ZIndex = 0
+        };
+        visual.Configure(visualKind);
+        _battleDepthLayer.AddChild(visual);
+        _highlightDepthVisuals.Add(visual);
+        RegisterBattleDepthEntry(visual, grid, ToBattleDepthRenderKind(visualKind));
+    }
+
+    private static BattleDepthRenderKind ToBattleDepthRenderKind(BattlePrototypeHighlightVisualKind visualKind)
+    {
+        return visualKind switch
+        {
+            BattlePrototypeHighlightVisualKind.Movable => BattleDepthRenderKind.MoveHighlight,
+            BattlePrototypeHighlightVisualKind.Attackable => BattleDepthRenderKind.AttackHighlight,
+            BattlePrototypeHighlightVisualKind.Selected => BattleDepthRenderKind.SelectedHighlight,
+            _ => BattleDepthRenderKind.MoveHighlight
+        };
     }
 
     private void OnMoveButtonPressed()
@@ -2510,7 +2946,7 @@ public partial class BattlePrototypeSceneController : Node2D
         _commandMode = BattleCommandMode.AttackSelect;
         _movableGrids.Clear();
         _attackableGrids.Clear();
-        foreach (var grid in CalculateAttackableGrids(_selectedUnitGrid.Value, _selectedUnit.AttackRange))
+        foreach (var grid in CalculateAttackableGrids(_selectedUnitGrid.Value, _selectedUnit))
         {
             _attackableGrids.Add(grid);
         }
@@ -2542,17 +2978,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        foreach (var groupGateGrid in GetConnectedGateGroup(gateGrid))
-        {
-            var gateCell = _mapData.GetCell(groupGateGrid.X, groupGateGrid.Y);
-            gateCell.IsGateOpen = true;
-            if (_castleLayer != null)
-            {
-                BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: true);
-            }
-
-            RefreshCastleDepthVisual(groupGateGrid);
-        }
+        OpenGateGroup(GetConnectedGateGroup(gateGrid));
 
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
@@ -2560,6 +2986,27 @@ public partial class BattlePrototypeSceneController : Node2D
         HideCommandMenu();
         RefreshInfoPanel();
         RefreshHighlights();
+    }
+
+    private void OpenGateGroup(IEnumerable<Vector2I> gateGroup)
+    {
+        if (_mapData == null)
+        {
+            return;
+        }
+
+        foreach (var groupGateGrid in gateGroup)
+        {
+            var gateCell = _mapData.GetCell(groupGateGrid.X, groupGateGrid.Y);
+            gateCell.IsGateOpen = true;
+            gateCell.StructureHealth = 0;
+            if (_castleLayer != null)
+            {
+                BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: true);
+            }
+
+            RefreshCastleDepthVisual(groupGateGrid);
+        }
     }
 
     private bool TryGetAdjacentOpenableGate(out Vector2I gateGrid)
@@ -2647,8 +3094,9 @@ public partial class BattlePrototypeSceneController : Node2D
         return group;
     }
 
-    private IEnumerable<BattleGridKey> CalculateAttackableGrids(BattleGridKey startGrid, int attackRange)
+    private IEnumerable<BattleGridKey> CalculateAttackableGrids(BattleGridKey startGrid, BattleOccupantInfo attacker)
     {
+        var attackRange = attacker.AttackRange;
         if (attackRange <= 0)
         {
             yield break;
@@ -2659,25 +3107,103 @@ public partial class BattlePrototypeSceneController : Node2D
             for (var x = 0; x < BattlePrototypeMapData.Width; x++)
             {
                 var grid = new Vector2I(x, y);
-                var gridKey = startGrid.Level == 2 ? ToWallWalkGridKey(grid) : ToGroundGridKey(grid);
-                var distance = Mathf.Abs(gridKey.X - startGrid.X) + Mathf.Abs(gridKey.Y - startGrid.Y);
-                if (distance > 0 && distance <= attackRange && IsAttackLevelCompatible(startGrid, gridKey))
+                foreach (var gridKey in GetAttackCandidateGridKeys(startGrid, attacker, grid))
                 {
-                    yield return gridKey;
+                    var distance = Mathf.Abs(gridKey.X - startGrid.X) + Mathf.Abs(gridKey.Y - startGrid.Y);
+                    if (distance > 0 && distance <= attackRange && IsAttackLevelCompatible(startGrid, attacker, gridKey))
+                    {
+                        yield return gridKey;
+                    }
                 }
             }
         }
     }
 
-    private bool IsAttackLevelCompatible(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    private IEnumerable<BattleGridKey> GetAttackCandidateGridKeys(BattleGridKey sourceGrid, BattleOccupantInfo attacker, Vector2I targetGrid)
+    {
+        if (_mapData == null || !IsWithinMap(targetGrid))
+        {
+            yield break;
+        }
+
+        if (IsCrossLevelRangedAttacker(attacker, sourceGrid))
+        {
+            if (IsWallTopGrid(targetGrid))
+            {
+                yield return ToWallWalkGridKey(targetGrid);
+                if (IsAttackableStructureGroundGrid(targetGrid))
+                {
+                    yield return ToGroundGridKey(targetGrid);
+                }
+            }
+            else
+            {
+                yield return ToGroundGridKey(targetGrid);
+            }
+
+            yield break;
+        }
+
+        if (sourceGrid.Level == 2)
+        {
+            if (IsWallTopGrid(targetGrid))
+            {
+                yield return ToWallWalkGridKey(targetGrid);
+                if (IsAttackableStructureGroundGrid(targetGrid))
+                {
+                    yield return ToGroundGridKey(targetGrid);
+                }
+            }
+
+            yield break;
+        }
+
+        yield return ToGroundGridKey(targetGrid);
+    }
+
+    private bool IsAttackLevelCompatible(BattleGridKey sourceGrid, BattleOccupantInfo attacker, BattleGridKey targetGrid)
     {
         if (_mapData == null || !IsWithinMap(targetGrid.Grid))
         {
             return false;
         }
 
-        return sourceGrid.Level == targetGrid.Level &&
-               (targetGrid.Level != 2 || IsWallTopGrid(targetGrid.Grid));
+        if (sourceGrid.Level == targetGrid.Level)
+        {
+            return targetGrid.Level != 2 || IsWallTopGrid(targetGrid.Grid);
+        }
+
+        if (!IsCrossLevelRangedAttacker(attacker, sourceGrid))
+        {
+            return false;
+        }
+
+        return (sourceGrid.Level, targetGrid.Level) is (0, 2) or (2, 0) &&
+               (targetGrid.Level != 2 || IsWallTopGrid(targetGrid.Grid)) &&
+               (targetGrid.Level != 0 || !IsWallTopGrid(targetGrid.Grid) || IsAttackableStructureGroundGrid(targetGrid.Grid));
+    }
+
+    private bool IsAttackableStructureGroundGrid(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.Structure == BattleStructureType.Gate && cell.HasStructureHealth && !cell.IsBroken;
+    }
+
+    private static bool IsCrossLevelRangedAttacker(BattleOccupantInfo attacker, BattleGridKey sourceGrid)
+    {
+        if (attacker.Category == CategoryUnit)
+        {
+            return attacker.TroopType is TroopArcher or TroopCrossbow;
+        }
+
+        return attacker.Category == CategorySiegeEngine &&
+               attacker.TroopType == TroopCatapult &&
+               sourceGrid.Level == 0;
     }
 
     private void ShowCommandMenu(Vector2 screenPosition)
@@ -2691,11 +3217,14 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             if (_selectedUnit != null)
             {
+                var strengthText = _selectedUnit.Category == CategorySiegeEngine
+                    ? $"HP: {_selectedUnit.HitPoints}/{_selectedUnit.MaxHitPoints}"
+                    : $"Troops: {_selectedUnit.TroopCount:N0}";
                 _unitMenuInfoLabel.Text =
                     $"Team: {_selectedUnit.TeamName}\n" +
                     $"Officer: {_selectedUnit.OfficerName}\n" +
                     $"Type: {_selectedUnit.TroopType}\n" +
-                    $"Troops: {_selectedUnit.TroopCount:N0}";
+                    strengthText;
             }
             else
             {
@@ -2827,6 +3356,16 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
+        if (_selectedUnit.Category == CategorySiegeEngine)
+        {
+            return CanSiegeEngineEnterCell(sourceGrid, destinationGrid);
+        }
+
+        if (destinationGrid.Level == 2 && _selectedUnit.TroopType == TroopCavalry)
+        {
+            return false;
+        }
+
         var sourceCell = _mapData != null && IsWithinMap(sourceGrid.Grid)
             ? _mapData.GetCell(sourceGrid.X, sourceGrid.Y)
             : null;
@@ -2842,6 +3381,40 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         return true;
+    }
+
+    private bool CanSiegeEngineEnterCell(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
+    {
+        if (destinationGrid.Level != 0)
+        {
+            return false;
+        }
+
+        if (!IsInsideCityGroundGrid(destinationGrid.Grid))
+        {
+            return true;
+        }
+
+        return IsGateGroundPassage(sourceGrid.Grid) || IsInsideCityGroundGrid(sourceGrid.Grid);
+    }
+
+    private bool IsInsideCityGroundGrid(Vector2I grid)
+    {
+        if (_mapData == null || !IsWithinMap(grid))
+        {
+            return false;
+        }
+
+        for (var y = grid.Y + 1; y < BattlePrototypeMapData.Height; y++)
+        {
+            var cell = _mapData.GetCell(grid.X, y);
+            if (cell.Structure is BattleStructureType.Wall or BattleStructureType.Gate or BattleStructureType.Tower)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsCellBlockingMovement(BattlePrototypeCellData cell)
@@ -3012,6 +3585,8 @@ public partial class BattlePrototypeSceneController : Node2D
         string OfficerName,
         string TroopType,
         int TroopCount,
+        int HitPoints,
+        int MaxHitPoints,
         int MoveRange,
         int AttackRange,
         BattlePieceMarker? Marker,

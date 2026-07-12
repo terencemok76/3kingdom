@@ -34,7 +34,6 @@ public enum BattleDeploymentZone
 
 public sealed class BattlePrototypeCellData
 {
-    public const int WallMaxHealth = 1200;
     public const int GateMaxHealth = 1800;
 
     public Vector2I Grid { get; init; }
@@ -237,8 +236,8 @@ public sealed class BattlePrototypeMapData
                 case BattleStructureType.Wall:
                     cell.BlocksMovement = true;
                     cell.HeightLevel = 2;
-                    cell.StructureMaxHealth = BattlePrototypeCellData.WallMaxHealth;
-                    cell.StructureHealth = isBrokenWall ? 0 : BattlePrototypeCellData.WallMaxHealth;
+                    cell.StructureMaxHealth = 0;
+                    cell.StructureHealth = 0;
                     break;
                 case BattleStructureType.Gate:
                     cell.BlocksMovement = true;
@@ -322,7 +321,7 @@ public sealed class BattlePrototypeMapData
             wallCell.HeightLevel = 2;
             wallCell.StructureMaxHealth = wallCell.Structure == BattleStructureType.Gate
                 ? BattlePrototypeCellData.GateMaxHealth
-                : BattlePrototypeCellData.WallMaxHealth;
+                : 0;
             wallCell.StructureHealth = wallCell.StructureMaxHealth;
 
             var innerCourtyardCell = GetCell(x, 6);

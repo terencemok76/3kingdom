@@ -8,12 +8,18 @@ public partial class BattlePieceMarker : Node2D
     private const int MovingZIndexBoost = 100;
 
     private string _label = string.Empty;
+    private string _namePlateText = string.Empty;
     private Color _fillColor = Colors.White;
     private Color _borderColor = Colors.Black;
+    private Color _teamArrowColor = Colors.Transparent;
+    private float _healthRatio = 1.0f;
     private float _radius = 19.0f;
     private BattleSpriteAnimationPlayer? _spriteVisual;
     private string _spriteScenePath = string.Empty;
     private bool _usesSpriteVisual;
+    private bool _hasNamePlate;
+    private bool _hasTeamArrow;
+    private bool _hasHealthBar;
 
     public float Radius => _radius;
 
@@ -23,6 +29,34 @@ public partial class BattlePieceMarker : Node2D
         _fillColor = fillColor;
         _borderColor = borderColor;
         _radius = radius;
+        QueueRedraw();
+    }
+
+    public void SetupTeamArrow(Color arrowColor)
+    {
+        _teamArrowColor = arrowColor;
+        _hasTeamArrow = true;
+        QueueRedraw();
+    }
+
+    public void SetupNamePlate(string name)
+    {
+        _namePlateText = name;
+        _hasNamePlate = !string.IsNullOrWhiteSpace(name);
+        QueueRedraw();
+    }
+
+    public void SetupHealthBar(int current, int max)
+    {
+        if (max <= 0)
+        {
+            _hasHealthBar = false;
+            QueueRedraw();
+            return;
+        }
+
+        _healthRatio = Mathf.Clamp((float)current / max, 0.0f, 1.0f);
+        _hasHealthBar = true;
         QueueRedraw();
     }
 
@@ -51,27 +85,38 @@ public partial class BattlePieceMarker : Node2D
         QueueRedraw();
     }
 
-    public BattleSpriteAnimationPlayer? CreateSilhouetteVisual(Color modulate)
+    public Node2D? CreateSilhouetteVisual(Color modulate)
     {
         if (string.IsNullOrWhiteSpace(_spriteScenePath))
         {
             return null;
         }
 
-        var scene = GD.Load<PackedScene>(_spriteScenePath);
-        if (scene == null)
+        var silhouette = new BattlePieceMarker
+        {
+            ZIndex = 0
+        };
+        silhouette.Setup(_label, _fillColor, _borderColor, _radius);
+        if (_hasNamePlate)
+        {
+            silhouette.SetupNamePlate(_namePlateText);
+        }
+        if (_hasTeamArrow)
+        {
+            silhouette.SetupTeamArrow(_teamArrowColor);
+        }
+        if (_hasHealthBar)
+        {
+            silhouette.SetupHealthBar(Mathf.RoundToInt(_healthRatio * 1000.0f), 1000);
+        }
+
+        silhouette.SetupSpriteAnimationScene(_spriteScenePath);
+        if (silhouette._spriteVisual == null)
         {
             return null;
         }
 
-        var silhouette = scene.InstantiateOrNull<BattleSpriteAnimationPlayer>();
-        if (silhouette == null)
-        {
-            return null;
-        }
-
-        silhouette.Modulate = modulate;
-        silhouette.ZIndex = 0;
+        silhouette._spriteVisual.Modulate = modulate;
         return silhouette;
     }
 
@@ -133,18 +178,25 @@ public partial class BattlePieceMarker : Node2D
         }));
     }
 
-    public void PlayAction(string actionScenePath, string idleScenePath, double duration)
+    public void PlayAction(string actionScenePath, string idleScenePath, double duration, Action? onComplete = null)
     {
         SetupSpriteAnimationScene(actionScenePath);
         var tween = CreateTween();
         tween.TweenInterval(duration);
-        tween.TweenCallback(Callable.From(() => SetupSpriteAnimationScene(idleScenePath)));
+        tween.TweenCallback(Callable.From(() =>
+        {
+            SetupSpriteAnimationScene(idleScenePath);
+            onComplete?.Invoke();
+        }));
     }
 
     public override void _Draw()
     {
         var shadowCenterY = _usesSpriteVisual ? _radius * 0.48f : _radius * 0.68f;
         DrawFilledEllipse(new Vector2(0.0f, shadowCenterY), _radius * 0.95f, _radius * 0.28f, new Color(0.05f, 0.04f, 0.03f, 0.28f));
+        DrawNamePlate();
+        DrawTeamArrow();
+        DrawHealthBar();
         if (_usesSpriteVisual)
         {
             return;
@@ -158,6 +210,104 @@ public partial class BattlePieceMarker : Node2D
         var font = ThemeDB.FallbackFont;
         var size = font.GetStringSize(_label);
         DrawString(font, new Vector2(-size.X * 0.5f, 7.0f), _label, modulate: new Color("fff7e6"), fontSize: 24);
+    }
+
+    private void DrawNamePlate()
+    {
+        if (!_hasNamePlate)
+        {
+            return;
+        }
+
+        var font = ThemeDB.FallbackFont;
+        const int fontSize = 12;
+        const float maxWidth = 74.0f;
+        var text = CompactNamePlateText(_namePlateText, 14);
+        var size = font.GetStringSize(text);
+        var scale = size.X > 0.0f ? Mathf.Min(1.0f, maxWidth / size.X) : 1.0f;
+        var y = _usesSpriteVisual ? -_radius * 3.0f : -_radius * 2.05f;
+        DrawSetTransform(Vector2.Zero, 0.0f, new Vector2(scale, 1.0f));
+        var origin = new Vector2(-size.X * 0.5f, y);
+        foreach (var offset in new[] { new Vector2(-1.0f, 0.0f), new Vector2(1.0f, 0.0f), new Vector2(0.0f, -1.0f), new Vector2(0.0f, 1.0f) })
+        {
+            DrawString(
+                font,
+                origin + offset,
+                text,
+                modulate: new Color(0.05f, 0.025f, 0.01f, 0.88f),
+                fontSize: fontSize);
+        }
+
+        DrawString(
+            font,
+            origin,
+            text,
+            modulate: new Color(1.0f, 0.93f, 0.72f, 0.96f),
+            fontSize: fontSize);
+        DrawSetTransform(Vector2.Zero, 0.0f, Vector2.One);
+    }
+
+    private static string CompactNamePlateText(string text, int maxLength)
+    {
+        if (text.Length <= maxLength)
+        {
+            return text;
+        }
+
+        return text[..Mathf.Max(1, maxLength - 1)] + ".";
+    }
+
+    private void DrawTeamArrow()
+    {
+        if (!_hasTeamArrow)
+        {
+            return;
+        }
+
+        var centerY = _usesSpriteVisual ? -_radius * 2.45f : -_radius * 1.65f;
+        var halfWidth = _usesSpriteVisual ? 7.0f : 6.0f;
+        var height = _usesSpriteVisual ? 13.0f : 11.0f;
+        var points = new[]
+        {
+            new Vector2(0.0f, centerY + height * 0.5f),
+            new Vector2(halfWidth, centerY - height * 0.5f),
+            new Vector2(-halfWidth, centerY - height * 0.5f)
+        };
+        var colors = new[] { _teamArrowColor, _teamArrowColor, _teamArrowColor };
+        DrawPolygon(points, colors);
+        DrawPolyline(points, new Color(0.04f, 0.03f, 0.02f, 0.82f), 2.0f, true);
+    }
+
+    private void DrawHealthBar()
+    {
+        if (!_hasHealthBar)
+        {
+            return;
+        }
+
+        var width = _usesSpriteVisual ? 34.0f : 30.0f;
+        var height = 4.0f;
+        var y = _usesSpriteVisual ? -_radius * 2.02f : -_radius * 1.28f;
+        var backgroundRect = new Rect2(-width * 0.5f, y, width, height);
+        var fillRect = new Rect2(backgroundRect.Position + Vector2.One, new Vector2(Mathf.Max(0.0f, (width - 2.0f) * _healthRatio), height - 2.0f));
+        DrawRect(backgroundRect, new Color(0.03f, 0.025f, 0.02f, 0.86f), true);
+        DrawRect(fillRect, GetHealthBarFillColor(_healthRatio), true);
+        DrawRect(backgroundRect, new Color(1.0f, 0.92f, 0.72f, 0.72f), false, 1.0f);
+    }
+
+    private static Color GetHealthBarFillColor(float ratio)
+    {
+        if (ratio > 0.55f)
+        {
+            return new Color(0.30f, 0.86f, 0.34f, 0.96f);
+        }
+
+        if (ratio > 0.25f)
+        {
+            return new Color(1.0f, 0.74f, 0.20f, 0.96f);
+        }
+
+        return new Color(1.0f, 0.22f, 0.16f, 0.96f);
     }
 
     private void DrawFilledEllipse(Vector2 center, float radiusX, float radiusY, Color color)
