@@ -5,6 +5,7 @@ namespace ThreeKingdom.Battle;
 internal enum BattlePrototypeHighlightVisualKind
 {
     Movable,
+    WallTopMovable,
     Attackable,
     Selected
 }
@@ -32,6 +33,9 @@ public partial class BattlePrototypeHighlightRenderer : Node2D
         {
             case BattlePrototypeHighlightVisualKind.Movable:
                 DrawDiamond(44.0f, 22.0f, new Color(0.42f, 0.78f, 0.96f, 0.24f), new Color(0.72f, 0.92f, 1.0f, 0.72f), 2.0f);
+                break;
+            case BattlePrototypeHighlightVisualKind.WallTopMovable:
+                DrawDiamond(44.0f, 22.0f, new Color(0.98f, 0.70f, 0.22f, 0.26f), new Color(1.0f, 0.88f, 0.46f, 0.78f), 2.0f);
                 break;
             case BattlePrototypeHighlightVisualKind.Attackable:
                 DrawDiamond(44.0f, 22.0f, new Color(0.96f, 0.34f, 0.28f, 0.22f), new Color(1.0f, 0.70f, 0.62f, 0.78f), 2.0f);

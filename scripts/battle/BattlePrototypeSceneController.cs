@@ -1111,15 +1111,33 @@ public partial class BattlePrototypeSceneController : Node2D
             return null;
         }
 
-        foreach (var grid in activeGrids)
+        var highlightedCandidates = activeGrids
+            .Where(grid => PointInDiamond(localMouse, GetHighlightPosition(grid), 46.0f, 24.0f))
+            .ToList();
+        if (highlightedCandidates.Count == 0)
         {
-            if (PointInDiamond(localMouse, GetHighlightPosition(grid), 46.0f, 24.0f))
+            return null;
+        }
+
+        if (highlightedCandidates.Count == 1)
+        {
+            return highlightedCandidates[0];
+        }
+
+        var sharedGrid = highlightedCandidates[0].Grid;
+        if (highlightedCandidates.All(grid => grid.Grid == sharedGrid))
+        {
+            var layeredGrid = ResolvePointerLayeredGridKey(localMouse, sharedGrid);
+            if (layeredGrid.HasValue && highlightedCandidates.Contains(layeredGrid.Value))
             {
-                return grid;
+                return layeredGrid.Value;
             }
         }
 
-        return null;
+        return highlightedCandidates
+            .OrderBy(grid => localMouse.DistanceSquaredTo(GetHighlightPosition(grid)))
+            .ThenByDescending(grid => grid.Level)
+            .First();
     }
 
     private static bool PointInDiamond(Vector2 point, Vector2 center, float halfWidth, float halfHeight)
@@ -1222,7 +1240,6 @@ public partial class BattlePrototypeSceneController : Node2D
             return null;
         }
 
-        var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
         if (sourceGrid.Level == 2)
         {
             if (IsWallTopGrid(destinationGrid))
@@ -1240,7 +1257,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 return ToGroundGridKey(destinationGrid);
             }
 
-            return sourceCell.Terrain == BattleTerrainType.Courtyard
+            return IsInsideCityGroundGrid(sourceGrid.Grid)
                 ? ToWallWalkGridKey(destinationGrid)
                 : null;
         }
@@ -2956,7 +2973,10 @@ public partial class BattlePrototypeSceneController : Node2D
 
         foreach (var grid in _movableGrids)
         {
-            AddHighlightDepthVisual(grid, BattlePrototypeHighlightVisualKind.Movable);
+            var visualKind = grid.Level == 2
+                ? BattlePrototypeHighlightVisualKind.WallTopMovable
+                : BattlePrototypeHighlightVisualKind.Movable;
+            AddHighlightDepthVisual(grid, visualKind);
         }
 
         foreach (var grid in _attackableGrids)
@@ -2999,7 +3019,7 @@ public partial class BattlePrototypeSceneController : Node2D
     {
         return visualKind switch
         {
-            BattlePrototypeHighlightVisualKind.Movable => BattleDepthRenderKind.MoveHighlight,
+            BattlePrototypeHighlightVisualKind.Movable or BattlePrototypeHighlightVisualKind.WallTopMovable => BattleDepthRenderKind.MoveHighlight,
             BattlePrototypeHighlightVisualKind.Attackable => BattleDepthRenderKind.AttackHighlight,
             BattlePrototypeHighlightVisualKind.Selected => BattleDepthRenderKind.SelectedHighlight,
             _ => BattleDepthRenderKind.MoveHighlight
@@ -3156,7 +3176,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         var unitCell = _mapData.GetCell(unitGrid.X, unitGrid.Y);
-        if (unitGrid.Level == 2 && unitCell.Structure == BattleStructureType.Gate && !unitCell.IsBroken)
+        if (unitGrid.Level == 0 && unitCell.Structure == BattleStructureType.Gate && !unitCell.IsBroken)
         {
             gateGrid = unitGrid.Grid;
             return true;
@@ -3522,7 +3542,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        if (IsClosedGateExteriorGroundMove(sourceGrid, destinationGrid))
+        if (IsClosedGateGroundMoveBlocked(sourceGrid, destinationGrid))
         {
             return false;
         }
@@ -3531,7 +3551,8 @@ public partial class BattlePrototypeSceneController : Node2D
             ? _mapData.GetCell(sourceGrid.X, sourceGrid.Y)
             : null;
         var sourceIsWallWalk = sourceGrid.Level == 2;
-        var sourceIsCourtyard = sourceCell?.Terrain == BattleTerrainType.Courtyard;
+        var sourceIsCourtyard = sourceCell?.Terrain == BattleTerrainType.Courtyard &&
+                                IsInsideCityGroundGrid(sourceGrid.Grid);
         if (destinationGrid.Level == 2 &&
             IsAttackerPiece(_selectedUnit) &&
             !sourceIsWallWalk &&
@@ -3544,7 +3565,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return true;
     }
 
-    private bool IsClosedGateExteriorGroundMove(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
+    private bool IsClosedGateGroundMoveBlocked(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
     {
         if (_mapData == null ||
             sourceGrid.Level != 0 ||
