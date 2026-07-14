@@ -130,10 +130,10 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string CatapultAttackSouthWestScenePath = "res://scenes/battle/unit/CatapultAttackSw.tscn";
     private const string CatapultAttackNorthEastScenePath = "res://scenes/battle/unit/CatapultAttackNe.tscn";
     private const string CatapultAttackNorthWestScenePath = "res://scenes/battle/unit/CatapultAttackNw.tscn";
-    private const double InfantryMoveAnimationDurationSeconds = 0.8;
-    private const double SpearmanMoveAnimationDurationSeconds = 0.8;
-    private const double ArcherMoveAnimationDurationSeconds = 0.8;
-    private const double CavalryMoveAnimationDurationSeconds = 0.8;
+    private const double InfantryMoveAnimationDurationSeconds = 0.4;
+    private const double SpearmanMoveAnimationDurationSeconds = 0.4;
+    private const double ArcherMoveAnimationDurationSeconds = 0.4;
+    private const double CavalryMoveAnimationDurationSeconds = 0.4;
     private const double InfantryAttackAnimationDurationSeconds = 0.62;
     private const double SpearmanAttackAnimationDurationSeconds = 0.72;
     private const double ArcherAttackAnimationDurationSeconds = 0.62;
@@ -143,8 +143,8 @@ public partial class BattlePrototypeSceneController : Node2D
     private const double SpearmanHurtAnimationDurationSeconds = 0.65;
     private const double ArcherHurtAnimationDurationSeconds = 0.5;
     private const double CavalryHurtAnimationDurationSeconds = 0.5;
-    private const double CarMoveAnimationDurationSeconds = 0.8;
-    private const double CatapultMoveAnimationDurationSeconds = 0.8;
+    private const double CarMoveAnimationDurationSeconds = 0.4;
+    private const double CatapultMoveAnimationDurationSeconds = 0.4;
     private const int InfantryAttackDamage = 850;
     private const int SpearmanAttackDamage = 800;
     private const int ArcherAttackDamage = 900;
@@ -332,6 +332,11 @@ public partial class BattlePrototypeSceneController : Node2D
                 ZIndex = 28
             };
             _mapRoot.AddChild(_occludedUnitSilhouetteLayer);
+        }
+
+        if (_occludedUnitSilhouetteLayer != null)
+        {
+            _occludedUnitSilhouetteLayer.ZIndex = 28;
         }
 
         _commandMenu ??= GetNodeOrNull<Control>("UiLayer/CommandMenu");
@@ -733,12 +738,25 @@ public partial class BattlePrototypeSceneController : Node2D
         var cell = _mapData.GetCell(grid.X, grid.Y);
         if (cell.Structure == BattleStructureType.Gate)
         {
-            return !cell.IsGateOpen && !cell.IsBroken;
+            if (cell.IsBroken)
+            {
+                return false;
+            }
+
+            // An opened multi-cell gate only keeps its rightmost foreground piece as a silhouette.
+            if (cell.IsGateOpen)
+            {
+                var gateGroup = GetConnectedGateGroup(grid.Grid);
+                return gateGroup.Count > 0 && grid.X == gateGroup.Max(gateGrid => gateGrid.X);
+            }
+
+            return true;
         }
 
+        // L0 on a wall grid is behind the wall facade. Only L2 represents a unit on top of it.
         if (IsWallTopGrid(grid.Grid))
         {
-            return false;
+            return true;
         }
 
         // NE-facing castle walls visually cover the L0 cells behind them:
@@ -1252,6 +1270,13 @@ public partial class BattlePrototypeSceneController : Node2D
 
         if (IsWallTopGrid(destinationGrid))
         {
+            if (sourceGrid.Level == 0 &&
+                IsGateGrid(sourceGrid.Grid) &&
+                IsGateGrid(destinationGrid))
+            {
+                return ToGroundGridKey(destinationGrid);
+            }
+
             if (CanUseGateGroundPassage(destinationGrid) && sourceGrid.Level == 0)
             {
                 return ToGroundGridKey(destinationGrid);
@@ -1532,6 +1557,7 @@ public partial class BattlePrototypeSceneController : Node2D
         movePath = ExpandMovePathWithCarLadderWaypoints(sourceGrid, movePath, movingOccupant);
         var pathPositions = movePath.Select(GetMarkerPosition).ToArray();
         var pathDirections = BuildPathDirections(sourceGrid, movePath);
+        var pathModulates = BuildMovePathModulates(sourceGrid, movePath, movingOccupant);
         var moveDirection = pathDirections.Length > 0
             ? pathDirections[^1]
             : GetInfantryDirection(sourceGrid.Grid, destinationGrid.Grid);
@@ -1543,8 +1569,7 @@ public partial class BattlePrototypeSceneController : Node2D
             movedOccupant.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         RefreshBattleDepthLayerOrder();
         ClearOccludedUnitSilhouettes();
-        var onMoveComplete = CreateMoveCompleteCallback(movedOccupant, sourceGrid, destinationGrid);
-        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections, onMoveComplete);
+        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections, pathModulates, RefreshOccludedUnitSilhouettes);
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
@@ -1558,27 +1583,57 @@ public partial class BattlePrototypeSceneController : Node2D
         return true;
     }
 
-    private Action CreateMoveCompleteCallback(BattleOccupantInfo movedOccupant, BattleGridKey sourceGrid, BattleGridKey destinationGrid)
+    private Color?[]? BuildMovePathModulates(BattleGridKey sourceGrid, IReadOnlyList<BattleGridKey> movePath, BattleOccupantInfo movingOccupant)
     {
-        if (movedOccupant.Marker == null || !ShouldUseOccludedMovingSilhouette(sourceGrid, destinationGrid))
+        if (movePath.Count == 0)
         {
-            return RefreshOccludedUnitSilhouettes;
+            return null;
         }
 
-        var marker = movedOccupant.Marker;
-        var originalModulate = marker.Modulate;
-        marker.Modulate = GetOccludedUnitSilhouetteColor(movedOccupant);
-        return () =>
+        var silhouetteColor = GetOccludedUnitSilhouetteColor(movingOccupant);
+        var pathModulates = new Color?[movePath.Count];
+        var hasSilhouetteSegment = false;
+        var previousGrid = sourceGrid;
+        for (var index = 0; index < movePath.Count; index++)
         {
-            marker.Modulate = originalModulate;
-            RefreshOccludedUnitSilhouettes();
-        };
+            var nextGrid = movePath[index];
+            if (ShouldUseMovingSegmentSilhouette(previousGrid, nextGrid))
+            {
+                pathModulates[index] = silhouetteColor;
+                hasSilhouetteSegment = true;
+            }
+
+            previousGrid = nextGrid;
+        }
+
+        return hasSilhouetteSegment ? pathModulates : null;
     }
 
-    private bool ShouldUseOccludedMovingSilhouette(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
+    private bool ShouldUseMovingSegmentSilhouette(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
     {
-        return IsUnitOccludedByCastleVisual(sourceGrid) &&
+        return IsGateVerticalLayerMove(sourceGrid, destinationGrid) ||
                IsUnitOccludedByCastleVisual(destinationGrid);
+    }
+
+    private bool IsGateVerticalLayerMove(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
+    {
+        if (_mapData == null ||
+            sourceGrid.Grid != destinationGrid.Grid ||
+            !IsWithinMap(sourceGrid.Grid))
+        {
+            return false;
+        }
+
+        var isGateVerticalMove =
+            (sourceGrid.Level == 0 && destinationGrid.Level == 2) ||
+            (sourceGrid.Level == 2 && destinationGrid.Level == 0);
+        if (!isGateVerticalMove)
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
+        return cell.Structure == BattleStructureType.Gate;
     }
 
     private bool TryAttackSelectedTarget()
@@ -1636,7 +1691,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
-    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition, Vector2[]? pathPositions = null, BattleSpriteDirection[]? pathDirections = null, Action? onComplete = null)
+    private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition, Vector2[]? pathPositions = null, BattleSpriteDirection[]? pathDirections = null, Color?[]? pathModulates = null, Action? onComplete = null)
     {
         if (occupant.Marker == null)
         {
@@ -1646,66 +1701,46 @@ public partial class BattlePrototypeSceneController : Node2D
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopInfantry)
         {
-            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetInfantryMoveScene), InfantryMoveAnimationDurationSeconds, GetInfantryMoveScene(direction), GetInfantryIdleScene(direction), onComplete);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetInfantryMoveScene), pathModulates, GetScaledMoveDuration(InfantryMoveAnimationDurationSeconds, pathPositions), GetInfantryMoveScene(direction), GetInfantryIdleScene(direction), onComplete);
             return;
         }
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopSpearman)
         {
-            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetSpearmanMoveScene), SpearmanMoveAnimationDurationSeconds, GetSpearmanMoveScene(direction), GetSpearmanIdleScene(direction), onComplete);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetSpearmanMoveScene), pathModulates, GetScaledMoveDuration(SpearmanMoveAnimationDurationSeconds, pathPositions), GetSpearmanMoveScene(direction), GetSpearmanIdleScene(direction), onComplete);
             return;
         }
 
         if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopRam)
         {
             var carIdleScene = GetCarIdleScene(direction);
-            occupant.Marker.MoveTo(
-                destinationPosition,
-                CarMoveAnimationDurationSeconds,
-                carIdleScene,
-                carIdleScene,
-                onComplete);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, null, pathModulates, GetScaledMoveDuration(CarMoveAnimationDurationSeconds, pathPositions), carIdleScene, carIdleScene, onComplete);
             return;
         }
 
         if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopLadder)
         {
             var carLadderIdleScene = GetCarLadderIdleScene(direction);
-            occupant.Marker.MoveTo(
-                destinationPosition,
-                CarMoveAnimationDurationSeconds,
-                carLadderIdleScene,
-                carLadderIdleScene,
-                onComplete);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, null, pathModulates, GetScaledMoveDuration(CarMoveAnimationDurationSeconds, pathPositions), carLadderIdleScene, carLadderIdleScene, onComplete);
             return;
         }
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopArcher)
         {
-            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetArcherMoveScene), ArcherMoveAnimationDurationSeconds, GetArcherMoveScene(direction), GetArcherIdleScene(direction), onComplete);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetArcherMoveScene), pathModulates, GetScaledMoveDuration(ArcherMoveAnimationDurationSeconds, pathPositions), GetArcherMoveScene(direction), GetArcherIdleScene(direction), onComplete);
             return;
         }
 
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopCavalry)
         {
-            occupant.Marker.MoveTo(
-                destinationPosition,
-                CavalryMoveAnimationDurationSeconds,
-                GetCavalryMoveScene(direction),
-                GetCavalryIdleScene(direction),
-                onComplete);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, null, pathModulates, GetScaledMoveDuration(CavalryMoveAnimationDurationSeconds, pathPositions), GetCavalryMoveScene(direction), GetCavalryIdleScene(direction), onComplete);
             return;
         }
 
         if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopCatapult)
         {
             var catapultIdleScene = GetCatapultIdleScene(direction);
-            occupant.Marker.MoveTo(
-                destinationPosition,
-                CatapultMoveAnimationDurationSeconds,
-                catapultIdleScene,
-                catapultIdleScene,
-                onComplete);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, null, pathModulates, GetScaledMoveDuration(CatapultMoveAnimationDurationSeconds, pathPositions), catapultIdleScene, catapultIdleScene, onComplete);
             return;
         }
 
@@ -1713,21 +1748,26 @@ public partial class BattlePrototypeSceneController : Node2D
         onComplete?.Invoke();
     }
 
-    private static void MoveMarker(BattlePieceMarker marker, Vector2 destinationPosition, Vector2[]? pathPositions, string[]? pathMoveScenePaths, double duration, string moveScenePath, string idleScenePath, Action? onComplete = null)
+    private static void MoveMarker(BattlePieceMarker marker, Vector2 destinationPosition, Vector2[]? pathPositions, string[]? pathMoveScenePaths, Color?[]? pathModulates, double duration, string moveScenePath, string idleScenePath, Action? onComplete = null)
     {
         if (pathPositions is { Length: > 0 })
         {
             if (pathMoveScenePaths is { Length: > 0 })
             {
-                marker.MoveAlong(pathPositions, duration, pathMoveScenePaths, idleScenePath, onComplete);
+                marker.MoveAlong(pathPositions, duration, pathMoveScenePaths, idleScenePath, onComplete, pathModulates);
                 return;
             }
 
-            marker.MoveAlong(pathPositions, duration, moveScenePath, idleScenePath, onComplete);
+            marker.MoveAlong(pathPositions, duration, moveScenePath, idleScenePath, onComplete, pathModulates);
             return;
         }
 
         marker.MoveTo(destinationPosition, duration, moveScenePath, idleScenePath, onComplete);
+    }
+
+    private static double GetScaledMoveDuration(double baseDuration, Vector2[]? pathPositions)
+    {
+        return baseDuration * Math.Max(1, pathPositions?.Length ?? 1);
     }
 
     private static string[]? GetMoveScenePathArray(BattleSpriteDirection[]? directions, Func<BattleSpriteDirection, string> getMoveScene)
@@ -2500,21 +2540,26 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        var frontier = new Queue<(BattleGridKey Grid, int RemainingMove)>();
-        var bestRemaining = new Dictionary<BattleGridKey, int> { [startGrid] = moveRange };
+        var frontier = new PriorityQueue<BattleGridKey, (int EstimatedTotalCost, int LayerChanges, int GateVerticalSteps, int Steps, int Sequence)>();
+        var bestCost = new Dictionary<BattleGridKey, int> { [startGrid] = 0 };
+        var pathStatsByGrid = new Dictionary<BattleGridKey, (int LayerChanges, int GateVerticalSteps, int Steps)>
+        {
+            [startGrid] = (0, 0, 0)
+        };
         var previousByGrid = new Dictionary<BattleGridKey, BattleGridKey>();
-        frontier.Enqueue((startGrid, moveRange));
+        var sequence = 0;
+        frontier.Enqueue(startGrid, (EstimateMoveCost(startGrid, destinationGrid), 0, 0, 0, sequence++));
 
         while (frontier.Count > 0)
         {
             var current = frontier.Dequeue();
-            if (current.Grid == destinationGrid)
+            if (current == destinationGrid)
             {
                 path = RebuildMovePath(startGrid, destinationGrid, previousByGrid);
                 return path.Count > 0;
             }
 
-            foreach (var step in GetMovementNeighbors(current.Grid))
+            foreach (var step in GetMovementNeighbors(current))
             {
                 var neighbor = step.Grid;
                 if (!IsWithinMap(neighbor.Grid))
@@ -2523,7 +2568,7 @@ public partial class BattlePrototypeSceneController : Node2D
                 }
 
                 var cell = _mapData.GetCell(neighbor.X, neighbor.Y);
-                if (!CanEnterCell(current.Grid, neighbor, cell, step.UsesLadderBridge))
+                if (!CanEnterCell(current, neighbor, cell, step.UsesLadderBridge))
                 {
                     continue;
                 }
@@ -2538,24 +2583,50 @@ public partial class BattlePrototypeSceneController : Node2D
                     continue;
                 }
 
-                var remainingMove = current.RemainingMove - GetMoveCost(cell);
-                if (remainingMove < 0)
+                var moveCost = GetMoveCost(cell);
+                var newCost = bestCost[current] + moveCost;
+                if (newCost > moveRange)
                 {
                     continue;
                 }
 
-                if (bestRemaining.TryGetValue(neighbor, out var knownRemaining) && knownRemaining >= remainingMove)
+                var currentStats = pathStatsByGrid[current];
+                var newStats = (
+                    LayerChanges: currentStats.LayerChanges + (current.Level == neighbor.Level ? 0 : 1),
+                    GateVerticalSteps: currentStats.GateVerticalSteps + (IsGateVerticalLayerMove(current, neighbor) ? 1 : 0),
+                    Steps: currentStats.Steps + 1);
+                if (bestCost.TryGetValue(neighbor, out var knownCost) &&
+                    (knownCost < newCost ||
+                     knownCost == newCost && !IsBetterPathTieBreak(newStats, pathStatsByGrid[neighbor])))
                 {
                     continue;
                 }
 
-                bestRemaining[neighbor] = remainingMove;
-                previousByGrid[neighbor] = current.Grid;
-                frontier.Enqueue((neighbor, remainingMove));
+                bestCost[neighbor] = newCost;
+                pathStatsByGrid[neighbor] = newStats;
+                previousByGrid[neighbor] = current;
+                var estimatedTotalCost = newCost + EstimateMoveCost(neighbor, destinationGrid);
+                frontier.Enqueue(neighbor, (estimatedTotalCost, newStats.LayerChanges, newStats.GateVerticalSteps, newStats.Steps, sequence++));
             }
         }
 
         return false;
+    }
+
+    private static int EstimateMoveCost(BattleGridKey fromGrid, BattleGridKey toGrid)
+    {
+        return Mathf.Abs(fromGrid.X - toGrid.X) +
+               Mathf.Abs(fromGrid.Y - toGrid.Y) +
+               (fromGrid.Level == toGrid.Level ? 0 : 1);
+    }
+
+    private static bool IsBetterPathTieBreak(
+        (int LayerChanges, int GateVerticalSteps, int Steps) candidate,
+        (int LayerChanges, int GateVerticalSteps, int Steps) known)
+    {
+        return candidate.LayerChanges < known.LayerChanges ||
+               candidate.LayerChanges == known.LayerChanges && candidate.GateVerticalSteps < known.GateVerticalSteps ||
+               candidate.LayerChanges == known.LayerChanges && candidate.GateVerticalSteps == known.GateVerticalSteps && candidate.Steps < known.Steps;
     }
 
     private static List<BattleGridKey> RebuildMovePath(BattleGridKey startGrid, BattleGridKey destinationGrid, IReadOnlyDictionary<BattleGridKey, BattleGridKey> previousByGrid)

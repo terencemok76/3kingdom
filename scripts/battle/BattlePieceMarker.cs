@@ -142,12 +142,12 @@ public partial class BattlePieceMarker : Node2D
         MoveAlong(new[] { waypoint, destination }, duration, moveScenePath, idleScenePath);
     }
 
-    public void MoveAlong(Vector2[] points, double duration, string moveScenePath, string idleScenePath, Action? onComplete = null)
+    public void MoveAlong(Vector2[] points, double duration, string moveScenePath, string idleScenePath, Action? onComplete = null, Color?[]? segmentModulates = null)
     {
-        MoveAlong(points, duration, BuildRepeatedScenePathArray(points.Length, moveScenePath), idleScenePath, onComplete);
+        MoveAlong(points, duration, BuildRepeatedScenePathArray(points.Length, moveScenePath), idleScenePath, onComplete, segmentModulates);
     }
 
-    public void MoveAlong(Vector2[] points, double duration, string[] moveScenePaths, string idleScenePath, Action? onComplete = null)
+    public void MoveAlong(Vector2[] points, double duration, string[] moveScenePaths, string idleScenePath, Action? onComplete = null, Color?[]? segmentModulates = null)
     {
         if (points.Length == 0)
         {
@@ -156,6 +156,7 @@ public partial class BattlePieceMarker : Node2D
             return;
         }
 
+        var originalModulate = Modulate;
         var originalZIndex = ZIndex;
         ZIndex = originalZIndex + MovingZIndexBoost;
         var tween = CreateTween();
@@ -166,13 +167,21 @@ public partial class BattlePieceMarker : Node2D
         {
             var point = points[index];
             var scenePath = index < moveScenePaths.Length ? moveScenePaths[index] : moveScenePaths[^1];
-            tween.TweenCallback(Callable.From(() => SetupSpriteAnimationScene(scenePath)));
+            var segmentModulate = segmentModulates != null && index < segmentModulates.Length
+                ? segmentModulates[index]
+                : null;
+            tween.TweenCallback(Callable.From(() =>
+            {
+                SetupSpriteAnimationScene(scenePath);
+                Modulate = segmentModulate ?? originalModulate;
+            }));
             tween.TweenProperty(this, "position", point, segmentDuration);
         }
 
         tween.TweenCallback(Callable.From(() =>
         {
             SetupSpriteAnimationScene(idleScenePath);
+            Modulate = originalModulate;
             ZIndex = originalZIndex;
             onComplete?.Invoke();
         }));
