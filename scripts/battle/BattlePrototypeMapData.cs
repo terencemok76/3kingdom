@@ -10,7 +10,16 @@ public enum BattleTerrainType
     Courtyard,
     Grass,
     Forest,
-    WallWalk
+    WallWalk,
+    Moat,
+    Bridge
+}
+
+public enum BattleScenarioType
+{
+    SiegeAssault,
+    FieldBattle,
+    MoatSiegeBattle
 }
 
 public enum BattleStructureType
@@ -77,7 +86,34 @@ public sealed class BattlePrototypeMapData
     {
         var map = new BattlePrototypeMapData();
         map.BuildSiegeAssaultLayout();
+        map.ApplyDerivedCellRules();
         return map;
+    }
+
+    public static BattlePrototypeMapData CreateFieldBattle()
+    {
+        var map = new BattlePrototypeMapData();
+        map.BuildFieldBattleLayout();
+        map.ApplyDerivedCellRules();
+        return map;
+    }
+
+    public static BattlePrototypeMapData CreateMoatSiegeAssault()
+    {
+        var map = new BattlePrototypeMapData();
+        map.BuildMoatSiegeAssaultLayout();
+        map.ApplyDerivedCellRules();
+        return map;
+    }
+
+    public static BattlePrototypeMapData Create(BattleScenarioType scenarioType)
+    {
+        return scenarioType switch
+        {
+            BattleScenarioType.FieldBattle => CreateFieldBattle(),
+            BattleScenarioType.MoatSiegeBattle => CreateMoatSiegeAssault(),
+            _ => CreateSiegeAssault()
+        };
     }
 
     public static BattlePrototypeMapData CreateFromTileMapLayers(
@@ -228,7 +264,7 @@ public sealed class BattlePrototypeMapData
             var cell = GetCell(grid.X, grid.Y);
             var isBrokenWall = cell.Structure == BattleStructureType.Wall && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             var isBrokenGate = cell.Structure == BattleStructureType.Gate && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
-            cell.BlocksMovement = false;
+            cell.BlocksMovement = cell.Terrain == BattleTerrainType.Moat;
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
 
             switch (cell.Structure)
@@ -279,6 +315,82 @@ public sealed class BattlePrototypeMapData
         PaintStructures();
         PaintForests();
         PaintDeploymentZones();
+    }
+
+    private void BuildFieldBattleLayout()
+    {
+        PaintFieldRoad();
+        PaintFieldForests();
+        PaintFieldObstacles();
+        PaintDeploymentZones();
+    }
+
+    private void BuildMoatSiegeAssaultLayout()
+    {
+        BuildSiegeAssaultLayout();
+        PaintMoatAndBridge();
+    }
+
+    private void PaintFieldRoad()
+    {
+        for (var y = 0; y < Height; y++)
+        {
+            var x = 10 + y / 5;
+            GetCell(x, y).Terrain = BattleTerrainType.Road;
+            if (x + 1 < Width)
+            {
+                GetCell(x + 1, y).Terrain = BattleTerrainType.Road;
+            }
+        }
+    }
+
+    private void PaintFieldForests()
+    {
+        var forestRects = new[]
+        {
+            new Rect2I(2, 6, 5, 5),
+            new Rect2I(17, 5, 5, 6),
+            new Rect2I(7, 15, 4, 4),
+            new Rect2I(18, 17, 4, 4)
+        };
+
+        foreach (var rect in forestRects)
+        {
+            for (var y = rect.Position.Y; y < rect.End.Y; y++)
+            {
+                for (var x = rect.Position.X; x < rect.End.X; x++)
+                {
+                    GetCell(x, y).Terrain = BattleTerrainType.Forest;
+                }
+            }
+        }
+    }
+
+    private void PaintFieldObstacles()
+    {
+        PlaceTree(4, 8);
+        PlaceTree(6, 9);
+        PlaceTree(18, 7);
+        PlaceTree(20, 9);
+        PlaceRockBig(9, 13);
+        PlaceRockBig(16, 14);
+        PlaceRockSmall(12, 16);
+    }
+
+    private void PaintMoatAndBridge()
+    {
+        const int moatY = 11;
+        for (var x = 0; x < Width; x++)
+        {
+            var cell = GetCell(x, moatY);
+            cell.Terrain = BattleTerrainType.Moat;
+            cell.Structure = BattleStructureType.None;
+        }
+
+        for (var x = 11; x <= 13; x++)
+        {
+            GetCell(x, moatY).Terrain = BattleTerrainType.Bridge;
+        }
     }
 
     private void PaintCourtyard()

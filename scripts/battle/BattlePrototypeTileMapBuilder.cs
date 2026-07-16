@@ -172,9 +172,12 @@ public static class BattlePrototypeTileMapBuilder
         var visual = cell.Terrain switch
         {
             BattleTerrainType.Road => BattlePrototypeFloorTileVisual.Road,
+            BattleTerrainType.Bridge => BattlePrototypeFloorTileVisual.Road,
             BattleTerrainType.Courtyard => BattlePrototypeFloorTileVisual.Courtyard,
             BattleTerrainType.WallWalk => BattlePrototypeFloorTileVisual.WallWalk,
             BattleTerrainType.Forest => BattlePrototypeFloorTileVisual.ForestGround,
+            // Moat water is drawn by BattlePrototypeMoatRenderer over this base tile.
+            BattleTerrainType.Moat => BattlePrototypeFloorTileVisual.Grass,
             _ => BattlePrototypeFloorTileVisual.Grass
         };
         return new Vector2I((int)visual, 0);

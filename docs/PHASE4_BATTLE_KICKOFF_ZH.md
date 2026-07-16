@@ -264,3 +264,17 @@
 3. 新增 `Moat`、`Bridge` 地形與 A* 可通行／移動成本規則。
 4. 將城門、牆頂與 silhouette 的視覺遮擋改為資料驅動的前景遮罩設定。
 5. 為野戰、一般攻城與護城河攻城各建立最少一張測試地圖，覆蓋移動、攻擊、部署與勝敗條件。
+
+### 10.6 已實作的基線
+
+- `BattlePrototypeSceneController` 已提供 Inspector `Scenario Type`：
+  - `SiegeAssault`
+  - `FieldBattle`
+  - `MoatSiegeBattle`
+- 三種 scenario 目前共用同一個 `BattlePrototypeScene`、HUD、單位 marker、移動與 A*。
+- `FieldBattle` 會建立不含城牆／城門的道路、森林、障礙物與雙方部署區。
+- `MoatSiegeBattle` 會在攻城 prototype 的接近路線加入：
+  - 不可直接通行的 `Moat`
+  - 位於中央接近路線、可通行的 `Bridge`
+- 護城河第一版已有程式化水面與木橋覆蓋顯示，之後可替換為正式 TileSet 素材。
+- 預設 `SiegeAssault` 仍會沿用既有 editor-authored tile layout，以避免改變現有 prototype 測試流程；切換至野戰或護城河攻城時會由 scenario 重建 TileMap。

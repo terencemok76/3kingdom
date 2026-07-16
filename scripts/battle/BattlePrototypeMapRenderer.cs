@@ -81,6 +81,8 @@ public partial class BattlePrototypeMapRenderer : Node2D
             BattleTerrainType.Road => new Color("a9865e"),
             BattleTerrainType.Forest => new Color("537143"),
             BattleTerrainType.WallWalk => new Color("918068"),
+            BattleTerrainType.Moat => new Color("286694"),
+            BattleTerrainType.Bridge => new Color("725134"),
             _ => new Color("6f8650")
         };
 
