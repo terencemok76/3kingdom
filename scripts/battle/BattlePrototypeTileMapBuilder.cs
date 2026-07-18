@@ -18,14 +18,16 @@ internal enum BattlePrototypeFloorTileVisual
     Road = 1,
     Courtyard = 2,
     WallWalk = 3,
-    ForestGround = 4
+    ForestGround = 4,
+    River = 5
 }
 
 internal enum BattlePrototypeObjectTileVisual
 {
     Tree = 0,
     Rock_Big = 1,
-    Rock_Small = 2
+    Rock_Small = 2,
+    Bridge = 3
 }
 
 internal enum BattlePrototypeCastleTileVisual
@@ -172,12 +174,11 @@ public static class BattlePrototypeTileMapBuilder
         var visual = cell.Terrain switch
         {
             BattleTerrainType.Road => BattlePrototypeFloorTileVisual.Road,
-            BattleTerrainType.Bridge => BattlePrototypeFloorTileVisual.Road,
+            BattleTerrainType.Bridge => BattlePrototypeFloorTileVisual.River,
             BattleTerrainType.Courtyard => BattlePrototypeFloorTileVisual.Courtyard,
             BattleTerrainType.WallWalk => BattlePrototypeFloorTileVisual.WallWalk,
             BattleTerrainType.Forest => BattlePrototypeFloorTileVisual.ForestGround,
-            // Moat water is drawn by BattlePrototypeMoatRenderer over this base tile.
-            BattleTerrainType.Moat => BattlePrototypeFloorTileVisual.Grass,
+            BattleTerrainType.Moat => BattlePrototypeFloorTileVisual.River,
             _ => BattlePrototypeFloorTileVisual.Grass
         };
         return new Vector2I((int)visual, 0);
@@ -185,6 +186,11 @@ public static class BattlePrototypeTileMapBuilder
 
     private static Vector2I? ResolveObjectVisual(BattlePrototypeCellData cell)
     {
+        if (cell.Terrain == BattleTerrainType.Bridge)
+        {
+            return new Vector2I((int)BattlePrototypeObjectTileVisual.Bridge, 0);
+        }
+
         var visual = cell.Structure switch
         {
             BattleStructureType.Tree => BattlePrototypeObjectTileVisual.Tree,
@@ -205,7 +211,10 @@ public static class BattlePrototypeTileMapBuilder
                 : BattlePrototypeCastleTileVisual.GateLeft,
             BattleStructureType.Wall => ResolveWallVisual(cell.Grid.X),
             
-            BattleStructureType.Tower or BattleStructureType.Building => BattlePrototypeCastleTileVisual.Wall0,
+            BattleStructureType.Tower => BattlePrototypeCastleTileVisual.Wall0,
+            // Buildings are logical blockers until dedicated interior building art is available.
+            // Rendering them as Wall0 created repeated interior castle walls.
+            BattleStructureType.Building => null,
             _ => null
         };
 
@@ -502,6 +511,7 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeFloorTileVisual.Courtyard => new Color("c3ad78"),
             BattlePrototypeFloorTileVisual.WallWalk => new Color("99846d"),
             BattlePrototypeFloorTileVisual.ForestGround => new Color("5f7745"),
+            BattlePrototypeFloorTileVisual.River => new Color("2b7198"),
             _ => new Color("738c50")
         };
 
@@ -512,6 +522,7 @@ public static class BattlePrototypeTileMapBuilder
             BattlePrototypeFloorTileVisual.Courtyard => new Color("ad9763"),
             BattlePrototypeFloorTileVisual.WallWalk => new Color("7d6a56"),
             BattlePrototypeFloorTileVisual.ForestGround => new Color("476037"),
+            BattlePrototypeFloorTileVisual.River => new Color("1c5278"),
             _ => new Color("5f7640")
         };
 
@@ -541,6 +552,11 @@ public static class BattlePrototypeTileMapBuilder
             else if (visual == BattlePrototypeFloorTileVisual.ForestGround)
             {
                 color = color.Lerp(new Color("2e4927"), noise * 0.22f);
+            }
+            else if (visual == BattlePrototypeFloorTileVisual.River)
+            {
+                var wave = ((int)localX / 18 + (int)localY / 6) % 3 == 0;
+                color = color.Lerp(wave ? new Color("87bcd0") : new Color("1f5f87"), 0.22f);
             }
 
             if (edge > 0.955f)

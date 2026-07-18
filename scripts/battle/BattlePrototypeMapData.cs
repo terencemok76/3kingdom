@@ -379,17 +379,30 @@ public sealed class BattlePrototypeMapData
 
     private void PaintMoatAndBridge()
     {
-        const int moatY = 11;
-        for (var x = 0; x < Width; x++)
+        var moatRows = new[] { 10, 11 };
+        foreach (var moatY in moatRows)
         {
-            var cell = GetCell(x, moatY);
-            cell.Terrain = BattleTerrainType.Moat;
-            cell.Structure = BattleStructureType.None;
+            for (var x = 0; x < Width; x++)
+            {
+                var cell = GetCell(x, moatY);
+                cell.Terrain = BattleTerrainType.Moat;
+                cell.Structure = BattleStructureType.None;
+            }
         }
 
-        for (var x = 11; x <= 13; x++)
+        foreach (var moatY in moatRows)
         {
-            GetCell(x, moatY).Terrain = BattleTerrainType.Bridge;
+            for (var x = 11; x <= 12; x++)
+            {
+                GetCell(x, moatY).Terrain = BattleTerrainType.Bridge;
+            }
+        }
+
+        GetCell(10, 8).Terrain = BattleTerrainType.Courtyard;
+        GetCell(10, 9).Terrain = BattleTerrainType.Courtyard;
+        for (var y = 12; y <= 24; y++)
+        {
+            GetCell(11, y).Terrain = BattleTerrainType.Road;
         }
     }
 

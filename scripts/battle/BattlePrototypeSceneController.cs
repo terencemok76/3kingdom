@@ -50,6 +50,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string TroopRam = "Ram";
     private const string TroopLadder = "Ladder";
     private const string TroopCatapult = "Catapult";
+    private const string CatapultStoneTexturePath = "res://assets/battle/object/catapult_stone.png";
     private const string InfantryIdleSouthEastScenePath = "res://scenes/battle/unit/InfantryIdleSe.tscn";
     private const string InfantryIdleSouthWestScenePath = "res://scenes/battle/unit/InfantryIdleSw.tscn";
     private const string InfantryIdleNorthEastScenePath = "res://scenes/battle/unit/InfantryIdleNe.tscn";
@@ -149,6 +150,11 @@ public partial class BattlePrototypeSceneController : Node2D
     private const int SpearmanAttackDamage = 800;
     private const int ArcherAttackDamage = 900;
     private const int CavalryAttackDamage = 1100;
+    private const int DropStoneAttackDamage = 1200;
+    private const int PourOilAttackDamage = 1000;
+    private const double DropStoneEffectDurationSeconds = 0.48;
+    private const double PourOilEffectDurationSeconds = 0.58;
+    private const double CatapultProjectileEffectDurationSeconds = 0.7;
     private const int RamAttackDamage = 500;
     private const int CatapultAttackDamage = 1300;
     private const int InfantryStructureDamage = 180;
@@ -174,7 +180,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private TileMapLayer? _castleLayer;
     private TileMapLayer? _overlayLayer;
     private BattlePrototypeHighlightRenderer? _highlightLayer;
-    private BattlePrototypeMoatRenderer? _moatRenderer;
+    private Texture2D? _catapultStoneTexture;
     private Node2D? _battleDepthLayer;
     private Node2D? _occludedUnitSilhouetteLayer;
     private Control? _commandMenu;
@@ -183,6 +189,8 @@ public partial class BattlePrototypeSceneController : Node2D
     private Button? _endTurnButton;
     private Button? _moveButton;
     private Button? _attackButton;
+    private Button? _dropStoneButton;
+    private Button? _pourOilButton;
     private Button? _strategyButton;
     private Button? _openGateButton;
     private bool _isDraggingMap;
@@ -202,6 +210,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
     private readonly List<BattlePrototypeHighlightRenderer> _highlightDepthVisuals = new();
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
+    private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
@@ -212,6 +221,15 @@ public partial class BattlePrototypeSceneController : Node2D
 
     [Export]
     public BattleScenarioType ScenarioType { get; set; } = BattleScenarioType.SiegeAssault;
+
+    [Export]
+    public int DropStoneUsesPerUnit { get; set; } = 3;
+
+    [Export]
+    public int PourOilUsesPerUnit { get; set; } = 2;
+
+    [Export]
+    public bool UseEditorAuthoredLayout { get; set; }
 
     [Export]
     public bool EditorBakePrototypeLayout
@@ -274,6 +292,16 @@ public partial class BattlePrototypeSceneController : Node2D
             _attackButton.Pressed += OnAttackButtonPressed;
         }
 
+        if (_dropStoneButton != null)
+        {
+            _dropStoneButton.Pressed += OnDropStoneButtonPressed;
+        }
+
+        if (_pourOilButton != null)
+        {
+            _pourOilButton.Pressed += OnPourOilButtonPressed;
+        }
+
         if (_strategyButton != null)
         {
             _strategyButton.Pressed += OnStrategyButtonPressed;
@@ -311,7 +339,6 @@ public partial class BattlePrototypeSceneController : Node2D
         _castleLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/CastleLayer");
         _overlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/OverlayLayer");
         _highlightLayer ??= GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
-        _moatRenderer ??= GetNodeOrNull<BattlePrototypeMoatRenderer>("MapRoot/MoatRenderer");
         _battleDepthLayer ??= GetNodeOrNull<Node2D>("MapRoot/BattleDepthLayer");
         _occludedUnitSilhouetteLayer ??= GetNodeOrNull<Node2D>("MapRoot/OccludedUnitSilhouetteLayer");
         if (_highlightLayer != null && !Engine.IsEditorHint())
@@ -327,16 +354,6 @@ public partial class BattlePrototypeSceneController : Node2D
                 ZIndex = 20
             };
             _mapRoot.AddChild(_battleDepthLayer);
-        }
-
-        if (_moatRenderer == null && _mapRoot != null && !Engine.IsEditorHint())
-        {
-            _moatRenderer = new BattlePrototypeMoatRenderer
-            {
-                Name = "MoatRenderer",
-                ZIndex = 2
-            };
-            _mapRoot.AddChild(_moatRenderer);
         }
 
         if (_occludedUnitSilhouetteLayer == null && _mapRoot != null && !Engine.IsEditorHint())
@@ -360,6 +377,8 @@ public partial class BattlePrototypeSceneController : Node2D
         _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
         _moveButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/MoveButton");
         _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
+        _dropStoneButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/DropStoneButton");
+        _pourOilButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/PourOilButton");
         _strategyButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/StrategyButton");
         _openGateButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OpenGateButton");
     }
@@ -395,14 +414,13 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        if (ScenarioType == BattleScenarioType.SiegeAssault && HasEditorAuthoredLayout())
+        if (UseEditorAuthoredLayout && HasEditorAuthoredLayout())
         {
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_groundLayer, BattlePrototypeTileLayerKind.Ground);
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_objectLayer, BattlePrototypeTileLayerKind.Object);
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_castleLayer, BattlePrototypeTileLayerKind.Castle);
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
             _mapData = BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _objectLayer, _castleLayer, _overlayLayer);
-            _moatRenderer?.Configure(_mapData);
             return;
         }
 
@@ -411,7 +429,6 @@ public partial class BattlePrototypeSceneController : Node2D
         ConfigureTileMapLayer("MapRoot/ObjectLayer", BattlePrototypeTileLayerKind.Object);
         ConfigureTileMapLayer("MapRoot/CastleLayer", BattlePrototypeTileLayerKind.Castle);
         ConfigureTileMapLayer("MapRoot/OverlayLayer", BattlePrototypeTileLayerKind.DeploymentOverlay);
-        _moatRenderer?.Configure(_mapData);
     }
 
     private bool HasEditorAuthoredLayout()
@@ -434,7 +451,6 @@ public partial class BattlePrototypeSceneController : Node2D
         BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
         BattlePrototypeTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattlePrototypeTileLayerKind.Castle);
         BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
-        _moatRenderer?.Configure(_mapData);
     }
 
     private void ClearTileLayoutInEditor()
@@ -443,7 +459,6 @@ public partial class BattlePrototypeSceneController : Node2D
         ClearLayer(_objectLayer, BattlePrototypeTileLayerKind.Object);
         ClearLayer(_castleLayer, BattlePrototypeTileLayerKind.Castle);
         ClearLayer(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
-        _moatRenderer?.Configure(null);
     }
 
     private static void ClearLayer(TileMapLayer? layer, BattlePrototypeTileLayerKind layerKind)
@@ -1683,10 +1698,14 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var attackAnimationDuration = ApplyAttackAnimation(attackingUnit, attackDirection);
         var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid);
-        ApplyAttackDamage(attackingUnit, targetGrid, Math.Max(attackAnimationDuration, hurtAnimationDuration));
+        var catapultEffectDuration = attackingUnit.Category == CategorySiegeEngine && attackingUnit.TroopType == TroopCatapult
+            ? PlayCatapultProjectileEffect(_selectedUnitGrid.Value, targetGrid)
+            : 0.0;
+        var effectDelaySeconds = Math.Max(Math.Max(attackAnimationDuration, hurtAnimationDuration), catapultEffectDuration);
+        ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds);
         if (shouldTemporarilyRevealOccludedUnits)
         {
-            RefreshOccludedUnitSilhouettesAfterDelay(Math.Max(attackAnimationDuration, hurtAnimationDuration));
+            RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
         }
 
         _commandMode = BattleCommandMode.None;
@@ -1923,7 +1942,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return InfantryHurtAnimationDurationSeconds;
     }
 
-    private void ApplyAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid, double effectDelaySeconds)
+    private void ApplyAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid, double effectDelaySeconds, int? damageOverride = null)
     {
         if (IsClosedGateStructureTarget(targetGrid))
         {
@@ -1944,7 +1963,7 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        var damage = GetAttackDamage(attacker);
+        var damage = damageOverride ?? GetAttackDamage(attacker);
         if (damage <= 0)
         {
             return;
@@ -2080,6 +2099,189 @@ public partial class BattlePrototypeSceneController : Node2D
         tween.TweenProperty(popup, "modulate:a", 0.0f, DamagePopupDurationSeconds);
         tween.SetParallel(false);
         tween.TweenCallback(Callable.From(() => popup.QueueFree()));
+    }
+
+    private double PlayDropStoneEffect(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    {
+        if (_battleDepthLayer == null)
+        {
+            return 0.0;
+        }
+
+        var sourcePosition = GetMarkerPosition(sourceGrid) + new Vector2(0.0f, -16.0f);
+        var targetPosition = GetMarkerPosition(targetGrid) + new Vector2(0.0f, -20.0f);
+        var offsets = new[]
+        {
+            new Vector2(-12.0f, -6.0f),
+            new Vector2(4.0f, -14.0f),
+            new Vector2(14.0f, -4.0f)
+        };
+
+        for (var index = 0; index < offsets.Length; index++)
+        {
+            var stone = new ColorRect
+            {
+                Color = new Color(0.32f, 0.27f, 0.20f, 1.0f),
+                Position = sourcePosition + offsets[index],
+                Size = new Vector2(10.0f, 8.0f),
+                PivotOffset = new Vector2(5.0f, 4.0f),
+                Rotation = index * 0.55f,
+                ZIndex = 520,
+                MouseFilter = Control.MouseFilterEnum.Ignore
+            };
+            _battleDepthLayer.AddChild(stone);
+
+            var tween = stone.CreateTween();
+            tween.SetParallel(true);
+            tween.TweenProperty(stone, "position", targetPosition + offsets[index] * 0.45f, DropStoneEffectDurationSeconds);
+            tween.TweenProperty(stone, "rotation", stone.Rotation + 4.0f + index, DropStoneEffectDurationSeconds);
+            tween.TweenProperty(stone, "scale", new Vector2(1.35f, 1.35f), DropStoneEffectDurationSeconds);
+            tween.SetParallel(false);
+            tween.TweenCallback(Callable.From(() => stone.QueueFree()));
+        }
+
+        var impact = new ColorRect
+        {
+            Color = new Color(1.0f, 0.70f, 0.22f, 1.0f),
+            Modulate = new Color(1.0f, 1.0f, 1.0f, 0.0f),
+            Position = targetPosition - new Vector2(22.0f, 3.0f),
+            Size = new Vector2(44.0f, 6.0f),
+            PivotOffset = new Vector2(22.0f, 3.0f),
+            Rotation = 0.35f,
+            ZIndex = 519,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _battleDepthLayer.AddChild(impact);
+
+        var impactTween = impact.CreateTween();
+        impactTween.TweenInterval(DropStoneEffectDurationSeconds * 0.72);
+        impactTween.SetParallel(true);
+        impactTween.TweenProperty(impact, "modulate:a", 1.0f, 0.06);
+        impactTween.TweenProperty(impact, "scale", new Vector2(1.5f, 1.5f), 0.18);
+        impactTween.SetParallel(false);
+        impactTween.TweenProperty(impact, "modulate:a", 0.0f, 0.18);
+        impactTween.TweenCallback(Callable.From(() => impact.QueueFree()));
+
+        return DropStoneEffectDurationSeconds;
+    }
+
+    private double PlayPourOilEffect(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    {
+        if (_battleDepthLayer == null)
+        {
+            return 0.0;
+        }
+
+        var sourcePosition = GetMarkerPosition(sourceGrid) + new Vector2(4.0f, -12.0f);
+        var targetPosition = GetMarkerPosition(targetGrid) + new Vector2(0.0f, -16.0f);
+        var streamOffsets = new[] { -8.0f, 3.0f, 12.0f };
+        foreach (var offsetX in streamOffsets)
+        {
+            var oilStream = new ColorRect
+            {
+                Color = new Color(0.96f, 0.31f, 0.05f, 0.92f),
+                Position = sourcePosition + new Vector2(offsetX, 0.0f),
+                Size = new Vector2(7.0f, 18.0f),
+                PivotOffset = new Vector2(3.5f, 9.0f),
+                Rotation = 0.38f,
+                ZIndex = 520,
+                MouseFilter = Control.MouseFilterEnum.Ignore
+            };
+            _battleDepthLayer.AddChild(oilStream);
+
+            var streamTween = oilStream.CreateTween();
+            streamTween.SetParallel(true);
+            streamTween.TweenProperty(oilStream, "position", targetPosition + new Vector2(offsetX * 0.45f, 0.0f), PourOilEffectDurationSeconds * 0.7);
+            streamTween.TweenProperty(oilStream, "scale", new Vector2(1.45f, 1.8f), PourOilEffectDurationSeconds * 0.7);
+            streamTween.SetParallel(false);
+            streamTween.TweenProperty(oilStream, "modulate:a", 0.0f, PourOilEffectDurationSeconds * 0.3);
+            streamTween.TweenCallback(Callable.From(() => oilStream.QueueFree()));
+        }
+
+        var oilSplash = new ColorRect
+        {
+            Color = new Color(1.0f, 0.58f, 0.08f, 1.0f),
+            Modulate = new Color(1.0f, 1.0f, 1.0f, 0.0f),
+            Position = targetPosition - new Vector2(26.0f, 7.0f),
+            Size = new Vector2(52.0f, 14.0f),
+            PivotOffset = new Vector2(26.0f, 7.0f),
+            Rotation = -0.18f,
+            ZIndex = 519,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _battleDepthLayer.AddChild(oilSplash);
+
+        var splashTween = oilSplash.CreateTween();
+        splashTween.TweenInterval(PourOilEffectDurationSeconds * 0.58);
+        splashTween.SetParallel(true);
+        splashTween.TweenProperty(oilSplash, "modulate:a", 0.95f, 0.08);
+        splashTween.TweenProperty(oilSplash, "scale", new Vector2(1.35f, 1.5f), 0.2);
+        splashTween.SetParallel(false);
+        splashTween.TweenProperty(oilSplash, "modulate:a", 0.0f, 0.2);
+        splashTween.TweenCallback(Callable.From(() => oilSplash.QueueFree()));
+
+        return PourOilEffectDurationSeconds;
+    }
+
+    private double PlayCatapultProjectileEffect(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    {
+        if (_battleDepthLayer == null)
+        {
+            return 0.0;
+        }
+
+        var sourcePosition = GetMarkerPosition(sourceGrid) + new Vector2(0.0f, -20.0f);
+        var targetPosition = GetMarkerPosition(targetGrid) + new Vector2(0.0f, -18.0f);
+        var arcPeakPosition = sourcePosition.Lerp(targetPosition, 0.5f) + new Vector2(0.0f, -84.0f);
+        _catapultStoneTexture ??= GD.Load<Texture2D>(CatapultStoneTexturePath);
+        if (_catapultStoneTexture == null)
+        {
+            return 0.0;
+        }
+
+        var projectile = new Sprite2D
+        {
+            Texture = _catapultStoneTexture,
+            Position = sourcePosition,
+            Rotation = 0.25f,
+            Scale = new Vector2(0.68f, 1.18f),
+            ZIndex = 520
+        };
+        _battleDepthLayer.AddChild(projectile);
+
+        var projectileMovementTween = projectile.CreateTween();
+        projectileMovementTween.TweenProperty(projectile, "position", arcPeakPosition, CatapultProjectileEffectDurationSeconds * 0.5);
+        projectileMovementTween.TweenProperty(projectile, "position", targetPosition, CatapultProjectileEffectDurationSeconds * 0.5);
+        projectileMovementTween.TweenCallback(Callable.From(() => projectile.QueueFree()));
+
+        var projectileRotationTween = projectile.CreateTween();
+        projectileRotationTween.SetParallel(true);
+        projectileRotationTween.TweenProperty(projectile, "rotation", projectile.Rotation + 8.0f, CatapultProjectileEffectDurationSeconds);
+        projectileRotationTween.TweenProperty(projectile, "scale", new Vector2(0.92f, 1.48f), CatapultProjectileEffectDurationSeconds);
+
+        var impact = new ColorRect
+        {
+            Color = new Color(1.0f, 0.76f, 0.30f, 1.0f),
+            Modulate = new Color(1.0f, 1.0f, 1.0f, 0.0f),
+            Position = targetPosition - new Vector2(32.0f, 5.0f),
+            Size = new Vector2(64.0f, 10.0f),
+            PivotOffset = new Vector2(32.0f, 5.0f),
+            Rotation = 0.18f,
+            ZIndex = 519,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _battleDepthLayer.AddChild(impact);
+
+        var impactTween = impact.CreateTween();
+        impactTween.TweenInterval(CatapultProjectileEffectDurationSeconds * 0.78);
+        impactTween.SetParallel(true);
+        impactTween.TweenProperty(impact, "modulate:a", 1.0f, 0.06);
+        impactTween.TweenProperty(impact, "scale", new Vector2(1.6f, 1.6f), 0.16);
+        impactTween.SetParallel(false);
+        impactTween.TweenProperty(impact, "modulate:a", 0.0f, 0.16);
+        impactTween.TweenCallback(Callable.From(() => impact.QueueFree()));
+
+        return CatapultProjectileEffectDurationSeconds;
     }
 
     private async void DestroyOccupantAfterDelay(BattleGridKey grid, BattleOccupantInfo occupant, double delaySeconds)
@@ -3157,6 +3359,144 @@ public partial class BattlePrototypeSceneController : Node2D
         RefreshHighlights();
     }
 
+    private void OnDropStoneButtonPressed()
+    {
+        TryUseWallTopAttack(DropStoneAttackDamage, isDropStone: true);
+    }
+
+    private void OnPourOilButtonPressed()
+    {
+        TryUseWallTopAttack(PourOilAttackDamage, isDropStone: false);
+    }
+
+    private void TryUseWallTopAttack(int damage, bool isDropStone)
+    {
+        if (!TryGetWallTopAttackGrid(out var targetGrid) || _selectedUnit == null || !_selectedUnitGrid.HasValue ||
+            !TryConsumeWallTopAttackUse(isDropStone))
+        {
+            return;
+        }
+
+        var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value.Grid, targetGrid.Grid);
+        var attackingUnit = _selectedUnit with { FacingDirection = attackDirection };
+        ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, attackingUnit);
+        _selectedUnit = attackingUnit;
+
+        var shouldTemporarilyRevealOccludedUnits =
+            IsUnitOccludedByCastleVisual(_selectedUnitGrid.Value) ||
+            IsUnitOccludedByCastleVisual(targetGrid);
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            ClearOccludedUnitSilhouettes();
+        }
+
+        var hasEnemyTarget = HasEnemyBattleTarget(targetGrid, attackingUnit);
+        var hurtAnimationDuration = hasEnemyTarget
+            ? ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid)
+            : 0.0;
+        var specialEffectDuration = isDropStone
+            ? PlayDropStoneEffect(_selectedUnitGrid.Value, targetGrid)
+            : PlayPourOilEffect(_selectedUnitGrid.Value, targetGrid);
+        var effectDelaySeconds = Math.Max(hurtAnimationDuration, specialEffectDuration);
+        if (hasEnemyTarget)
+        {
+            ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds, damage);
+        }
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
+        }
+
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private bool TryGetWallTopAttackGrid(out BattleGridKey targetGrid)
+    {
+        targetGrid = default;
+        if (_selectedUnit == null || !_selectedUnitGrid.HasValue || _selectedUnitGrid.Value.Level != 2)
+        {
+            return false;
+        }
+
+        var sourceGrid = _selectedUnitGrid.Value;
+        if (!IsWallTopGrid(sourceGrid.Grid))
+        {
+            return false;
+        }
+
+        var candidate = new BattleGridKey(sourceGrid.X, sourceGrid.Y + 1, 0);
+        if (!IsWithinMap(candidate.Grid))
+        {
+            return false;
+        }
+
+        targetGrid = candidate;
+        return true;
+    }
+
+    private bool HasEnemyBattleTarget(BattleGridKey targetGrid, BattleOccupantInfo attacker)
+    {
+        return _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
+               occupants.Any(occupant =>
+                   occupant.Marker != null &&
+                   IsBattlePiece(occupant) &&
+                   IsAttackerPiece(occupant) != IsAttackerPiece(attacker));
+    }
+
+    private int GetWallTopAttackUsesRemaining(bool isDropStone)
+    {
+        if (_selectedUnit?.Marker == null)
+        {
+            return 0;
+        }
+
+        if (!_wallTopAttackAmmoByMarker.TryGetValue(_selectedUnit.Marker, out var ammo))
+        {
+            return isDropStone ? DropStoneUsesPerUnit : PourOilUsesPerUnit;
+        }
+
+        return isDropStone ? ammo.DropStoneUses : ammo.PourOilUses;
+    }
+
+    private bool TryConsumeWallTopAttackUse(bool isDropStone)
+    {
+        if (_selectedUnit?.Marker == null)
+        {
+            return false;
+        }
+
+        var marker = _selectedUnit.Marker;
+        var ammo = _wallTopAttackAmmoByMarker.TryGetValue(marker, out var existingAmmo)
+            ? existingAmmo
+            : new WallTopAttackAmmo(DropStoneUsesPerUnit, PourOilUsesPerUnit);
+        if (isDropStone)
+        {
+            if (ammo.DropStoneUses <= 0)
+            {
+                return false;
+            }
+
+            ammo = ammo with { DropStoneUses = ammo.DropStoneUses - 1 };
+        }
+        else
+        {
+            if (ammo.PourOilUses <= 0)
+            {
+                return false;
+            }
+
+            ammo = ammo with { PourOilUses = ammo.PourOilUses - 1 };
+        }
+
+        _wallTopAttackAmmoByMarker[marker] = ammo;
+        return true;
+    }
+
     private void OnStrategyButtonPressed()
     {
         if (_selectedUnit == null || !_selectedUnitGrid.HasValue)
@@ -3503,6 +3843,21 @@ public partial class BattlePrototypeSceneController : Node2D
             }
         }
 
+        var canUseWallTopAttack = TryGetWallTopAttackGrid(out _);
+        if (_dropStoneButton != null)
+        {
+            _dropStoneButton.Visible = _selectedUnitGrid?.Level == 2 && IsWallTopGrid(_selectedUnitGrid.Value.Grid);
+            _dropStoneButton.Text = $"Drop Stone ({GetWallTopAttackUsesRemaining(isDropStone: true)})";
+            _dropStoneButton.Disabled = !canUseWallTopAttack || GetWallTopAttackUsesRemaining(isDropStone: true) <= 0;
+        }
+
+        if (_pourOilButton != null)
+        {
+            _pourOilButton.Visible = _selectedUnitGrid?.Level == 2 && IsWallTopGrid(_selectedUnitGrid.Value.Grid);
+            _pourOilButton.Text = $"Pour Oil ({GetWallTopAttackUsesRemaining(isDropStone: false)})";
+            _pourOilButton.Disabled = !canUseWallTopAttack || GetWallTopAttackUsesRemaining(isDropStone: false) <= 0;
+        }
+
         var desiredPosition = screenPosition + new Vector2(12.0f, 12.0f);
         _commandMenu.Position = ClampCommandMenuPosition(desiredPosition);
         _commandMenu.Visible = true;
@@ -3526,6 +3881,16 @@ public partial class BattlePrototypeSceneController : Node2D
         if (_openGateButton != null)
         {
             _openGateButton.Visible = false;
+        }
+
+        if (_dropStoneButton != null)
+        {
+            _dropStoneButton.Visible = false;
+        }
+
+        if (_pourOilButton != null)
+        {
+            _pourOilButton.Visible = false;
         }
     }
 
@@ -3893,6 +4258,7 @@ public partial class BattlePrototypeSceneController : Node2D
         int AttackRange,
         BattlePieceMarker? Marker,
         BattleSpriteDirection FacingDirection);
+    private readonly record struct WallTopAttackAmmo(int DropStoneUses, int PourOilUses);
     private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int TotalGold, int TotalFood);
 
     private enum BattleCommandMode

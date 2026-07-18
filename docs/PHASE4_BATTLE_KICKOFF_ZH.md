@@ -256,6 +256,15 @@
   - 最右側 gate 格仍顯示 silhouette
 - 此規則是現有素材的暫定視覺處理；正式版應改為 scenario data 定義的前景遮罩區域，不能依賴固定座標或 gate 群組左右順序。
 - 牆頂移動高亮與其他 `L2` 單位不可被 `L0` gate／wall 的固定高 Z 值覆蓋；結構與單位的深度規則必須以層級與地圖深度共同決定。
+- 投石車一般攻擊會在發射動畫期間使用 `assets/battle/object/catapult_stone.png` 顯示旋轉石彈飛向目標格；飛行時會壓縮原素材的橫向比例，使其更接近單顆石彈，並在命中位置顯示衝擊效果。部隊與城門目標均適用。
+- 牆頂單位可使用 prototype 專用攻擊：
+  - `Drop Stone`：對 `(x, y+1, L0)` 的敵方部隊造成 `1,200` 傷害。
+  - `Pour Oil`：對同一目標規則的敵方部隊造成 `1,000` 傷害。
+  - 兩者只在單位位於可行走的城牆／城門／塔樓 `L2` 時顯示；可直接投向正前方空格，只有該格有敵軍時才結算傷害。
+  - 每支部隊預設有 `Drop Stone x3`、`Pour Oil x2`；次數會顯示在按鈕上，並可在 Inspector 調整。
+  - `Drop Stone` 會顯示由牆頂落向目標的石塊與落點衝擊效果，並沿用一般受擊動畫。
+  - `Pour Oil` 會顯示由牆頂傾倒的熱油流與落點濺射效果，並沿用一般受擊動畫。
+  - 兩種牆頂投放攻擊均不播放一般武器攻擊動畫；兩者的範圍傷害與狀態效果，留待後續規則模組處理。
 
 ### 10.5 建議落地順序
 
@@ -276,5 +285,6 @@
 - `MoatSiegeBattle` 會在攻城 prototype 的接近路線加入：
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
-- 護城河第一版已有程式化水面與木橋覆蓋顯示，之後可替換為正式 TileSet 素材。
-- 預設 `SiegeAssault` 仍會沿用既有 editor-authored tile layout，以避免改變現有 prototype 測試流程；切換至野戰或護城河攻城時會由 scenario 重建 TileMap。
+- 護城河使用 `assets/battle/floor/floor.png` 的第六格 river tile；橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
+- 預設三種 scenario 都會由 scenario data 重建 TileMap，避免 scene 內殘留 baked tiles 影響地圖結構。
+- 如需測試手動編輯的 TileMap，可在 Inspector 開啟 `Use Editor Authored Layout`；此模式才會讀取 scene 內的 baked layout。
