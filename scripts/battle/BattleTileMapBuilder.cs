@@ -4,7 +4,7 @@ using Godot;
 
 namespace ThreeKingdom.Battle;
 
-public enum BattlePrototypeTileLayerKind
+public enum BattleTileLayerKind
 {
     Ground,
     Moat,
@@ -13,7 +13,7 @@ public enum BattlePrototypeTileLayerKind
     DeploymentOverlay
 }
 
-internal enum BattlePrototypeFloorTileVisual
+internal enum BattleFloorTileVisual
 {
     Grass = 0,
     Road = 1,
@@ -23,7 +23,7 @@ internal enum BattlePrototypeFloorTileVisual
     River = 5
 }
 
-internal enum BattlePrototypeObjectTileVisual
+internal enum BattleObjectTileVisual
 {
     Tree = 0,
     Rock_Big = 1,
@@ -31,7 +31,7 @@ internal enum BattlePrototypeObjectTileVisual
     Bridge = 3
 }
 
-internal enum BattlePrototypeCastleTileVisual
+internal enum BattleCastleTileVisual
 {
     Wall0 = 0,
     Wall1 = 1,
@@ -45,13 +45,13 @@ internal enum BattlePrototypeCastleTileVisual
     Wall9 = 9
 }
 
-internal enum BattlePrototypeOverlayTileVisual
+internal enum BattleOverlayTileVisual
 {
     AttackerZone = 0,
     DefenderZone = 1
 }
 
-public static class BattlePrototypeTileMapBuilder
+public static class BattleTileMapBuilder
 {
     private const int TileWidth = 128;
     private const int BaseTileHeight = 64;
@@ -63,13 +63,13 @@ public static class BattlePrototypeTileMapBuilder
     private const string CastleOpenGateAtlasPath = "res://assets/battle/wall/castle_gate_open.png";
     private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
 
-    private static readonly Dictionary<BattlePrototypeTileLayerKind, TileSet> SharedTileSets = new();
-    private static readonly Dictionary<BattlePrototypeTileLayerKind, Texture2D> SharedAtlasTextures = new();
+    private static readonly Dictionary<BattleTileLayerKind, TileSet> SharedTileSets = new();
+    private static readonly Dictionary<BattleTileLayerKind, Texture2D> SharedAtlasTextures = new();
     private static Texture2D? SharedCastleOpenGateAtlasTexture;
 
     public readonly record struct BattleTileSpriteSpec(Texture2D Texture, Rect2 Region, Vector2 Pivot, bool FlipHorizontally = false);
 
-    public static TileSet CreateSharedTileSet(BattlePrototypeTileLayerKind layerKind)
+    public static TileSet CreateSharedTileSet(BattleTileLayerKind layerKind)
     {
         if (!SharedTileSets.TryGetValue(layerKind, out var tileSet))
         {
@@ -80,7 +80,7 @@ public static class BattlePrototypeTileMapBuilder
         return tileSet;
     }
 
-    public static void ConfigureLayer(TileMapLayer layer, BattlePrototypeMapData mapData, BattlePrototypeTileLayerKind layerKind)
+    public static void ConfigureLayer(TileMapLayer layer, BattleMapData mapData, BattleTileLayerKind layerKind)
     {
         AssignLayerTileSet(layer, layerKind);
 
@@ -89,9 +89,9 @@ public static class BattlePrototypeTileMapBuilder
             layer.EraseCell(coords);
         }
 
-        for (var y = 0; y < BattlePrototypeMapData.Height; y++)
+        for (var y = 0; y < BattleMapData.Height; y++)
         {
-            for (var x = 0; x < BattlePrototypeMapData.Width; x++)
+            for (var x = 0; x < BattleMapData.Width; x++)
             {
                 var cell = mapData.GetCell(x, y);
                 var atlasCoords = ResolveAtlasCoords(cell, layerKind);
@@ -107,7 +107,7 @@ public static class BattlePrototypeTileMapBuilder
         layer.UpdateInternals();
     }
 
-    public static void AssignLayerTileSet(TileMapLayer layer, BattlePrototypeTileLayerKind layerKind)
+    public static void AssignLayerTileSet(TileMapLayer layer, BattleTileLayerKind layerKind)
     {
         layer.TileSet = CreateSharedTileSet(layerKind);
         layer.RenderingQuadrantSize = 8;
@@ -128,17 +128,17 @@ public static class BattlePrototypeTileMapBuilder
         else
         {
             var visual = baseGateSegment == BattleGateSegment.Right
-                ? BattlePrototypeCastleTileVisual.GateRight
-                : BattlePrototypeCastleTileVisual.GateLeft;
+                ? BattleCastleTileVisual.GateRight
+                : BattleCastleTileVisual.GateLeft;
             layer.SetCell(grid, AtlasSourceId, new Vector2I((int)visual, 0), alternativeTile);
         }
 
         layer.UpdateInternals();
     }
 
-    public static bool TryGetCastleSpriteSpec(BattlePrototypeCellData cell, out BattleTileSpriteSpec spec)
+    public static bool TryGetCastleSpriteSpec(BattleCellData cell, out BattleTileSpriteSpec spec)
     {
-        var metrics = GetAtlasMetrics(BattlePrototypeTileLayerKind.Castle);
+        var metrics = GetAtlasMetrics(BattleTileLayerKind.Castle);
         var pivot = metrics.GetSpriteFootPivot();
         var usesAuthoredCastleVisual = cell.CastleSourceId >= 0 && cell.CastleAtlasCoords.X >= 0;
         var flipHorizontally = usesAuthoredCastleVisual
@@ -162,7 +162,7 @@ public static class BattlePrototypeTileMapBuilder
         {
             var authoredTexture = cell.CastleSourceId == CastleOpenGateAtlasSourceId
                 ? GetCastleOpenGateAtlasTexture(metrics)
-                : GetAtlasTexture(BattlePrototypeTileLayerKind.Castle);
+                : GetAtlasTexture(BattleTileLayerKind.Castle);
             if (authoredTexture != null)
             {
                 spec = CreateSpriteSpec(authoredTexture, metrics, cell.CastleAtlasCoords, pivot, flipHorizontally);
@@ -177,72 +177,72 @@ public static class BattlePrototypeTileMapBuilder
             return false;
         }
 
-        var texture = GetAtlasTexture(BattlePrototypeTileLayerKind.Castle);
+        var texture = GetAtlasTexture(BattleTileLayerKind.Castle);
         spec = CreateSpriteSpec(texture, metrics, atlasCoords.Value, pivot, flipHorizontally);
         return true;
     }
 
-    private static Vector2I? ResolveAtlasCoords(BattlePrototypeCellData cell, BattlePrototypeTileLayerKind layerKind)
+    private static Vector2I? ResolveAtlasCoords(BattleCellData cell, BattleTileLayerKind layerKind)
     {
         return layerKind switch
         {
-            BattlePrototypeTileLayerKind.Ground => ResolveFloorVisual(cell),
-            BattlePrototypeTileLayerKind.Moat => ResolveMoatVisual(cell),
-            BattlePrototypeTileLayerKind.Object => ResolveObjectVisual(cell),
-            BattlePrototypeTileLayerKind.Castle => ResolveCastleVisual(cell),
-            BattlePrototypeTileLayerKind.DeploymentOverlay => ResolveOverlayVisual(cell),
+            BattleTileLayerKind.Ground => ResolveFloorVisual(cell),
+            BattleTileLayerKind.Moat => ResolveMoatVisual(cell),
+            BattleTileLayerKind.Object => ResolveObjectVisual(cell),
+            BattleTileLayerKind.Castle => ResolveCastleVisual(cell),
+            BattleTileLayerKind.DeploymentOverlay => ResolveOverlayVisual(cell),
             _ => null
         };
     }
 
-    private static Vector2I ResolveFloorVisual(BattlePrototypeCellData cell)
+    private static Vector2I ResolveFloorVisual(BattleCellData cell)
     {
         var visual = cell.Terrain switch
         {
-            BattleTerrainType.Road => BattlePrototypeFloorTileVisual.Road,
-            BattleTerrainType.Courtyard => BattlePrototypeFloorTileVisual.Courtyard,
-            BattleTerrainType.WallWalk => BattlePrototypeFloorTileVisual.WallWalk,
-            BattleTerrainType.Forest => BattlePrototypeFloorTileVisual.ForestGround,
-            _ => BattlePrototypeFloorTileVisual.Grass
+            BattleTerrainType.Road => BattleFloorTileVisual.Road,
+            BattleTerrainType.Courtyard => BattleFloorTileVisual.Courtyard,
+            BattleTerrainType.WallWalk => BattleFloorTileVisual.WallWalk,
+            BattleTerrainType.Forest => BattleFloorTileVisual.ForestGround,
+            _ => BattleFloorTileVisual.Grass
         };
         return new Vector2I((int)visual, 0);
     }
 
-    private static Vector2I? ResolveMoatVisual(BattlePrototypeCellData cell)
+    private static Vector2I? ResolveMoatVisual(BattleCellData cell)
     {
         return cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.Bridge
-            ? new Vector2I((int)BattlePrototypeFloorTileVisual.River, 0)
+            ? new Vector2I((int)BattleFloorTileVisual.River, 0)
             : null;
     }
 
-    private static Vector2I? ResolveObjectVisual(BattlePrototypeCellData cell)
+    private static Vector2I? ResolveObjectVisual(BattleCellData cell)
     {
         if (cell.HasBridgeVisual)
         {
-            return new Vector2I((int)BattlePrototypeObjectTileVisual.Bridge, 0);
+            return new Vector2I((int)BattleObjectTileVisual.Bridge, 0);
         }
 
         var visual = cell.Structure switch
         {
-            BattleStructureType.Tree => BattlePrototypeObjectTileVisual.Tree,
-            BattleStructureType.RockBig => BattlePrototypeObjectTileVisual.Rock_Big,
-            BattleStructureType.RockSmall => BattlePrototypeObjectTileVisual.Rock_Small,
-            _ => (BattlePrototypeObjectTileVisual?)null
+            BattleStructureType.Tree => BattleObjectTileVisual.Tree,
+            BattleStructureType.RockBig => BattleObjectTileVisual.Rock_Big,
+            BattleStructureType.RockSmall => BattleObjectTileVisual.Rock_Small,
+            _ => (BattleObjectTileVisual?)null
         };
 
         return visual.HasValue ? new Vector2I((int)visual.Value, 0) : null;
     }
 
-    private static Vector2I? ResolveCastleVisual(BattlePrototypeCellData cell)
+    private static Vector2I? ResolveCastleVisual(BattleCellData cell)
     {
-        BattlePrototypeCastleTileVisual? visual = cell.Structure switch
+        BattleCastleTileVisual? visual = cell.Structure switch
         {
             BattleStructureType.Gate => cell.GateSegment == BattleGateSegment.Right
-                ? BattlePrototypeCastleTileVisual.GateRight
-                : BattlePrototypeCastleTileVisual.GateLeft,
+                ? BattleCastleTileVisual.GateRight
+                : BattleCastleTileVisual.GateLeft,
             BattleStructureType.Wall => ResolveWallVisual(cell.Grid.X),
             
-            BattleStructureType.Tower => BattlePrototypeCastleTileVisual.Wall0,
+            BattleStructureType.Tower => BattleCastleTileVisual.Wall0,
             // Buildings are logical blockers until dedicated interior building art is available.
             // Rendering them as Wall0 created repeated interior castle walls.
             BattleStructureType.Building => null,
@@ -266,42 +266,42 @@ public static class BattlePrototypeTileMapBuilder
         return MirrorGateSegment(baseSegment);
     }
 
-    private static BattlePrototypeCastleTileVisual ResolveWallVisual(int x)
+    private static BattleCastleTileVisual ResolveWallVisual(int x)
     {
         if (x < 6)
-            return BattlePrototypeCastleTileVisual.Wall0;
+            return BattleCastleTileVisual.Wall0;
         else if (x == 6)
-            return BattlePrototypeCastleTileVisual.Wall1;
+            return BattleCastleTileVisual.Wall1;
         else if (x == 7)
-            return BattlePrototypeCastleTileVisual.Wall2;
+            return BattleCastleTileVisual.Wall2;
         else if (x == 8)
-            return BattlePrototypeCastleTileVisual.Wall3;
+            return BattleCastleTileVisual.Wall3;
         else if (x == 9)
-            return BattlePrototypeCastleTileVisual.Wall4;
+            return BattleCastleTileVisual.Wall4;
         else if (x == 10)
-            return BattlePrototypeCastleTileVisual.Wall5;
+            return BattleCastleTileVisual.Wall5;
         else if (x == 13)
-            return BattlePrototypeCastleTileVisual.Wall8;
+            return BattleCastleTileVisual.Wall8;
         else if (x == 14)
-            return BattlePrototypeCastleTileVisual.Wall0;
+            return BattleCastleTileVisual.Wall0;
         else if (x == 15)
-            return BattlePrototypeCastleTileVisual.Wall1;
+            return BattleCastleTileVisual.Wall1;
         else if (x == 16)
-            return BattlePrototypeCastleTileVisual.Wall2;
+            return BattleCastleTileVisual.Wall2;
         else if (x == 17)
-            return BattlePrototypeCastleTileVisual.Wall3;
+            return BattleCastleTileVisual.Wall3;
         else if (x >= 18)
-            return BattlePrototypeCastleTileVisual.Wall4;
+            return BattleCastleTileVisual.Wall4;
         else
-            return BattlePrototypeCastleTileVisual.Wall0;
+            return BattleCastleTileVisual.Wall0;
     }
 
-    private static Vector2I? ResolveOverlayVisual(BattlePrototypeCellData cell)
+    private static Vector2I? ResolveOverlayVisual(BattleCellData cell)
     {
-        BattlePrototypeOverlayTileVisual? visual = cell.DeploymentZone switch
+        BattleOverlayTileVisual? visual = cell.DeploymentZone switch
         {
-            BattleDeploymentZone.Attacker => BattlePrototypeOverlayTileVisual.AttackerZone,
-            BattleDeploymentZone.Defender => BattlePrototypeOverlayTileVisual.DefenderZone,
+            BattleDeploymentZone.Attacker => BattleOverlayTileVisual.AttackerZone,
+            BattleDeploymentZone.Defender => BattleOverlayTileVisual.DefenderZone,
             _ => null
         };
 
@@ -312,19 +312,19 @@ public static class BattlePrototypeTileMapBuilder
     {
         return sourceId == CastleOpenGateAtlasSourceId
             ? atlasCoords.X == 1 ? BattleGateSegment.Right : BattleGateSegment.Left
-            : atlasCoords.X == (int)BattlePrototypeCastleTileVisual.GateRight
+            : atlasCoords.X == (int)BattleCastleTileVisual.GateRight
                 ? BattleGateSegment.Right
                 : BattleGateSegment.Left;
     }
 
-    private static int ResolveAlternativeTile(BattlePrototypeCellData cell, BattlePrototypeTileLayerKind layerKind)
+    private static int ResolveAlternativeTile(BattleCellData cell, BattleTileLayerKind layerKind)
     {
         return layerKind switch
         {
-            BattlePrototypeTileLayerKind.Castle => cell.StructureFacing == BattleStructureFacing.NorthWest
+            BattleTileLayerKind.Castle => cell.StructureFacing == BattleStructureFacing.NorthWest
                 ? (int)TileSetAtlasSource.TransformFlipH
                 : 0,
-            BattlePrototypeTileLayerKind.Object => cell.HasBridgeVisual && cell.BridgeFlipHorizontally
+            BattleTileLayerKind.Object => cell.HasBridgeVisual && cell.BridgeFlipHorizontally
                 ? (int)TileSetAtlasSource.TransformFlipH
                 : 0,
             _ => 0
@@ -346,7 +346,7 @@ public static class BattlePrototypeTileMapBuilder
         };
     }
 
-    private static TileSet BuildTileSet(BattlePrototypeTileLayerKind layerKind)
+    private static TileSet BuildTileSet(BattleTileLayerKind layerKind)
     {
         var metrics = GetAtlasMetrics(layerKind);
         var tileCount = GetTileCount(layerKind);
@@ -377,7 +377,7 @@ public static class BattlePrototypeTileMapBuilder
         };
 
         tileSet.AddSource(atlasSource, AtlasSourceId);
-        if (layerKind == BattlePrototypeTileLayerKind.Castle)
+        if (layerKind == BattleTileLayerKind.Castle)
         {
             AddCastleOpenGateSource(tileSet, metrics);
         }
@@ -430,7 +430,7 @@ public static class BattlePrototypeTileMapBuilder
         tileSet.AddSource(atlasSource, CastleOpenGateAtlasSourceId);
     }
 
-    private static Texture2D? LoadExternalAtlasTexture(BattlePrototypeTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
+    private static Texture2D? LoadExternalAtlasTexture(BattleTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
     {
         var atlasPath = GetAtlasPath(layerKind);
         if (string.IsNullOrWhiteSpace(atlasPath) || !ResourceLoader.Exists(atlasPath))
@@ -457,7 +457,7 @@ public static class BattlePrototypeTileMapBuilder
         return texture;
     }
 
-    private static Texture2D GetAtlasTexture(BattlePrototypeTileLayerKind layerKind)
+    private static Texture2D GetAtlasTexture(BattleTileLayerKind layerKind)
     {
         if (SharedAtlasTextures.TryGetValue(layerKind, out var texture))
         {
@@ -514,39 +514,39 @@ public static class BattlePrototypeTileMapBuilder
         return new BattleTileSpriteSpec(texture, region, pivot, flipHorizontally);
     }
 
-    private static Texture2D BuildGeneratedAtlasTexture(BattlePrototypeTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
+    private static Texture2D BuildGeneratedAtlasTexture(BattleTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
     {
         var atlasImage = BuildAtlasImage(layerKind, tileCount, metrics);
         return ImageTexture.CreateFromImage(atlasImage);
     }
 
-    private static string GetAtlasPath(BattlePrototypeTileLayerKind layerKind)
+    private static string GetAtlasPath(BattleTileLayerKind layerKind)
     {
         return layerKind switch
         {
-            BattlePrototypeTileLayerKind.Ground => FloorAtlasPath,
-            BattlePrototypeTileLayerKind.Moat => FloorAtlasPath,
-            BattlePrototypeTileLayerKind.Object => ObjectAtlasPath,
-            BattlePrototypeTileLayerKind.Castle => CastleAtlasPath,
-            BattlePrototypeTileLayerKind.DeploymentOverlay => OverlayAtlasPath,
+            BattleTileLayerKind.Ground => FloorAtlasPath,
+            BattleTileLayerKind.Moat => FloorAtlasPath,
+            BattleTileLayerKind.Object => ObjectAtlasPath,
+            BattleTileLayerKind.Castle => CastleAtlasPath,
+            BattleTileLayerKind.DeploymentOverlay => OverlayAtlasPath,
             _ => string.Empty
         };
     }
 
-    private static int GetTileCount(BattlePrototypeTileLayerKind layerKind)
+    private static int GetTileCount(BattleTileLayerKind layerKind)
     {
         return layerKind switch
         {
-            BattlePrototypeTileLayerKind.Ground => Enum.GetValues<BattlePrototypeFloorTileVisual>().Length,
-            BattlePrototypeTileLayerKind.Moat => Enum.GetValues<BattlePrototypeFloorTileVisual>().Length,
-            BattlePrototypeTileLayerKind.Object => Enum.GetValues<BattlePrototypeObjectTileVisual>().Length,
-            BattlePrototypeTileLayerKind.Castle => Enum.GetValues<BattlePrototypeCastleTileVisual>().Length,
-            BattlePrototypeTileLayerKind.DeploymentOverlay => Enum.GetValues<BattlePrototypeOverlayTileVisual>().Length,
+            BattleTileLayerKind.Ground => Enum.GetValues<BattleFloorTileVisual>().Length,
+            BattleTileLayerKind.Moat => Enum.GetValues<BattleFloorTileVisual>().Length,
+            BattleTileLayerKind.Object => Enum.GetValues<BattleObjectTileVisual>().Length,
+            BattleTileLayerKind.Castle => Enum.GetValues<BattleCastleTileVisual>().Length,
+            BattleTileLayerKind.DeploymentOverlay => Enum.GetValues<BattleOverlayTileVisual>().Length,
             _ => 0
         };
     }
 
-    private static Image BuildAtlasImage(BattlePrototypeTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
+    private static Image BuildAtlasImage(BattleTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
     {
         var image = Image.CreateEmpty(tileCount * metrics.RegionWidth, metrics.RegionHeight, false, Image.Format.Rgba8);
         image.Fill(Colors.Transparent);
@@ -556,18 +556,18 @@ public static class BattlePrototypeTileMapBuilder
             var tileOffsetX = tileIndex * metrics.RegionWidth;
             switch (layerKind)
             {
-                case BattlePrototypeTileLayerKind.Ground:
-                case BattlePrototypeTileLayerKind.Moat:
-                    DrawFloorTile(image, tileOffsetX, metrics, (BattlePrototypeFloorTileVisual)tileIndex);
+                case BattleTileLayerKind.Ground:
+                case BattleTileLayerKind.Moat:
+                    DrawFloorTile(image, tileOffsetX, metrics, (BattleFloorTileVisual)tileIndex);
                     break;
-                case BattlePrototypeTileLayerKind.Object:
-                    DrawObjectTile(image, tileOffsetX, metrics, (BattlePrototypeObjectTileVisual)tileIndex);
+                case BattleTileLayerKind.Object:
+                    DrawObjectTile(image, tileOffsetX, metrics, (BattleObjectTileVisual)tileIndex);
                     break;
-                case BattlePrototypeTileLayerKind.Castle:
-                    DrawCastleTile(image, tileOffsetX, metrics, (BattlePrototypeCastleTileVisual)tileIndex);
+                case BattleTileLayerKind.Castle:
+                    DrawCastleTile(image, tileOffsetX, metrics, (BattleCastleTileVisual)tileIndex);
                     break;
-                case BattlePrototypeTileLayerKind.DeploymentOverlay:
-                    DrawOverlayTile(image, tileOffsetX, metrics, (BattlePrototypeOverlayTileVisual)tileIndex);
+                case BattleTileLayerKind.DeploymentOverlay:
+                    DrawOverlayTile(image, tileOffsetX, metrics, (BattleOverlayTileVisual)tileIndex);
                     break;
             }
         }
@@ -575,27 +575,27 @@ public static class BattlePrototypeTileMapBuilder
         return image;
     }
 
-    private static void DrawFloorTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattlePrototypeFloorTileVisual visual)
+    private static void DrawFloorTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattleFloorTileVisual visual)
     {
         var fillColor = visual switch
         {
-            BattlePrototypeFloorTileVisual.Grass => new Color("738c50"),
-            BattlePrototypeFloorTileVisual.Road => new Color("b89263"),
-            BattlePrototypeFloorTileVisual.Courtyard => new Color("c3ad78"),
-            BattlePrototypeFloorTileVisual.WallWalk => new Color("99846d"),
-            BattlePrototypeFloorTileVisual.ForestGround => new Color("5f7745"),
-            BattlePrototypeFloorTileVisual.River => new Color("2b7198"),
+            BattleFloorTileVisual.Grass => new Color("738c50"),
+            BattleFloorTileVisual.Road => new Color("b89263"),
+            BattleFloorTileVisual.Courtyard => new Color("c3ad78"),
+            BattleFloorTileVisual.WallWalk => new Color("99846d"),
+            BattleFloorTileVisual.ForestGround => new Color("5f7745"),
+            BattleFloorTileVisual.River => new Color("2b7198"),
             _ => new Color("738c50")
         };
 
         var shadeColor = visual switch
         {
-            BattlePrototypeFloorTileVisual.Grass => new Color("5f7640"),
-            BattlePrototypeFloorTileVisual.Road => new Color("9f7b54"),
-            BattlePrototypeFloorTileVisual.Courtyard => new Color("ad9763"),
-            BattlePrototypeFloorTileVisual.WallWalk => new Color("7d6a56"),
-            BattlePrototypeFloorTileVisual.ForestGround => new Color("476037"),
-            BattlePrototypeFloorTileVisual.River => new Color("1c5278"),
+            BattleFloorTileVisual.Grass => new Color("5f7640"),
+            BattleFloorTileVisual.Road => new Color("9f7b54"),
+            BattleFloorTileVisual.Courtyard => new Color("ad9763"),
+            BattleFloorTileVisual.WallWalk => new Color("7d6a56"),
+            BattleFloorTileVisual.ForestGround => new Color("476037"),
+            BattleFloorTileVisual.River => new Color("1c5278"),
             _ => new Color("5f7640")
         };
 
@@ -604,7 +604,7 @@ public static class BattlePrototypeTileMapBuilder
             var noise = SampleNoise(localX, localY, tileOffsetX);
             var color = fillColor.Lerp(shadeColor, 0.16f + (noise * 0.18f));
 
-            if (visual == BattlePrototypeFloorTileVisual.Road)
+            if (visual == BattleFloorTileVisual.Road)
             {
                 var stripe = Mathf.Abs(localX - 64.0f) < 14.0f || Mathf.Abs(localY - 32.0f) < 8.0f;
                 if (stripe)
@@ -612,21 +612,21 @@ public static class BattlePrototypeTileMapBuilder
                     color = color.Lerp(new Color("d5bb8a"), 0.16f);
                 }
             }
-            else if (visual == BattlePrototypeFloorTileVisual.Courtyard)
+            else if (visual == BattleFloorTileVisual.Courtyard)
             {
                 var pattern = ((int)localX / 8 + (int)localY / 6) % 2 == 0;
                 color = color.Lerp(pattern ? new Color("d6c18d") : new Color("b39b65"), 0.12f);
             }
-            else if (visual == BattlePrototypeFloorTileVisual.WallWalk)
+            else if (visual == BattleFloorTileVisual.WallWalk)
             {
                 var masonry = ((int)localX / 10 + (int)localY / 6) % 2 == 0;
                 color = color.Lerp(masonry ? new Color("b59f87") : new Color("85715b"), 0.18f);
             }
-            else if (visual == BattlePrototypeFloorTileVisual.ForestGround)
+            else if (visual == BattleFloorTileVisual.ForestGround)
             {
                 color = color.Lerp(new Color("2e4927"), noise * 0.22f);
             }
-            else if (visual == BattlePrototypeFloorTileVisual.River)
+            else if (visual == BattleFloorTileVisual.River)
             {
                 var wave = ((int)localX / 18 + (int)localY / 6) % 3 == 0;
                 color = color.Lerp(wave ? new Color("87bcd0") : new Color("1f5f87"), 0.22f);
@@ -641,12 +641,12 @@ public static class BattlePrototypeTileMapBuilder
         });
     }
 
-    private static void DrawObjectTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattlePrototypeObjectTileVisual visual)
+    private static void DrawObjectTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattleObjectTileVisual visual)
     {
         var baselineOffset = metrics.RegionHeight - BaseTileHeight;
         switch (visual)
         {
-            case BattlePrototypeObjectTileVisual.Tree:
+            case BattleObjectTileVisual.Tree:
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(66.0f, 46.0f + baselineOffset), 24.0f, 10.0f, new Color(0.0f, 0.0f, 0.0f, 0.18f));
                 DrawFilledRect(image, tileOffsetX, new Rect2(60.0f, 26.0f + baselineOffset - 48.0f, 6.0f, 18.0f), new Color("65462d"));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(49.0f, 28.0f + baselineOffset - 48.0f), 18.0f, 15.0f, new Color("35572e"));
@@ -654,14 +654,14 @@ public static class BattlePrototypeTileMapBuilder
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(83.0f, 33.0f + baselineOffset - 48.0f), 14.0f, 12.0f, new Color("31522a"));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(60.0f, 38.0f + baselineOffset - 48.0f), 17.0f, 12.0f, new Color("4d7a40"));
                 break;
-            case BattlePrototypeObjectTileVisual.Rock_Big:
+            case BattleObjectTileVisual.Rock_Big:
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(63.0f, 54.0f + baselineOffset - 34.0f), 27.0f, 11.0f, new Color(0.0f, 0.0f, 0.0f, 0.16f));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(49.0f, 34.0f + baselineOffset - 34.0f), 14.0f, 10.0f, new Color("b8a88f"));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(68.0f, 28.0f + baselineOffset - 34.0f), 16.0f, 10.0f, new Color("c7b89f"));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(82.0f, 36.0f + baselineOffset - 34.0f), 12.0f, 9.0f, new Color("a3937b"));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(62.0f, 41.0f + baselineOffset - 34.0f), 26.0f, 12.0f, new Color("97866f"));
                 break;
-            case BattlePrototypeObjectTileVisual.Rock_Small:
+            case BattleObjectTileVisual.Rock_Small:
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(63.0f, 52.0f + baselineOffset - 34.0f), 20.0f, 8.0f, new Color(0.0f, 0.0f, 0.0f, 0.13f));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(56.0f, 35.0f + baselineOffset - 34.0f), 10.0f, 8.0f, new Color("baaa92"));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(69.0f, 38.0f + baselineOffset - 34.0f), 11.0f, 7.0f, new Color("97876f"));
@@ -669,35 +669,35 @@ public static class BattlePrototypeTileMapBuilder
         }
     }
 
-    private static void DrawCastleTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattlePrototypeCastleTileVisual visual)
+    private static void DrawCastleTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattleCastleTileVisual visual)
     {
         _ = metrics;
         switch (visual)
         {
-            case BattlePrototypeCastleTileVisual.Wall0:
-            case BattlePrototypeCastleTileVisual.Wall1:
-            case BattlePrototypeCastleTileVisual.Wall2:
-            case BattlePrototypeCastleTileVisual.Wall3:
-            case BattlePrototypeCastleTileVisual.Wall4:
-            case BattlePrototypeCastleTileVisual.Wall5:
-            case BattlePrototypeCastleTileVisual.Wall8:
-            case BattlePrototypeCastleTileVisual.Wall9:
+            case BattleCastleTileVisual.Wall0:
+            case BattleCastleTileVisual.Wall1:
+            case BattleCastleTileVisual.Wall2:
+            case BattleCastleTileVisual.Wall3:
+            case BattleCastleTileVisual.Wall4:
+            case BattleCastleTileVisual.Wall5:
+            case BattleCastleTileVisual.Wall8:
+            case BattleCastleTileVisual.Wall9:
                 DrawWallBlock(image, tileOffsetX, new Color("90755a"), new Color("725a43"));
                 break;
-            case BattlePrototypeCastleTileVisual.GateLeft:
-            case BattlePrototypeCastleTileVisual.GateRight:
+            case BattleCastleTileVisual.GateLeft:
+            case BattleCastleTileVisual.GateRight:
                 DrawWallBlock(image, tileOffsetX, new Color("927659"), new Color("725941"));
                 DrawFilledRect(image, tileOffsetX, new Rect2(50.0f, 30.0f, 28.0f, 22.0f), new Color("573722"));
                 break;
         }
     }
 
-    private static void DrawOverlayTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattlePrototypeOverlayTileVisual visual)
+    private static void DrawOverlayTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattleOverlayTileVisual visual)
     {
-        var fillColor = visual == BattlePrototypeOverlayTileVisual.AttackerZone
+        var fillColor = visual == BattleOverlayTileVisual.AttackerZone
             ? new Color(0.88f, 0.56f, 0.20f, 0.20f)
             : new Color(0.28f, 0.76f, 0.88f, 0.20f);
-        var borderColor = visual == BattlePrototypeOverlayTileVisual.AttackerZone
+        var borderColor = visual == BattleOverlayTileVisual.AttackerZone
             ? new Color(0.98f, 0.77f, 0.50f, 0.42f)
             : new Color(0.70f, 0.94f, 1.0f, 0.42f);
 
@@ -916,16 +916,16 @@ public static class BattlePrototypeTileMapBuilder
         image.SetPixel(x, y, color);
     }
 
-    private static BattleAtlasMetrics GetAtlasMetrics(BattlePrototypeTileLayerKind layerKind)
+    private static BattleAtlasMetrics GetAtlasMetrics(BattleTileLayerKind layerKind)
     {
         return layerKind switch
         {
-            BattlePrototypeTileLayerKind.Ground => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
-            BattlePrototypeTileLayerKind.Moat => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
+            BattleTileLayerKind.Ground => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
+            BattleTileLayerKind.Moat => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             // object_01.png uses 128x128 tiles; tune the footprint origin against the 128x64 map cell.
-            BattlePrototypeTileLayerKind.Object => new BattleAtlasMetrics(TileWidth, 128, FootprintTopY: 32),
-            BattlePrototypeTileLayerKind.Castle => new BattleAtlasMetrics(TileWidth, 320, FootprintTopY: 128),
-            BattlePrototypeTileLayerKind.DeploymentOverlay => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
+            BattleTileLayerKind.Object => new BattleAtlasMetrics(TileWidth, 128, FootprintTopY: 32),
+            BattleTileLayerKind.Castle => new BattleAtlasMetrics(TileWidth, 320, FootprintTopY: 128),
+            BattleTileLayerKind.DeploymentOverlay => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             _ => new BattleAtlasMetrics(TileWidth, BaseTileHeight)
         };
     }

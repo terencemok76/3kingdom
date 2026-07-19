@@ -25,7 +25,7 @@ internal enum BattleDepthRenderKind
 }
 
 [Tool]
-public partial class BattlePrototypeSceneController : Node2D
+public partial class BattleSceneController : Node2D
 {
     public sealed record LaunchOptions(BattleScenarioType ScenarioType, bool UseEditorAuthoredLayout);
 
@@ -54,12 +54,12 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string TroopLadder = "Ladder";
     private const string TroopCatapult = "Catapult";
     private const string CatapultStoneTexturePath = "res://assets/battle/object/catapult_stone.png";
-    private const string NorthEastScenePath = "res://scenes/battle/BattlePrototypeScene.tscn";
-    private const string NorthWestScenePath = "res://scenes/battle/BattlePrototypeSceneNorthWest.tscn";
-    private const string NorthEastSiegeScenarioPath = "res://data/scenarios/battle/siege_prototype_ne.tres";
-    private const string NorthEastMoatScenarioPath = "res://data/scenarios/battle/moat_siege_prototype.tres";
-    private const string NorthWestSiegeScenarioPath = "res://data/scenarios/battle/siege_prototype_nw.tres";
-    private const string NorthWestMoatScenarioPath = "res://data/scenarios/battle/moat_siege_prototype_nw.tres";
+    private const string NorthEastScenePath = "res://scenes/battle/BattleScene.tscn";
+    private const string NorthWestScenePath = "res://scenes/battle/BattleSceneNorthWest.tscn";
+    private const string NorthEastSiegeScenarioPath = "res://data/scenarios/battle/siege_ne.tres";
+    private const string NorthEastMoatScenarioPath = "res://data/scenarios/battle/moat_siege.tres";
+    private const string NorthWestSiegeScenarioPath = "res://data/scenarios/battle/siege_nw.tres";
+    private const string NorthWestMoatScenarioPath = "res://data/scenarios/battle/moat_siege_nw.tres";
     private const string InfantryIdleSouthEastScenePath = "res://scenes/battle/unit/InfantryIdleSe.tscn";
     private const string InfantryIdleSouthWestScenePath = "res://scenes/battle/unit/InfantryIdleSw.tscn";
     private const string InfantryIdleNorthEastScenePath = "res://scenes/battle/unit/InfantryIdleNe.tscn";
@@ -163,6 +163,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private const int PourOilAttackDamage = 1000;
     private const double DropStoneEffectDurationSeconds = 0.48;
     private const double PourOilEffectDurationSeconds = 0.58;
+    private const double ArrowProjectileEffectDurationSeconds = 0.42;
     private const double CatapultProjectileEffectDurationSeconds = 0.7;
     private const int RamAttackDamage = 500;
     private const int CatapultAttackDamage = 1300;
@@ -181,7 +182,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string BattleDateText = "191 Apr 4";
     private const string WeatherText = "Sunny";
 
-    private BattlePrototypeMapData? _mapData;
+    private BattleMapData? _mapData;
     private Node2D? _mapRoot;
     private Camera2D? _camera;
     private TileMapLayer? _groundLayer;
@@ -189,7 +190,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private TileMapLayer? _objectLayer;
     private TileMapLayer? _castleLayer;
     private TileMapLayer? _overlayLayer;
-    private BattlePrototypeHighlightRenderer? _highlightLayer;
+    private BattleHighlightRenderer? _highlightLayer;
     private Texture2D? _catapultStoneTexture;
     private Node2D? _battleDepthLayer;
     private Node2D? _occludedUnitSilhouetteLayer;
@@ -218,13 +219,13 @@ public partial class BattlePrototypeSceneController : Node2D
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
-    private readonly List<BattlePrototypeHighlightRenderer> _highlightDepthVisuals = new();
+    private readonly List<BattleHighlightRenderer> _highlightDepthVisuals = new();
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
     private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
-    private bool _editorBakePrototypeLayout;
+    private bool _editorBakeBattleLayout;
     private bool _editorClearTileLayout;
     private bool _editorRefreshBattleDepthPreview;
 
@@ -246,20 +247,20 @@ public partial class BattlePrototypeSceneController : Node2D
     public bool UseEditorAuthoredLayout { get; set; }
 
     [Export]
-    public bool EditorBakePrototypeLayout
+    public bool EditorBakeBattleLayout
     {
-        get => _editorBakePrototypeLayout;
+        get => _editorBakeBattleLayout;
         set
         {
             if (!value || !Engine.IsEditorHint())
             {
-                _editorBakePrototypeLayout = value;
+                _editorBakeBattleLayout = value;
                 return;
             }
 
             CacheSceneNodes();
-            BakePrototypeLayoutInEditor();
-            _editorBakePrototypeLayout = false;
+            BakeBattleLayoutInEditor();
+            _editorBakeBattleLayout = false;
             NotifyPropertyListChanged();
         }
     }
@@ -387,31 +388,31 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var scenarioDefinition = ResolveScenarioDefinition();
         _mapData = ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout()
-            ? BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _moatLayer, _objectLayer, _castleLayer, _overlayLayer, scenarioDefinition)
-            : BattlePrototypeMapData.Create(scenarioDefinition);
+            ? BattleMapData.CreateFromTileMapLayers(_groundLayer, _moatLayer, _objectLayer, _castleLayer, _overlayLayer, scenarioDefinition)
+            : BattleMapData.Create(scenarioDefinition);
 
         if (ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout())
         {
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
-            ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+            BattleTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattleTileLayerKind.Ground);
+            ConfigureOptionalTileMapLayer(_moatLayer, BattleTileLayerKind.Moat);
+            BattleTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattleTileLayerKind.Object);
             if (_objectLayer != null)
             {
                 _objectLayer.Visible = true;
             }
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
+            BattleTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattleTileLayerKind.DeploymentOverlay);
         }
         else
         {
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
-            ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+            BattleTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattleTileLayerKind.Ground);
+            ConfigureOptionalTileMapLayer(_moatLayer, BattleTileLayerKind.Moat);
+            BattleTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattleTileLayerKind.Object);
             if (_objectLayer != null)
             {
                 _objectLayer.Visible = true;
             }
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattlePrototypeTileLayerKind.Castle);
+            BattleTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattleTileLayerKind.DeploymentOverlay);
+            BattleTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattleTileLayerKind.Castle);
         }
 
         ClearCastleDepthVisuals();
@@ -428,7 +429,7 @@ public partial class BattlePrototypeSceneController : Node2D
         _objectLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/ObjectLayer");
         _castleLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/CastleLayer");
         _overlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/OverlayLayer");
-        _highlightLayer ??= GetNodeOrNull<BattlePrototypeHighlightRenderer>("MapRoot/HighlightLayer");
+        _highlightLayer ??= GetNodeOrNull<BattleHighlightRenderer>("MapRoot/HighlightLayer");
         _battleDepthLayer ??= GetNodeOrNull<Node2D>("MapRoot/BattleDepthLayer");
         _occludedUnitSilhouetteLayer ??= GetNodeOrNull<Node2D>("MapRoot/OccludedUnitSilhouetteLayer");
         if (_highlightLayer != null && !Engine.IsEditorHint())
@@ -514,29 +515,24 @@ public partial class BattlePrototypeSceneController : Node2D
 
         if (ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout())
         {
-            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_groundLayer, BattlePrototypeTileLayerKind.Ground);
-            AssignOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
-            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_objectLayer, BattlePrototypeTileLayerKind.Object);
-            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_castleLayer, BattlePrototypeTileLayerKind.Castle);
-            BattlePrototypeTileMapBuilder.AssignLayerTileSet(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
-            _mapData = BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _moatLayer, _objectLayer, _castleLayer, _overlayLayer, scenarioDefinition);
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
-            ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+            _mapData = BattleMapData.CreateFromTileMapLayers(_groundLayer, _moatLayer, _objectLayer, _castleLayer, _overlayLayer, scenarioDefinition);
+            BattleTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattleTileLayerKind.Ground);
+            ConfigureOptionalTileMapLayer(_moatLayer, BattleTileLayerKind.Moat);
+            BattleTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattleTileLayerKind.Object);
             if (_objectLayer != null)
             {
                 _objectLayer.Visible = true;
             }
-            BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
+            BattleTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattleTileLayerKind.DeploymentOverlay);
             return;
         }
 
-        _mapData = BattlePrototypeMapData.Create(scenarioDefinition);
-        ConfigureTileMapLayer("MapRoot/GroundLayer", BattlePrototypeTileLayerKind.Ground);
-        ConfigureTileMapLayer("MapRoot/MoatLayer", BattlePrototypeTileLayerKind.Moat);
-        ConfigureTileMapLayer("MapRoot/ObjectLayer", BattlePrototypeTileLayerKind.Object);
-        ConfigureTileMapLayer("MapRoot/CastleLayer", BattlePrototypeTileLayerKind.Castle);
-        ConfigureTileMapLayer("MapRoot/OverlayLayer", BattlePrototypeTileLayerKind.DeploymentOverlay);
+        _mapData = BattleMapData.Create(scenarioDefinition);
+        ConfigureTileMapLayer("MapRoot/GroundLayer", BattleTileLayerKind.Ground);
+        ConfigureTileMapLayer("MapRoot/MoatLayer", BattleTileLayerKind.Moat);
+        ConfigureTileMapLayer("MapRoot/ObjectLayer", BattleTileLayerKind.Object);
+        ConfigureTileMapLayer("MapRoot/CastleLayer", BattleTileLayerKind.Castle);
+        ConfigureTileMapLayer("MapRoot/OverlayLayer", BattleTileLayerKind.DeploymentOverlay);
     }
 
     private bool HasEditorAuthoredLayout()
@@ -553,23 +549,23 @@ public partial class BattlePrototypeSceneController : Node2D
         return UseEditorAuthoredLayout || IsNorthWestSceneVariant();
     }
 
-    private void BakePrototypeLayoutInEditor()
+    private void BakeBattleLayoutInEditor()
     {
         if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _overlayLayer == null)
         {
             return;
         }
 
-        _mapData = BattlePrototypeMapData.Create(ResolveScenarioDefinition());
-        BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
-        ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
-        BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+        _mapData = BattleMapData.Create(ResolveScenarioDefinition());
+        BattleTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattleTileLayerKind.Ground);
+        ConfigureOptionalTileMapLayer(_moatLayer, BattleTileLayerKind.Moat);
+        BattleTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattleTileLayerKind.Object);
         if (_objectLayer != null)
         {
             _objectLayer.Visible = true;
         }
-        BattlePrototypeTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattlePrototypeTileLayerKind.Castle);
-        BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
+        BattleTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattleTileLayerKind.Castle);
+        BattleTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattleTileLayerKind.DeploymentOverlay);
     }
 
     private BattleScenarioDefinition ResolveScenarioDefinition()
@@ -658,21 +654,21 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void ClearTileLayoutInEditor()
     {
-        ClearLayer(_groundLayer, BattlePrototypeTileLayerKind.Ground);
-        ClearLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
-        ClearLayer(_objectLayer, BattlePrototypeTileLayerKind.Object);
-        ClearLayer(_castleLayer, BattlePrototypeTileLayerKind.Castle);
-        ClearLayer(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
+        ClearLayer(_groundLayer, BattleTileLayerKind.Ground);
+        ClearLayer(_moatLayer, BattleTileLayerKind.Moat);
+        ClearLayer(_objectLayer, BattleTileLayerKind.Object);
+        ClearLayer(_castleLayer, BattleTileLayerKind.Castle);
+        ClearLayer(_overlayLayer, BattleTileLayerKind.DeploymentOverlay);
     }
 
-    private static void ClearLayer(TileMapLayer? layer, BattlePrototypeTileLayerKind layerKind)
+    private static void ClearLayer(TileMapLayer? layer, BattleTileLayerKind layerKind)
     {
         if (layer == null)
         {
             return;
         }
 
-        BattlePrototypeTileMapBuilder.AssignLayerTileSet(layer, layerKind);
+        BattleTileMapBuilder.AssignLayerTileSet(layer, layerKind);
         foreach (var coords in layer.GetUsedCells())
         {
             layer.EraseCell(coords);
@@ -681,7 +677,7 @@ public partial class BattlePrototypeSceneController : Node2D
         layer.UpdateInternals();
     }
 
-    private void ConfigureTileMapLayer(string path, BattlePrototypeTileLayerKind layerKind)
+    private void ConfigureTileMapLayer(string path, BattleTileLayerKind layerKind)
     {
         var tileMapLayer = GetNodeOrNull<TileMapLayer>(path);
         if (tileMapLayer == null)
@@ -689,32 +685,32 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        BattlePrototypeTileMapBuilder.ConfigureLayer(tileMapLayer, _mapData!, layerKind);
-        if (layerKind == BattlePrototypeTileLayerKind.Moat)
+        BattleTileMapBuilder.ConfigureLayer(tileMapLayer, _mapData!, layerKind);
+        if (layerKind == BattleTileLayerKind.Moat)
         {
             tileMapLayer.Visible = ScenarioType == BattleScenarioType.MoatSiegeBattle;
         }
     }
 
-    private static void AssignOptionalTileMapLayer(TileMapLayer? layer, BattlePrototypeTileLayerKind layerKind)
+    private static void AssignOptionalTileMapLayer(TileMapLayer? layer, BattleTileLayerKind layerKind)
     {
         if (layer == null)
         {
             return;
         }
 
-        BattlePrototypeTileMapBuilder.AssignLayerTileSet(layer, layerKind);
+        BattleTileMapBuilder.AssignLayerTileSet(layer, layerKind);
     }
 
-    private void ConfigureOptionalTileMapLayer(TileMapLayer? layer, BattlePrototypeTileLayerKind layerKind)
+    private void ConfigureOptionalTileMapLayer(TileMapLayer? layer, BattleTileLayerKind layerKind)
     {
         if (layer == null || _mapData == null)
         {
             return;
         }
 
-        BattlePrototypeTileMapBuilder.ConfigureLayer(layer, _mapData, layerKind);
-        if (layerKind == BattlePrototypeTileLayerKind.Moat)
+        BattleTileMapBuilder.ConfigureLayer(layer, _mapData, layerKind);
+        if (layerKind == BattleTileLayerKind.Moat)
         {
             layer.Visible = ScenarioType == BattleScenarioType.MoatSiegeBattle;
         }
@@ -733,12 +729,12 @@ public partial class BattlePrototypeSceneController : Node2D
             _castleLayer.Visible = false;
         }
 
-        for (var y = 0; y < BattlePrototypeMapData.Height; y++)
+        for (var y = 0; y < BattleMapData.Height; y++)
         {
-            for (var x = 0; x < BattlePrototypeMapData.Width; x++)
+            for (var x = 0; x < BattleMapData.Width; x++)
             {
                 var cell = _mapData.GetCell(x, y);
-                if (!BattlePrototypeTileMapBuilder.TryGetCastleSpriteSpec(cell, out var spec))
+                if (!BattleTileMapBuilder.TryGetCastleSpriteSpec(cell, out var spec))
                 {
                     continue;
                 }
@@ -773,7 +769,7 @@ public partial class BattlePrototypeSceneController : Node2D
         _highlightDepthVisuals.Clear();
     }
 
-    private Sprite2D CreateCastleDepthSprite(Vector2I grid, BattlePrototypeTileMapBuilder.BattleTileSpriteSpec spec)
+    private Sprite2D CreateCastleDepthSprite(Vector2I grid, BattleTileMapBuilder.BattleTileSpriteSpec spec)
     {
         var sprite = new Sprite2D
         {
@@ -792,7 +788,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private Vector2 GetCastleDepthSpritePosition(Vector2I grid)
     {
-        return _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
+        return _groundLayer?.MapToLocal(grid) ?? BattleMapRenderer.GridToWorld(grid);
     }
 
     private void RefreshCastleDepthVisual(Vector2I grid)
@@ -803,7 +799,7 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         var cell = _mapData.GetCell(grid.X, grid.Y);
-        if (!BattlePrototypeTileMapBuilder.TryGetCastleSpriteSpec(cell, out var spec))
+        if (!BattleTileMapBuilder.TryGetCastleSpriteSpec(cell, out var spec))
         {
             if (_castleDepthSpritesByGrid.Remove(grid, out var removedSprite))
             {
@@ -1114,7 +1110,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private Vector2 GetMarkerPosition(BattleGridKey gridKey)
     {
         var grid = gridKey.Grid;
-        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
+        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattleMapRenderer.GridToWorld(grid);
         var wallTopOffset = gridKey.Level == 2 ? WallTopVisualOffset : Vector2.Zero;
         return gridCenter + wallTopOffset + new Vector2(0.0f, GetUnitVisualLift(gridKey));
     }
@@ -1142,7 +1138,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private Vector2 GetHighlightPosition(BattleGridKey gridKey)
     {
         var grid = gridKey.Grid;
-        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattlePrototypeMapRenderer.GridToWorld(grid);
+        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattleMapRenderer.GridToWorld(grid);
         if (gridKey.Level == 2)
         {
             return gridCenter + WallTopVisualOffset + new Vector2(0.0f, WallWalkHighlightVisualLift);
@@ -1470,9 +1466,9 @@ public partial class BattlePrototypeSceneController : Node2D
     private bool IsWithinMap(Vector2I grid)
     {
         return grid.X >= 0 &&
-               grid.X < BattlePrototypeMapData.Width &&
+               grid.X < BattleMapData.Width &&
                grid.Y >= 0 &&
-               grid.Y < BattlePrototypeMapData.Height;
+               grid.Y < BattleMapData.Height;
     }
 
     private BattleGridKey GetDefaultGridKey(Vector2I grid)
@@ -1711,7 +1707,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return builder.ToString().TrimEnd();
     }
 
-    private (int Current, int Max) GetDisplayStructureDurability(Vector2I grid, BattlePrototypeCellData cell)
+    private (int Current, int Max) GetDisplayStructureDurability(Vector2I grid, BattleCellData cell)
     {
         if (cell.Structure != BattleStructureType.Gate || _mapData == null)
         {
@@ -1727,7 +1723,7 @@ public partial class BattlePrototypeSceneController : Node2D
         var current = group
             .Select(gateGrid => _mapData.GetCell(gateGrid.X, gateGrid.Y).StructureHealth)
             .Min();
-        return (current, BattlePrototypeCellData.GateMaxHealth);
+        return (current, BattleCellData.GateMaxHealth);
     }
 
     private void RegisterOccupant(BattleGridKey grid, string displayName, string category, string shortLabel, string teamName, string officerName, string troopType, int troopCount, int moveRange, int attackRange, BattlePieceMarker? marker)
@@ -1930,10 +1926,15 @@ public partial class BattlePrototypeSceneController : Node2D
 
         var attackAnimationDuration = ApplyAttackAnimation(attackingUnit, attackDirection);
         var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid);
+        var arrowEffectDuration = IsArrowProjectileAttacker(attackingUnit)
+            ? PlayArrowProjectileEffect(_selectedUnitGrid.Value, targetGrid)
+            : 0.0;
         var catapultEffectDuration = attackingUnit.Category == CategorySiegeEngine && attackingUnit.TroopType == TroopCatapult
             ? PlayCatapultProjectileEffect(_selectedUnitGrid.Value, targetGrid)
             : 0.0;
-        var effectDelaySeconds = Math.Max(Math.Max(attackAnimationDuration, hurtAnimationDuration), catapultEffectDuration);
+        var effectDelaySeconds = Math.Max(
+            Math.Max(attackAnimationDuration, hurtAnimationDuration),
+            Math.Max(arrowEffectDuration, catapultEffectDuration));
         ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds);
         if (shouldTemporarilyRevealOccludedUnits)
         {
@@ -2514,6 +2515,56 @@ public partial class BattlePrototypeSceneController : Node2D
         impactTween.TweenCallback(Callable.From(() => impact.QueueFree()));
 
         return CatapultProjectileEffectDurationSeconds;
+    }
+
+    private double PlayArrowProjectileEffect(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    {
+        if (_battleDepthLayer == null)
+        {
+            return 0.0;
+        }
+
+        var sourcePosition = GetMarkerPosition(sourceGrid) + new Vector2(0.0f, -22.0f);
+        var targetPosition = GetMarkerPosition(targetGrid) + new Vector2(0.0f, -18.0f);
+        var travel = targetPosition - sourcePosition;
+        if (travel.LengthSquared() < 1.0f)
+        {
+            return 0.0;
+        }
+
+        var direction = travel.Normalized();
+        var arrow = new Node2D
+        {
+            Position = sourcePosition,
+            Rotation = travel.Angle(),
+            ZIndex = 521
+        };
+        var shaft = new Line2D
+        {
+            Width = 2.0f,
+            DefaultColor = new Color("e7d6a3")
+        };
+        shaft.AddPoint(new Vector2(-16.0f, 0.0f));
+        shaft.AddPoint(new Vector2(8.0f, 0.0f));
+        var arrowhead = new Polygon2D
+        {
+            Polygon = [new Vector2(14.0f, 0.0f), new Vector2(4.0f, -5.0f), new Vector2(4.0f, 5.0f)],
+            Color = new Color("b67635")
+        };
+        arrow.AddChild(shaft);
+        arrow.AddChild(arrowhead);
+        _battleDepthLayer.AddChild(arrow);
+
+        var tween = arrow.CreateTween();
+        tween.TweenProperty(arrow, "position", targetPosition - direction * 14.0f, ArrowProjectileEffectDurationSeconds);
+        tween.TweenCallback(Callable.From(() => arrow.QueueFree()));
+        return ArrowProjectileEffectDurationSeconds;
+    }
+
+    private static bool IsArrowProjectileAttacker(BattleOccupantInfo occupant)
+    {
+        return occupant.Category == CategoryUnit &&
+               (occupant.TroopType == TroopArcher || occupant.TroopType == TroopCrossbow);
     }
 
     private async void DestroyOccupantAfterDelay(BattleGridKey grid, BattleOccupantInfo occupant, double delaySeconds)
@@ -3478,7 +3529,7 @@ public partial class BattlePrototypeSceneController : Node2D
                (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopSpearman || occupant.TroopType == TroopArcher);
     }
 
-    private static int GetMoveCost(BattlePrototypeCellData cell)
+    private static int GetMoveCost(BattleCellData cell)
     {
         return cell.Terrain switch
         {
@@ -3498,36 +3549,36 @@ public partial class BattlePrototypeSceneController : Node2D
         foreach (var grid in _movableGrids)
         {
             var visualKind = grid.Level == 2
-                ? BattlePrototypeHighlightVisualKind.WallTopMovable
-                : BattlePrototypeHighlightVisualKind.Movable;
+                ? BattleHighlightVisualKind.WallTopMovable
+                : BattleHighlightVisualKind.Movable;
             AddHighlightDepthVisual(grid, visualKind);
         }
 
         foreach (var grid in _attackableGrids)
         {
-            AddHighlightDepthVisual(grid, BattlePrototypeHighlightVisualKind.Attackable);
+            AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Attackable);
         }
 
         if (_selectedGridKey.HasValue)
         {
-            AddHighlightDepthVisual(_selectedGridKey.Value, BattlePrototypeHighlightVisualKind.Selected);
+            AddHighlightDepthVisual(_selectedGridKey.Value, BattleHighlightVisualKind.Selected);
         }
         else if (_selectedGrid.HasValue)
         {
-            AddHighlightDepthVisual(GetDefaultGridKey(_selectedGrid.Value), BattlePrototypeHighlightVisualKind.Selected);
+            AddHighlightDepthVisual(GetDefaultGridKey(_selectedGrid.Value), BattleHighlightVisualKind.Selected);
         }
 
         RefreshBattleDepthLayerOrder();
     }
 
-    private void AddHighlightDepthVisual(BattleGridKey grid, BattlePrototypeHighlightVisualKind visualKind)
+    private void AddHighlightDepthVisual(BattleGridKey grid, BattleHighlightVisualKind visualKind)
     {
         if (_battleDepthLayer == null)
         {
             return;
         }
 
-        var visual = new BattlePrototypeHighlightRenderer
+        var visual = new BattleHighlightRenderer
         {
             Name = $"Highlight_{visualKind}_{grid.X}_{grid.Y}_L{grid.Level}",
             Position = GetHighlightPosition(grid),
@@ -3539,13 +3590,13 @@ public partial class BattlePrototypeSceneController : Node2D
         RegisterBattleDepthEntry(visual, grid, ToBattleDepthRenderKind(visualKind));
     }
 
-    private static BattleDepthRenderKind ToBattleDepthRenderKind(BattlePrototypeHighlightVisualKind visualKind)
+    private static BattleDepthRenderKind ToBattleDepthRenderKind(BattleHighlightVisualKind visualKind)
     {
         return visualKind switch
         {
-            BattlePrototypeHighlightVisualKind.Movable or BattlePrototypeHighlightVisualKind.WallTopMovable => BattleDepthRenderKind.MoveHighlight,
-            BattlePrototypeHighlightVisualKind.Attackable => BattleDepthRenderKind.AttackHighlight,
-            BattlePrototypeHighlightVisualKind.Selected => BattleDepthRenderKind.SelectedHighlight,
+            BattleHighlightVisualKind.Movable or BattleHighlightVisualKind.WallTopMovable => BattleDepthRenderKind.MoveHighlight,
+            BattleHighlightVisualKind.Attackable => BattleDepthRenderKind.AttackHighlight,
+            BattleHighlightVisualKind.Selected => BattleDepthRenderKind.SelectedHighlight,
             _ => BattleDepthRenderKind.MoveHighlight
         };
     }
@@ -3661,7 +3712,12 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        var candidate = new BattleGridKey(sourceGrid.X, sourceGrid.Y + 1, 0);
+        var cell = _mapData?.GetCell(sourceGrid.X, sourceGrid.Y);
+        var facing = cell?.StructureFacing ?? ResolveScenarioDefinition().DefaultStructureFacing;
+        var targetOffset = facing == BattleStructureFacing.NorthWest
+            ? Vector2I.Right
+            : Vector2I.Down;
+        var candidate = new BattleGridKey(sourceGrid.X + targetOffset.X, sourceGrid.Y + targetOffset.Y, 0);
         if (!IsWithinMap(candidate.Grid))
         {
             return false;
@@ -3774,7 +3830,7 @@ public partial class BattlePrototypeSceneController : Node2D
             gateCell.IsGateOpen = true;
             if (_castleLayer != null)
             {
-                BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: true);
+                BattleTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: true);
             }
 
             RefreshCastleDepthVisual(groupGateGrid);
@@ -3811,7 +3867,7 @@ public partial class BattlePrototypeSceneController : Node2D
 
             if (_castleLayer != null)
             {
-                BattlePrototypeTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: gateCell.IsGateOpen);
+                BattleTileMapBuilder.SetCastleGateVisual(_castleLayer, groupGateGrid, isOpen: gateCell.IsGateOpen);
             }
 
             RefreshCastleDepthVisual(groupGateGrid);
@@ -3898,9 +3954,9 @@ public partial class BattlePrototypeSceneController : Node2D
             yield break;
         }
 
-        for (var y = 0; y < BattlePrototypeMapData.Height; y++)
+        for (var y = 0; y < BattleMapData.Height; y++)
         {
-            for (var x = 0; x < BattlePrototypeMapData.Width; x++)
+            for (var x = 0; x < BattleMapData.Width; x++)
             {
                 var grid = new Vector2I(x, y);
                 foreach (var gridKey in GetAttackCandidateGridKeys(startGrid, attacker, grid))
@@ -4178,7 +4234,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return _currentTurnSide == BattleTurnSide.TeamA ? "Team A / Attacker" : "Team B / Defender";
     }
 
-    private bool CanTraverseBlockedCell(BattleGridKey grid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
+    private bool CanTraverseBlockedCell(BattleGridKey grid, BattleCellData cell, bool usesLadderBridge = false)
     {
         _ = grid;
 
@@ -4210,7 +4266,7 @@ public partial class BattlePrototypeSceneController : Node2D
         return false;
     }
 
-    private bool CanEnterCell(BattleGridKey sourceGrid, BattleGridKey destinationGrid, BattlePrototypeCellData cell, bool usesLadderBridge = false)
+    private bool CanEnterCell(BattleGridKey sourceGrid, BattleGridKey destinationGrid, BattleCellData cell, bool usesLadderBridge = false)
     {
         _ = destinationGrid;
 
@@ -4302,19 +4358,11 @@ public partial class BattlePrototypeSceneController : Node2D
             return false;
         }
 
-        for (var y = grid.Y + 1; y < BattlePrototypeMapData.Height; y++)
-        {
-            var cell = _mapData.GetCell(grid.X, y);
-            if (cell.Structure is BattleStructureType.Wall or BattleStructureType.Gate or BattleStructureType.Tower)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.Terrain == BattleTerrainType.Courtyard && !IsWallTopGrid(grid);
     }
 
-    private static bool IsCellBlockingMovement(BattlePrototypeCellData cell)
+    private static bool IsCellBlockingMovement(BattleCellData cell)
     {
         return cell.IsBlockingStructure;
     }
@@ -4458,10 +4506,10 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private Rect2 GetMapBounds()
     {
-        var topLeft = BattlePrototypeMapRenderer.GridToWorld(new Vector2I(0, 0));
-        var topRight = BattlePrototypeMapRenderer.GridToWorld(new Vector2I(BattlePrototypeMapData.Width - 1, 0));
-        var bottomLeft = BattlePrototypeMapRenderer.GridToWorld(new Vector2I(0, BattlePrototypeMapData.Height - 1));
-        var bottomRight = BattlePrototypeMapRenderer.GridToWorld(new Vector2I(BattlePrototypeMapData.Width - 1, BattlePrototypeMapData.Height - 1));
+        var topLeft = BattleMapRenderer.GridToWorld(new Vector2I(0, 0));
+        var topRight = BattleMapRenderer.GridToWorld(new Vector2I(BattleMapData.Width - 1, 0));
+        var bottomLeft = BattleMapRenderer.GridToWorld(new Vector2I(0, BattleMapData.Height - 1));
+        var bottomRight = BattleMapRenderer.GridToWorld(new Vector2I(BattleMapData.Width - 1, BattleMapData.Height - 1));
 
         var minX = Mathf.Min(Mathf.Min(topLeft.X, topRight.X), Mathf.Min(bottomLeft.X, bottomRight.X)) - MapPaddingLeft;
         var maxX = Mathf.Max(Mathf.Max(topLeft.X, topRight.X), Mathf.Max(bottomLeft.X, bottomRight.X)) + MapPaddingRight;

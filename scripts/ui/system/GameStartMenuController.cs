@@ -115,7 +115,7 @@ public partial class GameStartMenuController : CanvasLayer
 
     public event Action<string, int>? StartGameConfirmed;
     public event Action<int>? LoadGameConfirmed;
-    public event Action<string>? BattlePrototypeRequested;
+    public event Action<string>? BattleRequested;
 
     public override void _Ready()
     {
@@ -519,8 +519,8 @@ public partial class GameStartMenuController : CanvasLayer
         if (_battlePrototypeButton != null)
         {
             _battlePrototypeButton.Text = _localization.IsTraditionalChinese
-                ? "戰鬥原型"
-                : "Battle Prototype";
+                ? "戰鬥"
+                : "Battle";
         }
 
         if (_battlePrototypeDialogTitleLabel != null)
@@ -720,7 +720,7 @@ public partial class GameStartMenuController : CanvasLayer
     private void OnBattlePrototypeVariantSelected(string variant)
     {
         HideBattlePrototypeDialog();
-        BattlePrototypeRequested?.Invoke(variant);
+        BattleRequested?.Invoke(variant);
     }
 
     private void OnOptionLanguagePressed()

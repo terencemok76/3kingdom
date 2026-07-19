@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_6e4a7")
-DisplayName = "Moat Siege Prototype (NW)"
+DisplayName = "Moat Siege Battle (NW)"
 ScenarioType = 2
 DefaultStructureFacing = 2
 OpenGateForegroundSide = 1
@@ -13,9 +13,9 @@ UnitSpawnGrids = Dictionary[String, Vector2i]({
 "AttackerB": Vector2i(18, 12),
 "AttackerC": Vector2i(20, 10),
 "Catapult": Vector2i(15, 10),
-"DefenderA": Vector2i(5, 12),
-"DefenderB": Vector2i(5, 10),
-"DefenderC": Vector2i(5, 8),
+"DefenderA": Vector2i(7, 14),
+"DefenderB": Vector2i(7, 12),
+"DefenderC": Vector2i(7, 10),
 "Ladder": Vector2i(15, 14),
 "Ram": Vector2i(16, 12),
 "Spearman": Vector2i(18, 16)

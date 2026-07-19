@@ -9,8 +9,8 @@ namespace ThreeKingdom.Core;
 public partial class GameBootstrap : Node
 {
     private const string DefaultScenarioPath = "res://data/scenarios/story1_scenario.json";
-    private const string BattlePrototypeNorthEastScenePath = "res://scenes/battle/BattlePrototypeScene.tscn";
-    private const string BattlePrototypeNorthWestScenePath = "res://scenes/battle/BattlePrototypeSceneNorthWest.tscn";
+    private const string BattleNorthEastScenePath = "res://scenes/battle/BattleScene.tscn";
+    private const string BattleNorthWestScenePath = "res://scenes/battle/BattleSceneNorthWest.tscn";
 
     private readonly WorldRepository _worldRepository = new();
     private readonly TurnManager _turnManager = new();
@@ -59,7 +59,7 @@ public partial class GameBootstrap : Node
             });
         startMenuController.StartGameConfirmed += OnStartGameConfirmed;
         startMenuController.LoadGameConfirmed += OnLoadGameConfirmed;
-        startMenuController.BattlePrototypeRequested += OnBattlePrototypeRequested;
+        startMenuController.BattleRequested += OnBattleRequested;
         startMenuController.ShowMainMenu();
     }
 
@@ -88,20 +88,20 @@ public partial class GameBootstrap : Node
         EnterGameplay(world);
     }
 
-    private void OnBattlePrototypeRequested(string variant)
+    private void OnBattleRequested(string variant)
     {
         var (scenePath, scenarioType, useEditorAuthoredLayout) = variant.ToUpperInvariant() switch
         {
-            "FIELD" => (BattlePrototypeNorthEastScenePath, BattleScenarioType.FieldBattle, false),
-            "NE_SIEGE" => (BattlePrototypeNorthEastScenePath, BattleScenarioType.SiegeAssault, true),
-            "NE_MOAT" => (BattlePrototypeNorthEastScenePath, BattleScenarioType.MoatSiegeBattle, true),
-            "NW_SIEGE" => (BattlePrototypeNorthWestScenePath, BattleScenarioType.SiegeAssault, true),
-            "NW_MOAT" => (BattlePrototypeNorthWestScenePath, BattleScenarioType.MoatSiegeBattle, true),
-            _ => (BattlePrototypeNorthEastScenePath, BattleScenarioType.SiegeAssault, true)
+            "FIELD" => (BattleNorthEastScenePath, BattleScenarioType.FieldBattle, false),
+            "NE_SIEGE" => (BattleNorthEastScenePath, BattleScenarioType.SiegeAssault, true),
+            "NE_MOAT" => (BattleNorthEastScenePath, BattleScenarioType.MoatSiegeBattle, true),
+            "NW_SIEGE" => (BattleNorthWestScenePath, BattleScenarioType.SiegeAssault, true),
+            "NW_MOAT" => (BattleNorthWestScenePath, BattleScenarioType.MoatSiegeBattle, true),
+            _ => (BattleNorthEastScenePath, BattleScenarioType.SiegeAssault, true)
         };
 
-        BattlePrototypeSceneController.PendingLaunchOptions =
-            new BattlePrototypeSceneController.LaunchOptions(scenarioType, useEditorAuthoredLayout);
+        BattleSceneController.PendingLaunchOptions =
+            new BattleSceneController.LaunchOptions(scenarioType, useEditorAuthoredLayout);
         GetTree().ChangeSceneToFile(scenePath);
     }
 

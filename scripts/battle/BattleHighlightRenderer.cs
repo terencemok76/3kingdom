@@ -2,7 +2,7 @@ using Godot;
 
 namespace ThreeKingdom.Battle;
 
-internal enum BattlePrototypeHighlightVisualKind
+internal enum BattleHighlightVisualKind
 {
     Movable,
     WallTopMovable,
@@ -10,12 +10,12 @@ internal enum BattlePrototypeHighlightVisualKind
     Selected
 }
 
-public partial class BattlePrototypeHighlightRenderer : Node2D
+public partial class BattleHighlightRenderer : Node2D
 {
-    private BattlePrototypeHighlightVisualKind _visualKind;
+    private BattleHighlightVisualKind _visualKind;
     private bool _hasVisual;
 
-    internal void Configure(BattlePrototypeHighlightVisualKind visualKind)
+    internal void Configure(BattleHighlightVisualKind visualKind)
     {
         _visualKind = visualKind;
         _hasVisual = true;
@@ -31,16 +31,16 @@ public partial class BattlePrototypeHighlightRenderer : Node2D
 
         switch (_visualKind)
         {
-            case BattlePrototypeHighlightVisualKind.Movable:
+            case BattleHighlightVisualKind.Movable:
                 DrawDiamond(44.0f, 22.0f, new Color(0.42f, 0.78f, 0.96f, 0.24f), new Color(0.72f, 0.92f, 1.0f, 0.72f), 2.0f);
                 break;
-            case BattlePrototypeHighlightVisualKind.WallTopMovable:
+            case BattleHighlightVisualKind.WallTopMovable:
                 DrawDiamond(44.0f, 22.0f, new Color(0.98f, 0.70f, 0.22f, 0.26f), new Color(1.0f, 0.88f, 0.46f, 0.78f), 2.0f);
                 break;
-            case BattlePrototypeHighlightVisualKind.Attackable:
+            case BattleHighlightVisualKind.Attackable:
                 DrawDiamond(44.0f, 22.0f, new Color(0.96f, 0.34f, 0.28f, 0.22f), new Color(1.0f, 0.70f, 0.62f, 0.78f), 2.0f);
                 break;
-            case BattlePrototypeHighlightVisualKind.Selected:
+            case BattleHighlightVisualKind.Selected:
                 DrawDiamond(54.0f, 27.0f, new Color(1.0f, 0.93f, 0.45f, 0.22f), new Color(1.0f, 0.98f, 0.72f, 0.95f), 3.0f);
                 break;
         }

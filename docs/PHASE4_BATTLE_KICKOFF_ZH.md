@@ -31,7 +31,7 @@
 
 ## 2.1 目前 Prototype 狀態
 
-- 主選單已可切入 `Battle Prototype / 戰鬥原型`
+- 主選單已可切入 `Battle / 戰鬥`
 - 已有 `25x25` isometric 攻城戰原型場景
 - 已支援：
   - 滑鼠右鍵拖曳地圖
@@ -122,7 +122,7 @@
   - `TileMap` 只負責 scene map data 與 WYSIWYG 地圖編輯
   - `Scenario Data` 負責戰場規則補充、部署、勝敗條件與 AI hint
   - runtime `BattleMapData` 負責 controller、戰鬥規則、A*、AI 實際使用的乾淨資料
-- `BattlePrototypeMapData` 的 code-defined layout 仍可保留作為 prototype 與 regression 測試基線：
+- `BattleMapData` 的 code-defined layout 仍可保留作為 prototype 與 regression 測試基線：
   - 但不應作為正式多戰場內容的主要維護方式
   - 正式地圖應逐步改由 Godot `TileMap` 手工編排
 - controller 不應直接把 scene node 當成規則來源：
@@ -292,17 +292,19 @@
   - 左側 gate 格可正常顯示單位
   - 最右側 gate 格仍顯示 silhouette
 - 此規則是現有素材的暫定視覺處理；正式版應改為由 `structure_facing` 與 scenario data 驅動的前景遮罩區域，不能依賴固定座標或 gate 群組左右順序。
-- 2026-07-18 起，prototype 已先將城牆／城門前景遮擋旗標移入 `BattlePrototypeMapData`：
+- 2026-07-18 起，battle runtime 已先將城牆／城門前景遮擋旗標移入 `BattleMapData`：
   - `SiegeAssault / MoatSiegeBattle` 由 scenario layout 明確標記需要 silhouette 的 `L0` 格
   - `Use Editor Authored Layout` 模式則會依已烘焙的牆／門結構自動推導預設遮擋旗標
+  - `NorthEast` 城牆的遮擋深度朝 `Y-` 延伸；`NorthWest` 城牆則朝 `X-` 延伸，確保 NW 內城一側（例如 `(6, 7)`）的攻城器也會顯示 silhouette
 - 正式版的 silhouette、foreground occlusion、gate open 後的前景保留側、wall-top depth sorting：
   - 都必須改為 facing-driven
   - 不應再把 `NorthEast` 牆面遮擋或「最右側 gate 保留 silhouette」寫死在 controller
 - 牆頂移動高亮與其他 `L2` 單位不可被 `L0` gate／wall 的固定高 Z 值覆蓋；結構與單位的深度規則必須以層級與地圖深度共同決定。
 - 投石車一般攻擊會在發射動畫期間使用 `assets/battle/object/catapult_stone.png` 顯示旋轉石彈飛向目標格；飛行時會壓縮原素材的橫向比例，使其更接近單顆石彈，並在命中位置顯示衝擊效果。部隊與城門目標均適用。
+- 弓兵與弩兵的一般攻擊會顯示飛箭，由攻擊者格子的畫面座標飛向目標格的畫面座標；飛行時間會納入攻擊效果時序，避免被擊潰單位在箭矢抵達前被移除。
 - 牆頂單位可使用 prototype 專用攻擊：
-  - `Drop Stone`：對 `(x, y+1, L0)` 的敵方部隊造成 `1,200` 傷害。
-  - `Pour Oil`：對同一目標規則的敵方部隊造成 `1,000` 傷害。
+  - `Drop Stone`：對城牆面向正前方的 `L0` 敵方部隊造成 `1,200` 傷害；`NorthEast` 為 `(x, y+1, L0)`，`NorthWest` 為 `(x+1, y, L0)`。
+  - `Pour Oil`：對同一個 facing-driven 目標格的敵方部隊造成 `1,000` 傷害。
   - 兩者只在單位位於可行走的城牆／城門／塔樓 `L2` 時顯示；可直接投向正前方空格，只有該格有敵軍時才結算傷害。
   - 每支部隊預設有 `Drop Stone x3`、`Pour Oil x2`；次數會顯示在按鈕上，並可在 Inspector 調整。
   - `Drop Stone` 會顯示由牆頂落向目標的石塊與落點衝擊效果，並沿用一般受擊動畫。
@@ -319,26 +321,30 @@
 
 ### 10.6 已實作的基線
 
-- `BattlePrototypeSceneController` 已提供 Inspector `Scenario Type`：
+- `BattleSceneController` 已提供 Inspector `Scenario Type`：
   - `SiegeAssault`
   - `FieldBattle`
   - `MoatSiegeBattle`
-- 三種 scenario 目前共用同一個 `BattlePrototypeScene`、HUD、單位 marker、移動與 A*。
+- 三種 scenario 目前共用同一個 `BattleScene`、HUD、單位 marker、移動與 A*。
 - `FieldBattle` 會建立不含城牆／城門的道路、森林、障礙物與雙方部署區。
 - `MoatSiegeBattle` 會在攻城 prototype 的接近路線加入：
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
 - 護城河使用 `assets/battle/floor/floor.png` 的第六格 river tile；橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
 - `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
+- `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
 - 若橋面在 editor 內使用了 `Flip H`，runtime 也必須保留該 bridge tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向會跑掉。
-- `Battle Prototype / 戰鬥原型` 入口目前已支援 5 個模式選項：
+- 讀取 `Use Editor Authored Layout` 的 scene 時，應先讀取原始 `TileMapLayer` 內容，再重建 shared tileset 與 runtime 視覺；不能在讀取前先重新指定 layer tileset，否則 bridge 之類的 editor-authored flip 資訊可能會遺失。
+- 目前 `NorthWest` 戰場的 bridge visual 應預設跟隨 `DefaultStructureFacing = NorthWest` 套用水平翻轉，避免即使 editor flip 資訊遺失，遊戲內橋面方向仍與 `NW` 場景相反。
+- `NE` / `NW` 戰場的「城內地面格」判定不應靠掃描牆線方向推測，應直接使用 runtime `BattleMapData` 的 `Terrain == Courtyard` 作為內城地面判定；這樣可同時避免 `NW` 關門守軍退城誤判，也不會讓 `SiegeAssault` 的攻城車在外城草地／道路被錯誤當成城內而無法移動。
+- `Battle / 戰鬥` 入口目前已支援 5 個模式選項：
   - `FieldBattle`
   - `NE SiegeAssault`
   - `NE MoatSiegeBattle`
   - `NW SiegeAssault`
   - `NW MoatSiegeBattle`
-- `BattlePrototypeScene.tscn` 與 `BattlePrototypeSceneNorthWest.tscn` 目前都以 scene 內手工編排的 `TileMapLayer` 為主。
+- `BattleScene.tscn` 與 `BattleSceneNorthWest.tscn` 目前都以 scene 內手工編排的 `TileMapLayer` 為主。
 - runtime 會直接讀取這兩個 scene 的 editor-authored layout，讓 `NorthEast` / `NorthWest` 都維持 WYSIWYG 工作流。
 - 若需測試其他手工編輯 TileMap 場景，可在 Inspector 開啟 `Use Editor Authored Layout`，讓 controller 讀取 scene 內 baked layout，而不是用 scenario data 重建。

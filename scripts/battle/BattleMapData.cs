@@ -56,7 +56,7 @@ public enum BattleGateSegment
     Right
 }
 
-public sealed class BattlePrototypeCellData
+public sealed class BattleCellData
 {
     public const int GateMaxHealth = 1800;
 
@@ -84,21 +84,21 @@ public sealed class BattlePrototypeCellData
     public bool IsBlockingStructure => BlocksMovement && !IsBroken && !(Structure == BattleStructureType.Gate && IsGateOpen);
 }
 
-public sealed class BattlePrototypeMapData
+public sealed class BattleMapData
 {
     public const int Width = 25;
     public const int Height = 25;
 
-    public BattlePrototypeCellData[,] Cells { get; } = new BattlePrototypeCellData[Width, Height];
+    public BattleCellData[,] Cells { get; } = new BattleCellData[Width, Height];
     public BattleScenarioDefinition ScenarioDefinition { get; private set; } = BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault);
 
-    private BattlePrototypeMapData()
+    private BattleMapData()
     {
         for (var y = 0; y < Height; y++)
         {
             for (var x = 0; x < Width; x++)
             {
-                Cells[x, y] = new BattlePrototypeCellData
+                Cells[x, y] = new BattleCellData
                 {
                     Grid = new Vector2I(x, y),
                     Terrain = BattleTerrainType.Grass
@@ -107,27 +107,27 @@ public sealed class BattlePrototypeMapData
         }
     }
 
-    public static BattlePrototypeMapData CreateSiegeAssault()
+    public static BattleMapData CreateSiegeAssault()
     {
         return CreateSiegeAssault(BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault));
     }
 
-    public static BattlePrototypeMapData CreateFieldBattle()
+    public static BattleMapData CreateFieldBattle()
     {
         return CreateFieldBattle(BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.FieldBattle));
     }
 
-    public static BattlePrototypeMapData CreateMoatSiegeAssault()
+    public static BattleMapData CreateMoatSiegeAssault()
     {
         return CreateMoatSiegeAssault(BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.MoatSiegeBattle));
     }
 
-    public static BattlePrototypeMapData Create(BattleScenarioType scenarioType)
+    public static BattleMapData Create(BattleScenarioType scenarioType)
     {
         return Create(BattleScenarioDefinition.CreateBuiltIn(scenarioType));
     }
 
-    public static BattlePrototypeMapData Create(BattleScenarioDefinition? scenarioDefinition)
+    public static BattleMapData Create(BattleScenarioDefinition? scenarioDefinition)
     {
         var definition = scenarioDefinition ?? BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault);
         return definition.ScenarioType switch
@@ -138,9 +138,9 @@ public sealed class BattlePrototypeMapData
         };
     }
 
-    private static BattlePrototypeMapData CreateSiegeAssault(BattleScenarioDefinition scenarioDefinition)
+    private static BattleMapData CreateSiegeAssault(BattleScenarioDefinition scenarioDefinition)
     {
-        var map = new BattlePrototypeMapData();
+        var map = new BattleMapData();
         map.ApplyScenarioDefinition(scenarioDefinition);
         map.BuildSiegeAssaultLayout();
         map.ApplyScenarioStructureFacingOverrides();
@@ -149,9 +149,9 @@ public sealed class BattlePrototypeMapData
         return map;
     }
 
-    private static BattlePrototypeMapData CreateFieldBattle(BattleScenarioDefinition scenarioDefinition)
+    private static BattleMapData CreateFieldBattle(BattleScenarioDefinition scenarioDefinition)
     {
-        var map = new BattlePrototypeMapData();
+        var map = new BattleMapData();
         map.ApplyScenarioDefinition(scenarioDefinition);
         map.BuildFieldBattleLayout();
         map.ApplyScenarioStructureFacingOverrides();
@@ -160,9 +160,9 @@ public sealed class BattlePrototypeMapData
         return map;
     }
 
-    private static BattlePrototypeMapData CreateMoatSiegeAssault(BattleScenarioDefinition scenarioDefinition)
+    private static BattleMapData CreateMoatSiegeAssault(BattleScenarioDefinition scenarioDefinition)
     {
-        var map = new BattlePrototypeMapData();
+        var map = new BattleMapData();
         map.ApplyScenarioDefinition(scenarioDefinition);
         map.BuildMoatSiegeAssaultLayout();
         map.ApplyScenarioStructureFacingOverrides();
@@ -171,7 +171,7 @@ public sealed class BattlePrototypeMapData
         return map;
     }
 
-    public static BattlePrototypeMapData CreateFromTileMapLayers(
+    public static BattleMapData CreateFromTileMapLayers(
         TileMapLayer? groundLayer,
         TileMapLayer? moatLayer,
         TileMapLayer? objectLayer,
@@ -179,10 +179,13 @@ public sealed class BattlePrototypeMapData
         TileMapLayer? overlayLayer,
         BattleScenarioDefinition? scenarioDefinition)
     {
-        var map = new BattlePrototypeMapData();
+        var map = new BattleMapData();
         map.ApplyScenarioDefinition(scenarioDefinition ?? BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault));
         map.ReadGroundLayer(groundLayer);
-        map.ReadMoatLayer(moatLayer);
+        if (map.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle)
+        {
+            map.ReadMoatLayer(moatLayer);
+        }
         map.ReadObjectLayer(objectLayer);
         map.ReadCastleLayer(castleLayer);
         map.ReadOverlayLayer(overlayLayer);
@@ -214,7 +217,7 @@ public sealed class BattlePrototypeMapData
         }
     }
 
-    public static BattlePrototypeMapData CreateFromTileMapLayers(
+    public static BattleMapData CreateFromTileMapLayers(
         TileMapLayer? groundLayer,
         TileMapLayer? moatLayer,
         TileMapLayer? objectLayer,
@@ -224,7 +227,7 @@ public sealed class BattlePrototypeMapData
         return CreateFromTileMapLayers(groundLayer, moatLayer, objectLayer, castleLayer, overlayLayer, scenarioDefinition: null);
     }
 
-    public BattlePrototypeCellData GetCell(int x, int y) => Cells[x, y];
+    public BattleCellData GetCell(int x, int y) => Cells[x, y];
 
     public void ApplyStructureDamage(Vector2I grid, int damage)
     {
@@ -409,6 +412,10 @@ public sealed class BattlePrototypeMapData
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
             cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
             cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;
+            if (cell.HasBridgeVisual && ScenarioDefinition.DefaultStructureFacing == BattleStructureFacing.NorthWest)
+            {
+                cell.BridgeFlipHorizontally = true;
+            }
 
             switch (cell.Structure)
             {
@@ -421,8 +428,8 @@ public sealed class BattlePrototypeMapData
                 case BattleStructureType.Gate:
                     cell.BlocksMovement = true;
                     cell.HeightLevel = 2;
-                    cell.StructureMaxHealth = BattlePrototypeCellData.GateMaxHealth;
-                    cell.StructureHealth = isBrokenGate ? 0 : BattlePrototypeCellData.GateMaxHealth;
+                    cell.StructureMaxHealth = BattleCellData.GateMaxHealth;
+                    cell.StructureHealth = isBrokenGate ? 0 : BattleCellData.GateMaxHealth;
                     break;
                 case BattleStructureType.Tower:
                     cell.BlocksMovement = true;
@@ -625,7 +632,8 @@ public sealed class BattlePrototypeMapData
         {
             offsets[index] = facing switch
             {
-                BattleStructureFacing.NorthWest => new Vector2I(0, -(index + 1)),
+                // The NW scene's facade is aligned on the X axis, so its hidden city side is X-.
+                BattleStructureFacing.NorthWest => new Vector2I(-(index + 1), 0),
                 BattleStructureFacing.NorthEast => new Vector2I(0, -(index + 1)),
                 _ => new Vector2I(0, -(index + 1))
             };
@@ -824,7 +832,7 @@ public sealed class BattlePrototypeMapData
             wallCell.BlocksMovement = true;
             wallCell.HeightLevel = 2;
             wallCell.StructureMaxHealth = wallCell.Structure == BattleStructureType.Gate
-                ? BattlePrototypeCellData.GateMaxHealth
+                ? BattleCellData.GateMaxHealth
                 : 0;
             wallCell.StructureHealth = wallCell.StructureMaxHealth;
 

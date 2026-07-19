@@ -2,7 +2,7 @@ using Godot;
 
 namespace ThreeKingdom.Battle;
 
-public enum BattlePrototypeRenderLayer
+public enum BattleRenderLayer
 {
     Ground,
     Terrain,
@@ -10,15 +10,15 @@ public enum BattlePrototypeRenderLayer
     Overlay
 }
 
-public partial class BattlePrototypeMapRenderer : Node2D
+public partial class BattleMapRenderer : Node2D
 {
     private const float TileWidth = 128.0f;
     private const float TileHeight = 64.0f;
 
-    private BattlePrototypeMapData? _mapData;
-    private BattlePrototypeRenderLayer _renderLayer;
+    private BattleMapData? _mapData;
+    private BattleRenderLayer _renderLayer;
 
-    public void Configure(BattlePrototypeMapData mapData, BattlePrototypeRenderLayer renderLayer)
+    public void Configure(BattleMapData mapData, BattleRenderLayer renderLayer)
     {
         _mapData = mapData;
         _renderLayer = renderLayer;
@@ -32,24 +32,24 @@ public partial class BattlePrototypeMapRenderer : Node2D
             return;
         }
 
-        for (var y = 0; y < BattlePrototypeMapData.Height; y++)
+        for (var y = 0; y < BattleMapData.Height; y++)
         {
-            for (var x = 0; x < BattlePrototypeMapData.Width; x++)
+            for (var x = 0; x < BattleMapData.Width; x++)
             {
                 var cell = _mapData.GetCell(x, y);
                 var center = GridToWorld(cell.Grid);
                 switch (_renderLayer)
                 {
-                    case BattlePrototypeRenderLayer.Ground:
+                    case BattleRenderLayer.Ground:
                         DrawGroundCell(center, cell);
                         break;
-                    case BattlePrototypeRenderLayer.Terrain:
+                    case BattleRenderLayer.Terrain:
                         DrawTerrainOverlay(center, cell);
                         break;
-                    case BattlePrototypeRenderLayer.Structure:
+                    case BattleRenderLayer.Structure:
                         DrawStructure(center, cell);
                         break;
-                    case BattlePrototypeRenderLayer.Overlay:
+                    case BattleRenderLayer.Overlay:
                         DrawOverlay(center, cell);
                         break;
                 }
@@ -73,7 +73,7 @@ public partial class BattlePrototypeMapRenderer : Node2D
         return new Vector2I(Mathf.RoundToInt(gridX), Mathf.RoundToInt(gridY));
     }
 
-    private void DrawGroundCell(Vector2 center, BattlePrototypeCellData cell)
+    private void DrawGroundCell(Vector2 center, BattleCellData cell)
     {
         var color = cell.Terrain switch
         {
@@ -89,7 +89,7 @@ public partial class BattlePrototypeMapRenderer : Node2D
         DrawDiamond(center, TileWidth * 0.5f, TileHeight * 0.5f, color, new Color("3d3a2d", 0.35f));
     }
 
-    private void DrawTerrainOverlay(Vector2 center, BattlePrototypeCellData cell)
+    private void DrawTerrainOverlay(Vector2 center, BattleCellData cell)
     {
         if (cell.Terrain == BattleTerrainType.Forest)
         {
@@ -99,7 +99,7 @@ public partial class BattlePrototypeMapRenderer : Node2D
         }
     }
 
-    private void DrawStructure(Vector2 center, BattlePrototypeCellData cell)
+    private void DrawStructure(Vector2 center, BattleCellData cell)
     {
         switch (cell.Structure)
         {
@@ -136,7 +136,7 @@ public partial class BattlePrototypeMapRenderer : Node2D
         }
     }
 
-    private void DrawOverlay(Vector2 center, BattlePrototypeCellData cell)
+    private void DrawOverlay(Vector2 center, BattleCellData cell)
     {
         var color = cell.DeploymentZone switch
         {

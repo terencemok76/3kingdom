@@ -1,14 +1,10 @@
-[gd_resource type="Resource" script_class="BattleScenarioDefinition" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BattleScenarioDefinition" format=3 uid="uid://ds3oshq2dm8p8"]
 
-[ext_resource type="Script" path="res://scripts/battle/BattleScenarioDefinition.cs" id="1_siege_ne"]
+[ext_resource type="Script" uid="uid://ctlxf41bf1vrk" path="res://scripts/battle/BattleScenarioDefinition.cs" id="1_siege_ne"]
 
 [resource]
 script = ExtResource("1_siege_ne")
-DisplayName = "Siege Prototype (NE)"
-ScenarioType = 0
-DefaultStructureFacing = 1
-ForegroundOcclusionDepth = 2
-OpenGateForegroundSide = 2
+DisplayName = "Siege Battle (NE)"
 UnitSpawnGrids = Dictionary[String, Vector2i]({
 "AttackerA": Vector2i(10, 20),
 "AttackerB": Vector2i(12, 18),
