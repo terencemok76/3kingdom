@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 namespace ThreeKingdom.Battle;
 
@@ -41,6 +42,20 @@ public enum BattleDeploymentZone
     Defender
 }
 
+public enum BattleStructureFacing
+{
+    None,
+    NorthEast,
+    NorthWest
+}
+
+public enum BattleGateSegment
+{
+    None,
+    Left,
+    Right
+}
+
 public sealed class BattlePrototypeCellData
 {
     public const int GateMaxHealth = 1800;
@@ -54,6 +69,15 @@ public sealed class BattlePrototypeCellData
     public int HeightLevel { get; set; }
     public int StructureMaxHealth { get; set; }
     public int StructureHealth { get; set; }
+    public BattleStructureFacing StructureFacing { get; set; } = BattleStructureFacing.None;
+    public BattleGateSegment GateSegment { get; set; } = BattleGateSegment.None;
+    public int CastleSourceId { get; set; } = -1;
+    public Vector2I CastleAtlasCoords { get; set; } = new(-1, -1);
+    public int CastleAlternativeTile { get; set; }
+    public bool HideGroundOccupantWithForeground { get; set; }
+    public bool HideGroundOccupantWhenGateOpen { get; set; }
+    public bool HasBridgeVisual { get; set; }
+    public bool BridgeFlipHorizontally { get; set; }
 
     public bool HasStructureHealth => StructureMaxHealth > 0;
     public bool IsBroken => HasStructureHealth && StructureHealth <= 0;
@@ -66,6 +90,7 @@ public sealed class BattlePrototypeMapData
     public const int Height = 25;
 
     public BattlePrototypeCellData[,] Cells { get; } = new BattlePrototypeCellData[Width, Height];
+    public BattleScenarioDefinition ScenarioDefinition { get; private set; } = BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault);
 
     private BattlePrototypeMapData()
     {
@@ -84,51 +109,119 @@ public sealed class BattlePrototypeMapData
 
     public static BattlePrototypeMapData CreateSiegeAssault()
     {
-        var map = new BattlePrototypeMapData();
-        map.BuildSiegeAssaultLayout();
-        map.ApplyDerivedCellRules();
-        return map;
+        return CreateSiegeAssault(BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault));
     }
 
     public static BattlePrototypeMapData CreateFieldBattle()
     {
-        var map = new BattlePrototypeMapData();
-        map.BuildFieldBattleLayout();
-        map.ApplyDerivedCellRules();
-        return map;
+        return CreateFieldBattle(BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.FieldBattle));
     }
 
     public static BattlePrototypeMapData CreateMoatSiegeAssault()
     {
-        var map = new BattlePrototypeMapData();
-        map.BuildMoatSiegeAssaultLayout();
-        map.ApplyDerivedCellRules();
-        return map;
+        return CreateMoatSiegeAssault(BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.MoatSiegeBattle));
     }
 
     public static BattlePrototypeMapData Create(BattleScenarioType scenarioType)
     {
-        return scenarioType switch
+        return Create(BattleScenarioDefinition.CreateBuiltIn(scenarioType));
+    }
+
+    public static BattlePrototypeMapData Create(BattleScenarioDefinition? scenarioDefinition)
+    {
+        var definition = scenarioDefinition ?? BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault);
+        return definition.ScenarioType switch
         {
-            BattleScenarioType.FieldBattle => CreateFieldBattle(),
-            BattleScenarioType.MoatSiegeBattle => CreateMoatSiegeAssault(),
-            _ => CreateSiegeAssault()
+            BattleScenarioType.FieldBattle => CreateFieldBattle(definition),
+            BattleScenarioType.MoatSiegeBattle => CreateMoatSiegeAssault(definition),
+            _ => CreateSiegeAssault(definition)
         };
+    }
+
+    private static BattlePrototypeMapData CreateSiegeAssault(BattleScenarioDefinition scenarioDefinition)
+    {
+        var map = new BattlePrototypeMapData();
+        map.ApplyScenarioDefinition(scenarioDefinition);
+        map.BuildSiegeAssaultLayout();
+        map.ApplyScenarioStructureFacingOverrides();
+        map.ApplyDerivedCellRules();
+        map.ApplyScenarioForegroundOcclusionMasks();
+        return map;
+    }
+
+    private static BattlePrototypeMapData CreateFieldBattle(BattleScenarioDefinition scenarioDefinition)
+    {
+        var map = new BattlePrototypeMapData();
+        map.ApplyScenarioDefinition(scenarioDefinition);
+        map.BuildFieldBattleLayout();
+        map.ApplyScenarioStructureFacingOverrides();
+        map.ApplyDerivedCellRules();
+        map.ApplyScenarioForegroundOcclusionMasks();
+        return map;
+    }
+
+    private static BattlePrototypeMapData CreateMoatSiegeAssault(BattleScenarioDefinition scenarioDefinition)
+    {
+        var map = new BattlePrototypeMapData();
+        map.ApplyScenarioDefinition(scenarioDefinition);
+        map.BuildMoatSiegeAssaultLayout();
+        map.ApplyScenarioStructureFacingOverrides();
+        map.ApplyDerivedCellRules();
+        map.ApplyScenarioForegroundOcclusionMasks();
+        return map;
     }
 
     public static BattlePrototypeMapData CreateFromTileMapLayers(
         TileMapLayer? groundLayer,
+        TileMapLayer? moatLayer,
+        TileMapLayer? objectLayer,
+        TileMapLayer? castleLayer,
+        TileMapLayer? overlayLayer,
+        BattleScenarioDefinition? scenarioDefinition)
+    {
+        var map = new BattlePrototypeMapData();
+        map.ApplyScenarioDefinition(scenarioDefinition ?? BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault));
+        map.ReadGroundLayer(groundLayer);
+        map.ReadMoatLayer(moatLayer);
+        map.ReadObjectLayer(objectLayer);
+        map.ReadCastleLayer(castleLayer);
+        map.ReadOverlayLayer(overlayLayer);
+        map.ApplyScenarioStructureFacingOverrides();
+        map.ApplyDerivedCellRules();
+        map.ApplyDefaultForegroundOcclusionMasksFromStructures();
+        return map;
+    }
+
+    private void ApplyScenarioDefinition(BattleScenarioDefinition scenarioDefinition)
+    {
+        ScenarioDefinition = scenarioDefinition;
+    }
+
+    private void ApplyScenarioStructureFacingOverrides()
+    {
+        foreach (var grid in ScenarioDefinition.NorthWestStructureGrids)
+        {
+            if (grid.X < 0 || grid.X >= Width || grid.Y < 0 || grid.Y >= Height)
+            {
+                continue;
+            }
+
+            var cell = GetCell(grid.X, grid.Y);
+            if (cell.Structure is BattleStructureType.Wall or BattleStructureType.Gate or BattleStructureType.Tower)
+            {
+                cell.StructureFacing = BattleStructureFacing.NorthWest;
+            }
+        }
+    }
+
+    public static BattlePrototypeMapData CreateFromTileMapLayers(
+        TileMapLayer? groundLayer,
+        TileMapLayer? moatLayer,
         TileMapLayer? objectLayer,
         TileMapLayer? castleLayer,
         TileMapLayer? overlayLayer)
     {
-        var map = new BattlePrototypeMapData();
-        map.ReadGroundLayer(groundLayer);
-        map.ReadObjectLayer(objectLayer);
-        map.ReadCastleLayer(castleLayer);
-        map.ReadOverlayLayer(overlayLayer);
-        map.ApplyDerivedCellRules();
-        return map;
+        return CreateFromTileMapLayers(groundLayer, moatLayer, objectLayer, castleLayer, overlayLayer, scenarioDefinition: null);
     }
 
     public BattlePrototypeCellData GetCell(int x, int y) => Cells[x, y];
@@ -176,6 +269,7 @@ public sealed class BattlePrototypeMapData
                 2 => BattleTerrainType.Courtyard,
                 3 => BattleTerrainType.WallWalk,
                 4 => BattleTerrainType.Forest,
+                5 => BattleTerrainType.Moat,
                 _ => BattleTerrainType.Grass
             };
         });
@@ -197,17 +291,37 @@ public sealed class BattlePrototypeMapData
 
             var atlas = layer.GetCellAtlasCoords(grid);
             var cell = GetCell(grid.X, grid.Y);
-            cell.Structure = atlas.X switch
+            switch (atlas.X)
             {
-                0 => BattleStructureType.Tree,
-                1 => BattleStructureType.RockBig,
-                2 => BattleStructureType.RockSmall,
-                _ => cell.Structure
-            };
+                case 0:
+                    cell.Structure = BattleStructureType.Tree;
+                    break;
+                case 1:
+                    cell.Structure = BattleStructureType.RockBig;
+                    break;
+                case 2:
+                    cell.Structure = BattleStructureType.RockSmall;
+                    break;
+                case 3:
+                    if (ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle)
+                    {
+                        cell.Terrain = BattleTerrainType.Bridge;
+                        cell.HasBridgeVisual = true;
+                        cell.BridgeFlipHorizontally = (layer.GetCellAlternativeTile(grid) & TileSetAtlasSource.TransformFlipH) != 0;
+                        cell.Structure = BattleStructureType.None;
+                        break;
+                    }
+
+                    cell.Terrain = BattleTerrainType.Road;
+                    cell.HasBridgeVisual = false;
+                    cell.BridgeFlipHorizontally = false;
+                    cell.Structure = BattleStructureType.None;
+                    break;
+            }
         });
     }
 
-    private void ReadCastleLayer(TileMapLayer? layer)
+    private void ReadMoatLayer(TileMapLayer? layer)
     {
         if (layer == null)
         {
@@ -221,11 +335,38 @@ public sealed class BattlePrototypeMapData
                 return;
             }
 
-            var atlas = layer.GetCellAtlasCoords(grid);
             var cell = GetCell(grid.X, grid.Y);
-            if (atlas.X is 6 or 7)
+            cell.Terrain = BattleTerrainType.Moat;
+            cell.Structure = BattleStructureType.None;
+        });
+    }
+
+    private void ReadCastleLayer(TileMapLayer? layer)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        ForEachGrid(grid =>
+        {
+            var sourceId = layer.GetCellSourceId(grid);
+            if (sourceId < 0)
+            {
+                return;
+            }
+
+            var atlas = layer.GetCellAtlasCoords(grid);
+            var alternativeTile = layer.GetCellAlternativeTile(grid);
+            var cell = GetCell(grid.X, grid.Y);
+            cell.CastleSourceId = sourceId;
+            cell.CastleAtlasCoords = atlas;
+            cell.CastleAlternativeTile = alternativeTile;
+            cell.StructureFacing = ResolveCastleFacing(sourceId, atlas, alternativeTile);
+            if (IsGateAtlas(sourceId, atlas))
             {
                 cell.Structure = BattleStructureType.Gate;
+                cell.GateSegment = ResolveGateSegment(sourceId, atlas, alternativeTile);
                 return;
             }
 
@@ -266,6 +407,8 @@ public sealed class BattlePrototypeMapData
             var isBrokenGate = cell.Structure == BattleStructureType.Gate && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             cell.BlocksMovement = cell.Terrain == BattleTerrainType.Moat;
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
+            cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
+            cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;
 
             switch (cell.Structure)
             {
@@ -331,6 +474,236 @@ public sealed class BattlePrototypeMapData
         PaintMoatAndBridge();
     }
 
+    private void ApplyScenarioForegroundOcclusionMasks()
+    {
+        ClearForegroundOcclusionMasks();
+
+        var hasCastleFacade = false;
+        ForEachGrid(grid =>
+        {
+            var structure = GetCell(grid.X, grid.Y).Structure;
+            if (structure is BattleStructureType.Wall or BattleStructureType.Gate or BattleStructureType.Tower)
+            {
+                hasCastleFacade = true;
+            }
+        });
+
+        if (!hasCastleFacade)
+        {
+            return;
+        }
+
+        ForEachGrid(grid =>
+        {
+            var cell = GetCell(grid.X, grid.Y);
+            if (cell.Structure is BattleStructureType.Wall or BattleStructureType.Gate or BattleStructureType.Tower)
+            {
+                if (cell.StructureFacing == BattleStructureFacing.None)
+                {
+                    cell.StructureFacing = ScenarioDefinition.DefaultStructureFacing;
+                }
+
+                MarkStructureForegroundOcclusion(grid, cell.StructureFacing, ScenarioDefinition.ForegroundOcclusionDepth);
+            }
+        });
+
+        MarkGateOpenForegroundPieces();
+    }
+
+    private void ApplyDefaultForegroundOcclusionMasksFromStructures()
+    {
+        ClearForegroundOcclusionMasks();
+
+        ForEachGrid(grid =>
+        {
+            var cell = GetCell(grid.X, grid.Y);
+            if (cell.Structure is not (BattleStructureType.Wall or BattleStructureType.Gate or BattleStructureType.Tower))
+            {
+                return;
+            }
+
+            if (cell.StructureFacing == BattleStructureFacing.None)
+            {
+                cell.StructureFacing = ScenarioDefinition.DefaultStructureFacing;
+            }
+
+            if (cell.Structure == BattleStructureType.Gate && cell.GateSegment == BattleGateSegment.None)
+            {
+                cell.GateSegment = ResolveDefaultGateSegment(grid);
+            }
+
+            MarkStructureForegroundOcclusion(grid, cell.StructureFacing, ScenarioDefinition.ForegroundOcclusionDepth);
+        });
+
+        MarkGateOpenForegroundPieces();
+    }
+
+    private void ClearForegroundOcclusionMasks()
+    {
+        ForEachGrid(grid =>
+        {
+            var cell = GetCell(grid.X, grid.Y);
+            cell.HideGroundOccupantWithForeground = false;
+            cell.HideGroundOccupantWhenGateOpen = false;
+        });
+    }
+
+    private void MarkStructureForegroundOcclusion(Vector2I grid, BattleStructureFacing facing, int depthBehindWall)
+    {
+        GetCell(grid.X, grid.Y).HideGroundOccupantWithForeground = true;
+
+        foreach (var offset in GetForegroundOcclusionOffsets(facing, depthBehindWall))
+        {
+            var target = grid + offset;
+            if (target.X < 0 || target.X >= Width || target.Y < 0 || target.Y >= Height)
+            {
+                continue;
+            }
+
+            GetCell(target.X, target.Y).HideGroundOccupantWithForeground = true;
+        }
+    }
+
+    private void MarkGateOpenForegroundPieces()
+    {
+        ForEachGrid(grid =>
+        {
+            var cell = GetCell(grid.X, grid.Y);
+            if (cell.Structure != BattleStructureType.Gate)
+            {
+                return;
+            }
+
+            var gateGroup = GetConnectedGateGroup(grid);
+            var targetGrid = ResolveGateForegroundGrid(gateGroup);
+            if (targetGrid.HasValue)
+            {
+                GetCell(targetGrid.Value.X, targetGrid.Value.Y).HideGroundOccupantWhenGateOpen = true;
+            }
+        });
+    }
+
+    private Vector2I? ResolveGateForegroundGrid(Vector2I[] gateGroup)
+    {
+        if (gateGroup.Length == 0)
+        {
+            return null;
+        }
+
+        var targetSegment = ScenarioDefinition.OpenGateForegroundSide switch
+        {
+            BattleGateForegroundSide.Left => BattleGateSegment.Left,
+            BattleGateForegroundSide.Right => BattleGateSegment.Right,
+            _ => BattleGateSegment.None
+        };
+
+        if (targetSegment == BattleGateSegment.None)
+        {
+            return null;
+        }
+
+        foreach (var gateGrid in gateGroup)
+        {
+            if (GetCell(gateGrid.X, gateGrid.Y).GateSegment == targetSegment)
+            {
+                return gateGrid;
+            }
+        }
+
+        return targetSegment == BattleGateSegment.Left ? gateGroup[0] : gateGroup[gateGroup.Length - 1];
+    }
+
+    private static Vector2I[] GetForegroundOcclusionOffsets(BattleStructureFacing facing, int depthBehindWall)
+    {
+        if (depthBehindWall <= 0)
+        {
+            return Array.Empty<Vector2I>();
+        }
+
+        var offsets = new Vector2I[depthBehindWall];
+        for (var index = 0; index < depthBehindWall; index++)
+        {
+            offsets[index] = facing switch
+            {
+                BattleStructureFacing.NorthWest => new Vector2I(0, -(index + 1)),
+                BattleStructureFacing.NorthEast => new Vector2I(0, -(index + 1)),
+                _ => new Vector2I(0, -(index + 1))
+            };
+        }
+
+        return offsets;
+    }
+
+    private static bool IsGateAtlas(int sourceId, Vector2I atlas)
+    {
+        return sourceId == 1 || atlas.X is 6 or 7;
+    }
+
+    private static BattleGateSegment ResolveGateSegment(int sourceId, Vector2I atlas, int alternativeTile)
+    {
+        var isFlippedHorizontally = (alternativeTile & TileSetAtlasSource.TransformFlipH) != 0;
+        var baseSegment = sourceId == 1
+            ? atlas.X == 1 ? BattleGateSegment.Right : BattleGateSegment.Left
+            : atlas.X == 7 ? BattleGateSegment.Right : BattleGateSegment.Left;
+
+        if (!isFlippedHorizontally)
+        {
+            return baseSegment;
+        }
+
+        return baseSegment == BattleGateSegment.Right
+            ? BattleGateSegment.Left
+            : BattleGateSegment.Right;
+    }
+
+    private BattleStructureFacing ResolveCastleFacing(int sourceId, Vector2I atlas, int alternativeTile)
+    {
+        if (sourceId == 1)
+        {
+            return (alternativeTile & TileSetAtlasSource.TransformFlipH) != 0
+                ? BattleStructureFacing.NorthWest
+                : ScenarioDefinition.DefaultStructureFacing;
+        }
+
+        _ = atlas;
+        return (alternativeTile & TileSetAtlasSource.TransformFlipH) != 0
+            ? BattleStructureFacing.NorthWest
+            : BattleStructureFacing.NorthEast;
+    }
+
+    private static BattleGateSegment ResolveDefaultGateSegment(Vector2I grid)
+    {
+        return grid.X % 2 == 0 ? BattleGateSegment.Right : BattleGateSegment.Left;
+    }
+
+    private Vector2I[] GetConnectedGateGroup(Vector2I startGrid)
+    {
+        if (GetCell(startGrid.X, startGrid.Y).Structure != BattleStructureType.Gate)
+        {
+            return Array.Empty<Vector2I>();
+        }
+
+        var minX = startGrid.X;
+        while (minX - 1 >= 0 && GetCell(minX - 1, startGrid.Y).Structure == BattleStructureType.Gate)
+        {
+            minX--;
+        }
+
+        var maxX = startGrid.X;
+        while (maxX + 1 < Width && GetCell(maxX + 1, startGrid.Y).Structure == BattleStructureType.Gate)
+        {
+            maxX++;
+        }
+
+        var gates = new Vector2I[maxX - minX + 1];
+        for (var index = 0; index < gates.Length; index++)
+        {
+            gates[index] = new Vector2I(minX + index, startGrid.Y);
+        }
+
+        return gates;
+    }
+
     private void PaintFieldRoad()
     {
         for (var y = 0; y < Height; y++)
@@ -394,7 +767,9 @@ public sealed class BattlePrototypeMapData
         {
             for (var x = 11; x <= 12; x++)
             {
-                GetCell(x, moatY).Terrain = BattleTerrainType.Bridge;
+                var cell = GetCell(x, moatY);
+                cell.Terrain = BattleTerrainType.Bridge;
+                cell.HasBridgeVisual = true;
             }
         }
 
@@ -442,6 +817,10 @@ public sealed class BattlePrototypeMapData
         {
             var wallCell = GetCell(x, 7);
             wallCell.Structure = x is >= 11 and <= 12 ? BattleStructureType.Gate : BattleStructureType.Wall;
+            wallCell.StructureFacing = ScenarioDefinition.DefaultStructureFacing;
+            wallCell.GateSegment = wallCell.Structure == BattleStructureType.Gate
+                ? ResolveDefaultGateSegment(wallCell.Grid)
+                : BattleGateSegment.None;
             wallCell.BlocksMovement = true;
             wallCell.HeightLevel = 2;
             wallCell.StructureMaxHealth = wallCell.Structure == BattleStructureType.Gate

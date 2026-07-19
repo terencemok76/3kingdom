@@ -27,6 +27,10 @@ internal enum BattleDepthRenderKind
 [Tool]
 public partial class BattlePrototypeSceneController : Node2D
 {
+    public sealed record LaunchOptions(BattleScenarioType ScenarioType, bool UseEditorAuthoredLayout);
+
+    public static LaunchOptions? PendingLaunchOptions { get; set; }
+
     private const float MapPaddingLeft = 220.0f;
     private const float MapPaddingTop = 220.0f;
     private const float MapPaddingRight = 220.0f;
@@ -38,7 +42,6 @@ public partial class BattlePrototypeSceneController : Node2D
     private static readonly Vector2 WallTopVisualOffset = new(32.0f, -60.0f);
     // A wall-top unit must render after the NE wall segments that overlap it from the right.
     private const int WallTopLevelDepthOffset = 3;
-    private const int NorthEastWallOcclusionDepth = 2;
     private const string CategoryUnit = "Unit";
     private const string CategorySiegeEngine = "SiegeEngine";
     private const string TroopInfantry = "Infantry";
@@ -51,6 +54,12 @@ public partial class BattlePrototypeSceneController : Node2D
     private const string TroopLadder = "Ladder";
     private const string TroopCatapult = "Catapult";
     private const string CatapultStoneTexturePath = "res://assets/battle/object/catapult_stone.png";
+    private const string NorthEastScenePath = "res://scenes/battle/BattlePrototypeScene.tscn";
+    private const string NorthWestScenePath = "res://scenes/battle/BattlePrototypeSceneNorthWest.tscn";
+    private const string NorthEastSiegeScenarioPath = "res://data/scenarios/battle/siege_prototype_ne.tres";
+    private const string NorthEastMoatScenarioPath = "res://data/scenarios/battle/moat_siege_prototype.tres";
+    private const string NorthWestSiegeScenarioPath = "res://data/scenarios/battle/siege_prototype_nw.tres";
+    private const string NorthWestMoatScenarioPath = "res://data/scenarios/battle/moat_siege_prototype_nw.tres";
     private const string InfantryIdleSouthEastScenePath = "res://scenes/battle/unit/InfantryIdleSe.tscn";
     private const string InfantryIdleSouthWestScenePath = "res://scenes/battle/unit/InfantryIdleSw.tscn";
     private const string InfantryIdleNorthEastScenePath = "res://scenes/battle/unit/InfantryIdleNe.tscn";
@@ -176,6 +185,7 @@ public partial class BattlePrototypeSceneController : Node2D
     private Node2D? _mapRoot;
     private Camera2D? _camera;
     private TileMapLayer? _groundLayer;
+    private TileMapLayer? _moatLayer;
     private TileMapLayer? _objectLayer;
     private TileMapLayer? _castleLayer;
     private TileMapLayer? _overlayLayer;
@@ -216,11 +226,15 @@ public partial class BattlePrototypeSceneController : Node2D
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
     private bool _editorBakePrototypeLayout;
     private bool _editorClearTileLayout;
+    private bool _editorRefreshBattleDepthPreview;
 
     private readonly record struct BattleDepthEntry(Node2D Node, BattleGridKey Grid, BattleDepthRenderKind Kind, int LocalOrder);
 
     [Export]
     public BattleScenarioType ScenarioType { get; set; } = BattleScenarioType.SiegeAssault;
+
+    [Export]
+    public BattleScenarioDefinition? ScenarioDefinition { get; set; }
 
     [Export]
     public int DropStoneUsesPerUnit { get; set; } = 3;
@@ -269,13 +283,35 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
+    [Export]
+    public bool EditorRefreshBattleDepthPreview
+    {
+        get => _editorRefreshBattleDepthPreview;
+        set
+        {
+            if (!value || !Engine.IsEditorHint())
+            {
+                _editorRefreshBattleDepthPreview = value;
+                return;
+            }
+
+            CacheSceneNodes();
+            BuildEditorPreview();
+            _editorRefreshBattleDepthPreview = false;
+            NotifyPropertyListChanged();
+        }
+    }
+
     public override void _Ready()
     {
         CacheSceneNodes();
         if (Engine.IsEditorHint())
         {
+            BuildEditorPreview();
             return;
         }
+
+        ApplyPendingLaunchOptions();
 
         if (_endTurnButton != null)
         {
@@ -330,11 +366,65 @@ public partial class BattlePrototypeSceneController : Node2D
         }
     }
 
+    private void ApplyPendingLaunchOptions()
+    {
+        if (PendingLaunchOptions == null)
+        {
+            return;
+        }
+
+        ScenarioType = PendingLaunchOptions.ScenarioType;
+        UseEditorAuthoredLayout = PendingLaunchOptions.UseEditorAuthoredLayout;
+        PendingLaunchOptions = null;
+    }
+
+    private void BuildEditorPreview()
+    {
+        if (_groundLayer == null || _objectLayer == null || _castleLayer == null || _overlayLayer == null)
+        {
+            return;
+        }
+
+        var scenarioDefinition = ResolveScenarioDefinition();
+        _mapData = ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout()
+            ? BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _moatLayer, _objectLayer, _castleLayer, _overlayLayer, scenarioDefinition)
+            : BattlePrototypeMapData.Create(scenarioDefinition);
+
+        if (ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout())
+        {
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
+            ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+            if (_objectLayer != null)
+            {
+                _objectLayer.Visible = true;
+            }
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
+        }
+        else
+        {
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
+            ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+            if (_objectLayer != null)
+            {
+                _objectLayer.Visible = true;
+            }
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattlePrototypeTileLayerKind.Castle);
+        }
+
+        ClearCastleDepthVisuals();
+        _castleLayer.Visible = true;
+        RefreshBattleDepthLayerOrder();
+    }
+
     private void CacheSceneNodes()
     {
         _mapRoot ??= GetNodeOrNull<Node2D>("MapRoot");
         _camera ??= GetNodeOrNull<Camera2D>("Camera2D");
         _groundLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/GroundLayer");
+        _moatLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/MoatLayer");
         _objectLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/ObjectLayer");
         _castleLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/CastleLayer");
         _overlayLayer ??= GetNodeOrNull<TileMapLayer>("MapRoot/OverlayLayer");
@@ -369,6 +459,12 @@ public partial class BattlePrototypeSceneController : Node2D
         if (_occludedUnitSilhouetteLayer != null)
         {
             _occludedUnitSilhouetteLayer.ZIndex = 28;
+        }
+
+        if (_battleDepthLayer != null)
+        {
+            _battleDepthLayer.Visible = true;
+            _battleDepthLayer.ZIndex = 20;
         }
 
         _commandMenu ??= GetNodeOrNull<Control>("UiLayer/CommandMenu");
@@ -414,18 +510,30 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        if (UseEditorAuthoredLayout && HasEditorAuthoredLayout())
+        var scenarioDefinition = ResolveScenarioDefinition();
+
+        if (ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout())
         {
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_groundLayer, BattlePrototypeTileLayerKind.Ground);
+            AssignOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_objectLayer, BattlePrototypeTileLayerKind.Object);
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_castleLayer, BattlePrototypeTileLayerKind.Castle);
             BattlePrototypeTileMapBuilder.AssignLayerTileSet(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
-            _mapData = BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _objectLayer, _castleLayer, _overlayLayer);
+            _mapData = BattlePrototypeMapData.CreateFromTileMapLayers(_groundLayer, _moatLayer, _objectLayer, _castleLayer, _overlayLayer, scenarioDefinition);
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
+            ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+            if (_objectLayer != null)
+            {
+                _objectLayer.Visible = true;
+            }
+            BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
             return;
         }
 
-        _mapData = BattlePrototypeMapData.Create(ScenarioType);
+        _mapData = BattlePrototypeMapData.Create(scenarioDefinition);
         ConfigureTileMapLayer("MapRoot/GroundLayer", BattlePrototypeTileLayerKind.Ground);
+        ConfigureTileMapLayer("MapRoot/MoatLayer", BattlePrototypeTileLayerKind.Moat);
         ConfigureTileMapLayer("MapRoot/ObjectLayer", BattlePrototypeTileLayerKind.Object);
         ConfigureTileMapLayer("MapRoot/CastleLayer", BattlePrototypeTileLayerKind.Castle);
         ConfigureTileMapLayer("MapRoot/OverlayLayer", BattlePrototypeTileLayerKind.DeploymentOverlay);
@@ -434,9 +542,15 @@ public partial class BattlePrototypeSceneController : Node2D
     private bool HasEditorAuthoredLayout()
     {
         return (_groundLayer?.GetUsedCells().Count ?? 0) > 0 ||
+               (_moatLayer?.GetUsedCells().Count ?? 0) > 0 ||
                (_objectLayer?.GetUsedCells().Count ?? 0) > 0 ||
                (_castleLayer?.GetUsedCells().Count ?? 0) > 0 ||
                (_overlayLayer?.GetUsedCells().Count ?? 0) > 0;
+    }
+
+    private bool ShouldUseEditorAuthoredLayout()
+    {
+        return UseEditorAuthoredLayout || IsNorthWestSceneVariant();
     }
 
     private void BakePrototypeLayoutInEditor()
@@ -446,16 +560,106 @@ public partial class BattlePrototypeSceneController : Node2D
             return;
         }
 
-        _mapData = BattlePrototypeMapData.Create(ScenarioType);
+        _mapData = BattlePrototypeMapData.Create(ResolveScenarioDefinition());
         BattlePrototypeTileMapBuilder.ConfigureLayer(_groundLayer, _mapData, BattlePrototypeTileLayerKind.Ground);
+        ConfigureOptionalTileMapLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
         BattlePrototypeTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattlePrototypeTileLayerKind.Object);
+        if (_objectLayer != null)
+        {
+            _objectLayer.Visible = true;
+        }
         BattlePrototypeTileMapBuilder.ConfigureLayer(_castleLayer, _mapData, BattlePrototypeTileLayerKind.Castle);
         BattlePrototypeTileMapBuilder.ConfigureLayer(_overlayLayer, _mapData, BattlePrototypeTileLayerKind.DeploymentOverlay);
+    }
+
+    private BattleScenarioDefinition ResolveScenarioDefinition()
+    {
+        if (TryResolveSceneScenarioDefinition(out var sceneScenarioDefinition))
+        {
+            return sceneScenarioDefinition;
+        }
+
+        if (ScenarioDefinition != null)
+        {
+            return ScenarioDefinition;
+        }
+
+        return BattleScenarioDefinition.CreateBuiltIn(ScenarioType);
+    }
+
+    private bool TryResolveSceneScenarioDefinition(out BattleScenarioDefinition scenarioDefinition)
+    {
+        scenarioDefinition = null!;
+        var scenarioPath = ResolveSceneScenarioPath();
+        if (string.IsNullOrWhiteSpace(scenarioPath) || !ResourceLoader.Exists(scenarioPath))
+        {
+            return false;
+        }
+
+        var loadedScenarioDefinition = GD.Load<BattleScenarioDefinition>(scenarioPath);
+        if (loadedScenarioDefinition == null)
+        {
+            return false;
+        }
+
+        scenarioDefinition = loadedScenarioDefinition;
+        return true;
+    }
+
+    private string? ResolveSceneScenarioPath()
+    {
+        if (IsNorthWestSceneVariant())
+        {
+            return ScenarioType switch
+            {
+                BattleScenarioType.SiegeAssault => NorthWestSiegeScenarioPath,
+                BattleScenarioType.MoatSiegeBattle => NorthWestMoatScenarioPath,
+                _ => null
+            };
+        }
+
+        if (IsNorthEastSceneVariant())
+        {
+            return ScenarioType switch
+            {
+                BattleScenarioType.SiegeAssault => NorthEastSiegeScenarioPath,
+                BattleScenarioType.MoatSiegeBattle => NorthEastMoatScenarioPath,
+                _ => null
+            };
+        }
+
+        return null;
+    }
+
+    private bool IsNorthWestSceneVariant()
+    {
+        var sceneFilePath = GetCurrentSceneFilePath();
+        return !string.IsNullOrWhiteSpace(sceneFilePath) &&
+               sceneFilePath.EndsWith(NorthWestScenePath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsNorthEastSceneVariant()
+    {
+        var sceneFilePath = GetCurrentSceneFilePath();
+        return !string.IsNullOrWhiteSpace(sceneFilePath) &&
+               sceneFilePath.EndsWith(NorthEastScenePath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string GetCurrentSceneFilePath()
+    {
+        var sceneFilePath = GetTree().CurrentScene?.SceneFilePath;
+        if (string.IsNullOrWhiteSpace(sceneFilePath))
+        {
+            sceneFilePath = SceneFilePath;
+        }
+
+        return sceneFilePath;
     }
 
     private void ClearTileLayoutInEditor()
     {
         ClearLayer(_groundLayer, BattlePrototypeTileLayerKind.Ground);
+        ClearLayer(_moatLayer, BattlePrototypeTileLayerKind.Moat);
         ClearLayer(_objectLayer, BattlePrototypeTileLayerKind.Object);
         ClearLayer(_castleLayer, BattlePrototypeTileLayerKind.Castle);
         ClearLayer(_overlayLayer, BattlePrototypeTileLayerKind.DeploymentOverlay);
@@ -486,6 +690,34 @@ public partial class BattlePrototypeSceneController : Node2D
         }
 
         BattlePrototypeTileMapBuilder.ConfigureLayer(tileMapLayer, _mapData!, layerKind);
+        if (layerKind == BattlePrototypeTileLayerKind.Moat)
+        {
+            tileMapLayer.Visible = ScenarioType == BattleScenarioType.MoatSiegeBattle;
+        }
+    }
+
+    private static void AssignOptionalTileMapLayer(TileMapLayer? layer, BattlePrototypeTileLayerKind layerKind)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        BattlePrototypeTileMapBuilder.AssignLayerTileSet(layer, layerKind);
+    }
+
+    private void ConfigureOptionalTileMapLayer(TileMapLayer? layer, BattlePrototypeTileLayerKind layerKind)
+    {
+        if (layer == null || _mapData == null)
+        {
+            return;
+        }
+
+        BattlePrototypeTileMapBuilder.ConfigureLayer(layer, _mapData, layerKind);
+        if (layerKind == BattlePrototypeTileLayerKind.Moat)
+        {
+            layer.Visible = ScenarioType == BattleScenarioType.MoatSiegeBattle;
+        }
     }
 
     private void BuildCastleDepthVisuals()
@@ -549,6 +781,7 @@ public partial class BattlePrototypeSceneController : Node2D
             Texture = spec.Texture,
             RegionEnabled = true,
             RegionRect = spec.Region,
+            FlipH = spec.FlipHorizontally,
             Centered = false,
             Offset = -spec.Pivot,
             Position = GetCastleDepthSpritePosition(grid),
@@ -592,6 +825,7 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             sprite.Texture = spec.Texture;
             sprite.RegionRect = spec.Region;
+            sprite.FlipH = spec.FlipHorizontally;
             sprite.Offset = -spec.Pivot;
             sprite.Position = GetCastleDepthSpritePosition(grid);
         }
@@ -777,35 +1011,12 @@ public partial class BattlePrototypeSceneController : Node2D
                 return false;
             }
 
-            // An opened multi-cell gate only keeps its rightmost foreground piece as a silhouette.
-            if (cell.IsGateOpen)
-            {
-                var gateGroup = GetConnectedGateGroup(grid.Grid);
-                return gateGroup.Count > 0 && grid.X == gateGroup.Max(gateGrid => gateGrid.X);
-            }
-
-            return true;
+            return cell.IsGateOpen
+                ? cell.HideGroundOccupantWhenGateOpen
+                : cell.HideGroundOccupantWithForeground;
         }
 
-        // L0 on a wall grid is behind the wall facade. Only L2 represents a unit on top of it.
-        if (IsWallTopGrid(grid.Grid))
-        {
-            return true;
-        }
-
-        // NE-facing castle walls visually cover the L0 cells behind them:
-        // wall grid (x, wallY) occludes (x, wallY - 1) and (x, wallY - 2).
-        // Since this check starts from the occupant grid, look forward to y + depth.
-        for (var yOffset = 1; yOffset <= NorthEastWallOcclusionDepth; yOffset++)
-        {
-            var blockingGrid = new Vector2I(grid.X, grid.Y + yOffset);
-            if (IsWithinMap(blockingGrid) && IsWallTopGrid(blockingGrid))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return cell.HideGroundOccupantWithForeground;
     }
 
     private static Color GetOccludedUnitSilhouetteColor(BattleOccupantInfo occupant)
@@ -817,17 +1028,28 @@ public partial class BattlePrototypeSceneController : Node2D
 
     private void PopulateMarkers()
     {
-        CreateMarker("MapRoot/UnitLayer/AttackerA", new Vector2I(10, 20), "I", "Attacker Infantry A", CategoryUnit, "Team A / Attacker", "Xiahou Yuan", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Spearman", new Vector2I(8, 18), "S", "Attacker Spearman", CategoryUnit, "Team A / Attacker", "Cao Hong", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/AttackerB", new Vector2I(12, 18), "A", "Attacker Archer B", CategoryUnit, "Team A / Attacker", "Zhang He", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/AttackerC", new Vector2I(14, 20), "C", "Attacker Cavalry C", CategoryUnit, "Team A / Attacker", "Cao Chun", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ram", new Vector2I(12, 16), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", "Yue Jin", TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ladder", new Vector2I(10, 15), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", "Yu Jin", TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Catapult", new Vector2I(14, 15), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
+        CreateMarker("MapRoot/UnitLayer/AttackerA", ResolveUnitSpawnGrid("AttackerA", new Vector2I(10, 20)), "I", "Attacker Infantry A", CategoryUnit, "Team A / Attacker", "Xiahou Yuan", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Spearman", ResolveUnitSpawnGrid("Spearman", new Vector2I(8, 18)), "S", "Attacker Spearman", CategoryUnit, "Team A / Attacker", "Cao Hong", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/AttackerB", ResolveUnitSpawnGrid("AttackerB", new Vector2I(12, 18)), "A", "Attacker Archer B", CategoryUnit, "Team A / Attacker", "Zhang He", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/AttackerC", ResolveUnitSpawnGrid("AttackerC", new Vector2I(14, 20)), "C", "Attacker Cavalry C", CategoryUnit, "Team A / Attacker", "Cao Chun", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Ram", ResolveUnitSpawnGrid("Ram", new Vector2I(12, 16)), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", "Yue Jin", TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Ladder", ResolveUnitSpawnGrid("Ladder", new Vector2I(10, 15)), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", "Yu Jin", TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Catapult", ResolveUnitSpawnGrid("Catapult", new Vector2I(14, 15)), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
-        CreateMarker("MapRoot/UnitLayer/DefenderA", new Vector2I(10, 7), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/DefenderB", new Vector2I(14, 7), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
-        CreateMarker("MapRoot/UnitLayer/DefenderC", new Vector2I(12, 7), "G", "Defender Commander", CategoryUnit, "Team B / Defender", "Guo Si", TroopSpearman, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderA", ResolveUnitSpawnGrid("DefenderA", new Vector2I(10, 7)), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/DefenderB", ResolveUnitSpawnGrid("DefenderB", new Vector2I(14, 7)), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
+        CreateMarker("MapRoot/UnitLayer/DefenderC", ResolveUnitSpawnGrid("DefenderC", new Vector2I(12, 7)), "G", "Defender Commander", CategoryUnit, "Team B / Defender", "Guo Si", TroopSpearman, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+    }
+
+    private Vector2I ResolveUnitSpawnGrid(string unitKey, Vector2I fallbackGrid)
+    {
+        var scenarioDefinition = ResolveScenarioDefinition();
+        if (scenarioDefinition.UnitSpawnGrids.TryGetValue(unitKey, out var configuredGrid))
+        {
+            return configuredGrid;
+        }
+
+        return fallbackGrid;
     }
 
     private void CreateMarker(string path, Vector2I grid, string label, string displayName, string category, string teamName, string officerName, string troopType, int troopCount, Color fillColor, Color borderColor, float radius = 19.0f, int moveRange = 0, int attackRange = 1)
@@ -936,9 +1158,10 @@ public partial class BattlePrototypeSceneController : Node2D
         var teamBLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/TeamBLabel");
         var coordinateLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/CoordinateLabel");
 
+        var scenarioName = ResolveScenarioDefinition().DisplayName;
         if (titleLabel != null)
         {
-            titleLabel.Text = $"Date: {BattleDateText}   Weather: {WeatherText}   Turn: {_turnNumber}   Acting Side: {GetCurrentTurnSideName()}";
+            titleLabel.Text = $"Scenario: {scenarioName}   Date: {BattleDateText}   Weather: {WeatherText}   Turn: {_turnNumber}   Acting Side: {GetCurrentTurnSideName()}";
         }
 
         if (summaryLabel != null)
@@ -1410,16 +1633,25 @@ public partial class BattlePrototypeSceneController : Node2D
     {
         if (!_selectedGrid.HasValue || _mapData == null)
         {
-            return "Tile Info\nCoordinate: -\nClick a tile to inspect terrain, structure, deployment zone, and units.";
+            return $"Tile Info\nScenario: {ResolveScenarioDefinition().DisplayName}\nCoordinate: -\nClick a tile to inspect terrain, structure, deployment zone, and units.";
         }
 
         var grid = _selectedGrid.Value;
         var cell = _mapData.GetCell(grid.X, grid.Y);
         var builder = new StringBuilder();
         builder.AppendLine("Tile Info");
+        builder.AppendLine($"Scenario: {ResolveScenarioDefinition().DisplayName}");
         builder.AppendLine($"Coordinate: {FormatGrid(_selectedGridKey, _selectedGrid)}");
         builder.AppendLine($"Terrain: {FormatTerrain(cell.Terrain)}");
         builder.AppendLine($"Structure: {FormatStructure(cell.Structure)}");
+        if (cell.Structure != BattleStructureType.None)
+        {
+            builder.AppendLine($"Facing: {FormatStructureFacing(cell.StructureFacing)}");
+        }
+        if (cell.Structure == BattleStructureType.Gate)
+        {
+            builder.AppendLine($"Gate Segment: {FormatGateSegment(cell.GateSegment)}");
+        }
         if (cell.HasStructureHealth)
         {
             var durability = GetDisplayStructureDurability(grid, cell);
@@ -4200,6 +4432,26 @@ public partial class BattlePrototypeSceneController : Node2D
         {
             BattleDeploymentZone.Attacker => "Attacker Zone",
             BattleDeploymentZone.Defender => "Defender Zone",
+            _ => "None"
+        };
+    }
+
+    private static string FormatStructureFacing(BattleStructureFacing facing)
+    {
+        return facing switch
+        {
+            BattleStructureFacing.NorthEast => "NorthEast",
+            BattleStructureFacing.NorthWest => "NorthWest",
+            _ => "None"
+        };
+    }
+
+    private static string FormatGateSegment(BattleGateSegment gateSegment)
+    {
+        return gateSegment switch
+        {
+            BattleGateSegment.Left => "Left",
+            BattleGateSegment.Right => "Right",
             _ => "None"
         };
     }

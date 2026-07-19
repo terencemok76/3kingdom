@@ -74,6 +74,15 @@ public partial class GameStartMenuController : CanvasLayer
     private Button? _loadGameButton;
     private Button? _battlePrototypeButton;
     private Button? _optionButton;
+    private ColorRect? _battlePrototypeDialogBackdrop;
+    private CenterContainer? _battlePrototypeDialogCenter;
+    private Label? _battlePrototypeDialogTitleLabel;
+    private Button? _battlePrototypeFieldBattleButton;
+    private Button? _battlePrototypeNorthEastSiegeButton;
+    private Button? _battlePrototypeNorthEastMoatButton;
+    private Button? _battlePrototypeNorthWestSiegeButton;
+    private Button? _battlePrototypeNorthWestMoatButton;
+    private Button? _battlePrototypeDialogCloseButton;
     private Button? _storyConfirmButton;
     private Button? _storyBackButton;
     private ItemList? _storyList;
@@ -106,7 +115,7 @@ public partial class GameStartMenuController : CanvasLayer
 
     public event Action<string, int>? StartGameConfirmed;
     public event Action<int>? LoadGameConfirmed;
-    public event Action? BattlePrototypeRequested;
+    public event Action<string>? BattlePrototypeRequested;
 
     public override void _Ready()
     {
@@ -121,6 +130,15 @@ public partial class GameStartMenuController : CanvasLayer
         _loadGameButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/LoadGameButton");
         _battlePrototypeButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/BattlePrototypeButton");
         _optionButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/MainMenuPanel/OptionButton");
+        _battlePrototypeDialogBackdrop = GetNodeOrNull<ColorRect>("Root/BattlePrototypeDialogBackdrop");
+        _battlePrototypeDialogCenter = GetNodeOrNull<CenterContainer>("Root/BattlePrototypeDialogCenter");
+        _battlePrototypeDialogTitleLabel = GetNodeOrNull<Label>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeDialogTitleLabel");
+        _battlePrototypeFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeFieldBattleButton");
+        _battlePrototypeNorthEastSiegeButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthEastSiegeButton");
+        _battlePrototypeNorthEastMoatButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthEastMoatButton");
+        _battlePrototypeNorthWestSiegeButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthWestSiegeButton");
+        _battlePrototypeNorthWestMoatButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthWestMoatButton");
+        _battlePrototypeDialogCloseButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeDialogCloseButton");
         _storySectionLabel = GetNodeOrNull<Label>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StoryLabel");
         _storyList = GetNodeOrNull<ItemList>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StoryList");
         _storySummaryLabel = GetNodeOrNull<RichTextLabel>("Root/CenterContainer/MenuPanel/MenuRoot/StoryPanel/StorySummaryLabel");
@@ -212,6 +230,36 @@ public partial class GameStartMenuController : CanvasLayer
         if (_battlePrototypeButton != null)
         {
             _battlePrototypeButton.Pressed += OnBattlePrototypePressed;
+        }
+
+        if (_battlePrototypeFieldBattleButton != null)
+        {
+            _battlePrototypeFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD");
+        }
+
+        if (_battlePrototypeNorthEastSiegeButton != null)
+        {
+            _battlePrototypeNorthEastSiegeButton.Pressed += () => OnBattlePrototypeVariantSelected("NE_SIEGE");
+        }
+
+        if (_battlePrototypeNorthEastMoatButton != null)
+        {
+            _battlePrototypeNorthEastMoatButton.Pressed += () => OnBattlePrototypeVariantSelected("NE_MOAT");
+        }
+
+        if (_battlePrototypeNorthWestSiegeButton != null)
+        {
+            _battlePrototypeNorthWestSiegeButton.Pressed += () => OnBattlePrototypeVariantSelected("NW_SIEGE");
+        }
+
+        if (_battlePrototypeNorthWestMoatButton != null)
+        {
+            _battlePrototypeNorthWestMoatButton.Pressed += () => OnBattlePrototypeVariantSelected("NW_MOAT");
+        }
+
+        if (_battlePrototypeDialogCloseButton != null)
+        {
+            _battlePrototypeDialogCloseButton.Pressed += HideBattlePrototypeDialog;
         }
 
         if (_optionButton != null)
@@ -341,7 +389,29 @@ public partial class GameStartMenuController : CanvasLayer
             });
         }
 
-        foreach (var button in new[] { _startGameButton, _loadGameButton, _battlePrototypeButton, _optionButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
+        var battlePrototypeDialogPanel = GetNodeOrNull<PanelContainer>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel");
+        if (battlePrototypeDialogPanel != null)
+        {
+            battlePrototypeDialogPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = new Color(0.08f, 0.08f, 0.1f, 0.96f),
+                BorderWidthLeft = 2,
+                BorderWidthTop = 2,
+                BorderWidthRight = 2,
+                BorderWidthBottom = 2,
+                BorderColor = new Color(0.58f, 0.46f, 0.28f, 0.98f),
+                CornerRadiusTopLeft = 10,
+                CornerRadiusTopRight = 10,
+                CornerRadiusBottomLeft = 10,
+                CornerRadiusBottomRight = 10,
+                ContentMarginLeft = 18.0f,
+                ContentMarginTop = 18.0f,
+                ContentMarginRight = 18.0f,
+                ContentMarginBottom = 18.0f
+            });
+        }
+
+        foreach (var button in new[] { _startGameButton, _loadGameButton, _battlePrototypeButton, _optionButton, _battlePrototypeFieldBattleButton, _battlePrototypeNorthEastSiegeButton, _battlePrototypeNorthEastMoatButton, _battlePrototypeNorthWestSiegeButton, _battlePrototypeNorthWestMoatButton, _battlePrototypeDialogCloseButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
         {
             ApplyButtonTheme(button);
         }
@@ -451,6 +521,53 @@ public partial class GameStartMenuController : CanvasLayer
             _battlePrototypeButton.Text = _localization.IsTraditionalChinese
                 ? "戰鬥原型"
                 : "Battle Prototype";
+        }
+
+        if (_battlePrototypeDialogTitleLabel != null)
+        {
+            _battlePrototypeDialogTitleLabel.Text = _localization.IsTraditionalChinese
+                ? "選擇戰場模式"
+                : "Choose Battle Mode";
+        }
+
+        if (_battlePrototypeFieldBattleButton != null)
+        {
+            _battlePrototypeFieldBattleButton.Text = _localization.IsTraditionalChinese
+                ? "FieldBattle 野戰"
+                : "FieldBattle";
+        }
+
+        if (_battlePrototypeNorthEastSiegeButton != null)
+        {
+            _battlePrototypeNorthEastSiegeButton.Text = _localization.IsTraditionalChinese
+                ? "NE SiegeAssault"
+                : "NE SiegeAssault";
+        }
+
+        if (_battlePrototypeNorthEastMoatButton != null)
+        {
+            _battlePrototypeNorthEastMoatButton.Text = _localization.IsTraditionalChinese
+                ? "NE MoatSiegeBattle"
+                : "NE MoatSiegeBattle";
+        }
+
+        if (_battlePrototypeNorthWestSiegeButton != null)
+        {
+            _battlePrototypeNorthWestSiegeButton.Text = _localization.IsTraditionalChinese
+                ? "NW SiegeAssault"
+                : "NW SiegeAssault";
+        }
+
+        if (_battlePrototypeNorthWestMoatButton != null)
+        {
+            _battlePrototypeNorthWestMoatButton.Text = _localization.IsTraditionalChinese
+                ? "NW MoatSiegeBattle"
+                : "NW MoatSiegeBattle";
+        }
+
+        if (_battlePrototypeDialogCloseButton != null)
+        {
+            _battlePrototypeDialogCloseButton.Text = _localization.T("ui.back");
         }
 
         if (_optionButton != null)
@@ -597,7 +714,13 @@ public partial class GameStartMenuController : CanvasLayer
 
     private void OnBattlePrototypePressed()
     {
-        BattlePrototypeRequested?.Invoke();
+        ShowBattlePrototypeDialog();
+    }
+
+    private void OnBattlePrototypeVariantSelected(string variant)
+    {
+        HideBattlePrototypeDialog();
+        BattlePrototypeRequested?.Invoke(variant);
     }
 
     private void OnOptionLanguagePressed()
@@ -930,6 +1053,7 @@ public partial class GameStartMenuController : CanvasLayer
     private void SetVisibleScreen(MenuScreen screen)
     {
         HideOptionDialog();
+        HideBattlePrototypeDialog();
 
         if (_mainMenuPanel != null)
         {
@@ -998,6 +1122,32 @@ public partial class GameStartMenuController : CanvasLayer
         if (_optionDialogCenter != null)
         {
             _optionDialogCenter.Visible = false;
+        }
+    }
+
+    private void ShowBattlePrototypeDialog()
+    {
+        if (_battlePrototypeDialogBackdrop != null)
+        {
+            _battlePrototypeDialogBackdrop.Visible = true;
+        }
+
+        if (_battlePrototypeDialogCenter != null)
+        {
+            _battlePrototypeDialogCenter.Visible = true;
+        }
+    }
+
+    private void HideBattlePrototypeDialog()
+    {
+        if (_battlePrototypeDialogBackdrop != null)
+        {
+            _battlePrototypeDialogBackdrop.Visible = false;
+        }
+
+        if (_battlePrototypeDialogCenter != null)
+        {
+            _battlePrototypeDialogCenter.Visible = false;
         }
     }
 

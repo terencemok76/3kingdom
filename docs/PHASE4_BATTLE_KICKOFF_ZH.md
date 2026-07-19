@@ -1,6 +1,6 @@
 # Phase 4 戰鬥系統 Kickoff
 
-更新日期：2026-07-16
+更新日期：2026-07-19
 
 ## 1. 文件定位
 
@@ -116,12 +116,26 @@
 
 ## 7. Prototype -> 正式 TileMap 版拆分
 
+### 7.0 正式方向確認
+
+- 自 `2026-07-19` 起，`Phase 4` 戰場架構正式採用混合式方向：
+  - `TileMap` 只負責 scene map data 與 WYSIWYG 地圖編輯
+  - `Scenario Data` 負責戰場規則補充、部署、勝敗條件與 AI hint
+  - runtime `BattleMapData` 負責 controller、戰鬥規則、A*、AI 實際使用的乾淨資料
+- `BattlePrototypeMapData` 的 code-defined layout 仍可保留作為 prototype 與 regression 測試基線：
+  - 但不應作為正式多戰場內容的主要維護方式
+  - 正式地圖應逐步改由 Godot `TileMap` 手工編排
+- controller 不應直接把 scene node 當成規則來源：
+  - 應先將 `TileMap` 與 `Scenario Data` 轉成 runtime `BattleMapData`
+  - 後續的移動、阻擋、射程、攻城器、城門、城牆、HUD 與 AI 都只依賴 `BattleMapData`
+
 ### 7.1 工作包
 
 1. 戰場資料模型定型
    - 固定 `25x25` 戰場格資料結構
-   - 每格至少有：`ground_type`、`terrain_type`、`structure_type`、`height_tag`、`move_cost`、`block_state`
+   - runtime `BattleMapData` 每格至少有：`ground_type`、`terrain_type`、`structure_type`、`height_tag`、`move_cost`、`block_state`
    - 攻城戰專用欄位至少有：`wall_segment`、`gate_segment`、`inside_city`、`siege_deploy_zone`
+   - 視覺與遮擋相關欄位至少要能描述：`structure_facing`、`foreground_occlusion`
 2. TileSet 規格定型
    - 正式 tile 尺寸先以 `128x64` 為基準
    - 圖層建議切為：`Ground`、`Road/Terrain`、`StructureBase`、`StructureOverlay`
@@ -145,7 +159,8 @@
    - 邏輯用獨立 grid data
    - 所有 hover、click、移動、阻擋、射程都以 `Vector2I grid` 為主
 7. 建立場景維護流程
-   - 先支援 battle map data 檔或 code-defined layout
+   - 正式內容以 Godot `TileMap` 手工編圖為主，保留 WYSIWYG 工作流
+   - `BattleMapData` 作為 runtime 轉換結果，不直接手改為正式內容來源
    - 早期不強制自製 editor
    - 等地圖數量擴大後再評估 battle map editor tool
 8. 再進入正式戰鬥系統
@@ -214,22 +229,41 @@
 
 - 建議建立 `BattleScenarioDefinition`：
   - 戰場類型與地圖尺寸
-  - 地形、結構、高度與部署區
   - 參戰部隊、勝敗條件與回合限制
   - 可啟用的規則模組
+  - 部署區、特殊目標點、事件點
+  - AI hint，例如主攻路線、防守重點區、破門優先度
   - TileSet、結構視覺、BGM 等戰場主題資料
-- `BattleMapData` 只負責格子狀態：
+- `TileMap` 只負責 scene map data 與視覺可編輯內容：
+  - `ground_type`
+  - `structure_type`
+  - `height_tag` 或可推導其對應資訊
+  - `base_block_state`
+  - `base_move_cost`
+  - 可選的 `visual mask hint`
+- 若 `NorthEast` / `NorthWest` 戰場需要不同牆線、道路、護城河或城門位置：
+  - 應直接維護各自的 Godot `TileMap`
+  - 以手工編圖維持 WYSIWYG，不依賴 runtime 自動 mirror
+  - controller 仍只讀 `TileMap -> BattleMapData` 的轉換結果，不直接依賴 scene node 判規則
+- runtime `BattleMapData` 負責 controller、戰鬥規則、A*、AI 使用的格子狀態：
   - `terrain_type`
   - `structure_type`
   - `height_tag`
   - `move_cost`
   - `block_state`
+  - `structure_facing`
+  - `foreground_occlusion`
+  - `structure_hp / gate_open_state`
 - `BattleScene` 共用處理：
   - 回合流程
   - 選取、移動、攻擊
   - A* pathfinding
   - HUD、動畫與結果結算
-- 城門、城牆、雲梯、護城河等差異，應由規則模組與 scenario data 決定，而不是以固定座標寫入 controller。
+- controller 不應直接讀 scene node 來判規則：
+  - 應先經過 `TileMap -> BattleMapData` 的標準化轉換
+  - 城門、城牆、雲梯、護城河等差異，應由規則模組與 scenario data 決定，而不是以固定座標寫入 controller。
+- AI 不應直接依賴 TileMap node：
+  - 應只依賴 runtime `BattleMapData` 與 `BattleScenarioDefinition` 提供的資訊
 
 ### 10.3 各戰場的最小規則差異
 
@@ -251,10 +285,19 @@
 - `BattleGridKey (x, y, level)` 持續作為地面與牆頂的唯一格子識別。
 - `L0` 表示地面／城門通道／城牆後方位置；`L2` 表示牆頂可行走位置。
 - 位於城牆後方或完整城門前景遮擋區的 `L0` 單位，可用 silhouette 表示而非直接顯示完整 sprite。
+- 正式版不應假設所有城牆／城門都固定朝 `NorthEast`：
+  - 至少需支援 `NorthEast` 與 `NorthWest`
+  - 未來如有更多戰場朝向，應沿用同一套 facing-driven 規則擴充
 - 現行雙格城門 prototype 的開門視覺暫定為：
   - 左側 gate 格可正常顯示單位
   - 最右側 gate 格仍顯示 silhouette
-- 此規則是現有素材的暫定視覺處理；正式版應改為 scenario data 定義的前景遮罩區域，不能依賴固定座標或 gate 群組左右順序。
+- 此規則是現有素材的暫定視覺處理；正式版應改為由 `structure_facing` 與 scenario data 驅動的前景遮罩區域，不能依賴固定座標或 gate 群組左右順序。
+- 2026-07-18 起，prototype 已先將城牆／城門前景遮擋旗標移入 `BattlePrototypeMapData`：
+  - `SiegeAssault / MoatSiegeBattle` 由 scenario layout 明確標記需要 silhouette 的 `L0` 格
+  - `Use Editor Authored Layout` 模式則會依已烘焙的牆／門結構自動推導預設遮擋旗標
+- 正式版的 silhouette、foreground occlusion、gate open 後的前景保留側、wall-top depth sorting：
+  - 都必須改為 facing-driven
+  - 不應再把 `NorthEast` 牆面遮擋或「最右側 gate 保留 silhouette」寫死在 controller
 - 牆頂移動高亮與其他 `L2` 單位不可被 `L0` gate／wall 的固定高 Z 值覆蓋；結構與單位的深度規則必須以層級與地圖深度共同決定。
 - 投石車一般攻擊會在發射動畫期間使用 `assets/battle/object/catapult_stone.png` 顯示旋轉石彈飛向目標格；飛行時會壓縮原素材的橫向比例，使其更接近單顆石彈，並在命中位置顯示衝擊效果。部隊與城門目標均適用。
 - 牆頂單位可使用 prototype 專用攻擊：
@@ -286,5 +329,16 @@
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
 - 護城河使用 `assets/battle/floor/floor.png` 的第六格 river tile；橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
-- 預設三種 scenario 都會由 scenario data 重建 TileMap，避免 scene 內殘留 baked tiles 影響地圖結構。
-- 如需測試手動編輯的 TileMap，可在 Inspector 開啟 `Use Editor Authored Layout`；此模式才會讀取 scene 內的 baked layout。
+- `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
+- `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
+- runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
+- 若橋面在 editor 內使用了 `Flip H`，runtime 也必須保留該 bridge tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向會跑掉。
+- `Battle Prototype / 戰鬥原型` 入口目前已支援 5 個模式選項：
+  - `FieldBattle`
+  - `NE SiegeAssault`
+  - `NE MoatSiegeBattle`
+  - `NW SiegeAssault`
+  - `NW MoatSiegeBattle`
+- `BattlePrototypeScene.tscn` 與 `BattlePrototypeSceneNorthWest.tscn` 目前都以 scene 內手工編排的 `TileMapLayer` 為主。
+- runtime 會直接讀取這兩個 scene 的 editor-authored layout，讓 `NorthEast` / `NorthWest` 都維持 WYSIWYG 工作流。
+- 若需測試其他手工編輯 TileMap 場景，可在 Inspector 開啟 `Use Editor Authored Layout`，讓 controller 讀取 scene 內 baked layout，而不是用 scenario data 重建。

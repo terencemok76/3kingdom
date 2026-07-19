@@ -256,6 +256,94 @@ autowrap_mode = 2
 text = "Select an option."
 theme_override_colors/font_color = Color(0.8, 0.76, 0.69, 1)
 
+[node name="BattlePrototypeDialogBackdrop" type="ColorRect" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0.01, 0.01, 0.02, 0.55)
+
+[node name="BattlePrototypeDialogCenter" type="CenterContainer" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="BattlePrototypeDialogPanel" type="PanelContainer" parent="Root/BattlePrototypeDialogCenter"]
+custom_minimum_size = Vector2(460, 430)
+layout_mode = 2
+
+[node name="BattlePrototypeDialogRoot" type="VBoxContainer" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel"]
+custom_minimum_size = Vector2(420, 390)
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BattlePrototypeDialogTitleLabel" type="Label" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+layout_mode = 2
+horizontal_alignment = 1
+text = "Choose Battle Direction"
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.93, 0.89, 0.8, 1)
+
+[node name="BattlePrototypeDialogSpacerTop" type="Control" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+
+[node name="BattlePrototypeFieldBattleButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "FieldBattle"
+
+[node name="BattlePrototypeNorthEastSiegeButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "NE SiegeAssault"
+
+[node name="BattlePrototypeNorthEastMoatButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "NE MoatSiegeBattle"
+
+[node name="BattlePrototypeNorthWestSiegeButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "NW SiegeAssault"
+
+[node name="BattlePrototypeNorthWestMoatButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "NW MoatSiegeBattle"
+
+[node name="BattlePrototypeDialogSpacerBottom" type="Control" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BattlePrototypeDialogCloseButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Back"
+
 [node name="OptionDialogBackdrop" type="ColorRect" parent="Root"]
 visible = false
 layout_mode = 1

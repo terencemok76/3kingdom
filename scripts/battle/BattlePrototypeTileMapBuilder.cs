@@ -7,6 +7,7 @@ namespace ThreeKingdom.Battle;
 public enum BattlePrototypeTileLayerKind
 {
     Ground,
+    Moat,
     Object,
     Castle,
     DeploymentOverlay
@@ -66,7 +67,7 @@ public static class BattlePrototypeTileMapBuilder
     private static readonly Dictionary<BattlePrototypeTileLayerKind, Texture2D> SharedAtlasTextures = new();
     private static Texture2D? SharedCastleOpenGateAtlasTexture;
 
-    public readonly record struct BattleTileSpriteSpec(Texture2D Texture, Rect2 Region, Vector2 Pivot);
+    public readonly record struct BattleTileSpriteSpec(Texture2D Texture, Rect2 Region, Vector2 Pivot, bool FlipHorizontally = false);
 
     public static TileSet CreateSharedTileSet(BattlePrototypeTileLayerKind layerKind)
     {
@@ -99,7 +100,7 @@ public static class BattlePrototypeTileMapBuilder
                     continue;
                 }
 
-                layer.SetCell(cell.Grid, AtlasSourceId, atlasCoords.Value);
+                layer.SetCell(cell.Grid, AtlasSourceId, atlasCoords.Value, ResolveAlternativeTile(cell, layerKind));
             }
         }
 
@@ -115,16 +116,21 @@ public static class BattlePrototypeTileMapBuilder
 
     public static void SetCastleGateVisual(TileMapLayer layer, Vector2I grid, bool isOpen)
     {
+        var alternativeTile = layer.GetCellAlternativeTile(grid);
+        var gateSegment = ResolveGateSegment(grid, layer);
+        var baseGateSegment = IsHorizontallyFlipped(alternativeTile)
+            ? MirrorGateSegment(gateSegment)
+            : gateSegment;
         if (isOpen)
         {
-            layer.SetCell(grid, CastleOpenGateAtlasSourceId, new Vector2I(grid.X % 2 == 0 ? 1 : 0, 0));
+            layer.SetCell(grid, CastleOpenGateAtlasSourceId, new Vector2I(baseGateSegment == BattleGateSegment.Right ? 1 : 0, 0), alternativeTile);
         }
         else
         {
-            var visual = grid.X % 2 == 0
+            var visual = baseGateSegment == BattleGateSegment.Right
                 ? BattlePrototypeCastleTileVisual.GateRight
                 : BattlePrototypeCastleTileVisual.GateLeft;
-            layer.SetCell(grid, AtlasSourceId, new Vector2I((int)visual, 0));
+            layer.SetCell(grid, AtlasSourceId, new Vector2I((int)visual, 0), alternativeTile);
         }
 
         layer.UpdateInternals();
@@ -134,13 +140,32 @@ public static class BattlePrototypeTileMapBuilder
     {
         var metrics = GetAtlasMetrics(BattlePrototypeTileLayerKind.Castle);
         var pivot = metrics.GetSpriteFootPivot();
+        var usesAuthoredCastleVisual = cell.CastleSourceId >= 0 && cell.CastleAtlasCoords.X >= 0;
+        var flipHorizontally = usesAuthoredCastleVisual
+            ? IsHorizontallyFlipped(cell.CastleAlternativeTile)
+            : cell.StructureFacing == BattleStructureFacing.NorthWest;
         if (cell.Structure == BattleStructureType.Gate && cell.IsGateOpen)
         {
             var openTexture = GetCastleOpenGateAtlasTexture(metrics);
             if (openTexture != null)
             {
-                var openAtlasCoords = new Vector2I(cell.Grid.X % 2 == 0 ? 1 : 0, 0);
-                spec = CreateSpriteSpec(openTexture, metrics, openAtlasCoords, pivot);
+                var gateSegment = usesAuthoredCastleVisual
+                    ? ResolveBaseGateSegment(cell.CastleSourceId, cell.CastleAtlasCoords)
+                    : cell.GateSegment;
+                var openAtlasCoords = new Vector2I(gateSegment == BattleGateSegment.Right ? 1 : 0, 0);
+                spec = CreateSpriteSpec(openTexture, metrics, openAtlasCoords, pivot, flipHorizontally);
+                return true;
+            }
+        }
+
+        if (usesAuthoredCastleVisual)
+        {
+            var authoredTexture = cell.CastleSourceId == CastleOpenGateAtlasSourceId
+                ? GetCastleOpenGateAtlasTexture(metrics)
+                : GetAtlasTexture(BattlePrototypeTileLayerKind.Castle);
+            if (authoredTexture != null)
+            {
+                spec = CreateSpriteSpec(authoredTexture, metrics, cell.CastleAtlasCoords, pivot, flipHorizontally);
                 return true;
             }
         }
@@ -153,7 +178,7 @@ public static class BattlePrototypeTileMapBuilder
         }
 
         var texture = GetAtlasTexture(BattlePrototypeTileLayerKind.Castle);
-        spec = CreateSpriteSpec(texture, metrics, atlasCoords.Value, pivot);
+        spec = CreateSpriteSpec(texture, metrics, atlasCoords.Value, pivot, flipHorizontally);
         return true;
     }
 
@@ -162,6 +187,7 @@ public static class BattlePrototypeTileMapBuilder
         return layerKind switch
         {
             BattlePrototypeTileLayerKind.Ground => ResolveFloorVisual(cell),
+            BattlePrototypeTileLayerKind.Moat => ResolveMoatVisual(cell),
             BattlePrototypeTileLayerKind.Object => ResolveObjectVisual(cell),
             BattlePrototypeTileLayerKind.Castle => ResolveCastleVisual(cell),
             BattlePrototypeTileLayerKind.DeploymentOverlay => ResolveOverlayVisual(cell),
@@ -174,19 +200,24 @@ public static class BattlePrototypeTileMapBuilder
         var visual = cell.Terrain switch
         {
             BattleTerrainType.Road => BattlePrototypeFloorTileVisual.Road,
-            BattleTerrainType.Bridge => BattlePrototypeFloorTileVisual.River,
             BattleTerrainType.Courtyard => BattlePrototypeFloorTileVisual.Courtyard,
             BattleTerrainType.WallWalk => BattlePrototypeFloorTileVisual.WallWalk,
             BattleTerrainType.Forest => BattlePrototypeFloorTileVisual.ForestGround,
-            BattleTerrainType.Moat => BattlePrototypeFloorTileVisual.River,
             _ => BattlePrototypeFloorTileVisual.Grass
         };
         return new Vector2I((int)visual, 0);
     }
 
+    private static Vector2I? ResolveMoatVisual(BattlePrototypeCellData cell)
+    {
+        return cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.Bridge
+            ? new Vector2I((int)BattlePrototypeFloorTileVisual.River, 0)
+            : null;
+    }
+
     private static Vector2I? ResolveObjectVisual(BattlePrototypeCellData cell)
     {
-        if (cell.Terrain == BattleTerrainType.Bridge)
+        if (cell.HasBridgeVisual)
         {
             return new Vector2I((int)BattlePrototypeObjectTileVisual.Bridge, 0);
         }
@@ -206,7 +237,7 @@ public static class BattlePrototypeTileMapBuilder
     {
         BattlePrototypeCastleTileVisual? visual = cell.Structure switch
         {
-            BattleStructureType.Gate => cell.Grid.X % 2 == 0
+            BattleStructureType.Gate => cell.GateSegment == BattleGateSegment.Right
                 ? BattlePrototypeCastleTileVisual.GateRight
                 : BattlePrototypeCastleTileVisual.GateLeft,
             BattleStructureType.Wall => ResolveWallVisual(cell.Grid.X),
@@ -219,6 +250,20 @@ public static class BattlePrototypeTileMapBuilder
         };
 
         return visual.HasValue ? new Vector2I((int)visual.Value, 0) : null;
+    }
+
+    private static BattleGateSegment ResolveGateSegment(Vector2I grid, TileMapLayer layer)
+    {
+        var alternativeTile = layer.GetCellAlternativeTile(grid);
+        var isFlippedHorizontally = IsHorizontallyFlipped(alternativeTile);
+        var baseSegment = ResolveBaseGateSegment(layer.GetCellSourceId(grid), layer.GetCellAtlasCoords(grid));
+
+        if (!isFlippedHorizontally)
+        {
+            return baseSegment;
+        }
+
+        return MirrorGateSegment(baseSegment);
     }
 
     private static BattlePrototypeCastleTileVisual ResolveWallVisual(int x)
@@ -249,19 +294,6 @@ public static class BattlePrototypeTileMapBuilder
             return BattlePrototypeCastleTileVisual.Wall4;
         else
             return BattlePrototypeCastleTileVisual.Wall0;
-
-        // return x switch
-        // {
-        //     0 => BattlePrototypeCastleTileVisual.Wall0,
-        //     1 => BattlePrototypeCastleTileVisual.Wall1,
-        //     2 => BattlePrototypeCastleTileVisual.Wall2,
-        //     3 => BattlePrototypeCastleTileVisual.Wall3,
-        //     4 => BattlePrototypeCastleTileVisual.Wall4,
-        //     5 => BattlePrototypeCastleTileVisual.Wall5,
-        //     8 => BattlePrototypeCastleTileVisual.Wall8,
-        //     9 => BattlePrototypeCastleTileVisual.Wall9,
-        //     _ => BattlePrototypeCastleTileVisual.Wall0
-        // };
     }
 
     private static Vector2I? ResolveOverlayVisual(BattlePrototypeCellData cell)
@@ -274,6 +306,44 @@ public static class BattlePrototypeTileMapBuilder
         };
 
         return visual.HasValue ? new Vector2I((int)visual.Value, 0) : null;
+    }
+
+    private static BattleGateSegment ResolveBaseGateSegment(int sourceId, Vector2I atlasCoords)
+    {
+        return sourceId == CastleOpenGateAtlasSourceId
+            ? atlasCoords.X == 1 ? BattleGateSegment.Right : BattleGateSegment.Left
+            : atlasCoords.X == (int)BattlePrototypeCastleTileVisual.GateRight
+                ? BattleGateSegment.Right
+                : BattleGateSegment.Left;
+    }
+
+    private static int ResolveAlternativeTile(BattlePrototypeCellData cell, BattlePrototypeTileLayerKind layerKind)
+    {
+        return layerKind switch
+        {
+            BattlePrototypeTileLayerKind.Castle => cell.StructureFacing == BattleStructureFacing.NorthWest
+                ? (int)TileSetAtlasSource.TransformFlipH
+                : 0,
+            BattlePrototypeTileLayerKind.Object => cell.HasBridgeVisual && cell.BridgeFlipHorizontally
+                ? (int)TileSetAtlasSource.TransformFlipH
+                : 0,
+            _ => 0
+        };
+    }
+
+    private static bool IsHorizontallyFlipped(int alternativeTile)
+    {
+        return (alternativeTile & TileSetAtlasSource.TransformFlipH) != 0;
+    }
+
+    private static BattleGateSegment MirrorGateSegment(BattleGateSegment gateSegment)
+    {
+        return gateSegment switch
+        {
+            BattleGateSegment.Right => BattleGateSegment.Left,
+            BattleGateSegment.Left => BattleGateSegment.Right,
+            _ => BattleGateSegment.None
+        };
     }
 
     private static TileSet BuildTileSet(BattlePrototypeTileLayerKind layerKind)
@@ -434,14 +504,14 @@ public static class BattlePrototypeTileMapBuilder
         return SharedCastleOpenGateAtlasTexture;
     }
 
-    private static BattleTileSpriteSpec CreateSpriteSpec(Texture2D texture, BattleAtlasMetrics metrics, Vector2I atlasCoords, Vector2 pivot)
+    private static BattleTileSpriteSpec CreateSpriteSpec(Texture2D texture, BattleAtlasMetrics metrics, Vector2I atlasCoords, Vector2 pivot, bool flipHorizontally = false)
     {
         var region = new Rect2(
             atlasCoords.X * metrics.RegionWidth,
             atlasCoords.Y * metrics.RegionHeight,
             metrics.RegionWidth,
             metrics.RegionHeight);
-        return new BattleTileSpriteSpec(texture, region, pivot);
+        return new BattleTileSpriteSpec(texture, region, pivot, flipHorizontally);
     }
 
     private static Texture2D BuildGeneratedAtlasTexture(BattlePrototypeTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
@@ -455,6 +525,7 @@ public static class BattlePrototypeTileMapBuilder
         return layerKind switch
         {
             BattlePrototypeTileLayerKind.Ground => FloorAtlasPath,
+            BattlePrototypeTileLayerKind.Moat => FloorAtlasPath,
             BattlePrototypeTileLayerKind.Object => ObjectAtlasPath,
             BattlePrototypeTileLayerKind.Castle => CastleAtlasPath,
             BattlePrototypeTileLayerKind.DeploymentOverlay => OverlayAtlasPath,
@@ -467,6 +538,7 @@ public static class BattlePrototypeTileMapBuilder
         return layerKind switch
         {
             BattlePrototypeTileLayerKind.Ground => Enum.GetValues<BattlePrototypeFloorTileVisual>().Length,
+            BattlePrototypeTileLayerKind.Moat => Enum.GetValues<BattlePrototypeFloorTileVisual>().Length,
             BattlePrototypeTileLayerKind.Object => Enum.GetValues<BattlePrototypeObjectTileVisual>().Length,
             BattlePrototypeTileLayerKind.Castle => Enum.GetValues<BattlePrototypeCastleTileVisual>().Length,
             BattlePrototypeTileLayerKind.DeploymentOverlay => Enum.GetValues<BattlePrototypeOverlayTileVisual>().Length,
@@ -485,6 +557,7 @@ public static class BattlePrototypeTileMapBuilder
             switch (layerKind)
             {
                 case BattlePrototypeTileLayerKind.Ground:
+                case BattlePrototypeTileLayerKind.Moat:
                     DrawFloorTile(image, tileOffsetX, metrics, (BattlePrototypeFloorTileVisual)tileIndex);
                     break;
                 case BattlePrototypeTileLayerKind.Object:
@@ -848,6 +921,7 @@ public static class BattlePrototypeTileMapBuilder
         return layerKind switch
         {
             BattlePrototypeTileLayerKind.Ground => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
+            BattlePrototypeTileLayerKind.Moat => new BattleAtlasMetrics(TileWidth, BaseTileHeight),
             // object_01.png uses 128x128 tiles; tune the footprint origin against the 128x64 map cell.
             BattlePrototypeTileLayerKind.Object => new BattleAtlasMetrics(TileWidth, 128, FootprintTopY: 32),
             BattlePrototypeTileLayerKind.Castle => new BattleAtlasMetrics(TileWidth, 320, FootprintTopY: 128),

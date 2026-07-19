@@ -1,4 +1,5 @@
-﻿using Godot;
+using Godot;
+using ThreeKingdom.Battle;
 using ThreeKingdom.Data;
 using ThreeKingdom.Map;
 using ThreeKingdom.UI;
@@ -8,7 +9,8 @@ namespace ThreeKingdom.Core;
 public partial class GameBootstrap : Node
 {
     private const string DefaultScenarioPath = "res://data/scenarios/story1_scenario.json";
-    private const string BattlePrototypeScenePath = "res://scenes/battle/BattlePrototypeScene.tscn";
+    private const string BattlePrototypeNorthEastScenePath = "res://scenes/battle/BattlePrototypeScene.tscn";
+    private const string BattlePrototypeNorthWestScenePath = "res://scenes/battle/BattlePrototypeSceneNorthWest.tscn";
 
     private readonly WorldRepository _worldRepository = new();
     private readonly TurnManager _turnManager = new();
@@ -86,9 +88,21 @@ public partial class GameBootstrap : Node
         EnterGameplay(world);
     }
 
-    private void OnBattlePrototypeRequested()
+    private void OnBattlePrototypeRequested(string variant)
     {
-        GetTree().ChangeSceneToFile(BattlePrototypeScenePath);
+        var (scenePath, scenarioType, useEditorAuthoredLayout) = variant.ToUpperInvariant() switch
+        {
+            "FIELD" => (BattlePrototypeNorthEastScenePath, BattleScenarioType.FieldBattle, false),
+            "NE_SIEGE" => (BattlePrototypeNorthEastScenePath, BattleScenarioType.SiegeAssault, true),
+            "NE_MOAT" => (BattlePrototypeNorthEastScenePath, BattleScenarioType.MoatSiegeBattle, true),
+            "NW_SIEGE" => (BattlePrototypeNorthWestScenePath, BattleScenarioType.SiegeAssault, true),
+            "NW_MOAT" => (BattlePrototypeNorthWestScenePath, BattleScenarioType.MoatSiegeBattle, true),
+            _ => (BattlePrototypeNorthEastScenePath, BattleScenarioType.SiegeAssault, true)
+        };
+
+        BattlePrototypeSceneController.PendingLaunchOptions =
+            new BattlePrototypeSceneController.LaunchOptions(scenarioType, useEditorAuthoredLayout);
+        GetTree().ChangeSceneToFile(scenePath);
     }
 
     private void EnterGameplay(WorldState world)
