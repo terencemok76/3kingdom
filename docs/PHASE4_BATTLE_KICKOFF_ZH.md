@@ -327,6 +327,16 @@
   - `MoatSiegeBattle`
 - 三種 scenario 目前共用同一個 `BattleScene`、HUD、單位 marker、移動與 A*。
 - `FieldBattle` 會建立不含城牆／城門的道路、森林、障礙物與雙方部署區。
+- `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
+  - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
+  - 選取 Worker 後顯示專用的 `Work`、`Install Wood Fence`、`Uninstall Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
+  - Worker 可在 `MoatSiegeBattle` 的相鄰 `Moat` 格建造橋、修復受損橋面、修復受損城門及移除 `Trap`；橋梁需兩次 `Work` 才會完成，第一次為半 HP 的施工中橋面且不可通行，第二次回滿 HP 後才可通行。
+  - `Install Wood Fence` 只能放置到無單位、無結構的乾地；`Uninstall Wood Fence` 只可拆除相鄰木柵欄。
+  - 木柵欄有 `600 HP`，所有戰鬥單位可依其結構傷害攻擊；HP 歸零後會立即移除木柵欄視覺並恢復通行。
+  - 橋梁有獨立 HP，所有戰鬥單位可依其結構傷害攻擊橋面；HP 歸零時橋面會移除並還原為阻擋移動的 `Moat`。施工、破壞完成後立即更新 `MoatLayer`、`ObjectLayer` 與通行規則。
+  - 施工時播放 `worker_work.png` 的工作動畫，Worker 會面向目標格；上排為 NE、下排為 SE，各為四格；NW／SW 以對應排的水平翻轉顯示。
+  - Worker 受擊時使用 `worker_hurt_ne.png`／`worker_hurt_se.png` 的兩排、每排三格動畫；NW／SW 以水平翻轉顯示。
+  - Worker 攻擊時使用 `worker_attack_ne.png`／`worker_attack_se.png` 的兩排、每排三格動畫；NW／SW 以水平翻轉顯示。
 - `MoatSiegeBattle` 會在攻城 prototype 的接近路線加入：
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
@@ -334,6 +344,7 @@
 - `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
+- `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
 - 若橋面在 editor 內使用了 `Flip H`，runtime 也必須保留該 bridge tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向會跑掉。
 - 讀取 `Use Editor Authored Layout` 的 scene 時，應先讀取原始 `TileMapLayer` 內容，再重建 shared tileset 與 runtime 視覺；不能在讀取前先重新指定 layer tileset，否則 bridge 之類的 editor-authored flip 資訊可能會遺失。

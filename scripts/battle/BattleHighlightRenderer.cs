@@ -7,6 +7,7 @@ internal enum BattleHighlightVisualKind
     Movable,
     WallTopMovable,
     Attackable,
+    Workable,
     Selected
 }
 
@@ -39,6 +40,9 @@ public partial class BattleHighlightRenderer : Node2D
                 break;
             case BattleHighlightVisualKind.Attackable:
                 DrawDiamond(44.0f, 22.0f, new Color(0.96f, 0.34f, 0.28f, 0.22f), new Color(1.0f, 0.70f, 0.62f, 0.78f), 2.0f);
+                break;
+            case BattleHighlightVisualKind.Workable:
+                DrawDiamond(44.0f, 22.0f, new Color(0.34f, 0.82f, 0.44f, 0.24f), new Color(0.72f, 1.0f, 0.68f, 0.84f), 2.0f);
                 break;
             case BattleHighlightVisualKind.Selected:
                 DrawDiamond(54.0f, 27.0f, new Color(1.0f, 0.93f, 0.45f, 0.22f), new Color(1.0f, 0.98f, 0.72f, 0.95f), 3.0f);

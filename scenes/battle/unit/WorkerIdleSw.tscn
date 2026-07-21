@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://dw3icevmpio7g"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_4rkkt"]
+[ext_resource type="Texture2D" uid="uid://bnjrntmbqxj6e" path="res://assets/battle/unit/worker_idle_se.png" id="2_i1chn"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4rkkt"]
+atlas = ExtResource("2_i1chn")
+region = Rect2(0, 0, 75, 128)
+filter_clip = true
+
+[node name="WorkerIdleSw" type="Node2D" unique_id=178266821]
+script = ExtResource("1_4rkkt")
+SpriteSheet = ExtResource("2_i1chn")
+FrameWidthOverride = 75
+FrameHeightOverride = 128
+BaseOffset = Vector2(0, 0)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+FrameOffsets = Array[Vector2]([Vector2(-10, -15), Vector2(-10, -15), Vector2(-2, -15), Vector2(4, -15)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=831353187]
+texture_filter = 1
+texture = SubResource("AtlasTexture_4rkkt")
+offset = Vector2(10, -15)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=659470629]

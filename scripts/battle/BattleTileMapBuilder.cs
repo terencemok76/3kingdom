@@ -28,7 +28,8 @@ internal enum BattleObjectTileVisual
     Tree = 0,
     Rock_Big = 1,
     Rock_Small = 2,
-    Bridge = 3
+    Bridge = 3,
+    WoodenFence = 4
 }
 
 internal enum BattleCastleTileVisual
@@ -227,6 +228,7 @@ public static class BattleTileMapBuilder
             BattleStructureType.Tree => BattleObjectTileVisual.Tree,
             BattleStructureType.RockBig => BattleObjectTileVisual.Rock_Big,
             BattleStructureType.RockSmall => BattleObjectTileVisual.Rock_Small,
+            BattleStructureType.WoodenFence => BattleObjectTileVisual.WoodenFence,
             _ => (BattleObjectTileVisual?)null
         };
 
@@ -665,6 +667,12 @@ public static class BattleTileMapBuilder
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(63.0f, 52.0f + baselineOffset - 34.0f), 20.0f, 8.0f, new Color(0.0f, 0.0f, 0.0f, 0.13f));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(56.0f, 35.0f + baselineOffset - 34.0f), 10.0f, 8.0f, new Color("baaa92"));
                 DrawFilledEllipse(image, tileOffsetX, new Vector2(69.0f, 38.0f + baselineOffset - 34.0f), 11.0f, 7.0f, new Color("97876f"));
+                break;
+            case BattleObjectTileVisual.WoodenFence:
+                DrawFilledEllipse(image, tileOffsetX, new Vector2(64.0f, 48.0f + baselineOffset - 16.0f), 30.0f, 8.0f, new Color(0.0f, 0.0f, 0.0f, 0.18f));
+                DrawFilledRect(image, tileOffsetX, new Rect2(37.0f, 28.0f + baselineOffset - 38.0f, 55.0f, 6.0f), new Color("76512f"));
+                DrawFilledRect(image, tileOffsetX, new Rect2(42.0f, 23.0f + baselineOffset - 38.0f, 5.0f, 22.0f), new Color("8e6338"));
+                DrawFilledRect(image, tileOffsetX, new Rect2(82.0f, 23.0f + baselineOffset - 38.0f, 5.0f, 22.0f), new Color("8e6338"));
                 break;
         }
     }

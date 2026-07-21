@@ -1,0 +1,30 @@
+[gd_scene format=3 uid="uid://w8minhlpa3j0"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1"]
+[ext_resource type="Texture2D" uid="uid://ddu3a7r2gu7q5" path="res://assets/battle/unit/worker_move_ne.png" id="2"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3cr1q"]
+atlas = ExtResource("2")
+region = Rect2(0, 0, 80, 128)
+filter_clip = true
+
+[node name="WorkerMoveNw" type="Node2D" unique_id=1955677047]
+script = ExtResource("1")
+SpriteSheet = ExtResource("2")
+FrameCount = 3
+FramesPerRow = 3
+FrameWidthOverride = 80
+FrameHeightOverride = 128
+FramesPerSecond = 6.0
+BaseOffset = Vector2(0, -14)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+FrameOffsets = Array[Vector2]([Vector2(-10, 0), Vector2(-5, 0), Vector2(10, 0)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=409351893]
+texture_filter = 1
+texture = SubResource("AtlasTexture_3cr1q")
+offset = Vector2(10, -14)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1721926294]

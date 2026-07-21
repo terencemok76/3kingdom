@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://bqsstla0plb7p"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1"]
+[ext_resource type="Texture2D" uid="uid://cx78tqvq8evmg" path="res://assets/battle/unit/worker_attack_se.png" id="2"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_je2fw"]
+atlas = ExtResource("2")
+region = Rect2(220, 100, 110, 100)
+filter_clip = true
+
+[node name="WorkerAttackSw" type="Node2D" unique_id=1129151220]
+script = ExtResource("1")
+SpriteSheet = ExtResource("2")
+FrameCount = 6
+FramesPerRow = 3
+FrameWidthOverride = 110
+FrameHeightOverride = 100
+FramesPerSecond = 8.0
+PreviewFrame = 5
+BaseOffset = Vector2(0, -5)
+FlipH = true
+MirrorFrameOffsetsWhenFlipped = true
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(0, 10), Vector2(0, 0), Vector2(0, 0), Vector2(0, 10)])
+FrameOffsets = Array[Vector2]([Vector2(0, 0), Vector2(10, 0), Vector2(20, 0), Vector2(0, 0), Vector2(0, 0), Vector2(20, 0)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=932381730]
+texture_filter = 1
+texture = SubResource("AtlasTexture_je2fw")
+offset = Vector2(-20, -5)
+flip_h = true
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=41113993]

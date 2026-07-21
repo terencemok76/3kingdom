@@ -37,6 +37,8 @@ use_texture_padding = false
 2:0/0/texture_origin = Vector2i(0, 32)
 3:0/0 = 0
 3:0/0/texture_origin = Vector2i(0, 32)
+4:0/0 = 0
+4:0/0/texture_origin = Vector2i(0, 32)
 
 [sub_resource type="TileSet" id="TileSet_qrg6v"]
 tile_shape = 1
@@ -152,6 +154,9 @@ script = ExtResource("3")
 [node name="AttackerC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1617047366]
 script = ExtResource("3")
 
+[node name="AttackerWorker" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
 [node name="Spearman" type="Node2D" parent="MapRoot/UnitLayer" unique_id=58640053]
 script = ExtResource("3")
 
@@ -162,6 +167,9 @@ script = ExtResource("3")
 script = ExtResource("3")
 
 [node name="DefenderC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=498644608]
+script = ExtResource("3")
+
+[node name="Worker" type="Node2D" parent="MapRoot/UnitLayer"]
 script = ExtResource("3")
 
 [node name="Ram" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1833571858]
@@ -310,6 +318,18 @@ text = "Drop Stone"
 [node name="PourOilButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1567309771]
 layout_mode = 2
 text = "Pour Oil"
+
+[node name="WorkButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Work"
+
+[node name="InstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Install Wood Fence"
+
+[node name="UninstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Uninstall Wood Fence"
 
 [node name="StrategyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=851977861]
 layout_mode = 2

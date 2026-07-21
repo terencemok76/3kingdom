@@ -30,6 +30,8 @@ public enum BattleStructureType
     Gate,
     Tower,
     Building,
+    WoodenFence,
+    Trap,
     Tree,
     RockBig,
     RockSmall
@@ -59,6 +61,9 @@ public enum BattleGateSegment
 public sealed class BattleCellData
 {
     public const int GateMaxHealth = 1800;
+    public const int BridgeMaxDurability = 900;
+    public const int BridgeConstructionStep = BridgeMaxDurability / 2;
+    public const int WoodenFenceMaxHealth = 600;
 
     public Vector2I Grid { get; init; }
     public BattleTerrainType Terrain { get; set; } = BattleTerrainType.Plain;
@@ -78,9 +83,13 @@ public sealed class BattleCellData
     public bool HideGroundOccupantWhenGateOpen { get; set; }
     public bool HasBridgeVisual { get; set; }
     public bool BridgeFlipHorizontally { get; set; }
+    public int BridgeMaxHealth { get; set; }
+    public int BridgeHealth { get; set; }
 
     public bool HasStructureHealth => StructureMaxHealth > 0;
     public bool IsBroken => HasStructureHealth && StructureHealth <= 0;
+    public bool HasBridgeHealth => Terrain == BattleTerrainType.Bridge && BridgeMaxHealth > 0;
+    public bool IsBridgeDamaged => HasBridgeHealth && BridgeHealth < BridgeMaxHealth;
     public bool IsBlockingStructure => BlocksMovement && !IsBroken && !(Structure == BattleStructureType.Gate && IsGateOpen);
 }
 
@@ -251,6 +260,51 @@ public sealed class BattleMapData
         cell.StructureHealth = Mathf.Clamp(health, 0, cell.StructureMaxHealth);
     }
 
+    public int ApplyWoodenFenceDamage(Vector2I grid, int damage)
+    {
+        var cell = GetCell(grid.X, grid.Y);
+        if (cell.Structure != BattleStructureType.WoodenFence || !cell.HasStructureHealth || damage <= 0)
+        {
+            return 0;
+        }
+
+        var actualDamage = Mathf.Min(cell.StructureHealth, damage);
+        cell.StructureHealth -= actualDamage;
+        if (cell.StructureHealth > 0)
+        {
+            return actualDamage;
+        }
+
+        cell.Structure = BattleStructureType.None;
+        cell.StructureMaxHealth = 0;
+        cell.StructureHealth = 0;
+        cell.BlocksMovement = false;
+        return actualDamage;
+    }
+
+    public int ApplyBridgeDamage(Vector2I grid, int damage)
+    {
+        var cell = GetCell(grid.X, grid.Y);
+        if (!cell.HasBridgeHealth || damage <= 0)
+        {
+            return 0;
+        }
+
+        var actualDamage = Mathf.Min(cell.BridgeHealth, damage);
+        cell.BridgeHealth -= actualDamage;
+        if (cell.BridgeHealth > 0)
+        {
+            return actualDamage;
+        }
+
+        cell.Terrain = BattleTerrainType.Moat;
+        cell.HasBridgeVisual = false;
+        cell.BridgeFlipHorizontally = false;
+        cell.BridgeMaxHealth = 0;
+        cell.BlocksMovement = true;
+        return actualDamage;
+    }
+
     private void ReadGroundLayer(TileMapLayer? layer)
     {
         if (layer == null)
@@ -319,6 +373,12 @@ public sealed class BattleMapData
                     cell.HasBridgeVisual = false;
                     cell.BridgeFlipHorizontally = false;
                     cell.Structure = BattleStructureType.None;
+                    break;
+                case 4:
+                    cell.Structure = BattleStructureType.WoodenFence;
+                    break;
+                case 5:
+                    cell.Structure = BattleStructureType.Trap;
                     break;
             }
         });
@@ -408,10 +468,21 @@ public sealed class BattleMapData
             var cell = GetCell(grid.X, grid.Y);
             var isBrokenWall = cell.Structure == BattleStructureType.Wall && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             var isBrokenGate = cell.Structure == BattleStructureType.Gate && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
+            var isBrokenWoodenFence = cell.Structure == BattleStructureType.WoodenFence && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             cell.BlocksMovement = cell.Terrain == BattleTerrainType.Moat;
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
             cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
             cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;
+            if (cell.Terrain == BattleTerrainType.Bridge)
+            {
+                cell.BridgeMaxHealth = BattleCellData.BridgeMaxDurability;
+                cell.BridgeHealth = Mathf.Clamp(cell.BridgeHealth <= 0 ? cell.BridgeMaxHealth : cell.BridgeHealth, 0, cell.BridgeMaxHealth);
+            }
+            else
+            {
+                cell.BridgeMaxHealth = 0;
+                cell.BridgeHealth = 0;
+            }
             if (cell.HasBridgeVisual && ScenarioDefinition.DefaultStructureFacing == BattleStructureFacing.NorthWest)
             {
                 cell.BridgeFlipHorizontally = true;
@@ -435,7 +506,13 @@ public sealed class BattleMapData
                     cell.BlocksMovement = true;
                     cell.HeightLevel = 3;
                     break;
+                case BattleStructureType.WoodenFence:
+                    cell.BlocksMovement = !isBrokenWoodenFence;
+                    cell.StructureMaxHealth = BattleCellData.WoodenFenceMaxHealth;
+                    cell.StructureHealth = isBrokenWoodenFence ? 0 : BattleCellData.WoodenFenceMaxHealth;
+                    break;
                 case BattleStructureType.Building:
+                case BattleStructureType.Trap:
                 case BattleStructureType.Tree:
                 case BattleStructureType.RockBig:
                 case BattleStructureType.RockSmall:

@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://id2lqqujo5ax"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1"]
+[ext_resource type="Texture2D" uid="uid://cnm85y34yldd" path="res://assets/battle/unit/worker_idle_ne.png" id="2"]
+
+[node name="WorkerIdleNe" type="Node2D" unique_id=976671344]
+script = ExtResource("1")
+SpriteSheet = ExtResource("2")
+FrameWidthOverride = 75
+FrameHeightOverride = 128
+PreviewFrame = 4
+BaseOffset = Vector2(4, 0)
+FrameOffsets = Array[Vector2]([Vector2(-3, -12), Vector2(-3, -12), Vector2(10, -12), Vector2(12, -12)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=107548539]
+texture_filter = 1
+texture = ExtResource("2")
+offset = Vector2(16, -12)
+hframes = 4
+frame = 3
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=196303866]

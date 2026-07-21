@@ -14,6 +14,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
     private Texture2D? _builtFromTexture;
     private int _builtFrameCount;
     private int _builtFramesPerRow;
+    private int _builtSourceFrameOffset;
     private int _builtFrameWidthOverride;
     private int _builtFrameHeightOverride;
     private int _builtInsetPixels;
@@ -28,6 +29,9 @@ public partial class BattleSpriteAnimationPlayer : Node2D
 
     [Export(PropertyHint.Range, "1,32,1")]
     public int FramesPerRow { get; set; } = 4;
+
+    [Export(PropertyHint.Range, "0,31,1")]
+    public int SourceFrameOffset { get; set; }
 
     [Export(PropertyHint.Range, "0,512,1")]
     public int FrameWidthOverride { get; set; }
@@ -185,6 +189,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
             (_builtFromTexture == SpriteSheet &&
              _builtFrameCount == FrameCount &&
              _builtFramesPerRow == FramesPerRow &&
+             _builtSourceFrameOffset == SourceFrameOffset &&
              _builtFrameWidthOverride == FrameWidthOverride &&
              _builtFrameHeightOverride == FrameHeightOverride &&
              _builtInsetPixels == FrameInsetPixels &&
@@ -198,6 +203,7 @@ public partial class BattleSpriteAnimationPlayer : Node2D
         _builtFromTexture = SpriteSheet;
         _builtFrameCount = FrameCount;
         _builtFramesPerRow = FramesPerRow;
+        _builtSourceFrameOffset = SourceFrameOffset;
         _builtFrameWidthOverride = FrameWidthOverride;
         _builtFrameHeightOverride = FrameHeightOverride;
         _builtInsetPixels = FrameInsetPixels;
@@ -221,8 +227,9 @@ public partial class BattleSpriteAnimationPlayer : Node2D
 
         for (var frame = 0; frame < FrameCount; frame++)
         {
-            var frameColumn = frame % framesPerRow;
-            var frameRow = frame / framesPerRow;
+            var sourceFrame = frame + SourceFrameOffset;
+            var frameColumn = sourceFrame % framesPerRow;
+            var frameRow = sourceFrame / framesPerRow;
             var crop = GetFrameCrop(frame);
             var verticalCrop = GetFrameVerticalCrop(frame);
             var cropLeft = Mathf.RoundToInt(crop.X);

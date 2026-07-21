@@ -50,6 +50,7 @@ public partial class BattleSceneController : Node2D
     private const string TroopCavalry = "Cavalry";
     private const string TroopCrossbow = "Crossbow";
     private const string TroopGuard = "Guard";
+    private const string TroopWorker = "Worker";
     private const string TroopRam = "Ram";
     private const string TroopLadder = "Ladder";
     private const string TroopCatapult = "Catapult";
@@ -136,6 +137,26 @@ public partial class BattleSceneController : Node2D
     private const string CatapultIdleSouthWestScenePath = "res://scenes/battle/unit/CatapultIdleSw.tscn";
     private const string CatapultIdleNorthEastScenePath = "res://scenes/battle/unit/CatapultIdleNe.tscn";
     private const string CatapultIdleNorthWestScenePath = "res://scenes/battle/unit/CatapultIdleNw.tscn";
+    private const string WorkerIdleNorthEastScenePath = "res://scenes/battle/unit/WorkerIdleNe.tscn";
+    private const string WorkerIdleNorthWestScenePath = "res://scenes/battle/unit/WorkerIdleNw.tscn";
+    private const string WorkerIdleSouthEastScenePath = "res://scenes/battle/unit/WorkerIdleSe.tscn";
+    private const string WorkerIdleSouthWestScenePath = "res://scenes/battle/unit/WorkerIdleSw.tscn";
+    private const string WorkerMoveNorthEastScenePath = "res://scenes/battle/unit/WorkerMoveNe.tscn";
+    private const string WorkerMoveNorthWestScenePath = "res://scenes/battle/unit/WorkerMoveNw.tscn";
+    private const string WorkerMoveSouthEastScenePath = "res://scenes/battle/unit/WorkerMoveSe.tscn";
+    private const string WorkerMoveSouthWestScenePath = "res://scenes/battle/unit/WorkerMoveSw.tscn";
+    private const string WorkerWorkNorthEastScenePath = "res://scenes/battle/unit/WorkerWorkNe.tscn";
+    private const string WorkerWorkNorthWestScenePath = "res://scenes/battle/unit/WorkerWorkNw.tscn";
+    private const string WorkerWorkSouthEastScenePath = "res://scenes/battle/unit/WorkerWorkSe.tscn";
+    private const string WorkerWorkSouthWestScenePath = "res://scenes/battle/unit/WorkerWorkSw.tscn";
+    private const string WorkerHurtNorthEastScenePath = "res://scenes/battle/unit/WorkerHurtNe.tscn";
+    private const string WorkerHurtNorthWestScenePath = "res://scenes/battle/unit/WorkerHurtNw.tscn";
+    private const string WorkerHurtSouthEastScenePath = "res://scenes/battle/unit/WorkerHurtSe.tscn";
+    private const string WorkerHurtSouthWestScenePath = "res://scenes/battle/unit/WorkerHurtSw.tscn";
+    private const string WorkerAttackNorthEastScenePath = "res://scenes/battle/unit/WorkerAttackNe.tscn";
+    private const string WorkerAttackNorthWestScenePath = "res://scenes/battle/unit/WorkerAttackNw.tscn";
+    private const string WorkerAttackSouthEastScenePath = "res://scenes/battle/unit/WorkerAttackSe.tscn";
+    private const string WorkerAttackSouthWestScenePath = "res://scenes/battle/unit/WorkerAttackSw.tscn";
     private const string CatapultAttackSouthEastScenePath = "res://scenes/battle/unit/CatapultAttackSe.tscn";
     private const string CatapultAttackSouthWestScenePath = "res://scenes/battle/unit/CatapultAttackSw.tscn";
     private const string CatapultAttackNorthEastScenePath = "res://scenes/battle/unit/CatapultAttackNe.tscn";
@@ -148,17 +169,23 @@ public partial class BattleSceneController : Node2D
     private const double SpearmanAttackAnimationDurationSeconds = 0.72;
     private const double ArcherAttackAnimationDurationSeconds = 0.62;
     private const double CavalryAttackAnimationDurationSeconds = 0.5;
+    private const double WorkerAttackAnimationDurationSeconds = 0.75;
+    private const double WorkerWorkAnimationDurationSeconds = 0.8;
     private const double CatapultAttackAnimationDurationSeconds = 0.72;
     private const double InfantryHurtAnimationDurationSeconds = 0.5;
     private const double SpearmanHurtAnimationDurationSeconds = 0.65;
     private const double ArcherHurtAnimationDurationSeconds = 0.5;
     private const double CavalryHurtAnimationDurationSeconds = 0.5;
+    private const double WorkerHurtAnimationDurationSeconds = 0.75;
     private const double CarMoveAnimationDurationSeconds = 0.4;
     private const double CatapultMoveAnimationDurationSeconds = 0.4;
     private const int InfantryAttackDamage = 850;
     private const int SpearmanAttackDamage = 800;
     private const int ArcherAttackDamage = 900;
     private const int CavalryAttackDamage = 1100;
+    private const int WorkerBridgeRepairAmount = 450;
+    private const int WorkerGateRepairAmount = 600;
+    private const int WorkerAttackDamage = 350;
     private const int DropStoneAttackDamage = 1200;
     private const int PourOilAttackDamage = 1000;
     private const double DropStoneEffectDurationSeconds = 0.48;
@@ -171,6 +198,7 @@ public partial class BattleSceneController : Node2D
     private const int SpearmanStructureDamage = 160;
     private const int ArcherStructureDamage = 120;
     private const int CavalryStructureDamage = 220;
+    private const int WorkerStructureDamage = 60;
     private const int RamStructureDamage = 900;
     private const int CatapultStructureDamage = 700;
     private const int RamMaxHitPoints = 2800;
@@ -202,6 +230,9 @@ public partial class BattleSceneController : Node2D
     private Button? _attackButton;
     private Button? _dropStoneButton;
     private Button? _pourOilButton;
+    private Button? _workButton;
+    private Button? _installWoodFenceButton;
+    private Button? _uninstallWoodFenceButton;
     private Button? _strategyButton;
     private Button? _openGateButton;
     private bool _isDraggingMap;
@@ -216,6 +247,7 @@ public partial class BattleSceneController : Node2D
     private BattleOccupantInfo? _selectedUnit;
     private readonly HashSet<BattleGridKey> _movableGrids = new();
     private readonly HashSet<BattleGridKey> _attackableGrids = new();
+    private readonly HashSet<BattleGridKey> _workableGrids = new();
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
@@ -223,6 +255,7 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
     private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
+    private WorkerWorkAction _workerWorkAction = WorkerWorkAction.General;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
     private bool _editorBakeBattleLayout;
@@ -337,6 +370,21 @@ public partial class BattleSceneController : Node2D
         if (_pourOilButton != null)
         {
             _pourOilButton.Pressed += OnPourOilButtonPressed;
+        }
+
+        if (_workButton != null)
+        {
+            _workButton.Pressed += OnWorkButtonPressed;
+        }
+
+        if (_installWoodFenceButton != null)
+        {
+            _installWoodFenceButton.Pressed += OnInstallWoodFenceButtonPressed;
+        }
+
+        if (_uninstallWoodFenceButton != null)
+        {
+            _uninstallWoodFenceButton.Pressed += OnUninstallWoodFenceButtonPressed;
         }
 
         if (_strategyButton != null)
@@ -476,6 +524,9 @@ public partial class BattleSceneController : Node2D
         _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
         _dropStoneButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/DropStoneButton");
         _pourOilButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/PourOilButton");
+        _workButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WorkButton");
+        _installWoodFenceButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/InstallWoodFenceButton");
+        _uninstallWoodFenceButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UninstallWoodFenceButton");
         _strategyButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/StrategyButton");
         _openGateButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OpenGateButton");
     }
@@ -1028,6 +1079,7 @@ public partial class BattleSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/Spearman", ResolveUnitSpawnGrid("Spearman", new Vector2I(8, 18)), "S", "Attacker Spearman", CategoryUnit, "Team A / Attacker", "Cao Hong", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/AttackerB", ResolveUnitSpawnGrid("AttackerB", new Vector2I(12, 18)), "A", "Attacker Archer B", CategoryUnit, "Team A / Attacker", "Zhang He", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/AttackerC", ResolveUnitSpawnGrid("AttackerC", new Vector2I(14, 20)), "C", "Attacker Cavalry C", CategoryUnit, "Team A / Attacker", "Cao Chun", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/AttackerWorker", ResolveUnitSpawnGrid("AttackerWorker", new Vector2I(16, 20)), "W", "Attacker Worker", CategoryUnit, "Team A / Attacker", "Worker", TroopWorker, 1800, new Color("715137"), new Color("f0d6a8"), moveRange: 3, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Ram", ResolveUnitSpawnGrid("Ram", new Vector2I(12, 16)), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", "Yue Jin", TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Ladder", ResolveUnitSpawnGrid("Ladder", new Vector2I(10, 15)), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", "Yu Jin", TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Catapult", ResolveUnitSpawnGrid("Catapult", new Vector2I(14, 15)), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
@@ -1035,6 +1087,7 @@ public partial class BattleSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/DefenderA", ResolveUnitSpawnGrid("DefenderA", new Vector2I(10, 7)), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/DefenderB", ResolveUnitSpawnGrid("DefenderB", new Vector2I(14, 7)), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/DefenderC", ResolveUnitSpawnGrid("DefenderC", new Vector2I(12, 7)), "G", "Defender Commander", CategoryUnit, "Team B / Defender", "Guo Si", TroopSpearman, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Worker", ResolveUnitSpawnGrid("Worker", new Vector2I(16, 5)), "W", "Defender Worker", CategoryUnit, "Team B / Defender", "Worker", TroopWorker, 1800, new Color("5f583e"), new Color("e8ddbc"), moveRange: 3, attackRange: 1);
     }
 
     private Vector2I ResolveUnitSpawnGrid(string unitKey, Vector2I fallbackGrid)
@@ -1077,6 +1130,10 @@ public partial class BattleSceneController : Node2D
         else if (category == CategoryUnit && troopType == TroopCavalry)
         {
             marker.SetupSpriteAnimationScene(CavalryIdleSouthEastScenePath);
+        }
+        else if (category == CategoryUnit && troopType == TroopWorker)
+        {
+            marker.SetupSpriteAnimationScene(WorkerIdleSouthEastScenePath);
         }
         else if (category == CategorySiegeEngine && troopType == TroopRam)
         {
@@ -1214,6 +1271,19 @@ public partial class BattleSceneController : Node2D
             if (_commandMode == BattleCommandMode.StrategySelect)
             {
                 CancelCommandAction(clearSelection: true);
+                RefreshCoordinateLabel();
+                RefreshInfoPanel();
+                RefreshHighlights();
+                return;
+            }
+
+            if (_commandMode == BattleCommandMode.WorkSelect)
+            {
+                if (!TryPerformWorkerWork())
+                {
+                    CancelCommandAction(clearSelection: true);
+                }
+
                 RefreshCoordinateLabel();
                 RefreshInfoPanel();
                 RefreshHighlights();
@@ -1374,6 +1444,7 @@ public partial class BattleSceneController : Node2D
         {
             BattleCommandMode.MoveSelect => _movableGrids,
             BattleCommandMode.AttackSelect => _attackableGrids,
+            BattleCommandMode.WorkSelect => _workableGrids,
             _ => null
         };
 
@@ -1654,6 +1725,11 @@ public partial class BattleSceneController : Node2D
             builder.AppendLine($"Durability: {durability.Current}/{durability.Max}");
             builder.AppendLine($"Status: {(cell.IsBroken ? "Broken" : "Intact")}");
         }
+        if (cell.HasBridgeHealth)
+        {
+            builder.AppendLine($"Bridge HP: {cell.BridgeHealth}/{cell.BridgeMaxHealth}");
+            builder.AppendLine($"Bridge Status: {(cell.IsBridgeDamaged ? "Damaged" : "Complete")}");
+        }
 
         builder.AppendLine($"Deployment: {FormatDeploymentZone(cell.DeploymentZone)}");
         builder.AppendLine($"Height: {cell.HeightLevel}");
@@ -1700,6 +1776,7 @@ public partial class BattleSceneController : Node2D
 
             builder.AppendLine($"- Reachable Tiles: {_movableGrids.Count}");
             builder.AppendLine($"- Attackable Tiles: {_attackableGrids.Count}");
+            builder.AppendLine($"- Workable Tiles: {_workableGrids.Count}");
             builder.AppendLine($"- Command State: {FormatCommandMode(_commandMode)}");
             builder.AppendLine($"- Current Turn: {GetCurrentTurnSideName()}");
         }
@@ -1944,8 +2021,155 @@ public partial class BattleSceneController : Node2D
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _workerWorkAction = WorkerWorkAction.General;
         HideCommandMenu();
         return true;
+    }
+
+    private bool TryPerformWorkerWork()
+    {
+        if (_mapData == null ||
+            _selectedUnit?.TroopType != TroopWorker ||
+            !_selectedUnitGrid.HasValue ||
+            !_selectedGrid.HasValue)
+        {
+            return false;
+        }
+
+        var targetGrid = _selectedGridKey ?? GetDefaultGridKey(_selectedGrid.Value);
+        if (targetGrid.Level != 0 || !_workableGrids.Contains(targetGrid))
+        {
+            return false;
+        }
+
+        var sourceGrid = _selectedUnitGrid.Value;
+        var targetCell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
+        if (!ApplyWorkerWork(targetGrid.Grid, targetCell))
+        {
+            return false;
+        }
+
+        var workDirection = GetInfantryDirection(sourceGrid.Grid, targetGrid.Grid);
+        var workingUnit = _selectedUnit with { FacingDirection = workDirection };
+        ReplaceOccupantAtGrid(sourceGrid, _selectedUnit, workingUnit);
+        _selectedUnit = workingUnit;
+        workingUnit.Marker?.PlayAction(
+            GetWorkerWorkScene(workDirection),
+            GetWorkerIdleScene(workDirection),
+            WorkerWorkAnimationDurationSeconds);
+
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _workerWorkAction = WorkerWorkAction.General;
+        HideCommandMenu();
+        return true;
+    }
+
+    private bool ApplyWorkerWork(Vector2I targetGrid, BattleCellData targetCell)
+    {
+        if (_mapData == null)
+        {
+            return false;
+        }
+
+        if (_workerWorkAction == WorkerWorkAction.InstallWoodFence)
+        {
+            if (!CanInstallWoodFence(targetGrid, targetCell))
+            {
+                return false;
+            }
+
+            targetCell.Structure = BattleStructureType.WoodenFence;
+            targetCell.StructureMaxHealth = BattleCellData.WoodenFenceMaxHealth;
+            targetCell.StructureHealth = targetCell.StructureMaxHealth;
+            targetCell.BlocksMovement = true;
+            RefreshWorkerObjectLayers();
+            return true;
+        }
+
+        if (_workerWorkAction == WorkerWorkAction.UninstallWoodFence)
+        {
+            if (targetCell.Structure != BattleStructureType.WoodenFence)
+            {
+                return false;
+            }
+
+            targetCell.Structure = BattleStructureType.None;
+            targetCell.BlocksMovement = false;
+            RefreshWorkerObjectLayers();
+            return true;
+        }
+
+        if (targetCell.Terrain == BattleTerrainType.Moat &&
+            _mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle)
+        {
+            targetCell.Terrain = BattleTerrainType.Bridge;
+            targetCell.HasBridgeVisual = true;
+            targetCell.BridgeFlipHorizontally = _mapData.ScenarioDefinition.DefaultStructureFacing == BattleStructureFacing.NorthWest;
+            targetCell.BridgeMaxHealth = BattleCellData.BridgeMaxDurability;
+            targetCell.BridgeHealth = BattleCellData.BridgeConstructionStep;
+            targetCell.BlocksMovement = true;
+            RefreshWorkerObjectLayers();
+            return true;
+        }
+
+        if (targetCell.IsBridgeDamaged)
+        {
+            targetCell.BridgeHealth = Math.Min(targetCell.BridgeMaxHealth, targetCell.BridgeHealth + WorkerBridgeRepairAmount);
+            targetCell.BlocksMovement = targetCell.BridgeHealth < targetCell.BridgeMaxHealth;
+            return true;
+        }
+
+        if (targetCell.Structure == BattleStructureType.Gate && targetCell.HasStructureHealth && targetCell.StructureHealth < targetCell.StructureMaxHealth)
+        {
+            foreach (var gateGrid in GetConnectedGateGroup(targetGrid))
+            {
+                var gateCell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
+                gateCell.StructureHealth = Math.Min(gateCell.StructureMaxHealth, gateCell.StructureHealth + WorkerGateRepairAmount);
+                gateCell.IsGateOpen = false;
+                gateCell.BlocksMovement = true;
+                if (_castleLayer != null)
+                {
+                    BattleTileMapBuilder.SetCastleGateVisual(_castleLayer, gateGrid, isOpen: false);
+                }
+
+                RefreshCastleDepthVisual(gateGrid);
+            }
+
+            RefreshBattleDepthLayerOrder();
+            RefreshOccludedUnitSilhouettes();
+            return true;
+        }
+
+        if (targetCell.Structure == BattleStructureType.Trap)
+        {
+            targetCell.Structure = BattleStructureType.None;
+            targetCell.BlocksMovement = false;
+            targetCell.StructureMaxHealth = 0;
+            targetCell.StructureHealth = 0;
+            RefreshWorkerObjectLayers();
+            return true;
+        }
+
+        return false;
+    }
+
+    private void RefreshWorkerObjectLayers()
+    {
+        if (_mapData == null)
+        {
+            return;
+        }
+
+        ConfigureOptionalTileMapLayer(_moatLayer, BattleTileLayerKind.Moat);
+        if (_objectLayer != null)
+        {
+            BattleTileMapBuilder.ConfigureLayer(_objectLayer, _mapData, BattleTileLayerKind.Object);
+            _objectLayer.Visible = true;
+        }
     }
 
     private void ReplaceOccupantAtGrid(BattleGridKey grid, BattleOccupantInfo oldOccupant, BattleOccupantInfo newOccupant)
@@ -2005,6 +2229,12 @@ public partial class BattleSceneController : Node2D
         if (occupant.Category == CategoryUnit && occupant.TroopType == TroopCavalry)
         {
             MoveMarker(occupant.Marker, destinationPosition, pathPositions, null, pathModulates, GetScaledMoveDuration(CavalryMoveAnimationDurationSeconds, pathPositions), GetCavalryMoveScene(direction), GetCavalryIdleScene(direction), onComplete);
+            return;
+        }
+
+        if (occupant.Category == CategoryUnit && occupant.TroopType == TroopWorker)
+        {
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, GetMoveScenePathArray(pathDirections, GetWorkerMoveScene), pathModulates, GetScaledMoveDuration(InfantryMoveAnimationDurationSeconds, pathPositions), GetWorkerMoveScene(direction), GetWorkerIdleScene(direction), onComplete);
             return;
         }
 
@@ -2114,6 +2344,15 @@ public partial class BattleSceneController : Node2D
             return CavalryAttackAnimationDurationSeconds;
         }
 
+        if (occupant.TroopType == TroopWorker)
+        {
+            occupant.Marker.PlayAction(
+                GetWorkerAttackScene(direction),
+                GetWorkerIdleScene(direction),
+                WorkerAttackAnimationDurationSeconds);
+            return WorkerAttackAnimationDurationSeconds;
+        }
+
         return 0.0;
     }
 
@@ -2166,6 +2405,15 @@ public partial class BattleSceneController : Node2D
                 GetCavalryIdleScene(target.FacingDirection),
                 CavalryHurtAnimationDurationSeconds);
             return CavalryHurtAnimationDurationSeconds;
+        }
+
+        if (target.TroopType == TroopWorker)
+        {
+            target.Marker.PlayAction(
+                GetWorkerHurtScene(hurtDirection),
+                GetWorkerIdleScene(target.FacingDirection),
+                WorkerHurtAnimationDurationSeconds);
+            return WorkerHurtAnimationDurationSeconds;
         }
 
         target.Marker.PlayAction(
@@ -2235,6 +2483,54 @@ public partial class BattleSceneController : Node2D
         }
 
         var cell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
+        if (cell.HasBridgeHealth)
+        {
+            var bridgeDamage = GetStructureAttackDamage(attacker);
+            if (bridgeDamage <= 0)
+            {
+                return;
+            }
+
+            var actualBridgeDamage = _mapData.ApplyBridgeDamage(targetGrid.Grid, bridgeDamage);
+            if (actualBridgeDamage <= 0)
+            {
+                return;
+            }
+
+            if (!cell.HasBridgeHealth)
+            {
+                RefreshWorkerObjectLayers();
+            }
+
+            ShowDamagePopup(targetGrid, actualBridgeDamage);
+            RefreshInfoPanel();
+            return;
+        }
+
+        if (cell.Structure == BattleStructureType.WoodenFence && cell.HasStructureHealth)
+        {
+            var fenceDamage = GetStructureAttackDamage(attacker);
+            if (fenceDamage <= 0)
+            {
+                return;
+            }
+
+            var actualFenceDamage = _mapData.ApplyWoodenFenceDamage(targetGrid.Grid, fenceDamage);
+            if (actualFenceDamage <= 0)
+            {
+                return;
+            }
+
+            if (cell.Structure != BattleStructureType.WoodenFence)
+            {
+                RefreshWorkerObjectLayers();
+            }
+
+            ShowDamagePopup(targetGrid, actualFenceDamage);
+            RefreshInfoPanel();
+            return;
+        }
+
         if (cell.Structure != BattleStructureType.Gate || !cell.HasStructureHealth || cell.IsBroken)
         {
             return;
@@ -2634,6 +2930,7 @@ public partial class BattleSceneController : Node2D
             TroopSpearman => SpearmanAttackDamage,
             TroopArcher or TroopCrossbow => ArcherAttackDamage,
             TroopCavalry => CavalryAttackDamage,
+            TroopWorker => WorkerAttackDamage,
             _ => 0
         };
     }
@@ -2656,6 +2953,7 @@ public partial class BattleSceneController : Node2D
             TroopSpearman => SpearmanStructureDamage,
             TroopArcher or TroopCrossbow => ArcherStructureDamage,
             TroopCavalry => CavalryStructureDamage,
+            TroopWorker => WorkerStructureDamage,
             _ => 0
         };
     }
@@ -2846,6 +3144,61 @@ public partial class BattleSceneController : Node2D
             BattleSpriteDirection.NorthWest => CatapultAttackNorthWestScenePath,
             BattleSpriteDirection.SouthWest => CatapultAttackSouthWestScenePath,
             _ => CatapultAttackSouthEastScenePath
+        };
+    }
+
+    private static string GetWorkerIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => WorkerIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => WorkerIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => WorkerIdleSouthWestScenePath,
+            _ => WorkerIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetWorkerMoveScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => WorkerMoveNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => WorkerMoveNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => WorkerMoveSouthWestScenePath,
+            _ => WorkerMoveSouthEastScenePath
+        };
+    }
+
+    private static string GetWorkerWorkScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => WorkerWorkNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => WorkerWorkNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => WorkerWorkSouthWestScenePath,
+            _ => WorkerWorkSouthEastScenePath
+        };
+    }
+
+    private static string GetWorkerHurtScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => WorkerHurtNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => WorkerHurtNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => WorkerHurtSouthWestScenePath,
+            _ => WorkerHurtSouthEastScenePath
+        };
+    }
+
+    private static string GetWorkerAttackScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => WorkerAttackNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => WorkerAttackNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => WorkerAttackSouthWestScenePath,
+            _ => WorkerAttackSouthEastScenePath
         };
     }
 
@@ -3559,6 +3912,11 @@ public partial class BattleSceneController : Node2D
             AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Attackable);
         }
 
+        foreach (var grid in _workableGrids)
+        {
+            AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Workable);
+        }
+
         if (_selectedGridKey.HasValue)
         {
             AddHighlightDepthVisual(_selectedGridKey.Value, BattleHighlightVisualKind.Selected);
@@ -3596,6 +3954,7 @@ public partial class BattleSceneController : Node2D
         {
             BattleHighlightVisualKind.Movable or BattleHighlightVisualKind.WallTopMovable => BattleDepthRenderKind.MoveHighlight,
             BattleHighlightVisualKind.Attackable => BattleDepthRenderKind.AttackHighlight,
+            BattleHighlightVisualKind.Workable => BattleDepthRenderKind.MoveHighlight,
             BattleHighlightVisualKind.Selected => BattleDepthRenderKind.SelectedHighlight,
             _ => BattleDepthRenderKind.MoveHighlight
         };
@@ -3610,6 +3969,7 @@ public partial class BattleSceneController : Node2D
 
         _commandMode = BattleCommandMode.MoveSelect;
         _attackableGrids.Clear();
+        _workableGrids.Clear();
         _movableGrids.Clear();
         foreach (var grid in CalculateReachableGrids(_selectedUnitGrid.Value, _selectedUnit.MoveRange))
         {
@@ -3632,6 +3992,7 @@ public partial class BattleSceneController : Node2D
         _commandMode = BattleCommandMode.AttackSelect;
         _movableGrids.Clear();
         _attackableGrids.Clear();
+        _workableGrids.Clear();
         foreach (var grid in CalculateAttackableGrids(_selectedUnitGrid.Value, _selectedUnit))
         {
             _attackableGrids.Add(grid);
@@ -3795,9 +4156,95 @@ public partial class BattleSceneController : Node2D
         _commandMode = BattleCommandMode.StrategySelect;
         _movableGrids.Clear();
         _attackableGrids.Clear();
+        _workableGrids.Clear();
         HideCommandMenu();
         RefreshInfoPanel();
         RefreshHighlights();
+    }
+
+    private void OnWorkButtonPressed()
+    {
+        BeginWorkerWorkSelection(WorkerWorkAction.General);
+    }
+
+    private void OnInstallWoodFenceButtonPressed()
+    {
+        BeginWorkerWorkSelection(WorkerWorkAction.InstallWoodFence);
+    }
+
+    private void OnUninstallWoodFenceButtonPressed()
+    {
+        BeginWorkerWorkSelection(WorkerWorkAction.UninstallWoodFence);
+    }
+
+    private void BeginWorkerWorkSelection(WorkerWorkAction workAction)
+    {
+        if (_selectedUnit?.TroopType != TroopWorker || !_selectedUnitGrid.HasValue)
+        {
+            return;
+        }
+
+        _workerWorkAction = workAction;
+        _commandMode = BattleCommandMode.WorkSelect;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        foreach (var targetGrid in GetOrthogonalNeighbors(_selectedUnitGrid.Value.Grid))
+        {
+            if (!IsWithinMap(targetGrid))
+            {
+                continue;
+            }
+
+            var targetCell = _mapData?.GetCell(targetGrid.X, targetGrid.Y);
+            if (targetCell != null && IsWorkerWorkTarget(targetGrid, targetCell))
+            {
+                _workableGrids.Add(new BattleGridKey(targetGrid.X, targetGrid.Y, 0));
+            }
+        }
+
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private bool IsWorkerWorkTarget(Vector2I targetGrid, BattleCellData cell)
+    {
+        return IsWorkerWorkTargetForAction(targetGrid, cell, _workerWorkAction);
+    }
+
+    private bool IsWorkerWorkTargetForAction(Vector2I targetGrid, BattleCellData cell, WorkerWorkAction workAction)
+    {
+        if (workAction == WorkerWorkAction.InstallWoodFence)
+        {
+            return CanInstallWoodFence(targetGrid, cell);
+        }
+
+        if (workAction == WorkerWorkAction.UninstallWoodFence)
+        {
+            return cell.Structure == BattleStructureType.WoodenFence;
+        }
+
+        return (cell.Terrain == BattleTerrainType.Moat && _mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle) ||
+               cell.IsBridgeDamaged ||
+               (cell.Structure == BattleStructureType.Gate && cell.HasStructureHealth && cell.StructureHealth < cell.StructureMaxHealth) ||
+               cell.Structure == BattleStructureType.Trap;
+    }
+
+    private bool CanInstallWoodFence(Vector2I targetGrid, BattleCellData cell)
+    {
+        return cell.Structure == BattleStructureType.None &&
+               cell.Terrain is not (BattleTerrainType.Moat or BattleTerrainType.Bridge or BattleTerrainType.WallWalk) &&
+               !HasBlockingOccupant(new BattleGridKey(targetGrid.X, targetGrid.Y, 0));
+    }
+
+    private bool HasWorkerWorkTarget(WorkerWorkAction workAction)
+    {
+        return _selectedUnitGrid.HasValue &&
+               _mapData != null &&
+               GetOrthogonalNeighbors(_selectedUnitGrid.Value.Grid)
+                   .Where(IsWithinMap)
+                   .Any(grid => IsWorkerWorkTargetForAction(grid, _mapData.GetCell(grid.X, grid.Y), workAction));
     }
 
     private void OnOpenGateButtonPressed()
@@ -4065,7 +4512,10 @@ public partial class BattleSceneController : Node2D
         }
 
         var cell = _mapData.GetCell(grid.X, grid.Y);
-        return cell.Structure == BattleStructureType.Gate && cell.HasStructureHealth && !cell.IsBroken;
+        return ((cell.Structure == BattleStructureType.Gate || cell.Structure == BattleStructureType.WoodenFence) &&
+                cell.HasStructureHealth &&
+                !cell.IsBroken) ||
+               cell.HasBridgeHealth;
     }
 
     private bool IsOpenGateGroundGrid(Vector2I grid)
@@ -4146,6 +4596,29 @@ public partial class BattleSceneController : Node2D
             _pourOilButton.Disabled = !canUseWallTopAttack || GetWallTopAttackUsesRemaining(isDropStone: false) <= 0;
         }
 
+        if (_workButton != null)
+        {
+            _workButton.Visible = _selectedUnit?.TroopType == TroopWorker;
+            _workButton.Disabled = !HasWorkerWorkTarget(WorkerWorkAction.General);
+        }
+
+        if (_installWoodFenceButton != null)
+        {
+            _installWoodFenceButton.Visible = _selectedUnit?.TroopType == TroopWorker;
+            _installWoodFenceButton.Disabled = !HasWorkerWorkTarget(WorkerWorkAction.InstallWoodFence);
+        }
+
+        if (_uninstallWoodFenceButton != null)
+        {
+            _uninstallWoodFenceButton.Visible = _selectedUnit?.TroopType == TroopWorker;
+            _uninstallWoodFenceButton.Disabled = !HasWorkerWorkTarget(WorkerWorkAction.UninstallWoodFence);
+        }
+
+        if (_strategyButton != null)
+        {
+            _strategyButton.Visible = _selectedUnit?.TroopType != TroopWorker;
+        }
+
         var desiredPosition = screenPosition + new Vector2(12.0f, 12.0f);
         _commandMenu.Position = ClampCommandMenuPosition(desiredPosition);
         _commandMenu.Visible = true;
@@ -4180,6 +4653,26 @@ public partial class BattleSceneController : Node2D
         {
             _pourOilButton.Visible = false;
         }
+
+        if (_workButton != null)
+        {
+            _workButton.Visible = false;
+        }
+
+        if (_installWoodFenceButton != null)
+        {
+            _installWoodFenceButton.Visible = false;
+        }
+
+        if (_uninstallWoodFenceButton != null)
+        {
+            _uninstallWoodFenceButton.Visible = false;
+        }
+
+        if (_strategyButton != null)
+        {
+            _strategyButton.Visible = false;
+        }
     }
 
     private void CancelCommandAction(bool clearSelection)
@@ -4187,6 +4680,8 @@ public partial class BattleSceneController : Node2D
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _workerWorkAction = WorkerWorkAction.General;
         HideCommandMenu();
 
         if (clearSelection)
@@ -4223,6 +4718,7 @@ public partial class BattleSceneController : Node2D
         {
             BattleCommandMode.MoveSelect => "Select Move Target",
             BattleCommandMode.AttackSelect => "Select Attack Target",
+            BattleCommandMode.WorkSelect => "Select Work Target",
             BattleCommandMode.StrategySelect => "Strategy Pending",
             BattleCommandMode.AwaitingCommand => "Awaiting Command",
             _ => "None"
@@ -4567,7 +5063,15 @@ public partial class BattleSceneController : Node2D
         AwaitingCommand,
         MoveSelect,
         AttackSelect,
+        WorkSelect,
         StrategySelect
+    }
+
+    private enum WorkerWorkAction
+    {
+        General,
+        InstallWoodFence,
+        UninstallWoodFence
     }
 
     private enum BattleTurnSide

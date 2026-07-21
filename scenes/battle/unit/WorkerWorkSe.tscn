@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1"]
+[ext_resource type="Texture2D" path="res://assets/battle/unit/worker_work.png" id="2"]
+
+[node name="WorkerWorkSe" type="Node2D"]
+script = ExtResource("1")
+SpriteSheet = ExtResource("2")
+FrameWidthOverride = 95
+FrameHeightOverride = 85
+SourceFrameOffset = 4
+BaseOffset = Vector2(0, 6)
+FrameOffsets = Array[Vector2]([Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)])
+
+[node name="Sprite" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2")
+hframes = 4
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
