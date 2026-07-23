@@ -17,6 +17,7 @@ public readonly record struct BattleGridKey(int X, int Y, int Level)
 internal enum BattleDepthRenderKind
 {
     CastleVisual,
+    FireEffect,
     MoveHighlight,
     AttackHighlight,
     SelectedHighlight,
@@ -192,6 +193,17 @@ public partial class BattleSceneController : Node2D
     private const double PourOilEffectDurationSeconds = 0.58;
     private const double ArrowProjectileEffectDurationSeconds = 0.42;
     private const double CatapultProjectileEffectDurationSeconds = 0.7;
+    private const int FireStrategyRangeBonus = 1;
+    private const int FireStrategyBaseDurationSunny = 3;
+    private const int FireStrategyBaseDurationCloudy = 2;
+    private const int FireStrategyBaseDurationRain = 1;
+    private const int FireDamagePerTurnSunny = 420;
+    private const int FireDamagePerTurnCloudy = 320;
+    private const int FireDamagePerTurnRain = 180;
+    private const int FireDamageToGate = 180;
+    private const int FireDamageToWoodenFence = 260;
+    private const int FireDamageToBridge = 220;
+    private const int FireMaxSpreadCandidates = 8;
     private const int RamAttackDamage = 500;
     private const int CatapultAttackDamage = 1300;
     private const int InfantryStructureDamage = 180;
@@ -208,7 +220,6 @@ public partial class BattleSceneController : Node2D
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 18000, 8200, 26000);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 12500, 6400, 19800);
     private const string BattleDateText = "191 Apr 4";
-    private const string WeatherText = "Sunny";
 
     private BattleMapData? _mapData;
     private Node2D? _mapRoot;
@@ -226,6 +237,9 @@ public partial class BattleSceneController : Node2D
     private Label? _windowTitleLabel;
     private Label? _unitMenuInfoLabel;
     private Button? _endTurnButton;
+    private Button? _weatherButton;
+    private Button? _windButton;
+    private Button? _windPowerButton;
     private Button? _moveButton;
     private Button? _attackButton;
     private Button? _dropStoneButton;
@@ -248,16 +262,23 @@ public partial class BattleSceneController : Node2D
     private readonly HashSet<BattleGridKey> _movableGrids = new();
     private readonly HashSet<BattleGridKey> _attackableGrids = new();
     private readonly HashSet<BattleGridKey> _workableGrids = new();
+    private readonly HashSet<BattleGridKey> _strategyTargetGrids = new();
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
     private readonly List<BattleHighlightRenderer> _highlightDepthVisuals = new();
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
     private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
+    private readonly Dictionary<BattleGridKey, BattleFireState> _activeFireByGrid = new();
+    private readonly Dictionary<BattleGridKey, Node2D> _fireVisualsByGrid = new();
+    private readonly HashSet<BattlePieceMarker> _strategyUsedByMarkerThisTurn = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private WorkerWorkAction _workerWorkAction = WorkerWorkAction.General;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
+    private BattleWeatherType? _currentBattleWeather;
+    private BattleWindDirection? _currentBattleWindDirection;
+    private BattleWindPower? _currentBattleWindPower;
     private bool _editorBakeBattleLayout;
     private bool _editorClearTileLayout;
     private bool _editorRefreshBattleDepthPreview;
@@ -350,6 +371,21 @@ public partial class BattleSceneController : Node2D
         if (_endTurnButton != null)
         {
             _endTurnButton.Pressed += OnEndTurnButtonPressed;
+        }
+
+        if (_weatherButton != null)
+        {
+            _weatherButton.Pressed += OnWeatherButtonPressed;
+        }
+
+        if (_windButton != null)
+        {
+            _windButton.Pressed += OnWindButtonPressed;
+        }
+
+        if (_windPowerButton != null)
+        {
+            _windPowerButton.Pressed += OnWindPowerButtonPressed;
         }
 
         if (_moveButton != null)
@@ -520,6 +556,9 @@ public partial class BattleSceneController : Node2D
         _windowTitleLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WindowTitleLabel");
         _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
         _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
+        _weatherButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WeatherButton");
+        _windButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindButton");
+        _windPowerButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindPowerButton");
         _moveButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/MoveButton");
         _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
         _dropStoneButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/DropStoneButton");
@@ -946,9 +985,10 @@ public partial class BattleSceneController : Node2D
             BattleDepthRenderKind.CastleVisual => 0,
             BattleDepthRenderKind.MoveHighlight or
             BattleDepthRenderKind.AttackHighlight or
-            BattleDepthRenderKind.SelectedHighlight => 1,
+            BattleDepthRenderKind.SelectedHighlight => 2,
             BattleDepthRenderKind.SiegeEngine or
-            BattleDepthRenderKind.Unit => 2,
+            BattleDepthRenderKind.Unit => 3,
+            BattleDepthRenderKind.FireEffect => 4,
             _ => 0
         };
     }
@@ -973,6 +1013,7 @@ public partial class BattleSceneController : Node2D
             BattleDepthRenderKind.SelectedHighlight => 6,
             BattleDepthRenderKind.SiegeEngine => 10,
             BattleDepthRenderKind.Unit => 20,
+            BattleDepthRenderKind.FireEffect => 30,
             _ => 0
         };
     }
@@ -1227,7 +1268,7 @@ public partial class BattleSceneController : Node2D
 
     private void ConfigureHud()
     {
-        var titleLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/TitleLabel");
+        var titleLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/TitleLabel");
         var summaryLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/SummaryLabel");
         var teamBLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/TeamBLabel");
         var coordinateLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/CoordinateLabel");
@@ -1235,7 +1276,22 @@ public partial class BattleSceneController : Node2D
         var scenarioName = ResolveScenarioDefinition().DisplayName;
         if (titleLabel != null)
         {
-            titleLabel.Text = $"Scenario: {scenarioName}   Date: {BattleDateText}   Weather: {WeatherText}   Turn: {_turnNumber}   Acting Side: {GetCurrentTurnSideName()}";
+            titleLabel.Text = $"Scenario: {scenarioName}   Date: {BattleDateText}   Turn: {_turnNumber}   Acting Side: {GetCurrentTurnSideName()}";
+        }
+
+        if (_weatherButton != null)
+        {
+            _weatherButton.Text = $"Weather: {FormatBattleWeather(GetCurrentBattleWeather())}";
+        }
+
+        if (_windButton != null)
+        {
+            _windButton.Text = $"Wind: {FormatBattleWindDirection(GetCurrentBattleWindDirection())}";
+        }
+
+        if (_windPowerButton != null)
+        {
+            _windPowerButton.Text = $"Power: {FormatBattleWindPower(GetCurrentBattleWindPower())}";
         }
 
         if (summaryLabel != null)
@@ -1291,7 +1347,11 @@ public partial class BattleSceneController : Node2D
 
             if (_commandMode == BattleCommandMode.StrategySelect)
             {
-                CancelCommandAction(clearSelection: true);
+                if (!TryExecuteSelectedStrategy())
+                {
+                    CancelCommandAction(clearSelection: true);
+                }
+
                 RefreshCoordinateLabel();
                 RefreshInfoPanel();
                 RefreshHighlights();
@@ -1466,6 +1526,7 @@ public partial class BattleSceneController : Node2D
             BattleCommandMode.MoveSelect => _movableGrids,
             BattleCommandMode.AttackSelect => _attackableGrids,
             BattleCommandMode.WorkSelect => _workableGrids,
+            BattleCommandMode.StrategySelect => _strategyTargetGrids,
             _ => null
         };
 
@@ -1755,6 +1816,14 @@ public partial class BattleSceneController : Node2D
         builder.AppendLine($"Deployment: {FormatDeploymentZone(cell.DeploymentZone)}");
         builder.AppendLine($"Height: {cell.HeightLevel}");
         builder.AppendLine($"Blocks Move: {(IsCellBlockingMovement(cell) ? "Yes" : "No")}");
+        if (_activeFireByGrid.TryGetValue(ToGroundGridKey(grid), out var fireState))
+        {
+            builder.AppendLine($"Fire: Burning ({fireState.RemainingTurns} turn left)");
+        }
+        else
+        {
+            builder.AppendLine("Fire: None");
+        }
         if (cell.Structure == BattleStructureType.Gate)
         {
             builder.AppendLine($"Gate: {(cell.IsGateOpen ? "Open" : "Closed")}");
@@ -1798,6 +1867,8 @@ public partial class BattleSceneController : Node2D
             builder.AppendLine($"- Reachable Tiles: {_movableGrids.Count}");
             builder.AppendLine($"- Attackable Tiles: {_attackableGrids.Count}");
             builder.AppendLine($"- Workable Tiles: {_workableGrids.Count}");
+            builder.AppendLine($"- Strategy Targets: {_strategyTargetGrids.Count}");
+            builder.AppendLine($"- Fire Strategy: {(CanUseFireStrategy(_selectedUnit) ? "Ready" : "Unavailable")}");
             builder.AppendLine($"- Command State: {FormatCommandMode(_commandMode)}");
             builder.AppendLine($"- Current Turn: {GetCurrentTurnSideName()}");
         }
@@ -3317,6 +3388,7 @@ public partial class BattleSceneController : Node2D
         _selectedUnitGrid = null;
         _movableGrids.Clear();
         _attackableGrids.Clear();
+        _strategyTargetGrids.Clear();
         _commandMode = BattleCommandMode.None;
 
         if (!_selectedGrid.HasValue || _mapData == null)
@@ -3938,6 +4010,11 @@ public partial class BattleSceneController : Node2D
             AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Workable);
         }
 
+        foreach (var grid in _strategyTargetGrids)
+        {
+            AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Attackable);
+        }
+
         if (_selectedGridKey.HasValue && ShouldDisplaySelectedGridHighlight(_selectedGridKey.Value))
         {
             AddHighlightDepthVisual(_selectedGridKey.Value, BattleHighlightVisualKind.Selected);
@@ -4191,9 +4268,641 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _attackableGrids.Clear();
         _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        if (!CanUseFireStrategy(_selectedUnit))
+        {
+            _commandMode = BattleCommandMode.AwaitingCommand;
+            HideCommandMenu();
+            RefreshInfoPanel();
+            RefreshHighlights();
+            return;
+        }
+
+        foreach (var targetGrid in CalculateFireStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit))
+        {
+            _strategyTargetGrids.Add(targetGrid);
+        }
+
+        if (_strategyTargetGrids.Count == 0)
+        {
+            _commandMode = BattleCommandMode.AwaitingCommand;
+            HideCommandMenu();
+            RefreshInfoPanel();
+            RefreshHighlights();
+            return;
+        }
+
         HideCommandMenu();
         RefreshInfoPanel();
         RefreshHighlights();
+    }
+
+    private IEnumerable<BattleGridKey> CalculateFireStrategyTargetGrids(BattleGridKey sourceGrid, BattleOccupantInfo attacker)
+    {
+        var strategyAttacker = attacker with { AttackRange = attacker.AttackRange + FireStrategyRangeBonus };
+        foreach (var grid in CalculateAttackableGrids(sourceGrid, strategyAttacker))
+        {
+            if (grid.Level != 0 || !IsWithinMap(grid.Grid) || _mapData == null)
+            {
+                continue;
+            }
+
+            var cell = _mapData.GetCell(grid.X, grid.Y);
+            if (CanCellIgnite(cell))
+            {
+                yield return grid;
+            }
+        }
+    }
+
+    private bool TryExecuteSelectedStrategy()
+    {
+        if (_selectedUnit == null || !_selectedUnitGrid.HasValue || !_selectedGrid.HasValue || _selectedUnit.Marker == null)
+        {
+            return false;
+        }
+
+        var targetGrid = _selectedGridKey ?? GetDefaultGridKey(_selectedGrid.Value);
+        if (!_strategyTargetGrids.Contains(targetGrid) || !CanUseFireStrategy(_selectedUnit))
+        {
+            return false;
+        }
+
+        if (!IgniteBattleFire(targetGrid))
+        {
+            return false;
+        }
+
+        _strategyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+        return true;
+    }
+
+    private bool CanUseFireStrategy(BattleOccupantInfo? occupant)
+    {
+        if (occupant?.Marker == null || !CanUseUnitTypeFireStrategy(occupant))
+        {
+            return false;
+        }
+
+        return !_strategyUsedByMarkerThisTurn.Contains(occupant.Marker);
+    }
+
+    private static bool CanUseUnitTypeFireStrategy(BattleOccupantInfo occupant)
+    {
+        return occupant.TroopType is TroopArcher or TroopCrossbow ||
+               (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopCatapult);
+    }
+
+    private bool IgniteBattleFire(BattleGridKey grid)
+    {
+        if (_mapData == null || grid.Level != 0 || !IsWithinMap(grid.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (!CanCellIgnite(cell))
+        {
+            return false;
+        }
+
+        var duration = GetInitialFireDuration(GetCurrentBattleWeather(), cell);
+        var burnTurns = 0;
+        if (_activeFireByGrid.TryGetValue(grid, out var existingFire))
+        {
+            duration = Math.Max(duration, existingFire.RemainingTurns);
+            burnTurns = existingFire.BurnTurns;
+        }
+
+        _activeFireByGrid[grid] = new BattleFireState(duration, burnTurns);
+        RefreshFireVisual(grid);
+        RefreshBattleDepthLayerOrder();
+        return true;
+    }
+
+    private void ResolveBattleFireAtTurnEnd()
+    {
+        if (_mapData == null || _activeFireByGrid.Count == 0)
+        {
+            return;
+        }
+
+        var weather = GetCurrentBattleWeather();
+        var activeFires = _activeFireByGrid.ToArray();
+        var pendingNewFires = new HashSet<BattleGridKey>();
+        var expiredFires = new List<BattleGridKey>();
+
+        foreach (var (grid, state) in activeFires)
+        {
+            ApplyBattleFireDamage(grid, weather);
+
+            if (CanFireSpread(weather, grid, state))
+            {
+                foreach (var spreadGrid in GetFireSpreadTargets(grid))
+                {
+                    if (!_activeFireByGrid.ContainsKey(spreadGrid))
+                    {
+                        pendingNewFires.Add(spreadGrid);
+                    }
+                }
+            }
+
+            var remainingTurns = state.RemainingTurns - 1;
+            if (remainingTurns <= 0)
+            {
+                expiredFires.Add(grid);
+            }
+            else
+            {
+                _activeFireByGrid[grid] = state with
+                {
+                    RemainingTurns = remainingTurns,
+                    BurnTurns = state.BurnTurns + 1
+                };
+                RefreshFireVisual(grid);
+            }
+        }
+
+        foreach (var grid in expiredFires)
+        {
+            _activeFireByGrid.Remove(grid);
+            RemoveFireVisual(grid);
+        }
+
+        foreach (var spreadGrid in pendingNewFires)
+        {
+            IgniteBattleFire(spreadGrid);
+        }
+
+        RefreshInfoPanel();
+    }
+
+    private void ApplyBattleFireDamage(BattleGridKey targetGrid, BattleWeatherType weather)
+    {
+        ApplyBattleFireDamageToOccupants(targetGrid, GetFireDamagePerTurn(weather));
+        ApplyBattleFireDamageToStructure(targetGrid);
+    }
+
+    private void ApplyBattleFireDamageToOccupants(BattleGridKey targetGrid, int damage)
+    {
+        if (damage <= 0 || !_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
+        {
+            return;
+        }
+
+        var target = GetAttackTarget(targetOccupants);
+        if (target == null)
+        {
+            return;
+        }
+
+        var actualDamage = Mathf.Min(target.HitPoints, damage);
+        var remainingHp = Mathf.Max(0, target.HitPoints - damage);
+        var remainingTroops = target.Category == CategoryUnit
+            ? Mathf.Max(0, target.TroopCount - damage)
+            : target.TroopCount;
+        var updatedTarget = target with
+        {
+            TroopCount = remainingTroops,
+            HitPoints = remainingHp
+        };
+        updatedTarget.Marker?.SetupHealthBar(updatedTarget.HitPoints, updatedTarget.MaxHitPoints);
+        ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
+        if (_selectedUnit == target)
+        {
+            _selectedUnit = updatedTarget;
+        }
+
+        ShowDamagePopup(targetGrid, actualDamage);
+        if (remainingHp <= 0)
+        {
+            DestroyOccupantAfterDelay(targetGrid, updatedTarget, 0.0);
+        }
+    }
+
+    private void ApplyBattleFireDamageToStructure(BattleGridKey targetGrid)
+    {
+        if (_mapData == null || targetGrid.Level != 0 || !IsWithinMap(targetGrid.Grid))
+        {
+            return;
+        }
+
+        var cell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
+        if (cell.HasBridgeHealth)
+        {
+            var actualBridgeDamage = _mapData.ApplyBridgeDamage(targetGrid.Grid, FireDamageToBridge);
+            if (actualBridgeDamage > 0)
+            {
+                ShowDamagePopup(targetGrid, actualBridgeDamage);
+                if (!cell.HasBridgeHealth)
+                {
+                    RefreshWorkerObjectLayers();
+                }
+            }
+
+            return;
+        }
+
+        if (cell.Structure == BattleStructureType.WoodenFence && cell.HasStructureHealth)
+        {
+            var actualFenceDamage = _mapData.ApplyWoodenFenceDamage(targetGrid.Grid, FireDamageToWoodenFence);
+            if (actualFenceDamage > 0)
+            {
+                ShowDamagePopup(targetGrid, actualFenceDamage);
+                if (cell.Structure != BattleStructureType.WoodenFence)
+                {
+                    RefreshWorkerObjectLayers();
+                }
+            }
+
+            return;
+        }
+
+        if (cell.Structure == BattleStructureType.Gate && cell.HasStructureHealth && !cell.IsBroken)
+        {
+            var actualDamage = ApplyGateGroupDamage(targetGrid.Grid, FireDamageToGate);
+            if (actualDamage > 0)
+            {
+                ShowDamagePopup(targetGrid, actualDamage);
+            }
+        }
+    }
+
+    private IEnumerable<BattleGridKey> GetFireSpreadTargets(BattleGridKey sourceGrid)
+    {
+        if (_mapData == null)
+        {
+            yield break;
+        }
+
+        var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
+        var maxSpreadTargets = GetFireSpreadTargetCount(sourceCell, GetCurrentBattleWindPower());
+        if (maxSpreadTargets <= 0)
+        {
+            yield break;
+        }
+
+        var windOffset = GetWindGridOffset(GetCurrentBattleWindDirection());
+        var candidates = GetFireSpreadOffsets()
+            .Select(offset => new BattleGridKey(sourceGrid.X + offset.X, sourceGrid.Y + offset.Y, 0))
+            .Where(candidate => IsWithinMap(candidate.Grid))
+            .Select(candidate => (Grid: candidate, Cell: _mapData.GetCell(candidate.X, candidate.Y)))
+            .Where(candidate => CanCellIgnite(candidate.Cell))
+            .OrderByDescending(candidate => GetFireSpreadScore(candidate.Grid, candidate.Cell, sourceGrid, windOffset))
+            .ThenBy(candidate => candidate.Grid.Y)
+            .ThenBy(candidate => candidate.Grid.X)
+            .Take(maxSpreadTargets)
+            .ToList();
+
+        foreach (var (grid, _) in candidates)
+        {
+            yield return grid;
+        }
+    }
+
+    private void RefreshFireVisual(BattleGridKey grid)
+    {
+        if (_battleDepthLayer == null || _mapData == null)
+        {
+            return;
+        }
+
+        if (!_fireVisualsByGrid.TryGetValue(grid, out var fireRoot))
+        {
+            fireRoot = CreateFireVisual(grid);
+            _battleDepthLayer.AddChild(fireRoot);
+            _fireVisualsByGrid[grid] = fireRoot;
+        }
+        else
+        {
+            fireRoot.Position = GetFireVisualPosition(grid);
+        }
+
+        RegisterBattleDepthEntry(fireRoot, grid, BattleDepthRenderKind.FireEffect);
+    }
+
+    private void RemoveFireVisual(BattleGridKey grid)
+    {
+        if (!_fireVisualsByGrid.TryGetValue(grid, out var fireRoot))
+        {
+            return;
+        }
+
+        _fireVisualsByGrid.Remove(grid);
+        _battleDepthEntries.Remove(fireRoot);
+        fireRoot.QueueFree();
+    }
+
+    private Node2D CreateFireVisual(BattleGridKey grid)
+    {
+        var fireRoot = new Node2D
+        {
+            Name = $"Fire_{grid.X}_{grid.Y}",
+            Position = GetFireVisualPosition(grid),
+            ZIndex = 0
+        };
+
+        fireRoot.AddChild(CreateFireFlamePolygon(new Vector2(-12.0f, -6.0f), 9.0f, 16.0f, new Color(1.0f, 0.45f, 0.08f, 0.95f)));
+        fireRoot.AddChild(CreateFireFlamePolygon(new Vector2(0.0f, -12.0f), 11.0f, 20.0f, new Color(1.0f, 0.76f, 0.14f, 0.96f)));
+        fireRoot.AddChild(CreateFireFlamePolygon(new Vector2(12.0f, -5.0f), 8.0f, 15.0f, new Color(0.98f, 0.30f, 0.04f, 0.92f)));
+        return fireRoot;
+    }
+
+    private static Polygon2D CreateFireFlamePolygon(Vector2 offset, float halfWidth, float height, Color color)
+    {
+        return new Polygon2D
+        {
+            Position = offset,
+            Color = color,
+            Polygon = new[]
+            {
+                new Vector2(0.0f, -height),
+                new Vector2(halfWidth, 0.0f),
+                new Vector2(0.0f, 6.0f),
+                new Vector2(-halfWidth, 0.0f)
+            }
+        };
+    }
+
+    private Vector2 GetFireVisualPosition(BattleGridKey grid)
+    {
+        var center = _groundLayer?.MapToLocal(grid.Grid) ?? BattleMapRenderer.GridToWorld(grid.Grid);
+        return center + new Vector2(0.0f, -6.0f);
+    }
+
+    private static bool CanCellIgnite(BattleCellData cell)
+    {
+        if (cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.WallWalk)
+        {
+            return false;
+        }
+
+        if (cell.Structure is BattleStructureType.Wall or BattleStructureType.Tower or BattleStructureType.RockBig or BattleStructureType.RockSmall)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static int GetInitialFireDuration(BattleWeatherType weather, BattleCellData cell)
+    {
+        var baseDuration = weather switch
+        {
+            BattleWeatherType.Rain => FireStrategyBaseDurationRain,
+            BattleWeatherType.Cloudy => FireStrategyBaseDurationCloudy,
+            _ => FireStrategyBaseDurationSunny
+        };
+
+        return Math.Max(1, baseDuration + GetFireDurationBonus(cell));
+    }
+
+    private static int GetFireDamagePerTurn(BattleWeatherType weather)
+    {
+        return weather switch
+        {
+            BattleWeatherType.Rain => FireDamagePerTurnRain,
+            BattleWeatherType.Cloudy => FireDamagePerTurnCloudy,
+            _ => FireDamagePerTurnSunny
+        };
+    }
+
+    private bool CanFireSpread(BattleWeatherType weather, BattleGridKey grid, BattleFireState state)
+    {
+        if (_mapData == null || weather == BattleWeatherType.Rain || state.RemainingTurns <= 1)
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        var interval = GetFireSpreadInterval(cell, GetCurrentBattleWindPower());
+        return interval > 0 && state.BurnTurns % interval == 0;
+    }
+
+    private static IEnumerable<Vector2I> GetFireSpreadOffsets()
+    {
+        yield return new Vector2I(1, 0);
+        yield return new Vector2I(-1, 0);
+        yield return new Vector2I(0, 1);
+        yield return new Vector2I(0, -1);
+        yield return new Vector2I(1, 1);
+        yield return new Vector2I(1, -1);
+        yield return new Vector2I(-1, 1);
+        yield return new Vector2I(-1, -1);
+    }
+
+    private static int GetFireSpreadTargetCount(BattleCellData sourceCell, BattleWindPower windPower)
+    {
+        if (windPower == BattleWindPower.Calm)
+        {
+            return CanTerrainCarrySlowFire(sourceCell) ? 1 : 0;
+        }
+
+        var baseCount = sourceCell.Terrain switch
+        {
+            BattleTerrainType.Forest => 3,
+            BattleTerrainType.Grass => 2,
+            BattleTerrainType.Plain or BattleTerrainType.Courtyard => 1,
+            BattleTerrainType.Road or BattleTerrainType.Bridge => 1,
+            _ => 0
+        };
+
+        if (sourceCell.Structure == BattleStructureType.WoodenFence)
+        {
+            baseCount = Math.Max(baseCount, 2);
+        }
+
+        var windAdjustment = windPower == BattleWindPower.Strong ? 1 : 0;
+
+        return Math.Clamp(baseCount + windAdjustment, 0, FireMaxSpreadCandidates);
+    }
+
+    private static int GetFireSpreadInterval(BattleCellData sourceCell, BattleWindPower windPower)
+    {
+        if (windPower == BattleWindPower.Calm)
+        {
+            return CanTerrainCarrySlowFire(sourceCell) ? 3 : 0;
+        }
+
+        var baseInterval = sourceCell.Terrain switch
+        {
+            BattleTerrainType.Forest => 1,
+            BattleTerrainType.Grass => 1,
+            BattleTerrainType.Plain or BattleTerrainType.Courtyard => 2,
+            BattleTerrainType.Road or BattleTerrainType.Bridge => 3,
+            _ => 0
+        };
+
+        if (sourceCell.Structure == BattleStructureType.WoodenFence)
+        {
+            baseInterval = 1;
+        }
+
+        if (baseInterval <= 0)
+        {
+            return 0;
+        }
+
+        var windAdjustment = windPower == BattleWindPower.Strong ? -1 : 0;
+
+        return Math.Max(1, baseInterval + windAdjustment);
+    }
+
+    private static bool CanTerrainCarrySlowFire(BattleCellData cell)
+    {
+        return cell.Structure == BattleStructureType.WoodenFence ||
+               cell.Terrain is BattleTerrainType.Forest or BattleTerrainType.Grass;
+    }
+
+    private static int GetFireDurationBonus(BattleCellData cell)
+    {
+        if (cell.Structure == BattleStructureType.WoodenFence)
+        {
+            return 1;
+        }
+
+        return cell.Terrain switch
+        {
+            BattleTerrainType.Forest => 2,
+            BattleTerrainType.Grass => 1,
+            BattleTerrainType.Road or BattleTerrainType.Bridge => -1,
+            _ => 0
+        };
+    }
+
+    private static int GetFireSpreadScore(BattleGridKey candidate, BattleCellData candidateCell, BattleGridKey sourceGrid, Vector2I windOffset)
+    {
+        var offset = new Vector2I(candidate.X - sourceGrid.X, candidate.Y - sourceGrid.Y);
+        return GetFireTerrainSpreadScore(candidateCell) + GetFireWindSpreadScore(offset, windOffset);
+    }
+
+    private static int GetFireTerrainSpreadScore(BattleCellData cell)
+    {
+        if (cell.Structure == BattleStructureType.WoodenFence)
+        {
+            return 7;
+        }
+
+        return cell.Terrain switch
+        {
+            BattleTerrainType.Forest => 8,
+            BattleTerrainType.Grass => 6,
+            BattleTerrainType.Plain or BattleTerrainType.Courtyard => 4,
+            BattleTerrainType.Road or BattleTerrainType.Bridge => 2,
+            _ => 0
+        };
+    }
+
+    private static int GetFireWindSpreadScore(Vector2I offset, Vector2I windOffset)
+    {
+        if (offset == windOffset)
+        {
+            return 6;
+        }
+
+        var dot = (offset.X * windOffset.X) + (offset.Y * windOffset.Y);
+        if (dot > 0)
+        {
+            return 3;
+        }
+
+        return dot == 0 ? 1 : -2;
+    }
+
+    private BattleWeatherType GetCurrentBattleWeather()
+    {
+        return _currentBattleWeather ?? ResolveScenarioDefinition().Weather;
+    }
+
+    private BattleWindDirection GetCurrentBattleWindDirection()
+    {
+        return _currentBattleWindDirection ?? ResolveScenarioDefinition().WindDirection;
+    }
+
+    private BattleWindPower GetCurrentBattleWindPower()
+    {
+        return _currentBattleWindPower ?? ResolveScenarioDefinition().WindPower;
+    }
+
+    private static BattleWeatherType GetNextBattleWeather(BattleWeatherType weather)
+    {
+        return weather switch
+        {
+            BattleWeatherType.Sunny => BattleWeatherType.Cloudy,
+            BattleWeatherType.Cloudy => BattleWeatherType.Rain,
+            _ => BattleWeatherType.Sunny
+        };
+    }
+
+    private static BattleWindDirection GetNextBattleWindDirection(BattleWindDirection direction)
+    {
+        return direction switch
+        {
+            BattleWindDirection.NorthEast => BattleWindDirection.NorthWest,
+            BattleWindDirection.NorthWest => BattleWindDirection.SouthWest,
+            BattleWindDirection.SouthWest => BattleWindDirection.SouthEast,
+            _ => BattleWindDirection.NorthEast
+        };
+    }
+
+    private static BattleWindPower GetNextBattleWindPower(BattleWindPower power)
+    {
+        return power switch
+        {
+            BattleWindPower.Calm => BattleWindPower.Breeze,
+            BattleWindPower.Breeze => BattleWindPower.Strong,
+            _ => BattleWindPower.Calm
+        };
+    }
+
+    private static string FormatBattleWeather(BattleWeatherType weather)
+    {
+        return weather switch
+        {
+            BattleWeatherType.Cloudy => "Cloudy",
+            BattleWeatherType.Rain => "Rain",
+            _ => "Sunny"
+        };
+    }
+
+    private static string FormatBattleWindDirection(BattleWindDirection direction)
+    {
+        return direction switch
+        {
+            BattleWindDirection.NorthWest => "NorthWest",
+            BattleWindDirection.SouthEast => "SouthEast",
+            BattleWindDirection.SouthWest => "SouthWest",
+            _ => "NorthEast"
+        };
+    }
+
+    private static string FormatBattleWindPower(BattleWindPower power)
+    {
+        return power switch
+        {
+            BattleWindPower.Calm => "Calm",
+            BattleWindPower.Strong => "Strong",
+            _ => "Breeze"
+        };
+    }
+
+    private static Vector2I GetWindGridOffset(BattleWindDirection direction)
+    {
+        return direction switch
+        {
+            BattleWindDirection.NorthEast => new Vector2I(1, -1),
+            BattleWindDirection.NorthWest => new Vector2I(-1, -1),
+            BattleWindDirection.SouthWest => new Vector2I(-1, 1),
+            _ => new Vector2I(1, 1)
+        };
     }
 
     private void OnWorkButtonPressed()
@@ -4223,6 +4932,7 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _attackableGrids.Clear();
         _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
         foreach (var targetGrid in GetOrthogonalNeighbors(_selectedUnitGrid.Value.Grid))
         {
             if (!IsWithinMap(targetGrid))
@@ -4650,7 +5360,10 @@ public partial class BattleSceneController : Node2D
 
         if (_strategyButton != null)
         {
-            _strategyButton.Visible = _selectedUnit?.TroopType != TroopWorker;
+            var canUseStrategyUnit = _selectedUnit != null && CanUseUnitTypeFireStrategy(_selectedUnit);
+            _strategyButton.Visible = canUseStrategyUnit;
+            _strategyButton.Text = "Strategy (Fire)";
+            _strategyButton.Disabled = !CanUseFireStrategy(_selectedUnit);
         }
 
         var desiredPosition = screenPosition + new Vector2(12.0f, 12.0f);
@@ -4706,6 +5419,8 @@ public partial class BattleSceneController : Node2D
         if (_strategyButton != null)
         {
             _strategyButton.Visible = false;
+            _strategyButton.Disabled = false;
+            _strategyButton.Text = "Strategy";
         }
     }
 
@@ -4715,6 +5430,7 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _attackableGrids.Clear();
         _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
         _workerWorkAction = WorkerWorkAction.General;
         HideCommandMenu();
 
@@ -4729,6 +5445,8 @@ public partial class BattleSceneController : Node2D
     private void OnEndTurnButtonPressed()
     {
         CancelCommandAction(clearSelection: true);
+        ResolveBattleFireAtTurnEnd();
+        _strategyUsedByMarkerThisTurn.Clear();
 
         if (_currentTurnSide == BattleTurnSide.TeamA)
         {
@@ -4744,6 +5462,24 @@ public partial class BattleSceneController : Node2D
         RefreshCoordinateLabel();
         RefreshInfoPanel();
         RefreshHighlights();
+    }
+
+    private void OnWeatherButtonPressed()
+    {
+        _currentBattleWeather = GetNextBattleWeather(GetCurrentBattleWeather());
+        ConfigureHud();
+    }
+
+    private void OnWindButtonPressed()
+    {
+        _currentBattleWindDirection = GetNextBattleWindDirection(GetCurrentBattleWindDirection());
+        ConfigureHud();
+    }
+
+    private void OnWindPowerButtonPressed()
+    {
+        _currentBattleWindPower = GetNextBattleWindPower(GetCurrentBattleWindPower());
+        ConfigureHud();
     }
 
     private static string FormatCommandMode(BattleCommandMode commandMode)
@@ -5089,6 +5825,7 @@ public partial class BattleSceneController : Node2D
         BattlePieceMarker? Marker,
         BattleSpriteDirection FacingDirection);
     private readonly record struct WallTopAttackAmmo(int DropStoneUses, int PourOilUses);
+    private readonly record struct BattleFireState(int RemainingTurns, int BurnTurns);
     private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int TotalGold, int TotalFood);
 
     private enum BattleCommandMode

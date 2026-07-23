@@ -220,6 +220,18 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Date / Weather"
 
+[node name="WeatherButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Weather"
+
+[node name="WindButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Wind"
+
+[node name="WindPowerButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Wind Power"
+
 [node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
 layout_mode = 2
 text = "End Turn"

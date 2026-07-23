@@ -313,6 +313,15 @@
   - `Drop Stone` 會顯示由牆頂落向目標的石塊與落點衝擊效果，並沿用一般受擊動畫。
   - `Pour Oil` 會顯示由牆頂傾倒的熱油流與落點濺射效果，並沿用一般受擊動畫。
   - 兩種牆頂投放攻擊均不播放一般武器攻擊動畫；兩者的範圍傷害與狀態效果，留待後續規則模組處理。
+- battle scenario 現在可定義 `Weather`、`WindDirection` 與 `WindPower`：
+  - top bar 會以按鈕顯示目前戰場天氣、風向與風力；點擊可循環切換 prototype runtime 狀態。
+  - `Tile Info` 不再重複顯示這兩個全域戰場狀態。
+  - `Strategy` 的第一個落地版本為 fire tactic：目前由弓兵／弩兵／投石車使用，選擇 `L0` 目標格後建立 fire。
+  - fire 會在每次 `End Turn` 結算傷害，並依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
+  - `WindPower` 會影響 fire spread speed：`Calm` 只允許森林／草地／木柵欄慢速帶火，每 3 個 burn tick 最多擴 1 格；`Strong` 會增加擴散格數並縮短 spread interval。
+  - 森林與草地會燒得較久且擴散較快；道路、橋與庭院擴散較慢；護城河、城牆與牆頂不會成為 fire spread 目標。
+  - fire visual 的 depth band 會高於 battle team，避免火焰被單位 sprite 蓋住。
+  - `Sunny / Cloudy / Rain` 會分別影響 fire 的持續回合與每回合傷害；`Rain` 會明顯抑制 fire spread。
 
 ### 10.5 建議落地順序
 

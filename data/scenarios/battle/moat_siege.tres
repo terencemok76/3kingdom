@@ -6,6 +6,9 @@
 script = ExtResource("1_4k8mj")
 DisplayName = "Moat Siege Battle (NE)"
 ScenarioType = 2
+Weather = 1
+WindDirection = 2
+WindPower = 1
 UnitSpawnGrids = Dictionary[String, Vector2i]({
 "AttackerA": Vector2i(10, 20),
 "AttackerB": Vector2i(12, 18),

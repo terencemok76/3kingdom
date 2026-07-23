@@ -10,6 +10,28 @@ public enum BattleGateForegroundSide
     Right
 }
 
+public enum BattleWeatherType
+{
+    Sunny,
+    Cloudy,
+    Rain
+}
+
+public enum BattleWindDirection
+{
+    NorthEast,
+    NorthWest,
+    SouthEast,
+    SouthWest
+}
+
+public enum BattleWindPower
+{
+    Calm,
+    Breeze,
+    Strong
+}
+
 [GlobalClass]
 public partial class BattleScenarioDefinition : Resource
 {
@@ -27,6 +49,15 @@ public partial class BattleScenarioDefinition : Resource
 
     [Export]
     public BattleGateForegroundSide OpenGateForegroundSide { get; set; } = BattleGateForegroundSide.Right;
+
+    [Export]
+    public BattleWeatherType Weather { get; set; } = BattleWeatherType.Sunny;
+
+    [Export]
+    public BattleWindDirection WindDirection { get; set; } = BattleWindDirection.SouthEast;
+
+    [Export]
+    public BattleWindPower WindPower { get; set; } = BattleWindPower.Breeze;
 
     [Export]
     public Array<Vector2I> NorthWestStructureGrids { get; set; } = new();
@@ -48,6 +79,9 @@ public partial class BattleScenarioDefinition : Resource
             DefaultStructureFacing = BattleStructureFacing.NorthEast,
             ForegroundOcclusionDepth = 2,
             OpenGateForegroundSide = BattleGateForegroundSide.Right,
+            Weather = BattleWeatherType.Sunny,
+            WindDirection = BattleWindDirection.SouthEast,
+            WindPower = BattleWindPower.Breeze,
             UnitSpawnGrids = new Dictionary<string, Vector2I>
             {
                 { "AttackerA", new Vector2I(10, 20) },
