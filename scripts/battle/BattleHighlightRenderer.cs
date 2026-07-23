@@ -13,6 +13,13 @@ internal enum BattleHighlightVisualKind
 
 public partial class BattleHighlightRenderer : Node2D
 {
+    private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
+    private const int OverlayTileWidth = 128;
+    private const int OverlayTileHeight = 64;
+    private const int WallTopWaypointTileIndex = 2;
+
+    private static readonly Texture2D? OverlayAtlasTexture = GD.Load<Texture2D>(OverlayAtlasPath);
+
     private BattleHighlightVisualKind _visualKind;
     private bool _hasVisual;
 
@@ -36,7 +43,10 @@ public partial class BattleHighlightRenderer : Node2D
                 DrawDiamond(44.0f, 22.0f, new Color(0.42f, 0.78f, 0.96f, 0.24f), new Color(0.72f, 0.92f, 1.0f, 0.72f), 2.0f);
                 break;
             case BattleHighlightVisualKind.WallTopMovable:
-                DrawDiamond(44.0f, 22.0f, new Color(0.98f, 0.70f, 0.22f, 0.26f), new Color(1.0f, 0.88f, 0.46f, 0.78f), 2.0f);
+                if (!DrawOverlayAtlasTile(WallTopWaypointTileIndex))
+                {
+                    DrawDiamond(44.0f, 22.0f, new Color(0.98f, 0.70f, 0.22f, 0.26f), new Color(1.0f, 0.88f, 0.46f, 0.78f), 2.0f);
+                }
                 break;
             case BattleHighlightVisualKind.Attackable:
                 DrawDiamond(44.0f, 22.0f, new Color(0.96f, 0.34f, 0.28f, 0.22f), new Color(1.0f, 0.70f, 0.62f, 0.78f), 2.0f);
@@ -62,5 +72,18 @@ public partial class BattleHighlightRenderer : Node2D
         var colors = new[] { fillColor, fillColor, fillColor, fillColor };
         DrawPolygon(points, colors);
         DrawPolyline(points, borderColor, borderWidth, true);
+    }
+
+    private bool DrawOverlayAtlasTile(int tileIndex)
+    {
+        if (OverlayAtlasTexture == null)
+        {
+            return false;
+        }
+
+        var region = new Rect2(tileIndex * OverlayTileWidth, 0.0f, OverlayTileWidth, OverlayTileHeight);
+        var destination = new Rect2(-OverlayTileWidth * 0.5f, -OverlayTileHeight * 0.5f, OverlayTileWidth, OverlayTileHeight);
+        DrawTextureRectRegion(OverlayAtlasTexture, destination, region);
+        return true;
     }
 }

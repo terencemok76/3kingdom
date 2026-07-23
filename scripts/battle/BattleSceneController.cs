@@ -38,8 +38,8 @@ public partial class BattleSceneController : Node2D
     private const float DefaultUnitVisualLift = -16.0f;
     private const float WallWalkUnitVisualLift = -58.0f;
     private const float WallWalkHighlightVisualLift = -42.0f;
-//    private static readonly Vector2 WallTopVisualOffset = new(32.0f, -8.0f);
-    private static readonly Vector2 WallTopVisualOffset = new(32.0f, -60.0f);
+    private static readonly Vector2 NorthEastWallTopHighlightOffset = new(60.0f, -86.0f);
+    private static readonly Vector2 NorthWestWallTopHighlightOffset = new(-60.0f, -86.0f);
     // A wall-top unit must render after the NE wall segments that overlap it from the right.
     private const int WallTopLevelDepthOffset = 3;
     private const string CategoryUnit = "Unit";
@@ -1166,10 +1166,14 @@ public partial class BattleSceneController : Node2D
 
     private Vector2 GetMarkerPosition(BattleGridKey gridKey)
     {
+        if (gridKey.Level == 2)
+        {
+            return GetWallTopAnchorPosition(gridKey);
+        }
+
         var grid = gridKey.Grid;
         var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattleMapRenderer.GridToWorld(grid);
-        var wallTopOffset = gridKey.Level == 2 ? WallTopVisualOffset : Vector2.Zero;
-        return gridCenter + wallTopOffset + new Vector2(0.0f, GetUnitVisualLift(gridKey));
+        return gridCenter + new Vector2(0.0f, GetUnitVisualLift(gridKey));
     }
 
     private float GetUnitVisualLift(Vector2I grid)
@@ -1194,14 +1198,31 @@ public partial class BattleSceneController : Node2D
 
     private Vector2 GetHighlightPosition(BattleGridKey gridKey)
     {
-        var grid = gridKey.Grid;
-        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattleMapRenderer.GridToWorld(grid);
         if (gridKey.Level == 2)
         {
-            return gridCenter + WallTopVisualOffset + new Vector2(0.0f, WallWalkHighlightVisualLift);
+            return GetWallTopAnchorPosition(gridKey);
         }
 
+        var grid = gridKey.Grid;
+        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattleMapRenderer.GridToWorld(grid);
         return gridCenter;
+    }
+
+    private Vector2 GetWallTopAnchorPosition(BattleGridKey gridKey)
+    {
+        var grid = gridKey.Grid;
+        var gridCenter = _groundLayer?.MapToLocal(grid) ?? BattleMapRenderer.GridToWorld(grid);
+        return gridCenter + GetWallTopHighlightOffset() + new Vector2(0.0f, WallWalkHighlightVisualLift);
+    }
+
+    private Vector2 GetWallTopHighlightOffset()
+    {
+        if (IsNorthWestSceneVariant())
+        {
+            return NorthWestWallTopHighlightOffset;
+        }
+
+        return NorthEastWallTopHighlightOffset;
     }
 
     private void ConfigureHud()
@@ -3917,16 +3938,29 @@ public partial class BattleSceneController : Node2D
             AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Workable);
         }
 
-        if (_selectedGridKey.HasValue)
+        if (_selectedGridKey.HasValue && ShouldDisplaySelectedGridHighlight(_selectedGridKey.Value))
         {
             AddHighlightDepthVisual(_selectedGridKey.Value, BattleHighlightVisualKind.Selected);
         }
         else if (_selectedGrid.HasValue)
         {
-            AddHighlightDepthVisual(GetDefaultGridKey(_selectedGrid.Value), BattleHighlightVisualKind.Selected);
+            var defaultSelectedGridKey = GetDefaultGridKey(_selectedGrid.Value);
+            if (ShouldDisplaySelectedGridHighlight(defaultSelectedGridKey))
+            {
+                AddHighlightDepthVisual(defaultSelectedGridKey, BattleHighlightVisualKind.Selected);
+            }
         }
 
         RefreshBattleDepthLayerOrder();
+    }
+
+    private bool ShouldDisplaySelectedGridHighlight(BattleGridKey selectedGridKey)
+    {
+        return !_selectedUnitGrid.HasValue ||
+               _selectedUnit == null ||
+               selectedGridKey != _selectedUnitGrid.Value ||
+               selectedGridKey.Level != 2 ||
+               !IsBattlePiece(_selectedUnit);
     }
 
     private void AddHighlightDepthVisual(BattleGridKey grid, BattleHighlightVisualKind visualKind)

@@ -208,7 +208,10 @@
 - 多層格互動目前以 `BattleGridKey (x, y, level)` 區分：
   - 城門、城牆、塔樓可同時存在地面層 `L0` 與牆頂層 `L2` 語意
   - hover / click / 移動 / 攻擊選格會優先解析對應層級
-  - 牆頂可移動格使用不同顏色高亮，以避免與地面可移動格混淆
+  - 牆頂可移動格使用 `overlay.png` 的 waypoint tile 高亮，以避免與地面可移動格混淆
+  - `NorthEast` / `NorthWest` 場景的牆頂 waypoint 高亮可使用各自的獨立 offset，對齊牆頂 cross / 站位點，而不影響牆頂單位站位
+  - 若牆頂單位與 waypoint 位於同一個 `BattleGridKey`，兩者應共用同一個 walltop anchor position，避免視覺上出現同格不同站位
+  - 點擊牆頂上的 battle team 時，若 selected grid 與該單位是同一個 walltop 格，則不另外顯示 selected grid 高亮
 - 下一步應接的不是資料欄位，而是：
   - 受損來源與數值平衡
   - 破壞後 visual feedback
