@@ -305,6 +305,22 @@
 - 牆頂移動高亮與其他 `L2` 單位不可被 `L0` gate／wall 的固定高 Z 值覆蓋；結構與單位的深度規則必須以層級與地圖深度共同決定。
 - 投石車一般攻擊會在發射動畫期間使用 `assets/battle/object/catapult_stone.png` 顯示旋轉石彈飛向目標格；飛行時會壓縮原素材的橫向比例，使其更接近單顆石彈，並在命中位置顯示衝擊效果。部隊與城門目標均適用。
 - 弓兵與弩兵的一般攻擊會顯示飛箭，由攻擊者格子的畫面座標飛向目標格的畫面座標；飛行時間會納入攻擊效果時序，避免被擊潰單位在箭矢抵達前被移除。
+- 一般戰鬥隊伍可使用 prototype `Union Attack`：
+  - 選取的普通戰鬥隊伍若與敵方戰鬥隊伍四方向相鄰，且同陣營共有 `2` 到 `4` 支合格隊伍以四方向接觸同一名敵方目標，指令選單會顯示 `Union Attack (N)`。
+  - 合擊目前限制在同一個 `BattleGridKey.Level`，不跨地面／牆頂層判定，也不包含攻城器。
+  - 可參與合擊的兵種為 `Infantry`、`Spearman`、`Cavalry`、`Archer`、`Crossbow`、`Worker`。
+  - 第一版傷害規則為主攻者 `100%` 一般攻擊傷害，加上每名支援者 `50%` 一般攻擊傷害；所有參與隊伍會面向目標播放攻擊動畫，目標只播放一次受擊動畫。
+- battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。
+- top bar 的 Team A / Team B 總兵力會隨部隊損兵更新；一般攻擊、合擊、牆頂投放攻擊與 fire damage 造成的 `TroopCount` loss 都會扣到對應陣營。
+  - `Troops` 代表一般戰鬥隊伍兵員，包含 Worker，但不包含攻城器 HP。
+  - `Generals` 顯示目前仍在戰場上的一般部隊將領數量；`Worker` 與攻城器不算將領。
+  - `Siege` 另行顯示目前仍在戰場上的攻城器數量；攻城器撤退或被摧毀時會扣除。
+  - `Ram`、`Ladder`、`Catapult` 不掛 officer name；name plate 與 log 直接顯示攻城器名稱。
+- 右下角新增 prototype `Battle Log` 面板：
+  - 記錄 battle team 的 `Move`、`Attack`、`Hurt`、`Retreat`、`Strategy`、`Action` 與回合切換事件。
+  - battle team 受傷紀錄會顯示受擊隊伍、傷害數字，以及造成傷害的攻擊隊伍；fire damage 則標記為 fire 來源。
+  - log 可切換 `All` 或 `Self`；`Self` 目前依當前 acting side 顯示該隊伍相關紀錄。
+  - 面板採用 gameplay floating log 風格，支援拖曳移動、最小化／還原，以及右下角 resize grip 調整大小。
 - 牆頂單位可使用 prototype 專用攻擊：
   - `Drop Stone`：對城牆面向正前方的 `L0` 敵方部隊造成 `1,200` 傷害；`NorthEast` 為 `(x, y+1, L0)`，`NorthWest` 為 `(x+1, y, L0)`。
   - `Pour Oil`：對同一個 facing-driven 目標格的敵方部隊造成 `1,000` 傷害。
@@ -315,7 +331,7 @@
   - 兩種牆頂投放攻擊均不播放一般武器攻擊動畫；兩者的範圍傷害與狀態效果，留待後續規則模組處理。
 - battle scenario 現在可定義 `Weather`、`WindDirection` 與 `WindPower`：
   - top bar 會以按鈕顯示目前戰場天氣、風向與風力；點擊可循環切換 prototype runtime 狀態。
-  - `Tile Info` 不再重複顯示這兩個全域戰場狀態。
+  - `Tile Info` 不再重複顯示 scenario、weather、wind 等全域戰場狀態，只保留格子、地形、結構、部署與單位資訊。
   - `Strategy` 的第一個落地版本為 fire tactic：目前由弓兵／弩兵／投石車使用，選擇 `L0` 目標格後建立 fire。
   - fire 會在每次 `End Turn` 結算傷害，並依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
   - `WindPower` 會影響 fire spread speed：`Calm` 只允許森林／草地／木柵欄慢速帶火，每 3 個 burn tick 最多擴 1 格；`Strong` 會增加擴散格數並縮短 spread interval。

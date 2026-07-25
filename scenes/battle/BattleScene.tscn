@@ -280,6 +280,70 @@ theme_override_font_sizes/font_size = 17
 text = "Click a tile to inspect."
 autowrap_mode = 3
 
+[node name="BattleLogPanel" type="PanelContainer" parent="UiLayer"]
+custom_minimum_size = Vector2(240, 150)
+offset_left = 1260.0
+offset_top = 540.0
+offset_right = 1570.0
+offset_bottom = 910.0
+mouse_filter = 0
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleLogPanel"]
+layout_mode = 0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 298.0
+offset_bottom = 358.0
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="LogContent" type="VBoxContainer" parent="UiLayer/BattleLogPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderRow" type="HBoxContainer" parent="UiLayer/BattleLogPanel/Margin/LogContent"]
+layout_mode = 2
+mouse_filter = 0
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+theme_override_font_sizes/font_size = 17
+text = "日誌"
+
+[node name="AllLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+text = "全部"
+
+[node name="SelfLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+text = "本勢力"
+
+[node name="MinimizeLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+text = "_"
+
+[node name="LogScroll" type="ScrollContainer" parent="UiLayer/BattleLogPanel/Margin/LogContent"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="LogLabel" type="Label" parent="UiLayer/BattleLogPanel/Margin/LogContent/LogScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/line_spacing = -4
+theme_override_font_sizes/font_size = 14
+text = "No battle log yet."
+autowrap_mode = 3
+
 [node name="CommandMenu" type="PanelContainer" parent="UiLayer" unique_id=2044591462]
 visible = false
 custom_minimum_size = Vector2(280, 0)
@@ -322,6 +386,14 @@ text = "Move"
 [node name="AttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1661440229]
 layout_mode = 2
 text = "Attack"
+
+[node name="UnionAttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Union Attack"
+
+[node name="RetreatButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Retreat"
 
 [node name="DropStoneButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1354194478]
 layout_mode = 2

@@ -36,6 +36,8 @@ public partial class BattleSceneController : Node2D
     private const float MapPaddingTop = 220.0f;
     private const float MapPaddingRight = 220.0f;
     private const float MapPaddingBottom = 320.0f;
+    private const float BattleLogMinimumWidth = 240.0f;
+    private const float BattleLogMinimumHeight = 150.0f;
     private const float DefaultUnitVisualLift = -16.0f;
     private const float WallWalkUnitVisualLift = -58.0f;
     private const float WallWalkHighlightVisualLift = -42.0f;
@@ -217,8 +219,8 @@ public partial class BattleSceneController : Node2D
     private const int LadderMaxHitPoints = 2200;
     private const int CatapultMaxHitPoints = 1800;
     private const double DamagePopupDurationSeconds = 2.0;
-    private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 18000, 8200, 26000);
-    private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 12500, 6400, 19800);
+    private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 0, 0, 0, 8200, 26000);
+    private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 0, 0, 0, 6400, 19800);
     private const string BattleDateText = "191 Apr 4";
 
     private BattleMapData? _mapData;
@@ -234,6 +236,16 @@ public partial class BattleSceneController : Node2D
     private Node2D? _battleDepthLayer;
     private Node2D? _occludedUnitSilhouetteLayer;
     private Control? _commandMenu;
+    private Control? _battleLogPanel;
+    private Control? _battleLogHeaderRow;
+    private Control? _battleLogContent;
+    private Control? _battleLogScroll;
+    private Control? _battleLogResizeGrip;
+    private Button? _allLogButton;
+    private Button? _selfLogButton;
+    private Button? _minimizeLogButton;
+    private Label? _battleLogLabel;
+    private Label? _battleLogTitleLabel;
     private Label? _windowTitleLabel;
     private Label? _unitMenuInfoLabel;
     private Button? _endTurnButton;
@@ -242,6 +254,8 @@ public partial class BattleSceneController : Node2D
     private Button? _windPowerButton;
     private Button? _moveButton;
     private Button? _attackButton;
+    private Button? _unionAttackButton;
+    private Button? _retreatButton;
     private Button? _dropStoneButton;
     private Button? _pourOilButton;
     private Button? _workButton;
@@ -251,8 +265,14 @@ public partial class BattleSceneController : Node2D
     private Button? _openGateButton;
     private bool _isDraggingMap;
     private bool _isDraggingCommandMenu;
+    private bool _isDraggingBattleLog;
+    private bool _isResizingBattleLog;
+    private bool _isBattleLogMinimized;
     private Vector2 _lastMousePosition;
     private Vector2 _commandMenuDragOffset;
+    private Vector2 _battleLogDragOffset;
+    private Vector2 _battleLogResizeStartMouse;
+    private Vector2 _battleLogResizeStartSize;
     private Vector2I? _hoverGrid;
     private Vector2I? _selectedGrid;
     private BattleGridKey? _hoverGridKey;
@@ -272,6 +292,7 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<BattleGridKey, BattleFireState> _activeFireByGrid = new();
     private readonly Dictionary<BattleGridKey, Node2D> _fireVisualsByGrid = new();
     private readonly HashSet<BattlePieceMarker> _strategyUsedByMarkerThisTurn = new();
+    private readonly List<BattleLogEntry> _battleLogs = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private WorkerWorkAction _workerWorkAction = WorkerWorkAction.General;
     private int _turnNumber = 1;
@@ -279,11 +300,22 @@ public partial class BattleSceneController : Node2D
     private BattleWeatherType? _currentBattleWeather;
     private BattleWindDirection? _currentBattleWindDirection;
     private BattleWindPower? _currentBattleWindPower;
+    private int _teamATotalTroops;
+    private int _teamBTotalTroops;
+    private int _teamASiegeUnits;
+    private int _teamBSiegeUnits;
+    private int _teamAGenerals;
+    private int _teamBGenerals;
+    private bool _showSelfTeamLogOnly;
+    private Vector2 _battleLogExpandedSize = new(310.0f, 370.0f);
     private bool _editorBakeBattleLayout;
     private bool _editorClearTileLayout;
     private bool _editorRefreshBattleDepthPreview;
 
     private readonly record struct BattleDepthEntry(Node2D Node, BattleGridKey Grid, BattleDepthRenderKind Kind, int LocalOrder);
+    private readonly record struct UnionAttackParticipant(BattleGridKey Grid, BattleOccupantInfo Occupant);
+    private readonly record struct BattleLogEntry(int Turn, string TeamName, string Category, string Message);
+    private sealed record UnionAttackCandidate(BattleGridKey TargetGrid, List<UnionAttackParticipant> Participants);
 
     [Export]
     public BattleScenarioType ScenarioType { get; set; } = BattleScenarioType.SiegeAssault;
@@ -398,6 +430,16 @@ public partial class BattleSceneController : Node2D
             _attackButton.Pressed += OnAttackButtonPressed;
         }
 
+        if (_unionAttackButton != null)
+        {
+            _unionAttackButton.Pressed += OnUnionAttackButtonPressed;
+        }
+
+        if (_retreatButton != null)
+        {
+            _retreatButton.Pressed += OnRetreatButtonPressed;
+        }
+
         if (_dropStoneButton != null)
         {
             _dropStoneButton.Pressed += OnDropStoneButtonPressed;
@@ -433,6 +475,31 @@ public partial class BattleSceneController : Node2D
             _openGateButton.Pressed += OnOpenGateButtonPressed;
         }
 
+        if (_allLogButton != null)
+        {
+            _allLogButton.Pressed += OnAllLogButtonPressed;
+        }
+
+        if (_selfLogButton != null)
+        {
+            _selfLogButton.Pressed += OnSelfLogButtonPressed;
+        }
+
+        if (_minimizeLogButton != null)
+        {
+            _minimizeLogButton.Pressed += OnMinimizeLogButtonPressed;
+        }
+
+        if (_battleLogHeaderRow != null)
+        {
+            _battleLogHeaderRow.GuiInput += OnBattleLogHeaderGuiInput;
+        }
+
+        if (_battleLogTitleLabel != null)
+        {
+            _battleLogTitleLabel.GuiInput += OnBattleLogHeaderGuiInput;
+        }
+
         if (_windowTitleLabel != null)
         {
             _windowTitleLabel.GuiInput += OnCommandMenuTitleGuiInput;
@@ -444,6 +511,8 @@ public partial class BattleSceneController : Node2D
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
         ConfigureHud();
+        ApplyBattleLogPanelStyle();
+        RefreshBattleLogPanel();
 
         if (_mapRoot != null)
         {
@@ -553,6 +622,16 @@ public partial class BattleSceneController : Node2D
         }
 
         _commandMenu ??= GetNodeOrNull<Control>("UiLayer/CommandMenu");
+        _battleLogPanel ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel");
+        _battleLogHeaderRow ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow");
+        _battleLogContent ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel/Margin/LogContent");
+        _battleLogScroll ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel/Margin/LogContent/LogScroll");
+        _battleLogResizeGrip ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel/ResizeGrip");
+        _allLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/AllLogButton");
+        _selfLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/SelfLogButton");
+        _minimizeLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/MinimizeLogButton");
+        _battleLogLabel ??= GetNodeOrNull<Label>("UiLayer/BattleLogPanel/Margin/LogContent/LogScroll/LogLabel");
+        _battleLogTitleLabel ??= GetNodeOrNull<Label>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/TitleLabel");
         _windowTitleLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WindowTitleLabel");
         _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
         _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
@@ -561,6 +640,8 @@ public partial class BattleSceneController : Node2D
         _windPowerButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindPowerButton");
         _moveButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/MoveButton");
         _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
+        _unionAttackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnionAttackButton");
+        _retreatButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/RetreatButton");
         _dropStoneButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/DropStoneButton");
         _pourOilButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/PourOilButton");
         _workButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WorkButton");
@@ -587,6 +668,11 @@ public partial class BattleSceneController : Node2D
                 HandleMouseMotion(mouseMotion);
                 break;
         }
+    }
+
+    public override void _Input(InputEvent @event)
+    {
+        HandleBattleLogPanelInput(@event);
     }
 
     public override void _Process(double delta)
@@ -1121,9 +1207,9 @@ public partial class BattleSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/AttackerB", ResolveUnitSpawnGrid("AttackerB", new Vector2I(12, 18)), "A", "Attacker Archer B", CategoryUnit, "Team A / Attacker", "Zhang He", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/AttackerC", ResolveUnitSpawnGrid("AttackerC", new Vector2I(14, 20)), "C", "Attacker Cavalry C", CategoryUnit, "Team A / Attacker", "Cao Chun", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/AttackerWorker", ResolveUnitSpawnGrid("AttackerWorker", new Vector2I(16, 20)), "W", "Attacker Worker", CategoryUnit, "Team A / Attacker", "Worker", TroopWorker, 1800, new Color("715137"), new Color("f0d6a8"), moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ram", ResolveUnitSpawnGrid("Ram", new Vector2I(12, 16)), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", "Yue Jin", TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ladder", ResolveUnitSpawnGrid("Ladder", new Vector2I(10, 15)), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", "Yu Jin", TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Catapult", ResolveUnitSpawnGrid("Catapult", new Vector2I(14, 15)), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", "Liu Ye", TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
+        CreateMarker("MapRoot/UnitLayer/Ram", ResolveUnitSpawnGrid("Ram", new Vector2I(12, 16)), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Ladder", ResolveUnitSpawnGrid("Ladder", new Vector2I(10, 15)), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        CreateMarker("MapRoot/UnitLayer/Catapult", ResolveUnitSpawnGrid("Catapult", new Vector2I(14, 15)), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
 
         CreateMarker("MapRoot/UnitLayer/DefenderA", ResolveUnitSpawnGrid("DefenderA", new Vector2I(10, 7)), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/DefenderB", ResolveUnitSpawnGrid("DefenderB", new Vector2I(14, 7)), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
@@ -1153,7 +1239,7 @@ public partial class BattleSceneController : Node2D
         var gridKey = GetDefaultGridKey(grid);
         marker.Position = GetMarkerPosition(gridKey);
         marker.Setup(label, fillColor, borderColor, radius);
-        marker.SetupNamePlate(officerName);
+        marker.SetupNamePlate(string.IsNullOrWhiteSpace(officerName) ? displayName : officerName);
         marker.SetupTeamArrow(GetTeamArrowColor(teamName));
         marker.SetupHealthBar(troopCount, troopCount);
         if (category == CategoryUnit && troopType == TroopInfantry)
@@ -1190,6 +1276,9 @@ public partial class BattleSceneController : Node2D
         }
 
         RegisterOccupant(gridKey, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
+        ApplyTeamTroopDelta(category, teamName, troopCount);
+        ApplyTeamSiegeUnitDelta(category, teamName, 1);
+        ApplyTeamGeneralDelta(category, teamName, officerName, 1);
         RegisterBattleDepthEntry(marker, gridKey, category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
     }
 
@@ -1296,12 +1385,12 @@ public partial class BattleSceneController : Node2D
 
         if (summaryLabel != null)
         {
-            summaryLabel.Text = BuildTeamHudText(TeamAInfo);
+            summaryLabel.Text = BuildTeamHudText(TeamAInfo with { TotalTroops = _teamATotalTroops, TotalSiegeUnits = _teamASiegeUnits, TotalGenerals = _teamAGenerals });
         }
 
         if (teamBLabel != null)
         {
-            teamBLabel.Text = BuildTeamHudText(TeamBInfo);
+            teamBLabel.Text = BuildTeamHudText(TeamBInfo with { TotalTroops = _teamBTotalTroops, TotalSiegeUnits = _teamBSiegeUnits, TotalGenerals = _teamBGenerals });
         }
 
         if (coordinateLabel != null)
@@ -1389,6 +1478,12 @@ public partial class BattleSceneController : Node2D
 
         if (mouseButton.ButtonIndex != MouseButton.Right)
         {
+            if (mouseButton.ButtonIndex == MouseButton.Left && !mouseButton.Pressed)
+            {
+                _isDraggingBattleLog = false;
+                _isResizingBattleLog = false;
+            }
+
             return;
         }
 
@@ -1407,7 +1502,7 @@ public partial class BattleSceneController : Node2D
     {
         if (_isDraggingCommandMenu && _commandMenu != null)
         {
-            _commandMenu.Position = ClampCommandMenuPosition(mouseMotion.Position - _commandMenuDragOffset);
+            _commandMenu.Position = ClampCommandMenuPosition(mouseMotion.GlobalPosition - _commandMenuDragOffset);
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -1760,7 +1855,383 @@ public partial class BattleSceneController : Node2D
 
     private static string BuildTeamHudText(BattleHudTeamInfo info)
     {
-        return $"{info.Name}   Troops: {info.TotalTroops:N0}   Gold: {info.TotalGold:N0}   Food: {info.TotalFood:N0}";
+        return $"{info.Name}   Troops: {info.TotalTroops:N0}   Generals: {info.TotalGenerals:N0}   Siege: {info.TotalSiegeUnits:N0}   Gold: {info.TotalGold:N0}   Food: {info.TotalFood:N0}";
+    }
+
+    private void AppendBattleLog(BattleOccupantInfo actor, string category, string message)
+    {
+        AppendBattleLog(actor.TeamName, category, message);
+    }
+
+    private void AppendBattleLog(string teamName, string category, string message)
+    {
+        _battleLogs.Add(new BattleLogEntry(_turnNumber, teamName, category, message));
+        RefreshBattleLogPanel();
+    }
+
+    private void RefreshBattleLogPanel()
+    {
+        if (_battleLogPanel == null || _battleLogLabel == null)
+        {
+            return;
+        }
+
+        _battleLogPanel.Visible = true;
+        ApplyBattleLogPanelLayout();
+        if (_allLogButton != null)
+        {
+            _allLogButton.Disabled = !_showSelfTeamLogOnly;
+            _allLogButton.Text = _showSelfTeamLogOnly ? "全部" : "全部 *";
+        }
+
+        if (_selfLogButton != null)
+        {
+            _selfLogButton.Disabled = _showSelfTeamLogOnly;
+            _selfLogButton.Text = _showSelfTeamLogOnly ? "本勢力 *" : "本勢力";
+        }
+
+        var selfTeamName = GetCurrentTurnSideName();
+        var visibleLogs = _battleLogs
+            .Where(entry => !_showSelfTeamLogOnly || entry.TeamName == selfTeamName)
+            .TakeLast(80)
+            .ToList();
+        if (visibleLogs.Count == 0)
+        {
+            _battleLogLabel.Text = _showSelfTeamLogOnly
+                ? $"No {selfTeamName} log yet."
+                : "No battle log yet.";
+            return;
+        }
+
+        var builder = new StringBuilder();
+        foreach (var entry in visibleLogs)
+        {
+            builder.AppendLine($"T{entry.Turn} [{FormatLogTeamName(entry.TeamName)}] {entry.Category}: {entry.Message}");
+        }
+
+        _battleLogLabel.Text = builder.ToString().TrimEnd();
+    }
+
+    private void ApplyBattleLogPanelStyle()
+    {
+        if (_battleLogPanel is PanelContainer panel)
+        {
+            var panelStyle = new StyleBoxFlat
+            {
+                BgColor = new Color(0.08f, 0.08f, 0.1f, 0.9f),
+                BorderColor = new Color(0.48f, 0.39f, 0.24f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthTop = 2,
+                BorderWidthRight = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 6,
+                CornerRadiusTopRight = 6,
+                CornerRadiusBottomLeft = 0,
+                CornerRadiusBottomRight = 0
+            };
+            panel.AddThemeStyleboxOverride("panel", panelStyle);
+        }
+
+        if (_battleLogTitleLabel != null)
+        {
+            _battleLogTitleLabel.Text = "日誌";
+            _battleLogTitleLabel.AddThemeColorOverride("font_color", new Color(0.86f, 0.78f, 0.62f, 1.0f));
+        }
+
+        ApplyBattleLogButtonStyle(_allLogButton);
+        ApplyBattleLogButtonStyle(_selfLogButton);
+        ApplyBattleLogButtonStyle(_minimizeLogButton);
+        if (_battleLogLabel != null)
+        {
+            _battleLogLabel.AddThemeColorOverride("font_color", new Color(0.92f, 0.88f, 0.78f, 1.0f));
+        }
+    }
+
+    private static void ApplyBattleLogButtonStyle(Button? button)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        var normalStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.72f, 0.62f, 0.43f, 1.0f),
+            BorderColor = new Color(0.48f, 0.39f, 0.24f, 1.0f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4
+        };
+        var pressedStyle = (StyleBoxFlat)normalStyle.Duplicate();
+        pressedStyle.BgColor = new Color(0.58f, 0.49f, 0.33f, 1.0f);
+        button.AddThemeStyleboxOverride("normal", normalStyle);
+        button.AddThemeStyleboxOverride("hover", normalStyle);
+        button.AddThemeStyleboxOverride("pressed", pressedStyle);
+        button.AddThemeStyleboxOverride("disabled", pressedStyle);
+        button.AddThemeColorOverride("font_color", new Color(0.12f, 0.09f, 0.06f, 1.0f));
+        button.AddThemeColorOverride("font_hover_color", new Color(0.12f, 0.09f, 0.06f, 1.0f));
+        button.AddThemeColorOverride("font_pressed_color", new Color(0.08f, 0.06f, 0.04f, 1.0f));
+        if (button.Name == "MinimizeLogButton")
+        {
+            button.CustomMinimumSize = new Vector2(36.0f, button.CustomMinimumSize.Y);
+        }
+        else
+        {
+            button.CustomMinimumSize = new Vector2(Mathf.Max(52.0f, button.CustomMinimumSize.X), button.CustomMinimumSize.Y);
+        }
+    }
+
+    private void OnAllLogButtonPressed()
+    {
+        _showSelfTeamLogOnly = false;
+        RefreshBattleLogPanel();
+    }
+
+    private void OnSelfLogButtonPressed()
+    {
+        _showSelfTeamLogOnly = true;
+        RefreshBattleLogPanel();
+    }
+
+    private void HandleBattleLogPanelInput(InputEvent @event)
+    {
+        if (_battleLogPanel == null)
+        {
+            return;
+        }
+
+        switch (@event)
+        {
+            case InputEventMouseButton mouseButton when mouseButton.ButtonIndex == MouseButton.Left:
+                if (mouseButton.Pressed)
+                {
+                    var mousePosition = mouseButton.GlobalPosition;
+                    if (IsPointInBattleLogButtonArea(mousePosition))
+                    {
+                        return;
+                    }
+
+                    if (!_isBattleLogMinimized && IsPointInBattleLogResizeGrip(mousePosition))
+                    {
+                        _isResizingBattleLog = true;
+                        _isDraggingBattleLog = false;
+                        _battleLogResizeStartMouse = mousePosition;
+                        _battleLogResizeStartSize = _battleLogPanel.Size;
+                        GetViewport().SetInputAsHandled();
+                        return;
+                    }
+
+                    if (IsPointInBattleLogDragArea(mousePosition))
+                    {
+                        _isDraggingBattleLog = true;
+                        _isResizingBattleLog = false;
+                        _battleLogDragOffset = mousePosition - _battleLogPanel.Position;
+                        GetViewport().SetInputAsHandled();
+                        return;
+                    }
+                }
+                else
+                {
+                    _isDraggingBattleLog = false;
+                    _isResizingBattleLog = false;
+                }
+
+                break;
+            case InputEventMouseMotion mouseMotion:
+                if (_isDraggingBattleLog)
+                {
+                    _battleLogPanel.Position = ClampBattleLogPanelPosition(mouseMotion.GlobalPosition - _battleLogDragOffset, _battleLogPanel.Size);
+                    GetViewport().SetInputAsHandled();
+                    return;
+                }
+
+                if (_isResizingBattleLog && !_isBattleLogMinimized)
+                {
+                    var resizeDelta = mouseMotion.GlobalPosition - _battleLogResizeStartMouse;
+                    ResizeBattleLogPanel(_battleLogResizeStartSize + resizeDelta);
+                    GetViewport().SetInputAsHandled();
+                }
+
+                break;
+        }
+    }
+
+    private bool IsPointInBattleLogDragArea(Vector2 globalPosition)
+    {
+        if (_battleLogPanel == null || !_battleLogPanel.GetGlobalRect().HasPoint(globalPosition))
+        {
+            return false;
+        }
+
+        return !IsPointInBattleLogButtonArea(globalPosition) &&
+               (_isBattleLogMinimized || !IsPointInBattleLogResizeGrip(globalPosition));
+    }
+
+    private bool IsPointInBattleLogButtonArea(Vector2 globalPosition)
+    {
+        return (_allLogButton?.GetGlobalRect().HasPoint(globalPosition) ?? false) ||
+               (_selfLogButton?.GetGlobalRect().HasPoint(globalPosition) ?? false) ||
+               (_minimizeLogButton?.GetGlobalRect().HasPoint(globalPosition) ?? false);
+    }
+
+    private bool IsPointInBattleLogResizeGrip(Vector2 globalPosition)
+    {
+        if (_battleLogPanel == null)
+        {
+            return false;
+        }
+
+        var panelRect = _battleLogPanel.GetGlobalRect();
+        var gripRect = new Rect2(panelRect.End - new Vector2(24.0f, 24.0f), new Vector2(24.0f, 24.0f));
+        return gripRect.HasPoint(globalPosition);
+    }
+
+    private void OnMinimizeLogButtonPressed()
+    {
+        if (_battleLogPanel == null)
+        {
+            return;
+        }
+
+        _isBattleLogMinimized = !_isBattleLogMinimized;
+        if (_isBattleLogMinimized)
+        {
+            _battleLogExpandedSize = _battleLogPanel.Size;
+        }
+
+        ApplyBattleLogPanelLayout();
+    }
+
+    private void ApplyBattleLogPanelLayout()
+    {
+        if (_battleLogPanel == null)
+        {
+            return;
+        }
+
+        if (_battleLogScroll != null)
+        {
+            _battleLogScroll.Visible = !_isBattleLogMinimized;
+        }
+
+        if (_battleLogResizeGrip != null)
+        {
+            _battleLogResizeGrip.Visible = !_isBattleLogMinimized;
+        }
+
+        if (_allLogButton != null)
+        {
+            _allLogButton.Visible = !_isBattleLogMinimized;
+        }
+
+        if (_selfLogButton != null)
+        {
+            _selfLogButton.Visible = !_isBattleLogMinimized;
+        }
+
+        if (_minimizeLogButton != null)
+        {
+            _minimizeLogButton.Text = _isBattleLogMinimized ? "+" : "_";
+        }
+
+        var targetSize = _isBattleLogMinimized
+            ? new Vector2(Mathf.Max(220.0f, _battleLogPanel.Size.X), 52.0f)
+            : GetClampedBattleLogPanelSize(_battleLogExpandedSize);
+        _battleLogPanel.Size = targetSize;
+        _battleLogPanel.Position = ClampBattleLogPanelPosition(_battleLogPanel.Position, targetSize);
+    }
+
+    private void ResizeBattleLogPanel(Vector2 desiredSize)
+    {
+        if (_battleLogPanel == null)
+        {
+            return;
+        }
+
+        var targetSize = GetClampedBattleLogPanelSize(desiredSize);
+        _battleLogExpandedSize = targetSize;
+        _battleLogPanel.Size = targetSize;
+        _battleLogPanel.Position = ClampBattleLogPanelPosition(_battleLogPanel.Position, targetSize);
+    }
+
+    private Vector2 GetClampedBattleLogPanelSize(Vector2 desiredSize)
+    {
+        var viewportSize = GetViewportRect().Size;
+        return new Vector2(
+            Mathf.Clamp(desiredSize.X, BattleLogMinimumWidth, Mathf.Max(BattleLogMinimumWidth, viewportSize.X - 20.0f)),
+            Mathf.Clamp(desiredSize.Y, BattleLogMinimumHeight, Mathf.Max(BattleLogMinimumHeight, viewportSize.Y - 20.0f)));
+    }
+
+    private Vector2 ClampBattleLogPanelPosition(Vector2 desiredPosition, Vector2 panelSize)
+    {
+        var viewportSize = GetViewportRect().Size;
+        var maxX = Mathf.Max(0.0f, viewportSize.X - panelSize.X);
+        var maxY = Mathf.Max(0.0f, viewportSize.Y - panelSize.Y);
+        return new Vector2(
+            Mathf.Clamp(desiredPosition.X, 0.0f, maxX),
+            Mathf.Clamp(desiredPosition.Y, 0.0f, maxY));
+    }
+
+    private void OnBattleLogHeaderGuiInput(InputEvent @event)
+    {
+        if (_battleLogPanel == null)
+        {
+            return;
+        }
+
+        if (@event is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
+        {
+            if (mouseButton.Pressed)
+            {
+                _isDraggingBattleLog = true;
+                _battleLogDragOffset = mouseButton.GlobalPosition - _battleLogPanel.Position;
+                GetViewport().SetInputAsHandled();
+            }
+            else
+            {
+                _isDraggingBattleLog = false;
+            }
+        }
+    }
+
+    private static string FormatLogTeamName(string teamName)
+    {
+        if (teamName.Contains("Attacker"))
+        {
+            return "A";
+        }
+
+        if (teamName.Contains("Defender"))
+        {
+            return "B";
+        }
+
+        return teamName;
+    }
+
+    private static string FormatLogUnit(BattleOccupantInfo unit)
+    {
+        if (string.IsNullOrWhiteSpace(unit.OfficerName))
+        {
+            return unit.DisplayName;
+        }
+
+        return $"{unit.OfficerName}/{unit.TroopType}";
+    }
+
+    private static string FormatWorkerWorkAction(WorkerWorkAction action)
+    {
+        return action switch
+        {
+            WorkerWorkAction.InstallWoodFence => "installs wood fence",
+            WorkerWorkAction.UninstallWoodFence => "removes wood fence",
+            _ => "works"
+        };
     }
 
     private static string FormatGrid(Vector2I? grid)
@@ -1782,14 +2253,13 @@ public partial class BattleSceneController : Node2D
     {
         if (!_selectedGrid.HasValue || _mapData == null)
         {
-            return $"Tile Info\nScenario: {ResolveScenarioDefinition().DisplayName}\nCoordinate: -\nClick a tile to inspect terrain, structure, deployment zone, and units.";
+            return "Tile Info\nCoordinate: -\nClick a tile to inspect terrain, structure, deployment zone, and units.";
         }
 
         var grid = _selectedGrid.Value;
         var cell = _mapData.GetCell(grid.X, grid.Y);
         var builder = new StringBuilder();
         builder.AppendLine("Tile Info");
-        builder.AppendLine($"Scenario: {ResolveScenarioDefinition().DisplayName}");
         builder.AppendLine($"Coordinate: {FormatGrid(_selectedGridKey, _selectedGrid)}");
         builder.AppendLine($"Terrain: {FormatTerrain(cell.Terrain)}");
         builder.AppendLine($"Structure: {FormatStructure(cell.Structure)}");
@@ -2010,6 +2480,7 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _attackableGrids.Clear();
         HideCommandMenu();
+        AppendBattleLog(movedOccupant, "Move", $"{FormatLogUnit(movedOccupant)} {sourceGrid} -> {destinationGrid}");
 
         return true;
     }
@@ -2104,6 +2575,7 @@ public partial class BattleSceneController : Node2D
         var effectDelaySeconds = Math.Max(
             Math.Max(attackAnimationDuration, hurtAnimationDuration),
             Math.Max(arrowEffectDuration, catapultEffectDuration));
+        AppendBattleLog(attackingUnit, "Attack", $"{FormatLogUnit(attackingUnit)} attacks {targetGrid}");
         ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds);
         if (shouldTemporarilyRevealOccludedUnits)
         {
@@ -2150,6 +2622,7 @@ public partial class BattleSceneController : Node2D
             GetWorkerWorkScene(workDirection),
             GetWorkerIdleScene(workDirection),
             WorkerWorkAnimationDurationSeconds);
+        AppendBattleLog(workingUnit, "Action", $"{FormatLogUnit(workingUnit)} {FormatWorkerWorkAction(_workerWorkAction)} at {targetGrid}");
 
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
@@ -2547,6 +3020,7 @@ public partial class BattleSceneController : Node2D
         var remainingTroops = target.Category == CategoryUnit
             ? Mathf.Max(0, target.TroopCount - damage)
             : target.TroopCount;
+        ApplyTeamTroopLoss(target, target.TroopCount - remainingTroops);
         var updatedTarget = target with
         {
             TroopCount = remainingTroops,
@@ -2560,6 +3034,11 @@ public partial class BattleSceneController : Node2D
         }
 
         ShowDamagePopup(targetGrid, actualDamage);
+        AppendBattleLog(
+            target,
+            "Hurt",
+            $"{FormatLogUnit(target)} got {actualDamage:N0} hurt by {FormatLogUnit(attacker)} at {targetGrid}");
+        ConfigureHud();
         RefreshInfoPanel();
         if (remainingHp <= 0)
         {
@@ -2965,7 +3444,7 @@ public partial class BattleSceneController : Node2D
         RemoveOccupant(grid, occupant);
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
-        RefreshInfoPanel();
+        ConfigureHud();
     }
 
     private void RemoveOccupant(BattleGridKey grid, BattleOccupantInfo occupant)
@@ -2980,6 +3459,8 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
+        ApplyTeamSiegeUnitDelta(occupant.Category, occupant.TeamName, -1);
+        ApplyTeamGeneralDelta(occupant.Category, occupant.TeamName, occupant.OfficerName, -1);
         if (occupant.Marker != null)
         {
             _battleDepthEntries.Remove(occupant.Marker);
@@ -4114,6 +4595,296 @@ public partial class BattleSceneController : Node2D
         RefreshHighlights();
     }
 
+    private void OnUnionAttackButtonPressed()
+    {
+        if (!TryGetBestUnionAttackCandidate(out var candidate) ||
+            _selectedUnit == null ||
+            !_selectedUnitGrid.HasValue)
+        {
+            return;
+        }
+
+        var shouldTemporarilyRevealOccludedUnits =
+            IsUnitOccludedByCastleVisual(candidate.TargetGrid) ||
+            candidate.Participants.Any(participant => IsUnitOccludedByCastleVisual(participant.Grid));
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            ClearOccludedUnitSilhouettes();
+        }
+
+        var maxAttackAnimationDuration = 0.0;
+        BattleOccupantInfo? updatedSelectedUnit = null;
+        foreach (var participant in candidate.Participants)
+        {
+            var attackDirection = GetInfantryDirection(participant.Grid.Grid, candidate.TargetGrid.Grid);
+            var attackingUnit = participant.Occupant with { FacingDirection = attackDirection };
+            ReplaceOccupantAtGrid(participant.Grid, participant.Occupant, attackingUnit);
+            maxAttackAnimationDuration = Math.Max(maxAttackAnimationDuration, ApplyAttackAnimation(attackingUnit, attackDirection));
+            if (participant.Grid == _selectedUnitGrid.Value)
+            {
+                updatedSelectedUnit = attackingUnit;
+            }
+        }
+
+        if (updatedSelectedUnit != null)
+        {
+            _selectedUnit = updatedSelectedUnit;
+        }
+
+        var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, candidate.TargetGrid);
+        var effectDelaySeconds = Math.Max(maxAttackAnimationDuration, hurtAnimationDuration);
+        AppendBattleLog(
+            _selectedUnit!,
+            "Attack",
+            $"Union x{candidate.Participants.Count}: {string.Join(", ", candidate.Participants.Select(participant => FormatLogUnit(participant.Occupant)))} -> {candidate.TargetGrid}");
+        ApplyAttackDamage(_selectedUnit!, candidate.TargetGrid, effectDelaySeconds, GetUnionAttackDamage(candidate.Participants));
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
+        }
+
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _workerWorkAction = WorkerWorkAction.General;
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private void OnRetreatButtonPressed()
+    {
+        if (_selectedUnit == null || !_selectedUnitGrid.HasValue || !IsBattlePiece(_selectedUnit))
+        {
+            return;
+        }
+
+        var retreatingUnit = _selectedUnit;
+        var retreatingGrid = _selectedUnitGrid.Value;
+        ApplyRetreatTroopLoss(retreatingUnit);
+        AppendBattleLog(retreatingUnit, "Retreat", $"{FormatLogUnit(retreatingUnit)} retreats from {retreatingGrid}");
+        RemoveOccupant(retreatingGrid, retreatingUnit);
+
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _workerWorkAction = WorkerWorkAction.General;
+        _selectedGrid = null;
+        _selectedGridKey = null;
+        _selectedUnit = null;
+        _selectedUnitGrid = null;
+        HideCommandMenu();
+        RefreshBattleDepthLayerOrder();
+        RefreshOccludedUnitSilhouettes();
+        ConfigureHud();
+        RefreshHighlights();
+    }
+
+    private void ApplyRetreatTroopLoss(BattleOccupantInfo retreatingUnit)
+    {
+        var retreatTroops = Mathf.Max(0, retreatingUnit.TroopCount);
+        ApplyTeamTroopLoss(retreatingUnit, retreatTroops);
+    }
+
+    private void ApplyTeamTroopLoss(BattleOccupantInfo unit, int troopLoss)
+    {
+        if (troopLoss <= 0)
+        {
+            return;
+        }
+
+        ApplyTeamTroopDelta(unit.Category, unit.TeamName, -troopLoss);
+    }
+
+    private void ApplyTeamTroopDelta(string category, string teamName, int delta)
+    {
+        if (category != CategoryUnit || delta == 0)
+        {
+            return;
+        }
+
+        if (teamName.Contains("Attacker"))
+        {
+            _teamATotalTroops = Mathf.Max(0, _teamATotalTroops + delta);
+        }
+        else if (teamName.Contains("Defender"))
+        {
+            _teamBTotalTroops = Mathf.Max(0, _teamBTotalTroops + delta);
+        }
+    }
+
+    private void ApplyTeamSiegeUnitDelta(string category, string teamName, int delta)
+    {
+        if (category != CategorySiegeEngine || delta == 0)
+        {
+            return;
+        }
+
+        if (teamName.Contains("Attacker"))
+        {
+            _teamASiegeUnits = Mathf.Max(0, _teamASiegeUnits + delta);
+        }
+        else if (teamName.Contains("Defender"))
+        {
+            _teamBSiegeUnits = Mathf.Max(0, _teamBSiegeUnits + delta);
+        }
+    }
+
+    private void ApplyTeamGeneralDelta(string category, string teamName, string officerName, int delta)
+    {
+        if (!IsGeneralCountedPiece(category, officerName) || delta == 0)
+        {
+            return;
+        }
+
+        if (teamName.Contains("Attacker"))
+        {
+            _teamAGenerals = Mathf.Max(0, _teamAGenerals + delta);
+        }
+        else if (teamName.Contains("Defender"))
+        {
+            _teamBGenerals = Mathf.Max(0, _teamBGenerals + delta);
+        }
+    }
+
+    private static bool IsGeneralCountedPiece(string category, string officerName)
+    {
+        return category == CategoryUnit &&
+               !string.Equals(officerName, "Worker", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool TryGetBestUnionAttackCandidate(out UnionAttackCandidate candidate)
+    {
+        candidate = new UnionAttackCandidate(default, new List<UnionAttackParticipant>());
+        if (_selectedUnit == null ||
+            !_selectedUnitGrid.HasValue ||
+            !CanJoinUnionAttack(_selectedUnit))
+        {
+            return false;
+        }
+
+        var selectedGrid = _selectedUnitGrid.Value;
+        var selectedIsAttacker = IsAttackerPiece(_selectedUnit);
+        var candidates = new List<UnionAttackCandidate>();
+        foreach (var targetEntry in _occupantsByGrid)
+        {
+            var targetGrid = targetEntry.Key;
+            if (targetGrid.Level != selectedGrid.Level || !IsTouchingGrid(selectedGrid, targetGrid))
+            {
+                continue;
+            }
+
+            var target = GetAttackTarget(targetEntry.Value);
+            if (target == null ||
+                target.Marker == null ||
+                IsAttackerPiece(target) == selectedIsAttacker)
+            {
+                continue;
+            }
+
+            var participants = CollectUnionAttackParticipants(targetGrid, selectedGrid, selectedIsAttacker);
+            if (participants.Count >= 2)
+            {
+                candidates.Add(new UnionAttackCandidate(targetGrid, participants));
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            return false;
+        }
+
+        candidate = candidates
+            .OrderByDescending(current => current.Participants.Count)
+            .ThenBy(current => GetManhattanDistance(selectedGrid.Grid, current.TargetGrid.Grid))
+            .First();
+        return true;
+    }
+
+    private List<UnionAttackParticipant> CollectUnionAttackParticipants(
+        BattleGridKey targetGrid,
+        BattleGridKey selectedGrid,
+        bool selectedIsAttacker)
+    {
+        var participants = new List<UnionAttackParticipant>();
+        if (_selectedUnit != null)
+        {
+            participants.Add(new UnionAttackParticipant(selectedGrid, _selectedUnit));
+        }
+
+        var supportParticipants = new List<UnionAttackParticipant>();
+        foreach (var sourceEntry in _occupantsByGrid)
+        {
+            var sourceGrid = sourceEntry.Key;
+            if (sourceGrid == selectedGrid ||
+                sourceGrid.Level != targetGrid.Level ||
+                !IsTouchingGrid(sourceGrid, targetGrid))
+            {
+                continue;
+            }
+
+            var supportUnit = sourceEntry.Value.FirstOrDefault(occupant =>
+                CanJoinUnionAttack(occupant) &&
+                IsAttackerPiece(occupant) == selectedIsAttacker);
+            if (supportUnit != null)
+            {
+                supportParticipants.Add(new UnionAttackParticipant(sourceGrid, supportUnit));
+            }
+        }
+
+        participants.AddRange(
+            supportParticipants
+                .OrderBy(participant => GetManhattanDistance(participant.Grid.Grid, selectedGrid.Grid))
+                .Take(3));
+        return participants;
+    }
+
+    private static bool CanJoinUnionAttack(BattleOccupantInfo occupant)
+    {
+        return occupant.Marker != null &&
+               occupant.Category == CategoryUnit &&
+               IsUnionAttackTroopType(occupant.TroopType) &&
+               GetAttackDamage(occupant) > 0;
+    }
+
+    private static bool IsUnionAttackTroopType(string troopType)
+    {
+        return troopType is TroopInfantry or TroopSpearman or TroopCavalry or TroopArcher or TroopCrossbow or TroopWorker;
+    }
+
+    private static int GetUnionAttackDamage(IReadOnlyList<UnionAttackParticipant> participants)
+    {
+        var damage = 0;
+        for (var index = 0; index < participants.Count; index++)
+        {
+            var participantDamage = GetAttackDamage(participants[index].Occupant);
+            damage += index == 0
+                ? participantDamage
+                : Mathf.Max(1, participantDamage / 2);
+        }
+
+        return damage;
+    }
+
+    private static bool IsTouchingGrid(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    {
+        if (sourceGrid.Level != targetGrid.Level)
+        {
+            return false;
+        }
+
+        return GetManhattanDistance(sourceGrid.Grid, targetGrid.Grid) == 1;
+    }
+
+    private static int GetManhattanDistance(Vector2I a, Vector2I b)
+    {
+        return Mathf.Abs(a.X - b.X) + Mathf.Abs(a.Y - b.Y);
+    }
+
     private void OnDropStoneButtonPressed()
     {
         TryUseWallTopAttack(DropStoneAttackDamage, isDropStone: true);
@@ -4153,6 +4924,7 @@ public partial class BattleSceneController : Node2D
             ? PlayDropStoneEffect(_selectedUnitGrid.Value, targetGrid)
             : PlayPourOilEffect(_selectedUnitGrid.Value, targetGrid);
         var effectDelaySeconds = Math.Max(hurtAnimationDuration, specialEffectDuration);
+        AppendBattleLog(attackingUnit, "Action", $"{FormatLogUnit(attackingUnit)} {(isDropStone ? "Drop Stone" : "Pour Oil")} -> {targetGrid}");
         if (hasEnemyTarget)
         {
             ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds, damage);
@@ -4334,6 +5106,7 @@ public partial class BattleSceneController : Node2D
         }
 
         _strategyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
+        AppendBattleLog(_selectedUnit, "Strategy", $"{FormatLogUnit(_selectedUnit)} ignites fire at {targetGrid}");
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
@@ -4469,6 +5242,7 @@ public partial class BattleSceneController : Node2D
         var remainingTroops = target.Category == CategoryUnit
             ? Mathf.Max(0, target.TroopCount - damage)
             : target.TroopCount;
+        ApplyTeamTroopLoss(target, target.TroopCount - remainingTroops);
         var updatedTarget = target with
         {
             TroopCount = remainingTroops,
@@ -4482,6 +5256,8 @@ public partial class BattleSceneController : Node2D
         }
 
         ShowDamagePopup(targetGrid, actualDamage);
+        AppendBattleLog(target, "Hurt", $"Fire burns {FormatLogUnit(target)} for {actualDamage:N0} at {targetGrid}");
+        ConfigureHud();
         if (remainingHp <= 0)
         {
             DestroyOccupantAfterDelay(targetGrid, updatedTarget, 0.0);
@@ -5299,9 +6075,12 @@ public partial class BattleSceneController : Node2D
                 var strengthText = _selectedUnit.Category == CategorySiegeEngine
                     ? $"HP: {_selectedUnit.HitPoints}/{_selectedUnit.MaxHitPoints}"
                     : $"Troops: {_selectedUnit.TroopCount:N0}";
+                var officerText = string.IsNullOrWhiteSpace(_selectedUnit.OfficerName)
+                    ? "-"
+                    : _selectedUnit.OfficerName;
                 _unitMenuInfoLabel.Text =
                     $"Team: {_selectedUnit.TeamName}\n" +
-                    $"Officer: {_selectedUnit.OfficerName}\n" +
+                    $"Officer: {officerText}\n" +
                     $"Type: {_selectedUnit.TroopType}\n" +
                     strengthText;
             }
@@ -5366,6 +6145,28 @@ public partial class BattleSceneController : Node2D
             _strategyButton.Disabled = !CanUseFireStrategy(_selectedUnit);
         }
 
+        if (_unionAttackButton != null)
+        {
+            if (TryGetBestUnionAttackCandidate(out var unionAttackCandidate))
+            {
+                _unionAttackButton.Visible = true;
+                _unionAttackButton.Text = $"Union Attack ({unionAttackCandidate.Participants.Count})";
+                _unionAttackButton.Disabled = false;
+            }
+            else
+            {
+                _unionAttackButton.Visible = false;
+                _unionAttackButton.Disabled = false;
+                _unionAttackButton.Text = "Union Attack";
+            }
+        }
+
+        if (_retreatButton != null)
+        {
+            _retreatButton.Visible = _selectedUnit != null && IsBattlePiece(_selectedUnit);
+            _retreatButton.Disabled = _selectedUnit == null || !IsBattlePiece(_selectedUnit);
+        }
+
         var desiredPosition = screenPosition + new Vector2(12.0f, 12.0f);
         _commandMenu.Position = ClampCommandMenuPosition(desiredPosition);
         _commandMenu.Visible = true;
@@ -5422,6 +6223,20 @@ public partial class BattleSceneController : Node2D
             _strategyButton.Disabled = false;
             _strategyButton.Text = "Strategy";
         }
+
+        if (_unionAttackButton != null)
+        {
+            _unionAttackButton.Visible = false;
+            _unionAttackButton.Disabled = false;
+            _unionAttackButton.Text = "Union Attack";
+        }
+
+        if (_retreatButton != null)
+        {
+            _retreatButton.Visible = false;
+            _retreatButton.Disabled = false;
+            _retreatButton.Text = "Retreat";
+        }
     }
 
     private void CancelCommandAction(bool clearSelection)
@@ -5458,7 +6273,9 @@ public partial class BattleSceneController : Node2D
             _turnNumber++;
         }
 
+        AppendBattleLog(GetCurrentTurnSideName(), "Turn", $"Acting side: {GetCurrentTurnSideName()}");
         ConfigureHud();
+        RefreshBattleLogPanel();
         RefreshCoordinateLabel();
         RefreshInfoPanel();
         RefreshHighlights();
@@ -5826,7 +6643,7 @@ public partial class BattleSceneController : Node2D
         BattleSpriteDirection FacingDirection);
     private readonly record struct WallTopAttackAmmo(int DropStoneUses, int PourOilUses);
     private readonly record struct BattleFireState(int RemainingTurns, int BurnTurns);
-    private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int TotalGold, int TotalFood);
+    private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int TotalGenerals, int TotalSiegeUnits, int TotalGold, int TotalFood);
 
     private enum BattleCommandMode
     {
