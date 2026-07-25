@@ -32,6 +32,14 @@ public enum BattleWindPower
     Strong
 }
 
+public enum BattleTimeOfDay
+{
+    Dawn,
+    Morning,
+    Afternoon,
+    Night
+}
+
 [GlobalClass]
 public partial class BattleScenarioDefinition : Resource
 {
@@ -60,6 +68,9 @@ public partial class BattleScenarioDefinition : Resource
     public BattleWindPower WindPower { get; set; } = BattleWindPower.Breeze;
 
     [Export]
+    public BattleTimeOfDay TimeOfDay { get; set; } = BattleTimeOfDay.Morning;
+
+    [Export]
     public Array<Vector2I> NorthWestStructureGrids { get; set; } = new();
 
     [Export]
@@ -82,6 +93,7 @@ public partial class BattleScenarioDefinition : Resource
             Weather = BattleWeatherType.Sunny,
             WindDirection = BattleWindDirection.SouthEast,
             WindPower = BattleWindPower.Breeze,
+            TimeOfDay = BattleTimeOfDay.Morning,
             UnitSpawnGrids = new Dictionary<string, Vector2I>
             {
                 { "AttackerA", new Vector2I(10, 20) },

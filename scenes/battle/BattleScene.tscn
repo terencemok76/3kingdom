@@ -189,6 +189,27 @@ z_index = 30
 
 [node name="UiLayer" type="CanvasLayer" parent="." unique_id=338083734]
 
+[node name="TimeOfDayOverlay" type="ColorRect" parent="UiLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 142.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)
+
+[node name="WeatherOverlay" type="ColorRect" parent="UiLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 142.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+clip_contents = true
+color = Color(1, 1, 1, 0)
+
 [node name="TopBar" type="ColorRect" parent="UiLayer" unique_id=1605276365]
 offset_right = 1600.0
 offset_bottom = 142.0
@@ -219,6 +240,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Date / Weather"
+
+[node name="TimeButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Time"
 
 [node name="WeatherButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
 layout_mode = 2
@@ -390,6 +415,10 @@ text = "Attack"
 [node name="UnionAttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
 layout_mode = 2
 text = "Union Attack"
+
+[node name="DuelButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Duel"
 
 [node name="RetreatButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
 layout_mode = 2

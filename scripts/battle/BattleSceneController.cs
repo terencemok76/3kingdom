@@ -189,6 +189,8 @@ public partial class BattleSceneController : Node2D
     private const int WorkerBridgeRepairAmount = 450;
     private const int WorkerGateRepairAmount = 600;
     private const int WorkerAttackDamage = 350;
+    private const int DefaultUnitMorale = 100;
+    private const int WorkerMorale = 80;
     private const int DropStoneAttackDamage = 1200;
     private const int PourOilAttackDamage = 1000;
     private const double DropStoneEffectDurationSeconds = 0.48;
@@ -232,6 +234,10 @@ public partial class BattleSceneController : Node2D
     private TileMapLayer? _castleLayer;
     private TileMapLayer? _overlayLayer;
     private BattleHighlightRenderer? _highlightLayer;
+    private ColorRect? _timeOfDayOverlay;
+    private Tween? _timeOfDayOverlayTween;
+    private ColorRect? _weatherOverlay;
+    private Tween? _weatherOverlayTween;
     private Texture2D? _catapultStoneTexture;
     private Node2D? _battleDepthLayer;
     private Node2D? _occludedUnitSilhouetteLayer;
@@ -249,12 +255,14 @@ public partial class BattleSceneController : Node2D
     private Label? _windowTitleLabel;
     private Label? _unitMenuInfoLabel;
     private Button? _endTurnButton;
+    private Button? _timeButton;
     private Button? _weatherButton;
     private Button? _windButton;
     private Button? _windPowerButton;
     private Button? _moveButton;
     private Button? _attackButton;
     private Button? _unionAttackButton;
+    private Button? _duelButton;
     private Button? _retreatButton;
     private Button? _dropStoneButton;
     private Button? _pourOilButton;
@@ -283,6 +291,7 @@ public partial class BattleSceneController : Node2D
     private readonly HashSet<BattleGridKey> _attackableGrids = new();
     private readonly HashSet<BattleGridKey> _workableGrids = new();
     private readonly HashSet<BattleGridKey> _strategyTargetGrids = new();
+    private readonly HashSet<BattleGridKey> _duelTargetGrids = new();
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
@@ -293,10 +302,12 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<BattleGridKey, Node2D> _fireVisualsByGrid = new();
     private readonly HashSet<BattlePieceMarker> _strategyUsedByMarkerThisTurn = new();
     private readonly List<BattleLogEntry> _battleLogs = new();
+    private readonly List<ColorRect> _rainStreaks = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
     private WorkerWorkAction _workerWorkAction = WorkerWorkAction.General;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
+    private BattleTimeOfDay? _currentBattleTimeOfDay;
     private BattleWeatherType? _currentBattleWeather;
     private BattleWindDirection? _currentBattleWindDirection;
     private BattleWindPower? _currentBattleWindPower;
@@ -307,6 +318,7 @@ public partial class BattleSceneController : Node2D
     private int _teamAGenerals;
     private int _teamBGenerals;
     private bool _showSelfTeamLogOnly;
+    private double _weatherEffectTime;
     private Vector2 _battleLogExpandedSize = new(310.0f, 370.0f);
     private bool _editorBakeBattleLayout;
     private bool _editorClearTileLayout;
@@ -405,6 +417,11 @@ public partial class BattleSceneController : Node2D
             _endTurnButton.Pressed += OnEndTurnButtonPressed;
         }
 
+        if (_timeButton != null)
+        {
+            _timeButton.Pressed += OnTimeButtonPressed;
+        }
+
         if (_weatherButton != null)
         {
             _weatherButton.Pressed += OnWeatherButtonPressed;
@@ -433,6 +450,11 @@ public partial class BattleSceneController : Node2D
         if (_unionAttackButton != null)
         {
             _unionAttackButton.Pressed += OnUnionAttackButtonPressed;
+        }
+
+        if (_duelButton != null)
+        {
+            _duelButton.Pressed += OnDuelButtonPressed;
         }
 
         if (_retreatButton != null)
@@ -511,6 +533,9 @@ public partial class BattleSceneController : Node2D
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
         ConfigureHud();
+        ApplyTimeOfDayVisual(animate: false);
+        BuildWeatherVisuals();
+        ApplyWeatherVisual(animate: false);
         ApplyBattleLogPanelStyle();
         RefreshBattleLogPanel();
 
@@ -632,15 +657,19 @@ public partial class BattleSceneController : Node2D
         _minimizeLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/MinimizeLogButton");
         _battleLogLabel ??= GetNodeOrNull<Label>("UiLayer/BattleLogPanel/Margin/LogContent/LogScroll/LogLabel");
         _battleLogTitleLabel ??= GetNodeOrNull<Label>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/TitleLabel");
+        _timeOfDayOverlay ??= GetNodeOrNull<ColorRect>("UiLayer/TimeOfDayOverlay");
+        _weatherOverlay ??= GetNodeOrNull<ColorRect>("UiLayer/WeatherOverlay");
         _windowTitleLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WindowTitleLabel");
         _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
         _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
+        _timeButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/TimeButton");
         _weatherButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WeatherButton");
         _windButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindButton");
         _windPowerButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindPowerButton");
         _moveButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/MoveButton");
         _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/AttackButton");
         _unionAttackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnionAttackButton");
+        _duelButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/DuelButton");
         _retreatButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/RetreatButton");
         _dropStoneButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/DropStoneButton");
         _pourOilButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/PourOilButton");
@@ -678,6 +707,7 @@ public partial class BattleSceneController : Node2D
     public override void _Process(double delta)
     {
         UpdateHoverGrid();
+        UpdateWeatherVisual(delta);
     }
 
     private void InitializeMapDataAndLayers()
@@ -1368,6 +1398,11 @@ public partial class BattleSceneController : Node2D
             titleLabel.Text = $"Scenario: {scenarioName}   Date: {BattleDateText}   Turn: {_turnNumber}   Acting Side: {GetCurrentTurnSideName()}";
         }
 
+        if (_timeButton != null)
+        {
+            _timeButton.Text = $"Time: {FormatBattleTimeOfDay(GetCurrentBattleTimeOfDay())}";
+        }
+
         if (_weatherButton != null)
         {
             _weatherButton.Text = $"Weather: {FormatBattleWeather(GetCurrentBattleWeather())}";
@@ -1437,6 +1472,19 @@ public partial class BattleSceneController : Node2D
             if (_commandMode == BattleCommandMode.StrategySelect)
             {
                 if (!TryExecuteSelectedStrategy())
+                {
+                    CancelCommandAction(clearSelection: true);
+                }
+
+                RefreshCoordinateLabel();
+                RefreshInfoPanel();
+                RefreshHighlights();
+                return;
+            }
+
+            if (_commandMode == BattleCommandMode.DuelSelect)
+            {
+                if (!TryExecuteSelectedDuel())
                 {
                     CancelCommandAction(clearSelection: true);
                 }
@@ -1622,6 +1670,7 @@ public partial class BattleSceneController : Node2D
             BattleCommandMode.AttackSelect => _attackableGrids,
             BattleCommandMode.WorkSelect => _workableGrids,
             BattleCommandMode.StrategySelect => _strategyTargetGrids,
+            BattleCommandMode.DuelSelect => _duelTargetGrids,
             _ => null
         };
 
@@ -1690,7 +1739,7 @@ public partial class BattleSceneController : Node2D
 
     private BattleGridKey? ResolvePointerOccludedUnitSilhouetteGridKey(Vector2 localMouse)
     {
-        if (_commandMode is BattleCommandMode.MoveSelect or BattleCommandMode.AttackSelect or BattleCommandMode.StrategySelect)
+        if (_commandMode is BattleCommandMode.MoveSelect or BattleCommandMode.AttackSelect or BattleCommandMode.StrategySelect or BattleCommandMode.DuelSelect)
         {
             return null;
         }
@@ -2224,6 +2273,11 @@ public partial class BattleSceneController : Node2D
         return $"{unit.OfficerName}/{unit.TroopType}";
     }
 
+    private static string FormatMorale(BattleOccupantInfo unit)
+    {
+        return unit.Morale.HasValue ? unit.Morale.Value.ToString("N0") : "-";
+    }
+
     private static string FormatWorkerWorkAction(WorkerWorkAction action)
     {
         return action switch
@@ -2308,7 +2362,7 @@ public partial class BattleSceneController : Node2D
             {
                 var hpText = occupant.Category == CategorySiegeEngine
                     ? $" HP {occupant.HitPoints}/{occupant.MaxHitPoints}"
-                    : $" Troops {occupant.TroopCount:N0}/{occupant.MaxHitPoints:N0}";
+                    : $" Troops {occupant.TroopCount:N0}/{occupant.MaxHitPoints:N0} Morale {FormatMorale(occupant)}";
                 builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}{hpText}");
             }
         }
@@ -2324,7 +2378,11 @@ public partial class BattleSceneController : Node2D
             builder.AppendLine($"- Category: {_selectedUnit.Category}");
             builder.AppendLine($"- Grid: ({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y}, L{_selectedUnitGrid.Value.Level})");
             builder.AppendLine($"- Move Range: {_selectedUnit.MoveRange}");
-            builder.AppendLine($"- Attack Range: {_selectedUnit.AttackRange}");
+            var effectiveAttackRange = GetEffectiveAttackRange(_selectedUnit);
+            var attackRangeText = effectiveAttackRange == _selectedUnit.AttackRange
+                ? _selectedUnit.AttackRange.ToString()
+                : $"{_selectedUnit.AttackRange} (effective {effectiveAttackRange})";
+            builder.AppendLine($"- Attack Range: {attackRangeText}");
             if (_selectedUnit.Category == CategorySiegeEngine)
             {
                 builder.AppendLine($"- HP: {_selectedUnit.HitPoints}/{_selectedUnit.MaxHitPoints}");
@@ -2332,12 +2390,14 @@ public partial class BattleSceneController : Node2D
             else
             {
                 builder.AppendLine($"- Troops: {_selectedUnit.TroopCount:N0}/{_selectedUnit.MaxHitPoints:N0}");
+                builder.AppendLine($"- Morale: {FormatMorale(_selectedUnit)}");
             }
 
             builder.AppendLine($"- Reachable Tiles: {_movableGrids.Count}");
             builder.AppendLine($"- Attackable Tiles: {_attackableGrids.Count}");
             builder.AppendLine($"- Workable Tiles: {_workableGrids.Count}");
             builder.AppendLine($"- Strategy Targets: {_strategyTargetGrids.Count}");
+            builder.AppendLine($"- Duel Targets: {_duelTargetGrids.Count}");
             builder.AppendLine($"- Fire Strategy: {(CanUseFireStrategy(_selectedUnit) ? "Ready" : "Unavailable")}");
             builder.AppendLine($"- Command State: {FormatCommandMode(_commandMode)}");
             builder.AppendLine($"- Current Turn: {GetCurrentTurnSideName()}");
@@ -2373,7 +2433,18 @@ public partial class BattleSceneController : Node2D
             _occupantsByGrid[grid] = occupants;
         }
 
-        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
+        var morale = GetInitialMorale(category, troopType);
+        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, morale, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
+    }
+
+    private static int? GetInitialMorale(string category, string troopType)
+    {
+        if (category != CategoryUnit)
+        {
+            return null;
+        }
+
+        return troopType == TroopWorker ? WorkerMorale : DefaultUnitMorale;
     }
 
     private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetOccupantsAtGrid(Vector2I grid)
@@ -3870,6 +3941,7 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _attackableGrids.Clear();
         _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
         _commandMode = BattleCommandMode.None;
 
         if (!_selectedGrid.HasValue || _mapData == null)
@@ -4496,6 +4568,11 @@ public partial class BattleSceneController : Node2D
             AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Attackable);
         }
 
+        foreach (var grid in _duelTargetGrids)
+        {
+            AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Attackable);
+        }
+
         if (_selectedGridKey.HasValue && ShouldDisplaySelectedGridHighlight(_selectedGridKey.Value))
         {
             AddHighlightDepthVisual(_selectedGridKey.Value, BattleHighlightVisualKind.Selected);
@@ -4563,6 +4640,7 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         _workableGrids.Clear();
         _movableGrids.Clear();
+        _duelTargetGrids.Clear();
         foreach (var grid in CalculateReachableGrids(_selectedUnitGrid.Value, _selectedUnit.MoveRange))
         {
             _movableGrids.Add(grid);
@@ -4585,6 +4663,7 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _attackableGrids.Clear();
         _workableGrids.Clear();
+        _duelTargetGrids.Clear();
         foreach (var grid in CalculateAttackableGrids(_selectedUnitGrid.Value, _selectedUnit))
         {
             _attackableGrids.Add(grid);
@@ -4593,6 +4672,214 @@ public partial class BattleSceneController : Node2D
         HideCommandMenu();
         RefreshInfoPanel();
         RefreshHighlights();
+    }
+
+    private void OnDuelButtonPressed()
+    {
+        if (_selectedUnit == null || !_selectedUnitGrid.HasValue)
+        {
+            return;
+        }
+
+        _commandMode = BattleCommandMode.DuelSelect;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
+        foreach (var grid in CalculateDuelTargetGrids(_selectedUnitGrid.Value, _selectedUnit))
+        {
+            _duelTargetGrids.Add(grid);
+        }
+
+        if (_duelTargetGrids.Count == 0)
+        {
+            _commandMode = BattleCommandMode.AwaitingCommand;
+        }
+
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private IEnumerable<BattleGridKey> CalculateDuelTargetGrids(BattleGridKey challengerGrid, BattleOccupantInfo challenger)
+    {
+        if (!CanStartDuel(challenger))
+        {
+            yield break;
+        }
+
+        foreach (var targetGrid in GetDuelCandidateGridKeys(challengerGrid))
+        {
+            if (!IsWithinMap(targetGrid.Grid) ||
+                !_occupantsByGrid.TryGetValue(targetGrid, out var occupants))
+            {
+                continue;
+            }
+
+            var opponent = GetAttackTarget(occupants);
+            if (opponent != null &&
+                CanStartDuel(opponent) &&
+                IsAttackerPiece(opponent) != IsAttackerPiece(challenger))
+            {
+                yield return targetGrid;
+            }
+        }
+    }
+
+    private IEnumerable<BattleGridKey> GetDuelCandidateGridKeys(BattleGridKey challengerGrid)
+    {
+        for (var offsetY = -2; offsetY <= 2; offsetY++)
+        {
+            for (var offsetX = -2; offsetX <= 2; offsetX++)
+            {
+                if (offsetX == 0 && offsetY == 0)
+                {
+                    continue;
+                }
+
+                var range = Mathf.Max(Mathf.Abs(offsetX), Mathf.Abs(offsetY));
+                if (range > 2)
+                {
+                    continue;
+                }
+
+                var grid = new Vector2I(challengerGrid.X + offsetX, challengerGrid.Y + offsetY);
+                if (!IsWithinMap(grid))
+                {
+                    continue;
+                }
+
+                yield return new BattleGridKey(grid.X, grid.Y, 0);
+                yield return new BattleGridKey(grid.X, grid.Y, 2);
+            }
+        }
+    }
+
+    private bool TryExecuteSelectedDuel()
+    {
+        if (_selectedUnit == null || !_selectedUnitGrid.HasValue || !_selectedGrid.HasValue)
+        {
+            return false;
+        }
+
+        var targetGrid = _selectedGridKey ?? GetDefaultGridKey(_selectedGrid.Value);
+        if (!_duelTargetGrids.Contains(targetGrid) ||
+            !_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
+        {
+            return false;
+        }
+
+        var opponent = GetAttackTarget(targetOccupants);
+        if (opponent == null || !CanStartDuel(_selectedUnit) || !CanStartDuel(opponent))
+        {
+            return false;
+        }
+
+        ExecuteDuel(_selectedUnitGrid.Value, _selectedUnit, targetGrid, opponent);
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
+        HideCommandMenu();
+        ConfigureHud();
+        RefreshInfoPanel();
+        RefreshHighlights();
+        return true;
+    }
+
+    private void ExecuteDuel(BattleGridKey challengerGrid, BattleOccupantInfo challenger, BattleGridKey opponentGrid, BattleOccupantInfo opponent)
+    {
+        var challengerScore = GetDuelBattleScore(challenger);
+        var opponentScore = GetDuelBattleScore(opponent);
+        if (!DoesOpponentAcceptDuel(challengerScore, opponentScore))
+        {
+            UpdateUnitMorale(challengerGrid, challenger, 2, out _);
+            UpdateUnitMorale(opponentGrid, opponent, -5, out _);
+            AppendBattleLog(
+                challenger,
+                "Duel",
+                $"{FormatLogUnit(challenger)} challenges {FormatLogUnit(opponent)}, but opponent refuses. Morale {FormatLogUnit(challenger)} +2, {FormatLogUnit(opponent)} -5");
+            return;
+        }
+
+        AppendBattleLog(challenger, "Duel", $"{FormatLogUnit(challenger)} duels {FormatLogUnit(opponent)} ({challengerScore} vs {opponentScore})");
+        var scoreDelta = challengerScore - opponentScore;
+        if (Mathf.Abs(scoreDelta) <= 5)
+        {
+            UpdateUnitMorale(challengerGrid, challenger, 3, out _);
+            UpdateUnitMorale(opponentGrid, opponent, 3, out _);
+            AppendBattleLog(challenger, "Duel", $"Draw: {FormatLogUnit(challenger)} and {FormatLogUnit(opponent)} both keep battle team. Morale +3");
+            return;
+        }
+
+        var winnerGrid = scoreDelta > 0 ? challengerGrid : opponentGrid;
+        var winner = scoreDelta > 0 ? challenger : opponent;
+        var loserGrid = scoreDelta > 0 ? opponentGrid : challengerGrid;
+        var loser = scoreDelta > 0 ? opponent : challenger;
+        UpdateUnitMorale(winnerGrid, winner, 10, out _);
+        AppendBattleLog(winner, "Duel", $"{FormatLogUnit(winner)} wins. {FormatLogUnit(loser)} captured; losing team leaves battle. Winner morale +10");
+        ApplyRetreatTroopLoss(loser);
+        RemoveOccupant(loserGrid, loser);
+        if (_selectedUnit == loser)
+        {
+            _selectedUnit = null;
+            _selectedUnitGrid = null;
+            _selectedGrid = null;
+            _selectedGridKey = null;
+        }
+    }
+
+    private bool UpdateUnitMorale(BattleGridKey grid, BattleOccupantInfo unit, int delta, out BattleOccupantInfo updatedUnit)
+    {
+        updatedUnit = unit;
+        if (unit.Morale == null)
+        {
+            return false;
+        }
+
+        updatedUnit = unit with { Morale = Mathf.Clamp(unit.Morale.Value + delta, 0, 120) };
+        ReplaceOccupantAtGrid(grid, unit, updatedUnit);
+        if (_selectedUnit == unit)
+        {
+            _selectedUnit = updatedUnit;
+        }
+
+        return true;
+    }
+
+    private static bool CanStartDuel(BattleOccupantInfo unit)
+    {
+        return unit.Category == CategoryUnit &&
+               unit.Marker != null &&
+               IsGeneralCountedPiece(unit.Category, unit.OfficerName);
+    }
+
+    private static bool DoesOpponentAcceptDuel(int challengerScore, int opponentScore)
+    {
+        return opponentScore + 12 >= challengerScore;
+    }
+
+    private static int GetDuelBattleScore(BattleOccupantInfo unit)
+    {
+        return GetOfficerBattleAttribute(unit.OfficerName);
+    }
+
+    private static int GetOfficerBattleAttribute(string officerName)
+    {
+        return officerName switch
+        {
+            "Dong Zhuo" => 88,
+            "Xiahou Yuan" => 86,
+            "Cao Chun" => 82,
+            "Cao Hong" => 80,
+            "Guo Si" => 78,
+            "Zhang He" => 76,
+            "Li Jue" => 72,
+            _ => 70
+        };
     }
 
     private void OnUnionAttackButtonPressed()
@@ -4648,6 +4935,7 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         _workableGrids.Clear();
         _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
         _workerWorkAction = WorkerWorkAction.General;
         HideCommandMenu();
         RefreshInfoPanel();
@@ -4672,6 +4960,7 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         _workableGrids.Clear();
         _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
         _workerWorkAction = WorkerWorkAction.General;
         _selectedGrid = null;
         _selectedGridKey = null;
@@ -5041,6 +5330,7 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         _workableGrids.Clear();
         _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
         if (!CanUseFireStrategy(_selectedUnit))
         {
             _commandMode = BattleCommandMode.AwaitingCommand;
@@ -5112,6 +5402,7 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         _workableGrids.Clear();
         _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
         HideCommandMenu();
         RefreshInfoPanel();
         RefreshHighlights();
@@ -5598,6 +5889,11 @@ public partial class BattleSceneController : Node2D
         return _currentBattleWeather ?? ResolveScenarioDefinition().Weather;
     }
 
+    private BattleTimeOfDay GetCurrentBattleTimeOfDay()
+    {
+        return _currentBattleTimeOfDay ?? ResolveScenarioDefinition().TimeOfDay;
+    }
+
     private BattleWindDirection GetCurrentBattleWindDirection()
     {
         return _currentBattleWindDirection ?? ResolveScenarioDefinition().WindDirection;
@@ -5615,6 +5911,17 @@ public partial class BattleSceneController : Node2D
             BattleWeatherType.Sunny => BattleWeatherType.Cloudy,
             BattleWeatherType.Cloudy => BattleWeatherType.Rain,
             _ => BattleWeatherType.Sunny
+        };
+    }
+
+    private static BattleTimeOfDay GetNextBattleTimeOfDay(BattleTimeOfDay timeOfDay)
+    {
+        return timeOfDay switch
+        {
+            BattleTimeOfDay.Dawn => BattleTimeOfDay.Morning,
+            BattleTimeOfDay.Morning => BattleTimeOfDay.Afternoon,
+            BattleTimeOfDay.Afternoon => BattleTimeOfDay.Night,
+            _ => BattleTimeOfDay.Dawn
         };
     }
 
@@ -5647,6 +5954,148 @@ public partial class BattleSceneController : Node2D
             BattleWeatherType.Rain => "Rain",
             _ => "Sunny"
         };
+    }
+
+    private static string FormatBattleTimeOfDay(BattleTimeOfDay timeOfDay)
+    {
+        return timeOfDay switch
+        {
+            BattleTimeOfDay.Dawn => "Dawn",
+            BattleTimeOfDay.Afternoon => "Afternoon",
+            BattleTimeOfDay.Night => "Night",
+            _ => "Morning"
+        };
+    }
+
+    private void ApplyTimeOfDayVisual(bool animate)
+    {
+        if (_timeOfDayOverlay == null)
+        {
+            return;
+        }
+
+        var targetColor = GetTimeOfDayOverlayColor(GetCurrentBattleTimeOfDay());
+        _timeOfDayOverlayTween?.Kill();
+        if (!animate)
+        {
+            _timeOfDayOverlay.Color = targetColor;
+            return;
+        }
+
+        _timeOfDayOverlayTween = _timeOfDayOverlay.CreateTween();
+        _timeOfDayOverlayTween.SetEase(Tween.EaseType.InOut);
+        _timeOfDayOverlayTween.SetTrans(Tween.TransitionType.Sine);
+        _timeOfDayOverlayTween.TweenProperty(_timeOfDayOverlay, "color", targetColor, 0.45);
+    }
+
+    private static Color GetTimeOfDayOverlayColor(BattleTimeOfDay timeOfDay)
+    {
+        return timeOfDay switch
+        {
+            BattleTimeOfDay.Dawn => new Color(1.0f, 0.52f, 0.24f, 0.16f),
+            BattleTimeOfDay.Afternoon => new Color(1.0f, 0.86f, 0.32f, 0.08f),
+            BattleTimeOfDay.Night => new Color(0.03f, 0.08f, 0.22f, 0.42f),
+            _ => new Color(1.0f, 0.95f, 0.78f, 0.04f)
+        };
+    }
+
+    private void BuildWeatherVisuals()
+    {
+        if (_weatherOverlay == null || _rainStreaks.Count > 0)
+        {
+            return;
+        }
+
+        const int rainStreakCount = 76;
+        for (var index = 0; index < rainStreakCount; index++)
+        {
+            var streak = new ColorRect
+            {
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Color = new Color(0.72f, 0.84f, 1.0f, 0.44f),
+                Size = new Vector2(index % 3 == 0 ? 1.4f : 1.0f, 30.0f + (index % 5) * 5.0f),
+                Rotation = -0.34f,
+                Visible = false
+            };
+            _weatherOverlay.AddChild(streak);
+            _rainStreaks.Add(streak);
+        }
+    }
+
+    private void ApplyWeatherVisual(bool animate)
+    {
+        if (_weatherOverlay == null)
+        {
+            return;
+        }
+
+        var targetColor = GetWeatherOverlayColor(GetCurrentBattleWeather());
+        _weatherOverlayTween?.Kill();
+        if (!animate)
+        {
+            _weatherOverlay.Color = targetColor;
+        }
+        else
+        {
+            _weatherOverlayTween = _weatherOverlay.CreateTween();
+            _weatherOverlayTween.SetEase(Tween.EaseType.InOut);
+            _weatherOverlayTween.SetTrans(Tween.TransitionType.Sine);
+            _weatherOverlayTween.TweenProperty(_weatherOverlay, "color", targetColor, 0.35);
+        }
+
+        var showRain = GetCurrentBattleWeather() == BattleWeatherType.Rain;
+        foreach (var streak in _rainStreaks)
+        {
+            streak.Visible = showRain;
+        }
+    }
+
+    private void UpdateWeatherVisual(double delta)
+    {
+        if (_weatherOverlay == null || GetCurrentBattleWeather() != BattleWeatherType.Rain)
+        {
+            return;
+        }
+
+        _weatherEffectTime += delta;
+        var overlaySize = _weatherOverlay.Size;
+        if (overlaySize.X <= 0.0f || overlaySize.Y <= 0.0f)
+        {
+            overlaySize = GetViewportRect().Size;
+        }
+
+        var travelHeight = overlaySize.Y + 120.0f;
+        var travelWidth = overlaySize.X + 180.0f;
+        for (var index = 0; index < _rainStreaks.Count; index++)
+        {
+            var streak = _rainStreaks[index];
+            var speed = 280.0f + (index % 7) * 36.0f;
+            var phase = (float)((_weatherEffectTime * speed) + index * 53.0);
+            var y = PositiveModulo(phase, travelHeight) - 80.0f;
+            var xBase = PositiveModulo((index * 97.0f) + (float)_weatherEffectTime * 46.0f, travelWidth) - 90.0f;
+            streak.Position = new Vector2(xBase, y);
+        }
+    }
+
+    private static Color GetWeatherOverlayColor(BattleWeatherType weather)
+    {
+        return weather switch
+        {
+            BattleWeatherType.Cloudy => new Color(0.34f, 0.43f, 0.52f, 0.18f),
+            BattleWeatherType.Rain => new Color(0.18f, 0.28f, 0.42f, 0.30f),
+            _ => new Color(1.0f, 1.0f, 1.0f, 0.0f)
+        };
+    }
+
+    private static float PositiveModulo(float value, float modulus)
+    {
+        if (modulus <= 0.0f)
+        {
+            return 0.0f;
+        }
+
+        var result = value % modulus;
+        return result < 0.0f ? result + modulus : result;
     }
 
     private static string FormatBattleWindDirection(BattleWindDirection direction)
@@ -5709,6 +6158,7 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         _workableGrids.Clear();
         _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
         foreach (var targetGrid in GetOrthogonalNeighbors(_selectedUnitGrid.Value.Grid))
         {
             if (!IsWithinMap(targetGrid))
@@ -5915,7 +6365,7 @@ public partial class BattleSceneController : Node2D
 
     private IEnumerable<BattleGridKey> CalculateAttackableGrids(BattleGridKey startGrid, BattleOccupantInfo attacker)
     {
-        var attackRange = attacker.AttackRange;
+        var attackRange = GetEffectiveAttackRange(attacker);
         if (attackRange <= 0)
         {
             yield break;
@@ -5939,6 +6389,26 @@ public partial class BattleSceneController : Node2D
                 }
             }
         }
+    }
+
+    private int GetEffectiveAttackRange(BattleOccupantInfo attacker)
+    {
+        if (GetCurrentBattleTimeOfDay() == BattleTimeOfDay.Night && IsRangedBattleAttacker(attacker))
+        {
+            return Mathf.Max(1, attacker.AttackRange - 1);
+        }
+
+        return attacker.AttackRange;
+    }
+
+    private static bool IsRangedBattleAttacker(BattleOccupantInfo attacker)
+    {
+        if (attacker.Category == CategoryUnit)
+        {
+            return attacker.TroopType is TroopArcher or TroopCrossbow;
+        }
+
+        return attacker.Category == CategorySiegeEngine && attacker.TroopType == TroopCatapult;
     }
 
     private bool IsClosedGateExteriorAttackBlocked(BattleGridKey sourceGrid, BattleGridKey targetGrid)
@@ -6082,11 +6552,12 @@ public partial class BattleSceneController : Node2D
                     $"Team: {_selectedUnit.TeamName}\n" +
                     $"Officer: {officerText}\n" +
                     $"Type: {_selectedUnit.TroopType}\n" +
+                    $"Morale: {FormatMorale(_selectedUnit)}\n" +
                     strengthText;
             }
             else
             {
-                _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nTroops: -";
+                _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nMorale: -\nTroops: -";
             }
         }
 
@@ -6161,6 +6632,15 @@ public partial class BattleSceneController : Node2D
             }
         }
 
+        if (_duelButton != null)
+        {
+            var hasDuelTarget = _selectedUnit != null &&
+                                _selectedUnitGrid.HasValue &&
+                                CalculateDuelTargetGrids(_selectedUnitGrid.Value, _selectedUnit).Any();
+            _duelButton.Visible = hasDuelTarget;
+            _duelButton.Disabled = !hasDuelTarget;
+        }
+
         if (_retreatButton != null)
         {
             _retreatButton.Visible = _selectedUnit != null && IsBattlePiece(_selectedUnit);
@@ -6184,7 +6664,7 @@ public partial class BattleSceneController : Node2D
 
         if (_unitMenuInfoLabel != null)
         {
-            _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nTroops: -";
+            _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nMorale: -\nTroops: -";
         }
 
         if (_openGateButton != null)
@@ -6231,6 +6711,13 @@ public partial class BattleSceneController : Node2D
             _unionAttackButton.Text = "Union Attack";
         }
 
+        if (_duelButton != null)
+        {
+            _duelButton.Visible = false;
+            _duelButton.Disabled = false;
+            _duelButton.Text = "Duel";
+        }
+
         if (_retreatButton != null)
         {
             _retreatButton.Visible = false;
@@ -6246,6 +6733,7 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         _workableGrids.Clear();
         _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
         _workerWorkAction = WorkerWorkAction.General;
         HideCommandMenu();
 
@@ -6285,6 +6773,16 @@ public partial class BattleSceneController : Node2D
     {
         _currentBattleWeather = GetNextBattleWeather(GetCurrentBattleWeather());
         ConfigureHud();
+        ApplyWeatherVisual(animate: true);
+        RefreshHighlights();
+    }
+
+    private void OnTimeButtonPressed()
+    {
+        _currentBattleTimeOfDay = GetNextBattleTimeOfDay(GetCurrentBattleTimeOfDay());
+        ConfigureHud();
+        ApplyTimeOfDayVisual(animate: true);
+        RefreshHighlights();
     }
 
     private void OnWindButtonPressed()
@@ -6307,6 +6805,7 @@ public partial class BattleSceneController : Node2D
             BattleCommandMode.AttackSelect => "Select Attack Target",
             BattleCommandMode.WorkSelect => "Select Work Target",
             BattleCommandMode.StrategySelect => "Strategy Pending",
+            BattleCommandMode.DuelSelect => "Select Duel Target",
             BattleCommandMode.AwaitingCommand => "Awaiting Command",
             _ => "None"
         };
@@ -6637,6 +7136,7 @@ public partial class BattleSceneController : Node2D
         int TroopCount,
         int HitPoints,
         int MaxHitPoints,
+        int? Morale,
         int MoveRange,
         int AttackRange,
         BattlePieceMarker? Marker,
@@ -6652,7 +7152,8 @@ public partial class BattleSceneController : Node2D
         MoveSelect,
         AttackSelect,
         WorkSelect,
-        StrategySelect
+        StrategySelect,
+        DuelSelect
     }
 
     private enum WorkerWorkAction

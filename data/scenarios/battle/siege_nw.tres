@@ -10,6 +10,7 @@ OpenGateForegroundSide = 1
 Weather = 0
 WindDirection = 3
 WindPower = 1
+TimeOfDay = 1
 UnitSpawnGrids = Dictionary[String, Vector2i]({
 "AttackerA": Vector2i(20, 14),
 "AttackerB": Vector2i(18, 12),

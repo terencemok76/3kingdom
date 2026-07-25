@@ -311,6 +311,16 @@
   - 可參與合擊的兵種為 `Infantry`、`Spearman`、`Cavalry`、`Archer`、`Crossbow`、`Worker`。
   - 第一版傷害規則為主攻者 `100%` 一般攻擊傷害，加上每名支援者 `50%` 一般攻擊傷害；所有參與隊伍會面向目標播放攻擊動畫，目標只播放一次受擊動畫。
 - battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。
+- battle team 具有 prototype `Morale` 屬性：
+  - 一般戰鬥隊伍預設 `Morale 100`，Worker 預設 `Morale 80`。
+  - `Ram`、`Ladder`、`Catapult` 等攻城器沒有 morale，UI 以 `-` 表示。
+  - 目前 morale 先作為顯示屬性，尚未接入傷害、撤退或 AI 判斷。
+- 一般部隊將領可使用 prototype `Duel / 單挑`：
+  - 選取有將領的一般 battle team，若 2 格範圍內八方向有敵方將領隊伍，command menu 會顯示 `Duel`。
+  - 單挑可跨 `L0` / `L2` 層，例如地面隊伍可挑戰牆頂隊伍，牆頂隊伍也可挑戰地面隊伍。
+  - 點擊後可選擇相鄰 opponent；攻城器與 Worker 不可發起或接受單挑。
+  - opponent 是否接受由 prototype battle score 判斷；差距過大時弱勢方可拒絕。
+  - 單挑只比較 officer / general battle attribute，不套用兵種修正或 morale bonus；勝方 morale 增加，敗方將領被俘且該 battle team 離場；平手時雙方保留並各自小幅增加 morale。
 - top bar 的 Team A / Team B 總兵力會隨部隊損兵更新；一般攻擊、合擊、牆頂投放攻擊與 fire damage 造成的 `TroopCount` loss 都會扣到對應陣營。
   - `Troops` 代表一般戰鬥隊伍兵員，包含 Worker，但不包含攻城器 HP。
   - `Generals` 顯示目前仍在戰場上的一般部隊將領數量；`Worker` 與攻城器不算將領。
@@ -329,9 +339,12 @@
   - `Drop Stone` 會顯示由牆頂落向目標的石塊與落點衝擊效果，並沿用一般受擊動畫。
   - `Pour Oil` 會顯示由牆頂傾倒的熱油流與落點濺射效果，並沿用一般受擊動畫。
   - 兩種牆頂投放攻擊均不播放一般武器攻擊動畫；兩者的範圍傷害與狀態效果，留待後續規則模組處理。
-- battle scenario 現在可定義 `Weather`、`WindDirection` 與 `WindPower`：
-  - top bar 會以按鈕顯示目前戰場天氣、風向與風力；點擊可循環切換 prototype runtime 狀態。
-  - `Tile Info` 不再重複顯示 scenario、weather、wind 等全域戰場狀態，只保留格子、地形、結構、部署與單位資訊。
+- battle scenario 現在可定義 `TimeOfDay`、`Weather`、`WindDirection` 與 `WindPower`：
+  - top bar 會以按鈕顯示目前戰場時段、天氣、風向與風力；點擊可循環切換 prototype runtime 狀態。
+  - `Dawn / Morning / Afternoon / Night` 先作為輕量全域戰鬥條件；目前 `Night` 會令弓兵／弩兵／投石車有效攻擊射程 -1，但最少保留 1 格。
+  - 時段會以戰場 overlay 呈現：`Dawn` 偏淡橙、`Morning` 微暖、`Afternoon` 偏金色、`Night` 偏深藍；切換時段時會用短 tween 過渡，且不遮住 top bar、tile info、command menu 或 battle log。
+  - 天氣會以第二層戰場 overlay 呈現：`Sunny` 透明，`Cloudy` 套用灰藍 tint，`Rain` 套用更深灰藍 tint 並顯示斜向雨線；weather overlay 疊在 time overlay 上方、UI panel 下方，不攔截滑鼠。
+  - `Tile Info` 不再重複顯示 scenario、weather、wind、time 等全域戰場狀態，只保留格子、地形、結構、部署與單位資訊。
   - `Strategy` 的第一個落地版本為 fire tactic：目前由弓兵／弩兵／投石車使用，選擇 `L0` 目標格後建立 fire。
   - fire 會在每次 `End Turn` 結算傷害，並依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
   - `WindPower` 會影響 fire spread speed：`Calm` 只允許森林／草地／木柵欄慢速帶火，每 3 個 burn tick 最多擴 1 格；`Strong` 會增加擴散格數並縮短 spread interval。
