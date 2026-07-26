@@ -1,6 +1,6 @@
 # Phase 4 戰鬥系統 Kickoff
 
-更新日期：2026-07-19
+更新日期：2026-07-26
 
 ## 1. 文件定位
 
@@ -39,6 +39,7 @@
   - 攻方 / 守方 / 攻城器 marker 顯示
   - 點擊單位後顯示指令選單
   - `Move / Attack / Strategy / End Turn` 基線互動
+  - 進入 battle mode 時會切換至 `bgm_battle_01.ogg` / `bgm_battle_02.ogg` 戰鬥 BGM playlist，並沿用玩家設定的 BGM 開關與音量
 - 地圖表現現況：
   - `Ground / Terrain / Overlay` 進入 `TileMapLayer` 流程
   - `Structure / Unit / Effect / UI` 暫時維持節點式混合架構
@@ -313,8 +314,18 @@
 - battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。
 - battle team 具有 prototype `Morale` 屬性：
   - 一般戰鬥隊伍預設 `Morale 100`，Worker 預設 `Morale 80`。
-  - `Ram`、`Ladder`、`Catapult` 等攻城器沒有 morale，UI 以 `-` 表示。
-  - 目前 morale 先作為顯示屬性，尚未接入傷害、撤退或 AI 判斷。
+  - 一般 battle team 的兵力分為 `Active Troops` 與 `Wounded Troops`：`Active` 會參與戰鬥與 HUD 總兵力，`Wounded` 暫時不能戰鬥但可被糧草車恢復。
+  - 一般 battle team 的 marker HP bar 採三段顯示：綠色為 `Active Troops`、粉紅色為 `Wounded Troops`、黑色為 `Dead / Killed Troops`。
+  - 一般攻擊造成的有效傷害目前拆為約 `40% killed / 60% wounded`；fire damage 拆為約 `70% killed / 30% wounded`。Battle Log 會顯示 killed 與 wounded 數字。
+  - `Ram`、`Ladder`、`Catapult`、`SupplyCart` 等攻城器／後勤車沒有 morale，UI 以 `-` 表示。
+  - 糧草車 `SupplyCart` 可每回合一次使用後勤行動，`Recovery / Repair` 與 `Resupply Weapon` 共用同一個每回合次數。
+  - `Recovery / Repair`：對八方向 1 格內的同隊一般 battle team 恢復 `Morale +8`，上限仍為 `120`；若附近同隊 battle team 有 wounded，則每次最多恢復 `600` 名傷兵回到 `Active Troops`；若自己或八方向 1 格內同隊攻城器受損，則可維修 `HP +450`，不超過各自最大 HP。
+  - `Resupply Weapon`：對八方向 1 格內同隊 `Archer`、`Crossbow`、`Catapult` 補滿武器彈藥。
+  - `Archer` 武器彈藥為 `6/6`、`Crossbow` 為 `4/4`、`Catapult` 為 `3/3`；普通攻擊、合擊中的遠程參與者，以及 `Strategy (Fire)` 各消耗 `1` 發，彈藥為 `0` 時不能使用對應攻擊／火攻指令。
+  - `Archer` / `Crossbow` 使用 `Strategy (Fire)` 時會播放攻擊動畫與箭矢彈道；`Catapult` 則播放投石車攻擊動畫與投石彈道，再於目標格點燃 fire。
+  - 糧草車被摧毀時，同隊仍在場的一般 battle team 士氣會立刻降為目前值的 `50%`；糧草車主動撤退不觸發此懲罰。
+  - `SupplyCart` 目前使用 `supplycar_idle_ne.png` / `supplycar_idle_sw.png` 專用 idle 動畫素材；`NE/NW` 為 `2x2` 四幀，`SW/SE` 為 `1x3` 三幀。
+  - 目前 morale 先作為顯示與 prototype 指令屬性，尚未接入傷害、撤退或 AI 判斷。
 - 一般部隊將領可使用 prototype `Duel / 單挑`：
   - 選取有將領的一般 battle team，若 2 格範圍內八方向有敵方將領隊伍，command menu 會顯示 `Duel`。
   - 單挑可跨 `L0` / `L2` 層，例如地面隊伍可挑戰牆頂隊伍，牆頂隊伍也可挑戰地面隊伍。
@@ -322,10 +333,10 @@
   - opponent 是否接受由 prototype battle score 判斷；差距過大時弱勢方可拒絕。
   - 單挑只比較 officer / general battle attribute，不套用兵種修正或 morale bonus；勝方 morale 增加，敗方將領被俘且該 battle team 離場；平手時雙方保留並各自小幅增加 morale。
 - top bar 的 Team A / Team B 總兵力會隨部隊損兵更新；一般攻擊、合擊、牆頂投放攻擊與 fire damage 造成的 `TroopCount` loss 都會扣到對應陣營。
-  - `Troops` 代表一般戰鬥隊伍兵員，包含 Worker，但不包含攻城器 HP。
+  - `Troops` 以 `active / wounded` 顯示一般戰鬥隊伍兵員，包含 Worker，但不包含攻城器 HP；active 會參與戰鬥，wounded 暫時不能戰鬥。
   - `Generals` 顯示目前仍在戰場上的一般部隊將領數量；`Worker` 與攻城器不算將領。
   - `Siege` 另行顯示目前仍在戰場上的攻城器數量；攻城器撤退或被摧毀時會扣除。
-  - `Ram`、`Ladder`、`Catapult` 不掛 officer name；name plate 與 log 直接顯示攻城器名稱。
+  - `Ram`、`Ladder`、`Catapult`、`SupplyCart` 不掛 officer name；name plate 與 log 直接顯示攻城器／後勤車名稱。
 - 右下角新增 prototype `Battle Log` 面板：
   - 記錄 battle team 的 `Move`、`Attack`、`Hurt`、`Retreat`、`Strategy`、`Action` 與回合切換事件。
   - battle team 受傷紀錄會顯示受擊隊伍、傷害數字，以及造成傷害的攻擊隊伍；fire damage 則標記為 fire 來源。

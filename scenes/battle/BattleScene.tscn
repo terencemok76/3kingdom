@@ -181,6 +181,9 @@ script = ExtResource("3")
 [node name="Catapult" type="Node2D" parent="MapRoot/UnitLayer" unique_id=838561412]
 script = ExtResource("3")
 
+[node name="SupplyCart" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
 [node name="SiegeEngineLayer" type="Node2D" parent="MapRoot" unique_id=1292689697]
 z_index = 20
 
@@ -401,6 +404,8 @@ theme_override_font_sizes/font_size = 16
 text = "Team: -
 Officer: -
 Type: -
+Morale: -
+Ammo: -
 Troops: -"
 autowrap_mode = 3
 
@@ -443,6 +448,14 @@ text = "Install Wood Fence"
 [node name="UninstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
 layout_mode = 2
 text = "Uninstall Wood Fence"
+
+[node name="SupplyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Supply"
+
+[node name="ResupplyWeaponButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+text = "Resupply Weapon"
 
 [node name="StrategyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=851977861]
 layout_mode = 2

@@ -6,17 +6,26 @@ public partial class GameAudioController : Node
 {
     private const string DefaultBgmPath = "res://assets/bgm/bgm_main_menu_01.ogg";
     private const string SecondaryBgmPath = "res://assets/bgm/bgm_main_menu_02.ogg";
+    private const string BattleBgmPath = "res://assets/bgm/bgm_battle_01.ogg";
+    private const string SecondaryBattleBgmPath = "res://assets/bgm/bgm_battle_02.ogg";
     private const string ClickSfxPath = "res://assets/sfx/menu/click_sound.ogg";
     private const string ClickCitySfxPath = "res://assets/sfx/menu/click_city_sound.ogg";
 
     public static GameAudioController? Instance { get; private set; }
 
-    private readonly string[] _bgmPaths =
+    private static readonly string[] MainMenuBgmPaths =
     {
         DefaultBgmPath,
         SecondaryBgmPath
     };
 
+    private static readonly string[] BattleBgmPaths =
+    {
+        BattleBgmPath,
+        SecondaryBattleBgmPath
+    };
+
+    private string[] _bgmPaths = MainMenuBgmPaths;
     private AudioStreamPlayer? _bgmPlayer;
     private AudioStreamPlayer? _sfxPlayer;
     private AudioStreamPlayer? _citySfxPlayer;
@@ -139,6 +148,30 @@ public partial class GameAudioController : Node
 
         _eventSfxPlayer.Stream = stream;
         _eventSfxPlayer.Play();
+    }
+
+    public void PlayMainMenuBgm()
+    {
+        SetBgmPlaylist(MainMenuBgmPaths);
+    }
+
+    public void PlayBattleBgm()
+    {
+        SetBgmPlaylist(BattleBgmPaths);
+    }
+
+    private void SetBgmPlaylist(string[] bgmPaths)
+    {
+        if (ReferenceEquals(_bgmPaths, bgmPaths) && _bgmPlayer?.Playing == true)
+        {
+            ApplyBgmState();
+            return;
+        }
+
+        _bgmPaths = bgmPaths;
+        _currentBgmIndex = 0;
+        PlayCurrentBgm();
+        ApplyBgmState();
     }
 
     private void OnBgmFinished()

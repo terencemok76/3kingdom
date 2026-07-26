@@ -103,6 +103,7 @@ public partial class BattleScenarioDefinition : Resource
                 { "Ram", new Vector2I(12, 16) },
                 { "Ladder", new Vector2I(10, 15) },
                 { "Catapult", new Vector2I(14, 15) },
+                { "SupplyCart", new Vector2I(16, 19) },
                 { "DefenderA", new Vector2I(10, 7) },
                 { "DefenderB", new Vector2I(14, 7) },
                 { "DefenderC", new Vector2I(12, 7) }

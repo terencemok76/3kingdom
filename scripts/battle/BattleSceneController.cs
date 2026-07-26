@@ -57,6 +57,7 @@ public partial class BattleSceneController : Node2D
     private const string TroopRam = "Ram";
     private const string TroopLadder = "Ladder";
     private const string TroopCatapult = "Catapult";
+    private const string TroopSupplyCart = "SupplyCart";
     private const string CatapultStoneTexturePath = "res://assets/battle/object/catapult_stone.png";
     private const string NorthEastScenePath = "res://scenes/battle/BattleScene.tscn";
     private const string NorthWestScenePath = "res://scenes/battle/BattleSceneNorthWest.tscn";
@@ -132,6 +133,10 @@ public partial class BattleSceneController : Node2D
     private const string CarIdleSouthWestScenePath = "res://scenes/battle/unit/CarIdleSw.tscn";
     private const string CarIdleNorthEastScenePath = "res://scenes/battle/unit/CarIdleNe.tscn";
     private const string CarIdleNorthWestScenePath = "res://scenes/battle/unit/CarIdleNw.tscn";
+    private const string SupplyCarIdleSouthEastScenePath = "res://scenes/battle/unit/SupplyCarIdleSe.tscn";
+    private const string SupplyCarIdleSouthWestScenePath = "res://scenes/battle/unit/SupplyCarIdleSw.tscn";
+    private const string SupplyCarIdleNorthEastScenePath = "res://scenes/battle/unit/SupplyCarIdleNe.tscn";
+    private const string SupplyCarIdleNorthWestScenePath = "res://scenes/battle/unit/SupplyCarIdleNw.tscn";
     private const string CarLadderIdleSouthEastScenePath = "res://scenes/battle/unit/CarLadderIdleSe.tscn";
     private const string CarLadderIdleSouthWestScenePath = "res://scenes/battle/unit/CarLadderIdleSw.tscn";
     private const string CarLadderIdleNorthEastScenePath = "res://scenes/battle/unit/CarLadderIdleNe.tscn";
@@ -191,6 +196,14 @@ public partial class BattleSceneController : Node2D
     private const int WorkerAttackDamage = 350;
     private const int DefaultUnitMorale = 100;
     private const int WorkerMorale = 80;
+    private const int SupplyCartMoraleRestore = 8;
+    private const int SupplyCartRepairAmount = 450;
+    private const int SupplyCartWoundedRecoveryAmount = 600;
+    private const int ArcherMaxWeaponAmmo = 6;
+    private const int CrossbowMaxWeaponAmmo = 4;
+    private const int CatapultMaxWeaponAmmo = 3;
+    private const float NormalDamageKilledRatio = 0.4f;
+    private const float FireDamageKilledRatio = 0.7f;
     private const int DropStoneAttackDamage = 1200;
     private const int PourOilAttackDamage = 1000;
     private const double DropStoneEffectDurationSeconds = 0.48;
@@ -220,9 +233,10 @@ public partial class BattleSceneController : Node2D
     private const int RamMaxHitPoints = 2800;
     private const int LadderMaxHitPoints = 2200;
     private const int CatapultMaxHitPoints = 1800;
+    private const int SupplyCartMaxHitPoints = 1600;
     private const double DamagePopupDurationSeconds = 2.0;
-    private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 0, 0, 0, 8200, 26000);
-    private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 0, 0, 0, 6400, 19800);
+    private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 0, 0, 0, 0, 8200, 26000);
+    private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 0, 0, 0, 0, 6400, 19800);
     private const string BattleDateText = "191 Apr 4";
 
     private BattleMapData? _mapData;
@@ -269,6 +283,8 @@ public partial class BattleSceneController : Node2D
     private Button? _workButton;
     private Button? _installWoodFenceButton;
     private Button? _uninstallWoodFenceButton;
+    private Button? _supplyButton;
+    private Button? _resupplyWeaponButton;
     private Button? _strategyButton;
     private Button? _openGateButton;
     private bool _isDraggingMap;
@@ -301,6 +317,7 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<BattleGridKey, BattleFireState> _activeFireByGrid = new();
     private readonly Dictionary<BattleGridKey, Node2D> _fireVisualsByGrid = new();
     private readonly HashSet<BattlePieceMarker> _strategyUsedByMarkerThisTurn = new();
+    private readonly HashSet<BattlePieceMarker> _supplyUsedByMarkerThisTurn = new();
     private readonly List<BattleLogEntry> _battleLogs = new();
     private readonly List<ColorRect> _rainStreaks = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
@@ -323,10 +340,12 @@ public partial class BattleSceneController : Node2D
     private bool _editorBakeBattleLayout;
     private bool _editorClearTileLayout;
     private bool _editorRefreshBattleDepthPreview;
+    private GameAudioController? _battleAudioController;
 
     private readonly record struct BattleDepthEntry(Node2D Node, BattleGridKey Grid, BattleDepthRenderKind Kind, int LocalOrder);
     private readonly record struct UnionAttackParticipant(BattleGridKey Grid, BattleOccupantInfo Occupant);
     private readonly record struct BattleLogEntry(int Turn, string TeamName, string Category, string Message);
+    private readonly record struct BattleCasualtyResult(BattleOccupantInfo UpdatedTarget, int ActualDamage, int KilledTroops, int WoundedTroops);
     private sealed record UnionAttackCandidate(BattleGridKey TargetGrid, List<UnionAttackParticipant> Participants);
 
     [Export]
@@ -411,6 +430,7 @@ public partial class BattleSceneController : Node2D
         }
 
         ApplyPendingLaunchOptions();
+        StartBattleBgm();
 
         if (_endTurnButton != null)
         {
@@ -487,6 +507,16 @@ public partial class BattleSceneController : Node2D
             _uninstallWoodFenceButton.Pressed += OnUninstallWoodFenceButtonPressed;
         }
 
+        if (_supplyButton != null)
+        {
+            _supplyButton.Pressed += OnSupplyButtonPressed;
+        }
+
+        if (_resupplyWeaponButton != null)
+        {
+            _resupplyWeaponButton.Pressed += OnResupplyWeaponButtonPressed;
+        }
+
         if (_strategyButton != null)
         {
             _strategyButton.Pressed += OnStrategyButtonPressed;
@@ -555,6 +585,32 @@ public partial class BattleSceneController : Node2D
         ScenarioType = PendingLaunchOptions.ScenarioType;
         UseEditorAuthoredLayout = PendingLaunchOptions.UseEditorAuthoredLayout;
         PendingLaunchOptions = null;
+    }
+
+    private void StartBattleBgm()
+    {
+        var audioController = GameAudioController.Instance;
+        if (audioController == null)
+        {
+            _battleAudioController = new GameAudioController
+            {
+                Name = "BattleAudioController"
+            };
+            AddChild(_battleAudioController);
+            audioController = GameAudioController.Instance;
+        }
+
+        if (audioController == null)
+        {
+            return;
+        }
+
+        var optionSettings = OptionSettingsStore.LoadOrDefault();
+        audioController.SetBgmEnabled(optionSettings.BgmEnabled);
+        audioController.SetSfxEnabled(optionSettings.SfxEnabled);
+        audioController.SetBgmVolume(optionSettings.BgmVolume);
+        audioController.SetSfxVolume(optionSettings.SfxVolume);
+        audioController.PlayBattleBgm();
     }
 
     private void BuildEditorPreview()
@@ -676,6 +732,8 @@ public partial class BattleSceneController : Node2D
         _workButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WorkButton");
         _installWoodFenceButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/InstallWoodFenceButton");
         _uninstallWoodFenceButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UninstallWoodFenceButton");
+        _supplyButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/SupplyButton");
+        _resupplyWeaponButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/ResupplyWeaponButton");
         _strategyButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/StrategyButton");
         _openGateButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OpenGateButton");
     }
@@ -872,6 +930,7 @@ public partial class BattleSceneController : Node2D
                 { "Ladder", new Vector2I(15, 14) },
                 { "Ram", new Vector2I(16, 12) },
                 { "Spearman", new Vector2I(18, 16) },
+                { "SupplyCart", new Vector2I(18, 15) },
                 { "Worker", new Vector2I(5, 9) }
             };
         }
@@ -889,6 +948,7 @@ public partial class BattleSceneController : Node2D
             { "Ladder", new Vector2I(10, 15) },
             { "Ram", new Vector2I(12, 16) },
             { "Spearman", new Vector2I(8, 18) },
+            { "SupplyCart", new Vector2I(16, 19) },
             { "Worker", new Vector2I(16, 5) }
         };
     }
@@ -1326,6 +1386,7 @@ public partial class BattleSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/Ram", ResolveUnitSpawnGrid("Ram", new Vector2I(12, 16)), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Ladder", ResolveUnitSpawnGrid("Ladder", new Vector2I(10, 15)), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Catapult", ResolveUnitSpawnGrid("Catapult", new Vector2I(14, 15)), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
+        CreateMarker("MapRoot/UnitLayer/SupplyCart", ResolveUnitSpawnGrid("SupplyCart", new Vector2I(16, 19)), "糧", "Supply Cart", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopSupplyCart, SupplyCartMaxHitPoints, new Color("6d5a2d"), new Color("f1df9b"), 21.0f, moveRange: 3, attackRange: 0);
 
         CreateMarker("MapRoot/UnitLayer/DefenderA", ResolveUnitSpawnGrid("DefenderA", new Vector2I(10, 7)), "D", "Defender Infantry A", CategoryUnit, "Team B / Defender", "Dong Zhuo", TroopInfantry, 5100, new Color("326b8d"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/DefenderB", ResolveUnitSpawnGrid("DefenderB", new Vector2I(14, 7)), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
@@ -1357,7 +1418,14 @@ public partial class BattleSceneController : Node2D
         marker.Setup(label, fillColor, borderColor, radius);
         marker.SetupNamePlate(string.IsNullOrWhiteSpace(officerName) ? displayName : officerName);
         marker.SetupTeamArrow(GetTeamArrowColor(teamName));
-        marker.SetupHealthBar(troopCount, troopCount);
+        if (category == CategoryUnit)
+        {
+            marker.SetupTroopSegmentBar(troopCount, 0, troopCount);
+        }
+        else
+        {
+            marker.SetupHealthBar(troopCount, troopCount);
+        }
         if (category == CategoryUnit && troopType == TroopInfantry)
         {
             marker.SetupSpriteAnimationScene(GetInitialInfantryDirectionScene(teamName));
@@ -1389,6 +1457,10 @@ public partial class BattleSceneController : Node2D
         else if (category == CategorySiegeEngine && troopType == TroopCatapult)
         {
             marker.SetupSpriteAnimationScene(CatapultIdleSouthEastScenePath);
+        }
+        else if (category == CategorySiegeEngine && troopType == TroopSupplyCart)
+        {
+            marker.SetupSpriteAnimationScene(SupplyCarIdleSouthEastScenePath);
         }
 
         RegisterOccupant(gridKey, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
@@ -1506,12 +1578,12 @@ public partial class BattleSceneController : Node2D
 
         if (summaryLabel != null)
         {
-            summaryLabel.Text = BuildTeamHudText(TeamAInfo with { TotalTroops = _teamATotalTroops, TotalSiegeUnits = _teamASiegeUnits, TotalGenerals = _teamAGenerals });
+            summaryLabel.Text = BuildTeamHudText(TeamAInfo with { TotalTroops = _teamATotalTroops, WoundedTroops = GetTotalWoundedTroopsForTeam(TeamAInfo.Name), TotalSiegeUnits = _teamASiegeUnits, TotalGenerals = _teamAGenerals });
         }
 
         if (teamBLabel != null)
         {
-            teamBLabel.Text = BuildTeamHudText(TeamBInfo with { TotalTroops = _teamBTotalTroops, TotalSiegeUnits = _teamBSiegeUnits, TotalGenerals = _teamBGenerals });
+            teamBLabel.Text = BuildTeamHudText(TeamBInfo with { TotalTroops = _teamBTotalTroops, WoundedTroops = GetTotalWoundedTroopsForTeam(TeamBInfo.Name), TotalSiegeUnits = _teamBSiegeUnits, TotalGenerals = _teamBGenerals });
         }
 
         if (coordinateLabel != null)
@@ -1990,7 +2062,24 @@ public partial class BattleSceneController : Node2D
 
     private static string BuildTeamHudText(BattleHudTeamInfo info)
     {
-        return $"{info.Name}   Troops: {info.TotalTroops:N0}   Generals: {info.TotalGenerals:N0}   Siege: {info.TotalSiegeUnits:N0}   Gold: {info.TotalGold:N0}   Food: {info.TotalFood:N0}";
+        return $"{info.Name}   Troops: {info.TotalTroops:N0} / {info.WoundedTroops:N0} wounded   Generals: {info.TotalGenerals:N0}   Siege: {info.TotalSiegeUnits:N0}   Gold: {info.TotalGold:N0}   Food: {info.TotalFood:N0}";
+    }
+
+    private int GetTotalWoundedTroopsForTeam(string teamName)
+    {
+        var total = 0;
+        foreach (var occupants in _occupantsByGrid.Values)
+        {
+            foreach (var occupant in occupants)
+            {
+                if (occupant.Category == CategoryUnit && occupant.TeamName == teamName)
+                {
+                    total += occupant.WoundedTroops;
+                }
+            }
+        }
+
+        return total;
     }
 
     private void AppendBattleLog(BattleOccupantInfo actor, string category, string message)
@@ -2364,6 +2453,25 @@ public partial class BattleSceneController : Node2D
         return unit.Morale.HasValue ? unit.Morale.Value.ToString("N0") : "-";
     }
 
+    private static string FormatWeaponAmmo(BattleOccupantInfo unit)
+    {
+        return unit.WeaponAmmo.HasValue && unit.MaxWeaponAmmo.HasValue
+            ? $"{unit.WeaponAmmo.Value:N0}/{unit.MaxWeaponAmmo.Value:N0}"
+            : "-";
+    }
+
+    private static string FormatWeaponAmmoLog(BattleOccupantInfo unit)
+    {
+        return unit.WeaponAmmo.HasValue && unit.MaxWeaponAmmo.HasValue
+            ? $" (ammo {unit.WeaponAmmo.Value:N0}/{unit.MaxWeaponAmmo.Value:N0})"
+            : string.Empty;
+    }
+
+    private static string FormatWoundedTroops(BattleOccupantInfo unit)
+    {
+        return unit.Category == CategoryUnit ? unit.WoundedTroops.ToString("N0") : "-";
+    }
+
     private static string FormatWorkerWorkAction(WorkerWorkAction action)
     {
         return action switch
@@ -2448,8 +2556,11 @@ public partial class BattleSceneController : Node2D
             {
                 var hpText = occupant.Category == CategorySiegeEngine
                     ? $" HP {occupant.HitPoints}/{occupant.MaxHitPoints}"
-                    : $" Troops {occupant.TroopCount:N0}/{occupant.MaxHitPoints:N0} Morale {FormatMorale(occupant)}";
-                builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}{hpText}");
+                    : $" Active {occupant.TroopCount:N0}/{occupant.MaxHitPoints:N0} Wounded {FormatWoundedTroops(occupant)} Morale {FormatMorale(occupant)}";
+                var ammoText = occupant.MaxWeaponAmmo.HasValue
+                    ? $" Ammo {FormatWeaponAmmo(occupant)}"
+                    : string.Empty;
+                builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}{hpText}{ammoText}");
             }
         }
         else
@@ -2464,6 +2575,11 @@ public partial class BattleSceneController : Node2D
             builder.AppendLine($"- Category: {_selectedUnit.Category}");
             builder.AppendLine($"- Grid: ({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y}, L{_selectedUnitGrid.Value.Level})");
             builder.AppendLine($"- Move Range: {_selectedUnit.MoveRange}");
+            if (_selectedUnit.MaxWeaponAmmo.HasValue)
+            {
+                builder.AppendLine($"- Weapon Ammo: {FormatWeaponAmmo(_selectedUnit)}");
+            }
+
             var effectiveAttackRange = GetEffectiveAttackRange(_selectedUnit);
             var attackRangeText = effectiveAttackRange == _selectedUnit.AttackRange
                 ? _selectedUnit.AttackRange.ToString()
@@ -2475,7 +2591,8 @@ public partial class BattleSceneController : Node2D
             }
             else
             {
-                builder.AppendLine($"- Troops: {_selectedUnit.TroopCount:N0}/{_selectedUnit.MaxHitPoints:N0}");
+                builder.AppendLine($"- Active Troops: {_selectedUnit.TroopCount:N0}/{_selectedUnit.MaxHitPoints:N0}");
+                builder.AppendLine($"- Wounded Troops: {FormatWoundedTroops(_selectedUnit)}");
                 builder.AppendLine($"- Morale: {FormatMorale(_selectedUnit)}");
             }
 
@@ -2485,6 +2602,10 @@ public partial class BattleSceneController : Node2D
             builder.AppendLine($"- Strategy Targets: {_strategyTargetGrids.Count}");
             builder.AppendLine($"- Duel Targets: {_duelTargetGrids.Count}");
             builder.AppendLine($"- Fire Strategy: {(CanUseFireStrategy(_selectedUnit) ? "Ready" : "Unavailable")}");
+            if (_selectedUnit.TroopType == TroopSupplyCart)
+            {
+                builder.AppendLine($"- Supply: {(HasSupplyTargets() ? "Ready" : "Unavailable")}");
+            }
             builder.AppendLine($"- Command State: {FormatCommandMode(_commandMode)}");
             builder.AppendLine($"- Current Turn: {GetCurrentTurnSideName()}");
         }
@@ -2520,7 +2641,24 @@ public partial class BattleSceneController : Node2D
         }
 
         var morale = GetInitialMorale(category, troopType);
-        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, morale, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
+        var weaponAmmo = GetInitialWeaponAmmo(category, troopType);
+        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
+    }
+
+    private static void UpdateMarkerStrengthBar(BattleOccupantInfo occupant)
+    {
+        if (occupant.Marker == null)
+        {
+            return;
+        }
+
+        if (occupant.Category == CategoryUnit)
+        {
+            occupant.Marker.SetupTroopSegmentBar(occupant.TroopCount, occupant.WoundedTroops, occupant.MaxHitPoints);
+            return;
+        }
+
+        occupant.Marker.SetupHealthBar(occupant.HitPoints, occupant.MaxHitPoints);
     }
 
     private static int? GetInitialMorale(string category, string troopType)
@@ -2531,6 +2669,17 @@ public partial class BattleSceneController : Node2D
         }
 
         return troopType == TroopWorker ? WorkerMorale : DefaultUnitMorale;
+    }
+
+    private static int? GetInitialWeaponAmmo(string category, string troopType)
+    {
+        return troopType switch
+        {
+            TroopArcher => ArcherMaxWeaponAmmo,
+            TroopCrossbow => CrossbowMaxWeaponAmmo,
+            TroopCatapult when category == CategorySiegeEngine => CatapultMaxWeaponAmmo,
+            _ => null
+        };
     }
 
     private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetOccupantsAtGrid(Vector2I grid)
@@ -2710,6 +2859,11 @@ public partial class BattleSceneController : Node2D
 
         var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value.Grid, targetGrid.Grid);
         var attackingUnit = _selectedUnit with { FacingDirection = attackDirection };
+        if (!TrySpendWeaponAmmo(attackingUnit, out attackingUnit))
+        {
+            return false;
+        }
+
         ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, attackingUnit);
         _selectedUnit = attackingUnit;
 
@@ -2732,7 +2886,7 @@ public partial class BattleSceneController : Node2D
         var effectDelaySeconds = Math.Max(
             Math.Max(attackAnimationDuration, hurtAnimationDuration),
             Math.Max(arrowEffectDuration, catapultEffectDuration));
-        AppendBattleLog(attackingUnit, "Attack", $"{FormatLogUnit(attackingUnit)} attacks {targetGrid}");
+        AppendBattleLog(attackingUnit, "Attack", $"{FormatLogUnit(attackingUnit)} attacks {targetGrid}{FormatWeaponAmmoLog(attackingUnit)}");
         ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds);
         if (shouldTemporarilyRevealOccludedUnits)
         {
@@ -2908,6 +3062,34 @@ public partial class BattleSceneController : Node2D
         }
     }
 
+    private bool TryGetCurrentOccupantAtGrid(BattleGridKey grid, BattleOccupantInfo occupant, out BattleOccupantInfo currentOccupant)
+    {
+        currentOccupant = occupant;
+        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
+        {
+            return false;
+        }
+
+        if (occupants.Contains(occupant))
+        {
+            return true;
+        }
+
+        if (occupant.Marker == null)
+        {
+            return false;
+        }
+
+        var matchingOccupant = occupants.FirstOrDefault(candidate => candidate.Marker == occupant.Marker);
+        if (matchingOccupant == null)
+        {
+            return false;
+        }
+
+        currentOccupant = matchingOccupant;
+        return true;
+    }
+
     private static void ApplyMoveAnimation(BattleOccupantInfo occupant, BattleSpriteDirection direction, Vector2 destinationPosition, Vector2[]? pathPositions = null, BattleSpriteDirection[]? pathDirections = null, Color?[]? pathModulates = null, Action? onComplete = null)
     {
         if (occupant.Marker == null)
@@ -2932,6 +3114,13 @@ public partial class BattleSceneController : Node2D
         {
             var carIdleScene = GetCarIdleScene(direction);
             MoveMarker(occupant.Marker, destinationPosition, pathPositions, null, pathModulates, GetScaledMoveDuration(CarMoveAnimationDurationSeconds, pathPositions), carIdleScene, carIdleScene, onComplete);
+            return;
+        }
+
+        if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopSupplyCart)
+        {
+            var supplyCarIdleScene = GetSupplyCarIdleScene(direction);
+            MoveMarker(occupant.Marker, destinationPosition, pathPositions, null, pathModulates, GetScaledMoveDuration(CarMoveAnimationDurationSeconds, pathPositions), supplyCarIdleScene, supplyCarIdleScene, onComplete);
             return;
         }
 
@@ -3172,32 +3361,17 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var actualDamage = Mathf.Min(target.HitPoints, damage);
-        var remainingHp = Mathf.Max(0, target.HitPoints - damage);
-        var remainingTroops = target.Category == CategoryUnit
-            ? Mathf.Max(0, target.TroopCount - damage)
-            : target.TroopCount;
-        ApplyTeamTroopLoss(target, target.TroopCount - remainingTroops);
-        var updatedTarget = target with
-        {
-            TroopCount = remainingTroops,
-            HitPoints = remainingHp
-        };
-        updatedTarget.Marker?.SetupHealthBar(updatedTarget.HitPoints, updatedTarget.MaxHitPoints);
-        ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
-        if (_selectedUnit == target)
-        {
-            _selectedUnit = updatedTarget;
-        }
+        var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, NormalDamageKilledRatio);
+        var updatedTarget = casualtyResult.UpdatedTarget;
 
-        ShowDamagePopup(targetGrid, actualDamage);
+        ShowDamagePopup(targetGrid, casualtyResult.ActualDamage);
         AppendBattleLog(
             target,
             "Hurt",
-            $"{FormatLogUnit(target)} got {actualDamage:N0} hurt by {FormatLogUnit(attacker)} at {targetGrid}");
+            $"{FormatLogUnit(target)} got {casualtyResult.ActualDamage:N0} hurt by {FormatLogUnit(attacker)} at {targetGrid} ({FormatCasualtyResult(casualtyResult)})");
         ConfigureHud();
         RefreshInfoPanel();
-        if (remainingHp <= 0)
+        if (updatedTarget.HitPoints <= 0)
         {
             DestroyOccupantAfterDelay(targetGrid, updatedTarget, effectDelaySeconds);
         }
@@ -3275,6 +3449,63 @@ public partial class BattleSceneController : Node2D
         RefreshInfoPanel();
     }
 
+    private BattleCasualtyResult ApplyUnitCasualties(
+        BattleGridKey targetGrid,
+        BattleOccupantInfo target,
+        int damage,
+        float killedRatio)
+    {
+        var actualDamage = Mathf.Min(target.HitPoints, damage);
+        if (actualDamage <= 0)
+        {
+            return new BattleCasualtyResult(target, 0, 0, 0);
+        }
+
+        if (target.Category != CategoryUnit)
+        {
+            var remainingHp = Mathf.Max(0, target.HitPoints - actualDamage);
+            var updatedTarget = target with { HitPoints = remainingHp };
+            UpdateMarkerStrengthBar(updatedTarget);
+            ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
+            if (_selectedUnit == target)
+            {
+                _selectedUnit = updatedTarget;
+            }
+
+            return new BattleCasualtyResult(updatedTarget, actualDamage, actualDamage, 0);
+        }
+
+        var activeLoss = Mathf.Min(target.TroopCount, actualDamage);
+        var killedTroops = Mathf.Clamp(Mathf.RoundToInt(activeLoss * killedRatio), 0, activeLoss);
+        var woundedTroops = activeLoss - killedTroops;
+        var remainingTroops = Mathf.Max(0, target.TroopCount - activeLoss);
+        ApplyTeamTroopLoss(target, activeLoss);
+        var updatedUnit = target with
+        {
+            TroopCount = remainingTroops,
+            HitPoints = remainingTroops,
+            WoundedTroops = target.WoundedTroops + woundedTroops
+        };
+        UpdateMarkerStrengthBar(updatedUnit);
+        ReplaceOccupantAtGrid(targetGrid, target, updatedUnit);
+        if (_selectedUnit == target)
+        {
+            _selectedUnit = updatedUnit;
+        }
+
+        return new BattleCasualtyResult(updatedUnit, activeLoss, killedTroops, woundedTroops);
+    }
+
+    private static string FormatCasualtyResult(BattleCasualtyResult result)
+    {
+        if (result.WoundedTroops <= 0)
+        {
+            return $"killed {result.KilledTroops:N0}";
+        }
+
+        return $"killed {result.KilledTroops:N0}, wounded {result.WoundedTroops:N0}";
+    }
+
     private bool IsClosedGateStructureTarget(BattleGridKey targetGrid)
     {
         if (_mapData == null || targetGrid.Level != 0 || !IsWithinMap(targetGrid.Grid))
@@ -3344,6 +3575,37 @@ public partial class BattleSceneController : Node2D
         };
         popup.AddThemeColorOverride("font_color", new Color(1.0f, 0.10f, 0.06f, 1.0f));
         popup.AddThemeColorOverride("font_outline_color", new Color(0.05f, 0.02f, 0.01f, 0.95f));
+        popup.AddThemeConstantOverride("outline_size", 4);
+        popup.AddThemeFontSizeOverride("font_size", 22);
+        _battleDepthLayer.AddChild(popup);
+
+        var tween = popup.CreateTween();
+        tween.SetParallel(true);
+        tween.SetEase(Tween.EaseType.Out);
+        tween.SetTrans(Tween.TransitionType.Cubic);
+        tween.TweenProperty(popup, "position", popup.Position + new Vector2(0.0f, -34.0f), DamagePopupDurationSeconds);
+        tween.TweenProperty(popup, "modulate:a", 0.0f, DamagePopupDurationSeconds);
+        tween.SetParallel(false);
+        tween.TweenCallback(Callable.From(() => popup.QueueFree()));
+    }
+
+    private void ShowRepairPopup(BattleGridKey targetGrid, int repairAmount)
+    {
+        if (_battleDepthLayer == null || repairAmount <= 0)
+        {
+            return;
+        }
+
+        var popup = new Label
+        {
+            Text = $"+{repairAmount:N0}",
+            Position = GetMarkerPosition(targetGrid) + new Vector2(-18.0f, -88.0f),
+            ZIndex = 500,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Modulate = new Color(0.22f, 0.95f, 0.38f, 1.0f)
+        };
+        popup.AddThemeColorOverride("font_color", new Color(0.18f, 0.95f, 0.34f, 1.0f));
+        popup.AddThemeColorOverride("font_outline_color", new Color(0.01f, 0.08f, 0.03f, 0.95f));
         popup.AddThemeConstantOverride("outline_size", 4);
         popup.AddThemeFontSizeOverride("font_size", 22);
         _battleDepthLayer.AddChild(popup);
@@ -3598,10 +3860,20 @@ public partial class BattleSceneController : Node2D
             await ToSignal(GetTree().CreateTimer(delaySeconds), SceneTreeTimer.SignalName.Timeout);
         }
 
+        if (occupant.TroopType == TroopSupplyCart && IsOccupantAtGrid(grid, occupant))
+        {
+            ApplySupplyCartDestroyedMoralePenalty(occupant);
+        }
+
         RemoveOccupant(grid, occupant);
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
         ConfigureHud();
+    }
+
+    private bool IsOccupantAtGrid(BattleGridKey grid, BattleOccupantInfo occupant)
+    {
+        return _occupantsByGrid.TryGetValue(grid, out var occupants) && occupants.Contains(occupant);
     }
 
     private void RemoveOccupant(BattleGridKey grid, BattleOccupantInfo occupant)
@@ -3841,6 +4113,17 @@ public partial class BattleSceneController : Node2D
             BattleSpriteDirection.NorthWest => CarIdleNorthWestScenePath,
             BattleSpriteDirection.SouthWest => CarIdleSouthWestScenePath,
             _ => CarIdleSouthEastScenePath
+        };
+    }
+
+    private static string GetSupplyCarIdleScene(BattleSpriteDirection direction)
+    {
+        return direction switch
+        {
+            BattleSpriteDirection.NorthEast => SupplyCarIdleNorthEastScenePath,
+            BattleSpriteDirection.NorthWest => SupplyCarIdleNorthWestScenePath,
+            BattleSpriteDirection.SouthWest => SupplyCarIdleSouthWestScenePath,
+            _ => SupplyCarIdleSouthEastScenePath
         };
     }
 
@@ -4592,6 +4875,22 @@ public partial class BattleSceneController : Node2D
         yield return new Vector2I(grid.X, grid.Y - 1);
     }
 
+    private IEnumerable<Vector2I> GetAdjacentEightNeighbors(Vector2I grid)
+    {
+        for (var y = -1; y <= 1; y++)
+        {
+            for (var x = -1; x <= 1; x++)
+            {
+                if (x == 0 && y == 0)
+                {
+                    continue;
+                }
+
+                yield return new Vector2I(grid.X + x, grid.Y + y);
+            }
+        }
+    }
+
     private bool HasBlockingOccupant(BattleGridKey grid)
     {
         if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
@@ -4740,7 +5039,9 @@ public partial class BattleSceneController : Node2D
 
     private void OnAttackButtonPressed()
     {
-        if (_selectedUnit == null || !_selectedUnitGrid.HasValue)
+        if (_selectedUnit == null ||
+            !_selectedUnitGrid.HasValue ||
+            !CanUseAttackCommand(_selectedUnit))
         {
             return;
         }
@@ -4936,6 +5237,95 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
+    private static bool UsesWeaponAmmo(BattleOccupantInfo unit)
+    {
+        return unit.MaxWeaponAmmo.HasValue;
+    }
+
+    private static bool HasWeaponAmmo(BattleOccupantInfo unit)
+    {
+        return !UsesWeaponAmmo(unit) || unit.WeaponAmmo.GetValueOrDefault() > 0;
+    }
+
+    private static bool TrySpendWeaponAmmo(BattleOccupantInfo unit, out BattleOccupantInfo updatedUnit)
+    {
+        updatedUnit = unit;
+        if (!UsesWeaponAmmo(unit))
+        {
+            return true;
+        }
+
+        var currentAmmo = unit.WeaponAmmo.GetValueOrDefault();
+        if (currentAmmo <= 0)
+        {
+            return false;
+        }
+
+        updatedUnit = unit with { WeaponAmmo = currentAmmo - 1 };
+        return true;
+    }
+
+    private bool RefillWeaponAmmo(BattleGridKey targetGrid, BattleOccupantInfo target, out int refilledAmmo)
+    {
+        refilledAmmo = 0;
+        if (!TryGetCurrentOccupantAtGrid(targetGrid, target, out var currentTarget))
+        {
+            return false;
+        }
+
+        target = currentTarget;
+        if (!target.WeaponAmmo.HasValue ||
+            !target.MaxWeaponAmmo.HasValue ||
+            target.WeaponAmmo.Value >= target.MaxWeaponAmmo.Value)
+        {
+            return false;
+        }
+
+        refilledAmmo = target.MaxWeaponAmmo.Value - target.WeaponAmmo.Value;
+        var updatedTarget = target with { WeaponAmmo = target.MaxWeaponAmmo.Value };
+        ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
+        if (_selectedUnit == target)
+        {
+            _selectedUnit = updatedTarget;
+        }
+
+        return true;
+    }
+
+    private void ApplySupplyCartDestroyedMoralePenalty(BattleOccupantInfo supplyCart)
+    {
+        var affectedUnits = new List<BattleOccupantInfo>();
+        foreach (var (grid, occupants) in _occupantsByGrid.ToList())
+        {
+            foreach (var unit in occupants.ToList())
+            {
+                if (unit.Category != CategoryUnit ||
+                    unit.TeamName != supplyCart.TeamName ||
+                    unit.Morale == null)
+                {
+                    continue;
+                }
+
+                var updatedUnit = unit with { Morale = Mathf.FloorToInt(unit.Morale.Value * 0.5f) };
+                ReplaceOccupantAtGrid(grid, unit, updatedUnit);
+                if (_selectedUnit == unit)
+                {
+                    _selectedUnit = updatedUnit;
+                }
+
+                affectedUnits.Add(updatedUnit);
+            }
+        }
+
+        if (affectedUnits.Count > 0)
+        {
+            AppendBattleLog(
+                supplyCart,
+                "Supply",
+                $"{FormatLogUnit(supplyCart)} destroyed. {affectedUnits.Count} friendly battle team(s) morale -50%");
+        }
+    }
+
     private static bool CanStartDuel(BattleOccupantInfo unit)
     {
         return unit.Category == CategoryUnit &&
@@ -4987,16 +5377,28 @@ public partial class BattleSceneController : Node2D
 
         var maxAttackAnimationDuration = 0.0;
         BattleOccupantInfo? updatedSelectedUnit = null;
+        var updatedParticipants = new List<UnionAttackParticipant>();
         foreach (var participant in candidate.Participants)
         {
             var attackDirection = GetInfantryDirection(participant.Grid.Grid, candidate.TargetGrid.Grid);
             var attackingUnit = participant.Occupant with { FacingDirection = attackDirection };
+            if (!TrySpendWeaponAmmo(attackingUnit, out attackingUnit))
+            {
+                continue;
+            }
+
             ReplaceOccupantAtGrid(participant.Grid, participant.Occupant, attackingUnit);
+            updatedParticipants.Add(new UnionAttackParticipant(participant.Grid, attackingUnit));
             maxAttackAnimationDuration = Math.Max(maxAttackAnimationDuration, ApplyAttackAnimation(attackingUnit, attackDirection));
             if (participant.Grid == _selectedUnitGrid.Value)
             {
                 updatedSelectedUnit = attackingUnit;
             }
+        }
+
+        if (updatedParticipants.Count < 2)
+        {
+            return;
         }
 
         if (updatedSelectedUnit != null)
@@ -5009,8 +5411,8 @@ public partial class BattleSceneController : Node2D
         AppendBattleLog(
             _selectedUnit!,
             "Attack",
-            $"Union x{candidate.Participants.Count}: {string.Join(", ", candidate.Participants.Select(participant => FormatLogUnit(participant.Occupant)))} -> {candidate.TargetGrid}");
-        ApplyAttackDamage(_selectedUnit!, candidate.TargetGrid, effectDelaySeconds, GetUnionAttackDamage(candidate.Participants));
+            $"Union x{updatedParticipants.Count}: {string.Join(", ", updatedParticipants.Select(participant => FormatLogUnit(participant.Occupant)))} -> {candidate.TargetGrid}");
+        ApplyAttackDamage(_selectedUnit!, candidate.TargetGrid, effectDelaySeconds, GetUnionAttackDamage(updatedParticipants));
         if (shouldTemporarilyRevealOccludedUnits)
         {
             RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
@@ -5057,6 +5459,357 @@ public partial class BattleSceneController : Node2D
         RefreshOccludedUnitSilhouettes();
         ConfigureHud();
         RefreshHighlights();
+    }
+
+    private void OnSupplyButtonPressed()
+    {
+        if (_selectedUnit == null ||
+            !_selectedUnitGrid.HasValue ||
+            _selectedUnit.Marker == null ||
+            _selectedUnit.TroopType != TroopSupplyCart ||
+            _supplyUsedByMarkerThisTurn.Contains(_selectedUnit.Marker))
+        {
+            return;
+        }
+
+        var suppliedUnits = GetSupplyMoraleTargets(_selectedUnitGrid.Value, _selectedUnit).ToList();
+        var recoveryTargets = GetWoundedRecoveryTargets(_selectedUnitGrid.Value, _selectedUnit).ToList();
+        var repairTargets = GetSupplyRepairTargets(_selectedUnitGrid.Value, _selectedUnit).ToList();
+        if (suppliedUnits.Count == 0 && recoveryTargets.Count == 0 && repairTargets.Count == 0)
+        {
+            return;
+        }
+
+        var suppliedTargetCount = 0;
+        foreach (var (targetGrid, target) in suppliedUnits)
+        {
+            if (UpdateUnitMorale(targetGrid, target, SupplyCartMoraleRestore, out _))
+            {
+                suppliedTargetCount++;
+            }
+        }
+
+        var recoveredTroops = 0;
+        var recoveredTargetCount = 0;
+        foreach (var (targetGrid, target) in recoveryTargets)
+        {
+            var targetRecoveredTroops = RecoverWoundedTroops(targetGrid, target, SupplyCartWoundedRecoveryAmount);
+            if (targetRecoveredTroops > 0)
+            {
+                recoveredTroops += targetRecoveredTroops;
+                recoveredTargetCount++;
+            }
+        }
+
+        var repairedHp = 0;
+        var repairedTargetCount = 0;
+        foreach (var (targetGrid, target) in repairTargets)
+        {
+            var targetRepairedHp = RepairSiegeEngine(targetGrid, target, SupplyCartRepairAmount);
+            if (targetRepairedHp > 0)
+            {
+                repairedHp += targetRepairedHp;
+                repairedTargetCount++;
+            }
+        }
+
+        var logParts = new List<string>();
+        if (suppliedTargetCount > 0)
+        {
+            logParts.Add($"{suppliedTargetCount} unit(s) morale +{SupplyCartMoraleRestore}");
+        }
+
+        if (recoveredTargetCount > 0)
+        {
+            logParts.Add($"{recoveredTargetCount} unit(s) recovered {recoveredTroops:N0} wounded");
+        }
+
+        if (repairedTargetCount > 0)
+        {
+            logParts.Add($"{repairedTargetCount} car(s) repaired +{repairedHp:N0} HP");
+        }
+
+        if (logParts.Count == 0)
+        {
+            return;
+        }
+
+        _supplyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
+
+        AppendBattleLog(
+            _selectedUnit,
+            "Recovery",
+            $"{FormatLogUnit(_selectedUnit)} recovery / repair: {string.Join(", ", logParts)}");
+
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
+        _workerWorkAction = WorkerWorkAction.General;
+        HideCommandMenu();
+        ConfigureHud();
+        RefreshInfoPanel();
+        RefreshHighlights();
+        RefreshBattleLogPanel();
+    }
+
+    private void OnResupplyWeaponButtonPressed()
+    {
+        if (_selectedUnit == null ||
+            !_selectedUnitGrid.HasValue ||
+            _selectedUnit.Marker == null ||
+            _selectedUnit.TroopType != TroopSupplyCart ||
+            _supplyUsedByMarkerThisTurn.Contains(_selectedUnit.Marker))
+        {
+            return;
+        }
+
+        var resupplyTargets = GetWeaponResupplyTargets(_selectedUnitGrid.Value, _selectedUnit).ToList();
+        if (resupplyTargets.Count == 0)
+        {
+            return;
+        }
+
+        var refilledAmmo = 0;
+        foreach (var (targetGrid, target) in resupplyTargets)
+        {
+            if (RefillWeaponAmmo(targetGrid, target, out var targetRefilledAmmo))
+            {
+                refilledAmmo += targetRefilledAmmo;
+            }
+        }
+
+        _supplyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
+        AppendBattleLog(
+            _selectedUnit,
+            "Supply",
+            $"{FormatLogUnit(_selectedUnit)} resupplies {resupplyTargets.Count} weapon unit(s). Ammo +{refilledAmmo:N0}");
+
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
+        _workerWorkAction = WorkerWorkAction.General;
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+        RefreshBattleLogPanel();
+    }
+
+    private bool HasSupplyTargets()
+    {
+        return _selectedUnit != null &&
+               _selectedUnitGrid.HasValue &&
+               _selectedUnit.TroopType == TroopSupplyCart &&
+               _selectedUnit.Marker != null &&
+               !_supplyUsedByMarkerThisTurn.Contains(_selectedUnit.Marker) &&
+               (GetSupplyMoraleTargets(_selectedUnitGrid.Value, _selectedUnit).Any() ||
+                GetWoundedRecoveryTargets(_selectedUnitGrid.Value, _selectedUnit).Any() ||
+                GetSupplyRepairTargets(_selectedUnitGrid.Value, _selectedUnit).Any());
+    }
+
+    private bool HasWeaponResupplyTargets()
+    {
+        return _selectedUnit != null &&
+               _selectedUnitGrid.HasValue &&
+               _selectedUnit.TroopType == TroopSupplyCart &&
+               _selectedUnit.Marker != null &&
+               !_supplyUsedByMarkerThisTurn.Contains(_selectedUnit.Marker) &&
+               GetWeaponResupplyTargets(_selectedUnitGrid.Value, _selectedUnit).Any();
+    }
+
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetSupplyMoraleTargets(BattleGridKey supplyGrid, BattleOccupantInfo supplyCart)
+    {
+        foreach (var neighborGrid in GetAdjacentEightNeighbors(supplyGrid.Grid))
+        {
+            if (!IsWithinMap(neighborGrid))
+            {
+                continue;
+            }
+
+            foreach (var (targetGrid, target) in GetOccupantsAtGrid(neighborGrid))
+            {
+                if (targetGrid.Level != supplyGrid.Level ||
+                    target.Morale == null ||
+                    target.Morale.Value >= 120 ||
+                    target.TeamName != supplyCart.TeamName ||
+                    target.TroopType == TroopSupplyCart)
+                {
+                    continue;
+                }
+
+                yield return (targetGrid, target);
+            }
+        }
+    }
+
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetSupplyRepairTargets(BattleGridKey supplyGrid, BattleOccupantInfo supplyCart)
+    {
+        foreach (var occupant in GetOccupantsAtGrid(supplyGrid.Grid))
+        {
+            if (IsSupplyRepairTarget(supplyGrid, supplyCart, occupant.Grid, occupant.Occupant, allowSelf: true))
+            {
+                yield return occupant;
+            }
+        }
+
+        foreach (var neighborGrid in GetAdjacentEightNeighbors(supplyGrid.Grid))
+        {
+            if (!IsWithinMap(neighborGrid))
+            {
+                continue;
+            }
+
+            foreach (var occupant in GetOccupantsAtGrid(neighborGrid))
+            {
+                if (IsSupplyRepairTarget(supplyGrid, supplyCart, occupant.Grid, occupant.Occupant, allowSelf: false))
+                {
+                    yield return occupant;
+                }
+            }
+        }
+    }
+
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetWoundedRecoveryTargets(BattleGridKey supplyGrid, BattleOccupantInfo supplyCart)
+    {
+        foreach (var neighborGrid in GetAdjacentEightNeighbors(supplyGrid.Grid))
+        {
+            if (!IsWithinMap(neighborGrid))
+            {
+                continue;
+            }
+
+            foreach (var (targetGrid, target) in GetOccupantsAtGrid(neighborGrid))
+            {
+                if (targetGrid.Level != supplyGrid.Level ||
+                    target.TeamName != supplyCart.TeamName ||
+                    target.Category != CategoryUnit ||
+                    target.WoundedTroops <= 0)
+                {
+                    continue;
+                }
+
+                yield return (targetGrid, target);
+            }
+        }
+    }
+
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetWeaponResupplyTargets(BattleGridKey supplyGrid, BattleOccupantInfo supplyCart)
+    {
+        foreach (var neighborGrid in GetAdjacentEightNeighbors(supplyGrid.Grid))
+        {
+            if (!IsWithinMap(neighborGrid))
+            {
+                continue;
+            }
+
+            foreach (var occupant in GetOccupantsAtGrid(neighborGrid))
+            {
+                if (IsWeaponResupplyTarget(supplyGrid, supplyCart, occupant.Grid, occupant.Occupant))
+                {
+                    yield return occupant;
+                }
+            }
+        }
+    }
+
+    private static bool IsSupplyRepairTarget(
+        BattleGridKey supplyGrid,
+        BattleOccupantInfo supplyCart,
+        BattleGridKey targetGrid,
+        BattleOccupantInfo target,
+        bool allowSelf)
+    {
+        var isSelf = target.Marker != null && target.Marker == supplyCart.Marker;
+        return targetGrid.Level == supplyGrid.Level &&
+               target.TeamName == supplyCart.TeamName &&
+               target.Category == CategorySiegeEngine &&
+               target.HitPoints < target.MaxHitPoints &&
+               (allowSelf || !isSelf);
+    }
+
+    private static bool IsWeaponResupplyTarget(
+        BattleGridKey supplyGrid,
+        BattleOccupantInfo supplyCart,
+        BattleGridKey targetGrid,
+        BattleOccupantInfo target)
+    {
+        return targetGrid.Level == supplyGrid.Level &&
+               target.TeamName == supplyCart.TeamName &&
+               target.WeaponAmmo.HasValue &&
+               target.MaxWeaponAmmo.HasValue &&
+               target.WeaponAmmo.Value < target.MaxWeaponAmmo.Value;
+    }
+
+    private int RepairSiegeEngine(BattleGridKey targetGrid, BattleOccupantInfo target, int repairAmount)
+    {
+        if (!TryGetCurrentOccupantAtGrid(targetGrid, target, out var currentTarget))
+        {
+            return 0;
+        }
+
+        target = currentTarget;
+        if (target.Category != CategorySiegeEngine || target.HitPoints >= target.MaxHitPoints)
+        {
+            return 0;
+        }
+
+        var actualRepair = Mathf.Min(repairAmount, target.MaxHitPoints - target.HitPoints);
+        var updatedTarget = target with
+        {
+            HitPoints = target.HitPoints + actualRepair
+        };
+        UpdateMarkerStrengthBar(updatedTarget);
+        ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
+        if (_selectedUnit == target)
+        {
+            _selectedUnit = updatedTarget;
+        }
+
+        ShowRepairPopup(targetGrid, actualRepair);
+        return actualRepair;
+    }
+
+    private int RecoverWoundedTroops(BattleGridKey targetGrid, BattleOccupantInfo target, int recoveryAmount)
+    {
+        if (!TryGetCurrentOccupantAtGrid(targetGrid, target, out var currentTarget))
+        {
+            return 0;
+        }
+
+        target = currentTarget;
+        if (target.Category != CategoryUnit || target.WoundedTroops <= 0)
+        {
+            return 0;
+        }
+
+        var missingActiveCapacity = Mathf.Max(0, target.MaxHitPoints - target.TroopCount);
+        var actualRecovery = Mathf.Min(recoveryAmount, Mathf.Min(target.WoundedTroops, missingActiveCapacity));
+        if (actualRecovery <= 0)
+        {
+            return 0;
+        }
+
+        var updatedTarget = target with
+        {
+            TroopCount = target.TroopCount + actualRecovery,
+            HitPoints = target.HitPoints + actualRecovery,
+            WoundedTroops = target.WoundedTroops - actualRecovery
+        };
+        UpdateMarkerStrengthBar(updatedTarget);
+        ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
+        ApplyTeamTroopDelta(target.Category, target.TeamName, actualRecovery);
+        if (_selectedUnit == target)
+        {
+            _selectedUnit = updatedTarget;
+        }
+
+        ShowRepairPopup(targetGrid, actualRecovery);
+        return actualRecovery;
     }
 
     private void ApplyRetreatTroopLoss(BattleOccupantInfo retreatingUnit)
@@ -5223,7 +5976,17 @@ public partial class BattleSceneController : Node2D
         return occupant.Marker != null &&
                occupant.Category == CategoryUnit &&
                IsUnionAttackTroopType(occupant.TroopType) &&
-               GetAttackDamage(occupant) > 0;
+               GetAttackDamage(occupant) > 0 &&
+               HasWeaponAmmo(occupant);
+    }
+
+    private bool CanUseAttackCommand(BattleOccupantInfo occupant)
+    {
+        return occupant.TroopType != TroopSupplyCart &&
+               IsBattlePiece(occupant) &&
+               GetEffectiveAttackRange(occupant) > 0 &&
+               GetAttackDamage(occupant) > 0 &&
+               HasWeaponAmmo(occupant);
     }
 
     private static bool IsUnionAttackTroopType(string troopType)
@@ -5476,13 +6239,42 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
+        var actingMarker = _selectedUnit.Marker;
+        if (actingMarker == null)
+        {
+            return false;
+        }
+
+        var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value.Grid, targetGrid.Grid);
+        var actingUnit = _selectedUnit with { FacingDirection = attackDirection };
+        if (!TrySpendWeaponAmmo(actingUnit, out actingUnit))
+        {
+            return false;
+        }
+
         if (!IgniteBattleFire(targetGrid))
         {
             return false;
         }
 
-        _strategyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
-        AppendBattleLog(_selectedUnit, "Strategy", $"{FormatLogUnit(_selectedUnit)} ignites fire at {targetGrid}");
+        ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, actingUnit);
+        _selectedUnit = actingUnit;
+        _strategyUsedByMarkerThisTurn.Add(actingMarker);
+        var shouldTemporarilyRevealOccludedUnits =
+            IsUnitOccludedByCastleVisual(_selectedUnitGrid.Value) ||
+            IsUnitOccludedByCastleVisual(targetGrid);
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            ClearOccludedUnitSilhouettes();
+        }
+
+        var effectDelaySeconds = PlayStrategyActionEffects(_selectedUnitGrid.Value, targetGrid, actingUnit, attackDirection);
+        AppendBattleLog(_selectedUnit, "Strategy", $"{FormatLogUnit(_selectedUnit)} ignites fire at {targetGrid}{FormatWeaponAmmoLog(_selectedUnit)}");
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
+        }
+
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
         _attackableGrids.Clear();
@@ -5495,6 +6287,29 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
+    private double PlayStrategyActionEffects(
+        BattleGridKey sourceGrid,
+        BattleGridKey targetGrid,
+        BattleOccupantInfo actingUnit,
+        BattleSpriteDirection attackDirection)
+    {
+        if (actingUnit.Category == CategorySiegeEngine && actingUnit.TroopType == TroopCatapult)
+        {
+            var attackAnimationDuration = ApplyAttackAnimation(actingUnit, attackDirection);
+            var projectileDuration = PlayCatapultProjectileEffect(sourceGrid, targetGrid);
+            return Math.Max(attackAnimationDuration, projectileDuration);
+        }
+
+        if (IsArrowProjectileAttacker(actingUnit))
+        {
+            var attackAnimationDuration = ApplyAttackAnimation(actingUnit, attackDirection);
+            var projectileDuration = PlayArrowProjectileEffect(sourceGrid, targetGrid);
+            return Math.Max(attackAnimationDuration, projectileDuration);
+        }
+
+        return 0.0;
+    }
+
     private bool CanUseFireStrategy(BattleOccupantInfo? occupant)
     {
         if (occupant?.Marker == null || !CanUseUnitTypeFireStrategy(occupant))
@@ -5502,7 +6317,7 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
-        return !_strategyUsedByMarkerThisTurn.Contains(occupant.Marker);
+        return !_strategyUsedByMarkerThisTurn.Contains(occupant.Marker) && HasWeaponAmmo(occupant);
     }
 
     private static bool CanUseUnitTypeFireStrategy(BattleOccupantInfo occupant)
@@ -5614,28 +6429,13 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var actualDamage = Mathf.Min(target.HitPoints, damage);
-        var remainingHp = Mathf.Max(0, target.HitPoints - damage);
-        var remainingTroops = target.Category == CategoryUnit
-            ? Mathf.Max(0, target.TroopCount - damage)
-            : target.TroopCount;
-        ApplyTeamTroopLoss(target, target.TroopCount - remainingTroops);
-        var updatedTarget = target with
-        {
-            TroopCount = remainingTroops,
-            HitPoints = remainingHp
-        };
-        updatedTarget.Marker?.SetupHealthBar(updatedTarget.HitPoints, updatedTarget.MaxHitPoints);
-        ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
-        if (_selectedUnit == target)
-        {
-            _selectedUnit = updatedTarget;
-        }
+        var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, FireDamageKilledRatio);
+        var updatedTarget = casualtyResult.UpdatedTarget;
 
-        ShowDamagePopup(targetGrid, actualDamage);
-        AppendBattleLog(target, "Hurt", $"Fire burns {FormatLogUnit(target)} for {actualDamage:N0} at {targetGrid}");
+        ShowDamagePopup(targetGrid, casualtyResult.ActualDamage);
+        AppendBattleLog(target, "Hurt", $"Fire burns {FormatLogUnit(target)} for {casualtyResult.ActualDamage:N0} at {targetGrid} ({FormatCasualtyResult(casualtyResult)})");
         ConfigureHud();
-        if (remainingHp <= 0)
+        if (updatedTarget.HitPoints <= 0)
         {
             DestroyOccupantAfterDelay(targetGrid, updatedTarget, 0.0);
         }
@@ -6451,6 +7251,11 @@ public partial class BattleSceneController : Node2D
 
     private IEnumerable<BattleGridKey> CalculateAttackableGrids(BattleGridKey startGrid, BattleOccupantInfo attacker)
     {
+        if (!HasWeaponAmmo(attacker))
+        {
+            yield break;
+        }
+
         var attackRange = GetEffectiveAttackRange(attacker);
         if (attackRange <= 0)
         {
@@ -6630,7 +7435,7 @@ public partial class BattleSceneController : Node2D
             {
                 var strengthText = _selectedUnit.Category == CategorySiegeEngine
                     ? $"HP: {_selectedUnit.HitPoints}/{_selectedUnit.MaxHitPoints}"
-                    : $"Troops: {_selectedUnit.TroopCount:N0}";
+                    : $"Active: {_selectedUnit.TroopCount:N0}\nWounded: {FormatWoundedTroops(_selectedUnit)}";
                 var officerText = string.IsNullOrWhiteSpace(_selectedUnit.OfficerName)
                     ? "-"
                     : _selectedUnit.OfficerName;
@@ -6639,11 +7444,12 @@ public partial class BattleSceneController : Node2D
                     $"Officer: {officerText}\n" +
                     $"Type: {_selectedUnit.TroopType}\n" +
                     $"Morale: {FormatMorale(_selectedUnit)}\n" +
+                    $"Ammo: {FormatWeaponAmmo(_selectedUnit)}\n" +
                     strengthText;
             }
             else
             {
-                _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nMorale: -\nTroops: -";
+                _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nMorale: -\nAmmo: -\nActive: -\nWounded: -";
             }
         }
 
@@ -6694,11 +7500,36 @@ public partial class BattleSceneController : Node2D
             _uninstallWoodFenceButton.Disabled = !HasWorkerWorkTarget(WorkerWorkAction.UninstallWoodFence);
         }
 
+        if (_supplyButton != null)
+        {
+            _supplyButton.Visible = _selectedUnit?.TroopType == TroopSupplyCart;
+            _supplyButton.Text = $"Recovery / Repair (+{SupplyCartMoraleRestore} Morale, +{SupplyCartRepairAmount} HP)";
+            _supplyButton.Disabled = !HasSupplyTargets();
+        }
+
+        if (_resupplyWeaponButton != null)
+        {
+            _resupplyWeaponButton.Visible = _selectedUnit?.TroopType == TroopSupplyCart;
+            _resupplyWeaponButton.Text = "Resupply Weapon";
+            _resupplyWeaponButton.Disabled = !HasWeaponResupplyTargets();
+        }
+
+        if (_attackButton != null)
+        {
+            _attackButton.Visible = _selectedUnit != null && CanUseAttackCommand(_selectedUnit);
+            _attackButton.Text = _selectedUnit?.MaxWeaponAmmo.HasValue == true
+                ? $"Attack (Ammo {FormatWeaponAmmo(_selectedUnit)})"
+                : "Attack";
+            _attackButton.Disabled = _selectedUnit == null || !CanUseAttackCommand(_selectedUnit);
+        }
+
         if (_strategyButton != null)
         {
             var canUseStrategyUnit = _selectedUnit != null && CanUseUnitTypeFireStrategy(_selectedUnit);
             _strategyButton.Visible = canUseStrategyUnit;
-            _strategyButton.Text = "Strategy (Fire)";
+            _strategyButton.Text = _selectedUnit?.MaxWeaponAmmo.HasValue == true
+                ? $"Strategy (Fire, Ammo {FormatWeaponAmmo(_selectedUnit)})"
+                : "Strategy (Fire)";
             _strategyButton.Disabled = !CanUseFireStrategy(_selectedUnit);
         }
 
@@ -6750,12 +7581,19 @@ public partial class BattleSceneController : Node2D
 
         if (_unitMenuInfoLabel != null)
         {
-            _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nMorale: -\nTroops: -";
+            _unitMenuInfoLabel.Text = "Team: -\nOfficer: -\nType: -\nMorale: -\nAmmo: -\nActive: -\nWounded: -";
         }
 
         if (_openGateButton != null)
         {
             _openGateButton.Visible = false;
+        }
+
+        if (_attackButton != null)
+        {
+            _attackButton.Visible = true;
+            _attackButton.Disabled = false;
+            _attackButton.Text = "Attack";
         }
 
         if (_dropStoneButton != null)
@@ -6781,6 +7619,20 @@ public partial class BattleSceneController : Node2D
         if (_uninstallWoodFenceButton != null)
         {
             _uninstallWoodFenceButton.Visible = false;
+        }
+
+        if (_supplyButton != null)
+        {
+            _supplyButton.Visible = false;
+            _supplyButton.Disabled = false;
+            _supplyButton.Text = "Recovery / Repair";
+        }
+
+        if (_resupplyWeaponButton != null)
+        {
+            _resupplyWeaponButton.Visible = false;
+            _resupplyWeaponButton.Disabled = false;
+            _resupplyWeaponButton.Text = "Resupply Weapon";
         }
 
         if (_strategyButton != null)
@@ -6836,6 +7688,7 @@ public partial class BattleSceneController : Node2D
         CancelCommandAction(clearSelection: true);
         ResolveBattleFireAtTurnEnd();
         _strategyUsedByMarkerThisTurn.Clear();
+        _supplyUsedByMarkerThisTurn.Clear();
 
         if (_currentTurnSide == BattleTurnSide.TeamA)
         {
@@ -7222,14 +8075,17 @@ public partial class BattleSceneController : Node2D
         int TroopCount,
         int HitPoints,
         int MaxHitPoints,
+        int WoundedTroops,
         int? Morale,
+        int? WeaponAmmo,
+        int? MaxWeaponAmmo,
         int MoveRange,
         int AttackRange,
         BattlePieceMarker? Marker,
         BattleSpriteDirection FacingDirection);
     private readonly record struct WallTopAttackAmmo(int DropStoneUses, int PourOilUses);
     private readonly record struct BattleFireState(int RemainingTurns, int BurnTurns);
-    private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int TotalGenerals, int TotalSiegeUnits, int TotalGold, int TotalFood);
+    private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int WoundedTroops, int TotalGenerals, int TotalSiegeUnits, int TotalGold, int TotalFood);
 
     private enum BattleCommandMode
     {

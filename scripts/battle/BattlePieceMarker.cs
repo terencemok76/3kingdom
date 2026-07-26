@@ -13,6 +13,9 @@ public partial class BattlePieceMarker : Node2D
     private Color _borderColor = Colors.Black;
     private Color _teamArrowColor = Colors.Transparent;
     private float _healthRatio = 1.0f;
+    private float _activeTroopRatio = 1.0f;
+    private float _woundedTroopRatio;
+    private float _deadTroopRatio;
     private float _radius = 19.0f;
     private BattleSpriteAnimationPlayer? _spriteVisual;
     private string _spriteScenePath = string.Empty;
@@ -20,6 +23,7 @@ public partial class BattlePieceMarker : Node2D
     private bool _hasNamePlate;
     private bool _hasTeamArrow;
     private bool _hasHealthBar;
+    private bool _usesSegmentedTroopBar;
 
     public float Radius => _radius;
 
@@ -51,12 +55,36 @@ public partial class BattlePieceMarker : Node2D
         if (max <= 0)
         {
             _hasHealthBar = false;
+            _usesSegmentedTroopBar = false;
             QueueRedraw();
             return;
         }
 
         _healthRatio = Mathf.Clamp((float)current / max, 0.0f, 1.0f);
         _hasHealthBar = true;
+        _usesSegmentedTroopBar = false;
+        QueueRedraw();
+    }
+
+    public void SetupTroopSegmentBar(int activeTroops, int woundedTroops, int maxTroops)
+    {
+        if (maxTroops <= 0)
+        {
+            _hasHealthBar = false;
+            _usesSegmentedTroopBar = false;
+            QueueRedraw();
+            return;
+        }
+
+        var active = Mathf.Clamp(activeTroops, 0, maxTroops);
+        var wounded = Mathf.Clamp(woundedTroops, 0, maxTroops - active);
+        var dead = Mathf.Max(0, maxTroops - active - wounded);
+        _activeTroopRatio = (float)active / maxTroops;
+        _woundedTroopRatio = (float)wounded / maxTroops;
+        _deadTroopRatio = (float)dead / maxTroops;
+        _healthRatio = _activeTroopRatio;
+        _hasHealthBar = true;
+        _usesSegmentedTroopBar = true;
         QueueRedraw();
     }
 
@@ -105,7 +133,14 @@ public partial class BattlePieceMarker : Node2D
         {
             silhouette.SetupTeamArrow(_teamArrowColor);
         }
-        if (_hasHealthBar)
+        if (_hasHealthBar && _usesSegmentedTroopBar)
+        {
+            silhouette.SetupTroopSegmentBar(
+                Mathf.RoundToInt(_activeTroopRatio * 1000.0f),
+                Mathf.RoundToInt(_woundedTroopRatio * 1000.0f),
+                1000);
+        }
+        else if (_hasHealthBar)
         {
             silhouette.SetupHealthBar(Mathf.RoundToInt(_healthRatio * 1000.0f), 1000);
         }
@@ -298,10 +333,41 @@ public partial class BattlePieceMarker : Node2D
         var height = 4.0f;
         var y = _usesSpriteVisual ? -_radius * 2.02f : -_radius * 1.28f;
         var backgroundRect = new Rect2(-width * 0.5f, y, width, height);
-        var fillRect = new Rect2(backgroundRect.Position + Vector2.One, new Vector2(Mathf.Max(0.0f, (width - 2.0f) * _healthRatio), height - 2.0f));
         DrawRect(backgroundRect, new Color(0.03f, 0.025f, 0.02f, 0.86f), true);
-        DrawRect(fillRect, GetHealthBarFillColor(_healthRatio), true);
+        if (_usesSegmentedTroopBar)
+        {
+            DrawTroopSegmentBar(backgroundRect);
+        }
+        else
+        {
+            var fillRect = new Rect2(backgroundRect.Position + Vector2.One, new Vector2(Mathf.Max(0.0f, (width - 2.0f) * _healthRatio), height - 2.0f));
+            DrawRect(fillRect, GetHealthBarFillColor(_healthRatio), true);
+        }
+
         DrawRect(backgroundRect, new Color(1.0f, 0.92f, 0.72f, 0.72f), false, 1.0f);
+    }
+
+    private void DrawTroopSegmentBar(Rect2 backgroundRect)
+    {
+        var contentPosition = backgroundRect.Position + Vector2.One;
+        var contentWidth = Mathf.Max(0.0f, backgroundRect.Size.X - 2.0f);
+        var contentHeight = Mathf.Max(0.0f, backgroundRect.Size.Y - 2.0f);
+        var x = contentPosition.X;
+        DrawTroopSegment(ref x, contentPosition.Y, contentWidth, contentHeight, _activeTroopRatio, new Color(0.30f, 0.86f, 0.34f, 0.96f));
+        DrawTroopSegment(ref x, contentPosition.Y, contentWidth, contentHeight, _woundedTroopRatio, new Color(1.0f, 0.34f, 0.68f, 0.96f));
+        DrawTroopSegment(ref x, contentPosition.Y, contentWidth, contentHeight, _deadTroopRatio, new Color(0.02f, 0.018f, 0.015f, 0.98f));
+    }
+
+    private void DrawTroopSegment(ref float x, float y, float totalWidth, float height, float ratio, Color color)
+    {
+        var width = Mathf.Max(0.0f, totalWidth * ratio);
+        if (width <= 0.0f)
+        {
+            return;
+        }
+
+        DrawRect(new Rect2(x, y, width, height), color, true);
+        x += width;
     }
 
     private static Color GetHealthBarFillColor(float ratio)

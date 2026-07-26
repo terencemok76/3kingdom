@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://2qxsf172mhej"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_supplycar_sw"]
+[ext_resource type="Texture2D" uid="uid://cgv51pyguihf8" path="res://assets/battle/unit/supplycar_idle_sw.png" id="2_supplycar_sw"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gwdjm"]
+atlas = ExtResource("2_supplycar_sw")
+region = Rect2(170, 0, 100, 128)
+filter_clip = true
+
+[node name="SupplyCarIdleSw" type="Node2D" unique_id=1365463406]
+script = ExtResource("1_supplycar_sw")
+SpriteSheet = ExtResource("2_supplycar_sw")
+FrameCount = 3
+FramesPerRow = 3
+FrameWidthOverride = 90
+FrameHeightOverride = 128
+FramesPerSecond = 4.0
+PreviewFrame = 2
+BaseOffset = Vector2(2, 2)
+ClickRadius = 36.0
+FrameCropPixels = Array[Vector2]([Vector2(0, 0), Vector2(-5, 10), Vector2(-10, 0), Vector2(0, 0)])
+FrameCropTopBottomPixels = Array[Vector2]([Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)])
+FrameOffsets = Array[Vector2]([Vector2(0, 0), Vector2(0, 0), Vector2(10, 0)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2029037116]
+texture_filter = 1
+texture = SubResource("AtlasTexture_gwdjm")
+offset = Vector2(12, 2)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=450044429]

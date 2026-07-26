@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://d0y4khmt2x2j"]
+
+[ext_resource type="Script" uid="uid://bm84p53syvb8o" path="res://scripts/battle/BattleSpriteAnimationPlayer.cs" id="1_supplycar_ne"]
+[ext_resource type="Texture2D" uid="uid://bq7tba3igi6g3" path="res://assets/battle/unit/supplycar_idle_ne.png" id="2_supplycar_ne"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_36iww"]
+atlas = ExtResource("2_supplycar_ne")
+region = Rect2(135, 100, 135, 100)
+filter_clip = true
+
+[node name="SupplyCarIdleNe" type="Node2D" unique_id=264321820]
+script = ExtResource("1_supplycar_ne")
+SpriteSheet = ExtResource("2_supplycar_ne")
+FramesPerRow = 2
+FrameWidthOverride = 135
+FrameHeightOverride = 100
+FramesPerSecond = 4.0
+PreviewFrame = 3
+BaseOffset = Vector2(8.5, -2)
+ClickRadius = 36.0
+FrameOffsets = Array[Vector2]([Vector2(0, 0), Vector2(-10, 0), Vector2(0, 10), Vector2(-5, 10)])
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=999646933]
+texture_filter = 1
+texture = SubResource("AtlasTexture_36iww")
+offset = Vector2(3.5, 8)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=634102978]
