@@ -706,6 +706,11 @@ public partial class BattleSceneController : Node2D
 
     public override void _Process(double delta)
     {
+        if (Engine.IsEditorHint())
+        {
+            return;
+        }
+
         UpdateHoverGrid();
         UpdateWeatherVisual(delta);
     }
@@ -798,14 +803,94 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
-        var loadedScenarioDefinition = GD.Load<BattleScenarioDefinition>(scenarioPath);
-        if (loadedScenarioDefinition == null)
+        var loadedScenarioResource = GD.Load<Resource>(scenarioPath);
+        if (loadedScenarioResource is BattleScenarioDefinition loadedScenarioDefinition)
+        {
+            scenarioDefinition = loadedScenarioDefinition;
+            return true;
+        }
+
+        if (TryCreateKnownSceneScenarioDefinition(scenarioPath, out scenarioDefinition))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryCreateKnownSceneScenarioDefinition(string scenarioPath, out BattleScenarioDefinition scenarioDefinition)
+    {
+        scenarioDefinition = null!;
+        var isNorthWest = scenarioPath.Equals(NorthWestSiegeScenarioPath, StringComparison.OrdinalIgnoreCase) ||
+                          scenarioPath.Equals(NorthWestMoatScenarioPath, StringComparison.OrdinalIgnoreCase);
+        var isMoat = scenarioPath.Equals(NorthEastMoatScenarioPath, StringComparison.OrdinalIgnoreCase) ||
+                     scenarioPath.Equals(NorthWestMoatScenarioPath, StringComparison.OrdinalIgnoreCase);
+
+        if (!isNorthWest &&
+            !scenarioPath.Equals(NorthEastSiegeScenarioPath, StringComparison.OrdinalIgnoreCase) &&
+            !scenarioPath.Equals(NorthEastMoatScenarioPath, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
-        scenarioDefinition = loadedScenarioDefinition;
+        scenarioDefinition = BattleScenarioDefinition.CreateBuiltIn(isMoat
+            ? BattleScenarioType.MoatSiegeBattle
+            : BattleScenarioType.SiegeAssault);
+        scenarioDefinition.DisplayName = isMoat
+            ? $"Moat Siege Battle ({(isNorthWest ? "NW" : "NE")})"
+            : $"Siege Battle ({(isNorthWest ? "NW" : "NE")})";
+        scenarioDefinition.DefaultStructureFacing = isNorthWest
+            ? BattleStructureFacing.NorthWest
+            : BattleStructureFacing.NorthEast;
+        scenarioDefinition.OpenGateForegroundSide = isNorthWest
+            ? BattleGateForegroundSide.Left
+            : BattleGateForegroundSide.Right;
+        scenarioDefinition.Weather = isMoat ? BattleWeatherType.Cloudy : BattleWeatherType.Sunny;
+        scenarioDefinition.WindDirection = isNorthWest
+            ? BattleWindDirection.SouthWest
+            : BattleWindDirection.SouthEast;
+        scenarioDefinition.WindPower = BattleWindPower.Breeze;
+        scenarioDefinition.TimeOfDay = BattleTimeOfDay.Morning;
+        scenarioDefinition.UnitSpawnGrids = CreateKnownSceneUnitSpawnGrids(isNorthWest);
         return true;
+    }
+
+    private static Godot.Collections.Dictionary<string, Vector2I> CreateKnownSceneUnitSpawnGrids(bool isNorthWest)
+    {
+        if (isNorthWest)
+        {
+            return new Godot.Collections.Dictionary<string, Vector2I>
+            {
+                { "AttackerA", new Vector2I(20, 14) },
+                { "AttackerB", new Vector2I(18, 12) },
+                { "AttackerC", new Vector2I(20, 10) },
+                { "AttackerWorker", new Vector2I(18, 14) },
+                { "Catapult", new Vector2I(15, 10) },
+                { "DefenderA", new Vector2I(7, 14) },
+                { "DefenderB", new Vector2I(7, 12) },
+                { "DefenderC", new Vector2I(7, 10) },
+                { "Ladder", new Vector2I(15, 14) },
+                { "Ram", new Vector2I(16, 12) },
+                { "Spearman", new Vector2I(18, 16) },
+                { "Worker", new Vector2I(5, 9) }
+            };
+        }
+
+        return new Godot.Collections.Dictionary<string, Vector2I>
+        {
+            { "AttackerA", new Vector2I(10, 20) },
+            { "AttackerB", new Vector2I(12, 18) },
+            { "AttackerC", new Vector2I(14, 20) },
+            { "AttackerWorker", new Vector2I(16, 20) },
+            { "Catapult", new Vector2I(14, 15) },
+            { "DefenderA", new Vector2I(10, 7) },
+            { "DefenderB", new Vector2I(14, 7) },
+            { "DefenderC", new Vector2I(12, 7) },
+            { "Ladder", new Vector2I(10, 15) },
+            { "Ram", new Vector2I(12, 16) },
+            { "Spearman", new Vector2I(8, 18) },
+            { "Worker", new Vector2I(16, 5) }
+        };
     }
 
     private string? ResolveSceneScenarioPath()
@@ -849,7 +934,8 @@ public partial class BattleSceneController : Node2D
 
     private string GetCurrentSceneFilePath()
     {
-        var sceneFilePath = GetTree().CurrentScene?.SceneFilePath;
+        // Tool-mode previews can run before the node is attached to a SceneTree.
+        var sceneFilePath = GetTree()?.CurrentScene?.SceneFilePath;
         if (string.IsNullOrWhiteSpace(sceneFilePath))
         {
             sceneFilePath = SceneFilePath;
