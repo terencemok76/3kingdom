@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://jcdb0o1ek8ut" path="res://scripts/battle/BattleHighlightRenderer.cs" id="4"]
 [ext_resource type="Texture2D" uid="uid://bvm6spy5bxnj5" path="res://assets/battle/wall/castle.png" id="4_bkj5p"]
 [ext_resource type="Texture2D" uid="uid://c510c1l7ai20q" path="res://assets/battle/overlay/overlay.png" id="4_pxx3e"]
+[ext_resource type="Shader" path="res://assets/battle/floor/moat_water.gdshader" id="8_u2g6b"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bkj5p"]
 texture = ExtResource("2_625j4")
@@ -90,6 +91,9 @@ tile_layout = 5
 tile_size = Vector2i(128, 64)
 sources/0 = SubResource("TileSetAtlasSource_nks2m")
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4n3h1"]
+shader = ExtResource("8_u2g6b")
+
 [node name="BattleScene" type="Node2D" unique_id=1970255355]
 script = ExtResource("1")
 UseEditorAuthoredLayout = true
@@ -108,6 +112,7 @@ rendering_quadrant_size = 8
 [node name="MoatLayer" type="TileMapLayer" parent="MapRoot" unique_id=878213441]
 visible = false
 z_index = 1
+material = SubResource("ShaderMaterial_4n3h1")
 tile_map_data = PackedByteArray("AAAKAAoAAAAFAAAAAAAEAAoAAAAFAAAAAAAKAAsAAAAFAAAAAAAAAAsAAAAFAAAAAAAAAAoAAAAFAAAAAAABAAoAAAAFAAAAAAACAAoAAAAFAAAAAAADAAoAAAAFAAAAAAAFAAoAAAAFAAAAAAAGAAoAAAAFAAAAAAAHAAoAAAAFAAAAAAAIAAoAAAAFAAAAAAAJAAoAAAAFAAAAAAABAAsAAAAFAAAAAAACAAsAAAAFAAAAAAADAAsAAAAFAAAAAAAEAAsAAAAFAAAAAAAFAAsAAAAFAAAAAAAGAAsAAAAFAAAAAAAHAAsAAAAFAAAAAAAJAAsAAAAFAAAAAAAIAAsAAAAFAAAAAAALAAoAAAAFAAAAAAAMAAoAAAAFAAAAAAANAAoAAAAFAAAAAAAOAAoAAAAFAAAAAAAPAAoAAAAFAAAAAAAQAAoAAAAFAAAAAAARAAoAAAAFAAAAAAASAAoAAAAFAAAAAAATAAoAAAAFAAAAAAAUAAoAAAAFAAAAAAAVAAoAAAAFAAAAAAAWAAoAAAAFAAAAAAAXAAoAAAAFAAAAAAAYAAoAAAAFAAAAAAALAAsAAAAFAAAAAAAMAAsAAAAFAAAAAAANAAsAAAAFAAAAAAAOAAsAAAAFAAAAAAAPAAsAAAAFAAAAAAAQAAsAAAAFAAAAAAARAAsAAAAFAAAAAAASAAsAAAAFAAAAAAATAAsAAAAFAAAAAAAUAAsAAAAFAAAAAAAVAAsAAAAFAAAAAAAWAAsAAAAFAAAAAAAXAAsAAAAFAAAAAAAYAAsAAAAFAAAAAAA=")
 tile_set = SubResource("TileSet_pxx3e")
 rendering_quadrant_size = 8
@@ -213,6 +218,55 @@ mouse_filter = 2
 clip_contents = true
 color = Color(1, 1, 1, 0)
 
+[node name="BattleResultOverlay" type="Control" parent="UiLayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="UiLayer/BattleResultOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.025, 0.018, 0.62)
+
+[node name="ResultPanel" type="PanelContainer" parent="UiLayer/BattleResultOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -310.0
+offset_top = -120.0
+offset_right = 310.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleResultOverlay/ResultPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="ResultLabel" type="Label" parent="UiLayer/BattleResultOverlay/ResultPanel/Margin"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Battle Result"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
 [node name="TopBar" type="ColorRect" parent="UiLayer" unique_id=1605276365]
 offset_right = 1600.0
 offset_bottom = 142.0
@@ -242,27 +296,37 @@ theme_override_constants/separation = 16
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
+clip_text = true
+text_overrun_behavior = 3
 text = "Date / Weather"
 
 [node name="TimeButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
 layout_mode = 2
-text = "Time"
+text = "Morning"
 
 [node name="WeatherButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
 layout_mode = 2
-text = "Weather"
+text = "Cloudy"
 
 [node name="WindButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
 layout_mode = 2
-text = "Wind"
+text = "SE"
 
 [node name="WindPowerButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
 layout_mode = 2
-text = "Wind Power"
+text = "Breeze"
+
+[node name="BattleSaveButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Save"
+
+[node name="BattleLoadButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Load"
 
 [node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
 layout_mode = 2
-text = "End Turn"
+text = "End"
 
 [node name="SummaryLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=972321462]
 layout_mode = 2
@@ -409,58 +473,75 @@ Ammo: -
 Troops: -"
 autowrap_mode = 3
 
-[node name="MoveButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1368341891]
+[node name="CommandScroll" type="ScrollContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="ActionButtons" type="VBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="MoveButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1368341891]
 layout_mode = 2
 text = "Move"
 
-[node name="AttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1661440229]
+[node name="AttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1661440229]
 layout_mode = 2
 text = "Attack"
 
-[node name="UnionAttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="UnionAttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
 text = "Union Attack"
 
-[node name="DuelButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="DuelButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
 text = "Duel"
 
-[node name="RetreatButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="RetreatButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
 text = "Retreat"
 
-[node name="DropStoneButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1354194478]
+[node name="DropStoneButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1354194478]
 layout_mode = 2
 text = "Drop Stone"
 
-[node name="PourOilButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1567309771]
+[node name="PourOilButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1567309771]
 layout_mode = 2
 text = "Pour Oil"
 
-[node name="WorkButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="WorkButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
-text = "Work"
+text = "Bridge"
 
-[node name="InstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="InstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
-text = "Install Wood Fence"
+text = "Wood Fence"
 
-[node name="UninstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="UninstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
-text = "Uninstall Wood Fence"
+text = "Wood Fence"
 
-[node name="SupplyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="SupplyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
 text = "Supply"
 
-[node name="ResupplyWeaponButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="ResupplyWeaponButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
 text = "Resupply Weapon"
 
-[node name="StrategyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=851977861]
+[node name="CaptureSupplyCartButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+layout_mode = 2
+text = "Capture Cart"
+
+[node name="HireOfficerButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+layout_mode = 2
+text = "Hire Officer"
+
+[node name="StrategyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=851977861]
 layout_mode = 2
 text = "Strategy"
 
-[node name="OpenGateButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=619032093]
+[node name="OpenGateButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=619032093]
 layout_mode = 2
 text = "Open Gate"

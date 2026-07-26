@@ -312,6 +312,8 @@
   - 可參與合擊的兵種為 `Infantry`、`Spearman`、`Cavalry`、`Archer`、`Crossbow`、`Worker`。
   - 第一版傷害規則為主攻者 `100%` 一般攻擊傷害，加上每名支援者 `50%` 一般攻擊傷害；所有參與隊伍會面向目標播放攻擊動畫，目標只播放一次受擊動畫。
 - battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。
+- `Unit Command` menu 的 action buttons 超過 `4` 個可見指令時，指令區會限制高度並啟用垂直捲動；title 與 unit info 保持固定顯示。
+- 點選非目前 `Acting Side` 的單位時仍會顯示 unit info menu，但 action buttons 會隱藏，並在資訊中標示 `Command: Not Acting Side`，避免看起來像 command menu 無法彈出。
 - battle team 具有 prototype `Morale` 屬性：
   - 一般戰鬥隊伍預設 `Morale 100`，Worker 預設 `Morale 80`。
   - 一般 battle team 的兵力分為 `Active Troops` 與 `Wounded Troops`：`Active` 會參與戰鬥與 HUD 總兵力，`Wounded` 暫時不能戰鬥但可被糧草車恢復。
@@ -321,11 +323,16 @@
   - 糧草車 `SupplyCart` 可每回合一次使用後勤行動，`Recovery / Repair` 與 `Resupply Weapon` 共用同一個每回合次數。
   - `Recovery / Repair`：對八方向 1 格內的同隊一般 battle team 恢復 `Morale +8`，上限仍為 `120`；若附近同隊 battle team 有 wounded，則每次最多恢復 `600` 名傷兵回到 `Active Troops`；若自己或八方向 1 格內同隊攻城器受損，則可維修 `HP +450`，不超過各自最大 HP。
   - `Resupply Weapon`：對八方向 1 格內同隊 `Archer`、`Crossbow`、`Catapult` 補滿武器彈藥。
-  - `Archer` 武器彈藥為 `6/6`、`Crossbow` 為 `4/4`、`Catapult` 為 `3/3`；普通攻擊、合擊中的遠程參與者，以及 `Strategy (Fire)` 各消耗 `1` 發，彈藥為 `0` 時不能使用對應攻擊／火攻指令。
+  - `Archer` 武器彈藥為 `6/6`、`Crossbow` 為 `4/4`、`Catapult` 為 `3/3`；普通攻擊、合擊中的遠程參與者，以及 `Strategy (Fire)` 各消耗 `1` 發。`Archer` / `Crossbow` / `Catapult` 彈藥為 `0` 時仍可使用 1 格 `Weak Close Attack`，傷害約為各自原攻擊的 `35%`，且不播放箭矢／石彈彈道；`Strategy (Fire)` 仍需要彈藥。
   - `Archer` / `Crossbow` 使用 `Strategy (Fire)` 時會播放攻擊動畫與箭矢彈道；`Catapult` 則播放投石車攻擊動畫與投石彈道，再於目標格點燃 fire。
-  - 糧草車被摧毀時，同隊仍在場的一般 battle team 士氣會立刻降為目前值的 `50%`；糧草車主動撤退不觸發此懲罰。
+  - 每個完整 battle day（Team B 結束後、Turn 前進時）會消耗雙方 Gold / Food：目前 prototype 以每 `100` active troops 消耗 `Food 5` 與 `Gold 1` 計算；若當日糧食不足，該隊一般 battle team `Morale -15`，若剩餘糧食低於下一日需求則 `Morale -6`。
+  - 糧草車被摧毀時，同隊 Gold / Food 會額外損失 `25%`，同隊仍在場的一般 battle team 士氣會立刻降為目前值的 `50%`；糧草車主動撤退不觸發此懲罰。
+  - 一般 battle team 若相鄰敵方 `SupplyCart`，command menu 會顯示 `Capture Cart`；成功後敵方 Gold / Food 損失 `25%` 並轉移給俘獲方，敵方仍在場的一般 battle team 士氣降為目前值的 `50%`，俘獲方一般 battle team `Morale +10`，且該糧草車會轉為俘獲方陣營並留在戰場，可由俘獲方後續控制與使用。
+  - 一般 battle team 若相鄰敵方 officer / general 隊伍，command menu 會顯示 `Hire Officer`；花費 Gold 可直接招降該隊伍並轉入己方，目前 prototype 先固定成本為 `100 Gold`。
   - `SupplyCart` 目前使用 `supplycar_idle_ne.png` / `supplycar_idle_sw.png` 專用 idle 動畫素材；`NE/NW` 為 `2x2` 四幀，`SW/SE` 為 `1x3` 三幀。
-  - 目前 morale 先作為顯示與 prototype 指令屬性，尚未接入傷害、撤退或 AI 判斷。
+  - morale 已接入 prototype 士氣壓制：`Morale <= 30` 的一般 battle team 有移動懲罰，effective move range 會降低 `1`，但最少保留 `1`；`Mess` 狀態中的隊伍 effective move range 會被壓到 `1`。
+  - `Morale <= 15` 的一般 battle team 在自己回合開始時有機率自動陷入 `Mess`；`Mess` 狀態中不能 Attack、Union Attack、Duel 或使用 Strategy，Worker 也不能 Bridge / Wood Fence，且自己回合開始會有 `5%` active troops 離隊。
+  - `Mess` 狀態會在 battle marker 上長駐顯示 `MESS` 徽章與橙紅色警示外圈，直到狀態被 `Calm` 清除或回合倒數歸零。
 - 一般部隊將領可使用 prototype `Duel / 單挑`：
   - 選取有將領的一般 battle team，若 2 格範圍內八方向有敵方將領隊伍，command menu 會顯示 `Duel`。
   - 單挑可跨 `L0` / `L2` 層，例如地面隊伍可挑戰牆頂隊伍，牆頂隊伍也可挑戰地面隊伍。
@@ -335,6 +342,7 @@
 - top bar 的 Team A / Team B 總兵力會隨部隊損兵更新；一般攻擊、合擊、牆頂投放攻擊與 fire damage 造成的 `TroopCount` loss 都會扣到對應陣營。
   - `Troops` 以 `active / wounded` 顯示一般戰鬥隊伍兵員，包含 Worker，但不包含攻城器 HP；active 會參與戰鬥，wounded 暫時不能戰鬥。
   - `Generals` 顯示目前仍在戰場上的一般部隊將領數量；`Worker` 與攻城器不算將領。
+  - 任一方 `Generals` 變成 `0` 時 battle 立即結束；畫面中央會顯示 `Battle Finished` result overlay、勝利方與敗方沒有將領的原因，並停止 End turn / command 操作。
   - `Siege` 另行顯示目前仍在戰場上的攻城器數量；攻城器撤退或被摧毀時會扣除。
   - `Ram`、`Ladder`、`Catapult`、`SupplyCart` 不掛 officer name；name plate 與 log 直接顯示攻城器／後勤車名稱。
 - 右下角新增 prototype `Battle Log` 面板：
@@ -357,6 +365,10 @@
   - 天氣會以第二層戰場 overlay 呈現：`Sunny` 透明，`Cloudy` 套用灰藍 tint，`Rain` 套用更深灰藍 tint 並顯示斜向雨線；weather overlay 疊在 time overlay 上方、UI panel 下方，不攔截滑鼠。
   - `Tile Info` 不再重複顯示 scenario、weather、wind、time 等全域戰場狀態，只保留格子、地形、結構、部署與單位資訊。
   - `Strategy` 的第一個落地版本為 fire tactic：目前由弓兵／弩兵／投石車使用，選擇 `L0` 目標格後建立 fire。
+  - 一般 battle team 可使用 prototype `Strategy (Mess / Calm)`：對同層 `3` 格 Chebyshev 範圍內敵方一般 battle team 可施加 `Mess`，成功後目標 `Mess 2 turns` 並 `Morale -12`；對同隊已 `Mess` 的一般 battle team 可使用 `Calm`，解除 `Mess` 並 `Morale +15`。
+  - Team A / Team B 各自有 `Strategy Plans 6/6` 限制；`Strategy (Fire)`、`Strategy (Mess)`、`Strategy (Calm)` 每次成功進入施放流程消耗 `1` 點，Mess 失敗也算已消耗計策。
+  - 同一 battle team 每個己方行動回合只能使用一次 Strategy；用過後直到下一次己方回合前不可再次使用。
+  - `Mess` 成功率會依施術者與目標 officer battle attribute、目標 morale 與低士氣狀態調整；第一版不允許混亂部隊攻擊友軍，以避免隨機失控造成過強負回饋。
   - fire 會在每次 `End Turn` 結算傷害，並依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
   - `WindPower` 會影響 fire spread speed：`Calm` 只允許森林／草地／木柵欄慢速帶火，每 3 個 burn tick 最多擴 1 格；`Strong` 會增加擴散格數並縮短 spread interval。
   - 森林與草地會燒得較久且擴散較快；道路、橋與庭院擴散較慢；護城河、城牆與牆頂不會成為 fire spread 目標。
@@ -381,9 +393,10 @@
 - `FieldBattle` 會建立不含城牆／城門的道路、森林、障礙物與雙方部署區。
 - `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
-  - 選取 Worker 後顯示專用的 `Work`、`Install Wood Fence`、`Uninstall Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
+  - 選取 Worker 後顯示專用的 `Bridge` 與 `Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
+  - `Bridge` 可在 MoatSiegeBattle 的護城河上建橋，或修復受損橋面；橋面 `Bridge HP < Bridge Max HP` 時視為 damaged，`Blocks Movement = true`，battle team 不可通行，必須修到滿血才解除阻擋。
   - Worker 可在 `MoatSiegeBattle` 的相鄰 `Moat` 格建造橋、修復受損橋面、修復受損城門及移除 `Trap`；橋梁需兩次 `Work` 才會完成，第一次為半 HP 的施工中橋面且不可通行，第二次回滿 HP 後才可通行。
-  - `Install Wood Fence` 只能放置到無單位、無結構的乾地；`Uninstall Wood Fence` 只可拆除相鄰木柵欄。
+  - `Wood Fence` 會合併安裝與拆除：點選無單位、無結構的乾地會安裝木柵欄；點選相鄰木柵欄則拆除。Worker 新建木柵欄時會隨機套用水平翻轉，避免連續柵欄視覺過於單一。
   - 木柵欄有 `600 HP`，所有戰鬥單位可依其結構傷害攻擊；HP 歸零後會立即移除木柵欄視覺並恢復通行。
   - 橋梁有獨立 HP，所有戰鬥單位可依其結構傷害攻擊橋面；HP 歸零時橋面會移除並還原為阻擋移動的 `Moat`。施工、破壞完成後立即更新 `MoatLayer`、`ObjectLayer` 與通行規則。
   - 施工時播放 `worker_work.png` 的工作動畫，Worker 會面向目標格；上排為 NE、下排為 SE，各為四格；NW／SW 以對應排的水平翻轉顯示。
@@ -393,15 +406,17 @@
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
 - 護城河使用 `assets/battle/floor/floor.png` 的第六格 river tile；橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
+- `MoatLayer` 會額外套用輕量水流 shader，對 river tile 做緩慢 UV 位移與微弱明暗起伏；此效果僅為場景表現，不改變 `BattleMapData`、橋樑施工/破壞或任何移動／A* 規則。
 - `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
-- 若橋面在 editor 內使用了 `Flip H`，runtime 也必須保留該 bridge tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向會跑掉。
+- 若橋面或木柵欄在 editor 內使用了 `Flip H`，runtime 也必須保留該 object tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向或柵欄變化會跑掉。
 - 讀取 `Use Editor Authored Layout` 的 scene 時，應先讀取原始 `TileMapLayer` 內容，再重建 shared tileset 與 runtime 視覺；不能在讀取前先重新指定 layer tileset，否則 bridge 之類的 editor-authored flip 資訊可能會遺失。
 - 目前 `NorthWest` 戰場的 bridge visual 應預設跟隨 `DefaultStructureFacing = NorthWest` 套用水平翻轉，避免即使 editor flip 資訊遺失，遊戲內橋面方向仍與 `NW` 場景相反。
 - `NE` / `NW` 戰場的「城內地面格」判定不應靠掃描牆線方向推測，應直接使用 runtime `BattleMapData` 的 `Terrain == Courtyard` 作為內城地面判定；這樣可同時避免 `NW` 關門守軍退城誤判，也不會讓 `SiegeAssault` 的攻城車在外城草地／道路被錯誤當成城內而無法移動。
+- battle prototype top bar 具備 battle-only `Save` / `Load`：存到 `user://saves/battle_quicksave.json`，讀回同一個 battle scene 的戰鬥狀態。第一版保存 scenario type、turn、time/weather/wind、Gold/Food、strategy plan、可變地圖 cell、存活單位位置與兵力/HP/士氣/彈藥、牆頂攻擊剩餘次數、fire state 與 battle log；尚未併入大地圖 `WorldState` slot save/load。
 - `Battle / 戰鬥` 入口目前已支援 5 個模式選項：
   - `FieldBattle`
   - `NE SiegeAssault`

@@ -326,11 +326,17 @@ public static class BattleTileMapBuilder
             BattleTileLayerKind.Castle => cell.StructureFacing == BattleStructureFacing.NorthWest
                 ? (int)TileSetAtlasSource.TransformFlipH
                 : 0,
-            BattleTileLayerKind.Object => cell.HasBridgeVisual && cell.BridgeFlipHorizontally
+            BattleTileLayerKind.Object => ShouldFlipObjectTileHorizontally(cell)
                 ? (int)TileSetAtlasSource.TransformFlipH
                 : 0,
             _ => 0
         };
+    }
+
+    private static bool ShouldFlipObjectTileHorizontally(BattleCellData cell)
+    {
+        return cell.HasBridgeVisual && cell.BridgeFlipHorizontally ||
+               cell.Structure == BattleStructureType.WoodenFence && cell.WoodenFenceFlipHorizontally;
     }
 
     private static bool IsHorizontallyFlipped(int alternativeTile)

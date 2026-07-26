@@ -24,6 +24,9 @@ public partial class BattlePieceMarker : Node2D
     private bool _hasTeamArrow;
     private bool _hasHealthBar;
     private bool _usesSegmentedTroopBar;
+    private bool _hasStatusIndicator;
+    private string _statusIndicatorText = string.Empty;
+    private Color _statusIndicatorColor = Colors.Transparent;
 
     public float Radius => _radius;
 
@@ -88,6 +91,14 @@ public partial class BattlePieceMarker : Node2D
         QueueRedraw();
     }
 
+    public void SetupStatusIndicator(string text, Color color)
+    {
+        _statusIndicatorText = text;
+        _statusIndicatorColor = color;
+        _hasStatusIndicator = !string.IsNullOrWhiteSpace(text);
+        QueueRedraw();
+    }
+
     public void SetupSpriteAnimationScene(string scenePath)
     {
         _spriteScenePath = scenePath;
@@ -132,6 +143,10 @@ public partial class BattlePieceMarker : Node2D
         if (_hasTeamArrow)
         {
             silhouette.SetupTeamArrow(_teamArrowColor);
+        }
+        if (_hasStatusIndicator)
+        {
+            silhouette.SetupStatusIndicator(_statusIndicatorText, _statusIndicatorColor);
         }
         if (_hasHealthBar && _usesSegmentedTroopBar)
         {
@@ -241,6 +256,7 @@ public partial class BattlePieceMarker : Node2D
         DrawNamePlate();
         DrawTeamArrow();
         DrawHealthBar();
+        DrawStatusIndicator();
         if (_usesSpriteVisual)
         {
             return;
@@ -254,6 +270,42 @@ public partial class BattlePieceMarker : Node2D
         var font = ThemeDB.FallbackFont;
         var size = font.GetStringSize(_label);
         DrawString(font, new Vector2(-size.X * 0.5f, 7.0f), _label, modulate: new Color("fff7e6"), fontSize: 24);
+    }
+
+    private void DrawStatusIndicator()
+    {
+        if (!_hasStatusIndicator)
+        {
+            return;
+        }
+
+        var ringCenter = _usesSpriteVisual
+            ? new Vector2(0.0f, _radius * 0.42f)
+            : Vector2.Zero;
+        var ringRadius = _usesSpriteVisual ? _radius * 1.04f : _radius + 7.0f;
+        DrawArc(ringCenter, ringRadius, 0.0f, Mathf.Tau, 48, WithAlpha(_statusIndicatorColor, 0.82f), 3.0f, true);
+        DrawArc(ringCenter, ringRadius + 3.0f, -0.3f, Mathf.Tau - 0.3f, 48, WithAlpha(_statusIndicatorColor, 0.34f), 2.0f, true);
+
+        var font = ThemeDB.FallbackFont;
+        const int fontSize = 10;
+        var textSize = font.GetStringSize(_statusIndicatorText);
+        var badgeY = _usesSpriteVisual ? -_radius * 3.34f : -_radius * 2.58f;
+        var badgeRect = new Rect2(
+            new Vector2(-textSize.X * 0.5f - 5.0f, badgeY - 11.0f),
+            new Vector2(textSize.X + 10.0f, 14.0f));
+        DrawRect(badgeRect, new Color(0.10f, 0.03f, 0.02f, 0.84f), true);
+        DrawRect(badgeRect, WithAlpha(_statusIndicatorColor, 0.92f), false, 1.0f);
+        DrawString(
+            font,
+            new Vector2(-textSize.X * 0.5f, badgeY),
+            _statusIndicatorText,
+            modulate: new Color(1.0f, 0.88f, 0.70f, 0.98f),
+            fontSize: fontSize);
+    }
+
+    private static Color WithAlpha(Color color, float alpha)
+    {
+        return new Color(color.R, color.G, color.B, alpha);
     }
 
     private void DrawNamePlate()

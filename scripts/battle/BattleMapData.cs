@@ -83,6 +83,7 @@ public sealed class BattleCellData
     public bool HideGroundOccupantWhenGateOpen { get; set; }
     public bool HasBridgeVisual { get; set; }
     public bool BridgeFlipHorizontally { get; set; }
+    public bool WoodenFenceFlipHorizontally { get; set; }
     public int BridgeMaxHealth { get; set; }
     public int BridgeHealth { get; set; }
 
@@ -294,6 +295,7 @@ public sealed class BattleMapData
         cell.BridgeHealth -= actualDamage;
         if (cell.BridgeHealth > 0)
         {
+            cell.BlocksMovement = cell.BridgeHealth < cell.BridgeMaxHealth;
             return actualDamage;
         }
 
@@ -376,6 +378,7 @@ public sealed class BattleMapData
                     break;
                 case 4:
                     cell.Structure = BattleStructureType.WoodenFence;
+                    cell.WoodenFenceFlipHorizontally = (layer.GetCellAlternativeTile(grid) & TileSetAtlasSource.TransformFlipH) != 0;
                     break;
                 case 5:
                     cell.Structure = BattleStructureType.Trap;
@@ -473,10 +476,12 @@ public sealed class BattleMapData
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
             cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
             cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;
+            cell.WoodenFenceFlipHorizontally = cell.Structure == BattleStructureType.WoodenFence && cell.WoodenFenceFlipHorizontally;
             if (cell.Terrain == BattleTerrainType.Bridge)
             {
                 cell.BridgeMaxHealth = BattleCellData.BridgeMaxDurability;
                 cell.BridgeHealth = Mathf.Clamp(cell.BridgeHealth <= 0 ? cell.BridgeMaxHealth : cell.BridgeHealth, 0, cell.BridgeMaxHealth);
+                cell.BlocksMovement = cell.BridgeHealth < cell.BridgeMaxHealth;
             }
             else
             {
