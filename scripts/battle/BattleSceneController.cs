@@ -856,6 +856,7 @@ public partial class BattleSceneController : Node2D
 
     private void ApplyBattleSaveData(BattleSaveData saveData)
     {
+        var reusableMarkersByStableId = CollectReusableBattleMarkersByStableId();
         ResetBattleRuntimeStateForLoad();
 
         ScenarioType = saveData.ScenarioType;
@@ -885,7 +886,7 @@ public partial class BattleSceneController : Node2D
         var markersByUnitId = new Dictionary<string, BattlePieceMarker>();
         foreach (var occupantSave in saveData.Occupants ?? new List<BattleOccupantSaveData>())
         {
-            var marker = CreateSavedBattleMarker(occupantSave);
+            var marker = CreateSavedBattleMarker(occupantSave, reusableMarkersByStableId);
             if (marker != null)
             {
                 markersByUnitId[occupantSave.UnitId] = marker;
@@ -919,7 +920,7 @@ public partial class BattleSceneController : Node2D
         ClearHighlightDepthVisuals();
         ClearOccludedUnitSilhouettes();
         ClearFireVisuals();
-        ClearBattlePieceMarkers();
+        PrepareBattlePieceMarkersForLoad();
         ClearCastleDepthVisuals();
 
         _battleDepthEntries.Clear();
@@ -954,20 +955,59 @@ public partial class BattleSceneController : Node2D
         _fireVisualsByGrid.Clear();
     }
 
-    private void ClearBattlePieceMarkers()
+    private Dictionary<string, Queue<BattlePieceMarker>> CollectReusableBattleMarkersByStableId()
     {
-        var unitLayer = GetNodeOrNull<Node2D>("MapRoot/UnitLayer");
-        if (unitLayer == null)
+        var markersByStableId = new Dictionary<string, Queue<BattlePieceMarker>>();
+        foreach (var occupant in _occupantsByGrid.Values.SelectMany(static occupants => occupants))
         {
-            return;
+            if (occupant.Marker == null || !IsBattlePiece(occupant))
+            {
+                continue;
+            }
+
+            var stableId = BuildBattleOccupantStableId(occupant);
+            if (!markersByStableId.TryGetValue(stableId, out var markerQueue))
+            {
+                markerQueue = new Queue<BattlePieceMarker>();
+                markersByStableId[stableId] = markerQueue;
+            }
+
+            markerQueue.Enqueue(occupant.Marker);
         }
 
-        foreach (var child in unitLayer.GetChildren().OfType<BattlePieceMarker>().ToList())
+        return markersByStableId;
+    }
+
+    private void PrepareBattlePieceMarkersForLoad()
+    {
+        foreach (var marker in GetBattlePieceMarkersInUnitLayer().ToList())
         {
-            _battleDepthEntries.Remove(child);
-            child.Visible = false;
-            unitLayer.RemoveChild(child);
-            child.QueueFree();
+            _battleDepthEntries.Remove(marker);
+            marker.Visible = false;
+        }
+    }
+
+    private IEnumerable<BattlePieceMarker> GetBattlePieceMarkersInUnitLayer()
+    {
+        var unitLayer = GetNodeOrNull<Node2D>("MapRoot/UnitLayer");
+        return unitLayer == null
+            ? Enumerable.Empty<BattlePieceMarker>()
+            : EnumerateBattlePieceMarkers(unitLayer);
+    }
+
+    private static IEnumerable<BattlePieceMarker> EnumerateBattlePieceMarkers(Node root)
+    {
+        foreach (var child in root.GetChildren())
+        {
+            if (child is BattlePieceMarker marker)
+            {
+                yield return marker;
+            }
+
+            foreach (var nestedMarker in EnumerateBattlePieceMarkers(child))
+            {
+                yield return nestedMarker;
+            }
         }
     }
 
@@ -1021,7 +1061,7 @@ public partial class BattleSceneController : Node2D
         BuildCastleDepthVisuals();
     }
 
-    private BattlePieceMarker? CreateSavedBattleMarker(BattleOccupantSaveData saveData)
+    private BattlePieceMarker? CreateSavedBattleMarker(BattleOccupantSaveData saveData, Dictionary<string, Queue<BattlePieceMarker>> reusableMarkersByStableId)
     {
         var unitLayer = GetNodeOrNull<Node2D>("MapRoot/UnitLayer");
         if (unitLayer == null)
@@ -1030,12 +1070,18 @@ public partial class BattleSceneController : Node2D
         }
 
         var grid = new BattleGridKey(saveData.X, saveData.Y, saveData.Level);
-        var marker = new BattlePieceMarker
+        var marker = TryTakeReusableBattleMarker(saveData, reusableMarkersByStableId);
+        if (marker == null)
         {
-            Name = $"Saved_{saveData.ShortLabel}_{saveData.X}_{saveData.Y}_L{saveData.Level}",
-            Position = GetMarkerPosition(grid)
-        };
-        unitLayer.AddChild(marker);
+            marker = new BattlePieceMarker
+            {
+                Name = $"Saved_{saveData.ShortLabel}_{saveData.X}_{saveData.Y}_L{saveData.Level}"
+            };
+            unitLayer.AddChild(marker);
+        }
+
+        marker.Position = GetMarkerPosition(grid);
+        marker.Visible = true;
 
         var occupant = saveData.ToOccupant(marker);
         marker.Setup(
@@ -1058,6 +1104,17 @@ public partial class BattleSceneController : Node2D
         occupants.Add(occupant);
         RegisterBattleDepthEntry(marker, grid, saveData.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         return marker;
+    }
+
+    private static BattlePieceMarker? TryTakeReusableBattleMarker(BattleOccupantSaveData saveData, Dictionary<string, Queue<BattlePieceMarker>> reusableMarkersByStableId)
+    {
+        var stableId = BuildBattleOccupantStableId(saveData);
+        if (!reusableMarkersByStableId.TryGetValue(stableId, out var markerQueue) || markerQueue.Count == 0)
+        {
+            return null;
+        }
+
+        return markerQueue.Dequeue();
     }
 
     private static Color GetSavedMarkerFillColor(BattleOccupantInfo occupant)
@@ -7051,6 +7108,16 @@ public partial class BattleSceneController : Node2D
     {
         return category == CategoryUnit &&
                !string.Equals(officerName, "Worker", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildBattleOccupantStableId(BattleOccupantInfo occupant)
+    {
+        return string.Join("|", occupant.DisplayName, occupant.OfficerName, occupant.TroopType, occupant.ShortLabel, occupant.Category);
+    }
+
+    private static string BuildBattleOccupantStableId(BattleOccupantSaveData saveData)
+    {
+        return string.Join("|", saveData.DisplayName, saveData.OfficerName, saveData.TroopType, saveData.ShortLabel, saveData.Category);
     }
 
     private bool TryGetBestUnionAttackCandidate(out UnionAttackCandidate candidate)

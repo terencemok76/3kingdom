@@ -416,7 +416,7 @@
 - 讀取 `Use Editor Authored Layout` 的 scene 時，應先讀取原始 `TileMapLayer` 內容，再重建 shared tileset 與 runtime 視覺；不能在讀取前先重新指定 layer tileset，否則 bridge 之類的 editor-authored flip 資訊可能會遺失。
 - 目前 `NorthWest` 戰場的 bridge visual 應預設跟隨 `DefaultStructureFacing = NorthWest` 套用水平翻轉，避免即使 editor flip 資訊遺失，遊戲內橋面方向仍與 `NW` 場景相反。
 - `NE` / `NW` 戰場的「城內地面格」判定不應靠掃描牆線方向推測，應直接使用 runtime `BattleMapData` 的 `Terrain == Courtyard` 作為內城地面判定；這樣可同時避免 `NW` 關門守軍退城誤判，也不會讓 `SiegeAssault` 的攻城車在外城草地／道路被錯誤當成城內而無法移動。
-- battle prototype top bar 具備 battle-only `Save` / `Load`：存到 `user://saves/battle_quicksave.json`，讀回同一個 battle scene 的戰鬥狀態。第一版保存 scenario type、turn、time/weather/wind、Gold/Food、strategy plan、可變地圖 cell、存活單位位置與兵力/HP/士氣/彈藥、牆頂攻擊剩餘次數、fire state 與 battle log；尚未併入大地圖 `WorldState` slot save/load。
+- battle prototype top bar 具備 battle-only `Save` / `Load`：存到 `user://saves/battle_quicksave.json`，讀回同一個 battle scene 的戰鬥狀態。第一版保存 scenario type、turn、time/weather/wind、Gold/Food、strategy plan、可變地圖 cell、存活單位位置與兵力/HP/士氣/彈藥、牆頂攻擊剩餘次數、fire state 與 battle log；Load 時會重用 scene 既有 battle piece marker 並更新位置／陣營／狀態，避免重複建立單位；尚未併入大地圖 `WorldState` slot save/load。
 - `Battle / 戰鬥` 入口目前已支援 5 個模式選項：
   - `FieldBattle`
   - `NE SiegeAssault`
