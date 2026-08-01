@@ -502,6 +502,10 @@ text = "Duel"
 layout_mode = 2
 text = "Retreat"
 
+[node name="HideButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+layout_mode = 2
+text = "Hide"
+
 [node name="DropStoneButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1354194478]
 layout_mode = 2
 text = "Drop Stone"

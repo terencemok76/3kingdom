@@ -6,6 +6,8 @@ namespace ThreeKingdom.Battle;
 public partial class BattlePieceMarker : Node2D
 {
     private const int MovingZIndexBoost = 100;
+    private static readonly Color HiddenBodyModulate = new(0.44f, 0.74f, 0.54f, 0.58f);
+    private static readonly Color NormalModulate = Colors.White;
 
     private string _label = string.Empty;
     private string _namePlateText = string.Empty;
@@ -25,6 +27,8 @@ public partial class BattlePieceMarker : Node2D
     private bool _hasHealthBar;
     private bool _usesSegmentedTroopBar;
     private bool _hasStatusIndicator;
+    private bool _usesHiddenBodyVisual;
+    private bool _drawStatusIndicatorRing = true;
     private string _statusIndicatorText = string.Empty;
     private Color _statusIndicatorColor = Colors.Transparent;
 
@@ -91,12 +95,19 @@ public partial class BattlePieceMarker : Node2D
         QueueRedraw();
     }
 
-    public void SetupStatusIndicator(string text, Color color)
+    public void SetupStatusIndicator(string text, Color color, bool drawRing = true)
     {
         _statusIndicatorText = text;
         _statusIndicatorColor = color;
         _hasStatusIndicator = !string.IsNullOrWhiteSpace(text);
+        _drawStatusIndicatorRing = drawRing;
         QueueRedraw();
+    }
+
+    public void SetHiddenBodyVisual(bool enabled)
+    {
+        _usesHiddenBodyVisual = enabled;
+        ApplyBodyVisualModulate();
     }
 
     public void SetupSpriteAnimationScene(string scenePath)
@@ -121,6 +132,7 @@ public partial class BattlePieceMarker : Node2D
         AddChild(_spriteVisual);
         _usesSpriteVisual = true;
         _radius = Mathf.Max(_radius, _spriteVisual.ClickRadius);
+        ApplyBodyVisualModulate();
         QueueRedraw();
     }
 
@@ -146,7 +158,7 @@ public partial class BattlePieceMarker : Node2D
         }
         if (_hasStatusIndicator)
         {
-            silhouette.SetupStatusIndicator(_statusIndicatorText, _statusIndicatorColor);
+            silhouette.SetupStatusIndicator(_statusIndicatorText, _statusIndicatorColor, _drawStatusIndicatorRing);
         }
         if (_hasHealthBar && _usesSegmentedTroopBar)
         {
@@ -206,7 +218,6 @@ public partial class BattlePieceMarker : Node2D
             return;
         }
 
-        var originalModulate = Modulate;
         var originalZIndex = ZIndex;
         ZIndex = originalZIndex + MovingZIndexBoost;
         var tween = CreateTween();
@@ -223,7 +234,7 @@ public partial class BattlePieceMarker : Node2D
             tween.TweenCallback(Callable.From(() =>
             {
                 SetupSpriteAnimationScene(scenePath);
-                Modulate = segmentModulate ?? originalModulate;
+                Modulate = segmentModulate ?? GetRestingModulate();
             }));
             tween.TweenProperty(this, "position", point, segmentDuration);
         }
@@ -231,7 +242,7 @@ public partial class BattlePieceMarker : Node2D
         tween.TweenCallback(Callable.From(() =>
         {
             SetupSpriteAnimationScene(idleScenePath);
-            Modulate = originalModulate;
+            Modulate = GetRestingModulate();
             ZIndex = originalZIndex;
             onComplete?.Invoke();
         }));
@@ -279,12 +290,15 @@ public partial class BattlePieceMarker : Node2D
             return;
         }
 
-        var ringCenter = _usesSpriteVisual
-            ? new Vector2(0.0f, _radius * 0.42f)
-            : Vector2.Zero;
-        var ringRadius = _usesSpriteVisual ? _radius * 1.04f : _radius + 7.0f;
-        DrawArc(ringCenter, ringRadius, 0.0f, Mathf.Tau, 48, WithAlpha(_statusIndicatorColor, 0.82f), 3.0f, true);
-        DrawArc(ringCenter, ringRadius + 3.0f, -0.3f, Mathf.Tau - 0.3f, 48, WithAlpha(_statusIndicatorColor, 0.34f), 2.0f, true);
+        if (_drawStatusIndicatorRing)
+        {
+            var ringCenter = _usesSpriteVisual
+                ? new Vector2(0.0f, _radius * 0.42f)
+                : Vector2.Zero;
+            var ringRadius = _usesSpriteVisual ? _radius * 1.04f : _radius + 7.0f;
+            DrawArc(ringCenter, ringRadius, 0.0f, Mathf.Tau, 48, WithAlpha(_statusIndicatorColor, 0.82f), 3.0f, true);
+            DrawArc(ringCenter, ringRadius + 3.0f, -0.3f, Mathf.Tau - 0.3f, 48, WithAlpha(_statusIndicatorColor, 0.34f), 2.0f, true);
+        }
 
         var font = ThemeDB.FallbackFont;
         const int fontSize = 10;
@@ -306,6 +320,19 @@ public partial class BattlePieceMarker : Node2D
     private static Color WithAlpha(Color color, float alpha)
     {
         return new Color(color.R, color.G, color.B, alpha);
+    }
+
+    private Color GetRestingModulate()
+    {
+        return NormalModulate;
+    }
+
+    private void ApplyBodyVisualModulate()
+    {
+        if (_spriteVisual != null)
+        {
+            _spriteVisual.Modulate = _usesHiddenBodyVisual ? HiddenBodyModulate : NormalModulate;
+        }
     }
 
     private void DrawNamePlate()

@@ -310,6 +310,7 @@ public partial class BattleSceneController : Node2D
     private Button? _unionAttackButton;
     private Button? _duelButton;
     private Button? _retreatButton;
+    private Button? _hideButton;
     private Button? _dropStoneButton;
     private Button? _pourOilButton;
     private Button? _workButton;
@@ -532,6 +533,11 @@ public partial class BattleSceneController : Node2D
         if (_retreatButton != null)
         {
             _retreatButton.Pressed += OnRetreatButtonPressed;
+        }
+
+        if (_hideButton != null)
+        {
+            _hideButton.Pressed += OnHideButtonPressed;
         }
 
         if (_dropStoneButton != null)
@@ -1353,6 +1359,7 @@ public partial class BattleSceneController : Node2D
         _unionAttackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/UnionAttackButton");
         _duelButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/DuelButton");
         _retreatButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/RetreatButton");
+        _hideButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/HideButton");
         _dropStoneButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/DropStoneButton");
         _pourOilButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/PourOilButton");
         _workButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/WorkButton");
@@ -1923,7 +1930,10 @@ public partial class BattleSceneController : Node2D
                 continue;
             }
 
-            var occupant = occupants.FirstOrDefault(static candidate => candidate.Marker != null && IsBattlePiece(candidate));
+            var occupant = occupants.FirstOrDefault(candidate =>
+                candidate.Marker != null &&
+                IsBattlePiece(candidate) &&
+                IsVisibleToCurrentTurnSide(candidate));
             if (occupant?.Marker == null)
             {
                 continue;
@@ -1933,7 +1943,7 @@ public partial class BattleSceneController : Node2D
             var silhouette = occupant.Marker.CreateSilhouetteVisual(GetOccludedUnitSilhouetteColor(occupant));
             if (silhouette == null)
             {
-                occupant.Marker.Visible = true;
+                ApplyHiddenMarkerVisibility(occupant);
                 continue;
             }
 
@@ -1963,7 +1973,7 @@ public partial class BattleSceneController : Node2D
             {
                 if (occupant.Marker != null && IsBattlePiece(occupant))
                 {
-                    occupant.Marker.Visible = true;
+                    ApplyHiddenMarkerVisibility(occupant);
                 }
             }
         }
@@ -2219,8 +2229,64 @@ public partial class BattleSceneController : Node2D
             coordinateLabel.Text = BuildCoordinateText();
         }
 
+        RefreshHiddenUnitVisibility();
         RefreshInfoPanel();
         RefreshBattleResultState();
+    }
+
+    private bool IsForestGrid(BattleGridKey grid)
+    {
+        return _mapData != null &&
+               grid.Level == 0 &&
+               IsWithinMap(grid.Grid) &&
+               _mapData.GetCell(grid.X, grid.Y).Terrain == BattleTerrainType.Forest;
+    }
+
+    private bool CanHideAtGrid(BattleGridKey grid, BattleOccupantInfo unit)
+    {
+        return IsBattlePiece(unit) &&
+               !unit.IsHidden &&
+               IsForestGrid(grid);
+    }
+
+    private bool CanHideSelectedUnit()
+    {
+        return _selectedUnit != null &&
+               _selectedUnitGrid.HasValue &&
+               CanHideAtGrid(_selectedUnitGrid.Value, _selectedUnit);
+    }
+
+    private bool IsHiddenFromSide(BattleOccupantInfo occupant, string viewerTeamName)
+    {
+        return occupant.IsHidden && occupant.TeamName != viewerTeamName;
+    }
+
+    private bool IsVisibleToCurrentTurnSide(BattleOccupantInfo occupant)
+    {
+        return !IsHiddenFromSide(occupant, GetCurrentTurnSideName());
+    }
+
+    private void RefreshHiddenUnitVisibility()
+    {
+        foreach (var occupants in _occupantsByGrid.Values)
+        {
+            foreach (var occupant in occupants)
+            {
+                ApplyHiddenMarkerVisibility(occupant);
+            }
+        }
+    }
+
+    private void ApplyHiddenMarkerVisibility(BattleOccupantInfo occupant)
+    {
+        if (occupant.Marker == null || !IsBattlePiece(occupant))
+        {
+            return;
+        }
+
+        var visible = IsVisibleToCurrentTurnSide(occupant);
+        occupant.Marker.Visible = visible;
+        occupant.Marker.SetHiddenBodyVisual(visible && occupant.IsHidden);
     }
 
     private void RefreshBattleResultState()
@@ -3212,9 +3278,18 @@ public partial class BattleSceneController : Node2D
 
     private static string FormatBattleStatus(BattleOccupantInfo unit)
     {
-        return IsMessed(unit)
-            ? $"Mess ({unit.MessTurns} turn{(unit.MessTurns == 1 ? string.Empty : "s")})"
-            : "Normal";
+        var statuses = new List<string>();
+        if (unit.IsHidden)
+        {
+            statuses.Add("Hidden");
+        }
+
+        if (IsMessed(unit))
+        {
+            statuses.Add($"Mess ({unit.MessTurns} turn{(unit.MessTurns == 1 ? string.Empty : "s")})");
+        }
+
+        return statuses.Count == 0 ? "Normal" : string.Join(", ", statuses);
     }
 
     private static int GetEffectiveMoveRange(BattleOccupantInfo unit)
@@ -3340,7 +3415,9 @@ public partial class BattleSceneController : Node2D
 
         builder.AppendLine("Occupants");
 
-        var occupantsAtGrid = GetOccupantsAtSelectedGrid(grid).ToList();
+        var occupantsAtGrid = GetOccupantsAtSelectedGrid(grid)
+            .Where(entry => IsVisibleToCurrentTurnSide(entry.Occupant))
+            .ToList();
         if (occupantsAtGrid.Count > 0)
         {
             foreach (var (gridKey, occupant) in occupantsAtGrid)
@@ -3351,7 +3428,7 @@ public partial class BattleSceneController : Node2D
                 var ammoText = occupant.MaxWeaponAmmo.HasValue
                     ? $" Ammo {FormatWeaponAmmo(occupant)}"
                     : string.Empty;
-                var statusText = IsMessed(occupant)
+                var statusText = occupant.IsHidden || IsMessed(occupant)
                     ? $" Status {FormatBattleStatus(occupant)}"
                     : string.Empty;
                 builder.AppendLine($"- {occupant.Category}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}{hpText}{ammoText}{statusText}");
@@ -3437,7 +3514,7 @@ public partial class BattleSceneController : Node2D
 
         var morale = GetInitialMorale(category, troopType);
         var weaponAmmo = GetInitialWeaponAmmo(category, troopType);
-        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
+        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, IsHidden: false, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
     }
 
     private static void UpdateMarkerStrengthBar(BattleOccupantInfo occupant)
@@ -3466,6 +3543,12 @@ public partial class BattleSceneController : Node2D
         if (IsMessed(occupant))
         {
             occupant.Marker.SetupStatusIndicator("MESS", new Color(1.0f, 0.34f, 0.16f, 0.92f));
+            return;
+        }
+
+        if (occupant.IsHidden)
+        {
+            occupant.Marker.SetupStatusIndicator("HIDE", new Color(0.16f, 0.72f, 0.38f, 0.92f), drawRing: false);
             return;
         }
 
@@ -3584,8 +3667,15 @@ public partial class BattleSceneController : Node2D
         var moveDirection = pathDirections.Length > 0
             ? pathDirections[^1]
             : GetInfantryDirection(sourceGrid.Grid, destinationGrid.Grid);
-        var movedOccupant = movingOccupant with { Marker = movingOccupant.Marker, FacingDirection = moveDirection };
+        var remainsHidden = movingOccupant.IsHidden && IsForestGrid(destinationGrid);
+        var movedOccupant = movingOccupant with
+        {
+            Marker = movingOccupant.Marker,
+            FacingDirection = moveDirection,
+            IsHidden = remainsHidden
+        };
         destinationOccupants.Add(movedOccupant);
+        UpdateMarkerStatusIndicator(movedOccupant);
         RegisterBattleDepthEntry(
             movedOccupant.Marker!,
             destinationGrid,
@@ -3604,6 +3694,11 @@ public partial class BattleSceneController : Node2D
         _attackableGrids.Clear();
         HideCommandMenu();
         AppendBattleLog(movedOccupant, "Move", $"{FormatLogUnit(movedOccupant)} {sourceGrid} -> {destinationGrid}");
+        if (movingOccupant.IsHidden && !remainsHidden)
+        {
+            AppendBattleLog(movedOccupant, "Status", $"{FormatLogUnit(movedOccupant)} leaves forest and is no longer hidden");
+        }
+        RefreshHiddenUnitVisibility();
 
         return true;
     }
@@ -3675,6 +3770,12 @@ public partial class BattleSceneController : Node2D
         }
 
         var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value.Grid, targetGrid.Grid);
+        if (_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants) &&
+            GetAttackTargetForAttack(targetOccupants, _selectedUnit.TeamName, targetGrid) == null)
+        {
+            return false;
+        }
+
         var isWeakCloseAttack = CanUseAmmoDepletedWeakAttack(_selectedUnit);
         var attackDamage = GetAttackDamage(_selectedUnit);
         var attackingUnit = _selectedUnit with { FacingDirection = attackDirection };
@@ -3695,7 +3796,7 @@ public partial class BattleSceneController : Node2D
         }
 
         var attackAnimationDuration = ApplyAttackAnimation(attackingUnit, attackDirection);
-        var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid);
+        var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid, attackingUnit);
         var arrowEffectDuration = IsArrowProjectileAttacker(attackingUnit) && !isWeakCloseAttack
             ? PlayArrowProjectileEffect(_selectedUnitGrid.Value, targetGrid)
             : 0.0;
@@ -4089,7 +4190,7 @@ public partial class BattleSceneController : Node2D
         return 0.0;
     }
 
-    private double ApplyTargetHurtAnimation(BattleGridKey attackerGrid, BattleGridKey targetGrid)
+    private double ApplyTargetHurtAnimation(BattleGridKey attackerGrid, BattleGridKey targetGrid, BattleOccupantInfo? attacker = null)
     {
         if (IsClosedGateStructureTarget(targetGrid))
         {
@@ -4101,7 +4202,9 @@ public partial class BattleSceneController : Node2D
             return 0.0;
         }
 
-        var target = GetAttackTarget(targetOccupants);
+        var target = attacker == null
+            ? GetAttackTarget(targetOccupants)
+            : GetAttackTargetForAttack(targetOccupants, attacker.TeamName, targetGrid);
         if (target?.Marker == null)
         {
             return 0.0;
@@ -4170,10 +4273,9 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var target = GetAttackTarget(targetOccupants);
+        var target = GetAttackTargetForAttack(targetOccupants, attacker.TeamName, targetGrid);
         if (target == null)
         {
-            ApplyStructureAttackDamage(attacker, targetGrid);
             return;
         }
 
@@ -4736,6 +4838,31 @@ public partial class BattleSceneController : Node2D
         return occupants.FirstOrDefault(static occupant => occupant.Marker != null && IsBattlePiece(occupant));
     }
 
+    private static BattleOccupantInfo? GetFireDamageTarget(IEnumerable<BattleOccupantInfo> occupants)
+    {
+        // Fire is a tile effect: hidden units on the burning tile are still hurt.
+        return occupants.FirstOrDefault(static occupant => occupant.Marker != null && IsBattlePiece(occupant));
+    }
+
+    private BattleOccupantInfo? GetAttackTarget(IEnumerable<BattleOccupantInfo> occupants, string attackerTeamName)
+    {
+        return occupants.FirstOrDefault(occupant =>
+            occupant.Marker != null &&
+            IsBattlePiece(occupant) &&
+            occupant.TeamName != attackerTeamName &&
+            !IsHiddenFromSide(occupant, attackerTeamName));
+    }
+
+    private BattleOccupantInfo? GetAttackTargetForAttack(IEnumerable<BattleOccupantInfo> occupants, string attackerTeamName, BattleGridKey targetGrid)
+    {
+        var canHitHiddenInForest = IsForestGrid(targetGrid);
+        return occupants.FirstOrDefault(occupant =>
+            occupant.Marker != null &&
+            IsBattlePiece(occupant) &&
+            occupant.TeamName != attackerTeamName &&
+            (canHitHiddenInForest || !IsHiddenFromSide(occupant, attackerTeamName)));
+    }
+
     private static int GetAttackDamage(BattleOccupantInfo attacker)
     {
         if (CanUseAmmoDepletedWeakAttack(attacker))
@@ -5161,7 +5288,7 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var selectedUnit = occupants.FirstOrDefault(static occupant => IsBattlePiece(occupant));
+        var selectedUnit = occupants.FirstOrDefault(occupant => IsBattlePiece(occupant) && IsVisibleToCurrentTurnSide(occupant));
         if (selectedUnit == null)
         {
             return;
@@ -5939,7 +6066,7 @@ public partial class BattleSceneController : Node2D
                 continue;
             }
 
-            var opponent = GetAttackTarget(occupants);
+            var opponent = GetAttackTarget(occupants, challenger.TeamName);
             if (opponent != null &&
                 CanStartDuel(opponent) &&
                 IsAttackerPiece(opponent) != IsAttackerPiece(challenger))
@@ -5992,7 +6119,7 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
-        var opponent = GetAttackTarget(targetOccupants);
+        var opponent = GetAttackTarget(targetOccupants, _selectedUnit.TeamName);
         if (opponent == null || !CanStartDuel(_selectedUnit) || !CanStartDuel(opponent))
         {
             return false;
@@ -6441,7 +6568,7 @@ public partial class BattleSceneController : Node2D
             _selectedUnit = updatedSelectedUnit;
         }
 
-        var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, candidate.TargetGrid);
+        var hurtAnimationDuration = ApplyTargetHurtAnimation(_selectedUnitGrid.Value, candidate.TargetGrid, _selectedUnit!);
         var effectDelaySeconds = Math.Max(maxAttackAnimationDuration, hurtAnimationDuration);
         AppendBattleLog(
             _selectedUnit!,
@@ -6756,6 +6883,7 @@ public partial class BattleSceneController : Node2D
             var candidate = occupants
                 .Where(occupant =>
                     CanHireOfficerTarget(occupant) &&
+                    !IsHiddenFromSide(occupant, _selectedUnit.TeamName) &&
                     IsAttackerPiece(occupant) != selectedIsAttacker)
                 .OrderByDescending(occupant => GetOfficerBattleAttribute(occupant.OfficerName))
                 .FirstOrDefault();
@@ -6806,6 +6934,7 @@ public partial class BattleSceneController : Node2D
         ApplyTeamGeneralDelta(converted.Category, converted.TeamName, converted.OfficerName, 1);
         ApplyTeamSiegeUnitDelta(converted.Category, converted.TeamName, 1);
         RefreshMarkerTeamVisual(converted);
+        RefreshHiddenUnitVisibility();
     }
 
     private static void RefreshMarkerTeamVisual(BattleOccupantInfo occupant)
@@ -7141,7 +7270,7 @@ public partial class BattleSceneController : Node2D
                 continue;
             }
 
-            var target = GetAttackTarget(targetEntry.Value);
+            var target = GetAttackTarget(targetEntry.Value, _selectedUnit.TeamName);
             if (target == null ||
                 target.Marker == null ||
                 IsAttackerPiece(target) == selectedIsAttacker)
@@ -7265,6 +7394,36 @@ public partial class BattleSceneController : Node2D
         return Math.Max(Mathf.Abs(a.X - b.X), Mathf.Abs(a.Y - b.Y));
     }
 
+    private void OnHideButtonPressed()
+    {
+        if (_selectedUnit == null ||
+            !_selectedUnitGrid.HasValue ||
+            !IsCurrentTurnPiece(_selectedUnit) ||
+            !CanHideSelectedUnit())
+        {
+            return;
+        }
+
+        var grid = _selectedUnitGrid.Value;
+        var hiddenUnit = _selectedUnit with { IsHidden = true };
+        ReplaceOccupantAtGrid(grid, _selectedUnit, hiddenUnit);
+        _selectedUnit = hiddenUnit;
+        AppendBattleLog(hiddenUnit, "Status", $"{FormatLogUnit(hiddenUnit)} hides in forest at {grid}");
+
+        _commandMode = BattleCommandMode.None;
+        _selectedStrategyAction = BattleStrategyAction.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
+        HideCommandMenu();
+        RefreshHiddenUnitVisibility();
+        RefreshInfoPanel();
+        RefreshHighlights();
+        RefreshBattleLogPanel();
+    }
+
     private void OnDropStoneButtonPressed()
     {
         TryUseWallTopAttack(DropStoneAttackDamage, isDropStone: true);
@@ -7298,7 +7457,7 @@ public partial class BattleSceneController : Node2D
 
         var hasEnemyTarget = HasEnemyBattleTarget(targetGrid, attackingUnit);
         var hurtAnimationDuration = hasEnemyTarget
-            ? ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid)
+            ? ApplyTargetHurtAnimation(_selectedUnitGrid.Value, targetGrid, attackingUnit)
             : 0.0;
         var specialEffectDuration = isDropStone
             ? PlayDropStoneEffect(_selectedUnitGrid.Value, targetGrid)
@@ -7357,6 +7516,7 @@ public partial class BattleSceneController : Node2D
                occupants.Any(occupant =>
                    occupant.Marker != null &&
                    IsBattlePiece(occupant) &&
+                   (IsForestGrid(targetGrid) || !IsHiddenFromSide(occupant, attacker.TeamName)) &&
                    IsAttackerPiece(occupant) != IsAttackerPiece(attacker));
     }
 
@@ -7593,7 +7753,9 @@ public partial class BattleSceneController : Node2D
 
             foreach (var target in entry.Value)
             {
-                if (target.Marker != null && target.Category == CategoryUnit)
+                if (target.Marker != null &&
+                    target.Category == CategoryUnit &&
+                    !IsHiddenFromSide(target, actor.TeamName))
                 {
                     yield return (targetGrid, target);
                 }
@@ -7611,7 +7773,10 @@ public partial class BattleSceneController : Node2D
         var target = GetOccupantsAtGrid(targetGrid.Grid)
             .Where(entry => entry.Grid == targetGrid)
             .Select(entry => entry.Occupant)
-            .FirstOrDefault(occupant => occupant.Marker != null && occupant.Category == CategoryUnit);
+            .FirstOrDefault(occupant =>
+                occupant.Marker != null &&
+                occupant.Category == CategoryUnit &&
+                !IsHiddenFromSide(occupant, _selectedUnit.TeamName));
         if (target == null)
         {
             return false;
@@ -7875,7 +8040,7 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var target = GetAttackTarget(targetOccupants);
+        var target = GetFireDamageTarget(targetOccupants);
         if (target == null)
         {
             return;
@@ -9058,6 +9223,14 @@ public partial class BattleSceneController : Node2D
             _retreatButton.Disabled = _selectedUnit == null || !IsBattlePiece(_selectedUnit);
         }
 
+        if (_hideButton != null)
+        {
+            var isHideCandidate = canCommandSelectedUnit && _selectedUnit != null && IsBattlePiece(_selectedUnit);
+            _hideButton.Visible = isHideCandidate;
+            _hideButton.Text = _selectedUnit?.IsHidden == true ? "Hidden" : "Hide";
+            _hideButton.Disabled = !isHideCandidate || !CanHideSelectedUnit();
+        }
+
         if (_moveButton != null)
         {
             _moveButton.Visible = canCommandSelectedUnit && _selectedUnit != null && IsBattlePiece(_selectedUnit);
@@ -9096,6 +9269,7 @@ public partial class BattleSceneController : Node2D
             _unionAttackButton,
             _duelButton,
             _retreatButton,
+            _hideButton,
             _dropStoneButton,
             _pourOilButton,
             _workButton,
@@ -9207,6 +9381,13 @@ public partial class BattleSceneController : Node2D
             _retreatButton.Visible = false;
             _retreatButton.Disabled = false;
             _retreatButton.Text = "Retreat";
+        }
+
+        if (_hideButton != null)
+        {
+            _hideButton.Visible = false;
+            _hideButton.Disabled = false;
+            _hideButton.Text = "Hide";
         }
     }
 
@@ -9753,6 +9934,7 @@ public partial class BattleSceneController : Node2D
         int MaxHitPoints,
         int WoundedTroops,
         int MessTurns,
+        bool IsHidden,
         int? Morale,
         int? WeaponAmmo,
         int? MaxWeaponAmmo,
@@ -9890,6 +10072,7 @@ public partial class BattleSceneController : Node2D
         public int MaxHitPoints { get; set; }
         public int WoundedTroops { get; set; }
         public int MessTurns { get; set; }
+        public bool IsHidden { get; set; }
         public int? Morale { get; set; }
         public int? WeaponAmmo { get; set; }
         public int? MaxWeaponAmmo { get; set; }
@@ -9915,6 +10098,7 @@ public partial class BattleSceneController : Node2D
                 MaxHitPoints = occupant.MaxHitPoints,
                 WoundedTroops = occupant.WoundedTroops,
                 MessTurns = occupant.MessTurns,
+                IsHidden = occupant.IsHidden,
                 Morale = occupant.Morale,
                 WeaponAmmo = occupant.WeaponAmmo,
                 MaxWeaponAmmo = occupant.MaxWeaponAmmo,
@@ -9941,6 +10125,7 @@ public partial class BattleSceneController : Node2D
                 MaxHitPoints,
                 WoundedTroops,
                 MessTurns,
+                IsHidden,
                 Morale,
                 WeaponAmmo,
                 MaxWeaponAmmo,
