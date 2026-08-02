@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://cxgy8jyeja1y8" path="res://assets/battle/floor/floor.png" id="2_625j4"]
 [ext_resource type="Script" uid="uid://dy0u0cwc0nnma" path="res://scripts/battle/BattlePieceMarker.cs" id="3"]
 [ext_resource type="Texture2D" uid="uid://5rjaor1uh4n4" path="res://assets/battle/object/object_01.png" id="3_bkj5p"]
+[ext_resource type="Texture2D" uid="uid://lgadeqq5pb4f" path="res://assets/battle/object/building_01.png" id="4_building"]
 [ext_resource type="Script" uid="uid://jcdb0o1ek8ut" path="res://scripts/battle/BattleHighlightRenderer.cs" id="4"]
 [ext_resource type="Texture2D" uid="uid://bvm6spy5bxnj5" path="res://assets/battle/wall/castle.png" id="4_bkj5p"]
 [ext_resource type="Texture2D" uid="uid://c510c1l7ai20q" path="res://assets/battle/overlay/overlay.png" id="4_pxx3e"]
@@ -41,11 +42,23 @@ use_texture_padding = false
 4:0/0 = 0
 4:0/0/texture_origin = Vector2i(0, 32)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_building"]
+texture = ExtResource("4_building")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+
 [sub_resource type="TileSet" id="TileSet_qrg6v"]
 tile_shape = 1
 tile_layout = 5
 tile_size = Vector2i(128, 64)
 sources/0 = SubResource("TileSetAtlasSource_oajdb")
+sources/1 = SubResource("TileSetAtlasSource_building")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fbtt2"]
 texture = ExtResource("4_bkj5p")
@@ -316,13 +329,9 @@ text = "SE"
 layout_mode = 2
 text = "Breeze"
 
-[node name="BattleSaveButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+[node name="BattleOptionButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
 layout_mode = 2
-text = "Save"
-
-[node name="BattleLoadButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Load"
+text = "Option"
 
 [node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
 layout_mode = 2
@@ -355,7 +364,7 @@ layout_mode = 0
 offset_left = 12.0
 offset_top = 12.0
 offset_right = 298.0
-offset_bottom = 392.0
+offset_bottom = 354.0
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
@@ -365,8 +374,21 @@ theme_override_constants/margin_bottom = 6
 layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="InfoLabel" type="Label" parent="UiLayer/SidePanel/Margin/PanelContent" unique_id=1526984529]
+[node name="InfoScroll" type="ScrollContainer" parent="UiLayer/SidePanel/Margin/PanelContent"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="InfoPadding" type="MarginContainer" parent="UiLayer/SidePanel/Margin/PanelContent/InfoScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="InfoLabel" type="Label" parent="UiLayer/SidePanel/Margin/PanelContent/InfoScroll/InfoPadding" unique_id=1526984529]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/line_spacing = -8
 theme_override_font_sizes/font_size = 17
 text = "Click a tile to inspect."
@@ -494,6 +516,10 @@ text = "Attack"
 layout_mode = 2
 text = "Union Attack"
 
+[node name="ChargeButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+layout_mode = 2
+text = "Charge"
+
 [node name="DuelButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
 text = "Duel"
@@ -549,3 +575,150 @@ text = "Strategy"
 [node name="OpenGateButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=619032093]
 layout_mode = 2
 text = "Open Gate"
+
+[node name="BattleOptionOverlay" type="Control" parent="UiLayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Backdrop" type="ColorRect" parent="UiLayer/BattleOptionOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.45)
+
+[node name="Center" type="CenterContainer" parent="UiLayer/BattleOptionOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="UiLayer/BattleOptionOverlay/Center"]
+custom_minimum_size = Vector2(560, 360)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="OptionRoot" type="VBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="TitleBar" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleSpacerLeft" type="Control" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Options"
+horizontal_alignment = 1
+
+[node name="TitleSpacerRight" type="Control" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+custom_minimum_size = Vector2(30, 28)
+layout_mode = 2
+text = "x"
+
+[node name="SaveLoadRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SaveButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Load"
+
+[node name="LanguageButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Language"
+
+[node name="BgmAudioRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BgmToggleButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow"]
+custom_minimum_size = Vector2(148, 34)
+layout_mode = 2
+text = "BGM: On"
+
+[node name="BgmVolumeSlider" type="HSlider" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="BgmVolumeValueLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow"]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SfxAudioRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SfxToggleButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow"]
+custom_minimum_size = Vector2(148, 34)
+layout_mode = 2
+text = "SFX: On"
+
+[node name="SfxVolumeSlider" type="HSlider" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+step = 1.0
+value = 100.0
+
+[node name="SfxVolumeValueLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow"]
+custom_minimum_size = Vector2(52, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SaveSettingsButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Save Settings"

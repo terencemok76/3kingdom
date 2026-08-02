@@ -58,8 +58,11 @@ public static class BattleTileMapBuilder
     private const int BaseTileHeight = 64;
     private const int AtlasSourceId = 0;
     private const int CastleOpenGateAtlasSourceId = 1;
+    private const int ObjectBuildingAtlasSourceId = 1;
+    private const int ObjectBuildingTileCount = 3;
     private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
     private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
+    private const string ObjectBuildingAtlasPath = "res://assets/battle/object/building_01.png";
     private const string CastleAtlasPath = "res://assets/battle/wall/castle.png";
     private const string CastleOpenGateAtlasPath = "res://assets/battle/wall/castle_gate_open.png";
     private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
@@ -101,7 +104,7 @@ public static class BattleTileMapBuilder
                     continue;
                 }
 
-                layer.SetCell(cell.Grid, AtlasSourceId, atlasCoords.Value, ResolveAlternativeTile(cell, layerKind));
+                layer.SetCell(cell.Grid, ResolveAtlasSourceId(cell, layerKind), atlasCoords.Value, ResolveAlternativeTile(cell, layerKind));
             }
         }
 
@@ -223,6 +226,11 @@ public static class BattleTileMapBuilder
             return new Vector2I((int)BattleObjectTileVisual.Bridge, 0);
         }
 
+        if (cell.Structure == BattleStructureType.Building)
+        {
+            return new Vector2I(Mathf.Clamp(cell.BuildingAtlasCoords.X, 0, ObjectBuildingTileCount - 1), 0);
+        }
+
         var visual = cell.Structure switch
         {
             BattleStructureType.Tree => BattleObjectTileVisual.Tree,
@@ -233,6 +241,13 @@ public static class BattleTileMapBuilder
         };
 
         return visual.HasValue ? new Vector2I((int)visual.Value, 0) : null;
+    }
+
+    private static int ResolveAtlasSourceId(BattleCellData cell, BattleTileLayerKind layerKind)
+    {
+        return layerKind == BattleTileLayerKind.Object && cell.Structure == BattleStructureType.Building
+            ? ObjectBuildingAtlasSourceId
+            : AtlasSourceId;
     }
 
     private static Vector2I? ResolveCastleVisual(BattleCellData cell)
@@ -389,8 +404,56 @@ public static class BattleTileMapBuilder
         {
             AddCastleOpenGateSource(tileSet, metrics);
         }
+        else if (layerKind == BattleTileLayerKind.Object)
+        {
+            AddObjectBuildingSource(tileSet, metrics);
+        }
 
         return tileSet;
+    }
+
+    private static void AddObjectBuildingSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        if (!ResourceLoader.Exists(ObjectBuildingAtlasPath))
+        {
+            return;
+        }
+
+        var atlasTexture = GD.Load<Texture2D>(ObjectBuildingAtlasPath);
+        if (atlasTexture == null)
+        {
+            GD.PushWarning($"Battle building atlas could not be loaded: {ObjectBuildingAtlasPath}");
+            return;
+        }
+
+        var requiredWidth = ObjectBuildingTileCount * metrics.RegionWidth;
+        if (atlasTexture.GetWidth() < requiredWidth || atlasTexture.GetHeight() < metrics.RegionHeight)
+        {
+            GD.PushWarning(
+                $"Battle building atlas too small: {ObjectBuildingAtlasPath}. " +
+                $"Expected at least {requiredWidth}x{metrics.RegionHeight}, got {atlasTexture.GetWidth()}x{atlasTexture.GetHeight()}.");
+            return;
+        }
+
+        var atlasSource = new TileSetAtlasSource
+        {
+            Texture = atlasTexture,
+            TextureRegionSize = new Vector2I(metrics.RegionWidth, metrics.RegionHeight),
+            UseTexturePadding = false
+        };
+
+        for (var tileIndex = 0; tileIndex < ObjectBuildingTileCount; tileIndex++)
+        {
+            var atlasCoords = new Vector2I(tileIndex, 0);
+            atlasSource.CreateTile(atlasCoords);
+            var textureOrigin = metrics.GetTextureOrigin();
+            if (textureOrigin != Vector2I.Zero)
+            {
+                atlasSource.GetTileData(atlasCoords, 0).TextureOrigin = textureOrigin;
+            }
+        }
+
+        tileSet.AddSource(atlasSource, ObjectBuildingAtlasSourceId);
     }
 
     private static void AddCastleOpenGateSource(TileSet tileSet, BattleAtlasMetrics metrics)

@@ -84,6 +84,7 @@ public sealed class BattleCellData
     public bool HasBridgeVisual { get; set; }
     public bool BridgeFlipHorizontally { get; set; }
     public bool WoodenFenceFlipHorizontally { get; set; }
+    public Vector2I BuildingAtlasCoords { get; set; }
     public int BridgeMaxHealth { get; set; }
     public int BridgeHealth { get; set; }
 
@@ -349,7 +350,15 @@ public sealed class BattleMapData
             }
 
             var atlas = layer.GetCellAtlasCoords(grid);
+            var sourceId = layer.GetCellSourceId(grid);
             var cell = GetCell(grid.X, grid.Y);
+            if (sourceId == 1)
+            {
+                cell.Structure = BattleStructureType.Building;
+                cell.BuildingAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 2), 0);
+                return;
+            }
+
             switch (atlas.X)
             {
                 case 0:
@@ -477,6 +486,11 @@ public sealed class BattleMapData
             cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
             cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;
             cell.WoodenFenceFlipHorizontally = cell.Structure == BattleStructureType.WoodenFence && cell.WoodenFenceFlipHorizontally;
+            if (cell.Structure != BattleStructureType.Building)
+            {
+                cell.BuildingAtlasCoords = Vector2I.Zero;
+            }
+
             if (cell.Terrain == BattleTerrainType.Bridge)
             {
                 cell.BridgeMaxHealth = BattleCellData.BridgeMaxDurability;

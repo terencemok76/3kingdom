@@ -318,6 +318,7 @@
   - 一般戰鬥隊伍預設 `Morale 100`，Worker 預設 `Morale 80`。
   - 一般 battle team 的兵力分為 `Active Troops` 與 `Wounded Troops`：`Active` 會參與戰鬥與 HUD 總兵力，`Wounded` 暫時不能戰鬥但可被糧草車恢復。
   - 一般 battle team 的 marker HP bar 採三段顯示：綠色為 `Active Troops`、粉紅色為 `Wounded Troops`、黑色為 `Dead / Killed Troops`。
+  - HP 傷害、HP 維修與士氣變化會以 battle piece 上方浮字呈現；士氣浮字與 HP 傷害浮字使用不同顏色，`Morale +N` / `士氣 +N` 偏藍，`Morale -N` / `士氣 -N` 偏琥珀，避免和紅色傷害數字混淆。
   - 一般攻擊造成的有效傷害目前拆為約 `40% killed / 60% wounded`；fire damage 拆為約 `70% killed / 30% wounded`。Battle Log 會顯示 killed 與 wounded 數字。
   - `Ram`、`Ladder`、`Catapult`、`SupplyCart` 等攻城器／後勤車沒有 morale，UI 以 `-` 表示。
   - 糧草車 `SupplyCart` 可每回合一次使用後勤行動，`Recovery / Repair` 與 `Resupply Weapon` 共用同一個每回合次數。
@@ -328,8 +329,10 @@
   - 每個完整 battle day（Team B 結束後、Turn 前進時）會消耗雙方 Gold / Food：目前 prototype 以每 `100` active troops 消耗 `Food 5` 與 `Gold 1` 計算；若當日糧食不足，該隊一般 battle team `Morale -15`，若剩餘糧食低於下一日需求則 `Morale -6`。
   - 糧草車被摧毀時，同隊 Gold / Food 會額外損失 `25%`，同隊仍在場的一般 battle team 士氣會立刻降為目前值的 `50%`；糧草車主動撤退不觸發此懲罰。
   - 一般 battle team 若相鄰敵方 `SupplyCart`，command menu 會顯示 `Capture Cart`；成功後敵方 Gold / Food 損失 `25%` 並轉移給俘獲方，敵方仍在場的一般 battle team 士氣降為目前值的 `50%`，俘獲方一般 battle team `Morale +10`，且該糧草車會轉為俘獲方陣營並留在戰場，可由俘獲方後續控制與使用。
-  - 一般 battle team 若相鄰敵方 officer / general 隊伍，command menu 會顯示 `Hire Officer`；花費 Gold 可直接招降該隊伍並轉入己方，目前 prototype 先固定成本為 `100 Gold`。
+  - 一般 battle team 若同層 2 格內有敵方 officer / general 隊伍，command menu 會顯示 `Hire Officer`；點擊後會 highlight 所有可招降目標，玩家再點選要招降的目標。花費 Gold 可直接招降該隊伍並轉入己方，目前 prototype 先固定成本為 `100 Gold`。招降成功後會播放金色牽引線、目標格光環與 `招降成功` 浮字，招降方仍在場的一般 battle team `Morale +8`，被招降方仍在場的一般 battle team `Morale -8`。
   - Battle piece 在 `Forest` 地形可使用 prototype `Hide`，包含一般 battle team 與 `Ram` / `Ladder` / `Catapult` / `SupplyCart` 等攻城／後勤車；hidden 後己方仍可看見 marker，單位／車體本體使用暗綠半透明 hidden visual，name plate、HP bar、team arrow 與 `HIDE` 狀態 badge 保持正常清楚顯示，但不再額外顯示 hidden 狀態外圈 ring；敵方回合則完全看不到、不能選取，也不能以可見單位目標方式被 Union Attack / Duel / Strategy (Mess) / Hire Officer 指定。若敵方直接攻擊 hidden 單位所在的 `Forest` tile，或該 `Forest` tile 起火造成 fire damage，hidden 單位仍會像一般 battle team 一樣受傷並顯示傷害結果。hidden 單位執行 Move / Attack / Strategy / Duel / Capture Cart / Hire Officer 不會自動解除 hidden；只有移動後離開 `Forest` 才會轉回非 hidden。
+  - `Cavalry` 不可將移動目的地設在 `Forest`；可從其他地形繞行，若因既有佈署或存檔已在森林內，仍可正常移出森林。
+  - `Cavalry` 可使用 prototype `Charge`：只支援 `L0` 四方向相鄰敵方 battle team，目標格不可是 `Forest`，且目標後方同方向一格必須在地圖內、不是 `Forest`、沒有任何 battle team，並可通行。執行時騎兵先對目標造成 `1,650` charge damage，再穿過目標格落到後方格；即使目標被擊破，騎兵仍會完成穿越。若目標是 `Spearman`，charge damage 降為 `900`，且騎兵會承受 `600` counter damage；反傷不會阻止穿越。使用 `Charge` 後，該騎兵本回合不能再使用 `Move` / `Attack` / `Union Attack`。
   - `SupplyCart` 目前使用 `supplycar_idle_ne.png` / `supplycar_idle_sw.png` 專用 idle 動畫素材；`NE/NW` 為 `2x2` 四幀，`SW/SE` 為 `1x3` 三幀。
   - morale 已接入 prototype 士氣壓制：`Morale <= 30` 的一般 battle team 有移動懲罰，effective move range 會降低 `1`，但最少保留 `1`；`Mess` 狀態中的隊伍 effective move range 會被壓到 `1`。
   - `Morale <= 15` 的一般 battle team 在自己回合開始時有機率自動陷入 `Mess`；`Mess` 狀態中不能 Attack、Union Attack、Duel 或使用 Strategy，Worker 也不能 Bridge / Wood Fence，且自己回合開始會有 `5%` active troops 離隊。
@@ -351,6 +354,8 @@
   - battle team 受傷紀錄會顯示受擊隊伍、傷害數字，以及造成傷害的攻擊隊伍；fire damage 則標記為 fire 來源。
   - log 可切換 `All` 或 `Self`；`Self` 目前依當前 acting side 顯示該隊伍相關紀錄。
   - 面板採用 gameplay floating log 風格，支援拖曳移動、最小化／還原，以及右下角 resize grip 調整大小。
+- Battle UI 已接入 `LocalizationService`，會跟隨 options language 顯示繁中或英文；目前涵蓋 top bar、battle log panel chrome、command menu、unit menu info、Tile Info/Selected Piece 面板，以及地形／建物／天候／時段／風向／指令狀態等可見 UI 文案。Tile Info/Selected Piece 是 debug 用資訊面板，已改為 scrollable text，方便檢查較長的格子與單位狀態。Top bar 只保留 battle-only `Option` 入口；popup 內可執行 battle quick save/load、切換語言、切換 BGM/SFX、調整 BGM/SFX volume，並透過 `OptionSettingsStore` 儲存設定；音訊設定與主遊戲共用同一份 options 存檔。Battle Log 的逐條事件敘述仍保留 prototype 文字，待後續整理成 log locale keys。
+- Command menu 只顯示目前可實際執行的 action；若 Move / Attack / Strategy / Charge / Hide / Capture Cart / Hire Officer / Supply / Worker action 等沒有合法目標或條件不足，就不在 action list 佔位顯示 disabled button。
 - 牆頂單位可使用 prototype 專用攻擊：
   - `Drop Stone`：對城牆面向正前方的 `L0` 敵方部隊造成 `1,200` 傷害；`NorthEast` 為 `(x, y+1, L0)`，`NorthWest` 為 `(x+1, y, L0)`。
   - `Pour Oil`：對同一個 facing-driven 目標格的敵方部隊造成 `1,000` 傷害。
@@ -412,6 +417,7 @@
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
+- `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成 `Building` 結構並阻擋移動，runtime rebuild / battle quick save/load 需保留選到的 building frame。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
 - 若橋面或木柵欄在 editor 內使用了 `Flip H`，runtime 也必須保留該 object tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向或柵欄變化會跑掉。
 - 讀取 `Use Editor Authored Layout` 的 scene 時，應先讀取原始 `TileMapLayer` 內容，再重建 shared tileset 與 runtime 視覺；不能在讀取前先重新指定 layer tileset，否則 bridge 之類的 editor-authored flip 資訊可能會遺失。
