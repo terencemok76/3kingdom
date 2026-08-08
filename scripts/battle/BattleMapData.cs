@@ -126,7 +126,9 @@ public sealed class BattleMapData
 
     public static BattleMapData CreateFieldBattle()
     {
-        return CreateFieldBattle(BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.FieldBattle));
+        return CreateFieldBattle(
+            BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.FieldBattle),
+            fieldObjectLayer: null);
     }
 
     public static BattleMapData CreateMoatSiegeAssault()
@@ -136,15 +138,15 @@ public sealed class BattleMapData
 
     public static BattleMapData Create(BattleScenarioType scenarioType)
     {
-        return Create(BattleScenarioDefinition.CreateBuiltIn(scenarioType));
+        return Create(BattleScenarioDefinition.CreateBuiltIn(scenarioType), fieldObjectLayer: null);
     }
 
-    public static BattleMapData Create(BattleScenarioDefinition? scenarioDefinition)
+    public static BattleMapData Create(BattleScenarioDefinition? scenarioDefinition, TileMapLayer? fieldObjectLayer = null)
     {
         var definition = scenarioDefinition ?? BattleScenarioDefinition.CreateBuiltIn(BattleScenarioType.SiegeAssault);
         return definition.ScenarioType switch
         {
-            BattleScenarioType.FieldBattle => CreateFieldBattle(definition),
+            BattleScenarioType.FieldBattle => CreateFieldBattle(definition, fieldObjectLayer),
             BattleScenarioType.MoatSiegeBattle => CreateMoatSiegeAssault(definition),
             _ => CreateSiegeAssault(definition)
         };
@@ -161,11 +163,12 @@ public sealed class BattleMapData
         return map;
     }
 
-    private static BattleMapData CreateFieldBattle(BattleScenarioDefinition scenarioDefinition)
+    private static BattleMapData CreateFieldBattle(BattleScenarioDefinition scenarioDefinition, TileMapLayer? fieldObjectLayer)
     {
         var map = new BattleMapData();
         map.ApplyScenarioDefinition(scenarioDefinition);
         map.BuildFieldBattleLayout();
+        map.ReadFieldBattleBuildingLayer(fieldObjectLayer);
         map.ApplyScenarioStructureFacingOverrides();
         map.ApplyDerivedCellRules();
         map.ApplyScenarioForegroundOcclusionMasks();
@@ -394,6 +397,27 @@ public sealed class BattleMapData
                     cell.Structure = BattleStructureType.Trap;
                     break;
             }
+        });
+    }
+
+    private void ReadFieldBattleBuildingLayer(TileMapLayer? layer)
+    {
+        if (layer == null)
+        {
+            return;
+        }
+
+        ForEachGrid(grid =>
+        {
+            if (layer.GetCellSourceId(grid) != 1)
+            {
+                return;
+            }
+
+            var atlas = layer.GetCellAtlasCoords(grid);
+            var cell = GetCell(grid.X, grid.Y);
+            cell.Structure = BattleStructureType.Building;
+            cell.BuildingAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 2), 0);
         });
     }
 

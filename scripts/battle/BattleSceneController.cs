@@ -1560,7 +1560,7 @@ public partial class BattleSceneController : Node2D
         var scenarioDefinition = ResolveScenarioDefinition();
         _mapData = ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout()
             ? BattleMapData.CreateFromTileMapLayers(_groundLayer, _moatLayer, _objectLayer, _castleLayer, _overlayLayer, scenarioDefinition)
-            : BattleMapData.Create(scenarioDefinition);
+            : BattleMapData.Create(scenarioDefinition, _objectLayer);
 
         if (ShouldUseEditorAuthoredLayout() && HasEditorAuthoredLayout())
         {
@@ -1762,7 +1762,7 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        _mapData = BattleMapData.Create(scenarioDefinition);
+        _mapData = BattleMapData.Create(scenarioDefinition, _objectLayer);
         ConfigureTileMapLayer("MapRoot/GroundLayer", BattleTileLayerKind.Ground);
         ConfigureTileMapLayer("MapRoot/MoatLayer", BattleTileLayerKind.Moat);
         ConfigureTileMapLayer("MapRoot/ObjectLayer", BattleTileLayerKind.Object);
@@ -10962,6 +10962,14 @@ public partial class BattleSceneController : Node2D
     private bool CanSiegeEngineEnterCell(BattleGridKey sourceGrid, BattleGridKey destinationGrid)
     {
         if (destinationGrid.Level != 0)
+        {
+            return false;
+        }
+
+        // Buildings are defensive positions for human units, not siege engines.
+        if (_mapData != null &&
+            IsWithinMap(destinationGrid.Grid) &&
+            _mapData.GetCell(destinationGrid.X, destinationGrid.Y).ProvidesBuildingCover)
         {
             return false;
         }
