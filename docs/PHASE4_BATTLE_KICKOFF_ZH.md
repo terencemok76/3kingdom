@@ -417,7 +417,9 @@
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
-- `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成 `Building` 結構並阻擋移動，runtime rebuild / battle quick save/load 需保留選到的 building frame。
+- `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
+- `Building` 格可容納一支 battle team，駐守時承受的直接傷害降低 `20%`；火焰傷害不受減免，且建築格正在燃燒時防禦加成暫時失效。騎兵不可對建築格發動或穿越 Charge，格子資訊會顯示建築防禦狀態。
+- `BattleScene.tscn` 的 `ObjectLayer` 在 `(6, 12)` 放置 `building_01` frame 0，作為戰場內可直接測試的建築防禦據點。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
 - 若橋面或木柵欄在 editor 內使用了 `Flip H`，runtime 也必須保留該 object tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向或柵欄變化會跑掉。
 - 讀取 `Use Editor Authored Layout` 的 scene 時，應先讀取原始 `TileMapLayer` 內容，再重建 shared tileset 與 runtime 視覺；不能在讀取前先重新指定 layer tileset，否則 bridge 之類的 editor-authored flip 資訊可能會遺失。

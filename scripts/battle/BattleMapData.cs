@@ -92,6 +92,7 @@ public sealed class BattleCellData
     public bool IsBroken => HasStructureHealth && StructureHealth <= 0;
     public bool HasBridgeHealth => Terrain == BattleTerrainType.Bridge && BridgeMaxHealth > 0;
     public bool IsBridgeDamaged => HasBridgeHealth && BridgeHealth < BridgeMaxHealth;
+    public bool ProvidesBuildingCover => Structure == BattleStructureType.Building;
     public bool IsBlockingStructure => BlocksMovement && !IsBroken && !(Structure == BattleStructureType.Gate && IsGateOpen);
 }
 
@@ -531,6 +532,9 @@ public sealed class BattleMapData
                     cell.StructureHealth = isBrokenWoodenFence ? 0 : BattleCellData.WoodenFenceMaxHealth;
                     break;
                 case BattleStructureType.Building:
+                    // Building art represents a defensible position; one battle team may occupy it.
+                    cell.BlocksMovement = false;
+                    break;
                 case BattleStructureType.Trap:
                 case BattleStructureType.Tree:
                 case BattleStructureType.RockBig:

@@ -197,6 +197,7 @@ public partial class BattleSceneController : Node2D
     private const int CavalryChargeDamage = 1650;
     private const int CavalryChargeVsSpearmanDamage = 900;
     private const int CavalryChargeSpearmanCounterDamage = 600;
+    private const float BuildingCoverDamageReduction = 0.20f;
     private const int WorkerBridgeRepairAmount = 450;
     private const int WorkerGateRepairAmount = 600;
     private const int WorkerAttackDamage = 350;
@@ -3939,6 +3940,13 @@ public partial class BattleSceneController : Node2D
         builder.AppendLine(BattleFormat("ui.battle.deployment", "Deployment: {0}", FormatDeploymentZone(cell.DeploymentZone)));
         builder.AppendLine(BattleFormat("ui.battle.height", "Height: {0}", cell.HeightLevel));
         builder.AppendLine(BattleFormat("ui.battle.blocks_move", "Blocks Move: {0}", IsCellBlockingMovement(cell) ? BattleText("ui.battle.yes", "Yes") : BattleText("ui.battle.no", "No")));
+        if (cell.ProvidesBuildingCover)
+        {
+            var coverStatus = IsBuildingCoverActive(_selectedGridKey)
+                ? BattleFormat("ui.battle.damage_reduction", "Damage -{0}%", Mathf.RoundToInt(BuildingCoverDamageReduction * 100.0f))
+                : BattleText("ui.battle.building_cover_disabled_fire", "Disabled while burning");
+            builder.AppendLine(BattleFormat("ui.battle.building_defense", "Building Defense: {0}", coverStatus));
+        }
         if (_activeFireByGrid.TryGetValue(ToGroundGridKey(grid), out var fireState))
         {
             builder.AppendLine(BattleFormat("ui.battle.fire_burning", "Fire: Burning ({0} turn left)", fireState.RemainingTurns));
@@ -4916,8 +4924,14 @@ public partial class BattleSceneController : Node2D
         BattleGridKey targetGrid,
         BattleOccupantInfo target,
         int damage,
-        float killedRatio)
+        float killedRatio,
+        bool ignoresBuildingCover = false)
     {
+        if (!ignoresBuildingCover && IsBuildingCoverActive(targetGrid))
+        {
+            damage = Mathf.Max(1, Mathf.RoundToInt(damage * (1.0f - BuildingCoverDamageReduction)));
+        }
+
         var actualDamage = Mathf.Min(target.HitPoints, damage);
         if (actualDamage <= 0)
         {
@@ -6982,7 +6996,9 @@ public partial class BattleSceneController : Node2D
         var targetCell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
         var destinationCell = _mapData.GetCell(destinationGrid.X, destinationGrid.Y);
         if (targetCell.Terrain == BattleTerrainType.Forest ||
-            destinationCell.Terrain == BattleTerrainType.Forest)
+            destinationCell.Terrain == BattleTerrainType.Forest ||
+            targetCell.ProvidesBuildingCover ||
+            destinationCell.ProvidesBuildingCover)
         {
             return false;
         }
@@ -9169,7 +9185,7 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, FireDamageKilledRatio);
+        var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, FireDamageKilledRatio, ignoresBuildingCover: true);
         var updatedTarget = casualtyResult.UpdatedTarget;
 
         ShowDamagePopup(targetGrid, casualtyResult.ActualDamage);
@@ -10967,6 +10983,21 @@ public partial class BattleSceneController : Node2D
 
         var cell = _mapData.GetCell(grid.X, grid.Y);
         return cell.Terrain == BattleTerrainType.Courtyard && !IsWallTopGrid(grid);
+    }
+
+    private bool IsBuildingCoverActive(BattleGridKey? gridKey)
+    {
+        if (!gridKey.HasValue ||
+            _mapData == null ||
+            gridKey.Value.Level != 0 ||
+            !IsWithinMap(gridKey.Value.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(gridKey.Value.X, gridKey.Value.Y);
+        return cell.ProvidesBuildingCover &&
+               !_activeFireByGrid.ContainsKey(ToGroundGridKey(gridKey.Value.Grid));
     }
 
     private static bool IsCellBlockingMovement(BattleCellData cell)
