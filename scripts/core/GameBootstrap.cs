@@ -11,6 +11,7 @@ public partial class GameBootstrap : Node
     private const string DefaultScenarioPath = "res://data/scenarios/story1_scenario.json";
     private const string BattleNorthEastScenePath = "res://scenes/battle/BattleScene.tscn";
     private const string BattleNorthWestScenePath = "res://scenes/battle/BattleSceneNorthWest.tscn";
+    private const string FieldBattleLuoyangScenePath = "res://scenes/battle/field/FieldBattleLuoyang.tscn";
 
     private readonly WorldRepository _worldRepository = new();
     private readonly TurnManager _turnManager = new();
@@ -92,7 +93,7 @@ public partial class GameBootstrap : Node
     {
         var (scenePath, scenarioType, useEditorAuthoredLayout) = variant.ToUpperInvariant() switch
         {
-            "FIELD" => (BattleNorthEastScenePath, BattleScenarioType.FieldBattle, false),
+            "FIELD" => (FieldBattleLuoyangScenePath, BattleScenarioType.FieldBattle, true),
             "NE_SIEGE" => (BattleNorthEastScenePath, BattleScenarioType.SiegeAssault, true),
             "NE_MOAT" => (BattleNorthEastScenePath, BattleScenarioType.MoatSiegeBattle, true),
             "NW_SIEGE" => (BattleNorthWestScenePath, BattleScenarioType.SiegeAssault, true),

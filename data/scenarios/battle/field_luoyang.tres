@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BattleScenarioDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://ctlxf41bf1vrk" path="res://scripts/battle/BattleScenarioDefinition.cs" id="1_field_luoyang"]
+
+[resource]
+script = ExtResource("1_field_luoyang")
+DisplayName = "Field Battle (Luoyang)"
+ScenarioType = 1
+Weather = 0
+WindDirection = 2
+WindPower = 1
+TimeOfDay = 1
