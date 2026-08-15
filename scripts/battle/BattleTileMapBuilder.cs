@@ -20,7 +20,10 @@ internal enum BattleFloorTileVisual
     Courtyard = 2,
     WallWalk = 3,
     ForestGround = 4,
-    River = 5
+    River = 5,
+    River2 = 6,
+    Swamp = 7,
+    Coast = 8
 }
 
 internal enum BattleObjectTileVisual
@@ -186,6 +189,27 @@ public static class BattleTileMapBuilder
         return true;
     }
 
+    public static bool TryGetBuildingSpriteSpec(BattleCellData cell, out BattleTileSpriteSpec spec)
+    {
+        if (cell.Structure != BattleStructureType.Building || !ResourceLoader.Exists(ObjectBuildingAtlasPath))
+        {
+            spec = default;
+            return false;
+        }
+
+        var texture = GD.Load<Texture2D>(ObjectBuildingAtlasPath);
+        if (texture == null)
+        {
+            spec = default;
+            return false;
+        }
+
+        var metrics = GetAtlasMetrics(BattleTileLayerKind.Object);
+        var atlasCoords = new Vector2I(Mathf.Clamp(cell.BuildingAtlasCoords.X, 0, ObjectBuildingTileCount - 1), 0);
+        spec = CreateSpriteSpec(texture, metrics, atlasCoords, metrics.GetSpriteFootPivot());
+        return true;
+    }
+
     private static Vector2I? ResolveAtlasCoords(BattleCellData cell, BattleTileLayerKind layerKind)
     {
         return layerKind switch
@@ -207,15 +231,18 @@ public static class BattleTileMapBuilder
             BattleTerrainType.Courtyard => BattleFloorTileVisual.Courtyard,
             BattleTerrainType.WallWalk => BattleFloorTileVisual.WallWalk,
             BattleTerrainType.Forest => BattleFloorTileVisual.ForestGround,
+            BattleTerrainType.River => BattleFloorTileVisual.River2,
+            BattleTerrainType.Swamp => BattleFloorTileVisual.Swamp,
+            BattleTerrainType.Coast => BattleFloorTileVisual.Coast,
             _ => BattleFloorTileVisual.Grass
         };
-        return new Vector2I((int)visual, 0);
+        return GetAtlasCoords(BattleTileLayerKind.Ground, (int)visual);
     }
 
     private static Vector2I? ResolveMoatVisual(BattleCellData cell)
     {
         return cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.Bridge
-            ? new Vector2I((int)BattleFloorTileVisual.River, 0)
+            ? GetAtlasCoords(BattleTileLayerKind.Moat, (int)BattleFloorTileVisual.River)
             : null;
     }
 
@@ -382,7 +409,7 @@ public static class BattleTileMapBuilder
         };
         for (var tileIndex = 0; tileIndex < tileCount; tileIndex++)
         {
-            var atlasCoords = new Vector2I(tileIndex, 0);
+            var atlasCoords = GetAtlasCoords(layerKind, tileIndex);
             atlasSource.CreateTile(atlasCoords);
             var textureOrigin = metrics.GetTextureOrigin();
             if (textureOrigin != Vector2I.Zero)
@@ -516,12 +543,14 @@ public static class BattleTileMapBuilder
             return null;
         }
 
-        var requiredWidth = tileCount * metrics.RegionWidth;
-        if (texture.GetWidth() < requiredWidth || texture.GetHeight() < metrics.RegionHeight)
+        var requiredAtlasSize = GetAtlasSizeInTiles(layerKind, tileCount);
+        var requiredWidth = requiredAtlasSize.X * metrics.RegionWidth;
+        var requiredHeight = requiredAtlasSize.Y * metrics.RegionHeight;
+        if (texture.GetWidth() < requiredWidth || texture.GetHeight() < requiredHeight)
         {
             GD.PushWarning(
                 $"Battle tileset atlas too small for {layerKind}: {atlasPath}. " +
-                $"Expected at least {requiredWidth}x{metrics.RegionHeight}, got {texture.GetWidth()}x{texture.GetHeight()}. Using generated fallback.");
+                $"Expected at least {requiredWidth}x{requiredHeight}, got {texture.GetWidth()}x{texture.GetHeight()}. Using generated fallback.");
             return null;
         }
 
@@ -617,19 +646,45 @@ public static class BattleTileMapBuilder
         };
     }
 
+    private static Vector2I GetAtlasSizeInTiles(BattleTileLayerKind layerKind, int tileCount)
+    {
+        return layerKind is BattleTileLayerKind.Ground or BattleTileLayerKind.Moat
+            ? new Vector2I(8, 2)
+            : new Vector2I(tileCount, 1);
+    }
+
+    private static Vector2I GetAtlasCoords(BattleTileLayerKind layerKind, int tileIndex)
+    {
+        if (layerKind is not (BattleTileLayerKind.Ground or BattleTileLayerKind.Moat))
+        {
+            return new Vector2I(tileIndex, 0);
+        }
+
+        return tileIndex == (int)BattleFloorTileVisual.Coast
+            ? new Vector2I(0, 1)
+            : new Vector2I(tileIndex, 0);
+    }
+
     private static Image BuildAtlasImage(BattleTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)
     {
-        var image = Image.CreateEmpty(tileCount * metrics.RegionWidth, metrics.RegionHeight, false, Image.Format.Rgba8);
+        var atlasSize = GetAtlasSizeInTiles(layerKind, tileCount);
+        var image = Image.CreateEmpty(
+            atlasSize.X * metrics.RegionWidth,
+            atlasSize.Y * metrics.RegionHeight,
+            false,
+            Image.Format.Rgba8);
         image.Fill(Colors.Transparent);
 
         for (var tileIndex = 0; tileIndex < tileCount; tileIndex++)
         {
-            var tileOffsetX = tileIndex * metrics.RegionWidth;
+            var atlasCoords = GetAtlasCoords(layerKind, tileIndex);
+            var tileOffsetX = atlasCoords.X * metrics.RegionWidth;
+            var tileOffsetY = atlasCoords.Y * metrics.RegionHeight;
             switch (layerKind)
             {
                 case BattleTileLayerKind.Ground:
                 case BattleTileLayerKind.Moat:
-                    DrawFloorTile(image, tileOffsetX, metrics, (BattleFloorTileVisual)tileIndex);
+                    DrawFloorTile(image, tileOffsetX, tileOffsetY, metrics, (BattleFloorTileVisual)tileIndex);
                     break;
                 case BattleTileLayerKind.Object:
                     DrawObjectTile(image, tileOffsetX, metrics, (BattleObjectTileVisual)tileIndex);
@@ -646,7 +701,7 @@ public static class BattleTileMapBuilder
         return image;
     }
 
-    private static void DrawFloorTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattleFloorTileVisual visual)
+    private static void DrawFloorTile(Image image, int tileOffsetX, int tileOffsetY, BattleAtlasMetrics metrics, BattleFloorTileVisual visual)
     {
         var fillColor = visual switch
         {
@@ -656,6 +711,9 @@ public static class BattleTileMapBuilder
             BattleFloorTileVisual.WallWalk => new Color("99846d"),
             BattleFloorTileVisual.ForestGround => new Color("5f7745"),
             BattleFloorTileVisual.River => new Color("2b7198"),
+            BattleFloorTileVisual.River2 => new Color("2184b4"),
+            BattleFloorTileVisual.Swamp => new Color("61734d"),
+            BattleFloorTileVisual.Coast => new Color("9cb3a3"),
             _ => new Color("738c50")
         };
 
@@ -667,6 +725,9 @@ public static class BattleTileMapBuilder
             BattleFloorTileVisual.WallWalk => new Color("7d6a56"),
             BattleFloorTileVisual.ForestGround => new Color("476037"),
             BattleFloorTileVisual.River => new Color("1c5278"),
+            BattleFloorTileVisual.River2 => new Color("176285"),
+            BattleFloorTileVisual.Swamp => new Color("46573b"),
+            BattleFloorTileVisual.Coast => new Color("718d8c"),
             _ => new Color("5f7640")
         };
 
@@ -709,7 +770,7 @@ public static class BattleTileMapBuilder
             }
 
             return color;
-        });
+        }, tileOffsetY: tileOffsetY);
     }
 
     private static void DrawObjectTile(Image image, int tileOffsetX, BattleAtlasMetrics metrics, BattleObjectTileVisual visual)
@@ -865,7 +926,8 @@ public static class BattleTileMapBuilder
         Color fillColor,
         Color borderColor,
         Func<float, float, float, Color> colorProvider,
-        float halfScale = 1.0f)
+        float halfScale = 1.0f,
+        int tileOffsetY = 0)
     {
         var halfWidth = (TileWidth * 0.5f) * halfScale;
         var halfHeight = (BaseTileHeight * 0.5f) * halfScale;
@@ -894,7 +956,7 @@ public static class BattleTileMapBuilder
                     color = fillColor;
                 }
 
-                image.SetPixel(tileOffsetX + localX, localY, color);
+                image.SetPixel(tileOffsetX + localX, tileOffsetY + localY, color);
             }
         }
     }

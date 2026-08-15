@@ -19,6 +19,7 @@ public readonly record struct BattleGridKey(int X, int Y, int Level)
 internal enum BattleDepthRenderKind
 {
     CastleVisual,
+    BuildingVisual,
     FireEffect,
     MoveHighlight,
     AttackHighlight,
@@ -373,6 +374,7 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
+    private readonly Dictionary<Vector2I, Sprite2D> _buildingDepthSpritesByGrid = new();
     private readonly List<BattleHighlightRenderer> _highlightDepthVisuals = new();
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
     private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
@@ -427,7 +429,7 @@ public partial class BattleSceneController : Node2D
     public BattleScenarioType ScenarioType { get; set; } = BattleScenarioType.SiegeAssault;
 
     [Export]
-    public BattleScenarioDefinition? ScenarioDefinition { get; set; }
+    public Resource? ScenarioDefinition { get; set; }
 
     [Export]
     public int DropStoneUsesPerUnit { get; set; } = 3;
@@ -705,6 +707,7 @@ public partial class BattleSceneController : Node2D
 
         InitializeMapDataAndLayers();
         BuildCastleDepthVisuals();
+        BuildBuildingDepthVisuals();
         PopulateMarkers();
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
@@ -1231,6 +1234,7 @@ public partial class BattleSceneController : Node2D
         ClearFireVisuals();
         PrepareBattlePieceMarkersForLoad();
         ClearCastleDepthVisuals();
+        ClearBuildingDepthVisuals();
 
         _battleDepthEntries.Clear();
         _occupantsByGrid.Clear();
@@ -1371,6 +1375,7 @@ public partial class BattleSceneController : Node2D
         }
 
         BuildCastleDepthVisuals();
+        BuildBuildingDepthVisuals();
     }
 
     private BattlePieceMarker? CreateSavedBattleMarker(BattleOccupantSaveData saveData, Dictionary<string, Queue<BattlePieceMarker>> reusableMarkersByStableId)
@@ -1587,6 +1592,7 @@ public partial class BattleSceneController : Node2D
         }
 
         ClearCastleDepthVisuals();
+        ClearBuildingDepthVisuals();
         _castleLayer.Visible = true;
         RefreshBattleDepthLayerOrder();
     }
@@ -1810,9 +1816,9 @@ public partial class BattleSceneController : Node2D
             return sceneScenarioDefinition;
         }
 
-        if (ScenarioDefinition != null)
+        if (ScenarioDefinition is BattleScenarioDefinition configuredScenarioDefinition)
         {
-            return ScenarioDefinition;
+            return configuredScenarioDefinition;
         }
 
         return BattleScenarioDefinition.CreateBuiltIn(ScenarioType);
@@ -2076,6 +2082,48 @@ public partial class BattleSceneController : Node2D
         _castleDepthSpritesByGrid.Clear();
     }
 
+    private void BuildBuildingDepthVisuals()
+    {
+        ClearBuildingDepthVisuals();
+        if (_battleDepthLayer == null || _objectLayer == null || _mapData == null)
+        {
+            return;
+        }
+
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var cell = _mapData.GetCell(x, y);
+                if (!BattleTileMapBuilder.TryGetBuildingSpriteSpec(cell, out var spec))
+                {
+                    continue;
+                }
+
+                // Building tiles are rendered in the shared depth layer, not the fixed ObjectLayer.
+                _objectLayer.EraseCell(cell.Grid);
+                var sprite = CreateCastleDepthSprite(cell.Grid, spec);
+                sprite.Name = $"Building_{cell.Grid.X}_{cell.Grid.Y}";
+                _battleDepthLayer.AddChild(sprite);
+                _buildingDepthSpritesByGrid[cell.Grid] = sprite;
+                RegisterBattleDepthEntry(sprite, ToGroundGridKey(cell.Grid), BattleDepthRenderKind.BuildingVisual);
+            }
+        }
+
+        _objectLayer.UpdateInternals();
+    }
+
+    private void ClearBuildingDepthVisuals()
+    {
+        foreach (var sprite in _buildingDepthSpritesByGrid.Values)
+        {
+            _battleDepthEntries.Remove(sprite);
+            sprite.QueueFree();
+        }
+
+        _buildingDepthSpritesByGrid.Clear();
+    }
+
     private void ClearHighlightDepthVisuals()
     {
         foreach (var visual in _highlightDepthVisuals)
@@ -2211,6 +2259,7 @@ public partial class BattleSceneController : Node2D
         return kind switch
         {
             BattleDepthRenderKind.CastleVisual => 0,
+            BattleDepthRenderKind.BuildingVisual => 3,
             BattleDepthRenderKind.MoveHighlight or
             BattleDepthRenderKind.AttackHighlight or
             BattleDepthRenderKind.SelectedHighlight => 2,
@@ -2236,6 +2285,7 @@ public partial class BattleSceneController : Node2D
         return kind switch
         {
             BattleDepthRenderKind.CastleVisual => 0,
+            BattleDepthRenderKind.BuildingVisual => 0,
             BattleDepthRenderKind.MoveHighlight => 4,
             BattleDepthRenderKind.AttackHighlight => 5,
             BattleDepthRenderKind.SelectedHighlight => 6,
@@ -6598,6 +6648,7 @@ public partial class BattleSceneController : Node2D
         return cell.Terrain switch
         {
             BattleTerrainType.Forest => 2,
+            BattleTerrainType.Swamp => 2,
             _ => 1
         };
     }
@@ -9349,7 +9400,7 @@ public partial class BattleSceneController : Node2D
 
     private static bool CanCellIgnite(BattleCellData cell)
     {
-        if (cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.WallWalk)
+        if (cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.River or BattleTerrainType.Swamp or BattleTerrainType.Coast or BattleTerrainType.WallWalk)
         {
             return false;
         }
@@ -11099,6 +11150,9 @@ public partial class BattleSceneController : Node2D
             BattleTerrainType.Forest => BattleText("ui.battle.terrain_forest", "Forest"),
             BattleTerrainType.WallWalk => BattleText("ui.battle.terrain_wall_walk", "Wall Top"),
             BattleTerrainType.Moat => BattleText("ui.battle.terrain_moat", "Moat"),
+            BattleTerrainType.River => BattleText("ui.battle.terrain_river", "River"),
+            BattleTerrainType.Swamp => BattleText("ui.battle.terrain_swamp", "Swamp"),
+            BattleTerrainType.Coast => BattleText("ui.battle.terrain_coast", "Coast"),
             BattleTerrainType.Bridge => BattleText("ui.battle.terrain_bridge", "Bridge"),
             BattleTerrainType.Grass => BattleText("ui.battle.terrain_grass", "Grass"),
             _ => BattleText("ui.battle.terrain_plain", "Plain")

@@ -13,6 +13,9 @@ public enum BattleTerrainType
     Forest,
     WallWalk,
     Moat,
+    River,
+    Swamp,
+    Coast,
     Bridge
 }
 
@@ -327,13 +330,16 @@ public sealed class BattleMapData
             }
 
             var atlas = layer.GetCellAtlasCoords(grid);
-            GetCell(grid.X, grid.Y).Terrain = atlas.X switch
+            GetCell(grid.X, grid.Y).Terrain = atlas switch
             {
-                1 => BattleTerrainType.Road,
-                2 => BattleTerrainType.Courtyard,
-                3 => BattleTerrainType.WallWalk,
-                4 => BattleTerrainType.Forest,
-                5 => BattleTerrainType.Moat,
+                { X: 1, Y: 0 } => BattleTerrainType.Road,
+                { X: 2, Y: 0 } => BattleTerrainType.Courtyard,
+                { X: 3, Y: 0 } => BattleTerrainType.WallWalk,
+                { X: 4, Y: 0 } => BattleTerrainType.Forest,
+                { X: 5, Y: 0 } => BattleTerrainType.Moat,
+                { X: 6, Y: 0 } => BattleTerrainType.River,
+                { X: 7, Y: 0 } => BattleTerrainType.Swamp,
+                { X: 0, Y: 1 } => BattleTerrainType.Coast,
                 _ => BattleTerrainType.Grass
             };
         });
@@ -506,7 +512,7 @@ public sealed class BattleMapData
             var isBrokenWall = cell.Structure == BattleStructureType.Wall && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             var isBrokenGate = cell.Structure == BattleStructureType.Gate && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             var isBrokenWoodenFence = cell.Structure == BattleStructureType.WoodenFence && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
-            cell.BlocksMovement = cell.Terrain == BattleTerrainType.Moat;
+            cell.BlocksMovement = cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.River;
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
             cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
             cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;

@@ -400,6 +400,7 @@
   - 目前野戰仍以程序式地形為主，但會額外疊加 scene `ObjectLayer` 內的 `Building` 圖塊，讓共用 `BattleScene` 的測試建築可直接出現在野戰模式。
   - `FIELD` 入口目前改為載入 `scenes/battle/field/FieldBattleLuoyang.tscn`，此 scene 繼承共用戰鬥 UI，但以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
   - 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
+  - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方邙山林地、中央洛水河谷、兩岸濕地／岸地與穿越河谷的道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍，只使用既有 floor、building、tree 與 rock tiles。
 - `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
   - 選取 Worker 後顯示專用的 `Bridge` 與 `Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
@@ -414,7 +415,7 @@
 - `MoatSiegeBattle` 會在攻城 prototype 的接近路線加入：
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
-- 護城河使用 `assets/battle/floor/floor.png` 的第六格 river tile；橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
+- `assets/battle/floor/floor.png` 的第一列依序為 grass、road、courtyard、wall walk、forest、river（Moat）、river2（River）與 swamp；第二列第一格為 coast。River 不可通行，Swamp 可通行但移動消耗為 2，Coast 是可通行岸地；只有 river（Moat）可套用攻城橋樑規則。橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
 - `MoatLayer` 會額外套用輕量水流 shader，對 river tile 做緩慢 UV 位移與微弱明暗起伏；此效果僅為場景表現，不改變 `BattleMapData`、橋樑施工/破壞或任何移動／A* 規則。
 - `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
@@ -422,6 +423,7 @@
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
 - `Building` 格只可容納一般人類 battle team，攻城梯、衝車、投石車與補給車等攻城器不可進入；駐守時承受的直接傷害降低 `20%`；火焰傷害不受減免，且建築格正在燃燒時防禦加成暫時失效。騎兵不可對建築格發動或穿越 Charge，格子資訊會顯示建築防禦狀態。
+- runtime 會將 Building 從固定 `ObjectLayer` 提升至與單位共用的 `BattleDepthLayer`，以 `grid.X + grid.Y` 排序：位於建築後方的單位會被遮住，位於前方或同格駐守的單位會顯示在建築前。
 - `BattleScene.tscn` 的 `ObjectLayer` 在 `(6, 12)` 放置 `building_01` frame 0，作為戰場內可直接測試的建築防禦據點。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
 - 若橋面或木柵欄在 editor 內使用了 `Flip H`，runtime 也必須保留該 object tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向或柵欄變化會跑掉。
