@@ -27,7 +27,10 @@ internal enum BattleFloorTileVisual
     WetGrass = 9,
     Mud = 10,
     Pebble = 11,
-    ShallowWater = 12
+    ShallowWater = 12,
+    WornRoad = 13,
+    OfficialRoad = 14,
+    DryRiverBed = 15
 }
 
 internal enum BattleObjectTileVisual
@@ -892,6 +895,9 @@ public static class BattleTileMapBuilder
             (int)BattleFloorTileVisual.Mud => new Vector2I(2, 1),
             (int)BattleFloorTileVisual.Pebble => new Vector2I(3, 1),
             (int)BattleFloorTileVisual.ShallowWater => new Vector2I(4, 1),
+            (int)BattleFloorTileVisual.WornRoad => new Vector2I(5, 1),
+            (int)BattleFloorTileVisual.OfficialRoad => new Vector2I(6, 1),
+            (int)BattleFloorTileVisual.DryRiverBed => new Vector2I(7, 1),
             _ => new Vector2I(tileIndex, 0)
         };
     }

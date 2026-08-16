@@ -360,6 +360,9 @@ public sealed class BattleMapData
                 { X: 2, Y: 1 } => BattleTerrainType.Swamp,
                 { X: 3, Y: 1 } => BattleTerrainType.Road,
                 { X: 4, Y: 1 } => BattleTerrainType.Coast,
+                { X: 5, Y: 1 } => BattleTerrainType.Road,
+                { X: 6, Y: 1 } => BattleTerrainType.Road,
+                { X: 7, Y: 1 } => BattleTerrainType.Road,
                 _ => BattleTerrainType.Grass
             };
         });

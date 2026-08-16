@@ -35,12 +35,12 @@ function buildGround() {
         set(x, riverY + 2, x >= 10 && x <= 14 ? 0x10003 : 0x10004); // Pebble near the bridge, Shallow Water elsewhere.
     }
 
-    // The one-cell imperial road feeds directly into the two-cell stone bridge.
+    // The maintained official road feeds directly into the two-cell stone bridge.
     for (let y = 5; y <= 17; y++) {
-        if (y !== 11 && y !== 12) set(12, y, 1);
+        if (y !== 11 && y !== 12) set(12, y, 0x10006);
     }
-    for (let x = 4; x <= 21; x++) set(x, 18, 1);
-    for (let y = 18; y <= 23; y++) set(19, y, 1);
+    for (let x = 4; x <= 21; x++) set(x, 18, 0x10005);
+    for (let y = 18; y <= 23; y++) set(19, y, 0x10005);
     return cells;
 }
 

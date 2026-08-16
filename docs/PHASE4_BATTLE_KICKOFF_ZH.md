@@ -401,8 +401,8 @@
 - 戰鬥選單保留洛陽野戰，並提供漢中野戰；`FIELD`／`FIELD_LUOYANG` 載入 `scenes/battle/field/FieldBattleLuoyang.tscn`，`FIELD_HANZHONG` 載入 `scenes/battle/field/FieldBattleHanzhong.tscn`。兩者均繼承共用戰鬥 UI，並以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
 - `FieldBattle` 的 editor preview 必須隱藏繼承自共用攻城 scene 的 `CastleLayer`，避免父 scene 的城牆資料在編輯器殘留顯示；野戰場景的 WYSIWYG 預覽應與 runtime 地圖一致。
 - 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
-  - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方以連續邙山山脊與疏密相間的山腳森林界定戰場，中央保留洛水河谷、兩岸濕地／岸地與穿越河谷的渡口道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍與開闊農地。`RiverEffectLayer` 只覆蓋洛水深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，渡口、淺水與河岸過渡保持靜態。場景使用既有 floor、building、tree、rock、forest、wood、hill、mountain 與 farm tiles。投石車初始部署由洛陽專屬 Scenario Data 設為南岸可通行格 `(14,17)`，避免共用預設 `(14,15)` 落在河面。
-  - `FieldBattleHanzhong.tscn` 以漢中盆地為第二個城市野戰範例：北側秦嶺與南側大巴山的山林夾住中央漢水，河道在戰場內蜿蜒；單格中央官道直接接到 `bridge_01.png` 第二列的雙格石橋 `(12,11)`、`(12,12)`，橫越河段後連接南側平壩道路，南岸配置農地與聚落。兩個石橋格各自保留可通行、可受攻擊的 `Bridge` 地形、耐久度與水面底圖；`RiverEffectLayer` 只覆蓋深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，並置於橋物件下方；場景僅使用既有 floor、building、forest、swamp、hill、mountain、wood、farm、rock 與 bridge tiles；所有部署皆由 `field_hanzhong.tres` 定義。
+  - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方以連續邙山山脊與疏密相間的山腳森林界定戰場，中央保留洛水河谷、兩岸濕地／岸地與穿越河谷的渡口道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍與開闊農地。渡口三格寬的主線使用「官道」，山腳與農地支線使用「磨損道路」。`RiverEffectLayer` 只覆蓋洛水深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，渡口、淺水與河岸過渡保持靜態。場景使用既有 floor、building、tree、rock、forest、wood、hill、mountain 與 farm tiles。投石車初始部署由洛陽專屬 Scenario Data 設為南岸可通行格 `(14,17)`，避免共用預設 `(14,15)` 落在河面。
+  - `FieldBattleHanzhong.tscn` 以漢中盆地為第二個城市野戰範例：北側秦嶺與南側大巴山的山林夾住中央漢水，河道在戰場內蜿蜒；單格中央官道直接接到 `bridge_01.png` 第二列的雙格石橋 `(12,11)`、`(12,12)`，橫越河段後連接南側平壩道路，南岸配置農地與聚落。橋前南北主線使用「官道」，平壩與聚落支線使用「磨損道路」。兩個石橋格各自保留可通行、可受攻擊的 `Bridge` 地形、耐久度與水面底圖；`RiverEffectLayer` 只覆蓋深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，並置於橋物件下方；場景僅使用既有 floor、building、forest、swamp、hill、mountain、wood、farm、rock 與 bridge tiles；所有部署皆由 `field_hanzhong.tres` 定義。
 - `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
   - 選取 Worker 後顯示專用的 `Bridge` 與 `Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
@@ -417,7 +417,7 @@
 - `MoatSiegeBattle` 會在攻城 prototype 的接近路線加入：
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
-- `assets/battle/floor/floor.png` 的第一列依序為 grass、road、courtyard、wall walk、forest、river（Moat）、river2（River）與 swamp；第二列依序為 coast、wet grass、mud、pebble、shallow water。wet grass 依 Grass 規則、mud 依 Swamp 規則、pebble 依 Road 規則、shallow water 依 Coast 規則，但 runtime 會保留其原始圖塊視覺。River 不可通行，Swamp 可通行但移動消耗為 2，Coast 是可通行岸地；只有 river（Moat）可套用攻城橋樑規則。橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
+- `assets/battle/floor/floor.png` 的第一列依序為 grass、road、courtyard、wall walk、forest、river（Moat）、river2（River）與 swamp；第二列依序為 coast、wet grass、mud、pebble、shallow water、worn road、official road、dry river bed。wet grass 依 Grass 規則、mud 依 Swamp 規則、pebble／worn road／official road／dry river bed 依 Road 規則、shallow water 依 Coast 規則，但 runtime 會保留其原始圖塊視覺。乾河床預留給宛、襄陽、涼州等野戰場景；River 不可通行，Swamp 可通行但移動消耗為 2，Coast 是可通行岸地；只有 river（Moat）可套用攻城橋樑規則。橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
 - `MoatLayer` 會額外套用輕量水流 shader，對 river tile 做緩慢 UV 位移與微弱明暗起伏；此效果僅為場景表現，不改變 `BattleMapData`、橋樑施工/破壞或任何移動／A* 規則。
 - `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
