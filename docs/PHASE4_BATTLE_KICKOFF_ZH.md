@@ -424,9 +424,11 @@
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
 - `assets/battle/object/forest_01.png` 是 `ObjectLayer` source ID `2` 的 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Forest` 地形並保留選到的變體，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
+- `assets/battle/object/wood_01.png` 是 `ObjectLayer` source ID `6` 的第二組 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；規則與 `forest_01.png` 相同，但 runtime rebuild / battle quick save/load 會額外保留圖集來源，避免將 wood 變體換回第一組森林圖。
 - `assets/battle/object/swamp_01.png` 是 `ObjectLayer` source ID `3` 的 swamp atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Swamp` 地形並保留選到的變體，移動消耗仍為 2，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/hill_01.png` 是 `ObjectLayer` source ID `4` 的 hill atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成可通行的 `Hill` 地形，移動消耗為 2，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/mountain_01.png` 是 `ObjectLayer` source ID `5` 的 mountain atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成不可通行、不可起火的 `Mountain` 地形，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
+- `assets/battle/object/farm_01.png` 是 `ObjectLayer` source ID `7` 的 farm atlas，規格為 `3 rows x 4 frame`、每格 `128x128`；十二個 frame 都讀成可通行、移動消耗為 1 的 `Farm` 地形，不提供建築防禦或森林 Hide，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `Building` 格只可容納一般人類 battle team，攻城梯、衝車、投石車與補給車等攻城器不可進入；駐守時承受的直接傷害降低 `20%`；火焰傷害不受減免，且建築格正在燃燒時防禦加成暫時失效。騎兵不可對建築格發動或穿越 Charge，格子資訊會顯示建築防禦狀態。
 - runtime 會將 Building 從固定 `ObjectLayer` 提升至與單位共用的 `BattleDepthLayer`，以 `grid.X + grid.Y` 排序：位於建築後方的單位會被遮住，位於前方或同格駐守的單位會顯示在建築前。
 - `BattleScene.tscn` 的 `ObjectLayer` 在 `(6, 12)` 放置 `building_01` frame 0，作為戰場內可直接測試的建築防禦據點。

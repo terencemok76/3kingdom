@@ -11158,6 +11158,7 @@ public partial class BattleSceneController : Node2D
             BattleTerrainType.Coast => BattleText("ui.battle.terrain_coast", "Coast"),
             BattleTerrainType.Hill => BattleText("ui.battle.terrain_hill", "Hill"),
             BattleTerrainType.Mountain => BattleText("ui.battle.terrain_mountain", "Mountain"),
+            BattleTerrainType.Farm => BattleText("ui.battle.terrain_farm", "Farm"),
             BattleTerrainType.Bridge => BattleText("ui.battle.terrain_bridge", "Bridge"),
             BattleTerrainType.Grass => BattleText("ui.battle.terrain_grass", "Grass"),
             _ => BattleText("ui.battle.terrain_plain", "Plain")
@@ -11330,6 +11331,7 @@ public partial class BattleSceneController : Node2D
         public int BuildingAtlasX { get; set; }
         public int BuildingAtlasY { get; set; }
         public bool HasForestObjectVisual { get; set; }
+        public int ForestAtlasSourceId { get; set; }
         public int ForestAtlasX { get; set; }
         public int ForestAtlasY { get; set; }
         public bool HasSwampObjectVisual { get; set; }
@@ -11341,6 +11343,9 @@ public partial class BattleSceneController : Node2D
         public bool HasMountainObjectVisual { get; set; }
         public int MountainAtlasX { get; set; }
         public int MountainAtlasY { get; set; }
+        public bool HasFarmObjectVisual { get; set; }
+        public int FarmAtlasX { get; set; }
+        public int FarmAtlasY { get; set; }
         public int BridgeMaxHealth { get; set; }
         public int BridgeHealth { get; set; }
 
@@ -11372,6 +11377,7 @@ public partial class BattleSceneController : Node2D
                 BuildingAtlasX = cell.BuildingAtlasCoords.X,
                 BuildingAtlasY = cell.BuildingAtlasCoords.Y,
                 HasForestObjectVisual = cell.ForestAtlasCoords.X >= 0,
+                ForestAtlasSourceId = cell.ForestAtlasSourceId,
                 ForestAtlasX = cell.ForestAtlasCoords.X,
                 ForestAtlasY = cell.ForestAtlasCoords.Y,
                 HasSwampObjectVisual = cell.SwampAtlasCoords.X >= 0,
@@ -11383,6 +11389,9 @@ public partial class BattleSceneController : Node2D
                 HasMountainObjectVisual = cell.MountainAtlasCoords.X >= 0,
                 MountainAtlasX = cell.MountainAtlasCoords.X,
                 MountainAtlasY = cell.MountainAtlasCoords.Y,
+                HasFarmObjectVisual = cell.FarmAtlasCoords.X >= 0,
+                FarmAtlasX = cell.FarmAtlasCoords.X,
+                FarmAtlasY = cell.FarmAtlasCoords.Y,
                 BridgeMaxHealth = cell.BridgeMaxHealth,
                 BridgeHealth = cell.BridgeHealth
             };
@@ -11412,6 +11421,9 @@ public partial class BattleSceneController : Node2D
             cell.ForestAtlasCoords = HasForestObjectVisual
                 ? new Vector2I(ForestAtlasX, ForestAtlasY)
                 : new Vector2I(-1, -1);
+            cell.ForestAtlasSourceId = HasForestObjectVisual
+                ? ForestAtlasSourceId == 6 ? 6 : 2
+                : -1;
             cell.SwampAtlasCoords = HasSwampObjectVisual
                 ? new Vector2I(SwampAtlasX, SwampAtlasY)
                 : new Vector2I(-1, -1);
@@ -11420,6 +11432,9 @@ public partial class BattleSceneController : Node2D
                 : new Vector2I(-1, -1);
             cell.MountainAtlasCoords = HasMountainObjectVisual
                 ? new Vector2I(MountainAtlasX, MountainAtlasY)
+                : new Vector2I(-1, -1);
+            cell.FarmAtlasCoords = HasFarmObjectVisual
+                ? new Vector2I(FarmAtlasX, FarmAtlasY)
                 : new Vector2I(-1, -1);
             cell.BridgeMaxHealth = BridgeMaxHealth;
             cell.BridgeHealth = BridgeHealth;

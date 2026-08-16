@@ -55,9 +55,10 @@ function buildGround() {
 function buildObjects() {
     const cells = [];
     const forestCanopies = [[1, 1, 0], [5, 2, 1], [9, 1, 2], [13, 2, 3], [17, 1, 0x10000], [21, 2, 0x10001], [3, 4, 0x10002], [19, 4, 0x10003]];
+    const woodCanopies = [[2, 2, 0], [6, 3, 1], [10, 2, 2], [14, 3, 3], [18, 2, 0x10000], [22, 3, 0x10001], [1, 5, 0x10002], [21, 5, 0x10003]];
     const hillTiles = [[3, 0, 0], [7, 1, 1], [11, 0, 2], [15, 1, 3], [4, 5, 0x10000], [8, 4, 0x10001], [12, 5, 0x10002], [16, 4, 0x10003]];
     const mountainTiles = [[0, 0, 0], [4, 1, 1], [8, 0, 2], [12, 1, 3], [16, 0, 0x10000], [20, 1, 0x10001], [22, 4, 0x10002], [24, 5, 0x10003]];
-    const terrainObjectGridKeys = new Set([...forestCanopies, ...hillTiles, ...mountainTiles].map(([x, y]) => `${x},${y}`));
+    const terrainObjectGridKeys = new Set([...forestCanopies, ...woodCanopies, ...hillTiles, ...mountainTiles].map(([x, y]) => `${x},${y}`));
     for (let y = 1; y <= 6; y++) for (let x = 0; x < width; x++) {
         if (!terrainObjectGridKeys.has(`${x},${y}`) && (x * 3 + y * 5) % 7 === 0) cells.push({ x, y, tile: 0 });
     }
@@ -68,10 +69,17 @@ function buildObjects() {
     // Eight canopy variations keep the northern Mangshan forest WYSIWYG in the editor.
     forestCanopies
         .forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 2 }));
+    woodCanopies
+        .forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 6 }));
 
     // Mangshan foothills combine traversable hills with impassable mountain ridges.
     hillTiles.forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 4 }));
     mountainTiles.forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 5 }));
+
+    // Twelve crop, wheat, and paddy variations form the southern Luoyang farm plots.
+    [[2, 18, 0], [3, 18, 1], [4, 18, 2], [5, 18, 3], [19, 18, 0x10000], [21, 18, 0x10001],
+        [18, 19, 0x10002], [19, 19, 0x10003], [20, 19, 0x20000], [21, 19, 0x20001], [9, 21, 0x20002], [10, 21, 0x20003]]
+        .forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 7 }));
 
     // Reeds and pools show the eight swamp variants along both Luo River banks.
     [[3, 12, 0], [5, 12, 1], [6, 13, 2], [7, 13, 3], [17, 13, 0x10000], [18, 13, 0x10001], [19, 12, 0x10002], [21, 12, 0x10003]]

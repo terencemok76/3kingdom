@@ -66,6 +66,8 @@ public static class BattleTileMapBuilder
     private const int ObjectSwampAtlasSourceId = 3;
     private const int ObjectHillAtlasSourceId = 4;
     private const int ObjectMountainAtlasSourceId = 5;
+    private const int ObjectWoodAtlasSourceId = 6;
+    private const int ObjectFarmAtlasSourceId = 7;
     private const int ObjectBuildingTileCount = 3;
     private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
     private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
@@ -74,6 +76,8 @@ public static class BattleTileMapBuilder
     private const string ObjectSwampAtlasPath = "res://assets/battle/object/swamp_01.png";
     private const string ObjectHillAtlasPath = "res://assets/battle/object/hill_01.png";
     private const string ObjectMountainAtlasPath = "res://assets/battle/object/mountain_01.png";
+    private const string ObjectWoodAtlasPath = "res://assets/battle/object/wood_01.png";
+    private const string ObjectFarmAtlasPath = "res://assets/battle/object/farm_01.png";
     private const string CastleAtlasPath = "res://assets/battle/wall/castle.png";
     private const string CastleOpenGateAtlasPath = "res://assets/battle/wall/castle_gate_open.png";
     private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
@@ -286,6 +290,11 @@ public static class BattleTileMapBuilder
             return cell.MountainAtlasCoords;
         }
 
+        if (cell.Terrain == BattleTerrainType.Farm && cell.FarmAtlasCoords.X >= 0)
+        {
+            return cell.FarmAtlasCoords;
+        }
+
         var visual = cell.Structure switch
         {
             BattleStructureType.Tree => BattleObjectTileVisual.Tree,
@@ -303,13 +312,17 @@ public static class BattleTileMapBuilder
         return layerKind == BattleTileLayerKind.Object && cell.Structure == BattleStructureType.Building
             ? ObjectBuildingAtlasSourceId
             : layerKind == BattleTileLayerKind.Object && cell.Terrain == BattleTerrainType.Forest && cell.ForestAtlasCoords.X >= 0
-                ? ObjectForestAtlasSourceId
+                ? cell.ForestAtlasSourceId == ObjectWoodAtlasSourceId
+                    ? ObjectWoodAtlasSourceId
+                    : ObjectForestAtlasSourceId
             : layerKind == BattleTileLayerKind.Object && cell.Terrain == BattleTerrainType.Swamp && cell.SwampAtlasCoords.X >= 0
                 ? ObjectSwampAtlasSourceId
             : layerKind == BattleTileLayerKind.Object && cell.Terrain == BattleTerrainType.Hill && cell.HillAtlasCoords.X >= 0
                 ? ObjectHillAtlasSourceId
             : layerKind == BattleTileLayerKind.Object && cell.Terrain == BattleTerrainType.Mountain && cell.MountainAtlasCoords.X >= 0
                 ? ObjectMountainAtlasSourceId
+            : layerKind == BattleTileLayerKind.Object && cell.Terrain == BattleTerrainType.Farm && cell.FarmAtlasCoords.X >= 0
+                ? ObjectFarmAtlasSourceId
             : AtlasSourceId;
     }
 
@@ -474,6 +487,8 @@ public static class BattleTileMapBuilder
             AddObjectSwampSource(tileSet, metrics);
             AddObjectHillSource(tileSet, metrics);
             AddObjectMountainSource(tileSet, metrics);
+            AddObjectWoodSource(tileSet, metrics);
+            AddObjectFarmSource(tileSet, metrics);
         }
 
         return tileSet;
@@ -599,7 +614,23 @@ public static class BattleTileMapBuilder
         AddObjectAtlasSource(tileSet, metrics, ObjectMountainAtlasSourceId, ObjectMountainAtlasPath, "mountain");
     }
 
-    private static void AddObjectAtlasSource(TileSet tileSet, BattleAtlasMetrics metrics, int sourceId, string atlasPath, string atlasName)
+    private static void AddObjectWoodSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        AddObjectAtlasSource(tileSet, metrics, ObjectWoodAtlasSourceId, ObjectWoodAtlasPath, "wood");
+    }
+
+    private static void AddObjectFarmSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        AddObjectAtlasSource(tileSet, metrics, ObjectFarmAtlasSourceId, ObjectFarmAtlasPath, "farm", rows: 3);
+    }
+
+    private static void AddObjectAtlasSource(
+        TileSet tileSet,
+        BattleAtlasMetrics metrics,
+        int sourceId,
+        string atlasPath,
+        string atlasName,
+        int rows = 2)
     {
         if (!ResourceLoader.Exists(atlasPath))
         {
@@ -607,7 +638,7 @@ public static class BattleTileMapBuilder
         }
 
         var atlasTexture = GD.Load<Texture2D>(atlasPath);
-        if (atlasTexture == null || atlasTexture.GetWidth() < metrics.RegionWidth * 4 || atlasTexture.GetHeight() < metrics.RegionHeight * 2)
+        if (atlasTexture == null || atlasTexture.GetWidth() < metrics.RegionWidth * 4 || atlasTexture.GetHeight() < metrics.RegionHeight * rows)
         {
             GD.PushWarning($"Battle {atlasName} atlas could not be loaded: {atlasPath}");
             return;
@@ -619,7 +650,7 @@ public static class BattleTileMapBuilder
             TextureRegionSize = new Vector2I(metrics.RegionWidth, metrics.RegionHeight),
             UseTexturePadding = false
         };
-        for (var y = 0; y < 2; y++)
+        for (var y = 0; y < rows; y++)
         {
             for (var x = 0; x < 4; x++)
             {

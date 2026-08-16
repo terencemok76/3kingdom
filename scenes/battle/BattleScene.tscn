@@ -9,6 +9,8 @@
 [ext_resource type="Texture2D" path="res://assets/battle/object/swamp_01.png" id="6_swamp"]
 [ext_resource type="Texture2D" path="res://assets/battle/object/hill_01.png" id="7_hill"]
 [ext_resource type="Texture2D" path="res://assets/battle/object/mountain_01.png" id="8_mountain"]
+[ext_resource type="Texture2D" path="res://assets/battle/object/wood_01.png" id="9_wood"]
+[ext_resource type="Texture2D" path="res://assets/battle/object/farm_01.png" id="10_farm"]
 [ext_resource type="Script" uid="uid://jcdb0o1ek8ut" path="res://scripts/battle/BattleHighlightRenderer.cs" id="4"]
 [ext_resource type="Texture2D" uid="uid://bvm6spy5bxnj5" path="res://assets/battle/wall/castle.png" id="4_bkj5p"]
 [ext_resource type="Texture2D" uid="uid://c510c1l7ai20q" path="res://assets/battle/overlay/overlay.png" id="4_pxx3e"]
@@ -144,6 +146,56 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 32)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_wood"]
+texture = ExtResource("9_wood")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_farm"]
+texture = ExtResource("10_farm")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+0:2/0 = 0
+0:2/0/texture_origin = Vector2i(0, 32)
+1:2/0 = 0
+1:2/0/texture_origin = Vector2i(0, 32)
+2:2/0 = 0
+2:2/0/texture_origin = Vector2i(0, 32)
+3:2/0 = 0
+3:2/0/texture_origin = Vector2i(0, 32)
+
 [sub_resource type="TileSet" id="TileSet_qrg6v"]
 tile_shape = 1
 tile_layout = 5
@@ -154,6 +206,8 @@ sources/2 = SubResource("TileSetAtlasSource_forest")
 sources/3 = SubResource("TileSetAtlasSource_swamp")
 sources/4 = SubResource("TileSetAtlasSource_hill")
 sources/5 = SubResource("TileSetAtlasSource_mountain")
+sources/6 = SubResource("TileSetAtlasSource_wood")
+sources/7 = SubResource("TileSetAtlasSource_farm")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fbtt2"]
 texture = ExtResource("4_bkj5p")

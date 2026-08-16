@@ -18,7 +18,8 @@ public enum BattleTerrainType
     Coast,
     Bridge,
     Hill,
-    Mountain
+    Mountain,
+    Farm
 }
 
 public enum BattleScenarioType
@@ -91,9 +92,11 @@ public sealed class BattleCellData
     public bool WoodenFenceFlipHorizontally { get; set; }
     public Vector2I BuildingAtlasCoords { get; set; }
     public Vector2I ForestAtlasCoords { get; set; } = new(-1, -1);
+    public int ForestAtlasSourceId { get; set; } = -1;
     public Vector2I SwampAtlasCoords { get; set; } = new(-1, -1);
     public Vector2I HillAtlasCoords { get; set; } = new(-1, -1);
     public Vector2I MountainAtlasCoords { get; set; } = new(-1, -1);
+    public Vector2I FarmAtlasCoords { get; set; } = new(-1, -1);
     public int BridgeMaxHealth { get; set; }
     public int BridgeHealth { get; set; }
 
@@ -368,11 +371,12 @@ public sealed class BattleMapData
             var atlas = layer.GetCellAtlasCoords(grid);
             var sourceId = layer.GetCellSourceId(grid);
             var cell = GetCell(grid.X, grid.Y);
-            if (sourceId == 2)
+            if (sourceId is 2 or 6)
             {
                 cell.Terrain = BattleTerrainType.Forest;
                 cell.Structure = BattleStructureType.None;
                 cell.ForestAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 3), Mathf.Clamp(atlas.Y, 0, 1));
+                cell.ForestAtlasSourceId = sourceId;
                 return;
             }
 
@@ -397,6 +401,14 @@ public sealed class BattleMapData
                 cell.Terrain = BattleTerrainType.Mountain;
                 cell.Structure = BattleStructureType.None;
                 cell.MountainAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 3), Mathf.Clamp(atlas.Y, 0, 1));
+                return;
+            }
+
+            if (sourceId == 7)
+            {
+                cell.Terrain = BattleTerrainType.Farm;
+                cell.Structure = BattleStructureType.None;
+                cell.FarmAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 3), Mathf.Clamp(atlas.Y, 0, 2));
                 return;
             }
 
@@ -562,6 +574,7 @@ public sealed class BattleMapData
             if (cell.Terrain != BattleTerrainType.Forest)
             {
                 cell.ForestAtlasCoords = new Vector2I(-1, -1);
+                cell.ForestAtlasSourceId = -1;
             }
             if (cell.Terrain != BattleTerrainType.Swamp)
             {
@@ -574,6 +587,10 @@ public sealed class BattleMapData
             if (cell.Terrain != BattleTerrainType.Mountain)
             {
                 cell.MountainAtlasCoords = new Vector2I(-1, -1);
+            }
+            if (cell.Terrain != BattleTerrainType.Farm)
+            {
+                cell.FarmAtlasCoords = new Vector2I(-1, -1);
             }
 
             if (cell.Terrain == BattleTerrainType.Bridge)
