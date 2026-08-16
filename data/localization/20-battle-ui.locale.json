@@ -138,6 +138,8 @@
 	"ui.battle.terrain_river": { "zhHant": "河流", "en": "River" },
 	"ui.battle.terrain_swamp": { "zhHant": "沼澤", "en": "Swamp" },
 	"ui.battle.terrain_coast": { "zhHant": "海岸", "en": "Coast" },
+	"ui.battle.terrain_hill": { "zhHant": "丘陵", "en": "Hill" },
+	"ui.battle.terrain_mountain": { "zhHant": "山脈", "en": "Mountain" },
 	"ui.battle.terrain_bridge": { "zhHant": "橋", "en": "Bridge" },
 	"ui.battle.terrain_grass": { "zhHant": "草地", "en": "Grass" },
 	"ui.battle.structure_wall": { "zhHant": "城牆", "en": "Wall" },

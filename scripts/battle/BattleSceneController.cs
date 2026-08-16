@@ -1593,7 +1593,9 @@ public partial class BattleSceneController : Node2D
 
         ClearCastleDepthVisuals();
         ClearBuildingDepthVisuals();
-        _castleLayer.Visible = true;
+        // FieldBattle inherits the shared siege scene, whose CastleLayer has parent tiles.
+        // Keep that inherited layer hidden in the editor preview so it matches the runtime field map.
+        _castleLayer.Visible = scenarioDefinition.ScenarioType != BattleScenarioType.FieldBattle;
         RefreshBattleDepthLayerOrder();
     }
 
@@ -6649,6 +6651,7 @@ public partial class BattleSceneController : Node2D
         {
             BattleTerrainType.Forest => 2,
             BattleTerrainType.Swamp => 2,
+            BattleTerrainType.Hill => 2,
             _ => 1
         };
     }
@@ -9400,7 +9403,7 @@ public partial class BattleSceneController : Node2D
 
     private static bool CanCellIgnite(BattleCellData cell)
     {
-        if (cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.River or BattleTerrainType.Swamp or BattleTerrainType.Coast or BattleTerrainType.WallWalk)
+        if (cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.River or BattleTerrainType.Swamp or BattleTerrainType.Coast or BattleTerrainType.WallWalk or BattleTerrainType.Mountain)
         {
             return false;
         }
@@ -11153,6 +11156,8 @@ public partial class BattleSceneController : Node2D
             BattleTerrainType.River => BattleText("ui.battle.terrain_river", "River"),
             BattleTerrainType.Swamp => BattleText("ui.battle.terrain_swamp", "Swamp"),
             BattleTerrainType.Coast => BattleText("ui.battle.terrain_coast", "Coast"),
+            BattleTerrainType.Hill => BattleText("ui.battle.terrain_hill", "Hill"),
+            BattleTerrainType.Mountain => BattleText("ui.battle.terrain_mountain", "Mountain"),
             BattleTerrainType.Bridge => BattleText("ui.battle.terrain_bridge", "Bridge"),
             BattleTerrainType.Grass => BattleText("ui.battle.terrain_grass", "Grass"),
             _ => BattleText("ui.battle.terrain_plain", "Plain")
@@ -11324,6 +11329,18 @@ public partial class BattleSceneController : Node2D
         public bool WoodenFenceFlipHorizontally { get; set; }
         public int BuildingAtlasX { get; set; }
         public int BuildingAtlasY { get; set; }
+        public bool HasForestObjectVisual { get; set; }
+        public int ForestAtlasX { get; set; }
+        public int ForestAtlasY { get; set; }
+        public bool HasSwampObjectVisual { get; set; }
+        public int SwampAtlasX { get; set; }
+        public int SwampAtlasY { get; set; }
+        public bool HasHillObjectVisual { get; set; }
+        public int HillAtlasX { get; set; }
+        public int HillAtlasY { get; set; }
+        public bool HasMountainObjectVisual { get; set; }
+        public int MountainAtlasX { get; set; }
+        public int MountainAtlasY { get; set; }
         public int BridgeMaxHealth { get; set; }
         public int BridgeHealth { get; set; }
 
@@ -11354,6 +11371,18 @@ public partial class BattleSceneController : Node2D
                 WoodenFenceFlipHorizontally = cell.WoodenFenceFlipHorizontally,
                 BuildingAtlasX = cell.BuildingAtlasCoords.X,
                 BuildingAtlasY = cell.BuildingAtlasCoords.Y,
+                HasForestObjectVisual = cell.ForestAtlasCoords.X >= 0,
+                ForestAtlasX = cell.ForestAtlasCoords.X,
+                ForestAtlasY = cell.ForestAtlasCoords.Y,
+                HasSwampObjectVisual = cell.SwampAtlasCoords.X >= 0,
+                SwampAtlasX = cell.SwampAtlasCoords.X,
+                SwampAtlasY = cell.SwampAtlasCoords.Y,
+                HasHillObjectVisual = cell.HillAtlasCoords.X >= 0,
+                HillAtlasX = cell.HillAtlasCoords.X,
+                HillAtlasY = cell.HillAtlasCoords.Y,
+                HasMountainObjectVisual = cell.MountainAtlasCoords.X >= 0,
+                MountainAtlasX = cell.MountainAtlasCoords.X,
+                MountainAtlasY = cell.MountainAtlasCoords.Y,
                 BridgeMaxHealth = cell.BridgeMaxHealth,
                 BridgeHealth = cell.BridgeHealth
             };
@@ -11380,6 +11409,18 @@ public partial class BattleSceneController : Node2D
             cell.BridgeFlipHorizontally = BridgeFlipHorizontally;
             cell.WoodenFenceFlipHorizontally = WoodenFenceFlipHorizontally;
             cell.BuildingAtlasCoords = new Vector2I(BuildingAtlasX, BuildingAtlasY);
+            cell.ForestAtlasCoords = HasForestObjectVisual
+                ? new Vector2I(ForestAtlasX, ForestAtlasY)
+                : new Vector2I(-1, -1);
+            cell.SwampAtlasCoords = HasSwampObjectVisual
+                ? new Vector2I(SwampAtlasX, SwampAtlasY)
+                : new Vector2I(-1, -1);
+            cell.HillAtlasCoords = HasHillObjectVisual
+                ? new Vector2I(HillAtlasX, HillAtlasY)
+                : new Vector2I(-1, -1);
+            cell.MountainAtlasCoords = HasMountainObjectVisual
+                ? new Vector2I(MountainAtlasX, MountainAtlasY)
+                : new Vector2I(-1, -1);
             cell.BridgeMaxHealth = BridgeMaxHealth;
             cell.BridgeHealth = BridgeHealth;
         }

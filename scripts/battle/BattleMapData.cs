@@ -16,7 +16,9 @@ public enum BattleTerrainType
     River,
     Swamp,
     Coast,
-    Bridge
+    Bridge,
+    Hill,
+    Mountain
 }
 
 public enum BattleScenarioType
@@ -88,6 +90,10 @@ public sealed class BattleCellData
     public bool BridgeFlipHorizontally { get; set; }
     public bool WoodenFenceFlipHorizontally { get; set; }
     public Vector2I BuildingAtlasCoords { get; set; }
+    public Vector2I ForestAtlasCoords { get; set; } = new(-1, -1);
+    public Vector2I SwampAtlasCoords { get; set; } = new(-1, -1);
+    public Vector2I HillAtlasCoords { get; set; } = new(-1, -1);
+    public Vector2I MountainAtlasCoords { get; set; } = new(-1, -1);
     public int BridgeMaxHealth { get; set; }
     public int BridgeHealth { get; set; }
 
@@ -362,6 +368,38 @@ public sealed class BattleMapData
             var atlas = layer.GetCellAtlasCoords(grid);
             var sourceId = layer.GetCellSourceId(grid);
             var cell = GetCell(grid.X, grid.Y);
+            if (sourceId == 2)
+            {
+                cell.Terrain = BattleTerrainType.Forest;
+                cell.Structure = BattleStructureType.None;
+                cell.ForestAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 3), Mathf.Clamp(atlas.Y, 0, 1));
+                return;
+            }
+
+            if (sourceId == 3)
+            {
+                cell.Terrain = BattleTerrainType.Swamp;
+                cell.Structure = BattleStructureType.None;
+                cell.SwampAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 3), Mathf.Clamp(atlas.Y, 0, 1));
+                return;
+            }
+
+            if (sourceId == 4)
+            {
+                cell.Terrain = BattleTerrainType.Hill;
+                cell.Structure = BattleStructureType.None;
+                cell.HillAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 3), Mathf.Clamp(atlas.Y, 0, 1));
+                return;
+            }
+
+            if (sourceId == 5)
+            {
+                cell.Terrain = BattleTerrainType.Mountain;
+                cell.Structure = BattleStructureType.None;
+                cell.MountainAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 3), Mathf.Clamp(atlas.Y, 0, 1));
+                return;
+            }
+
             if (sourceId == 1)
             {
                 cell.Structure = BattleStructureType.Building;
@@ -512,7 +550,7 @@ public sealed class BattleMapData
             var isBrokenWall = cell.Structure == BattleStructureType.Wall && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             var isBrokenGate = cell.Structure == BattleStructureType.Gate && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
             var isBrokenWoodenFence = cell.Structure == BattleStructureType.WoodenFence && cell.StructureMaxHealth > 0 && cell.StructureHealth == 0;
-            cell.BlocksMovement = cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.River;
+            cell.BlocksMovement = cell.Terrain is BattleTerrainType.Moat or BattleTerrainType.River or BattleTerrainType.Mountain;
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
             cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
             cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;
@@ -520,6 +558,22 @@ public sealed class BattleMapData
             if (cell.Structure != BattleStructureType.Building)
             {
                 cell.BuildingAtlasCoords = Vector2I.Zero;
+            }
+            if (cell.Terrain != BattleTerrainType.Forest)
+            {
+                cell.ForestAtlasCoords = new Vector2I(-1, -1);
+            }
+            if (cell.Terrain != BattleTerrainType.Swamp)
+            {
+                cell.SwampAtlasCoords = new Vector2I(-1, -1);
+            }
+            if (cell.Terrain != BattleTerrainType.Hill)
+            {
+                cell.HillAtlasCoords = new Vector2I(-1, -1);
+            }
+            if (cell.Terrain != BattleTerrainType.Mountain)
+            {
+                cell.MountainAtlasCoords = new Vector2I(-1, -1);
             }
 
             if (cell.Terrain == BattleTerrainType.Bridge)

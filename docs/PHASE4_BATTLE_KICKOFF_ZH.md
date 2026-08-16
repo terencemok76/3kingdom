@@ -398,8 +398,9 @@
 - 三種 scenario 目前共用同一個 `BattleScene`、HUD、單位 marker、移動與 A*。
 - `FieldBattle` 會建立不含城牆／城門的道路、森林、障礙物與雙方部署區。
   - 目前野戰仍以程序式地形為主，但會額外疊加 scene `ObjectLayer` 內的 `Building` 圖塊，讓共用 `BattleScene` 的測試建築可直接出現在野戰模式。
-  - `FIELD` 入口目前改為載入 `scenes/battle/field/FieldBattleLuoyang.tscn`，此 scene 繼承共用戰鬥 UI，但以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
-  - 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
+- `FIELD` 入口目前改為載入 `scenes/battle/field/FieldBattleLuoyang.tscn`，此 scene 繼承共用戰鬥 UI，但以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
+- `FieldBattle` 的 editor preview 必須隱藏繼承自共用攻城 scene 的 `CastleLayer`，避免父 scene 的城牆資料在編輯器殘留顯示；野戰場景的 WYSIWYG 預覽應與 runtime 地圖一致。
+- 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
   - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方邙山林地、中央洛水河谷、兩岸濕地／岸地與穿越河谷的道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍，只使用既有 floor、building、tree 與 rock tiles。
 - `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
@@ -422,6 +423,10 @@
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
+- `assets/battle/object/forest_01.png` 是 `ObjectLayer` source ID `2` 的 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Forest` 地形並保留選到的變體，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
+- `assets/battle/object/swamp_01.png` 是 `ObjectLayer` source ID `3` 的 swamp atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Swamp` 地形並保留選到的變體，移動消耗仍為 2，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
+- `assets/battle/object/hill_01.png` 是 `ObjectLayer` source ID `4` 的 hill atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成可通行的 `Hill` 地形，移動消耗為 2，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
+- `assets/battle/object/mountain_01.png` 是 `ObjectLayer` source ID `5` 的 mountain atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成不可通行、不可起火的 `Mountain` 地形，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `Building` 格只可容納一般人類 battle team，攻城梯、衝車、投石車與補給車等攻城器不可進入；駐守時承受的直接傷害降低 `20%`；火焰傷害不受減免，且建築格正在燃燒時防禦加成暫時失效。騎兵不可對建築格發動或穿越 Charge，格子資訊會顯示建築防禦狀態。
 - runtime 會將 Building 從固定 `ObjectLayer` 提升至與單位共用的 `BattleDepthLayer`，以 `grid.X + grid.Y` 排序：位於建築後方的單位會被遮住，位於前方或同格駐守的單位會顯示在建築前。
 - `BattleScene.tscn` 的 `ObjectLayer` 在 `(6, 12)` 放置 `building_01` frame 0，作為戰場內可直接測試的建築防禦據點。

@@ -54,12 +54,28 @@ function buildGround() {
 
 function buildObjects() {
     const cells = [];
+    const forestCanopies = [[1, 1, 0], [5, 2, 1], [9, 1, 2], [13, 2, 3], [17, 1, 0x10000], [21, 2, 0x10001], [3, 4, 0x10002], [19, 4, 0x10003]];
+    const hillTiles = [[3, 0, 0], [7, 1, 1], [11, 0, 2], [15, 1, 3], [4, 5, 0x10000], [8, 4, 0x10001], [12, 5, 0x10002], [16, 4, 0x10003]];
+    const mountainTiles = [[0, 0, 0], [4, 1, 1], [8, 0, 2], [12, 1, 3], [16, 0, 0x10000], [20, 1, 0x10001], [22, 4, 0x10002], [24, 5, 0x10003]];
+    const terrainObjectGridKeys = new Set([...forestCanopies, ...hillTiles, ...mountainTiles].map(([x, y]) => `${x},${y}`));
     for (let y = 1; y <= 6; y++) for (let x = 0; x < width; x++) {
-        if ((x * 3 + y * 5) % 7 === 0) cells.push({ x, y, tile: 0 });
+        if (!terrainObjectGridKeys.has(`${x},${y}`) && (x * 3 + y * 5) % 7 === 0) cells.push({ x, y, tile: 0 });
     }
     [[3, 7, 1], [20, 7, 1], [2, 11, 2], [22, 11, 2], [4, 17, 0], [20, 18, 0],
         [16, 9, 1], [8, 10, 2], [18, 16, 2], [6, 21, 0], [14, 20, 0]]
         .forEach(([x, y, tile]) => cells.push({ x, y, tile }));
+
+    // Eight canopy variations keep the northern Mangshan forest WYSIWYG in the editor.
+    forestCanopies
+        .forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 2 }));
+
+    // Mangshan foothills combine traversable hills with impassable mountain ridges.
+    hillTiles.forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 4 }));
+    mountainTiles.forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 5 }));
+
+    // Reeds and pools show the eight swamp variants along both Luo River banks.
+    [[3, 12, 0], [5, 12, 1], [6, 13, 2], [7, 13, 3], [17, 13, 0x10000], [18, 13, 0x10001], [19, 12, 0x10002], [21, 12, 0x10003]]
+        .forEach(([x, y, tile]) => cells.push({ x, y, tile, source: 3 }));
 
     // North-bank river settlement and a pair of southern roadside farmhouses.
     [[9, 11, 0], [15, 11, 1], [7, 19, 2], [17, 20, 0]]
