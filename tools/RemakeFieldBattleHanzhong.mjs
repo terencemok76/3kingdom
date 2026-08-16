@@ -92,6 +92,28 @@ function buildRiverEffect() {
         .map(({ x, y }) => ({ x, y, tile: 6 }));
 }
 
+function buildRiverObjects() {
+    // source 9 is visual-only river decoration; bridge cells stay clear for gameplay readability.
+    return [
+        { x: 2, y: 10, tile: 0, source: 9 }, // ferry boat
+        { x: 5, y: 11, tile: 1, source: 9 }, // skiff
+        { x: 8, y: 11, tile: 0x10002, source: 9 }, // water disturbance
+        { x: 16, y: 12, tile: 0x10000, source: 9 }, // reeds and lilies
+        { x: 20, y: 13, tile: 0x10001, source: 9 } // river rock
+    ];
+}
+
+function buildFarmObjects() {
+    // source 10 is visual-only farm decoration; positions intentionally avoid crop, road, and building cells.
+    return [
+        { x: 2, y: 17, tile: 0, source: 10 }, // haystack
+        { x: 6, y: 17, tile: 1, source: 10 }, // scarecrow
+        { x: 14, y: 19, tile: 2, source: 10 }, // harvest cart
+        { x: 9, y: 20, tile: 0x10000, source: 10 }, // grain sacks
+        { x: 18, y: 20, tile: 0x10002, source: 10 } // produce basket
+    ];
+}
+
 function replaceLayer(scene, name, tileData) {
     const header = `[node name="${name}" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="${name === 'GroundLayer' ? 0 : 2}"]`;
     const node = `${header}\ntile_map_data = PackedByteArray("${tileData}")`;
@@ -102,6 +124,18 @@ function replaceLayer(scene, name, tileData) {
 function addRiverEffectLayer(scene, tileData) {
     const node = `[node name="RiverEffectLayer" type="TileMapLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="4"]\nz_index = 1\nmaterial = SubResource("ShaderMaterial_hanzhong_river")\ntile_map_data = PackedByteArray("${tileData}")\ntile_set = SubResource("TileSet_hanzhong_river")\nrendering_quadrant_size = 8`;
     return scene.replace(/\n\[node name="MoatLayer"/, `\n${node}\n\n[node name="MoatLayer"`);
+}
+
+function replaceRiverObjectLayer(scene, tileData) {
+    const node = `[node name="RiverObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="5"]\ntile_map_data = PackedByteArray("${tileData}")`;
+    const expression = /\[node name="RiverObjectLayer" parent="MapRoot"[^\n]*\][\s\S]*?(?=\n\[node |$)/;
+    return expression.test(scene) ? scene.replace(expression, node) : scene.replace(/\n\[node name="MoatLayer"/, `\n${node}\n\n[node name="MoatLayer"`);
+}
+
+function replaceFarmObjectLayer(scene, tileData) {
+    const node = `[node name="FarmObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="6"]\ntile_map_data = PackedByteArray("${tileData}")`;
+    const expression = /\[node name="FarmObjectLayer" parent="MapRoot"[^\n]*\][\s\S]*?(?=\n\[node |$)/;
+    return expression.test(scene) ? scene.replace(expression, node) : scene.replace(/\n\[node name="MoatLayer"/, `\n${node}\n\n[node name="MoatLayer"`);
 }
 
 let scene = await fs.readFile(templatePath, 'utf8');
@@ -117,5 +151,7 @@ scene = scene.replace(
 scene = replaceLayer(scene, 'GroundLayer', encodeCells(buildGround()));
 scene = replaceLayer(scene, 'ObjectLayer', encodeCells(buildObjects()));
 scene = addRiverEffectLayer(scene, encodeCells(buildRiverEffect()));
+scene = replaceRiverObjectLayer(scene, encodeCells(buildRiverObjects()));
+scene = replaceFarmObjectLayer(scene, encodeCells(buildFarmObjects()));
 await fs.writeFile(scenePath, scene, 'utf8');
 console.log(`Remade ${scenePath} with the Hanzhong basin layout.`);

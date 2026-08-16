@@ -419,6 +419,8 @@
   - 位於中央接近路線、可通行的 `Bridge`
 - `assets/battle/floor/floor.png` 的第一列依序為 grass、road、courtyard、wall walk、forest、river（Moat）、river2（River）與 swamp；第二列依序為 coast、wet grass、mud、pebble、shallow water、worn road、official road、dry river bed。wet grass 依 Grass 規則、mud 依 Swamp 規則、pebble／worn road／official road／dry river bed 依 Road 規則、shallow water 依 Coast 規則，但 runtime 會保留其原始圖塊視覺。乾河床預留給宛、襄陽、涼州等野戰場景；River 不可通行，Swamp 可通行但移動消耗為 2，Coast 是可通行岸地；只有 river（Moat）可套用攻城橋樑規則。橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
 - `MoatLayer` 會額外套用輕量水流 shader，對 river tile 做緩慢 UV 位移與微弱明暗起伏；此效果僅為場景表現，不改變 `BattleMapData`、橋樑施工/破壞或任何移動／A* 規則。
+- `assets/battle/object/river_object_01.png` 提供船、輕舟、棧橋、木棧台、蘆葦蓮葉、礁石、水面擾動與木筏八種河流物件；共用 Object TileSet 以 source 9 登錄。野戰場景將其放在獨立的 `RiverObjectLayer`，因此只作河道視覺裝飾，不會改變水域、橋格、移動、A* 或 AI 規則。
+- `assets/battle/object/farm_object_01.png` 提供草垛、稻草人、收穫木車、穀袋、蔬果籃與其他農事擺設；共用 Object TileSet 以 source 10 登錄。野戰場景將其放在獨立的 `FarmObjectLayer`，只作農地視覺裝飾，並避開道路、建築、作物與部署格，不改變地形、移動、A* 或 AI 規則。
 - `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。

@@ -38,6 +38,12 @@ tile_map_data = PackedByteArray("AAAAAAoAAAAGAAAAAAABAAoAAAAGAAAAAAACAAoAAAAGAAA
 tile_set = SubResource("TileSet_hanzhong_river")
 rendering_quadrant_size = 8
 
+[node name="RiverObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="5"]
+tile_map_data = PackedByteArray("AAACAAoACQAAAAAAAAAFAAsACQABAAAAAAAIAAsACQACAAEAAAAQAAwACQAAAAEAAAAUAA0ACQABAAEAAAA=")
+
+[node name="FarmObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="6"]
+tile_map_data = PackedByteArray("AAACABEACgAAAAAAAAAGABEACgABAAAAAAAOABMACgACAAAAAAAJABQACgAAAAEAAAASABQACgACAAEAAAA=")
+
 [node name="MoatLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="1"]
 visible = false
 tile_map_data = PackedByteArray()

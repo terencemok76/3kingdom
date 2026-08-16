@@ -76,6 +76,9 @@ public static class BattleTileMapBuilder
     private const int ObjectWoodAtlasSourceId = 6;
     private const int ObjectFarmAtlasSourceId = 7;
     private const int ObjectBridgeAtlasSourceId = 8;
+    private const int ObjectRiverDecorationAtlasSourceId = 9;
+    private const int ObjectFarmDecorationAtlasSourceId = 10;
+    private const int ObjectFarmDecorationRegionHeight = 96;
     private const int ObjectBuildingTileCount = 3;
     private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
     private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
@@ -87,6 +90,8 @@ public static class BattleTileMapBuilder
     private const string ObjectWoodAtlasPath = "res://assets/battle/object/wood_01.png";
     private const string ObjectFarmAtlasPath = "res://assets/battle/object/farm_01.png";
     private const string ObjectBridgeAtlasPath = "res://assets/battle/object/bridge_01.png";
+    private const string ObjectRiverDecorationAtlasPath = "res://assets/battle/object/river_object_01.png";
+    private const string ObjectFarmDecorationAtlasPath = "res://assets/battle/object/farm_object_01.png";
     private const string CastleAtlasPath = "res://assets/battle/wall/castle.png";
     private const string CastleOpenGateAtlasPath = "res://assets/battle/wall/castle_gate_open.png";
     private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
@@ -508,6 +513,8 @@ public static class BattleTileMapBuilder
             AddObjectWoodSource(tileSet, metrics);
             AddObjectFarmSource(tileSet, metrics);
             AddObjectBridgeSource(tileSet, metrics);
+            AddObjectRiverDecorationSource(tileSet, metrics);
+            AddObjectFarmDecorationSource(tileSet, metrics);
         }
 
         return tileSet;
@@ -670,6 +677,44 @@ public static class BattleTileMapBuilder
         }
 
         tileSet.AddSource(atlasSource, ObjectBridgeAtlasSourceId);
+    }
+
+    private static void AddObjectRiverDecorationSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        AddObjectAtlasSource(tileSet, metrics, ObjectRiverDecorationAtlasSourceId, ObjectRiverDecorationAtlasPath, "river decoration");
+    }
+
+    private static void AddObjectFarmDecorationSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        if (!ResourceLoader.Exists(ObjectFarmDecorationAtlasPath))
+        {
+            return;
+        }
+
+        var atlasTexture = GD.Load<Texture2D>(ObjectFarmDecorationAtlasPath);
+        if (atlasTexture == null || atlasTexture.GetWidth() < metrics.RegionWidth * 4 || atlasTexture.GetHeight() < ObjectFarmDecorationRegionHeight * 2)
+        {
+            GD.PushWarning($"Battle farm decoration atlas could not be loaded: {ObjectFarmDecorationAtlasPath}");
+            return;
+        }
+
+        var atlasSource = new TileSetAtlasSource
+        {
+            Texture = atlasTexture,
+            TextureRegionSize = new Vector2I(metrics.RegionWidth, ObjectFarmDecorationRegionHeight),
+            UseTexturePadding = false
+        };
+        for (var y = 0; y < 2; y++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                var atlasCoords = new Vector2I(x, y);
+                atlasSource.CreateTile(atlasCoords);
+                atlasSource.GetTileData(atlasCoords, 0).TextureOrigin = new Vector2I(0, 16);
+            }
+        }
+
+        tileSet.AddSource(atlasSource, ObjectFarmDecorationAtlasSourceId);
     }
 
     private static void AddObjectAtlasSource(
