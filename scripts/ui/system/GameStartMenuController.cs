@@ -78,6 +78,7 @@ public partial class GameStartMenuController : CanvasLayer
     private CenterContainer? _battlePrototypeDialogCenter;
     private Label? _battlePrototypeDialogTitleLabel;
     private Button? _battlePrototypeFieldBattleButton;
+    private Button? _battlePrototypeHanzhongFieldBattleButton;
     private Button? _battlePrototypeNorthEastSiegeButton;
     private Button? _battlePrototypeNorthEastMoatButton;
     private Button? _battlePrototypeNorthWestSiegeButton;
@@ -134,6 +135,7 @@ public partial class GameStartMenuController : CanvasLayer
         _battlePrototypeDialogCenter = GetNodeOrNull<CenterContainer>("Root/BattlePrototypeDialogCenter");
         _battlePrototypeDialogTitleLabel = GetNodeOrNull<Label>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeDialogTitleLabel");
         _battlePrototypeFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeFieldBattleButton");
+        _battlePrototypeHanzhongFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeHanzhongFieldBattleButton");
         _battlePrototypeNorthEastSiegeButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthEastSiegeButton");
         _battlePrototypeNorthEastMoatButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthEastMoatButton");
         _battlePrototypeNorthWestSiegeButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthWestSiegeButton");
@@ -234,7 +236,12 @@ public partial class GameStartMenuController : CanvasLayer
 
         if (_battlePrototypeFieldBattleButton != null)
         {
-            _battlePrototypeFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD");
+            _battlePrototypeFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_LUOYANG");
+        }
+
+        if (_battlePrototypeHanzhongFieldBattleButton != null)
+        {
+            _battlePrototypeHanzhongFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_HANZHONG");
         }
 
         if (_battlePrototypeNorthEastSiegeButton != null)
@@ -411,7 +418,7 @@ public partial class GameStartMenuController : CanvasLayer
             });
         }
 
-        foreach (var button in new[] { _startGameButton, _loadGameButton, _battlePrototypeButton, _optionButton, _battlePrototypeFieldBattleButton, _battlePrototypeNorthEastSiegeButton, _battlePrototypeNorthEastMoatButton, _battlePrototypeNorthWestSiegeButton, _battlePrototypeNorthWestMoatButton, _battlePrototypeDialogCloseButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
+        foreach (var button in new[] { _startGameButton, _loadGameButton, _battlePrototypeButton, _optionButton, _battlePrototypeFieldBattleButton, _battlePrototypeHanzhongFieldBattleButton, _battlePrototypeNorthEastSiegeButton, _battlePrototypeNorthEastMoatButton, _battlePrototypeNorthWestSiegeButton, _battlePrototypeNorthWestMoatButton, _battlePrototypeDialogCloseButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
         {
             ApplyButtonTheme(button);
         }
@@ -533,8 +540,15 @@ public partial class GameStartMenuController : CanvasLayer
         if (_battlePrototypeFieldBattleButton != null)
         {
             _battlePrototypeFieldBattleButton.Text = _localization.IsTraditionalChinese
-                ? "FieldBattle 野戰"
-                : "FieldBattle";
+                ? "洛陽野戰"
+                : "Field Battle (Luoyang)";
+        }
+
+        if (_battlePrototypeHanzhongFieldBattleButton != null)
+        {
+            _battlePrototypeHanzhongFieldBattleButton.Text = _localization.IsTraditionalChinese
+                ? "漢中野戰"
+                : "Field Battle (Hanzhong)";
         }
 
         if (_battlePrototypeNorthEastSiegeButton != null)

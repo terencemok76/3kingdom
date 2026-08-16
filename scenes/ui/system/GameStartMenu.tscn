@@ -278,11 +278,11 @@ grow_vertical = 2
 mouse_filter = 1
 
 [node name="BattlePrototypeDialogPanel" type="PanelContainer" parent="Root/BattlePrototypeDialogCenter"]
-custom_minimum_size = Vector2(460, 430)
+custom_minimum_size = Vector2(460, 490)
 layout_mode = 2
 
 [node name="BattlePrototypeDialogRoot" type="VBoxContainer" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel"]
-custom_minimum_size = Vector2(420, 390)
+custom_minimum_size = Vector2(420, 450)
 layout_mode = 2
 theme_override_constants/separation = 16
 
@@ -302,7 +302,14 @@ custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
-text = "FieldBattle"
+text = "Field Battle (Luoyang)"
+
+[node name="BattlePrototypeHanzhongFieldBattleButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Field Battle (Hanzhong)"
 
 [node name="BattlePrototypeNorthEastSiegeButton" type="Button" parent="Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot"]
 custom_minimum_size = Vector2(0, 50)

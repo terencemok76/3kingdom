@@ -23,7 +23,11 @@ internal enum BattleFloorTileVisual
     River = 5,
     River2 = 6,
     Swamp = 7,
-    Coast = 8
+    Coast = 8,
+    WetGrass = 9,
+    Mud = 10,
+    Pebble = 11,
+    ShallowWater = 12
 }
 
 internal enum BattleObjectTileVisual
@@ -68,6 +72,7 @@ public static class BattleTileMapBuilder
     private const int ObjectMountainAtlasSourceId = 5;
     private const int ObjectWoodAtlasSourceId = 6;
     private const int ObjectFarmAtlasSourceId = 7;
+    private const int ObjectBridgeAtlasSourceId = 8;
     private const int ObjectBuildingTileCount = 3;
     private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
     private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
@@ -78,6 +83,7 @@ public static class BattleTileMapBuilder
     private const string ObjectMountainAtlasPath = "res://assets/battle/object/mountain_01.png";
     private const string ObjectWoodAtlasPath = "res://assets/battle/object/wood_01.png";
     private const string ObjectFarmAtlasPath = "res://assets/battle/object/farm_01.png";
+    private const string ObjectBridgeAtlasPath = "res://assets/battle/object/bridge_01.png";
     private const string CastleAtlasPath = "res://assets/battle/wall/castle.png";
     private const string CastleOpenGateAtlasPath = "res://assets/battle/wall/castle_gate_open.png";
     private const string OverlayAtlasPath = "res://assets/battle/overlay/overlay.png";
@@ -237,6 +243,11 @@ public static class BattleTileMapBuilder
 
     private static Vector2I ResolveFloorVisual(BattleCellData cell)
     {
+        if (cell.GroundAtlasCoords.X >= 0)
+        {
+            return cell.GroundAtlasCoords;
+        }
+
         var visual = cell.Terrain switch
         {
             BattleTerrainType.Road => BattleFloorTileVisual.Road,
@@ -262,7 +273,9 @@ public static class BattleTileMapBuilder
     {
         if (cell.HasBridgeVisual)
         {
-            return new Vector2I((int)BattleObjectTileVisual.Bridge, 0);
+            return cell.BridgeAtlasCoords.X >= 0
+                ? cell.BridgeAtlasCoords
+                : new Vector2I((int)BattleObjectTileVisual.Bridge, 0);
         }
 
         if (cell.Structure == BattleStructureType.Building)
@@ -309,7 +322,9 @@ public static class BattleTileMapBuilder
 
     private static int ResolveAtlasSourceId(BattleCellData cell, BattleTileLayerKind layerKind)
     {
-        return layerKind == BattleTileLayerKind.Object && cell.Structure == BattleStructureType.Building
+        return layerKind == BattleTileLayerKind.Object && cell.HasBridgeVisual && cell.BridgeAtlasSourceId == ObjectBridgeAtlasSourceId
+            ? ObjectBridgeAtlasSourceId
+            : layerKind == BattleTileLayerKind.Object && cell.Structure == BattleStructureType.Building
             ? ObjectBuildingAtlasSourceId
             : layerKind == BattleTileLayerKind.Object && cell.Terrain == BattleTerrainType.Forest && cell.ForestAtlasCoords.X >= 0
                 ? cell.ForestAtlasSourceId == ObjectWoodAtlasSourceId
@@ -489,6 +504,7 @@ public static class BattleTileMapBuilder
             AddObjectMountainSource(tileSet, metrics);
             AddObjectWoodSource(tileSet, metrics);
             AddObjectFarmSource(tileSet, metrics);
+            AddObjectBridgeSource(tileSet, metrics);
         }
 
         return tileSet;
@@ -622,6 +638,35 @@ public static class BattleTileMapBuilder
     private static void AddObjectFarmSource(TileSet tileSet, BattleAtlasMetrics metrics)
     {
         AddObjectAtlasSource(tileSet, metrics, ObjectFarmAtlasSourceId, ObjectFarmAtlasPath, "farm", rows: 3);
+    }
+
+    private static void AddObjectBridgeSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        if (!ResourceLoader.Exists(ObjectBridgeAtlasPath))
+        {
+            return;
+        }
+
+        var atlasTexture = GD.Load<Texture2D>(ObjectBridgeAtlasPath);
+        if (atlasTexture == null || atlasTexture.GetWidth() < metrics.RegionWidth * 4 || atlasTexture.GetHeight() < metrics.RegionHeight * 2)
+        {
+            GD.PushWarning($"Battle bridge atlas could not be loaded: {ObjectBridgeAtlasPath}");
+            return;
+        }
+
+        var atlasSource = new TileSetAtlasSource
+        {
+            Texture = atlasTexture,
+            TextureRegionSize = new Vector2I(metrics.RegionWidth, metrics.RegionHeight),
+            UseTexturePadding = false
+        };
+        foreach (var atlasCoords in new[] { new Vector2I(0, 0), new Vector2I(1, 0), new Vector2I(2, 0), new Vector2I(3, 0), new Vector2I(0, 1) })
+        {
+            atlasSource.CreateTile(atlasCoords);
+            atlasSource.GetTileData(atlasCoords, 0).TextureOrigin = metrics.GetTextureOrigin();
+        }
+
+        tileSet.AddSource(atlasSource, ObjectBridgeAtlasSourceId);
     }
 
     private static void AddObjectAtlasSource(
@@ -840,9 +885,15 @@ public static class BattleTileMapBuilder
             return new Vector2I(tileIndex, 0);
         }
 
-        return tileIndex == (int)BattleFloorTileVisual.Coast
-            ? new Vector2I(0, 1)
-            : new Vector2I(tileIndex, 0);
+        return tileIndex switch
+        {
+            (int)BattleFloorTileVisual.Coast => new Vector2I(0, 1),
+            (int)BattleFloorTileVisual.WetGrass => new Vector2I(1, 1),
+            (int)BattleFloorTileVisual.Mud => new Vector2I(2, 1),
+            (int)BattleFloorTileVisual.Pebble => new Vector2I(3, 1),
+            (int)BattleFloorTileVisual.ShallowWater => new Vector2I(4, 1),
+            _ => new Vector2I(tileIndex, 0)
+        };
     }
 
     private static Image BuildAtlasImage(BattleTileLayerKind layerKind, int tileCount, BattleAtlasMetrics metrics)

@@ -73,6 +73,7 @@ public sealed class BattleCellData
 
     public Vector2I Grid { get; init; }
     public BattleTerrainType Terrain { get; set; } = BattleTerrainType.Plain;
+    public Vector2I GroundAtlasCoords { get; set; } = new(-1, -1);
     public BattleStructureType Structure { get; set; } = BattleStructureType.None;
     public BattleDeploymentZone DeploymentZone { get; set; } = BattleDeploymentZone.None;
     public bool BlocksMovement { get; set; }
@@ -89,6 +90,8 @@ public sealed class BattleCellData
     public bool HideGroundOccupantWhenGateOpen { get; set; }
     public bool HasBridgeVisual { get; set; }
     public bool BridgeFlipHorizontally { get; set; }
+    public int BridgeAtlasSourceId { get; set; } = -1;
+    public Vector2I BridgeAtlasCoords { get; set; } = new(-1, -1);
     public bool WoodenFenceFlipHorizontally { get; set; }
     public Vector2I BuildingAtlasCoords { get; set; }
     public Vector2I ForestAtlasCoords { get; set; } = new(-1, -1);
@@ -319,6 +322,8 @@ public sealed class BattleMapData
         cell.Terrain = BattleTerrainType.Moat;
         cell.HasBridgeVisual = false;
         cell.BridgeFlipHorizontally = false;
+        cell.BridgeAtlasSourceId = -1;
+        cell.BridgeAtlasCoords = new Vector2I(-1, -1);
         cell.BridgeMaxHealth = 0;
         cell.BlocksMovement = true;
         return actualDamage;
@@ -339,7 +344,9 @@ public sealed class BattleMapData
             }
 
             var atlas = layer.GetCellAtlasCoords(grid);
-            GetCell(grid.X, grid.Y).Terrain = atlas switch
+            var cell = GetCell(grid.X, grid.Y);
+            cell.GroundAtlasCoords = atlas;
+            cell.Terrain = atlas switch
             {
                 { X: 1, Y: 0 } => BattleTerrainType.Road,
                 { X: 2, Y: 0 } => BattleTerrainType.Courtyard,
@@ -349,6 +356,10 @@ public sealed class BattleMapData
                 { X: 6, Y: 0 } => BattleTerrainType.River,
                 { X: 7, Y: 0 } => BattleTerrainType.Swamp,
                 { X: 0, Y: 1 } => BattleTerrainType.Coast,
+                { X: 1, Y: 1 } => BattleTerrainType.Grass,
+                { X: 2, Y: 1 } => BattleTerrainType.Swamp,
+                { X: 3, Y: 1 } => BattleTerrainType.Road,
+                { X: 4, Y: 1 } => BattleTerrainType.Coast,
                 _ => BattleTerrainType.Grass
             };
         });
@@ -371,6 +382,17 @@ public sealed class BattleMapData
             var atlas = layer.GetCellAtlasCoords(grid);
             var sourceId = layer.GetCellSourceId(grid);
             var cell = GetCell(grid.X, grid.Y);
+            if (sourceId == 8)
+            {
+                cell.Terrain = BattleTerrainType.Bridge;
+                cell.HasBridgeVisual = true;
+                cell.BridgeFlipHorizontally = (layer.GetCellAlternativeTile(grid) & TileSetAtlasSource.TransformFlipH) != 0;
+                cell.BridgeAtlasSourceId = sourceId;
+                cell.BridgeAtlasCoords = atlas;
+                cell.Structure = BattleStructureType.None;
+                return;
+            }
+
             if (sourceId is 2 or 6)
             {
                 cell.Terrain = BattleTerrainType.Forest;
@@ -436,6 +458,8 @@ public sealed class BattleMapData
                         cell.Terrain = BattleTerrainType.Bridge;
                         cell.HasBridgeVisual = true;
                         cell.BridgeFlipHorizontally = (layer.GetCellAlternativeTile(grid) & TileSetAtlasSource.TransformFlipH) != 0;
+                        cell.BridgeAtlasSourceId = sourceId;
+                        cell.BridgeAtlasCoords = atlas;
                         cell.Structure = BattleStructureType.None;
                         break;
                     }
@@ -443,6 +467,8 @@ public sealed class BattleMapData
                     cell.Terrain = BattleTerrainType.Road;
                     cell.HasBridgeVisual = false;
                     cell.BridgeFlipHorizontally = false;
+                    cell.BridgeAtlasSourceId = -1;
+                    cell.BridgeAtlasCoords = new Vector2I(-1, -1);
                     cell.Structure = BattleStructureType.None;
                     break;
                 case 4:
@@ -566,6 +592,11 @@ public sealed class BattleMapData
             cell.HeightLevel = cell.Terrain == BattleTerrainType.WallWalk ? 2 : 0;
             cell.HasBridgeVisual = cell.HasBridgeVisual && cell.Terrain == BattleTerrainType.Bridge;
             cell.BridgeFlipHorizontally = cell.HasBridgeVisual && cell.BridgeFlipHorizontally;
+            if (!cell.HasBridgeVisual)
+            {
+                cell.BridgeAtlasSourceId = -1;
+                cell.BridgeAtlasCoords = new Vector2I(-1, -1);
+            }
             cell.WoodenFenceFlipHorizontally = cell.Structure == BattleStructureType.WoodenFence && cell.WoodenFenceFlipHorizontally;
             if (cell.Structure != BattleStructureType.Building)
             {

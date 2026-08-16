@@ -11310,6 +11310,9 @@ public partial class BattleSceneController : Node2D
         public int X { get; set; }
         public int Y { get; set; }
         public BattleTerrainType Terrain { get; set; }
+        public bool HasGroundAtlasVisual { get; set; }
+        public int GroundAtlasX { get; set; }
+        public int GroundAtlasY { get; set; }
         public BattleStructureType Structure { get; set; }
         public BattleDeploymentZone DeploymentZone { get; set; }
         public bool BlocksMovement { get; set; }
@@ -11327,6 +11330,9 @@ public partial class BattleSceneController : Node2D
         public bool HideGroundOccupantWhenGateOpen { get; set; }
         public bool HasBridgeVisual { get; set; }
         public bool BridgeFlipHorizontally { get; set; }
+        public int BridgeAtlasSourceId { get; set; }
+        public int BridgeAtlasX { get; set; }
+        public int BridgeAtlasY { get; set; }
         public bool WoodenFenceFlipHorizontally { get; set; }
         public int BuildingAtlasX { get; set; }
         public int BuildingAtlasY { get; set; }
@@ -11356,6 +11362,9 @@ public partial class BattleSceneController : Node2D
                 X = cell.Grid.X,
                 Y = cell.Grid.Y,
                 Terrain = cell.Terrain,
+                HasGroundAtlasVisual = cell.GroundAtlasCoords.X >= 0,
+                GroundAtlasX = cell.GroundAtlasCoords.X,
+                GroundAtlasY = cell.GroundAtlasCoords.Y,
                 Structure = cell.Structure,
                 DeploymentZone = cell.DeploymentZone,
                 BlocksMovement = cell.BlocksMovement,
@@ -11373,6 +11382,9 @@ public partial class BattleSceneController : Node2D
                 HideGroundOccupantWhenGateOpen = cell.HideGroundOccupantWhenGateOpen,
                 HasBridgeVisual = cell.HasBridgeVisual,
                 BridgeFlipHorizontally = cell.BridgeFlipHorizontally,
+                BridgeAtlasSourceId = cell.BridgeAtlasSourceId,
+                BridgeAtlasX = cell.BridgeAtlasCoords.X,
+                BridgeAtlasY = cell.BridgeAtlasCoords.Y,
                 WoodenFenceFlipHorizontally = cell.WoodenFenceFlipHorizontally,
                 BuildingAtlasX = cell.BuildingAtlasCoords.X,
                 BuildingAtlasY = cell.BuildingAtlasCoords.Y,
@@ -11400,6 +11412,9 @@ public partial class BattleSceneController : Node2D
         public void ApplyTo(BattleCellData cell)
         {
             cell.Terrain = Terrain;
+            cell.GroundAtlasCoords = HasGroundAtlasVisual
+                ? new Vector2I(GroundAtlasX, GroundAtlasY)
+                : new Vector2I(-1, -1);
             cell.Structure = Structure;
             cell.DeploymentZone = DeploymentZone;
             cell.BlocksMovement = BlocksMovement;
@@ -11416,6 +11431,8 @@ public partial class BattleSceneController : Node2D
             cell.HideGroundOccupantWhenGateOpen = HideGroundOccupantWhenGateOpen;
             cell.HasBridgeVisual = HasBridgeVisual;
             cell.BridgeFlipHorizontally = BridgeFlipHorizontally;
+            cell.BridgeAtlasSourceId = BridgeAtlasSourceId;
+            cell.BridgeAtlasCoords = new Vector2I(BridgeAtlasX, BridgeAtlasY);
             cell.WoodenFenceFlipHorizontally = WoodenFenceFlipHorizontally;
             cell.BuildingAtlasCoords = new Vector2I(BuildingAtlasX, BuildingAtlasY);
             cell.ForestAtlasCoords = HasForestObjectVisual

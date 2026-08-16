@@ -12,6 +12,7 @@ public partial class GameBootstrap : Node
     private const string BattleNorthEastScenePath = "res://scenes/battle/BattleScene.tscn";
     private const string BattleNorthWestScenePath = "res://scenes/battle/BattleSceneNorthWest.tscn";
     private const string FieldBattleLuoyangScenePath = "res://scenes/battle/field/FieldBattleLuoyang.tscn";
+    private const string FieldBattleHanzhongScenePath = "res://scenes/battle/field/FieldBattleHanzhong.tscn";
 
     private readonly WorldRepository _worldRepository = new();
     private readonly TurnManager _turnManager = new();
@@ -93,7 +94,8 @@ public partial class GameBootstrap : Node
     {
         var (scenePath, scenarioType, useEditorAuthoredLayout) = variant.ToUpperInvariant() switch
         {
-            "FIELD" => (FieldBattleLuoyangScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD" or "FIELD_LUOYANG" => (FieldBattleLuoyangScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD_HANZHONG" => (FieldBattleHanzhongScenePath, BattleScenarioType.FieldBattle, true),
             "NE_SIEGE" => (BattleNorthEastScenePath, BattleScenarioType.SiegeAssault, true),
             "NE_MOAT" => (BattleNorthEastScenePath, BattleScenarioType.MoatSiegeBattle, true),
             "NW_SIEGE" => (BattleNorthWestScenePath, BattleScenarioType.SiegeAssault, true),
