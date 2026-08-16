@@ -401,7 +401,7 @@
 - `FIELD` 入口目前改為載入 `scenes/battle/field/FieldBattleLuoyang.tscn`，此 scene 繼承共用戰鬥 UI，但以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
 - `FieldBattle` 的 editor preview 必須隱藏繼承自共用攻城 scene 的 `CastleLayer`，避免父 scene 的城牆資料在編輯器殘留顯示；野戰場景的 WYSIWYG 預覽應與 runtime 地圖一致。
 - 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
-  - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方邙山林地、中央洛水河谷、兩岸濕地／岸地與穿越河谷的道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍，只使用既有 floor、building、tree 與 rock tiles。
+  - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方邙山林地、中央洛水河谷、兩岸濕地／岸地與穿越河谷的道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍，只使用既有 floor、building、tree 與 rock tiles。投石車初始部署由洛陽專屬 Scenario Data 設為南岸可通行格 `(14,17)`，避免共用預設 `(14,15)` 落在河面。
 - `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
   - 選取 Worker 後顯示專用的 `Bridge` 與 `Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。

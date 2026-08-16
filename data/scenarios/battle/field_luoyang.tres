@@ -10,3 +10,6 @@ Weather = 0
 WindDirection = 2
 WindPower = 1
 TimeOfDay = 1
+UnitSpawnGrids = Dictionary[String, Vector2i]({
+"Catapult": Vector2i(14, 17)
+})
