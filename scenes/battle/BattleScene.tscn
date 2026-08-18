@@ -14,6 +14,7 @@
 [ext_resource type="Texture2D" path="res://assets/battle/object/bridge_01.png" id="11_bridge"]
 [ext_resource type="Texture2D" path="res://assets/battle/object/river_object_01.png" id="12_river_object"]
 [ext_resource type="Texture2D" path="res://assets/battle/object/farm_object_01.png" id="13_farm_object"]
+[ext_resource type="Texture2D" path="res://assets/battle/object/forest_object_01.png" id="14_forest_object"]
 [ext_resource type="Script" uid="uid://jcdb0o1ek8ut" path="res://scripts/battle/BattleHighlightRenderer.cs" id="4"]
 [ext_resource type="Texture2D" uid="uid://bvm6spy5bxnj5" path="res://assets/battle/wall/castle.png" id="4_bkj5p"]
 [ext_resource type="Texture2D" uid="uid://c510c1l7ai20q" path="res://assets/battle/overlay/overlay.png" id="4_pxx3e"]
@@ -263,6 +264,27 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 16)
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_forest_edge_object"]
+texture = ExtResource("14_forest_object")
+texture_region_size = Vector2i(128, 96)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 16)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 16)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 16)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 16)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 16)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 16)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 16)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 16)
+
 [sub_resource type="TileSet" id="TileSet_qrg6v"]
 tile_shape = 1
 tile_layout = 5
@@ -278,6 +300,7 @@ sources/7 = SubResource("TileSetAtlasSource_farm")
 sources/8 = SubResource("TileSetAtlasSource_bridge")
 sources/9 = SubResource("TileSetAtlasSource_river_object")
 sources/10 = SubResource("TileSetAtlasSource_farm_object")
+sources/11 = SubResource("TileSetAtlasSource_forest_edge_object")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fbtt2"]
 texture = ExtResource("4_bkj5p")
@@ -362,6 +385,11 @@ rendering_quadrant_size = 8
 
 [node name="FarmObjectLayer" type="TileMapLayer" parent="MapRoot"]
 z_index = 5
+tile_set = SubResource("TileSet_qrg6v")
+rendering_quadrant_size = 8
+
+[node name="ForestEdgeObjectLayer" type="TileMapLayer" parent="MapRoot"]
+z_index = 4
 tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
 

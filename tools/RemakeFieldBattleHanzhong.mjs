@@ -114,6 +114,18 @@ function buildFarmObjects() {
     ];
 }
 
+function buildForestEdgeObjects() {
+    // source 11 is visual-only: scattered where the Qinling and Daba woodland opens toward the basin.
+    return [
+        { x: 2, y: 4, tile: 0, source: 11 }, // fallen log
+        { x: 6, y: 5, tile: 1, source: 11 }, // stump
+        { x: 16, y: 4, tile: 2, source: 11 }, // tall woodland tree
+        { x: 21, y: 5, tile: 3, source: 11 }, // shrub
+        { x: 2, y: 21, tile: 0x10001, source: 11 }, // mossy rock at the southern forest edge
+        { x: 16, y: 20, tile: 0x10002, source: 11 } // bamboo clump
+    ];
+}
+
 function replaceLayer(scene, name, tileData) {
     const header = `[node name="${name}" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="${name === 'GroundLayer' ? 0 : 2}"]`;
     const node = `${header}\ntile_map_data = PackedByteArray("${tileData}")`;
@@ -138,6 +150,12 @@ function replaceFarmObjectLayer(scene, tileData) {
     return expression.test(scene) ? scene.replace(expression, node) : scene.replace(/\n\[node name="MoatLayer"/, `\n${node}\n\n[node name="MoatLayer"`);
 }
 
+function replaceForestEdgeObjectLayer(scene, tileData) {
+    const node = `[node name="ForestEdgeObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="7"]\ntile_map_data = PackedByteArray("${tileData}")`;
+    const expression = /\[node name="ForestEdgeObjectLayer" parent="MapRoot"[^\n]*\][\s\S]*?(?=\n\[node |$)/;
+    return expression.test(scene) ? scene.replace(expression, node) : scene.replace(/\n\[node name="MoatLayer"/, `\n${node}\n\n[node name="MoatLayer"`);
+}
+
 let scene = await fs.readFile(templatePath, 'utf8');
 scene = scene.replace('[gd_scene load_steps=2 format=4]', '[gd_scene load_steps=6 format=4]');
 scene = scene.replace(
@@ -153,5 +171,6 @@ scene = replaceLayer(scene, 'ObjectLayer', encodeCells(buildObjects()));
 scene = addRiverEffectLayer(scene, encodeCells(buildRiverEffect()));
 scene = replaceRiverObjectLayer(scene, encodeCells(buildRiverObjects()));
 scene = replaceFarmObjectLayer(scene, encodeCells(buildFarmObjects()));
+scene = replaceForestEdgeObjectLayer(scene, encodeCells(buildForestEdgeObjects()));
 await fs.writeFile(scenePath, scene, 'utf8');
 console.log(`Remade ${scenePath} with the Hanzhong basin layout.`);

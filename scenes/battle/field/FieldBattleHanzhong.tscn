@@ -44,6 +44,9 @@ tile_map_data = PackedByteArray("AAACAAoACQAAAAAAAAAFAAsACQABAAAAAAAIAAsACQACAAE
 [node name="FarmObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="6"]
 tile_map_data = PackedByteArray("AAACABEACgAAAAAAAAAGABEACgABAAAAAAAOABMACgACAAAAAAAJABQACgAAAAEAAAASABQACgACAAEAAAA=")
 
+[node name="ForestEdgeObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="7"]
+tile_map_data = PackedByteArray("AAACAAQACwAAAAAAAAAQAAQACwACAAAAAAAGAAUACwABAAAAAAAVAAUACwADAAAAAAAQABQACwACAAEAAAACABUACwABAAEAAAA=")
+
 [node name="MoatLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="1"]
 visible = false
 tile_map_data = PackedByteArray()

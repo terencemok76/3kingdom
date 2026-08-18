@@ -138,6 +138,17 @@ function buildFarmObjects() {
     ];
 }
 
+function buildForestEdgeObjects() {
+    // source 11 is visual-only: scattered along the lower edge of the Mangshan woodland.
+    return [
+        { x: 1, y: 6, tile: 0, source: 11 }, // fallen log
+        { x: 8, y: 6, tile: 1, source: 11 }, // stump
+        { x: 16, y: 6, tile: 2, source: 11 }, // tall woodland tree
+        { x: 23, y: 6, tile: 3, source: 11 }, // shrub
+        { x: 4, y: 7, tile: 0x10000, source: 11 } // broken tree at the forest edge
+    ];
+}
+
 function replaceLayer(scene, name, tileData) {
     const header = `[node name="${name}" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="${name === 'GroundLayer' ? 0 : 2}"]`;
     const node = `${header}\ntile_map_data = PackedByteArray("${tileData}")`;
@@ -166,6 +177,12 @@ function replaceFarmObjectLayer(scene, tileData) {
     return expression.test(scene) ? scene.replace(expression, node) : scene.replace(/\n\[node name="MoatLayer"/, `\n${node}\n\n[node name="MoatLayer"`);
 }
 
+function replaceForestEdgeObjectLayer(scene, tileData) {
+    const node = `[node name="ForestEdgeObjectLayer" parent="MapRoot" parent_id_path=PackedInt32Array(105299395) index="7"]\ntile_map_data = PackedByteArray("${tileData}")`;
+    const expression = /\[node name="ForestEdgeObjectLayer" parent="MapRoot"[^\n]*\][\s\S]*?(?=\n\[node |$)/;
+    return expression.test(scene) ? scene.replace(expression, node) : scene.replace(/\n\[node name="MoatLayer"/, `\n${node}\n\n[node name="MoatLayer"`);
+}
+
 function ensureRiverEffectResources(scene) {
     if (!scene.includes('id="3_floor"')) {
         scene = scene.replace(
@@ -187,5 +204,6 @@ scene = replaceLayer(scene, 'ObjectLayer', encodeCells(buildObjects()));
 scene = addRiverEffectLayer(scene, encodeCells(buildRiverEffect()));
 scene = replaceRiverObjectLayer(scene, encodeCells(buildRiverObjects()));
 scene = replaceFarmObjectLayer(scene, encodeCells(buildFarmObjects()));
+scene = replaceForestEdgeObjectLayer(scene, encodeCells(buildForestEdgeObjects()));
 await fs.writeFile(scenePath, scene, 'utf8');
 console.log(`Remade ${scenePath} with the Luoyang river valley layout.`);
