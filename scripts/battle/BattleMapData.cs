@@ -73,6 +73,8 @@ public sealed class BattleCellData
 
     public Vector2I Grid { get; init; }
     public BattleTerrainType Terrain { get; set; } = BattleTerrainType.Plain;
+    // A map-authored shallow-water tile remains traversable, but costs more movement than dry ground.
+    public int MovementCost { get; set; } = 1;
     public Vector2I GroundAtlasCoords { get; set; } = new(-1, -1);
     public BattleStructureType Structure { get; set; } = BattleStructureType.None;
     public BattleDeploymentZone DeploymentZone { get; set; } = BattleDeploymentZone.None;
@@ -346,6 +348,7 @@ public sealed class BattleMapData
             var atlas = layer.GetCellAtlasCoords(grid);
             var cell = GetCell(grid.X, grid.Y);
             cell.GroundAtlasCoords = atlas;
+            cell.MovementCost = atlas is { X: 4, Y: 1 } ? 2 : 1;
             cell.Terrain = atlas switch
             {
                 { X: 1, Y: 0 } => BattleTerrainType.Road,

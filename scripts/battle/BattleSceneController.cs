@@ -2399,13 +2399,17 @@ public partial class BattleSceneController : Node2D
 
     private void PopulateMarkers()
     {
+        var isFieldBattle = ResolveScenarioDefinition().ScenarioType == BattleScenarioType.FieldBattle;
         CreateMarker("MapRoot/UnitLayer/AttackerA", ResolveUnitSpawnGrid("AttackerA", new Vector2I(10, 20)), "I", "Attacker Infantry A", CategoryUnit, "Team A / Attacker", "Xiahou Yuan", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Spearman", ResolveUnitSpawnGrid("Spearman", new Vector2I(8, 18)), "S", "Attacker Spearman", CategoryUnit, "Team A / Attacker", "Cao Hong", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/AttackerB", ResolveUnitSpawnGrid("AttackerB", new Vector2I(12, 18)), "A", "Attacker Archer B", CategoryUnit, "Team A / Attacker", "Zhang He", TroopArcher, 5400, new Color("b96d2c"), new Color("f0d6a8"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/AttackerC", ResolveUnitSpawnGrid("AttackerC", new Vector2I(14, 20)), "C", "Attacker Cavalry C", CategoryUnit, "Team A / Attacker", "Cao Chun", TroopCavalry, 4800, new Color("8f3f31"), new Color("f0d6a8"), moveRange: 6, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/AttackerWorker", ResolveUnitSpawnGrid("AttackerWorker", new Vector2I(16, 20)), "W", "Attacker Worker", CategoryUnit, "Team A / Attacker", "Worker", TroopWorker, 1800, new Color("715137"), new Color("f0d6a8"), moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ram", ResolveUnitSpawnGrid("Ram", new Vector2I(12, 16)), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
-        CreateMarker("MapRoot/UnitLayer/Ladder", ResolveUnitSpawnGrid("Ladder", new Vector2I(10, 15)), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        if (!isFieldBattle)
+        {
+            CreateMarker("MapRoot/UnitLayer/Ram", ResolveUnitSpawnGrid("Ram", new Vector2I(12, 16)), "R", "Battering Ram", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopRam, RamMaxHitPoints, new Color("7a4a20"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+            CreateMarker("MapRoot/UnitLayer/Ladder", ResolveUnitSpawnGrid("Ladder", new Vector2I(10, 15)), "L", "Siege Ladder", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopLadder, LadderMaxHitPoints, new Color("8c7b44"), new Color("ead7aa"), 21.0f, moveRange: 3, attackRange: 1);
+        }
         CreateMarker("MapRoot/UnitLayer/Catapult", ResolveUnitSpawnGrid("Catapult", new Vector2I(14, 15)), "T", "Catapult", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopCatapult, CatapultMaxHitPoints, new Color("6e5131"), new Color("ead7aa"), 21.0f, moveRange: 2, attackRange: 4);
         CreateMarker("MapRoot/UnitLayer/SupplyCart", ResolveUnitSpawnGrid("SupplyCart", new Vector2I(16, 19)), "糧", "Supply Cart", CategorySiegeEngine, "Team A / Attacker", string.Empty, TroopSupplyCart, SupplyCartMaxHitPoints, new Color("6d5a2d"), new Color("f1df9b"), 21.0f, moveRange: 3, attackRange: 0);
 
@@ -4051,7 +4055,7 @@ public partial class BattleSceneController : Node2D
                 builder.AppendLine(BattleFormat("ui.battle.list_weapon_ammo", "- Weapon Ammo: {0}", FormatWeaponAmmo(_selectedUnit)));
             }
 
-            var effectiveAttackRange = GetEffectiveAttackRange(_selectedUnit);
+            var effectiveAttackRange = GetEffectiveAttackRange(_selectedUnit, _selectedUnitGrid);
             var attackRangeText = effectiveAttackRange == _selectedUnit.AttackRange
                 ? _selectedUnit.AttackRange.ToString()
                 : BattleFormat("ui.battle.effective_value", "{0} (effective {1})", _selectedUnit.AttackRange, effectiveAttackRange);
@@ -6647,13 +6651,13 @@ public partial class BattleSceneController : Node2D
 
     private static int GetMoveCost(BattleCellData cell)
     {
-        return cell.Terrain switch
+        return Math.Max(cell.MovementCost, cell.Terrain switch
         {
             BattleTerrainType.Forest => 2,
             BattleTerrainType.Swamp => 2,
             BattleTerrainType.Hill => 2,
             _ => 1
-        };
+        });
     }
 
     private void RefreshHighlights()
@@ -7047,10 +7051,12 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
+        var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
         var targetCell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
         var destinationCell = _mapData.GetCell(destinationGrid.X, destinationGrid.Y);
-        if (targetCell.Terrain == BattleTerrainType.Forest ||
-            destinationCell.Terrain == BattleTerrainType.Forest ||
+        if (sourceCell.Terrain is BattleTerrainType.Forest or BattleTerrainType.Farm ||
+            targetCell.Terrain is BattleTerrainType.Forest or BattleTerrainType.Farm ||
+            destinationCell.Terrain is BattleTerrainType.Forest or BattleTerrainType.Farm ||
             targetCell.ProvidesBuildingCover ||
             destinationCell.ProvidesBuildingCover)
         {
@@ -8798,7 +8804,7 @@ public partial class BattleSceneController : Node2D
     private IEnumerable<BattleGridKey> CalculateFireStrategyTargetGrids(BattleGridKey sourceGrid, BattleOccupantInfo attacker)
     {
         var strategyAttacker = attacker with { AttackRange = attacker.AttackRange + FireStrategyRangeBonus };
-        foreach (var grid in CalculateAttackableGrids(sourceGrid, strategyAttacker))
+        foreach (var grid in CalculateAttackableGrids(sourceGrid, strategyAttacker, allowHillRangeBonus: false))
         {
             if (grid.Level != 0 || !IsWithinMap(grid.Grid) || _mapData == null)
             {
@@ -10067,14 +10073,14 @@ public partial class BattleSceneController : Node2D
         return group;
     }
 
-    private IEnumerable<BattleGridKey> CalculateAttackableGrids(BattleGridKey startGrid, BattleOccupantInfo attacker)
+    private IEnumerable<BattleGridKey> CalculateAttackableGrids(BattleGridKey startGrid, BattleOccupantInfo attacker, bool allowHillRangeBonus = true)
     {
         if (!CanUseNormalAttackWithCurrentAmmo(attacker))
         {
             yield break;
         }
 
-        var attackRange = GetEffectiveAttackRange(attacker);
+        var attackRange = GetEffectiveAttackRange(attacker, startGrid, allowHillRangeBonus);
         if (attackRange <= 0)
         {
             yield break;
@@ -10100,19 +10106,31 @@ public partial class BattleSceneController : Node2D
         }
     }
 
-    private int GetEffectiveAttackRange(BattleOccupantInfo attacker)
+    private int GetEffectiveAttackRange(BattleOccupantInfo attacker, BattleGridKey? sourceGrid = null, bool allowHillRangeBonus = true)
     {
         if (CanUseAmmoDepletedWeakAttack(attacker))
         {
             return 1;
         }
 
+        var attackRange = attacker.AttackRange;
         if (GetCurrentBattleTimeOfDay() == BattleTimeOfDay.Night && IsRangedBattleAttacker(attacker))
         {
-            return Mathf.Max(1, attacker.AttackRange - 1);
+            attackRange = Mathf.Max(1, attackRange - 1);
         }
 
-        return attacker.AttackRange;
+        if (allowHillRangeBonus &&
+            sourceGrid.HasValue &&
+            _mapData != null &&
+            sourceGrid.Value.Level == 0 &&
+            attacker.Category == CategoryUnit &&
+            attacker.TroopType is TroopArcher or TroopCrossbow &&
+            _mapData.GetCell(sourceGrid.Value.X, sourceGrid.Value.Y).Terrain == BattleTerrainType.Hill)
+        {
+            attackRange++;
+        }
+
+        return attackRange;
     }
 
     private static bool IsRangedBattleAttacker(BattleOccupantInfo attacker)

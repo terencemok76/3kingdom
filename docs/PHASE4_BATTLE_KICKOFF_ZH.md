@@ -333,6 +333,8 @@
   - Battle piece 在 `Forest` 地形可使用 prototype `Hide`，包含一般 battle team 與 `Ram` / `Ladder` / `Catapult` / `SupplyCart` 等攻城／後勤車；hidden 後己方仍可看見 marker，單位／車體本體使用暗綠半透明 hidden visual，name plate、HP bar、team arrow 與 `HIDE` 狀態 badge 保持正常清楚顯示，但不再額外顯示 hidden 狀態外圈 ring；敵方回合則完全看不到、不能選取，也不能以可見單位目標方式被 Union Attack / Duel / Strategy (Mess) / Hire Officer 指定。若敵方直接攻擊 hidden 單位所在的 `Forest` tile，或該 `Forest` tile 起火造成 fire damage，hidden 單位仍會像一般 battle team 一樣受傷並顯示傷害結果。hidden 單位執行 Move / Attack / Strategy / Duel / Capture Cart / Hire Officer 不會自動解除 hidden；只有移動後離開 `Forest` 才會轉回非 hidden。
   - `Cavalry` 不可將移動目的地設在 `Forest`；可從其他地形繞行，若因既有佈署或存檔已在森林內，仍可正常移出森林。
   - `Cavalry` 可使用 prototype `Charge`：只支援 `L0` 四方向相鄰敵方 battle team，目標格不可是 `Forest`，且目標後方同方向一格必須在地圖內、不是 `Forest`、沒有任何 battle team，並可通行。執行時騎兵先對目標造成 `1,650` charge damage，再穿過目標格落到後方格；即使目標被擊破，騎兵仍會完成穿越。若目標是 `Spearman`，charge damage 降為 `900`，且騎兵會承受 `600` counter damage；反傷不會阻止穿越。使用 `Charge` 後，該騎兵本回合不能再使用 `Move` / `Attack` / `Union Attack`。
+  - `Farm` 內的騎兵不可使用 `Charge`，且 Charge 的目標格或穿越後落點也不可是 `Farm`；騎兵仍可正常進出農田與使用一般攻擊。
+  - `Hill` 保持每格移動消耗 `2`；站在 Hill 的 `Archer`／`Crossbow` 普通攻擊距離 `+1`。此加成不套用於 `Catapult`、彈藥耗盡的 weak close attack 或 `Strategy (Fire)`；夜晚遠程距離減少仍會先套用。
   - `SupplyCart` 目前使用 `supplycar_idle_ne.png` / `supplycar_idle_sw.png` 專用 idle 動畫素材；`NE/NW` 為 `2x2` 四幀，`SW/SE` 為 `1x3` 三幀。
   - morale 已接入 prototype 士氣壓制：`Morale <= 30` 的一般 battle team 有移動懲罰，effective move range 會降低 `1`，但最少保留 `1`；`Mess` 狀態中的隊伍 effective move range 會被壓到 `1`。
   - `Morale <= 15` 的一般 battle team 在自己回合開始時有機率自動陷入 `Mess`；`Mess` 狀態中不能 Attack、Union Attack、Duel 或使用 Strategy，Worker 也不能 Bridge / Wood Fence，且自己回合開始會有 `5%` active troops 離隊。
@@ -397,12 +399,13 @@
   - `MoatSiegeBattle`
 - 三種 scenario 目前共用同一個 `BattleScene`、HUD、單位 marker、移動與 A*。
 - `FieldBattle` 會建立不含城牆／城門的道路、森林、障礙物與雙方部署區。
+  - 野戰不部署 `Ram` 或 `Ladder`；兩者僅保留給攻城／護城河攻城情境。
   - 目前野戰仍以程序式地形為主，但會額外疊加 scene `ObjectLayer` 內的 `Building` 圖塊，讓共用 `BattleScene` 的測試建築可直接出現在野戰模式。
 - 戰鬥選單保留洛陽野戰，並提供漢中野戰；`FIELD`／`FIELD_LUOYANG` 載入 `scenes/battle/field/FieldBattleLuoyang.tscn`，`FIELD_HANZHONG` 載入 `scenes/battle/field/FieldBattleHanzhong.tscn`。兩者均繼承共用戰鬥 UI，並以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
 - `FieldBattle` 的 editor preview 必須隱藏繼承自共用攻城 scene 的 `CastleLayer`，避免父 scene 的城牆資料在編輯器殘留顯示；野戰場景的 WYSIWYG 預覽應與 runtime 地圖一致。
 - 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
   - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方以連續邙山山脊與疏密相間的山腳森林界定戰場，中央保留洛水河谷、兩岸濕地／岸地與穿越河谷的渡口道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍與開闊農地。渡口三格寬的主線使用「官道」，山腳與農地支線使用「磨損道路」。`RiverEffectLayer` 只覆蓋洛水深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，渡口、淺水與河岸過渡保持靜態。場景使用既有 floor、building、tree、rock、forest、wood、hill、mountain 與 farm tiles。投石車初始部署由洛陽專屬 Scenario Data 設為南岸可通行格 `(14,17)`，避免共用預設 `(14,15)` 落在河面。
-  - `FieldBattleHanzhong.tscn` 以漢中盆地為第二個城市野戰範例：北側秦嶺與南側大巴山的山林夾住中央漢水，河道在戰場內蜿蜒；單格中央官道直接接到 `bridge_01.png` 第二列的雙格石橋 `(12,11)`、`(12,12)`，橫越河段後連接南側平壩道路，南岸配置農地與聚落。橋前南北主線使用「官道」，平壩與聚落支線使用「磨損道路」。兩個石橋格各自保留可通行、可受攻擊的 `Bridge` 地形、耐久度與水面底圖；`RiverEffectLayer` 只覆蓋深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，並置於橋物件下方；場景僅使用既有 floor、building、forest、swamp、hill、mountain、wood、farm、rock 與 bridge tiles；所有部署皆由 `field_hanzhong.tres` 定義。
+  - `FieldBattleHanzhong.tscn` 以漢中盆地為第二個城市野戰範例：北側秦嶺與南側大巴山的山林夾住中央漢水，河道在戰場內蜿蜒；單格中央官道直接接到 `bridge_01.png` 第二列的雙格石橋 `(12,11)`、`(12,12)`，橫越河段後連接南側平壩道路，南岸配置農地與聚落。橋前南北主線使用「官道」，平壩與聚落支線使用「磨損道路」；西側另有三格寬的淺灘 `(2..4,10..11)`，可通行但每格消耗 `2` 點移動力，形成較慢的側翼／伏擊路線。兩個石橋格各自保留可通行、可受攻擊的 `Bridge` 地形、耐久度與水面底圖；`RiverEffectLayer` 只覆蓋深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，並置於橋物件下方；場景僅使用既有 floor、building、forest、swamp、hill、mountain、wood、farm、rock 與 bridge tiles；所有部署皆由 `field_hanzhong.tres` 定義。
 - `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
   - 選取 Worker 後顯示專用的 `Bridge` 與 `Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
@@ -417,7 +420,7 @@
 - `MoatSiegeBattle` 會在攻城 prototype 的接近路線加入：
   - 不可直接通行的 `Moat`
   - 位於中央接近路線、可通行的 `Bridge`
-- `assets/battle/floor/floor.png` 的第一列依序為 grass、road、courtyard、wall walk、forest、river（Moat）、river2（River）與 swamp；第二列依序為 coast、wet grass、mud、pebble、shallow water、worn road、official road、dry river bed。wet grass 依 Grass 規則、mud 依 Swamp 規則、pebble／worn road／official road／dry river bed 依 Road 規則、shallow water 依 Coast 規則，但 runtime 會保留其原始圖塊視覺。乾河床預留給宛、襄陽、涼州等野戰場景；River 不可通行，Swamp 可通行但移動消耗為 2，Coast 是可通行岸地；只有 river（Moat）可套用攻城橋樑規則。橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
+- `assets/battle/floor/floor.png` 是共用 floor atlas；第一列依序為 grass、road、courtyard、wall walk、forest、river（Moat）、river2（River）與 swamp；第二列依序為 coast、wet grass、mud、pebble、shallow water、worn road、official road、dry river bed。shallow water 是可涉渡淺灘，可通行但每格移動消耗為 `2`。wet grass 依 Grass 規則、mud 依 Swamp 規則、pebble／worn road／official road／dry river bed 依 Road 規則。乾河床預留給宛、襄陽、涼州等野戰場景；River 不可通行，Swamp 可通行但移動消耗為 2，Coast 是可通行岸地；只有 river（Moat）可套用攻城橋樑規則。橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
 - `MoatLayer` 會額外套用輕量水流 shader，對 river tile 做緩慢 UV 位移與微弱明暗起伏；此效果僅為場景表現，不改變 `BattleMapData`、橋樑施工/破壞或任何移動／A* 規則。
 - `assets/battle/object/river_object_01.png` 提供船、輕舟、棧橋、木棧台、蘆葦蓮葉、礁石、水面擾動與木筏八種河流物件；共用 Object TileSet 以 source 9 登錄。野戰場景將其放在獨立的 `RiverObjectLayer`，因此只作河道視覺裝飾，不會改變水域、橋格、移動、A* 或 AI 規則。
 - `assets/battle/object/farm_object_01.png` 提供草垛、稻草人、收穫木車、穀袋、蔬果籃與其他農事擺設；共用 Object TileSet 以 source 10 登錄。野戰場景將其放在獨立的 `FarmObjectLayer`，只作農地視覺裝飾，並避開道路、建築、作物與部署格，不改變地形、移動、A* 或 AI 規則。

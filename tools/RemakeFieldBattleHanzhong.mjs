@@ -35,6 +35,12 @@ function buildGround() {
         set(x, riverY + 2, x >= 10 && x <= 14 ? 0x10003 : 0x10004); // Pebble near the bridge, Shallow Water elsewhere.
     }
 
+    // A western shallow ford offers a slower flank route. The stone bridge remains the fast, direct crossing.
+    for (let x = 2; x <= 4; x++) {
+        set(x, 10, 0x10004);
+        set(x, 11, 0x10004);
+    }
+
     // The maintained official road feeds directly into the two-cell stone bridge.
     for (let y = 5; y <= 17; y++) {
         if (y !== 11 && y !== 12) set(12, y, 0x10006);
