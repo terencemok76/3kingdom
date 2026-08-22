@@ -79,11 +79,14 @@ public static class BattleTileMapBuilder
     private const int ObjectRiverDecorationAtlasSourceId = 9;
     private const int ObjectFarmDecorationAtlasSourceId = 10;
     private const int ObjectForestEdgeDecorationAtlasSourceId = 11;
+    private const int ObjectDefenseOutpostAtlasSourceId = 12;
     private const int ObjectFarmDecorationRegionHeight = 96;
     private const int ObjectBuildingTileCount = 3;
+    private const int ObjectDefenseOutpostTileCount = 2;
     private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
     private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
     private const string ObjectBuildingAtlasPath = "res://assets/battle/object/building_01.png";
+    private const string ObjectDefenseOutpostAtlasPath = "res://assets/battle/object/outpost_01.png";
     private const string ObjectForestAtlasPath = "res://assets/battle/object/forest_01.png";
     private const string ObjectSwampAtlasPath = "res://assets/battle/object/swamp_01.png";
     private const string ObjectHillAtlasPath = "res://assets/battle/object/hill_01.png";
@@ -219,13 +222,20 @@ public static class BattleTileMapBuilder
 
     public static bool TryGetBuildingSpriteSpec(BattleCellData cell, out BattleTileSpriteSpec spec)
     {
-        if (cell.Structure != BattleStructureType.Building || !ResourceLoader.Exists(ObjectBuildingAtlasPath))
+        if (cell.Structure != BattleStructureType.Building)
         {
             spec = default;
             return false;
         }
 
-        var texture = GD.Load<Texture2D>(ObjectBuildingAtlasPath);
+        var atlasPath = cell.IsDefenseOutpost ? ObjectDefenseOutpostAtlasPath : ObjectBuildingAtlasPath;
+        if (!ResourceLoader.Exists(atlasPath))
+        {
+            spec = default;
+            return false;
+        }
+
+        var texture = GD.Load<Texture2D>(atlasPath);
         if (texture == null)
         {
             spec = default;
@@ -233,7 +243,11 @@ public static class BattleTileMapBuilder
         }
 
         var metrics = GetAtlasMetrics(BattleTileLayerKind.Object);
-        var atlasCoords = new Vector2I(Mathf.Clamp(cell.BuildingAtlasCoords.X, 0, ObjectBuildingTileCount - 1), 0);
+        var atlasCoords = new Vector2I(
+            cell.IsDefenseOutpost
+                ? Mathf.Clamp(cell.DefenseOutpostAtlasIndex, 0, ObjectDefenseOutpostTileCount - 1)
+                : Mathf.Clamp(cell.BuildingAtlasCoords.X, 0, ObjectBuildingTileCount - 1),
+            0);
         spec = CreateSpriteSpec(texture, metrics, atlasCoords, metrics.GetSpriteFootPivot());
         return true;
     }
@@ -290,7 +304,9 @@ public static class BattleTileMapBuilder
 
         if (cell.Structure == BattleStructureType.Building)
         {
-            return new Vector2I(Mathf.Clamp(cell.BuildingAtlasCoords.X, 0, ObjectBuildingTileCount - 1), 0);
+            return new Vector2I(cell.IsDefenseOutpost
+                ? Mathf.Clamp(cell.DefenseOutpostAtlasIndex, 0, ObjectDefenseOutpostTileCount - 1)
+                : Mathf.Clamp(cell.BuildingAtlasCoords.X, 0, ObjectBuildingTileCount - 1), 0);
         }
 
         if (cell.Terrain == BattleTerrainType.Forest && cell.ForestAtlasCoords.X >= 0)
@@ -335,7 +351,7 @@ public static class BattleTileMapBuilder
         return layerKind == BattleTileLayerKind.Object && cell.HasBridgeVisual && cell.BridgeAtlasSourceId == ObjectBridgeAtlasSourceId
             ? ObjectBridgeAtlasSourceId
             : layerKind == BattleTileLayerKind.Object && cell.Structure == BattleStructureType.Building
-            ? ObjectBuildingAtlasSourceId
+            ? cell.IsDefenseOutpost ? ObjectDefenseOutpostAtlasSourceId : ObjectBuildingAtlasSourceId
             : layerKind == BattleTileLayerKind.Object && cell.Terrain == BattleTerrainType.Forest && cell.ForestAtlasCoords.X >= 0
                 ? cell.ForestAtlasSourceId == ObjectWoodAtlasSourceId
                     ? ObjectWoodAtlasSourceId
@@ -518,6 +534,7 @@ public static class BattleTileMapBuilder
             AddObjectRiverDecorationSource(tileSet, metrics);
             AddObjectFarmDecorationSource(tileSet, metrics);
             AddObjectForestEdgeDecorationSource(tileSet, metrics);
+            AddObjectDefenseOutpostSource(tileSet, metrics);
         }
 
         return tileSet;
@@ -565,6 +582,36 @@ public static class BattleTileMapBuilder
         }
 
         tileSet.AddSource(atlasSource, ObjectBuildingAtlasSourceId);
+    }
+
+    private static void AddObjectDefenseOutpostSource(TileSet tileSet, BattleAtlasMetrics metrics)
+    {
+        if (!ResourceLoader.Exists(ObjectDefenseOutpostAtlasPath))
+        {
+            return;
+        }
+
+        var atlasTexture = GD.Load<Texture2D>(ObjectDefenseOutpostAtlasPath);
+        if (atlasTexture == null || atlasTexture.GetWidth() < ObjectDefenseOutpostTileCount * metrics.RegionWidth || atlasTexture.GetHeight() < metrics.RegionHeight)
+        {
+            GD.PushWarning($"Battle defense outpost atlas could not be loaded: {ObjectDefenseOutpostAtlasPath}");
+            return;
+        }
+
+        var atlasSource = new TileSetAtlasSource
+        {
+            Texture = atlasTexture,
+            TextureRegionSize = new Vector2I(metrics.RegionWidth, metrics.RegionHeight),
+            UseTexturePadding = false
+        };
+        for (var tileIndex = 0; tileIndex < ObjectDefenseOutpostTileCount; tileIndex++)
+        {
+            var atlasCoords = new Vector2I(tileIndex, 0);
+            atlasSource.CreateTile(atlasCoords);
+            atlasSource.GetTileData(atlasCoords, 0).TextureOrigin = metrics.GetTextureOrigin();
+        }
+
+        tileSet.AddSource(atlasSource, ObjectDefenseOutpostAtlasSourceId);
     }
 
     private static void AddObjectForestSource(TileSet tileSet, BattleAtlasMetrics metrics)

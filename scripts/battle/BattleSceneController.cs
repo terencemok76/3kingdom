@@ -353,6 +353,7 @@ public partial class BattleSceneController : Node2D
     private bool _isResizingBattleLog;
     private bool _isBattleLogMinimized;
     private bool _isBattleFinished;
+    private bool _attackerOutpostVictorySecured;
     private Vector2 _lastMousePosition;
     private Vector2 _commandMenuDragOffset;
     private Vector2 _battleLogDragOffset;
@@ -375,6 +376,7 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
     private readonly Dictionary<Vector2I, Sprite2D> _buildingDepthSpritesByGrid = new();
+    private readonly Dictionary<Vector2I, Node2D> _outpostOwnerFlagsByGrid = new();
     private readonly List<BattleHighlightRenderer> _highlightDepthVisuals = new();
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
     private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
@@ -1083,7 +1085,8 @@ public partial class BattleSceneController : Node2D
             ShowSelfTeamLogOnly = _showSelfTeamLogOnly,
             BattleLogExpandedWidth = _battleLogExpandedSize.X,
             BattleLogExpandedHeight = _battleLogExpandedSize.Y,
-            IsBattleLogMinimized = _isBattleLogMinimized
+            IsBattleLogMinimized = _isBattleLogMinimized,
+            AttackerOutpostVictorySecured = _attackerOutpostVictorySecured
         };
 
         if (_mapData != null)
@@ -1186,6 +1189,7 @@ public partial class BattleSceneController : Node2D
         _teamBGold = Math.Max(0, saveData.TeamBGold);
         _teamBFood = Math.Max(0, saveData.TeamBFood);
         _showSelfTeamLogOnly = saveData.ShowSelfTeamLogOnly;
+        _attackerOutpostVictorySecured = saveData.AttackerOutpostVictorySecured;
         _isBattleLogMinimized = saveData.IsBattleLogMinimized;
         _battleLogExpandedSize = new Vector2(
             Mathf.Max(BattleLogMinimumWidth, saveData.BattleLogExpandedWidth),
@@ -1225,6 +1229,7 @@ public partial class BattleSceneController : Node2D
     {
         HideCommandMenu();
         _isBattleFinished = false;
+        _attackerOutpostVictorySecured = false;
         if (_battleResultOverlay != null)
         {
             _battleResultOverlay.Visible = false;
@@ -2108,6 +2113,7 @@ public partial class BattleSceneController : Node2D
                 sprite.Name = $"Building_{cell.Grid.X}_{cell.Grid.Y}";
                 _battleDepthLayer.AddChild(sprite);
                 _buildingDepthSpritesByGrid[cell.Grid] = sprite;
+                RefreshDefenseOutpostFlag(cell.Grid);
                 RegisterBattleDepthEntry(sprite, ToGroundGridKey(cell.Grid), BattleDepthRenderKind.BuildingVisual);
             }
         }
@@ -2124,6 +2130,38 @@ public partial class BattleSceneController : Node2D
         }
 
         _buildingDepthSpritesByGrid.Clear();
+        _outpostOwnerFlagsByGrid.Clear();
+    }
+
+    private void RefreshDefenseOutpostFlag(Vector2I grid)
+    {
+        if (_mapData == null || !_buildingDepthSpritesByGrid.TryGetValue(grid, out var sprite)) return;
+
+        sprite.GetNodeOrNull<Node2D>("OwnerFlag")?.QueueFree();
+        _outpostOwnerFlagsByGrid.Remove(grid);
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (!cell.IsDefenseOutpost || cell.DefenseOutpostOwner == BattleOutpostOwner.None) return;
+
+        var flagColor = cell.DefenseOutpostOwner == BattleOutpostOwner.Defender ? new Color("2d80c3") : new Color("c64236");
+        var flagRoot = new Node2D { Name = "OwnerFlag" };
+        flagRoot.AddChild(new Line2D { Points = [new Vector2(6, -74), new Vector2(6, -42)], DefaultColor = new Color("4a3423"), Width = 2.0f });
+        flagRoot.AddChild(new Polygon2D { Polygon = [new Vector2(7, -73), new Vector2(28, -65), new Vector2(7, -57)], Color = flagColor });
+        sprite.AddChild(flagRoot);
+        _outpostOwnerFlagsByGrid[grid] = flagRoot;
+    }
+
+    private void CaptureDefenseOutpost(BattleGridKey grid, BattleOccupantInfo occupant)
+    {
+        if (_mapData == null || grid.Level != 0) return;
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (!cell.IsDefenseOutpost) return;
+
+        var newOwner = occupant.TeamName.Contains("Defender", StringComparison.OrdinalIgnoreCase) ? BattleOutpostOwner.Defender : BattleOutpostOwner.Attacker;
+        if (cell.DefenseOutpostOwner == newOwner) return;
+
+        cell.DefenseOutpostOwner = newOwner;
+        RefreshDefenseOutpostFlag(grid.Grid);
+        AppendBattleLog(occupant, "Outpost", $"{FormatLogUnit(occupant)} captures defense outpost ({(newOwner == BattleOutpostOwner.Defender ? "Defender" : "Attacker")})");
     }
 
     private void ClearHighlightDepthVisuals()
@@ -2261,10 +2299,10 @@ public partial class BattleSceneController : Node2D
         return kind switch
         {
             BattleDepthRenderKind.CastleVisual => 0,
-            BattleDepthRenderKind.BuildingVisual => 3,
+            BattleDepthRenderKind.BuildingVisual or
             BattleDepthRenderKind.MoveHighlight or
-            BattleDepthRenderKind.AttackHighlight or
-            BattleDepthRenderKind.SelectedHighlight => 2,
+            BattleDepthRenderKind.SelectedHighlight => 3,
+            BattleDepthRenderKind.AttackHighlight => 2,
             BattleDepthRenderKind.SiegeEngine or
             BattleDepthRenderKind.Unit => 3,
             BattleDepthRenderKind.FireEffect => 4,
@@ -2740,28 +2778,78 @@ public partial class BattleSceneController : Node2D
     private bool TryBuildBattleResultMessage(out string resultMessage)
     {
         resultMessage = string.Empty;
-        if (_mapData == null || _occupantsByGrid.Count == 0)
+        if (_mapData == null)
         {
             return false;
         }
 
-        var teamAHasGeneral = _teamAGenerals > 0;
-        var teamBHasGeneral = _teamBGenerals > 0;
-        if (teamAHasGeneral && teamBHasGeneral)
+        var teamAHasBattleTeam = HasActiveBattleTeam(isDefender: false);
+        var teamBHasBattleTeam = HasActiveBattleTeam(isDefender: true);
+        if (!teamAHasBattleTeam && !teamBHasBattleTeam)
         {
-            return false;
-        }
-
-        if (!teamAHasGeneral && !teamBHasGeneral)
-        {
-            resultMessage = "Battle Finished\nDraw\nBoth sides have no generals.";
+            resultMessage = "Battle Finished\nDraw\nBoth sides have no battle teams.";
             return true;
         }
 
-        var winnerName = teamAHasGeneral ? TeamAInfo.Name : TeamBInfo.Name;
-        var defeatedName = teamAHasGeneral ? TeamBInfo.Name : TeamAInfo.Name;
-        resultMessage = $"Battle Finished\n{winnerName} Victory\n{defeatedName} has no generals.";
-        return true;
+        if (!teamAHasBattleTeam || !teamBHasBattleTeam)
+        {
+            var winnerName = teamAHasBattleTeam ? TeamAInfo.Name : TeamBInfo.Name;
+            var defeatedName = teamAHasBattleTeam ? TeamBInfo.Name : TeamAInfo.Name;
+            resultMessage = $"Battle Finished\n{winnerName} Victory\n{defeatedName} has no battle teams remaining.";
+            return true;
+        }
+
+        if (_attackerOutpostVictorySecured)
+        {
+            resultMessage = $"Battle Finished\n{TeamAInfo.Name} Victory\nAll defense outposts are occupied and held.";
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool HasActiveBattleTeam(bool isDefender)
+    {
+        return _occupantsByGrid.Values
+            .SelectMany(static occupants => occupants)
+            .Any(occupant => IsBattlePiece(occupant) && IsDefenderTeam(occupant) == isDefender);
+    }
+
+    private bool DoesAttackerHoldAllDefenseOutposts()
+    {
+        if (_mapData?.ScenarioDefinition.ScenarioType != BattleScenarioType.FieldBattle)
+        {
+            return false;
+        }
+
+        var outpostGrids = new List<Vector2I>();
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var cell = _mapData.GetCell(x, y);
+                if (cell.IsDefenseOutpost)
+                {
+                    outpostGrids.Add(cell.Grid);
+                }
+            }
+        }
+
+        return outpostGrids.Count > 0 && outpostGrids.All(grid =>
+            _mapData.GetCell(grid.X, grid.Y).DefenseOutpostOwner == BattleOutpostOwner.Attacker);
+    }
+
+    private static bool IsDefenderTeam(BattleOccupantInfo occupant)
+    {
+        return occupant.TeamName.Contains("Defender", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ConfirmAttackerOutpostVictoryAtTurnEnd()
+    {
+        if (_currentTurnSide == BattleTurnSide.TeamB && DoesAttackerHoldAllDefenseOutposts())
+        {
+            _attackerOutpostVictorySecured = true;
+        }
     }
 
     private void HandleMouseButton(InputEventMouseButton mouseButton)
@@ -4003,6 +4091,11 @@ public partial class BattleSceneController : Node2D
                 : BattleText("ui.battle.building_cover_disabled_fire", "Disabled while burning");
             builder.AppendLine(BattleFormat("ui.battle.building_defense", "Building Defense: {0}", coverStatus));
         }
+        if (cell.IsDefenseOutpost)
+        {
+            var owner = cell.DefenseOutpostOwner == BattleOutpostOwner.Defender ? "Defender (Blue)" : cell.DefenseOutpostOwner == BattleOutpostOwner.Attacker ? "Attacker (Red)" : "None";
+            builder.AppendLine($"Defense Outpost: {owner}");
+        }
         if (_activeFireByGrid.TryGetValue(ToGroundGridKey(grid), out var fireState))
         {
             builder.AppendLine(BattleFormat("ui.battle.fire_burning", "Fire: Burning ({0} turn left)", fireState.RemainingTurns));
@@ -4285,7 +4378,18 @@ public partial class BattleSceneController : Node2D
             movedOccupant.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         RefreshBattleDepthLayerOrder();
         ClearOccludedUnitSilhouettes();
-        ApplyMoveAnimation(movedOccupant, moveDirection, GetMarkerPosition(destinationGrid), pathPositions, pathDirections, pathModulates, RefreshOccludedUnitSilhouettes);
+        ApplyMoveAnimation(
+            movedOccupant,
+            moveDirection,
+            GetMarkerPosition(destinationGrid),
+            pathPositions,
+            pathDirections,
+            pathModulates,
+            () =>
+            {
+                CaptureDefenseOutpost(destinationGrid, movedOccupant);
+                RefreshOccludedUnitSilhouettes();
+            });
 
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
@@ -10829,6 +10933,12 @@ public partial class BattleSceneController : Node2D
         CancelCommandAction(clearSelection: true);
         ResolveBattleFireAtTurnEnd();
         ResolveBattleStatusAtTurnEnd(endingSideName);
+        ConfirmAttackerOutpostVictoryAtTurnEnd();
+        RefreshBattleResultState();
+        if (_isBattleFinished)
+        {
+            return;
+        }
         _strategyUsedByMarkerThisTurn.Clear();
         _supplyUsedByMarkerThisTurn.Clear();
         _chargeUsedByMarkerThisTurn.Clear();
@@ -11313,6 +11423,7 @@ public partial class BattleSceneController : Node2D
         public float BattleLogExpandedWidth { get; set; }
         public float BattleLogExpandedHeight { get; set; }
         public bool IsBattleLogMinimized { get; set; }
+        public bool AttackerOutpostVictorySecured { get; set; }
         public List<BattleCellSaveData> Cells { get; set; } = new();
         public List<BattleOccupantSaveData> Occupants { get; set; } = new();
         public List<string> StrategyUsedUnitIds { get; set; } = new();
@@ -11354,6 +11465,9 @@ public partial class BattleSceneController : Node2D
         public bool WoodenFenceFlipHorizontally { get; set; }
         public int BuildingAtlasX { get; set; }
         public int BuildingAtlasY { get; set; }
+        public bool IsDefenseOutpost { get; set; }
+        public int DefenseOutpostAtlasIndex { get; set; }
+        public BattleOutpostOwner DefenseOutpostOwner { get; set; }
         public bool HasForestObjectVisual { get; set; }
         public int ForestAtlasSourceId { get; set; }
         public int ForestAtlasX { get; set; }
@@ -11406,6 +11520,9 @@ public partial class BattleSceneController : Node2D
                 WoodenFenceFlipHorizontally = cell.WoodenFenceFlipHorizontally,
                 BuildingAtlasX = cell.BuildingAtlasCoords.X,
                 BuildingAtlasY = cell.BuildingAtlasCoords.Y,
+                IsDefenseOutpost = cell.IsDefenseOutpost,
+                DefenseOutpostAtlasIndex = cell.DefenseOutpostAtlasIndex,
+                DefenseOutpostOwner = cell.DefenseOutpostOwner,
                 HasForestObjectVisual = cell.ForestAtlasCoords.X >= 0,
                 ForestAtlasSourceId = cell.ForestAtlasSourceId,
                 ForestAtlasX = cell.ForestAtlasCoords.X,
@@ -11453,6 +11570,9 @@ public partial class BattleSceneController : Node2D
             cell.BridgeAtlasCoords = new Vector2I(BridgeAtlasX, BridgeAtlasY);
             cell.WoodenFenceFlipHorizontally = WoodenFenceFlipHorizontally;
             cell.BuildingAtlasCoords = new Vector2I(BuildingAtlasX, BuildingAtlasY);
+            cell.IsDefenseOutpost = IsDefenseOutpost;
+            cell.DefenseOutpostAtlasIndex = DefenseOutpostAtlasIndex;
+            cell.DefenseOutpostOwner = DefenseOutpostOwner;
             cell.ForestAtlasCoords = HasForestObjectVisual
                 ? new Vector2I(ForestAtlasX, ForestAtlasY)
                 : new Vector2I(-1, -1);

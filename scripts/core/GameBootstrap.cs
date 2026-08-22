@@ -13,6 +13,12 @@ public partial class GameBootstrap : Node
     private const string BattleNorthWestScenePath = "res://scenes/battle/BattleSceneNorthWest.tscn";
     private const string FieldBattleLuoyangScenePath = "res://scenes/battle/field/FieldBattleLuoyang.tscn";
     private const string FieldBattleHanzhongScenePath = "res://scenes/battle/field/FieldBattleHanzhong.tscn";
+    private const string FieldBattleYeScenePath = "res://scenes/battle/field/FieldBattleYe.tscn";
+    private const string FieldBattleJinyangScenePath = "res://scenes/battle/field/FieldBattleJinyang.tscn";
+    private const string FieldBattleXiapiScenePath = "res://scenes/battle/field/FieldBattleXiapi.tscn";
+    private const string FieldBattleJianyeScenePath = "res://scenes/battle/field/FieldBattleJianye.tscn";
+    private const string FieldBattleXiangyangScenePath = "res://scenes/battle/field/FieldBattleXiangyang.tscn";
+    private const string FieldBattleJianglingScenePath = "res://scenes/battle/field/FieldBattleJiangling.tscn";
 
     private readonly WorldRepository _worldRepository = new();
     private readonly TurnManager _turnManager = new();
@@ -96,6 +102,12 @@ public partial class GameBootstrap : Node
         {
             "FIELD" or "FIELD_LUOYANG" => (FieldBattleLuoyangScenePath, BattleScenarioType.FieldBattle, true),
             "FIELD_HANZHONG" => (FieldBattleHanzhongScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD_YE" => (FieldBattleYeScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD_JINYANG" => (FieldBattleJinyangScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD_XIAPI" => (FieldBattleXiapiScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD_JIANYE" => (FieldBattleJianyeScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD_XIANGYANG" => (FieldBattleXiangyangScenePath, BattleScenarioType.FieldBattle, true),
+            "FIELD_JIANGLING" => (FieldBattleJianglingScenePath, BattleScenarioType.FieldBattle, true),
             "NE_SIEGE" => (BattleNorthEastScenePath, BattleScenarioType.SiegeAssault, true),
             "NE_MOAT" => (BattleNorthEastScenePath, BattleScenarioType.MoatSiegeBattle, true),
             "NW_SIEGE" => (BattleNorthWestScenePath, BattleScenarioType.SiegeAssault, true),

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="BattleScenarioDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://ctlxf41bf1vrk" path="res://scripts/battle/BattleScenarioDefinition.cs" id="1_field_xiapi"]
+
+[resource]
+script = ExtResource("1_field_xiapi")
+DisplayName = "Field Battle (Xiapi)"
+ScenarioType = 1
+Weather = 2
+WindDirection = 2
+WindPower = 1
+TimeOfDay = 1
+UnitSpawnGrids = Dictionary[String, Vector2i]({
+"AttackerA": Vector2i(14, 20),
+"AttackerB": Vector2i(16, 20),
+"AttackerC": Vector2i(14, 22),
+"AttackerWorker": Vector2i(18, 21),
+"Catapult": Vector2i(12, 19),
+"Spearman": Vector2i(11, 21),
+"SupplyCart": Vector2i(20, 20),
+"DefenderA": Vector2i(14, 5),
+"DefenderB": Vector2i(17, 5),
+"DefenderC": Vector2i(14, 7),
+"Worker": Vector2i(20, 6)
+})

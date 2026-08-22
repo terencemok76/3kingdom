@@ -50,6 +50,13 @@ public enum BattleDeploymentZone
     Defender
 }
 
+public enum BattleOutpostOwner
+{
+    None,
+    Attacker,
+    Defender
+}
+
 public enum BattleStructureFacing
 {
     None,
@@ -96,6 +103,9 @@ public sealed class BattleCellData
     public Vector2I BridgeAtlasCoords { get; set; } = new(-1, -1);
     public bool WoodenFenceFlipHorizontally { get; set; }
     public Vector2I BuildingAtlasCoords { get; set; }
+    public bool IsDefenseOutpost { get; set; }
+    public int DefenseOutpostAtlasIndex { get; set; }
+    public BattleOutpostOwner DefenseOutpostOwner { get; set; } = BattleOutpostOwner.None;
     public Vector2I ForestAtlasCoords { get; set; } = new(-1, -1);
     public int ForestAtlasSourceId { get; set; } = -1;
     public Vector2I SwampAtlasCoords { get; set; } = new(-1, -1);
@@ -447,6 +457,15 @@ public sealed class BattleMapData
                 return;
             }
 
+            if (sourceId == 12)
+            {
+                cell.Structure = BattleStructureType.Building;
+                cell.IsDefenseOutpost = true;
+                cell.DefenseOutpostAtlasIndex = Mathf.Clamp(atlas.X, 0, 1);
+                cell.DefenseOutpostOwner = BattleOutpostOwner.Defender;
+                return;
+            }
+
             switch (atlas.X)
             {
                 case 0:
@@ -497,7 +516,8 @@ public sealed class BattleMapData
 
         ForEachGrid(grid =>
         {
-            if (layer.GetCellSourceId(grid) != 1)
+            var sourceId = layer.GetCellSourceId(grid);
+            if (sourceId is not (1 or 12))
             {
                 return;
             }
@@ -505,7 +525,16 @@ public sealed class BattleMapData
             var atlas = layer.GetCellAtlasCoords(grid);
             var cell = GetCell(grid.X, grid.Y);
             cell.Structure = BattleStructureType.Building;
-            cell.BuildingAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 2), 0);
+            if (sourceId == 12)
+            {
+                cell.IsDefenseOutpost = true;
+                cell.DefenseOutpostAtlasIndex = Mathf.Clamp(atlas.X, 0, 1);
+                cell.DefenseOutpostOwner = BattleOutpostOwner.Defender;
+            }
+            else
+            {
+                cell.BuildingAtlasCoords = new Vector2I(Mathf.Clamp(atlas.X, 0, 2), 0);
+            }
         });
     }
 

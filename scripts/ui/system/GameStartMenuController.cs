@@ -79,6 +79,12 @@ public partial class GameStartMenuController : CanvasLayer
     private Label? _battlePrototypeDialogTitleLabel;
     private Button? _battlePrototypeFieldBattleButton;
     private Button? _battlePrototypeHanzhongFieldBattleButton;
+    private Button? _battlePrototypeYeFieldBattleButton;
+    private Button? _battlePrototypeJinyangFieldBattleButton;
+    private Button? _battlePrototypeXiapiFieldBattleButton;
+    private Button? _battlePrototypeJianyeFieldBattleButton;
+    private Button? _battlePrototypeXiangyangFieldBattleButton;
+    private Button? _battlePrototypeJianglingFieldBattleButton;
     private Button? _battlePrototypeNorthEastSiegeButton;
     private Button? _battlePrototypeNorthEastMoatButton;
     private Button? _battlePrototypeNorthWestSiegeButton;
@@ -136,6 +142,12 @@ public partial class GameStartMenuController : CanvasLayer
         _battlePrototypeDialogTitleLabel = GetNodeOrNull<Label>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeDialogTitleLabel");
         _battlePrototypeFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeFieldBattleButton");
         _battlePrototypeHanzhongFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeHanzhongFieldBattleButton");
+        _battlePrototypeYeFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeYeFieldBattleButton");
+        _battlePrototypeJinyangFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeJinyangFieldBattleButton");
+        _battlePrototypeXiapiFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeXiapiFieldBattleButton");
+        _battlePrototypeJianyeFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeJianyeFieldBattleButton");
+        _battlePrototypeXiangyangFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeXiangyangFieldBattleButton");
+        _battlePrototypeJianglingFieldBattleButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeJianglingFieldBattleButton");
         _battlePrototypeNorthEastSiegeButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthEastSiegeButton");
         _battlePrototypeNorthEastMoatButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthEastMoatButton");
         _battlePrototypeNorthWestSiegeButton = GetNodeOrNull<Button>("Root/BattlePrototypeDialogCenter/BattlePrototypeDialogPanel/BattlePrototypeDialogRoot/BattlePrototypeNorthWestSiegeButton");
@@ -242,6 +254,36 @@ public partial class GameStartMenuController : CanvasLayer
         if (_battlePrototypeHanzhongFieldBattleButton != null)
         {
             _battlePrototypeHanzhongFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_HANZHONG");
+        }
+
+        if (_battlePrototypeYeFieldBattleButton != null)
+        {
+            _battlePrototypeYeFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_YE");
+        }
+
+        if (_battlePrototypeJinyangFieldBattleButton != null)
+        {
+            _battlePrototypeJinyangFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_JINYANG");
+        }
+
+        if (_battlePrototypeXiapiFieldBattleButton != null)
+        {
+            _battlePrototypeXiapiFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_XIAPI");
+        }
+
+        if (_battlePrototypeJianyeFieldBattleButton != null)
+        {
+            _battlePrototypeJianyeFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_JIANYE");
+        }
+
+        if (_battlePrototypeXiangyangFieldBattleButton != null)
+        {
+            _battlePrototypeXiangyangFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_XIANGYANG");
+        }
+
+        if (_battlePrototypeJianglingFieldBattleButton != null)
+        {
+            _battlePrototypeJianglingFieldBattleButton.Pressed += () => OnBattlePrototypeVariantSelected("FIELD_JIANGLING");
         }
 
         if (_battlePrototypeNorthEastSiegeButton != null)
@@ -418,7 +460,7 @@ public partial class GameStartMenuController : CanvasLayer
             });
         }
 
-        foreach (var button in new[] { _startGameButton, _loadGameButton, _battlePrototypeButton, _optionButton, _battlePrototypeFieldBattleButton, _battlePrototypeHanzhongFieldBattleButton, _battlePrototypeNorthEastSiegeButton, _battlePrototypeNorthEastMoatButton, _battlePrototypeNorthWestSiegeButton, _battlePrototypeNorthWestMoatButton, _battlePrototypeDialogCloseButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
+        foreach (var button in new[] { _startGameButton, _loadGameButton, _battlePrototypeButton, _optionButton, _battlePrototypeFieldBattleButton, _battlePrototypeHanzhongFieldBattleButton, _battlePrototypeYeFieldBattleButton, _battlePrototypeJinyangFieldBattleButton, _battlePrototypeXiapiFieldBattleButton, _battlePrototypeJianyeFieldBattleButton, _battlePrototypeXiangyangFieldBattleButton, _battlePrototypeJianglingFieldBattleButton, _battlePrototypeNorthEastSiegeButton, _battlePrototypeNorthEastMoatButton, _battlePrototypeNorthWestSiegeButton, _battlePrototypeNorthWestMoatButton, _battlePrototypeDialogCloseButton, _storyConfirmButton, _storyBackButton, _lordConfirmButton, _lordBackButton, _loadConfirmButton, _loadBackButton, _optionLanguageButton, _bgmToggleButton, _sfxToggleButton, _optionDialogCloseButton })
         {
             ApplyButtonTheme(button);
         }
@@ -550,6 +592,13 @@ public partial class GameStartMenuController : CanvasLayer
                 ? "漢中野戰"
                 : "Field Battle (Hanzhong)";
         }
+
+        SetFieldBattleButtonText(_battlePrototypeYeFieldBattleButton, "鄴野戰", "Field Battle (Ye)");
+        SetFieldBattleButtonText(_battlePrototypeJinyangFieldBattleButton, "晉陽野戰", "Field Battle (Jinyang)");
+        SetFieldBattleButtonText(_battlePrototypeXiapiFieldBattleButton, "下邳野戰", "Field Battle (Xiapi)");
+        SetFieldBattleButtonText(_battlePrototypeJianyeFieldBattleButton, "建業野戰", "Field Battle (Jianye)");
+        SetFieldBattleButtonText(_battlePrototypeXiangyangFieldBattleButton, "襄陽野戰", "Field Battle (Xiangyang)");
+        SetFieldBattleButtonText(_battlePrototypeJianglingFieldBattleButton, "江陵野戰", "Field Battle (Jiangling)");
 
         if (_battlePrototypeNorthEastSiegeButton != null)
         {
@@ -693,6 +742,14 @@ public partial class GameStartMenuController : CanvasLayer
         RefreshStorySummary();
         RefreshLordSummary();
         RefreshLoadSummary();
+    }
+
+    private void SetFieldBattleButtonText(Button? button, string traditionalChinese, string english)
+    {
+        if (button != null)
+        {
+            button.Text = _localization?.IsTraditionalChinese == true ? traditionalChinese : english;
+        }
     }
 
     private void OnLanguageChanged()

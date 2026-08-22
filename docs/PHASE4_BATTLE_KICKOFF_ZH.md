@@ -401,11 +401,14 @@
 - `FieldBattle` 會建立不含城牆／城門的道路、森林、障礙物與雙方部署區。
   - 野戰不部署 `Ram` 或 `Ladder`；兩者僅保留給攻城／護城河攻城情境。
   - 目前野戰仍以程序式地形為主，但會額外疊加 scene `ObjectLayer` 內的 `Building` 圖塊，讓共用 `BattleScene` 的測試建築可直接出現在野戰模式。
-- 戰鬥選單保留洛陽野戰，並提供漢中野戰；`FIELD`／`FIELD_LUOYANG` 載入 `scenes/battle/field/FieldBattleLuoyang.tscn`，`FIELD_HANZHONG` 載入 `scenes/battle/field/FieldBattleHanzhong.tscn`。兩者均繼承共用戰鬥 UI，並以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
+- 戰鬥選單保留洛陽、漢中野戰，並新增鄴、晉陽、下邳、建業、襄陽、江陵六張地區野戰；各 `FIELD_<CITY>` 都載入自己的 `scenes/battle/field/FieldBattle<City>.tscn`，繼承共用戰鬥 UI，並以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
 - `FieldBattle` 的 editor preview 必須隱藏繼承自共用攻城 scene 的 `CastleLayer`，避免父 scene 的城牆資料在編輯器殘留顯示；野戰場景的 WYSIWYG 預覽應與 runtime 地圖一致。
 - 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
   - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方以連續邙山山脊與疏密相間的山腳森林界定戰場，中央保留洛水河谷、兩岸濕地／岸地與穿越河谷的渡口道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍與開闊農地。渡口三格寬的主線使用「官道」，山腳與農地支線使用「磨損道路」。`RiverEffectLayer` 只覆蓋洛水深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，渡口、淺水與河岸過渡保持靜態。場景使用既有 floor、building、tree、rock、forest、wood、hill、mountain 與 farm tiles。投石車初始部署由洛陽專屬 Scenario Data 設為南岸可通行格 `(14,17)`，避免共用預設 `(14,15)` 落在河面。
   - `FieldBattleHanzhong.tscn` 以漢中盆地為第二個城市野戰範例：北側秦嶺與南側大巴山的山林夾住中央漢水，河道在戰場內蜿蜒；單格中央官道直接接到 `bridge_01.png` 第二列的雙格石橋 `(12,11)`、`(12,12)`，橫越河段後連接南側平壩道路，南岸配置農地與聚落。橋前南北主線使用「官道」，平壩與聚落支線使用「磨損道路」；西側另有三格寬的淺灘 `(2..4,10..11)`，可通行但每格消耗 `2` 點移動力，形成較慢的側翼／伏擊路線。兩個石橋格各自保留可通行、可受攻擊的 `Bridge` 地形、耐久度與水面底圖；`RiverEffectLayer` 只覆蓋深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，並置於橋物件下方；場景僅使用既有 floor、building、forest、swamp、hill、mountain、wood、farm、rock 與 bridge tiles；所有部署皆由 `field_hanzhong.tres` 定義。
+  - 六張新增地區野戰均為 25×25，且只使用既有 floor／forest／swamp／hill／mountain／farm／bridge 與河岸物件圖集；它們刻意有不同的行軍問題：鄴是沒有河橋阻隔的開闊農田會戰，中央作物會抑制騎兵 Charge、兩翼草地可包抄；晉陽以雙格汾河、兩格主橋與西側淺灘構成狹河谷搶橋；下邳的兩條水道把戰場分成數個陸塊，兩處小橋與堤路決定支援路線；建業將長江放在不可跨的西側邊界，東側以丘陵、森林與山地壓縮行軍；襄陽以雙格漢水、雙格橋頭和北側丘陵讓弓弩部隊控制渡口；江陵不放橋梁或深水主河，而以蘆葦沼澤、淺水渠與兩條堤路形成慢速濕地伏擊戰。各場景另有 `field_<city>.tres` 保存天候、時段與日後可獨立調整的部署資料；`RiverEffectLayer` 只由該場景的深水格生成，不能沿用其他場景的水面資料。
+- 晉陽與襄陽野戰在相同「單河、單橋」基礎上刻意採取相反地貌：晉陽是單條雙格汾河及唯一雙格主橋，南北兩岸的左右側各有多格厚山體、內側接可通行丘陵，中央河谷和橋頭才容得下主力推進；襄陽則以單條雙格漢水及唯一雙格主橋形成橋頭正面攻防，北岸為大面積、可通行的丘陵弓弩陣地，最北端山脊只作背景與側翼界線，沒有大片濕地。兩圖的初始部隊改為緊湊的橋頭／谷口兵團，而非橫跨地圖的兩排；守軍北岸、橋頭前方各有兩座小型建築，步兵與弓弩守軍直接駐守其中，指揮與工人留在後方丘陵支援；攻方攻城車與補給車不會出生於建築格。船筏、木樁與礁石只放在深水河格，農地與森林邊緣則加入農事及林緣物件；這些分層地物只加強辨識度，不改變底層地形、移動、A* 或 AI 規則。
+- 下邳兩處橋梁各使用兩格 bridge tile；依實際視覺方向，左側／南側 `(7,17)`、`(8,17)` 的兩格在 TileMap alternative tile 寫入 `Flip H`，右側／東側 `(17,10)`、`(17,11)` 的兩格則保留 `bridge_01.png` 原圖方向。runtime 讀取與 rebuild 會保留各橋格的水平鏡像，不改變橋梁的地形、耐久、移動或 A* 規則。
 - `SiegeAssault` 與 `MoatSiegeBattle` 會各部署一名攻方與守方 `Worker`：使用 `worker_idle_ne.png`／`worker_idle_se.png` 的四格 idle animation，具備低近戰與移動能力。
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
   - 選取 Worker 後顯示專用的 `Bridge` 與 `Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
@@ -430,6 +433,8 @@
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
+- `assets/battle/object/outpost_01.png` 是 `ObjectLayer` source ID `12` 的防禦據點 atlas，規格為 `1 row x 3 frame`、每格 `128x128`，只登錄前兩格。據點沿用 `Building` 的可駐守、20% 直接傷害減免及攻城器禁止進入規則；初始歸守方，runtime 額外顯示藍旗。任何一般戰鬥單位抵達據點格後，據點即改歸該隊，攻方為紅旗、守方為藍旗；旗幟不會在移動動畫尚未抵達前提早切換。歸屬與選用 frame 會被 battle quick save/load 保存。晉陽的據點在北岸谷口後方 `(9,6)`、`(14,6)`，襄陽的據點在北岸丘陵後方 `(10,5)`、`(14,5)`；橋頭前線由其他守軍控制。
+- 野戰勝利條件為：任一方沒有仍在場的 `Battle Team`（一般單位或攻城器，包含被殲滅及已撤退者）即敗北；此外，攻方只要所有防禦據點均為攻方歸屬，並在守方回合結束後仍保持該狀態，即以據點控制獲勝。此時點讓守方獲得完整一回合反奪據點的機會；守方沒有對稱的據點反佔勝利，仍以擊潰或逼退攻方取勝。
 - `assets/battle/object/forest_01.png` 是 `ObjectLayer` source ID `2` 的 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Forest` 地形並保留選到的變體，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/wood_01.png` 是 `ObjectLayer` source ID `6` 的第二組 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；規則與 `forest_01.png` 相同，但 runtime rebuild / battle quick save/load 會額外保留圖集來源，避免將 wood 變體換回第一組森林圖。
 - `assets/battle/object/swamp_01.png` 是 `ObjectLayer` source ID `3` 的 swamp atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Swamp` 地形並保留選到的變體，移動消耗仍為 2，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
@@ -437,7 +442,7 @@
 - `assets/battle/object/mountain_01.png` 是 `ObjectLayer` source ID `5` 的 mountain atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成不可通行、不可起火的 `Mountain` 地形，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/farm_01.png` 是 `ObjectLayer` source ID `7` 的 farm atlas，規格為 `3 rows x 4 frame`、每格 `128x128`；十二個 frame 都讀成可通行、移動消耗為 1 的 `Farm` 地形，不提供建築防禦或森林 Hide，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `Building` 格只可容納一般人類 battle team，攻城梯、衝車、投石車與補給車等攻城器不可進入；駐守時承受的直接傷害降低 `20%`；火焰傷害不受減免，且建築格正在燃燒時防禦加成暫時失效。騎兵不可對建築格發動或穿越 Charge，格子資訊會顯示建築防禦狀態。
-- runtime 會將 Building 從固定 `ObjectLayer` 提升至與單位共用的 `BattleDepthLayer`，以 `grid.X + grid.Y` 排序：位於建築後方的單位會被遮住，位於前方或同格駐守的單位會顯示在建築前。
+- runtime 會將 Building 從固定 `ObjectLayer` 提升至與單位共用的 `BattleDepthLayer`，以 `grid.X + grid.Y` 排序：位於建築後方的單位會被遮住，位於前方或同格駐守的單位會顯示在建築前。可移動／施工及選取格高亮與 Building 在同一深度帶，但排序在建築之後、單位之前；因此合法移動至或直接點選防禦據點時，菱形 grid 仍清楚可見。
 - `BattleScene.tscn` 的 `ObjectLayer` 在 `(6, 12)` 放置 `building_01` frame 0，作為戰場內可直接測試的建築防禦據點。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
 - 若橋面或木柵欄在 editor 內使用了 `Flip H`，runtime 也必須保留該 object tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向或柵欄變化會跑掉。

@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="BattleScenarioDefinition" format=3]
+
+[ext_resource type="Script" uid="uid://ctlxf41bf1vrk" path="res://scripts/battle/BattleScenarioDefinition.cs" id="1_field_jiangling"]
+
+[resource]
+script = ExtResource("1_field_jiangling")
+DisplayName = "Field Battle (Jiangling)"
+ScenarioType = 1
+Weather = 2
+WindDirection = 2
+WindPower = 1
+TimeOfDay = 1
+UnitSpawnGrids = Dictionary[String, Vector2i]({
+"AttackerA": Vector2i(10, 21),
+"AttackerB": Vector2i(12, 20),
+"AttackerC": Vector2i(8, 21),
+"AttackerWorker": Vector2i(13, 17),
+"Catapult": Vector2i(14, 16),
+"Spearman": Vector2i(10, 19),
+"SupplyCart": Vector2i(14, 17),
+"DefenderA": Vector2i(10, 4),
+"DefenderB": Vector2i(14, 5),
+"DefenderC": Vector2i(12, 5),
+"Worker": Vector2i(16, 4)
+})
