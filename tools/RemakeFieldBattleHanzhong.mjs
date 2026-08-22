@@ -82,6 +82,10 @@ function buildObjects() {
         .forEach(([x, y], index) => add(x, y, index % 4, 7));
     [[9, 8, 0], [15, 9, 1], [6, 18, 2], [20, 17, 0]]
         .forEach(([x, y, tile]) => add(x, y, tile, 1));
+    // Fortresses sit behind the river crossings, under the Qinling foothills: attackers must break into
+    // the north-bank defense zone instead of immediately capturing an objective at either crossing.
+    [[9, 5, 0], [16, 5, 1]]
+        .forEach(([x, y, tile]) => add(x, y, tile, 12));
     // bridge_01.png: the sole second-row tile forms both independent stone bridge cells.
     add(12, 11, 0x10000, 8);
     add(12, 12, 0x10000, 8);
@@ -178,5 +182,11 @@ scene = addRiverEffectLayer(scene, encodeCells(buildRiverEffect()));
 scene = replaceRiverObjectLayer(scene, encodeCells(buildRiverObjects()));
 scene = replaceFarmObjectLayer(scene, encodeCells(buildFarmObjects()));
 scene = replaceForestEdgeObjectLayer(scene, encodeCells(buildForestEdgeObjects()));
-await fs.writeFile(scenePath, scene, 'utf8');
-console.log(`Remade ${scenePath} with the Hanzhong basin layout.`);
+if (process.argv.includes('--emit-patch')) {
+    const previous = await fs.readFile(scenePath, 'utf8');
+    const withoutTrailingLine = content => content.split('\n').filter((_, index, lines) => index < lines.length - 1);
+    console.log(`*** Begin Patch\n*** Update File: ${scenePath}\n@@\n${withoutTrailingLine(previous).map(line => `-${line}`).join('\n')}\n${withoutTrailingLine(scene).map(line => `+${line}`).join('\n')}\n*** End Patch`);
+} else {
+    await fs.writeFile(scenePath, scene, 'utf8');
+    console.log(`Remade ${scenePath} with the Hanzhong basin layout.`);
+}

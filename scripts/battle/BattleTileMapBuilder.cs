@@ -86,7 +86,7 @@ public static class BattleTileMapBuilder
     private const string FloorAtlasPath = "res://assets/battle/floor/floor.png";
     private const string ObjectAtlasPath = "res://assets/battle/object/object_01.png";
     private const string ObjectBuildingAtlasPath = "res://assets/battle/object/building_01.png";
-    private const string ObjectDefenseOutpostAtlasPath = "res://assets/battle/object/outpost_01.png";
+    private const string ObjectDefenseOutpostAtlasPath = "res://assets/battle/object/fortress_01.png";
     private const string ObjectForestAtlasPath = "res://assets/battle/object/forest_01.png";
     private const string ObjectSwampAtlasPath = "res://assets/battle/object/swamp_01.png";
     private const string ObjectHillAtlasPath = "res://assets/battle/object/hill_01.png";

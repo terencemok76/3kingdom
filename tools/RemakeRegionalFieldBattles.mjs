@@ -115,7 +115,7 @@ const scenarios = [
         paint: ({ setGround, line, area, add, objectLine, objects, riverObjects, farmObjects, forestEdgeObjects }) => {
             // Fen River valley: the single two-cell river and sole bridge sit inside a real gorge.
             // Three-cell mountain masses close both flanks on each bank, leaving only the central valley floor open.
-            line(0, 11, 24, 12, groundTile.river);
+            area(0, 11, 24, 12, groundTile.river);
             line(11, 3, 11, 22, groundTile.officialRoad); line(3, 19, 21, 19, groundTile.wornRoad);
             [[11, 11], [11, 12]].forEach(([x, y]) => { setGround(x, y, groundTile.river); add(objects, x, y, 8, 0x10000); });
             [[0, 1, 4, 6], [20, 1, 24, 6], [0, 18, 4, 23], [20, 18, 24, 23]].forEach(([x1, y1, x2, y2], rangeIndex) => {
@@ -127,10 +127,14 @@ const scenarios = [
             [[8, 7], [16, 7], [8, 16], [16, 16]].forEach(([x, y], i) => add(objects, x, y, 2, i));
             // The bridge-exit outpost controls the main road; the eastern reserve outpost anchors the valley flank by its mountain shoulder.
             [[11, 8], [15, 6]].forEach(([x, y], i) => add(objects, x, y, 12, i));
+            // Two small buildings form the bridge-exit's left and right infantry cover without blocking the road or outpost.
+            [[10, 8], [12, 8]].forEach(([x, y], i) => add(objects, x, y, 1, i));
             [[6, 20, 7, 22], [17, 20, 18, 22]].forEach(([x1, y1, x2, y2]) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 7, (x + y) % 4); });
-            [[2, 11], [7, 11], [16, 12], [22, 12]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i));
-            [[6, 21], [7, 22], [17, 21], [18, 20]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i));
-            [[8, 7], [16, 7], [8, 16], [16, 16]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i));
+            // Three visual-only groups make the gorge legible at overview scale: busy riverbanks,
+            // farm hamlets on the south approach and broad wooded shoulders on both sides.
+            [[2, 11], [4, 12], [5, 11], [6, 12], [7, 11], [16, 12], [18, 11], [19, 11], [20, 12], [22, 12]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i % 8));
+            [[5, 20], [5, 21], [6, 21], [6, 22], [7, 21], [7, 22], [17, 20], [17, 21], [18, 20], [18, 22], [19, 21], [19, 22]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i % 8));
+            [[6, 6], [7, 6], [8, 6], [6, 7], [8, 7], [6, 8], [7, 8], [8, 8], [17, 6], [18, 6], [19, 6], [16, 7], [18, 7], [17, 8], [18, 8], [19, 8], [5, 16], [6, 16], [7, 16], [8, 16], [6, 17], [7, 17], [8, 17], [16, 16], [17, 16], [18, 16], [19, 16], [17, 17], [18, 17], [19, 17]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i % 8));
         }
     },
     {

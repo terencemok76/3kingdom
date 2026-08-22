@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dboc5kjswn6cq"
-path="res://.godot/imported/outpost_01.png-3c98ce0bb3e793ea53962e0453b4843b.ctex"
+path="res://.godot/imported/fortress_01.png-66762a633c8512f3cfc7f047380bd3ec.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/battle/object/outpost_01.png"
-dest_files=["res://.godot/imported/outpost_01.png-3c98ce0bb3e793ea53962e0453b4843b.ctex"]
+source_file="res://assets/battle/object/fortress_01.png"
+dest_files=["res://.godot/imported/fortress_01.png-66762a633c8512f3cfc7f047380bd3ec.ctex"]
 
 [params]
 
