@@ -76,6 +76,8 @@ public sealed class BattleCellData
     public const int GateMaxHealth = 1800;
     public const int BridgeMaxDurability = 900;
     public const int BridgeConstructionStep = BridgeMaxDurability / 2;
+    public const int WoodenBridgeMaxDurability = 600;
+    public const int WoodenBridgeConstructionStep = WoodenBridgeMaxDurability / 2;
     public const int WoodenFenceMaxHealth = 600;
 
     public Vector2I Grid { get; init; }
@@ -114,6 +116,8 @@ public sealed class BattleCellData
     public Vector2I FarmAtlasCoords { get; set; } = new(-1, -1);
     public int BridgeMaxHealth { get; set; }
     public int BridgeHealth { get; set; }
+    public bool IsWoodenBridge { get; set; }
+    public bool BridgeRestoresToRiver { get; set; }
 
     public bool HasStructureHealth => StructureMaxHealth > 0;
     public bool IsBroken => HasStructureHealth && StructureHealth <= 0;
@@ -331,12 +335,14 @@ public sealed class BattleMapData
             return actualDamage;
         }
 
-        cell.Terrain = BattleTerrainType.Moat;
+        cell.Terrain = cell.BridgeRestoresToRiver ? BattleTerrainType.River : BattleTerrainType.Moat;
         cell.HasBridgeVisual = false;
         cell.BridgeFlipHorizontally = false;
         cell.BridgeAtlasSourceId = -1;
         cell.BridgeAtlasCoords = new Vector2I(-1, -1);
         cell.BridgeMaxHealth = 0;
+        cell.IsWoodenBridge = false;
+        cell.BridgeRestoresToRiver = false;
         cell.BlocksMovement = true;
         return actualDamage;
     }
@@ -402,6 +408,7 @@ public sealed class BattleMapData
             {
                 cell.Terrain = BattleTerrainType.Bridge;
                 cell.HasBridgeVisual = true;
+                cell.BridgeRestoresToRiver = ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle;
                 cell.BridgeFlipHorizontally = (layer.GetCellAlternativeTile(grid) & TileSetAtlasSource.TransformFlipH) != 0;
                 cell.BridgeAtlasSourceId = sourceId;
                 cell.BridgeAtlasCoords = atlas;
@@ -669,6 +676,8 @@ public sealed class BattleMapData
             {
                 cell.BridgeMaxHealth = 0;
                 cell.BridgeHealth = 0;
+                cell.IsWoodenBridge = false;
+                cell.BridgeRestoresToRiver = false;
             }
             if (cell.HasBridgeVisual && ScenarioDefinition.DefaultStructureFacing == BattleStructureFacing.NorthWest)
             {

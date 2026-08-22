@@ -14,10 +14,10 @@ const targetKey = process.argv.find(argument => argument.startsWith('--target=')
 const patches = [];
 const spawnOverrides = {
     ye: { AttackerA: [10, 21], AttackerB: [14, 21], AttackerC: [21, 21], AttackerWorker: [15, 22], Catapult: [14, 20], Spearman: [8, 20], SupplyCart: [18, 22], DefenderA: [10, 4], DefenderB: [14, 5], DefenderC: [12, 5], Worker: [16, 4] },
-    jinyang: { AttackerA: [10, 21], AttackerB: [12, 21], AttackerC: [14, 21], AttackerWorker: [13, 22], Catapult: [13, 20], Spearman: [9, 20], SupplyCart: [15, 22], DefenderA: [9, 6], DefenderB: [14, 6], DefenderC: [13, 8], Worker: [15, 5] },
+    jinyang: { AttackerA: [10, 21], AttackerB: [12, 21], AttackerC: [14, 21], AttackerWorker: [13, 22], Catapult: [13, 20], Spearman: [9, 20], SupplyCart: [15, 22], DefenderA: [11, 8], DefenderB: [15, 6], DefenderC: [12, 9], Worker: [15, 5] },
     xiapi: { AttackerA: [14, 20], AttackerB: [16, 20], AttackerC: [14, 22], AttackerWorker: [18, 21], Catapult: [12, 19], Spearman: [11, 21], SupplyCart: [20, 20], DefenderA: [14, 5], DefenderB: [17, 5], DefenderC: [14, 7], Worker: [20, 6] },
     jianye: { AttackerA: [12, 21], AttackerB: [14, 21], AttackerC: [18, 21], AttackerWorker: [15, 21], Catapult: [13, 20], Spearman: [10, 20], SupplyCart: [15, 22], DefenderA: [10, 5], DefenderB: [14, 5], DefenderC: [12, 7], Worker: [16, 5] },
-    xiangyang: { AttackerA: [10, 21], AttackerB: [12, 21], AttackerC: [14, 21], AttackerWorker: [13, 22], Catapult: [14, 16], Spearman: [9, 20], SupplyCart: [15, 22], DefenderA: [10, 5], DefenderB: [14, 5], DefenderC: [12, 8], Worker: [13, 6] },
+    xiangyang: { AttackerA: [10, 21], AttackerB: [12, 21], AttackerC: [14, 21], AttackerWorker: [13, 22], Catapult: [14, 16], Spearman: [9, 20], SupplyCart: [15, 22], DefenderA: [10, 8], DefenderB: [14, 8], DefenderC: [12, 8], Worker: [13, 6] },
     jiangling: { AttackerA: [10, 21], AttackerB: [12, 20], AttackerC: [8, 21], AttackerWorker: [13, 17], Catapult: [14, 16], Spearman: [10, 19], SupplyCart: [14, 17], DefenderA: [10, 4], DefenderB: [14, 5], DefenderC: [12, 5], Worker: [16, 4] }
 };
 const groundTile = { grass: 0, wet: 0x10001, mud: 0x10002, pebble: 0x10003, shallow: 0x10004, wornRoad: 0x10005, officialRoad: 0x10006, dryRiver: 0x10007, river: 6 };
@@ -84,7 +84,12 @@ function cellsFor(config) {
     };
 
     config.paint({ setGround, line, area, add, objectLine, objects, riverObjects, farmObjects, forestEdgeObjects });
-    const riverEffect = ground.filter(({ tile }) => tile === groundTile.river).map(({ x, y }) => ({ x, y, tile: groundTile.river }));
+    const bridgeGrids = new Set(objects
+        .filter(({ source }) => source === 8)
+        .map(({ x, y }) => `${x},${y}`));
+    const riverEffect = ground
+        .filter(({ x, y, tile }) => tile === groundTile.river && !bridgeGrids.has(`${x},${y}`))
+        .map(({ x, y }) => ({ x, y, tile: groundTile.river }));
     return { ground, objects, riverEffect, riverObjects, farmObjects, forestEdgeObjects };
 }
 
@@ -120,8 +125,8 @@ const scenarios = [
                 for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 4, (x + y + rangeIndex) % 8);
             });
             [[8, 7], [16, 7], [8, 16], [16, 16]].forEach(([x, y], i) => add(objects, x, y, 2, i));
-            // Rear-valley outposts cover the northern retreat and leave the bridgehead to the frontline.
-            [[9, 6], [14, 6]].forEach(([x, y], i) => add(objects, x, y, 12, i));
+            // The bridge-exit outpost controls the main road; the eastern reserve outpost anchors the valley flank by its mountain shoulder.
+            [[11, 8], [15, 6]].forEach(([x, y], i) => add(objects, x, y, 12, i));
             [[6, 20, 7, 22], [17, 20, 18, 22]].forEach(([x1, y1, x2, y2]) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 7, (x + y) % 4); });
             [[2, 11], [7, 11], [16, 12], [22, 12]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i));
             [[6, 21], [7, 22], [17, 21], [18, 20]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i));
@@ -164,7 +169,7 @@ const scenarios = [
         paint: ({ setGround, line, area, add, objectLine, objects, riverObjects, farmObjects, forestEdgeObjects }) => {
             // Xiangyang is a bridgehead: the Han River has one decisive bridge, but unlike
             // Jinyang its northern bank is a broad, passable hill platform for missile troops.
-            line(0, 11, 24, 12, groundTile.river);
+            area(0, 11, 24, 12, groundTile.river);
             line(12, 3, 12, 21, groundTile.officialRoad); line(4, 18, 21, 18, groundTile.wornRoad);
             [[12, 11], [12, 12]].forEach(([x, y]) => { setGround(x, y, groundTile.river); add(objects, x, y, 8, 0x10000); });
             [[0, 0, 8, 2], [16, 0, 24, 2]].forEach(([x1, y1, x2, y2], rangeIndex) => {
@@ -174,12 +179,18 @@ const scenarios = [
                 for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 4, (x + y + rangeIndex) % 8);
             });
             [[10, 4], [14, 4], [10, 6], [14, 6], [10, 8], [14, 8]].forEach(([x, y], i) => add(objects, x, y, 2, i));
-            // Rear-north outposts support the bridgehead without becoming its frontline.
-            [[10, 5], [14, 5]].forEach(([x, y], i) => add(objects, x, y, 12, i));
+            // Four objectives make capture victory a deliberate flanking operation: the east bridgehead,
+            // a northern reserve, and one strongpoint in each hill defense zone.
+            [[4, 4], [19, 4], [10, 5], [14, 8]].forEach(([x, y], i) => {
+                for (let index = objects.length - 1; index >= 0; index--) {
+                    if (objects[index].x === x && objects[index].y === y) objects.splice(index, 1);
+                }
+                add(objects, x, y, 12, i % 2);
+            });
             [[2, 18, 5, 22], [19, 18, 22, 22]].forEach(([x1, y1, x2, y2]) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 7, (x + y) % 4); });
             [[3, 11], [8, 11], [17, 12], [22, 12]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i));
             [[3, 20], [5, 21], [20, 20], [22, 21]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i));
-            [[10, 4], [14, 4], [10, 6], [14, 6], [10, 8], [14, 8]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i));
+            [[10, 4], [14, 4], [10, 6], [14, 6]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i));
         }
     },
     {

@@ -4608,14 +4608,21 @@ public partial class BattleSceneController : Node2D
             return true;
         }
 
-        if (targetCell.Terrain == BattleTerrainType.Moat &&
-            _mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle)
+        if ((targetCell.Terrain == BattleTerrainType.Moat &&
+             _mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle) ||
+            (targetCell.Terrain == BattleTerrainType.River &&
+             _mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle))
         {
+            var isWoodenBridge = targetCell.Terrain == BattleTerrainType.River;
             targetCell.Terrain = BattleTerrainType.Bridge;
             targetCell.HasBridgeVisual = true;
             targetCell.BridgeFlipHorizontally = _mapData.ScenarioDefinition.DefaultStructureFacing == BattleStructureFacing.NorthWest;
-            targetCell.BridgeMaxHealth = BattleCellData.BridgeMaxDurability;
-            targetCell.BridgeHealth = BattleCellData.BridgeConstructionStep;
+            targetCell.BridgeAtlasSourceId = 8;
+            targetCell.BridgeAtlasCoords = new Vector2I(0, 0);
+            targetCell.IsWoodenBridge = isWoodenBridge;
+            targetCell.BridgeRestoresToRiver = isWoodenBridge;
+            targetCell.BridgeMaxHealth = isWoodenBridge ? BattleCellData.WoodenBridgeMaxDurability : BattleCellData.BridgeMaxDurability;
+            targetCell.BridgeHealth = isWoodenBridge ? BattleCellData.WoodenBridgeConstructionStep : BattleCellData.BridgeConstructionStep;
             targetCell.BlocksMovement = true;
             RefreshWorkerObjectLayers();
             return true;
@@ -10008,6 +10015,7 @@ public partial class BattleSceneController : Node2D
         }
 
         return (cell.Terrain == BattleTerrainType.Moat && _mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle) ||
+               (cell.Terrain == BattleTerrainType.River && _mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle) ||
                cell.IsBridgeDamaged ||
                (cell.Structure == BattleStructureType.Gate && cell.HasStructureHealth && cell.StructureHealth < cell.StructureMaxHealth) ||
                cell.Structure == BattleStructureType.Trap;
@@ -11151,7 +11159,8 @@ public partial class BattleSceneController : Node2D
         // Buildings are defensive positions for human units, not siege engines.
         if (_mapData != null &&
             IsWithinMap(destinationGrid.Grid) &&
-            _mapData.GetCell(destinationGrid.X, destinationGrid.Y).ProvidesBuildingCover)
+            (_mapData.GetCell(destinationGrid.X, destinationGrid.Y).ProvidesBuildingCover ||
+             _mapData.GetCell(destinationGrid.X, destinationGrid.Y).IsWoodenBridge))
         {
             return false;
         }
@@ -11486,6 +11495,8 @@ public partial class BattleSceneController : Node2D
         public int FarmAtlasY { get; set; }
         public int BridgeMaxHealth { get; set; }
         public int BridgeHealth { get; set; }
+        public bool IsWoodenBridge { get; set; }
+        public bool BridgeRestoresToRiver { get; set; }
 
         public static BattleCellSaveData FromCell(BattleCellData cell)
         {
@@ -11540,7 +11551,9 @@ public partial class BattleSceneController : Node2D
                 FarmAtlasX = cell.FarmAtlasCoords.X,
                 FarmAtlasY = cell.FarmAtlasCoords.Y,
                 BridgeMaxHealth = cell.BridgeMaxHealth,
-                BridgeHealth = cell.BridgeHealth
+                BridgeHealth = cell.BridgeHealth,
+                IsWoodenBridge = cell.IsWoodenBridge,
+                BridgeRestoresToRiver = cell.BridgeRestoresToRiver
             };
         }
 
@@ -11593,6 +11606,8 @@ public partial class BattleSceneController : Node2D
                 : new Vector2I(-1, -1);
             cell.BridgeMaxHealth = BridgeMaxHealth;
             cell.BridgeHealth = BridgeHealth;
+            cell.IsWoodenBridge = IsWoodenBridge;
+            cell.BridgeRestoresToRiver = BridgeRestoresToRiver;
         }
     }
 

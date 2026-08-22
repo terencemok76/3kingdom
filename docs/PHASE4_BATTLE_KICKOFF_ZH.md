@@ -413,7 +413,8 @@
   - Worker 移動時使用 `worker_move_ne.png`／`worker_move_se.png` 的三格 walk animation；NW／SW 以對應方向的水平翻轉顯示。
   - 選取 Worker 後顯示專用的 `Bridge` 與 `Wood Fence` actions，不顯示 `Strategy`；每個 action 只會標示四向相鄰的有效施工格，並使用綠色菱形 highlight。
   - `Bridge` 可在 MoatSiegeBattle 的護城河上建橋，或修復受損橋面；橋面 `Bridge HP < Bridge Max HP` 時視為 damaged，`Blocks Movement = true`，battle team 不可通行，必須修到滿血才解除阻擋。
-  - Worker 可在 `MoatSiegeBattle` 的相鄰 `Moat` 格建造橋、修復受損橋面、修復受損城門及移除 `Trap`；橋梁需兩次 `Work` 才會完成，第一次為半 HP 的施工中橋面且不可通行，第二次回滿 HP 後才可通行。
+- Worker 可在 `MoatSiegeBattle` 的相鄰 `Moat` 格建造橋、修復受損橋面、修復受損城門及移除 `Trap`；橋梁需兩次 `Work` 才會完成，第一次為半 HP 的施工中橋面且不可通行，第二次回滿 HP 後才可通行。
+  - `FieldBattle` 的 Worker 亦可在相鄰深水 `River` 格架設木橋；每格需兩次 `Work`，完成後供一般 battle team 與 Worker 通行，但 `Catapult`、`SupplyCart`、`Ram`、`Ladder` 等攻城器不可通過。雙格河道須依序完成兩格，單名 Worker 最少需四次施工才能跨河；木橋被摧毀時回復為 `River`，可再次施工，且 quick save/load 會保存其狀態。
   - `Wood Fence` 會合併安裝與拆除：點選無單位、無結構的乾地會安裝木柵欄；點選相鄰木柵欄則拆除。Worker 新建木柵欄時會隨機套用水平翻轉，避免連續柵欄視覺過於單一。
   - 木柵欄有 `600 HP`，所有戰鬥單位可依其結構傷害攻擊；HP 歸零後會立即移除木柵欄視覺並恢復通行。
   - 橋梁有獨立 HP，所有戰鬥單位可依其結構傷害攻擊橋面；HP 歸零時橋面會移除並還原為阻擋移動的 `Moat`。施工、破壞完成後立即更新 `MoatLayer`、`ObjectLayer` 與通行規則。
@@ -433,7 +434,7 @@
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
-- `assets/battle/object/outpost_01.png` 是 `ObjectLayer` source ID `12` 的防禦據點 atlas，規格為 `1 row x 3 frame`、每格 `128x128`，只登錄前兩格。據點沿用 `Building` 的可駐守、20% 直接傷害減免及攻城器禁止進入規則；初始歸守方，runtime 額外顯示藍旗。任何一般戰鬥單位抵達據點格後，據點即改歸該隊，攻方為紅旗、守方為藍旗；旗幟不會在移動動畫尚未抵達前提早切換。歸屬與選用 frame 會被 battle quick save/load 保存。晉陽的據點在北岸谷口後方 `(9,6)`、`(14,6)`，襄陽的據點在北岸丘陵後方 `(10,5)`、`(14,5)`；橋頭前線由其他守軍控制。
+- `assets/battle/object/outpost_01.png` 是 `ObjectLayer` source ID `12` 的防禦據點 atlas，規格為 `1 row x 3 frame`、每格 `128x128`，只登錄前兩格。據點沿用 `Building` 的可駐守、20% 直接傷害減免及攻城器禁止進入規則；初始歸守方，runtime 額外顯示藍旗。任何一般戰鬥單位抵達據點格後，據點即改歸該隊，攻方為紅旗、守方為藍旗；旗幟不會在移動動畫尚未抵達前提早切換。歸屬與選用 frame 會被 battle quick save/load 保存。晉陽以橋北主路控制點 `(11,8)` 配合東側山麓側防點 `(15,6)`；襄陽則有四座據點：西側丘陵 `(4,4)`、東側丘陵 `(19,4)`、北側預備線 `(10,5)` 與東側橋頭 `(14,8)`。襄陽攻方可選擇殲滅守軍，或在守方回合結束前同時佔領所有據點取勝。
 - 野戰勝利條件為：任一方沒有仍在場的 `Battle Team`（一般單位或攻城器，包含被殲滅及已撤退者）即敗北；此外，攻方只要所有防禦據點均為攻方歸屬，並在守方回合結束後仍保持該狀態，即以據點控制獲勝。此時點讓守方獲得完整一回合反奪據點的機會；守方沒有對稱的據點反佔勝利，仍以擊潰或逼退攻方取勝。
 - `assets/battle/object/forest_01.png` 是 `ObjectLayer` source ID `2` 的 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Forest` 地形並保留選到的變體，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/wood_01.png` 是 `ObjectLayer` source ID `6` 的第二組 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；規則與 `forest_01.png` 相同，但 runtime rebuild / battle quick save/load 會額外保留圖集來源，避免將 wood 變體換回第一組森林圖。
