@@ -18,7 +18,7 @@ const spawnOverrides = {
     xiapi: { AttackerA: [14, 20], AttackerB: [16, 20], AttackerC: [14, 22], AttackerWorker: [18, 21], Catapult: [12, 19], Spearman: [11, 21], SupplyCart: [20, 20], DefenderA: [14, 5], DefenderB: [17, 5], DefenderC: [14, 7], Worker: [20, 6] },
     jianye: { AttackerA: [12, 21], AttackerB: [14, 21], AttackerC: [18, 21], AttackerWorker: [15, 21], Catapult: [13, 20], Spearman: [10, 20], SupplyCart: [15, 22], DefenderA: [10, 5], DefenderB: [14, 5], DefenderC: [12, 7], Worker: [16, 5] },
     xiangyang: { AttackerA: [10, 21], AttackerB: [12, 21], AttackerC: [14, 21], AttackerWorker: [13, 22], Catapult: [14, 16], Spearman: [9, 20], SupplyCart: [15, 22], DefenderA: [10, 8], DefenderB: [14, 8], DefenderC: [12, 8], Worker: [13, 6] },
-    jiangling: { AttackerA: [10, 21], AttackerB: [12, 20], AttackerC: [8, 21], AttackerWorker: [13, 17], Catapult: [14, 16], Spearman: [10, 19], SupplyCart: [14, 17], DefenderA: [10, 4], DefenderB: [14, 5], DefenderC: [12, 5], Worker: [16, 4] }
+    jiangling: { AttackerA: [10, 21], AttackerB: [12, 20], AttackerC: [8, 21], AttackerWorker: [13, 17], Catapult: [14, 16], Spearman: [10, 19], SupplyCart: [14, 17], DefenderA: [5, 3], DefenderB: [15, 3], DefenderC: [6, 3], Worker: [14, 3] }
 };
 const groundTile = { grass: 0, wet: 0x10001, mud: 0x10002, pebble: 0x10003, shallow: 0x10004, wornRoad: 0x10005, officialRoad: 0x10006, dryRiver: 0x10007, river: 6 };
 
@@ -234,17 +234,26 @@ const scenarios = [
     {
         key: 'jiangling', name: 'Jiangling', displayName: 'Field Battle (Jiangling)', weather: 2, time: 1,
         paint: ({ line, area, add, objects, riverObjects, farmObjects, forestEdgeObjects }) => {
-            // Jiangling is not a bridge map.  Its Jianghan plain is a marsh maze with two raised dikes
-            // and several slow shallow channels; choosing a dike protects movement but exposes troops.
+            // Jiangling is not a bridge map. Its Jianghan plain is a marsh maze with two raised dikes,
+            // slow shallow channels and interior marsh forts: choosing a dike is fast but exposed.
             line(2, 4, 22, 6, groundTile.shallow); line(1, 14, 20, 16, groundTile.shallow);
             line(5, 3, 5, 22, groundTile.wornRoad); line(15, 2, 15, 22, groundTile.wornRoad);
             line(5, 18, 20, 18, groundTile.officialRoad);
             area(0, 7, 4, 12, groundTile.mud); area(7, 7, 12, 13, groundTile.mud); area(17, 7, 23, 13, groundTile.mud); area(8, 20, 13, 23, groundTile.wet);
             [[2, 9], [4, 11], [8, 8], [10, 12], [18, 9], [21, 11], [9, 21]].forEach(([x, y], i) => add(objects, x, y, 3, i));
-            [[3, 5], [10, 6], [19, 6], [4, 15], [12, 16], [19, 16]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i));
+            // The forts are at the northern ends of the two dikes, well behind both shallow channels.
+            // The central marsh remains a contact and ambush zone, not an immediate capture line.
+            [[5, 3], [15, 3]].forEach(([x, y], i) => add(objects, x, y, 12, i));
+            [[6, 3], [14, 3]].forEach(([x, y], i) => add(objects, x, y, 1, i));
+            // Small rear hamlets show where each fort resupplies and receives a retreating force.
+            [[4, 2], [16, 2]].forEach(([x, y], i) => add(objects, x, y, 1, i % 3));
+            // Stakes, small boats and water disturbance make the shallow channels legible without becoming a deep-water river.
+            [[2, 4], [3, 4], [7, 5], [10, 5], [11, 5], [14, 5], [17, 6], [19, 6], [21, 6], [1, 14], [3, 14], [6, 15], [8, 15], [10, 15], [13, 15], [14, 15], [17, 16], [19, 16]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i % 8));
             [[11, 19, 14, 22], [17, 19, 20, 22]].forEach(([x1, y1, x2, y2]) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 7, (x + y) % 4); });
-            [[12, 19], [19, 20]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i));
-            [[1, 8], [22, 8], [2, 19]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i));
+            // Farm tools remain on the raised southern ground, away from the command approach and wettest channels.
+            [[11, 19], [11, 22], [12, 22], [13, 22], [14, 20], [17, 19], [18, 19], [19, 20], [17, 21], [18, 21], [20, 21], [20, 22]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i % 8));
+            // Reeds, brush, bamboo and fallen wood mark marsh edges and ambush pockets without changing terrain rules.
+            [[2, 2], [7, 1], [13, 1], [18, 2], [1, 7], [3, 7], [2, 8], [4, 9], [1, 10], [3, 11], [2, 12], [7, 7], [9, 7], [11, 8], [8, 9], [12, 10], [7, 12], [10, 13], [17, 7], [19, 7], [22, 8], [18, 10], [21, 10], [23, 12], [19, 13], [2, 13], [6, 13], [16, 13], [20, 13], [3, 17], [7, 17], [11, 17], [17, 17], [20, 17], [4, 10], [16, 10]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i % 8));
         }
     }
 ];

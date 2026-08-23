@@ -18,8 +18,8 @@ UnitSpawnGrids = Dictionary[String, Vector2i]({
 "Catapult": Vector2i(14, 16),
 "Spearman": Vector2i(10, 19),
 "SupplyCart": Vector2i(14, 17),
-"DefenderA": Vector2i(10, 4),
-"DefenderB": Vector2i(14, 5),
-"DefenderC": Vector2i(12, 5),
-"Worker": Vector2i(16, 4)
+"DefenderA": Vector2i(5, 3),
+"DefenderB": Vector2i(15, 3),
+"DefenderC": Vector2i(6, 3),
+"Worker": Vector2i(14, 3)
 })
