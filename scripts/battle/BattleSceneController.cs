@@ -4560,6 +4560,15 @@ public partial class BattleSceneController : Node2D
             movedOccupant.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         RefreshBattleDepthLayerOrder();
         ClearOccludedUnitSilhouettes();
+        _selectedUnitGrid = destinationGrid;
+        _selectedUnit = movedOccupant;
+        _selectedGrid = destinationGrid.Grid;
+        _selectedGridKey = destinationGrid;
+        _commandMode = BattleCommandMode.None;
+        _selectedStrategyAction = BattleStrategyAction.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        HideCommandMenu();
         ApplyMoveAnimation(
             movedOccupant,
             moveDirection,
@@ -4573,16 +4582,6 @@ public partial class BattleSceneController : Node2D
                 RefreshOccludedUnitSilhouettes();
                 onMoveAnimationComplete?.Invoke();
             });
-
-        _selectedUnitGrid = destinationGrid;
-        _selectedUnit = movedOccupant;
-        _selectedGrid = destinationGrid.Grid;
-        _selectedGridKey = destinationGrid;
-        _commandMode = BattleCommandMode.None;
-        _selectedStrategyAction = BattleStrategyAction.None;
-        _movableGrids.Clear();
-        _attackableGrids.Clear();
-        HideCommandMenu();
         AppendBattleLog(movedOccupant, "Move", $"{FormatLogUnit(movedOccupant)} {sourceGrid} -> {destinationGrid}");
         if (movingOccupant.IsHidden && !remainsHidden)
         {
@@ -11911,6 +11910,12 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
+        var plannedTarget = destination.Target;
+        var plannedTargetOccupants = _occupantsByGrid[plannedTarget];
+        var plannedTargetUnit = GetAttackTargetForAttack(plannedTargetOccupants, unit.TeamName, plannedTarget)!;
+        var plannedScore = GetAiOffensiveActionScore(plannedTargetUnit, GetAttackDamage(unit), supportCount: 0);
+        var plannedNoise = GetAiDecisionNoise(sourceGrid, plannedTarget, participantCount: 1);
+
         _selectedUnit = unit;
         _selectedUnitGrid = sourceGrid;
         FocusCameraOnBattleGrid(sourceGrid);
@@ -11918,14 +11923,41 @@ public partial class BattleSceneController : Node2D
         _selectedGridKey = destination.Grid;
         _movableGrids.Clear();
         _movableGrids.Add(destination.Grid);
-        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination.Grid}, reserve {NormalAttackEnergyCost} energy, then attack {destination.Target}.");
+        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination.Grid}, reserve {NormalAttackEnergyCost} energy, then attack {plannedTarget} (score {plannedScore}, variance {plannedNoise}).");
         return TryMoveSelectedUnit(markAiActed: false, onMoveAnimationComplete: () =>
         {
-            if (_selectedUnit != null && _selectedUnitGrid.HasValue)
-            {
-                TryExecuteAiAttack(_selectedUnitGrid.Value, _selectedUnit);
-            }
+            TryExecuteAiPlannedMoveAttack(destination.Grid, unit, plannedTarget, plannedScore, plannedNoise);
         });
+    }
+
+    private bool TryExecuteAiPlannedMoveAttack(BattleGridKey sourceGrid, BattleOccupantInfo plannedUnit, BattleGridKey plannedTarget, int score, int noise)
+    {
+        if (!TryGetCurrentOccupantAtGrid(sourceGrid, plannedUnit, out var currentUnit))
+        {
+            AppendBattleLog(plannedUnit, "AI", $"Move+attack failed: unit is no longer at {sourceGrid}; planned target {plannedTarget}.");
+            return false;
+        }
+
+        if (currentUnit.Energy < NormalAttackEnergyCost || !CanUseAttackCommand(currentUnit))
+        {
+            AppendBattleLog(currentUnit, "AI", $"Move+attack failed: attack unavailable at {sourceGrid}; energy {currentUnit.Energy}, planned target {plannedTarget}.");
+            return false;
+        }
+
+        if (!_occupantsByGrid.TryGetValue(plannedTarget, out var targetOccupants) ||
+            GetAttackTargetForAttack(targetOccupants, currentUnit.TeamName, plannedTarget) == null)
+        {
+            AppendBattleLog(currentUnit, "AI", $"Move+attack failed: no valid target at planned grid {plannedTarget}.");
+            return false;
+        }
+
+        if (!CalculateAttackableGrids(sourceGrid, currentUnit).Contains(plannedTarget))
+        {
+            AppendBattleLog(currentUnit, "AI", $"Move+attack failed: planned target {plannedTarget} is outside the legal attack grids from {sourceGrid}.");
+            return false;
+        }
+
+        return TryExecuteAiAttack(sourceGrid, currentUnit, plannedTarget, score, noise);
     }
 
     private bool TryExecuteAiMove(BattleGridKey sourceGrid, BattleOccupantInfo unit)
@@ -11956,12 +11988,47 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
+        if (!TryBuildMovePath(sourceGrid, destination, unit.Energy, GetAvailableMoveRange(unit), out var movePath))
+        {
+            return false;
+        }
+
+        var moveEnergyCost = GetMovePathEnergyCost(movePath);
+        var remainingEnergy = unit.Energy - moveEnergyCost;
+        var remainingMoveRange = unit.RemainingMoveRange - movePath.Count;
+        var moveOnlyReason = GetAiMoveOnlyReason(sourceGrid, unit);
+
         _selectedGrid = destination.Grid;
         _selectedGridKey = destination;
         _movableGrids.Clear();
         _movableGrids.Add(destination);
-        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination}; shortest legal approach to an enemy.");
+        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination}; shortest legal approach to an enemy. Energy {unit.Energy} - {moveEnergyCost} = {remainingEnergy}, move range {remainingMoveRange}/{unit.MoveRange}; move+attack unavailable: {moveOnlyReason}.");
         return TryMoveSelectedUnit();
+    }
+
+    private string GetAiMoveOnlyReason(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        if (unit.Energy < NormalAttackEnergyCost)
+        {
+            return $"energy {unit.Energy} is below attack cost {NormalAttackEnergyCost}";
+        }
+
+        if (!CanUseAttackCommand(unit))
+        {
+            return "unit attack command is unavailable";
+        }
+
+        var hasMoveAndAttackPlan = CalculateReachableGrids(
+                sourceGrid,
+                unit.Energy - NormalAttackEnergyCost,
+                GetAvailableMoveRange(unit))
+            .Any(grid => CalculateAttackableGrids(grid, unit)
+                .Any(targetGrid => _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
+                                  GetAttackTargetForAttack(occupants, unit.TeamName, targetGrid) != null));
+
+        return hasMoveAndAttackPlan
+            ? "a move+attack plan existed but was not selected"
+            : $"no legal attack position reachable while reserving {NormalAttackEnergyCost} energy";
     }
 
     private bool TryExecuteAiSupplyMove(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart)
