@@ -463,6 +463,9 @@ script = ExtResource("3")
 [node name="SupplyCart" type="Node2D" parent="MapRoot/UnitLayer"]
 script = ExtResource("3")
 
+[node name="DefenderSupplyCart" type="Node2D" parent="MapRoot/UnitLayer"]
+script = ExtResource("3")
+
 [node name="SiegeEngineLayer" type="Node2D" parent="MapRoot" unique_id=1292689697]
 z_index = 20
 
@@ -594,9 +597,31 @@ text = "Breeze"
 layout_mode = 2
 text = "Option"
 
+[node name="EnableAiButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Enable AI"
+
+[node name="DisableAiButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Disable AI"
+
+[node name="StartRoundButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Start Round"
+
+[node name="NextAiButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Next"
+
 [node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
 layout_mode = 2
 text = "End"
+
+[node name="AiRoundStatusLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
+theme_override_font_sizes/font_size = 16
+text = ""
 
 [node name="SummaryLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=972321462]
 layout_mode = 2
@@ -776,6 +801,10 @@ text = "Attack"
 [node name="UnionAttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2
 text = "Union Attack"
+
+[node name="GuardButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+layout_mode = 2
+text = "Guard"
 
 [node name="ChargeButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
 layout_mode = 2

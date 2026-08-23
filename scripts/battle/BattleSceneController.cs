@@ -28,6 +28,14 @@ internal enum BattleDepthRenderKind
     Unit
 }
 
+[Flags]
+internal enum BattleAiControlledSides
+{
+    None = 0,
+    Attacker = 1,
+    Defender = 2
+}
+
 [Tool]
 public partial class BattleSceneController : Node2D
 {
@@ -217,6 +225,12 @@ public partial class BattleSceneController : Node2D
     private const float AmmoDepletedWeakAttackDamageRatio = 0.35f;
     private const int LowMoraleMovePenaltyThreshold = 30;
     private const int MessMoraleThreshold = 15;
+    private const int DefaultUnitEnergy = 10;
+    private const int NormalAttackEnergyCost = 5;
+    private const int UnionAttackSupportEnergyCost = 4;
+    private const float GuardDamageReductionBase = 0.20f;
+    private const float GuardDamageReductionDecay = 0.50f;
+    private const float GuardCounterAttackRatio = 0.40f;
     private const int MessStrategyRange = 3;
     private const int MessStrategyDurationTurns = 2;
     private const int MessStrategyMoraleDamage = 12;
@@ -314,6 +328,11 @@ public partial class BattleSceneController : Node2D
     private Label? _windowTitleLabel;
     private Label? _unitMenuInfoLabel;
     private Button? _endTurnButton;
+    private Button? _enableAiButton;
+    private Button? _disableAiButton;
+    private Button? _startRoundButton;
+    private Button? _nextAiButton;
+    private Label? _aiRoundStatusLabel;
     private Button? _timeButton;
     private Button? _weatherButton;
     private Button? _windButton;
@@ -336,6 +355,7 @@ public partial class BattleSceneController : Node2D
     private Button? _moveButton;
     private Button? _attackButton;
     private Button? _unionAttackButton;
+    private Button? _guardButton;
     private Button? _chargeButton;
     private Button? _duelButton;
     private Button? _retreatButton;
@@ -389,6 +409,7 @@ public partial class BattleSceneController : Node2D
     private readonly HashSet<BattlePieceMarker> _strategyUsedByMarkerThisTurn = new();
     private readonly HashSet<BattlePieceMarker> _supplyUsedByMarkerThisTurn = new();
     private readonly HashSet<BattlePieceMarker> _chargeUsedByMarkerThisTurn = new();
+    private readonly HashSet<BattlePieceMarker> _actedByMarkerThisRound = new();
     private readonly List<BattleLogEntry> _battleLogs = new();
     private readonly List<ColorRect> _rainStreaks = new();
     private BattleCommandMode _commandMode = BattleCommandMode.None;
@@ -396,6 +417,8 @@ public partial class BattleSceneController : Node2D
     private WorkerWorkAction _workerWorkAction = WorkerWorkAction.General;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
+    private BattleAiControlledSides _aiControlledSides;
+    private bool _isFieldAiRoundStarted;
     private BattleTimeOfDay? _currentBattleTimeOfDay;
     private BattleWeatherType? _currentBattleWeather;
     private BattleWindDirection? _currentBattleWindDirection;
@@ -521,6 +544,26 @@ public partial class BattleSceneController : Node2D
             _endTurnButton.Pressed += OnEndTurnButtonPressed;
         }
 
+        if (_enableAiButton != null)
+        {
+            _enableAiButton.Pressed += OnEnableAiButtonPressed;
+        }
+
+        if (_disableAiButton != null)
+        {
+            _disableAiButton.Pressed += OnDisableAiButtonPressed;
+        }
+
+        if (_startRoundButton != null)
+        {
+            _startRoundButton.Pressed += OnStartRoundButtonPressed;
+        }
+
+        if (_nextAiButton != null)
+        {
+            _nextAiButton.Pressed += OnNextAiButtonPressed;
+        }
+
         if (_timeButton != null)
         {
             _timeButton.Pressed += OnTimeButtonPressed;
@@ -604,6 +647,11 @@ public partial class BattleSceneController : Node2D
         if (_unionAttackButton != null)
         {
             _unionAttackButton.Pressed += OnUnionAttackButtonPressed;
+        }
+
+        if (_guardButton != null)
+        {
+            _guardButton.Pressed += OnGuardButtonPressed;
         }
 
         if (_chargeButton != null)
@@ -715,6 +763,7 @@ public partial class BattleSceneController : Node2D
         BuildCastleDepthVisuals();
         BuildBuildingDepthVisuals();
         PopulateMarkers();
+        InitializeFieldAiTestDefaults();
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
         ConfigureHud();
@@ -737,6 +786,14 @@ public partial class BattleSceneController : Node2D
         var settings = LoadBattleOptionSettings();
         _localization.SetLanguage(settings.Language);
         RefreshBattleOptionDialogText();
+    }
+
+    private void InitializeFieldAiTestDefaults()
+    {
+        if (ScenarioType == BattleScenarioType.FieldBattle)
+        {
+            _aiControlledSides = BattleAiControlledSides.Attacker | BattleAiControlledSides.Defender;
+        }
     }
 
     private OptionSettingsData LoadBattleOptionSettings()
@@ -1679,6 +1736,11 @@ public partial class BattleSceneController : Node2D
         _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
         _commandScroll ??= GetNodeOrNull<ScrollContainer>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll");
         _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
+        _enableAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EnableAiButton");
+        _disableAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/DisableAiButton");
+        _startRoundButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/StartRoundButton");
+        _nextAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/NextAiButton");
+        _aiRoundStatusLabel ??= GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/AiRoundStatusLabel");
         _timeButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/TimeButton");
         _weatherButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WeatherButton");
         _windButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindButton");
@@ -1704,6 +1766,7 @@ public partial class BattleSceneController : Node2D
         _moveButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/MoveButton");
         _attackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/AttackButton");
         _unionAttackButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/UnionAttackButton");
+        _guardButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/GuardButton");
         _chargeButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/ChargeButton");
         _duelButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/DuelButton");
         _retreatButton ??= GetNodeOrNull<Button>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons/RetreatButton");
@@ -2459,6 +2522,10 @@ public partial class BattleSceneController : Node2D
         CreateMarker("MapRoot/UnitLayer/DefenderB", ResolveUnitSpawnGrid("DefenderB", new Vector2I(14, 7)), "X", "Defender Crossbow B", CategoryUnit, "Team B / Defender", "Li Jue", TroopArcher, 4300, new Color("245f76"), new Color("e0f0ff"), moveRange: 4, attackRange: 3);
         CreateMarker("MapRoot/UnitLayer/DefenderC", ResolveUnitSpawnGrid("DefenderC", new Vector2I(12, 7)), "G", "Defender Commander", CategoryUnit, "Team B / Defender", "Guo Si", TroopSpearman, 3100, new Color("274e8a"), new Color("e0f0ff"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Worker", ResolveUnitSpawnGrid("Worker", new Vector2I(16, 5)), "W", "Defender Worker", CategoryUnit, "Team B / Defender", "Worker", TroopWorker, 1800, new Color("5f583e"), new Color("e8ddbc"), moveRange: 3, attackRange: 1);
+        if (isFieldBattle)
+        {
+            CreateMarker("MapRoot/UnitLayer/DefenderSupplyCart", ResolveUnitSpawnGrid("DefenderSupplyCart", new Vector2I(18, 4)), "糧", "Defender Supply Cart", CategorySiegeEngine, "Team B / Defender", string.Empty, TroopSupplyCart, SupplyCartMaxHitPoints, new Color("485f72"), new Color("d8ecff"), 21.0f, moveRange: 3, attackRange: 0);
+        }
     }
 
     private Vector2I ResolveUnitSpawnGrid(string unitKey, Vector2I fallbackGrid)
@@ -2653,6 +2720,8 @@ public partial class BattleSceneController : Node2D
         {
             _endTurnButton.Text = BattleText("ui.battle.end_turn", "End Turn");
         }
+
+        ConfigureFieldAiTestControls();
 
         if (_battleOptionButton != null)
         {
@@ -3390,25 +3459,51 @@ public partial class BattleSceneController : Node2D
 
     private string BuildCoordinateText()
     {
-        return BattleFormat(
+        var coordinateText = BattleFormat(
             "ui.battle.coordinate_hover_click",
             "Hover: {0}    Click: {1}",
             FormatGrid(_hoverGridKey, _hoverGrid),
             FormatGrid(_selectedGridKey, _selectedGrid));
+        if (!TryGetMovePreview(_hoverGridKey, out var energyCost, out var remainingEnergy, out var remainingMoveRange))
+        {
+            return coordinateText;
+        }
+
+        return BattleFormat(
+            "ui.battle.coordinate_move_preview",
+            "{0}    Move: -{1}, Remaining Energy {2}, Move Range {3}/{4}; {5}",
+            coordinateText,
+            energyCost,
+            remainingEnergy,
+            remainingMoveRange,
+            _selectedUnit!.MoveRange,
+            remainingEnergy >= NormalAttackEnergyCost
+                ? BattleText("ui.battle.can_attack_after_move", "can attack")
+                : BattleText("ui.battle.cannot_attack_after_move", "cannot attack"));
     }
 
     private string BuildTeamHudText(BattleHudTeamInfo info)
     {
         return BattleFormat(
             "ui.battle.team_hud",
-            "{0}   Troops: {1:N0} / {2:N0} wounded   Generals: {3:N0}   Siege: {4:N0}   Gold: {5:N0}   Food: {6:N0}",
+            "{0}   Troops: {1:N0} / {2:N0} wounded   Generals: {3:N0}   Workers: {4:N0}   Siege: {5:N0}   Gold: {6:N0}   Food: {7:N0}",
             FormatTeamName(info.Name),
             info.TotalTroops,
             info.WoundedTroops,
             info.TotalGenerals,
+            GetActiveWorkerCountForTeam(info.Name),
             info.TotalSiegeUnits,
             info.TotalGold,
             info.TotalFood);
+    }
+
+    private int GetActiveWorkerCountForTeam(string teamName)
+    {
+        return _occupantsByGrid.Values
+            .SelectMany(occupants => occupants)
+            .Count(occupant => occupant.Category == CategoryUnit &&
+                               occupant.TroopType == TroopWorker &&
+                               occupant.TeamName == teamName);
     }
 
     private int GetTotalWoundedTroopsForTeam(string teamName)
@@ -3468,6 +3563,7 @@ public partial class BattleSceneController : Node2D
         var visibleLogs = _battleLogs
             .Where(entry => !_showSelfTeamLogOnly || entry.TeamName == selfTeamName)
             .TakeLast(80)
+            .Reverse()
             .ToList();
         if (visibleLogs.Count == 0)
         {
@@ -4009,6 +4105,19 @@ public partial class BattleSceneController : Node2D
             statuses.Add(BattleFormat("ui.battle.status_mess_turns", "Mess ({0} turns)", unit.MessTurns));
         }
 
+        if (unit.HasAttackedThisTurn && !unit.IsGuarding)
+        {
+            statuses.Add(BattleText("ui.battle.status_attacked", "Attacked (cannot move)"));
+        }
+        if (unit.IsGuarding)
+        {
+            var nextReductionPercent = GetGuardDamageReductionRatio(unit.GuardDamageReductionCount) * 100.0f;
+            statuses.Add(BattleFormat(
+                unit.GuardCounterAvailable ? "ui.battle.status_guard" : "ui.battle.status_guard_counter_used",
+                unit.GuardCounterAvailable ? "Guard (next reduction {0:0.#}%)" : "Guard (counter used; next reduction {0:0.#}%)",
+                nextReductionPercent));
+        }
+
         return statuses.Count == 0 ? BattleText("ui.battle.status_normal", "Normal") : string.Join(", ", statuses);
     }
 
@@ -4180,7 +4289,8 @@ public partial class BattleSceneController : Node2D
             builder.AppendLine(BattleFormat("ui.battle.list_category", "- Category: {0}", FormatUnitCategory(_selectedUnit.Category)));
             builder.AppendLine(BattleFormat("ui.battle.list_grid", "- Grid: {0}", $"({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y}, L{_selectedUnitGrid.Value.Level})"));
             builder.AppendLine(BattleFormat("ui.battle.list_status", "- Status: {0}", FormatBattleStatus(_selectedUnit)));
-            builder.AppendLine(BattleFormat("ui.battle.list_move_range", "- Move Range: {0}/{1}", GetEffectiveMoveRange(_selectedUnit), _selectedUnit.MoveRange));
+            builder.AppendLine(BattleFormat("ui.battle.list_move_range", "- Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, _selectedUnit.MoveRange));
+            builder.AppendLine(BattleFormat("ui.battle.list_energy", "- Energy: {0}/{1}", _selectedUnit.Energy, DefaultUnitEnergy));
             if (_selectedUnit.MaxWeaponAmmo.HasValue)
             {
                 builder.AppendLine(BattleFormat("ui.battle.list_weapon_ammo", "- Weapon Ammo: {0}", FormatWeaponAmmo(_selectedUnit)));
@@ -4248,7 +4358,7 @@ public partial class BattleSceneController : Node2D
 
         var morale = GetInitialMorale(category, troopType);
         var weaponAmmo = GetInitialWeaponAmmo(category, troopType);
-        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, IsHidden: false, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast));
+        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, IsHidden: false, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast, DefaultUnitEnergy, HasAttackedThisTurn: false, RemainingMoveRange: moveRange, IsGuarding: false, GuardCounterAvailable: false, GuardDamageReductionCount: 0));
     }
 
     private static void UpdateMarkerStrengthBar(BattleOccupantInfo occupant)
@@ -4377,6 +4487,18 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
+        if (movingOccupant.HasAttackedThisTurn ||
+            !TryBuildMovePath(sourceGrid, destinationGrid, movingOccupant.Energy, GetAvailableMoveRange(movingOccupant), out var movePath))
+        {
+            return false;
+        }
+
+        var moveEnergyCost = GetMovePathEnergyCost(movePath);
+        if (moveEnergyCost > movingOccupant.Energy || movePath.Count > GetAvailableMoveRange(movingOccupant))
+        {
+            return false;
+        }
+
         sourceOccupants.Remove(movingOccupant);
         if (sourceOccupants.Count == 0)
         {
@@ -4387,11 +4509,6 @@ public partial class BattleSceneController : Node2D
         {
             destinationOccupants = new List<BattleOccupantInfo>();
             _occupantsByGrid[destinationGrid] = destinationOccupants;
-        }
-
-        if (!TryBuildMovePath(sourceGrid, destinationGrid, GetEffectiveMoveRange(movingOccupant), out var movePath))
-        {
-            movePath = [destinationGrid];
         }
 
         movePath = ExpandMovePathWithCarLadderWaypoints(sourceGrid, movePath, movingOccupant);
@@ -4406,7 +4523,9 @@ public partial class BattleSceneController : Node2D
         {
             Marker = movingOccupant.Marker,
             FacingDirection = moveDirection,
-            IsHidden = remainsHidden
+            IsHidden = remainsHidden,
+            Energy = movingOccupant.Energy - moveEnergyCost,
+            RemainingMoveRange = movingOccupant.RemainingMoveRange - movePath.Count
         };
         destinationOccupants.Add(movedOccupant);
         UpdateMarkerStatusIndicator(movedOccupant);
@@ -4444,6 +4563,7 @@ public partial class BattleSceneController : Node2D
             AppendBattleLog(movedOccupant, "Status", $"{FormatLogUnit(movedOccupant)} leaves forest and is no longer hidden");
         }
         RefreshHiddenUnitVisibility();
+        MarkUnitActedForAiOnly(movedOccupant);
 
         return true;
     }
@@ -4508,8 +4628,18 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
+        if (!CanUseAttackCommand(_selectedUnit) || _selectedUnit.Energy < NormalAttackEnergyCost)
+        {
+            return false;
+        }
+
         var targetGrid = _selectedGridKey ?? GetDefaultGridKey(_selectedGrid.Value);
         if (!_attackableGrids.Contains(targetGrid))
+        {
+            return false;
+        }
+
+        if (_selectedUnit.Energy < NormalAttackEnergyCost)
         {
             return false;
         }
@@ -4523,7 +4653,12 @@ public partial class BattleSceneController : Node2D
 
         var isWeakCloseAttack = CanUseAmmoDepletedWeakAttack(_selectedUnit);
         var attackDamage = GetAttackDamage(_selectedUnit);
-        var attackingUnit = _selectedUnit with { FacingDirection = attackDirection };
+        var attackingUnit = _selectedUnit with
+        {
+            FacingDirection = attackDirection,
+            Energy = _selectedUnit.Energy - NormalAttackEnergyCost,
+            HasAttackedThisTurn = true
+        };
         if (!TrySpendNormalAttackWeaponAmmo(attackingUnit, out attackingUnit))
         {
             return false;
@@ -4552,7 +4687,7 @@ public partial class BattleSceneController : Node2D
             Math.Max(attackAnimationDuration, hurtAnimationDuration),
             Math.Max(arrowEffectDuration, catapultEffectDuration));
         AppendBattleLog(attackingUnit, "Attack", $"{FormatLogUnit(attackingUnit)} attacks {targetGrid}{FormatNormalAttackAmmoLog(attackingUnit, isWeakCloseAttack)}");
-        ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds, attackDamage);
+        ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds, attackDamage, _selectedUnitGrid);
         if (shouldTemporarilyRevealOccludedUnits)
         {
             RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
@@ -4565,6 +4700,7 @@ public partial class BattleSceneController : Node2D
         _workableGrids.Clear();
         _workerWorkAction = WorkerWorkAction.General;
         HideCommandMenu();
+        MarkUnitActed(attackingUnit);
         return true;
     }
 
@@ -4609,6 +4745,7 @@ public partial class BattleSceneController : Node2D
         _workableGrids.Clear();
         _workerWorkAction = WorkerWorkAction.General;
         HideCommandMenu();
+        MarkUnitActed(workingUnit);
         return true;
     }
 
@@ -5011,7 +5148,7 @@ public partial class BattleSceneController : Node2D
         return InfantryHurtAnimationDurationSeconds;
     }
 
-    private void ApplyAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid, double effectDelaySeconds, int? damageOverride = null)
+    private void ApplyAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid, double effectDelaySeconds, int? damageOverride = null, BattleGridKey? attackerGrid = null)
     {
         if (IsClosedGateStructureTarget(targetGrid))
         {
@@ -5037,7 +5174,7 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, NormalDamageKilledRatio);
+        var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, NormalDamageKilledRatio, isGuardReducibleAttack: IsGuardReducibleAttack(attacker));
         var updatedTarget = casualtyResult.UpdatedTarget;
 
         ShowDamagePopup(targetGrid, casualtyResult.ActualDamage);
@@ -5047,10 +5184,52 @@ public partial class BattleSceneController : Node2D
             $"{FormatLogUnit(target)} got {casualtyResult.ActualDamage:N0} hurt by {FormatLogUnit(attacker)} at {targetGrid} ({FormatCasualtyResult(casualtyResult)})");
         ConfigureHud();
         RefreshInfoPanel();
+        TryExecuteGuardCounterAttack(updatedTarget, targetGrid, attacker, attackerGrid);
         if (updatedTarget.HitPoints <= 0)
         {
             DestroyOccupantAfterDelay(targetGrid, updatedTarget, effectDelaySeconds);
         }
+    }
+
+    private void TryExecuteGuardCounterAttack(BattleOccupantInfo defender, BattleGridKey defenderGrid, BattleOccupantInfo attacker, BattleGridKey? attackerGrid)
+    {
+        if (attackerGrid == null || !defender.IsGuarding || !defender.GuardCounterAvailable || !IsMeleeAttack(attacker) || defender.HitPoints <= 0)
+        {
+            return;
+        }
+
+        var defenderAfterCounter = defender with { GuardCounterAvailable = false };
+        ReplaceOccupantAtGrid(defenderGrid, defender, defenderAfterCounter);
+        if (!_occupantsByGrid.TryGetValue(attackerGrid.Value, out var attackers))
+        {
+            return;
+        }
+
+        var currentAttacker = attackers.FirstOrDefault(occupant => occupant.Marker == attacker.Marker);
+        if (currentAttacker == null)
+        {
+            return;
+        }
+
+        var counterDamage = Mathf.Max(1, Mathf.RoundToInt(GetAttackDamage(defenderAfterCounter) * GuardCounterAttackRatio));
+        var counterResult = ApplyUnitCasualties(attackerGrid.Value, currentAttacker, counterDamage, NormalDamageKilledRatio);
+        ShowDamagePopup(attackerGrid.Value, counterResult.ActualDamage);
+        AppendBattleLog(defenderAfterCounter, "Counter", $"{FormatLogUnit(defenderAfterCounter)} counterattacks {FormatLogUnit(currentAttacker)} for {counterResult.ActualDamage:N0}.");
+    }
+
+    private static bool IsMeleeAttack(BattleOccupantInfo attacker)
+    {
+        return attacker.TroopType is TroopInfantry or TroopSpearman or TroopCavalry or TroopWorker or TroopGuard;
+    }
+
+    private static bool IsGuardReducibleAttack(BattleOccupantInfo attacker)
+    {
+        return attacker.TroopType is TroopInfantry or TroopSpearman or TroopCavalry or TroopWorker or TroopGuard or TroopArcher or TroopCrossbow;
+    }
+
+    private static float GetGuardDamageReductionRatio(int reductionCount)
+    {
+        return GuardDamageReductionBase * Mathf.Pow(GuardDamageReductionDecay, Math.Max(0, reductionCount));
     }
 
     private void ApplyStructureAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid)
@@ -5130,11 +5309,36 @@ public partial class BattleSceneController : Node2D
         BattleOccupantInfo target,
         int damage,
         float killedRatio,
-        bool ignoresBuildingCover = false)
+        bool ignoresBuildingCover = false,
+        bool isGuardReducibleAttack = false)
     {
         if (!ignoresBuildingCover && IsBuildingCoverActive(targetGrid))
         {
             damage = Mathf.Max(1, Mathf.RoundToInt(damage * (1.0f - BuildingCoverDamageReduction)));
+        }
+
+        var guardReductionApplied = false;
+        if (isGuardReducibleAttack && target.IsGuarding)
+        {
+            var damageBeforeGuard = damage;
+            var guardReductionRatio = GetGuardDamageReductionRatio(target.GuardDamageReductionCount);
+            damage = Mathf.Max(1, Mathf.RoundToInt(damage * (1.0f - guardReductionRatio)));
+            var reducedDamage = damageBeforeGuard - damage;
+            guardReductionApplied = true;
+            if (reducedDamage > 0)
+            {
+                AppendBattleLog(
+                    target,
+                    "Guard",
+                    BattleFormat(
+                        "ui.battle.log_guard_damage_reduction",
+                        "{0} guards: damage {1:N0} -> {2:N0} (-{3:N0}).",
+                        FormatLogUnit(target),
+                        damageBeforeGuard,
+                        damage,
+                        reducedDamage,
+                        guardReductionRatio * 100.0f));
+            }
         }
 
         var actualDamage = Mathf.Min(target.HitPoints, damage);
@@ -5146,7 +5350,11 @@ public partial class BattleSceneController : Node2D
         if (target.Category != CategoryUnit)
         {
             var remainingHp = Mathf.Max(0, target.HitPoints - actualDamage);
-            var updatedTarget = target with { HitPoints = remainingHp };
+            var updatedTarget = target with
+            {
+                HitPoints = remainingHp,
+                GuardDamageReductionCount = target.GuardDamageReductionCount + (guardReductionApplied ? 1 : 0)
+            };
             UpdateMarkerStrengthBar(updatedTarget);
             ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
             if (_selectedUnit == target)
@@ -5166,7 +5374,8 @@ public partial class BattleSceneController : Node2D
         {
             TroopCount = remainingTroops,
             HitPoints = remainingTroops,
-            WoundedTroops = target.WoundedTroops + woundedTroops
+            WoundedTroops = target.WoundedTroops + woundedTroops,
+            GuardDamageReductionCount = target.GuardDamageReductionCount + (guardReductionApplied ? 1 : 0)
         };
         UpdateMarkerStrengthBar(updatedUnit);
         ReplaceOccupantAtGrid(targetGrid, target, updatedUnit);
@@ -6225,16 +6434,17 @@ public partial class BattleSceneController : Node2D
         }
     }
 
-    private IEnumerable<BattleGridKey> CalculateReachableGrids(BattleGridKey startGrid, int moveRange)
+    private IEnumerable<BattleGridKey> CalculateReachableGrids(BattleGridKey startGrid, int energyBudget, int rangeBudget)
     {
-        if (_mapData == null || moveRange <= 0)
+        if (_mapData == null || energyBudget <= 0 || rangeBudget <= 0)
         {
             yield break;
         }
 
-        var frontier = new Queue<(BattleGridKey Grid, int RemainingMove)>();
-        var bestRemaining = new Dictionary<BattleGridKey, int> { [startGrid] = moveRange };
-        frontier.Enqueue((startGrid, moveRange));
+        var frontier = new Queue<(BattleGridKey Grid, int RemainingEnergy, int RemainingRange)>();
+        var visitedStates = new HashSet<(BattleGridKey Grid, int RemainingEnergy, int RemainingRange)> { (startGrid, energyBudget, rangeBudget) };
+        var reachableGrids = new HashSet<BattleGridKey>();
+        frontier.Enqueue((startGrid, energyBudget, rangeBudget));
 
         while (frontier.Count > 0)
         {
@@ -6266,22 +6476,22 @@ public partial class BattleSceneController : Node2D
                     continue;
                 }
 
-                var moveCost = GetMoveCost(cell);
-                var remainingMove = current.RemainingMove - moveCost;
-                if (remainingMove < 0)
+                var moveCost = GetMoveEnergyCost(cell);
+                var remainingEnergy = current.RemainingEnergy - moveCost;
+                var remainingRange = current.RemainingRange - 1;
+                if (remainingEnergy < 0 || remainingRange < 0)
                 {
                     continue;
                 }
 
-                if (bestRemaining.TryGetValue(neighbor, out var knownRemaining) && knownRemaining >= remainingMove)
+                if (!visitedStates.Add((neighbor, remainingEnergy, remainingRange)))
                 {
                     continue;
                 }
 
-                bestRemaining[neighbor] = remainingMove;
-                frontier.Enqueue((neighbor, remainingMove));
+                frontier.Enqueue((neighbor, remainingEnergy, remainingRange));
 
-                if (neighbor != startGrid)
+                if (neighbor != startGrid && reachableGrids.Add(neighbor))
                 {
                     yield return neighbor;
                 }
@@ -6289,10 +6499,10 @@ public partial class BattleSceneController : Node2D
         }
     }
 
-    private bool TryBuildMovePath(BattleGridKey startGrid, BattleGridKey destinationGrid, int moveRange, out List<BattleGridKey> path)
+    private bool TryBuildMovePath(BattleGridKey startGrid, BattleGridKey destinationGrid, int energyBudget, int rangeBudget, out List<BattleGridKey> path)
     {
         path = [];
-        if (_mapData == null || moveRange <= 0)
+        if (_mapData == null || energyBudget <= 0 || rangeBudget <= 0)
         {
             return false;
         }
@@ -6313,7 +6523,7 @@ public partial class BattleSceneController : Node2D
             if (current == destinationGrid)
             {
                 path = RebuildMovePath(startGrid, destinationGrid, previousByGrid);
-                return path.Count > 0;
+                return path.Count > 0 && path.Count <= rangeBudget;
             }
 
             foreach (var step in GetMovementNeighbors(current))
@@ -6340,9 +6550,9 @@ public partial class BattleSceneController : Node2D
                     continue;
                 }
 
-                var moveCost = GetMoveCost(cell);
+                var moveCost = GetMoveEnergyCost(cell);
                 var newCost = bestCost[current] + moveCost;
-                if (newCost > moveRange)
+                if (newCost > energyBudget)
                 {
                     continue;
                 }
@@ -6352,6 +6562,10 @@ public partial class BattleSceneController : Node2D
                     LayerChanges: currentStats.LayerChanges + (current.Level == neighbor.Level ? 0 : 1),
                     GateVerticalSteps: currentStats.GateVerticalSteps + (IsGateVerticalLayerMove(current, neighbor) ? 1 : 0),
                     Steps: currentStats.Steps + 1);
+                if (newStats.Steps > rangeBudget)
+                {
+                    continue;
+                }
                 if (bestCost.TryGetValue(neighbor, out var knownCost) &&
                     (knownCost < newCost ||
                      knownCost == newCost && !IsBetterPathTieBreak(newStats, pathStatsByGrid[neighbor])))
@@ -6809,6 +7023,75 @@ public partial class BattleSceneController : Node2D
         });
     }
 
+    private static int GetAvailableMoveEnergy(BattleOccupantInfo unit)
+    {
+        return unit.HasAttackedThisTurn ? 0 : unit.Energy;
+    }
+
+    private static int GetAvailableMoveRange(BattleOccupantInfo unit)
+    {
+        return unit.HasAttackedThisTurn
+            ? 0
+            : Math.Min(unit.RemainingMoveRange, GetEffectiveMoveRange(unit));
+    }
+
+    private static int GetMoveEnergyCost(BattleCellData cell)
+    {
+        if (cell.Terrain == BattleTerrainType.Road)
+        {
+            return 1;
+        }
+
+        return Math.Max(2, GetMoveCost(cell) + 1);
+    }
+
+    private int GetMovePathEnergyCost(IEnumerable<BattleGridKey> path)
+    {
+        if (_mapData == null)
+        {
+            return int.MaxValue;
+        }
+
+        return path.Sum(grid => GetMoveEnergyCost(_mapData.GetCell(grid.X, grid.Y)));
+    }
+
+    private bool TryGetMovePreview(BattleGridKey? destinationGrid, out int energyCost, out int remainingEnergy, out int remainingMoveRange)
+    {
+        energyCost = 0;
+        remainingEnergy = 0;
+        remainingMoveRange = 0;
+        if (_commandMode != BattleCommandMode.MoveSelect ||
+            !destinationGrid.HasValue ||
+            !_movableGrids.Contains(destinationGrid.Value) ||
+            !_selectedUnitGrid.HasValue ||
+            _selectedUnit == null ||
+            !TryBuildMovePath(_selectedUnitGrid.Value, destinationGrid.Value, _selectedUnit.Energy, GetAvailableMoveRange(_selectedUnit), out var movePath))
+        {
+            return false;
+        }
+
+        energyCost = GetMovePathEnergyCost(movePath);
+        remainingEnergy = _selectedUnit.Energy - energyCost;
+        remainingMoveRange = _selectedUnit.RemainingMoveRange - movePath.Count;
+        return remainingEnergy >= 0 && remainingMoveRange >= 0;
+    }
+
+    private BattleHighlightVisualKind GetMoveHighlightVisualKind(BattleGridKey grid)
+    {
+        var canAttackAfterMove = TryGetMovePreview(grid, out _, out var remainingEnergy, out _) &&
+                                 remainingEnergy >= NormalAttackEnergyCost;
+        if (grid.Level == 2)
+        {
+            return canAttackAfterMove
+                ? BattleHighlightVisualKind.WallTopMoveCanAttack
+                : BattleHighlightVisualKind.WallTopMoveCannotAttack;
+        }
+
+        return canAttackAfterMove
+            ? BattleHighlightVisualKind.MoveCanAttack
+            : BattleHighlightVisualKind.MoveCannotAttack;
+    }
+
     private void RefreshHighlights()
     {
         ClearHighlightDepthVisuals();
@@ -6819,10 +7102,7 @@ public partial class BattleSceneController : Node2D
 
         foreach (var grid in _movableGrids)
         {
-            var visualKind = grid.Level == 2
-                ? BattleHighlightVisualKind.WallTopMovable
-                : BattleHighlightVisualKind.Movable;
-            AddHighlightDepthVisual(grid, visualKind);
+            AddHighlightDepthVisual(grid, GetMoveHighlightVisualKind(grid));
         }
 
         foreach (var grid in _attackableGrids)
@@ -6903,7 +7183,12 @@ public partial class BattleSceneController : Node2D
     {
         return visualKind switch
         {
-            BattleHighlightVisualKind.Movable or BattleHighlightVisualKind.WallTopMovable => BattleDepthRenderKind.MoveHighlight,
+            BattleHighlightVisualKind.Movable or
+            BattleHighlightVisualKind.WallTopMovable or
+            BattleHighlightVisualKind.MoveCanAttack or
+            BattleHighlightVisualKind.MoveCannotAttack or
+            BattleHighlightVisualKind.WallTopMoveCanAttack or
+            BattleHighlightVisualKind.WallTopMoveCannotAttack => BattleDepthRenderKind.MoveHighlight,
             BattleHighlightVisualKind.Attackable => BattleDepthRenderKind.AttackHighlight,
             BattleHighlightVisualKind.Workable => BattleDepthRenderKind.MoveHighlight,
             BattleHighlightVisualKind.Selected => BattleDepthRenderKind.SelectedHighlight,
@@ -6927,7 +7212,7 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _duelTargetGrids.Clear();
         _hireOfficerTargetGrids.Clear();
-        foreach (var grid in CalculateReachableGrids(_selectedUnitGrid.Value, GetEffectiveMoveRange(_selectedUnit)))
+        foreach (var grid in CalculateReachableGrids(_selectedUnitGrid.Value, GetAvailableMoveEnergy(_selectedUnit), GetAvailableMoveRange(_selectedUnit)))
         {
             _movableGrids.Add(grid);
         }
@@ -6942,6 +7227,7 @@ public partial class BattleSceneController : Node2D
     {
         if (_selectedUnit == null ||
             !_selectedUnitGrid.HasValue ||
+            _selectedUnit.Energy < NormalAttackEnergyCost ||
             !CanUseAttackCommand(_selectedUnit))
         {
             return;
@@ -7045,6 +7331,7 @@ public partial class BattleSceneController : Node2D
         }
 
         ExecuteCharge(sourceGrid, _selectedUnit, targetGrid, target, destinationGrid);
+        MarkUnitActed(_selectedUnit);
         _commandMode = BattleCommandMode.None;
         _selectedStrategyAction = BattleStrategyAction.None;
         _movableGrids.Clear();
@@ -7330,6 +7617,7 @@ public partial class BattleSceneController : Node2D
         }
 
         ExecuteDuel(_selectedUnitGrid.Value, _selectedUnit, targetGrid, opponent);
+        MarkUnitActed(_selectedUnit);
         _commandMode = BattleCommandMode.None;
         _selectedStrategyAction = BattleStrategyAction.None;
         _movableGrids.Clear();
@@ -7759,7 +8047,14 @@ public partial class BattleSceneController : Node2D
         foreach (var participant in candidate.Participants)
         {
             var attackDirection = GetInfantryDirection(participant.Grid.Grid, candidate.TargetGrid.Grid);
-            var attackingUnit = participant.Occupant with { FacingDirection = attackDirection };
+            var isInitiator = participant.Grid == _selectedUnitGrid.Value;
+            var energyCost = isInitiator ? NormalAttackEnergyCost : UnionAttackSupportEnergyCost;
+            var attackingUnit = participant.Occupant with
+            {
+                FacingDirection = attackDirection,
+                Energy = participant.Occupant.Energy - energyCost,
+                HasAttackedThisTurn = isInitiator
+            };
             if (!TrySpendNormalAttackWeaponAmmo(attackingUnit, out attackingUnit))
             {
                 continue;
@@ -7790,7 +8085,14 @@ public partial class BattleSceneController : Node2D
             _selectedUnit!,
             "Attack",
             $"Union x{updatedParticipants.Count}: {string.Join(", ", updatedParticipants.Select(participant => FormatLogUnit(participant.Occupant)))} -> {candidate.TargetGrid}");
-        ApplyAttackDamage(_selectedUnit!, candidate.TargetGrid, effectDelaySeconds, GetUnionAttackDamage(candidate.Participants));
+        ApplyAttackDamage(_selectedUnit!, candidate.TargetGrid, effectDelaySeconds, GetUnionAttackDamage(updatedParticipants), _selectedUnitGrid);
+        foreach (var participant in updatedParticipants)
+        {
+            if (participant.Grid == _selectedUnitGrid.Value)
+            {
+                MarkUnitActed(participant.Occupant);
+            }
+        }
         if (shouldTemporarilyRevealOccludedUnits)
         {
             RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
@@ -7804,6 +8106,33 @@ public partial class BattleSceneController : Node2D
         _strategyTargetGrids.Clear();
         _duelTargetGrids.Clear();
         _workerWorkAction = WorkerWorkAction.General;
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private void OnGuardButtonPressed()
+    {
+        if (_selectedUnit == null || !_selectedUnitGrid.HasValue || !CanUseGuard(_selectedUnit))
+        {
+            return;
+        }
+
+        var guardedUnit = _selectedUnit with
+        {
+            Energy = _selectedUnit.Energy - NormalAttackEnergyCost,
+            HasAttackedThisTurn = true,
+            IsGuarding = true,
+            GuardCounterAvailable = true,
+            GuardDamageReductionCount = 0
+        };
+        ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, guardedUnit);
+        _selectedUnit = guardedUnit;
+        MarkUnitActed(guardedUnit);
+        AppendBattleLog(guardedUnit, "Guard", $"{FormatLogUnit(guardedUnit)} enters guard stance.");
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
         HideCommandMenu();
         RefreshInfoPanel();
         RefreshHighlights();
@@ -7914,6 +8243,7 @@ public partial class BattleSceneController : Node2D
         }
 
         _supplyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
+        MarkUnitActed(_selectedUnit);
 
         AppendBattleLog(
             _selectedUnit,
@@ -7961,6 +8291,7 @@ public partial class BattleSceneController : Node2D
         }
 
         _supplyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
+        MarkUnitActed(_selectedUnit);
         AppendBattleLog(
             _selectedUnit,
             "Supply",
@@ -7995,6 +8326,7 @@ public partial class BattleSceneController : Node2D
         ApplyTeamResourceDelta(captor.TeamName, capturedResources.GoldLoss, capturedResources.FoodLoss);
         ApplyTeamMoraleBonus(captor.TeamName, SupplyCartCaptureMoraleBonus, "captured supplies");
         ConvertBattlePieceToSide(targetGrid, supplyCart, captor.TeamName);
+        MarkUnitActed(captor);
         AppendBattleLog(
             captor,
             "Supply",
@@ -8081,6 +8413,7 @@ public partial class BattleSceneController : Node2D
             recruiter,
             "Hire",
             $"{FormatLogUnit(recruiter)} hires {FormatLogUnit(target)} for {cost:N0} gold. {target.DisplayName} joins {recruiter.TeamName}. Morale {recruiter.TeamName} +{HireOfficerTeamMoraleBonus}, {previousTeamName} -{HireOfficerTeamMoralePenalty}");
+        MarkUnitActed(recruiter);
 
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
@@ -8573,7 +8906,7 @@ public partial class BattleSceneController : Node2D
         candidate = new UnionAttackCandidate(default, new List<UnionAttackParticipant>());
         if (_selectedUnit == null ||
             !_selectedUnitGrid.HasValue ||
-            !CanJoinUnionAttack(_selectedUnit))
+            !CanInitiateUnionAttack(_selectedUnit))
         {
             return false;
         }
@@ -8654,12 +8987,26 @@ public partial class BattleSceneController : Node2D
         return participants;
     }
 
+    private bool CanInitiateUnionAttack(BattleOccupantInfo occupant)
+    {
+        return CanParticipateInUnionAttack(occupant, NormalAttackEnergyCost) &&
+               IsCurrentTurnPiece(occupant);
+    }
+
     private bool CanJoinUnionAttack(BattleOccupantInfo occupant)
+    {
+        return CanParticipateInUnionAttack(occupant, UnionAttackSupportEnergyCost) &&
+               IsCurrentTurnPiece(occupant);
+    }
+
+    private bool CanParticipateInUnionAttack(BattleOccupantInfo occupant, int energyCost)
     {
         return occupant.Marker != null &&
                occupant.Category == CategoryUnit &&
                !IsMessed(occupant) &&
+               !occupant.HasAttackedThisTurn &&
                !HasUsedChargeThisTurn(occupant) &&
+               occupant.Energy >= energyCost &&
                IsUnionAttackTroopType(occupant.TroopType) &&
                GetAttackDamage(occupant) > 0 &&
                CanUseNormalAttackWithCurrentAmmo(occupant);
@@ -8670,10 +9017,19 @@ public partial class BattleSceneController : Node2D
         return occupant.TroopType != TroopSupplyCart &&
                IsBattlePiece(occupant) &&
                !IsMessed(occupant) &&
+               !occupant.HasAttackedThisTurn &&
                !HasUsedChargeThisTurn(occupant) &&
                GetEffectiveAttackRange(occupant) > 0 &&
                GetAttackDamage(occupant) > 0 &&
                CanUseNormalAttackWithCurrentAmmo(occupant);
+    }
+
+    private bool CanUseGuard(BattleOccupantInfo occupant)
+    {
+        return IsCurrentTurnPiece(occupant) &&
+               occupant.Category == CategoryUnit &&
+               occupant.TroopType != TroopWorker &&
+               occupant.Energy >= NormalAttackEnergyCost;
     }
 
     private bool CanUseChargeCommand(BattleOccupantInfo occupant)
@@ -8755,6 +9111,7 @@ public partial class BattleSceneController : Node2D
         _duelTargetGrids.Clear();
         HideCommandMenu();
         RefreshHiddenUnitVisibility();
+        MarkUnitActed(hiddenUnit);
         RefreshInfoPanel();
         RefreshHighlights();
         RefreshBattleLogPanel();
@@ -8813,6 +9170,7 @@ public partial class BattleSceneController : Node2D
         _movableGrids.Clear();
         _attackableGrids.Clear();
         HideCommandMenu();
+        MarkUnitActed(attackingUnit);
         RefreshInfoPanel();
         RefreshHighlights();
     }
@@ -9027,6 +9385,7 @@ public partial class BattleSceneController : Node2D
 
         var effectDelaySeconds = PlayStrategyActionEffects(_selectedUnitGrid.Value, targetGrid, actingUnit, attackDirection);
         AppendBattleLog(_selectedUnit, "Strategy", $"{FormatLogUnit(_selectedUnit)} ignites fire at {targetGrid}{FormatWeaponAmmoLog(_selectedUnit)}");
+        MarkUnitActed(_selectedUnit);
         if (shouldTemporarilyRevealOccludedUnits)
         {
             RefreshOccludedUnitSilhouettesAfterDelay(effectDelaySeconds);
@@ -9132,6 +9491,7 @@ public partial class BattleSceneController : Node2D
         }
 
         _strategyUsedByMarkerThisTurn.Add(_selectedUnit.Marker);
+        MarkUnitActed(_selectedUnit);
         _commandMode = BattleCommandMode.None;
         _selectedStrategyAction = BattleStrategyAction.None;
         _movableGrids.Clear();
@@ -10085,6 +10445,10 @@ public partial class BattleSceneController : Node2D
         }
 
         ToggleGateGroup(GetConnectedGateGroup(gateGrid));
+        if (_selectedUnit != null)
+        {
+            MarkUnitActed(_selectedUnit);
+        }
 
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();
@@ -10437,7 +10801,13 @@ public partial class BattleSceneController : Node2D
                     BattleFormat("ui.battle.menu_officer", "Officer: {0}", officerText) + "\n" +
                     BattleFormat("ui.battle.menu_type", "Type: {0}", FormatTroopType(_selectedUnit.TroopType)) + "\n" +
                     BattleFormat("ui.battle.menu_status", "Status: {0}", FormatBattleStatus(_selectedUnit)) + "\n" +
-                    BattleFormat("ui.battle.menu_command", "Command: {0}", canCommandSelectedUnit ? BattleText("ui.battle.ready", "Ready") : BattleFormat("ui.battle.not_acting_side", "Not Acting Side ({0})", FormatTeamName(GetCurrentTurnSideName()))) + "\n" +
+                    BattleFormat("ui.battle.menu_command", "Command: {0}", _selectedUnit.HasAttackedThisTurn
+                        ? BattleText("ui.battle.already_used_this_turn", "Already used this turn")
+                        : canCommandSelectedUnit
+                            ? BattleText("ui.battle.ready", "Ready")
+                            : BattleFormat("ui.battle.not_acting_side", "Not Acting Side ({0})", FormatTeamName(GetCurrentTurnSideName()))) + "\n" +
+                    BattleFormat("ui.battle.menu_energy", "Energy: {0}/{1}", _selectedUnit.Energy, DefaultUnitEnergy) + "\n" +
+                    BattleFormat("ui.battle.menu_move_range", "Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, _selectedUnit.MoveRange) + "\n" +
                     BattleFormat("ui.battle.menu_morale", "Morale: {0}", FormatMorale(_selectedUnit)) + "\n" +
                     BattleFormat("ui.battle.menu_ammo", "Ammo: {0}", FormatWeaponAmmo(_selectedUnit)) + "\n" +
                     strengthText;
@@ -10562,14 +10932,15 @@ public partial class BattleSceneController : Node2D
             var hasAttackTarget = canCommandSelectedUnit &&
                                   _selectedUnit != null &&
                                   _selectedUnitGrid.HasValue &&
+                                  _selectedUnit.Energy >= NormalAttackEnergyCost &&
                                   CanUseAttackCommand(_selectedUnit) &&
                                   CalculateAttackableGrids(_selectedUnitGrid.Value, _selectedUnit).Any();
             _attackButton.Visible = hasAttackTarget;
             _attackButton.Text = _selectedUnit != null && CanUseAmmoDepletedWeakAttack(_selectedUnit)
-                ? BattleText("ui.battle.attack_weak_close", "Attack (Weak Close, Ammo 0)")
+                ? BattleFormat("ui.battle.attack_weak_close_energy", "Attack (Weak Close, Ammo 0, Energy {0})", NormalAttackEnergyCost)
                 : _selectedUnit?.MaxWeaponAmmo.HasValue == true
-                ? BattleFormat("ui.battle.attack_ammo", "Attack (Ammo {0})", FormatWeaponAmmo(_selectedUnit))
-                : BattleText("ui.battle.attack", "Attack");
+                ? BattleFormat("ui.battle.attack_ammo_energy", "Attack (Ammo {0}, Energy {1})", FormatWeaponAmmo(_selectedUnit), NormalAttackEnergyCost)
+                : BattleFormat("ui.battle.attack_energy", "Attack (Energy {0})", NormalAttackEnergyCost);
             _attackButton.Disabled = !hasAttackTarget;
         }
 
@@ -10596,7 +10967,12 @@ public partial class BattleSceneController : Node2D
             if (canCommandSelectedUnit && TryGetBestUnionAttackCandidate(out var unionAttackCandidate))
             {
                 _unionAttackButton.Visible = true;
-                _unionAttackButton.Text = BattleFormat("ui.battle.union_attack_count", "Union Attack ({0})", unionAttackCandidate.Participants.Count);
+                _unionAttackButton.Text = BattleFormat(
+                    "ui.battle.union_attack_cost",
+                    "Union Attack ({0}: Lead {1}, Support {2})",
+                    unionAttackCandidate.Participants.Count,
+                    NormalAttackEnergyCost,
+                    UnionAttackSupportEnergyCost);
                 _unionAttackButton.Disabled = false;
             }
             else
@@ -10605,6 +10981,14 @@ public partial class BattleSceneController : Node2D
                 _unionAttackButton.Disabled = false;
                 _unionAttackButton.Text = BattleText("ui.battle.union_attack", "Union Attack");
             }
+        }
+
+        if (_guardButton != null)
+        {
+            var canGuard = canCommandSelectedUnit && _selectedUnit != null && CanUseGuard(_selectedUnit);
+            _guardButton.Visible = canGuard;
+            _guardButton.Disabled = !canGuard;
+            _guardButton.Text = BattleFormat("ui.battle.guard_cost", "Guard ({0} Energy)", NormalAttackEnergyCost);
         }
 
         if (_chargeButton != null)
@@ -10658,10 +11042,10 @@ public partial class BattleSceneController : Node2D
                                 _selectedUnitGrid.HasValue &&
                                 IsBattlePiece(_selectedUnit) &&
                                 !HasUsedChargeThisTurn(_selectedUnit) &&
-                                CalculateReachableGrids(_selectedUnitGrid.Value, GetEffectiveMoveRange(_selectedUnit)).Any();
+                                CalculateReachableGrids(_selectedUnitGrid.Value, GetAvailableMoveEnergy(_selectedUnit), GetAvailableMoveRange(_selectedUnit)).Any();
             _moveButton.Visible = hasMoveTarget;
             _moveButton.Disabled = !hasMoveTarget;
-            _moveButton.Text = BattleText("ui.battle.move", "Move");
+            _moveButton.Text = BattleText("ui.battle.move_energy", "Move (Energy by path)");
         }
 
         UpdateCommandScrollLayout();
@@ -10694,6 +11078,7 @@ public partial class BattleSceneController : Node2D
             _moveButton,
             _attackButton,
             _unionAttackButton,
+            _guardButton,
             _chargeButton,
             _duelButton,
             _retreatButton,
@@ -10968,10 +11353,424 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
+    private bool IsFieldBattleAiTest => ScenarioType == BattleScenarioType.FieldBattle;
+
+    private void ConfigureFieldAiTestControls()
+    {
+        var isFieldBattle = IsFieldBattleAiTest;
+        var isAiSide = IsCurrentTurnAiControlled();
+        var allActed = HaveAllActingBattlePiecesActed();
+
+        if (_enableAiButton != null)
+        {
+            _enableAiButton.Visible = isFieldBattle;
+            _enableAiButton.Disabled = !isFieldBattle || _isFieldAiRoundStarted || isAiSide;
+        }
+
+        if (_disableAiButton != null)
+        {
+            _disableAiButton.Visible = isFieldBattle;
+            _disableAiButton.Disabled = !isFieldBattle || _isFieldAiRoundStarted || !isAiSide;
+        }
+
+        if (_startRoundButton != null)
+        {
+            _startRoundButton.Visible = isFieldBattle;
+            _startRoundButton.Disabled = !isFieldBattle || _isBattleFinished || _isFieldAiRoundStarted;
+        }
+
+        if (_nextAiButton != null)
+        {
+            _nextAiButton.Visible = isFieldBattle;
+            _nextAiButton.Disabled = !isFieldBattle || !_isFieldAiRoundStarted || !isAiSide || allActed || _isBattleFinished;
+        }
+
+        if (_endTurnButton != null && isFieldBattle)
+        {
+            _endTurnButton.Disabled = !_isFieldAiRoundStarted || _isBattleFinished;
+        }
+
+        if (_aiRoundStatusLabel == null)
+        {
+            return;
+        }
+
+        if (!isFieldBattle)
+        {
+            _aiRoundStatusLabel.Visible = false;
+        }
+        else if (!_isFieldAiRoundStarted)
+        {
+            _aiRoundStatusLabel.Visible = true;
+            _aiRoundStatusLabel.Text = "測試回合未開始：請按 Start Round";
+        }
+        else if (allActed)
+        {
+            _aiRoundStatusLabel.Visible = true;
+            _aiRoundStatusLabel.Text = "本方全軍已行動：請按 End Turn";
+        }
+        else if (isAiSide)
+        {
+            _aiRoundStatusLabel.Visible = true;
+            _aiRoundStatusLabel.Text = "AI 等待檢閱：請按 Next，或直接按 End Turn";
+        }
+        else
+        {
+            _aiRoundStatusLabel.Visible = true;
+            _aiRoundStatusLabel.Text = "玩家回合：可操作戰隊，或直接按 End Turn";
+        }
+    }
+
+    private void OnEnableAiButtonPressed()
+    {
+        if (!IsFieldBattleAiTest || _isFieldAiRoundStarted)
+        {
+            return;
+        }
+
+        _aiControlledSides |= GetCurrentAiSideFlag();
+        AppendBattleLog(GetCurrentTurnSideName(), "AI", "AI control enabled for this side.");
+        ConfigureHud();
+        RefreshBattleLogPanel();
+    }
+
+    private void OnDisableAiButtonPressed()
+    {
+        if (!IsFieldBattleAiTest || _isFieldAiRoundStarted)
+        {
+            return;
+        }
+
+        _aiControlledSides &= ~GetCurrentAiSideFlag();
+        AppendBattleLog(GetCurrentTurnSideName(), "AI", "AI control disabled for this side.");
+        ConfigureHud();
+        RefreshBattleLogPanel();
+    }
+
+    private void OnStartRoundButtonPressed()
+    {
+        if (!IsFieldBattleAiTest || _isFieldAiRoundStarted || _isBattleFinished)
+        {
+            return;
+        }
+
+        _actedByMarkerThisRound.Clear();
+        _strategyUsedByMarkerThisTurn.Clear();
+        _supplyUsedByMarkerThisTurn.Clear();
+        _chargeUsedByMarkerThisTurn.Clear();
+        _isFieldAiRoundStarted = true;
+        AppendBattleLog(GetCurrentTurnSideName(), "Round", $"Round started. Controller: {(IsCurrentTurnAiControlled() ? "AI (step review)" : "Player")}.");
+        ConfigureHud();
+        RefreshBattleLogPanel();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private void OnNextAiButtonPressed()
+    {
+        if (!IsFieldBattleAiTest || !_isFieldAiRoundStarted || !IsCurrentTurnAiControlled() || _isBattleFinished)
+        {
+            return;
+        }
+
+        ExecuteOneAiAction();
+        if (HaveAllActingBattlePiecesActed())
+        {
+            AppendBattleLog(GetCurrentTurnSideName(), "AI", "All AI battle teams have acted. Player: click End Turn.");
+        }
+
+        ConfigureHud();
+        RefreshBattleLogPanel();
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private void ExecuteOneAiAction()
+    {
+        var candidates = GetActingBattlePieces()
+            .Where(entry => !HasUnitActed(entry.Occupant))
+            .OrderBy(entry => entry.Occupant.TroopType)
+            .ThenBy(entry => entry.Grid.Y)
+            .ThenBy(entry => entry.Grid.X)
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var candidate in candidates.Where(candidate => candidate.Occupant.TroopType == TroopSupplyCart))
+        {
+            if (TryExecuteAiSupply(candidate.Grid, candidate.Occupant))
+            {
+                return;
+            }
+        }
+
+        foreach (var candidate in candidates)
+        {
+            if (TryExecuteAiAttack(candidate.Grid, candidate.Occupant))
+            {
+                return;
+            }
+        }
+
+        foreach (var movingCandidate in candidates)
+        {
+            if (TryExecuteAiMove(movingCandidate.Grid, movingCandidate.Occupant))
+            {
+                return;
+            }
+        }
+
+        var waitingCandidate = candidates[0];
+        FocusCameraOnBattleGrid(waitingCandidate.Grid);
+        AppendBattleLog(waitingCandidate.Occupant, "AI", $"Decision: wait at {waitingCandidate.Grid}; no legal move or attack.");
+        MarkUnitActed(waitingCandidate.Occupant);
+    }
+
+    private bool TryExecuteAiSupply(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart)
+    {
+        if (supplyCart.TroopType != TroopSupplyCart)
+        {
+            return false;
+        }
+
+        var recoveryCount = GetWoundedRecoveryTargets(sourceGrid, supplyCart).Count();
+        var moraleCount = GetSupplyMoraleTargets(sourceGrid, supplyCart)
+            .Count(target => target.Occupant.Morale.GetValueOrDefault() < DefaultUnitMorale);
+        var repairCount = GetSupplyRepairTargets(sourceGrid, supplyCart).Count();
+        if (recoveryCount == 0 && moraleCount == 0 && repairCount == 0)
+        {
+            return false;
+        }
+
+        _selectedUnit = supplyCart;
+        _selectedUnitGrid = sourceGrid;
+        FocusCameraOnBattleGrid(sourceGrid);
+        AppendBattleLog(
+            supplyCart,
+            "AI",
+            $"Decision: supply own team (wounded {recoveryCount}, morale {moraleCount}, repair {repairCount}).");
+        OnSupplyButtonPressed();
+        return HasUnitActed(supplyCart);
+    }
+
+    private bool TryExecuteAiAttack(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        var targetGrid = CalculateAttackableGrids(sourceGrid, unit)
+            .Where(grid => _occupantsByGrid.TryGetValue(grid, out var occupants) && GetAttackTargetForAttack(occupants, unit.TeamName, grid) != null)
+            .OrderBy(grid => GetAttackTargetPriority(grid, unit.TeamName))
+            .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
+            .FirstOrDefault();
+        if (targetGrid == default)
+        {
+            return false;
+        }
+
+        _selectedUnit = unit;
+        _selectedUnitGrid = sourceGrid;
+        FocusCameraOnBattleGrid(sourceGrid);
+        _selectedGrid = targetGrid.Grid;
+        _selectedGridKey = targetGrid;
+        _attackableGrids.Clear();
+        _attackableGrids.Add(targetGrid);
+        AppendBattleLog(unit, "AI", $"Decision: attack {targetGrid}; enemy is already within the shared attack range.");
+        return TryAttackSelectedTarget();
+    }
+
+    private bool TryExecuteAiMove(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        if (unit.TroopType == TroopSupplyCart)
+        {
+            return TryExecuteAiSupplyMove(sourceGrid, unit);
+        }
+
+        var enemyGrids = GetAllBattlePieces()
+            .Where(entry => IsAttackerPiece(entry.Occupant) != IsAttackerPiece(unit))
+            .Select(entry => entry.Grid)
+            .ToList();
+        if (enemyGrids.Count == 0)
+        {
+            return false;
+        }
+
+        _selectedUnit = unit;
+        _selectedUnitGrid = sourceGrid;
+        FocusCameraOnBattleGrid(sourceGrid);
+        var destination = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
+            .OrderBy(grid => enemyGrids.Min(enemy => GetManhattanDistance(grid.Grid, enemy.Grid)))
+            .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
+            .FirstOrDefault();
+        if (destination == default)
+        {
+            return false;
+        }
+
+        _selectedGrid = destination.Grid;
+        _selectedGridKey = destination;
+        _movableGrids.Clear();
+        _movableGrids.Add(destination);
+        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination}; shortest legal approach to an enemy.");
+        return TryMoveSelectedUnit();
+    }
+
+    private bool TryExecuteAiSupplyMove(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart)
+    {
+        var supportGrids = GetAllBattlePieces()
+            .Where(entry => entry.Occupant.TeamName == supplyCart.TeamName && NeedsAiSupplySupport(entry.Occupant, supplyCart))
+            .Select(entry => entry.Grid)
+            .ToList();
+        if (supportGrids.Count == 0)
+        {
+            return false;
+        }
+
+        _selectedUnit = supplyCart;
+        _selectedUnitGrid = sourceGrid;
+        var destination = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(supplyCart), GetAvailableMoveRange(supplyCart))
+            .OrderBy(grid => supportGrids.Min(target => GetManhattanDistance(grid.Grid, target.Grid)))
+            .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
+            .FirstOrDefault();
+        if (destination == default)
+        {
+            return false;
+        }
+
+        FocusCameraOnBattleGrid(sourceGrid);
+        _selectedGrid = destination.Grid;
+        _selectedGridKey = destination;
+        _movableGrids.Clear();
+        _movableGrids.Add(destination);
+        AppendBattleLog(supplyCart, "AI", $"Decision: move {sourceGrid} -> {destination}; approach own battle team needing supply.");
+        return TryMoveSelectedUnit();
+    }
+
+    private static bool NeedsAiSupplySupport(BattleOccupantInfo candidate, BattleOccupantInfo supplyCart)
+    {
+        if (candidate.Marker == supplyCart.Marker)
+        {
+            return candidate.Category == CategorySiegeEngine && candidate.HitPoints < candidate.MaxHitPoints;
+        }
+
+        return candidate.WoundedTroops > 0 ||
+               candidate.Morale.HasValue && candidate.Morale.Value < DefaultUnitMorale ||
+               candidate.Category == CategorySiegeEngine && candidate.HitPoints < candidate.MaxHitPoints;
+    }
+
+    private int GetAttackTargetPriority(BattleGridKey targetGrid, string attackerTeamName)
+    {
+        if (!_occupantsByGrid.TryGetValue(targetGrid, out var occupants))
+        {
+            return int.MaxValue;
+        }
+
+        var target = GetAttackTargetForAttack(occupants, attackerTeamName, targetGrid);
+        return target == null ? int.MaxValue : target.Category == CategorySiegeEngine ? target.HitPoints : target.TroopCount;
+    }
+
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetAllBattlePieces()
+    {
+        foreach (var (grid, occupants) in _occupantsByGrid)
+        {
+            foreach (var occupant in occupants)
+            {
+                if (IsBattlePiece(occupant))
+                {
+                    yield return (grid, occupant);
+                }
+            }
+        }
+    }
+
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetActingBattlePieces()
+    {
+        return GetAllBattlePieces().Where(entry => entry.Occupant.TeamName == GetCurrentTurnSideName());
+    }
+
+    private bool HaveAllActingBattlePiecesActed()
+    {
+        return GetActingBattlePieces().All(entry => HasUnitActed(entry.Occupant));
+    }
+
+    private bool HasUnitActed(BattleOccupantInfo unit)
+    {
+        return unit.Marker != null && _actedByMarkerThisRound.Contains(unit.Marker);
+    }
+
+    private void MarkUnitActed(BattleOccupantInfo unit)
+    {
+        if (unit.Marker != null)
+        {
+            _actedByMarkerThisRound.Add(unit.Marker);
+        }
+    }
+
+    private void MarkUnitActedForAiOnly(BattleOccupantInfo unit)
+    {
+        if (IsFieldBattleAiTest && IsCurrentTurnAiControlled())
+        {
+            MarkUnitActed(unit);
+        }
+    }
+
+    private void RestoreTeamUnitEnergy(string teamName)
+    {
+        foreach (var occupants in _occupantsByGrid.Values)
+        {
+            for (var index = 0; index < occupants.Count; index++)
+            {
+                var occupant = occupants[index];
+                if (!IsBattlePiece(occupant) || occupant.TeamName != teamName)
+                {
+                    continue;
+                }
+
+                occupants[index] = occupant with
+                {
+                    Energy = DefaultUnitEnergy,
+                    HasAttackedThisTurn = false,
+                    RemainingMoveRange = GetEffectiveMoveRange(occupant),
+                    IsGuarding = false,
+                    GuardCounterAvailable = false,
+                    GuardDamageReductionCount = 0
+                };
+            }
+        }
+    }
+
+    private BattleAiControlledSides GetCurrentAiSideFlag()
+    {
+        return _currentTurnSide == BattleTurnSide.TeamA
+            ? BattleAiControlledSides.Attacker
+            : BattleAiControlledSides.Defender;
+    }
+
+    private bool IsCurrentTurnAiControlled()
+    {
+        return (_aiControlledSides & GetCurrentAiSideFlag()) != 0;
+    }
+
+    private void FocusCameraOnBattleGrid(BattleGridKey grid)
+    {
+        if (_camera == null || _mapRoot == null)
+        {
+            return;
+        }
+
+        _mapRoot.Position = GetClampedMapPosition(_camera.GlobalPosition - GetMarkerPosition(grid));
+    }
+
     private void OnEndTurnButtonPressed()
     {
         if (_isBattleFinished)
         {
+            return;
+        }
+
+        if (IsFieldBattleAiTest && !_isFieldAiRoundStarted)
+        {
+            AppendBattleLog(GetCurrentTurnSideName(), "Round", "Start Round before ending this field-battle test round.");
+            RefreshBattleLogPanel();
             return;
         }
 
@@ -10988,6 +11787,8 @@ public partial class BattleSceneController : Node2D
         _strategyUsedByMarkerThisTurn.Clear();
         _supplyUsedByMarkerThisTurn.Clear();
         _chargeUsedByMarkerThisTurn.Clear();
+        _actedByMarkerThisRound.Clear();
+        _isFieldAiRoundStarted = false;
 
         if (_currentTurnSide == BattleTurnSide.TeamA)
         {
@@ -11001,6 +11802,7 @@ public partial class BattleSceneController : Node2D
         }
 
         var actingSideName = GetCurrentTurnSideName();
+        RestoreTeamUnitEnergy(actingSideName);
         ResolveBattleStatusAtTurnStart(actingSideName);
         AppendBattleLog(actingSideName, "Turn", $"Acting side: {actingSideName}");
         ConfigureHud();
@@ -11076,7 +11878,9 @@ public partial class BattleSceneController : Node2D
 
     private bool IsCurrentTurnPiece(BattleOccupantInfo occupant)
     {
-        return occupant.TeamName == GetCurrentTurnSideName();
+        return occupant.TeamName == GetCurrentTurnSideName() &&
+               !occupant.HasAttackedThisTurn &&
+               (!IsFieldBattleAiTest || (_isFieldAiRoundStarted && !HasUnitActed(occupant)));
     }
 
     private bool CanTraverseBlockedCell(BattleGridKey grid, BattleCellData cell, bool usesLadderBridge = false)
@@ -11446,7 +12250,13 @@ public partial class BattleSceneController : Node2D
         int MoveRange,
         int AttackRange,
         BattlePieceMarker? Marker,
-        BattleSpriteDirection FacingDirection);
+        BattleSpriteDirection FacingDirection,
+        int Energy,
+        bool HasAttackedThisTurn,
+        int RemainingMoveRange,
+        bool IsGuarding,
+        bool GuardCounterAvailable,
+        int GuardDamageReductionCount);
     private readonly record struct WallTopAttackAmmo(int DropStoneUses, int PourOilUses);
     private readonly record struct BattleFireState(int RemainingTurns, int BurnTurns);
     private sealed class BattleSaveData
@@ -11672,6 +12482,12 @@ public partial class BattleSceneController : Node2D
         public int? MaxWeaponAmmo { get; set; }
         public int MoveRange { get; set; }
         public int AttackRange { get; set; }
+        public int? Energy { get; set; }
+        public bool HasAttackedThisTurn { get; set; }
+        public int? RemainingMoveRange { get; set; }
+        public bool IsGuarding { get; set; }
+        public bool GuardCounterAvailable { get; set; }
+        public int GuardDamageReductionCount { get; set; }
         public BattleSpriteDirection FacingDirection { get; set; }
 
         public static BattleOccupantSaveData FromOccupant(BattleGridKey grid, BattleOccupantInfo occupant)
@@ -11698,6 +12514,12 @@ public partial class BattleSceneController : Node2D
                 MaxWeaponAmmo = occupant.MaxWeaponAmmo,
                 MoveRange = occupant.MoveRange,
                 AttackRange = occupant.AttackRange,
+                Energy = occupant.Energy,
+                HasAttackedThisTurn = occupant.HasAttackedThisTurn,
+                RemainingMoveRange = occupant.RemainingMoveRange,
+                IsGuarding = occupant.IsGuarding,
+                GuardCounterAvailable = occupant.GuardCounterAvailable,
+                GuardDamageReductionCount = occupant.GuardDamageReductionCount,
                 FacingDirection = occupant.FacingDirection
             };
             saveData.UnitId = BuildUnitId(saveData);
@@ -11726,7 +12548,13 @@ public partial class BattleSceneController : Node2D
                 MoveRange,
                 AttackRange,
                 marker,
-                FacingDirection);
+                FacingDirection,
+                Energy ?? DefaultUnitEnergy,
+                HasAttackedThisTurn,
+                RemainingMoveRange ?? MoveRange,
+                IsGuarding,
+                GuardCounterAvailable,
+                GuardDamageReductionCount);
         }
 
         private static string BuildUnitId(BattleOccupantSaveData saveData)

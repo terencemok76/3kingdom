@@ -21,5 +21,6 @@ UnitSpawnGrids = Dictionary[String, Vector2i]({
 "DefenderA": Vector2i(10, 5),
 "DefenderB": Vector2i(14, 5),
 "DefenderC": Vector2i(12, 7),
+"DefenderSupplyCart": Vector2i(18, 5),
 "Worker": Vector2i(16, 5)
 })

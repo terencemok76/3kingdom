@@ -11,5 +11,6 @@ WindDirection = 2
 WindPower = 1
 TimeOfDay = 1
 UnitSpawnGrids = Dictionary[String, Vector2i]({
-"Catapult": Vector2i(14, 17)
+"Catapult": Vector2i(14, 17),
+"DefenderSupplyCart": Vector2i(18, 4)
 })
