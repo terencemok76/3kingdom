@@ -105,9 +105,18 @@ const scenarios = [
             [[5, 10, 9, 14], [14, 10, 18, 14], [3, 19, 7, 22], [10, 19, 13, 22], [16, 19, 20, 22]].forEach(([x1, y1, x2, y2]) => {
                 for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 7, (x + y) % 4);
             });
+            // The farmstead screen is the northern second line, not a frontline capture point.
+            // Defenders begin inside these two fortresses; an attacker who breaks the crops must
+            // still split across the wings instead of winning at the first contact line.
+            [[10, 4], [14, 5]].forEach(([x, y], i) => add(objects, x, y, 12, i));
+            [[9, 5], [15, 5]].forEach(([x, y], i) => add(objects, x, y, 1, i));
             [[2, 3], [22, 3]].forEach(([x, y], i) => add(objects, x, y, 4, i));
-            [[3, 18], [9, 19], [14, 19], [21, 20]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i));
-            [[1, 5], [23, 5]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i));
+            // Visual-only farming props make the crop lanes and southern assembly area legible at overview scale.
+            [[4, 10], [10, 11], [13, 13], [19, 12], [3, 18], [8, 18], [14, 18], [21, 18], [9, 19], [14, 19], [21, 20]]
+                .forEach(([x, y], i) => add(farmObjects, x, y, 10, i % 8));
+            // Sparse creek-bank props indicate the dry low ground without turning the open wings into forest.
+            [[2, 7], [7, 7], [17, 7], [22, 7], [3, 10], [11, 10], [20, 10], [1, 5], [23, 5]]
+                .forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i % 8));
         }
     },
     {
