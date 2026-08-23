@@ -157,24 +157,49 @@ const scenarios = [
             // uses Flip H, while the right/eastern pair keeps bridge_01's original art direction.
             [[7, 17], [8, 17]].forEach(([x, y]) => { setGround(x, y, groundTile.river); add(objects, x, y, 8, 0x10000, 0x1000); });
             [[17, 10], [17, 11]].forEach(([x, y]) => { setGround(x, y, groundTile.river); add(objects, x, y, 8, 0x10000); });
+            // The south-west shallow crossing is deliberately wider and slower than either bridge.
+            // It gives a flanking force a costly alternative without turning the water network into open ground.
+            area(6, 21, 9, 22, groundTile.shallow);
             area(1, 12, 5, 21, groundTile.mud); area(10, 3, 15, 7, groundTile.mud); area(19, 13, 23, 22, groundTile.wet);
-            [[2, 10], [5, 14], [10, 10], [15, 10], [20, 11], [8, 6]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i));
+            // The north-bank granary hamlet is a defensible support point, not a bridgehead objective.
+            [[13, 8], [15, 8]].forEach(([x, y], i) => add(objects, x, y, 1, i));
+            // Both forts sit behind the waterways, covering separate dike exits and leaving defenders room to regroup.
+            [[16, 3], [20, 6]].forEach(([x, y], i) => add(objects, x, y, 12, i));
+            // Boats, stakes and banks make both waterways readable at overview scale, but remain visual-only.
+            // Every river prop is anchored to a deep-water cell, never a bridge or the slow shallow crossing.
+            [[2, 10], [5, 10], [10, 10], [12, 10], [15, 10], [20, 11], [22, 10], [8, 2], [7, 6], [8, 8], [7, 14], [8, 16], [8, 20]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i % 8));
+            // Farm tools and hedgerow props visually tie the granary hamlet to its dike approach.
+            [[11, 8], [12, 8], [14, 8], [16, 8], [18, 7], [19, 8]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i % 8));
             [[19, 19, 22, 22]].forEach(([x1, y1, x2, y2]) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 7, (x + y) % 4); });
-            [[2, 16], [4, 20], [20, 5], [22, 16]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i));
+            [[2, 8], [5, 8], [10, 8], [18, 8], [22, 8], [3, 12], [6, 12], [20, 12], [23, 12], [2, 16], [4, 20], [20, 5], [22, 16]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i % 8));
         }
     },
     {
         key: 'jianye', name: 'Jianye', displayName: 'Field Battle (Jianye)', weather: 1, time: 2,
-        paint: ({ line, area, add, objectLine, objects, riverObjects, farmObjects, forestEdgeObjects }) => {
-            // Jianye has no crossing: the Yangtze blocks one edge while Jiangdong hills form the other.
+        paint: ({ line, area, add, objects, riverObjects, farmObjects, forestEdgeObjects }) => {
+            // Jianye is the Stone City--Zhongshan line: the Yangtze blocks one side while a continuous
+            // eastern mountain wall compresses movement into the central plain and its slow foothill route.
             line(0, 0, 0, 24, groundTile.river); line(1, 0, 1, 24, groundTile.river);
-            line(8, 3, 8, 22, groundTile.officialRoad); line(8, 17, 19, 17, groundTile.wornRoad);
-            objectLine(18, 0, 24, 6, 5); objectLine(20, 8, 24, 18, 5); objectLine(16, 22, 24, 24, 5);
-            [[15, 3], [18, 5], [20, 8], [18, 11], [21, 14], [17, 18], [22, 20]].forEach(([x, y], i) => add(objects, x, y, 2, i));
-            [[13, 5], [16, 7], [15, 12], [18, 16], [13, 20]].forEach(([x, y], i) => add(objects, x, y, 4, i));
+            line(8, 3, 8, 22, groundTile.officialRoad); line(8, 17, 19, 17, groundTile.wornRoad); line(3, 7, 8, 7, groundTile.wornRoad);
+            area(2, 10, 4, 15, groundTile.wet); area(2, 16, 3, 17, groundTile.mud);
+            [[18, 0, 24, 1], [20, 2, 24, 5], [22, 6, 24, 12], [22, 13, 24, 18], [18, 22, 24, 24]].forEach(([x1, y1, x2, y2], rangeIndex) => {
+                for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 5, (x + y + rangeIndex) % 8);
+            });
+            // Two denser forest clumps make the northern and southern Zhongshan foothills a real slow flank,
+            // while leaving the central official road open for a fast, intelligible main attack.
+            [[14, 2], [15, 2], [15, 3], [16, 2], [16, 3], [16, 4], [17, 2], [17, 3], [17, 4], [18, 6], [19, 7], [19, 8], [20, 9], [20, 10], [20, 11], [21, 12], [21, 13], [16, 14], [17, 14], [18, 15], [18, 16], [20, 14], [20, 15], [19, 16], [18, 17], [17, 19], [18, 20], [19, 21]].forEach(([x, y], i) => add(objects, x, y, 2, i % 8));
+            // Small hills step down from Zhongshan toward the plain, forming a usable but slower transition zone.
+            [[14, 4], [15, 6], [15, 10], [14, 11], [15, 12], [16, 12], [17, 13], [15, 14], [16, 16], [15, 18]].forEach(([x, y], i) => add(objects, x, y, 4, i));
+            // Stone City guards the Jiang bank road; Zhongshan's relay fort is the inland fallback.
+            [[4, 5], [16, 7]].forEach(([x, y], i) => add(objects, x, y, 12, i));
+            [[3, 6], [5, 6], [13, 8], [15, 8]].forEach(([x, y], i) => add(objects, x, y, 1, i % 3));
             [[4, 19, 7, 22], [10, 19, 13, 22]].forEach(([x1, y1, x2, y2]) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) add(objects, x, y, 7, (x + y) % 4); });
-            [[0, 5], [0, 12], [1, 19]].forEach(([x, y], i) => add(riverObjects, x, y, 9, i));
-            [[16, 4], [20, 9], [21, 15]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i));
+            // A denser, deliberately uneven river procession makes the Yangtze read as navigable water and Stone City as a rocky shore.
+            [[0, 1, 0], [1, 3, 1], [0, 5, 0x20001], [1, 7, 0x20000], [0, 9, 4], [1, 11, 3], [0, 13, 0x20001], [1, 15, 5], [0, 17, 6], [1, 19, 7], [0, 21, 0x20000], [1, 23, 1]].forEach(([x, y, tile]) => add(riverObjects, x, y, 9, tile));
+            // Southern assembly farms are visually busy but do not spill into the central official road.
+            [[4, 18], [6, 18], [5, 19], [7, 20], [10, 18], [12, 18], [11, 19], [13, 21], [14, 19], [18, 19]].forEach(([x, y], i) => add(farmObjects, x, y, 10, i % 8));
+            // Low shoreline growth, Stone City scrub and Zhongshan's wooded foot all remain visual-only.
+            [[2, 5], [6, 5], [3, 7], [5, 7], [2, 9], [4, 9], [2, 11], [4, 12], [3, 14], [3, 15], [5, 16], [4, 17], [14, 3], [15, 4], [16, 6], [17, 5], [18, 7], [18, 9], [19, 9], [20, 11], [20, 12], [21, 14], [19, 15], [18, 18], [16, 18], [17, 20], [21, 21]].forEach(([x, y], i) => add(forestEdgeObjects, x, y, 11, i % 8));
         }
     },
     {

@@ -39,6 +39,10 @@ public partial class BattleSceneController : Node2D
     private const float MapPaddingTop = 220.0f;
     private const float MapPaddingRight = 220.0f;
     private const float MapPaddingBottom = 320.0f;
+    // Camera2D zoom below 1.0 is closer; above 1.0 shows more of the battlefield.
+    private const float MinimumBattleCameraZoom = 0.75f;
+    private const float MaximumBattleCameraZoom = 1.35f;
+    private const float BattleCameraZoomStep = 0.10f;
     private const float BattleLogMinimumWidth = 240.0f;
     private const float BattleLogMinimumHeight = 150.0f;
     private const float DefaultUnitVisualLift = -16.0f;
@@ -2854,6 +2858,12 @@ public partial class BattleSceneController : Node2D
 
     private void HandleMouseButton(InputEventMouseButton mouseButton)
     {
+        if (mouseButton.Pressed && TryAdjustBattleCameraZoom(mouseButton))
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (_isBattleFinished)
         {
             HideCommandMenu();
@@ -2993,6 +3003,34 @@ public partial class BattleSceneController : Node2D
         }
 
         _isDraggingMap = false;
+    }
+
+    private bool TryAdjustBattleCameraZoom(InputEventMouseButton mouseButton)
+    {
+        if (_camera == null)
+        {
+            return false;
+        }
+
+        var zoomDelta = mouseButton.ButtonIndex switch
+        {
+            MouseButton.WheelUp => -BattleCameraZoomStep,
+            MouseButton.WheelDown => BattleCameraZoomStep,
+            _ => 0.0f
+        };
+        if (Mathf.IsZeroApprox(zoomDelta))
+        {
+            return false;
+        }
+
+        var zoom = Mathf.Clamp(_camera.Zoom.X + zoomDelta, MinimumBattleCameraZoom, MaximumBattleCameraZoom);
+        _camera.Zoom = new Vector2(zoom, zoom);
+        if (_mapRoot != null)
+        {
+            _mapRoot.Position = GetClampedMapPosition(_mapRoot.Position);
+        }
+
+        return true;
     }
 
     private void HandleMouseMotion(InputEventMouseMotion mouseMotion)

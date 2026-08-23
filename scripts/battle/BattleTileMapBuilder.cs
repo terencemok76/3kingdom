@@ -731,7 +731,7 @@ public static class BattleTileMapBuilder
 
     private static void AddObjectRiverDecorationSource(TileSet tileSet, BattleAtlasMetrics metrics)
     {
-        AddObjectAtlasSource(tileSet, metrics, ObjectRiverDecorationAtlasSourceId, ObjectRiverDecorationAtlasPath, "river decoration");
+        AddObjectAtlasSource(tileSet, metrics, ObjectRiverDecorationAtlasSourceId, ObjectRiverDecorationAtlasPath, "river decoration", rows: 3, finalRowTileCount: 2);
     }
 
     private static void AddObjectFarmDecorationSource(TileSet tileSet, BattleAtlasMetrics metrics)
@@ -806,7 +806,8 @@ public static class BattleTileMapBuilder
         int sourceId,
         string atlasPath,
         string atlasName,
-        int rows = 2)
+        int rows = 2,
+        int finalRowTileCount = 4)
     {
         if (!ResourceLoader.Exists(atlasPath))
         {
@@ -828,7 +829,8 @@ public static class BattleTileMapBuilder
         };
         for (var y = 0; y < rows; y++)
         {
-            for (var x = 0; x < 4; x++)
+            var tileCount = y == rows - 1 ? finalRowTileCount : 4;
+            for (var x = 0; x < tileCount; x++)
             {
                 var atlasCoords = new Vector2I(x, y);
                 atlasSource.CreateTile(atlasCoords);
