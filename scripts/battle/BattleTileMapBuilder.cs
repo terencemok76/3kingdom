@@ -145,6 +145,29 @@ public static class BattleTileMapBuilder
         layer.UpdateInternals();
     }
 
+    public static void ConfigureWorkerFenceLayer(TileMapLayer layer, BattleMapData mapData)
+    {
+        AssignLayerTileSet(layer, BattleTileLayerKind.Object);
+        foreach (var coords in layer.GetUsedCells())
+        {
+            layer.EraseCell(coords);
+        }
+
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var cell = mapData.GetCell(x, y);
+                if (cell.Structure == BattleStructureType.WoodenFence)
+                {
+                    layer.SetCell(cell.Grid, AtlasSourceId, new Vector2I((int)BattleObjectTileVisual.WoodenFence, 0), ResolveAlternativeTile(cell, BattleTileLayerKind.Object));
+                }
+            }
+        }
+
+        layer.UpdateInternals();
+    }
+
     public static void AssignLayerTileSet(TileMapLayer layer, BattleTileLayerKind layerKind)
     {
         layer.TileSet = CreateSharedTileSet(layerKind);

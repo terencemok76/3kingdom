@@ -334,6 +334,7 @@
   - Battle piece 在 `Forest` 地形可使用 prototype `Hide`，包含一般 battle team 與 `Ram` / `Ladder` / `Catapult` / `SupplyCart` 等攻城／後勤車；hidden 後己方仍可看見 marker，單位／車體本體使用暗綠半透明 hidden visual，name plate、HP bar、team arrow 與 `HIDE` 狀態 badge 保持正常清楚顯示，但不再額外顯示 hidden 狀態外圈 ring；敵方回合則完全看不到、不能選取，也不能以可見單位目標方式被 Union Attack / Duel / Strategy (Mess) / Hire Officer 指定。若敵方直接攻擊 hidden 單位所在的 `Forest` tile，或該 `Forest` tile 起火造成 fire damage，hidden 單位仍會像一般 battle team 一樣受傷並顯示傷害結果。hidden 單位執行 Move / Attack / Strategy / Duel / Capture Cart / Hire Officer 不會自動解除 hidden；只有移動後離開 `Forest` 才會轉回非 hidden。
   - `Cavalry` 不可將移動目的地設在 `Forest`；可從其他地形繞行，若因既有佈署或存檔已在森林內，仍可正常移出森林。
   - `Cavalry` 可使用 prototype `Charge`：只支援 `L0` 四方向相鄰敵方 battle team，目標格不可是 `Forest`，且目標後方同方向一格必須在地圖內、不是 `Forest`、沒有任何 battle team，並可通行。執行時騎兵先對目標造成 `1,650` charge damage，再穿過目標格落到後方格；即使目標被擊破，騎兵仍會完成穿越。若目標是 `Spearman`，charge damage 降為 `900`，且騎兵會承受 `600` counter damage；反傷不會阻止穿越。使用 `Charge` 後，該騎兵本回合不能再使用 `Move` / `Attack` / `Union Attack`。
+  - 一般 `Attack`、Guard 反擊與 `Union Attack` 已套用固定兵種克制；有利方傷害為基礎傷害的 `125%`：`Infantry → Spearman`、`Spearman → Cavalry`、`Cavalry → Archer / Crossbow`、`Archer / Crossbow → Infantry`。只作用於一般隊伍間的傷害，不作用於攻城器、建築／城門或單挑。`Charge` 對 Spearman 的既有 `900` 傷害與 `600` 反傷為獨立特殊規則，不再額外疊加此 25%。Battle Log 會標記觸發的克制。
   - `Farm` 內的騎兵不可使用 `Charge`，且 Charge 的目標格或穿越後落點也不可是 `Farm`；騎兵仍可正常進出農田與使用一般攻擊。
   - `Hill` 保持每格移動消耗 `2`；站在 Hill 的 `Archer`／`Crossbow` 普通攻擊距離 `+1`。此加成不套用於 `Catapult`、彈藥耗盡的 weak close attack 或 `Strategy (Fire)`；夜晚遠程距離減少仍會先套用。
   - `SupplyCart` 目前使用 `supplycar_idle_ne.png` / `supplycar_idle_sw.png` 專用 idle 動畫素材；`NE/NW` 為 `2x2` 四幀，`SW/SE` 為 `1x3` 三幀。
@@ -359,6 +360,7 @@
   - 面板採用 gameplay floating log 風格，支援拖曳移動、最小化／還原，以及右下角 resize grip 調整大小。
 - Battle UI 已接入 `LocalizationService`，會跟隨 options language 顯示繁中或英文；目前涵蓋 top bar、battle log panel chrome、command menu、unit menu info、Tile Info/Selected Piece 面板，以及地形／建物／天候／時段／風向／指令狀態等可見 UI 文案。Tile Info/Selected Piece 是 debug 用資訊面板，已改為 scrollable text，方便檢查較長的格子與單位狀態。Top bar 只保留 battle-only `Option` 入口；popup 內可執行 battle quick save/load、切換語言、切換 BGM/SFX、調整 BGM/SFX volume，並透過 `OptionSettingsStore` 儲存設定；音訊設定與主遊戲共用同一份 options 存檔。Battle Log 的逐條事件敘述仍保留 prototype 文字，待後續整理成 log locale keys。
 - Command menu 只顯示目前可實際執行的 action；若 Move / Attack / Strategy / Charge / Hide / Capture Cart / Hire Officer / Supply / Worker action 等沒有合法目標或條件不足，就不在 action list 佔位顯示 disabled button。
+- Command menu 開啟時維持在 Battle Log 之上，因此兩個可拖曳面板重疊時，指令按鈕仍可正常點擊；它仍低於 battle option 與 battle finished overlay。
 - 牆頂單位可使用 prototype 專用攻擊：
   - `Drop Stone`：對城牆面向正前方的 `L0` 敵方部隊造成 `1,200` 傷害；`NorthEast` 為 `(x, y+1, L0)`，`NorthWest` 為 `(x+1, y, L0)`。
   - `Pour Oil`：對同一個 facing-driven 目標格的敵方部隊造成 `1,000` 傷害。
@@ -470,6 +472,11 @@
 - `MoveRange` 同時是每個單位在其所屬行動方內累積可走的最大格數，不是每次點選 Move 的獨立上限。移動每跨一格扣除 `1` 點剩餘移動格數；因此步兵的 `4/4` 在先走兩格後會成為 `2/4`，即使行動力仍足夠也不能在同一行動方再走超過兩格。騎兵維持自己的較高 `MoveRange`（目前為 `6`），同樣受行動力與累積移動格數雙重限制。battle quick save/load 亦保存剩餘移動格數。
 - 合擊由發起單位與相鄰、符合攻擊條件的同陣營友軍共同執行。發起單位消耗 `5` 行動力並標記為已攻擊；每名實際加入的友軍消耗 `4` 行動力，但不標記為已攻擊，仍可依其剩餘行動力與移動格數在同一行動方移動或一般攻擊。本階段不設定每回合合擊參與次數上限；合擊按鈕會顯示參與人數、發起成本與每名友軍成本。
 - 一般人類戰鬥單位（不含 Worker）可使用 `Guard`，消耗 `5` 行動力並完成行動。Guard 持續到下一次己方行動階段開始：受到近戰、弓兵或弩兵的一般攻擊時，初始傷害減少率暫定為 `20%`；每次有效攻擊後，下一次減傷率乘以 `0.5`（20%、10%、5%、2.5%…）。只有首次近戰直傷會以一般攻擊力 `40%` 反擊一次；投石、火計與牆頂投放均不減傷且不觸發反擊。每次 Guard 減傷都會在戰鬥紀錄顯示比例與減傷前後數值；單位狀態會顯示下次減傷率與反擊是否已用，quick save/load 會保存該狀態。
-- 補給車的恢復／維修與補充武器均消耗 `5` 行動力並完成行動。AI 會先嘗試原地補給，再將可用的一般攻擊與合擊放入同一批候選行動，以預計傷害、擊破獎勵、目標武將價值及合擊友軍行動力機會成本計分；同分或相近分數以可重現的小幅變異打破固定行為。若可用行動力扣除路徑成本後仍保留 `5`，則會先完成移動動畫，再直接攻擊規劃時保留的目標（不在移動後重選）；Battle Log 會記錄該 score／variance，若攻擊因單位狀態、目標或射程失效而取消，也會記錄明確原因。若選擇純移動，log 會額外列出路徑耗能、移動後剩餘行動力／移動格數，以及沒有可用移動後攻擊方案的原因。否則僅移動至最接近目標的最遠合法位置並完成行動。
+- 補給車的恢復／維修與補充武器均消耗 `5` 行動力並完成行動。AI 會先嘗試原地補給，再將可用的一般攻擊、合擊與可達防禦堡壘放入同一批候選行動，以預計傷害、擊破獎勵、目標武將價值、合擊友軍行動力機會成本及堡壘目標分數計分；同分或相近分數以可重現的小幅變異打破固定行為。堡壘不是固定優先：攻方奪取未佔堡壘、守方回奪失守堡壘／防衛受威脅堡壘的分數均扣除距離，並受該 battle team officer Intelligence 影響；最後一座攻方未佔堡壘另有勝利加分。失守／敵方堡壘上的敵軍也會獲得額外 attack score。若可用行動力扣除路徑成本後仍保留 `5`，則會先完成移動動畫，再直接攻擊規劃時保留的目標（不在移動後重選）；Battle Log 會記錄該 score／variance，若攻擊因單位狀態、目標或射程失效而取消，也會記錄明確原因。若選擇純移動，log 會額外列出路徑耗能、移動後剩餘行動力／移動格數，以及沒有可用移動後攻擊方案的原因。否則僅移動至最接近目標的最遠合法位置並完成行動。
+- 野戰 Worker 會把相鄰河格的新木橋及未完工木橋視為工程候選；AI 模擬單格或連續最多四格河段全數完工後，友軍一般戰隊抵達敵軍或爭奪堡壘的最短路徑。僅在至少縮短 `3` 格、並以施工段數、接近施工岸距離、敵方威脅與 officer Intelligence 計分後勝過其他攻擊／合擊／堡壘候選時，Worker 才會先移往施工岸，跨回合完成施工／修復。開局與工程 Battle Log 會列出橋格、目標、路徑縮短值、score 與 variance。
+- 野戰 Worker 的木柵工程也屬同一 AI score 池：AI 只會在敵軍距離 `5` 格內、附近有己方戰隊支援、且木柵會讓敵軍到己方已佔 Fortress 的最短路徑增加至少 `3` 格時設置；若模擬顯示木柵會令己方通往敵軍的主路徑增加超過 `2` 格或中斷，則不會設置。現有木柵若已造成該己方路徑阻塞，Worker 可拆除。工程 Battle Log 會列出 build/remove、保護目標或重新開路理由、路徑影響、score 與 variance。
+- 設置木柵消耗 `5` 行動力，拆除消耗 `3` 行動力，兩者均完成 Worker 本回合行動；不足行動力時不顯示為可選工作目標。AI 木柵候選 score 會扣除此工程行動力機會成本。
+- Worker 木柵使用獨立 `WorkerFenceLayer`（z=5，且在農田物件之後）覆蓋於 `FarmObjectLayer` 之上；因此農田與其他 visual-only 地物會保留，木柵、其阻擋格與耐久資料也能同時一致可見。
+- 低兵力／HP（最大值 45% 以下）的 AI 一般戰隊另有存活決策：它會將目前可攻擊收益與預估敵方射程威脅比較，並依 officer Intelligence 評估移至 Building／己方 Fortress、接近補給車、Guard／留守或撤退。低於 22% 且威脅高於可立即攻擊收益時，撤退會成為候選；所有存活決策都會在 Battle Log 寫出原因、score 與 Intelligence。每次 AI 回合開始亦寫入開局堡壘／殲敵計畫與低兵力隊伍數。
 - 投石車一般攻擊的動畫順序為：投石車攻擊 → 石彈飛行完成 → 目標受傷與傷害數字 popup；弓兵與弩兵同樣在箭矢命中後才觸發傷害結算、戰鬥紀錄與 Guard 判定。
 - 頂欄會依目前語系顯示戰場名稱、日期與 Field Battle AI 控制鈕；繁中日期格式為 `YYYY 年 MM 月 DD 日`，英文維持 `YYYY Apr D`。

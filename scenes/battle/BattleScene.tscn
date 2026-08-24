@@ -388,6 +388,11 @@ tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
 
 [node name="FarmObjectLayer" type="TileMapLayer" parent="MapRoot"]
+z_index = 4
+tile_set = SubResource("TileSet_qrg6v")
+rendering_quadrant_size = 8
+
+[node name="WorkerFenceLayer" type="TileMapLayer" parent="MapRoot"]
 z_index = 5
 tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
@@ -746,6 +751,7 @@ autowrap_mode = 3
 
 [node name="CommandMenu" type="PanelContainer" parent="UiLayer" unique_id=2044591462]
 visible = false
+z_index = 50
 custom_minimum_size = Vector2(280, 0)
 offset_left = 20.0
 offset_top = 160.0
