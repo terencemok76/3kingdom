@@ -312,7 +312,7 @@
   - 合擊目前限制在同一個 `BattleGridKey.Level`，不跨地面／牆頂層判定，也不包含攻城器。
   - 可參與合擊的兵種為 `Infantry`、`Spearman`、`Cavalry`、`Archer`、`Crossbow`、`Worker`。
   - 第一版傷害規則為主攻者 `100%` 一般攻擊傷害，加上每名支援者 `50%` 一般攻擊傷害；所有參與隊伍會面向目標播放攻擊動畫，目標只播放一次受擊動畫。
-- battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。
+- battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。無論玩家或 AI 觸發撤退，畫面中央皆會顯示「武將名／兵種」及 `Retreat` 的提示框約 2 秒後自動消失。
 - `Unit Command` menu 的 action buttons 超過 `4` 個可見指令時，指令區會限制高度並啟用垂直捲動；title 與 unit info 保持固定顯示。
 - 點選非目前 `Acting Side` 的單位時仍會顯示 unit info menu，但 action buttons 會隱藏，並在資訊中標示 `Command: Not Acting Side`，避免看起來像 command menu 無法彈出。
 - battle team 具有 prototype `Morale` 屬性：
@@ -435,7 +435,7 @@
 - `assets/battle/floor/floor.png` 是共用 floor atlas；第一列依序為 grass、road、courtyard、wall walk、forest、river（Moat）、river2（River）與 swamp；第二列依序為 coast、wet grass、mud、pebble、shallow water、worn road、official road、dry river bed。shallow water 是可涉渡淺灘，可通行但每格移動消耗為 `2`。wet grass 依 Grass 規則、mud 依 Swamp 規則、pebble／worn road／official road／dry river bed 依 Road 規則。乾河床預留給宛、襄陽、涼州等野戰場景；River 不可通行，Swamp 可通行但移動消耗為 2，Coast 是可通行岸地；只有 river（Moat）可套用攻城橋樑規則。橋格使用 `assets/battle/object/object_01.png` 的第四格 bridge tile，繪製於 `ObjectLayer`。
 - `MoatLayer` 會額外套用輕量水流 shader，對 river tile 做緩慢 UV 位移與微弱明暗起伏；此效果僅為場景表現，不改變 `BattleMapData`、橋樑施工/破壞或任何移動／A* 規則。
 - `assets/battle/object/river_object_01.png` 為 `512x384` 的 `4x3` atlas：前兩列保留既有八種船、輕舟、棧橋、木棧台、蘆葦蓮葉、礁石、水面擾動與木筏物件；第三列只登錄新增的兩格：`(0,2)` 為船、`(1,2)` 為礁石。共用 Object TileSet 以 source 9 登錄。野戰場景將其放在獨立的 `RiverObjectLayer`，因此只作河道視覺裝飾，不會改變水域、橋格、移動、A* 或 AI 規則。
-- `assets/battle/object/farm_object_01.png` 提供草垛、稻草人、收穫木車、穀袋、蔬果籃與其他農事擺設；共用 Object TileSet 以 source 10 登錄。野戰場景將其放在獨立的 `FarmObjectLayer`，只作農地視覺裝飾，並避開道路、建築、作物與部署格，不改變地形、移動、A* 或 AI 規則。
+- `assets/battle/object/farm_object_01.png` 提供草垛、稻草人、收穫木車、穀袋、蔬果籃與其他農事擺設；共用 Object TileSet 以 source 10 登錄。野戰場景將其放在獨立的 `FarmObjectLayer`（z=6，高於農田所在的 `ObjectLayer` z=5），只作農地視覺裝飾，並避開道路、建築、作物與部署格，不改變地形、移動、A* 或 AI 規則。
 - `assets/battle/object/forest_object_01.png` 提供倒木、樹樁、高樹、灌木、枯木、苔石、竹叢與果實灌木；共用 Object TileSet 以 source 11 登錄。野戰場景將其放在獨立的 `ForestEdgeObjectLayer`，配置於既有森林外緣，只作視覺裝飾，不改變森林地形、車輛可否停留、騎兵森林限制、移動、A* 或 AI 規則。
 - `MoatSiegeBattle` 現在應以 scene 的 `MoatLayer` 承載護城河資料；`GroundLayer` / `ObjectLayer` 繼續承載道路、庭院與橋面，不再把 moat/bridge/road/courtyard 座標硬寫進 `.tres`。
 - `TileMap -> BattleMapData` 轉換時，只有 `ScenarioType == MoatSiegeBattle` 可以讀入 `MoatLayer`；`SiegeAssault` / `FieldBattle` 即使共用同一份 scene、且 scene 內保留了 moat tiles，也不能讓隱藏的 moat data 繼續阻擋移動、攻城車或 A*。
@@ -476,7 +476,7 @@
 - 野戰 Worker 會把相鄰河格的新木橋及未完工木橋視為工程候選；AI 模擬單格或連續最多四格河段全數完工後，友軍一般戰隊抵達敵軍或爭奪堡壘的最短路徑。僅在至少縮短 `3` 格、並以施工段數、接近施工岸距離、敵方威脅與 officer Intelligence 計分後勝過其他攻擊／合擊／堡壘候選時，Worker 才會先移往施工岸，跨回合完成施工／修復。開局與工程 Battle Log 會列出橋格、目標、路徑縮短值、score 與 variance。
 - 野戰 Worker 的木柵工程也屬同一 AI score 池：AI 只會在敵軍距離 `5` 格內、附近有己方戰隊支援、且木柵會讓敵軍到己方已佔 Fortress 的最短路徑增加至少 `3` 格時設置；若模擬顯示木柵會令己方通往敵軍的主路徑增加超過 `2` 格或中斷，則不會設置。現有木柵若已造成該己方路徑阻塞，Worker 可拆除。工程 Battle Log 會列出 build/remove、保護目標或重新開路理由、路徑影響、score 與 variance。
 - 設置木柵消耗 `5` 行動力，拆除消耗 `3` 行動力，兩者均完成 Worker 本回合行動；不足行動力時不顯示為可選工作目標。AI 木柵候選 score 會扣除此工程行動力機會成本。
-- Worker 木柵使用獨立 `WorkerFenceLayer`（z=5，且在農田物件之後）覆蓋於 `FarmObjectLayer` 之上；因此農田與其他 visual-only 地物會保留，木柵、其阻擋格與耐久資料也能同時一致可見。
+- Worker 木柵使用獨立 `WorkerFenceLayer`（z=7，且在農田物件之後）覆蓋於 `FarmObjectLayer` 之上；因此農田與其他 visual-only 地物會保留，木柵、其阻擋格與耐久資料也能同時一致可見。
 - 低兵力／HP（最大值 45% 以下）的 AI 一般戰隊另有存活決策：它會將目前可攻擊收益與預估敵方射程威脅比較，並依 officer Intelligence 評估移至 Building／己方 Fortress、接近補給車、Guard／留守或撤退。低於 22% 且威脅高於可立即攻擊收益時，撤退會成為候選；所有存活決策都會在 Battle Log 寫出原因、score 與 Intelligence。每次 AI 回合開始亦寫入開局堡壘／殲敵計畫與低兵力隊伍數。
 - 投石車一般攻擊的動畫順序為：投石車攻擊 → 石彈飛行完成 → 目標受傷與傷害數字 popup；弓兵與弩兵同樣在箭矢命中後才觸發傷害結算、戰鬥紀錄與 Guard 判定。
 - 頂欄會依目前語系顯示戰場名稱、日期與 Field Battle AI 控制鈕；繁中日期格式為 `YYYY 年 MM 月 DD 日`，英文維持 `YYYY Apr D`。

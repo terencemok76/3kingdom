@@ -348,6 +348,8 @@ public partial class BattleSceneController : Node2D
     private Control? _battleLogResizeGrip;
     private Control? _battleResultOverlay;
     private Label? _battleResultLabel;
+    private Control? _retreatNotice;
+    private Label? _retreatNoticeLabel;
     private Button? _allLogButton;
     private Button? _selfLogButton;
     private Button? _minimizeLogButton;
@@ -405,6 +407,7 @@ public partial class BattleSceneController : Node2D
     private bool _isResizingBattleLog;
     private bool _isBattleLogMinimized;
     private bool _isBattleFinished;
+    private int _retreatNoticeSerial;
     private bool _attackerOutpostVictorySecured;
     private Vector2 _lastMousePosition;
     private Vector2 _commandMenuDragOffset;
@@ -1793,6 +1796,8 @@ public partial class BattleSceneController : Node2D
         {
             _battleResultOverlay.ZIndex = 200;
         }
+        _retreatNotice ??= GetNodeOrNull<Control>("UiLayer/RetreatNotice");
+        _retreatNoticeLabel ??= GetNodeOrNull<Label>("UiLayer/RetreatNotice/Margin/Label");
         _allLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/AllLogButton");
         _selfLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/SelfLogButton");
         _minimizeLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/MinimizeLogButton");
@@ -5766,6 +5771,28 @@ public partial class BattleSceneController : Node2D
             HireOfficerPopupDelaySeconds);
     }
 
+    private async void ShowRetreatNotice(BattleOccupantInfo retreatingUnit)
+    {
+        if (_retreatNotice == null || _retreatNoticeLabel == null)
+        {
+            return;
+        }
+
+        var noticeSerial = ++_retreatNoticeSerial;
+        var officerName = string.IsNullOrWhiteSpace(retreatingUnit.OfficerName)
+            ? retreatingUnit.DisplayName
+            : retreatingUnit.OfficerName;
+        _retreatNoticeLabel.Text = $"{officerName} / {FormatTroopType(retreatingUnit.TroopType)}\n{BattleText("ui.battle.retreat", "Retreat")}";
+        _retreatNotice.Visible = true;
+        _retreatNotice.MoveToFront();
+
+        await ToSignal(GetTree().CreateTimer(2.0), SceneTreeTimer.SignalName.Timeout);
+        if (GodotObject.IsInstanceValid(this) && noticeSerial == _retreatNoticeSerial)
+        {
+            _retreatNotice.Visible = false;
+        }
+    }
+
     private void ShowBattlePopup(
         BattleGridKey targetGrid,
         string text,
@@ -8414,6 +8441,7 @@ public partial class BattleSceneController : Node2D
         var retreatingUnit = _selectedUnit;
         var retreatingGrid = _selectedUnitGrid.Value;
         ApplyRetreatTroopLoss(retreatingUnit);
+        ShowRetreatNotice(retreatingUnit);
         AppendBattleLog(retreatingUnit, "Retreat", $"{FormatLogUnit(retreatingUnit)} retreats from {retreatingGrid}");
         RemoveOccupant(retreatingGrid, retreatingUnit);
 
