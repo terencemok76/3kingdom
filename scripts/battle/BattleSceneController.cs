@@ -248,6 +248,7 @@ public partial class BattleSceneController : Node2D
     private const int SupplyCartMoraleRestore = 8;
     private const int SupplyCartRepairAmount = 450;
     private const int SupplyCartWoundedRecoveryAmount = 600;
+    private const int BuildingRestWoundedRecoveryAmount = 150;
     private const int ArcherMaxWeaponAmmo = 6;
     private const int CrossbowMaxWeaponAmmo = 4;
     private const int CatapultMaxWeaponAmmo = 3;
@@ -255,6 +256,11 @@ public partial class BattleSceneController : Node2D
     private const int LowMoraleMovePenaltyThreshold = 30;
     private const int MessMoraleThreshold = 15;
     private const int DefaultUnitEnergy = 10;
+    private const int FirstZeroFoodEnergyCap = 7;
+    private const int SecondZeroFoodEnergyCap = 5;
+    private const int SustainedZeroFoodEnergyCap = 5;
+    private const int SustainedZeroFoodMoveRangeCap = 1;
+    private const float SustainedZeroFoodAttackDamageRatio = 0.50f;
     private const int NormalAttackEnergyCost = 5;
     private const int SupplyActionEnergyCost = 5;
     private const int UnionAttackSupportEnergyCost = 4;
@@ -310,14 +316,15 @@ public partial class BattleSceneController : Node2D
     private const int DailyGoldPer100ActiveTroops = 1;
     private const int LowFoodMoralePenalty = 6;
     private const int StarvingMoralePenalty = 15;
+    private const int StarvationDesertionPercent = 10;
     private const int SupplyCartDestroyedResourceLossPercent = 25;
     private const int SupplyCartCaptureMoraleBonus = 10;
     private const int HireOfficerGoldCost = 100;
     private const int HireOfficerRange = 2;
     private const int HireOfficerTeamMoraleBonus = 8;
     private const int HireOfficerTeamMoralePenalty = 8;
-    private const double DamagePopupDurationSeconds = 2.0;
-    private const double MoralePopupDurationSeconds = 1.6;
+    private const double DamagePopupDurationSeconds = 4.0;
+    private const double MoralePopupDurationSeconds = 4.0;
     private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 0, 0, 0, 0, 0, InitialTeamAGold, InitialTeamAFood);
     private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 0, 0, 0, 0, 0, InitialTeamBGold, InitialTeamBFood);
     private const int BattleDateYear = 191;
@@ -367,6 +374,8 @@ public partial class BattleSceneController : Node2D
     private Button? _disableAiButton;
     private Button? _startRoundButton;
     private Button? _nextAiButton;
+    private Button? _attackerOneDayFoodButton;
+    private Button? _defenderOneDayFoodButton;
     private Label? _aiRoundStatusLabel;
     private Button? _timeButton;
     private Button? _weatherButton;
@@ -454,6 +463,9 @@ public partial class BattleSceneController : Node2D
     private WorkerWorkAction _workerWorkAction = WorkerWorkAction.General;
     private int _turnNumber = 1;
     private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
+    private int _battleDateYear = BattleDateYear;
+    private int _battleDateMonth = BattleDateMonth;
+    private int _battleDateDay = BattleDateDay;
     private BattleAiControlledSides _aiControlledSides;
     private bool _isFieldAiRoundStarted;
     private BattleTimeOfDay? _currentBattleTimeOfDay;
@@ -470,8 +482,10 @@ public partial class BattleSceneController : Node2D
     private int _teamBStrategyPlans = InitialTeamStrategyPlans;
     private int _teamAGold = InitialTeamAGold;
     private int _teamAFood = InitialTeamAFood;
+    private int _teamAZeroFoodDays;
     private int _teamBGold = InitialTeamBGold;
     private int _teamBFood = InitialTeamBFood;
+    private int _teamBZeroFoodDays;
     private bool _showSelfTeamLogOnly;
     private bool _battleBgmEnabled = true;
     private bool _battleSfxEnabled = true;
@@ -495,6 +509,7 @@ public partial class BattleSceneController : Node2D
         public BattleGridKey? MoveAttackDestination { get; init; }
         public AiSupplyPlan? SupplyPlan { get; init; }
         public bool IsHideAction { get; init; }
+        public bool IsGuardAction { get; init; }
     }
     private readonly record struct AiOutpostObjective(BattleGridKey Grid, int Score, string Reason);
     private readonly record struct AiSupplyPlan(BattleGridKey ActionGrid, bool MoveBeforeSupply, int Score, string Reason);
@@ -636,6 +651,16 @@ public partial class BattleSceneController : Node2D
         if (_nextAiButton != null)
         {
             _nextAiButton.Pressed += OnNextAiButtonPressed;
+        }
+
+        if (_attackerOneDayFoodButton != null)
+        {
+            _attackerOneDayFoodButton.Pressed += OnAttackerOneDayFoodButtonPressed;
+        }
+
+        if (_defenderOneDayFoodButton != null)
+        {
+            _defenderOneDayFoodButton.Pressed += OnDefenderOneDayFoodButtonPressed;
         }
 
         if (_timeButton != null)
@@ -1207,6 +1232,9 @@ public partial class BattleSceneController : Node2D
             UseEditorAuthoredLayout = UseEditorAuthoredLayout,
             TurnNumber = _turnNumber,
             CurrentTurnSide = _currentTurnSide,
+            BattleDateYear = _battleDateYear,
+            BattleDateMonth = _battleDateMonth,
+            BattleDateDay = _battleDateDay,
             CurrentBattleTimeOfDay = GetCurrentBattleTimeOfDay(),
             CurrentBattleWeather = GetCurrentBattleWeather(),
             CurrentBattleWindDirection = GetCurrentBattleWindDirection(),
@@ -1215,8 +1243,10 @@ public partial class BattleSceneController : Node2D
             TeamBStrategyPlans = _teamBStrategyPlans,
             TeamAGold = _teamAGold,
             TeamAFood = _teamAFood,
+            TeamAZeroFoodDays = _teamAZeroFoodDays,
             TeamBGold = _teamBGold,
             TeamBFood = _teamBFood,
+            TeamBZeroFoodDays = _teamBZeroFoodDays,
             ShowSelfTeamLogOnly = _showSelfTeamLogOnly,
             BattleLogExpandedWidth = _battleLogExpandedSize.X,
             BattleLogExpandedHeight = _battleLogExpandedSize.Y,
@@ -1313,6 +1343,14 @@ public partial class BattleSceneController : Node2D
         UseEditorAuthoredLayout = saveData.UseEditorAuthoredLayout;
         _turnNumber = Math.Max(1, saveData.TurnNumber);
         _currentTurnSide = saveData.CurrentTurnSide;
+        _battleDateYear = saveData.BattleDateYear > 0 ? saveData.BattleDateYear : BattleDateYear;
+        _battleDateMonth = Mathf.Clamp(saveData.BattleDateMonth, 1, 12);
+        _battleDateDay = Mathf.Clamp(saveData.BattleDateDay, 1, DateTime.DaysInMonth(_battleDateYear, _battleDateMonth));
+        if (saveData.BattleDateMonth <= 0 || saveData.BattleDateDay <= 0)
+        {
+            _battleDateMonth = BattleDateMonth;
+            _battleDateDay = BattleDateDay;
+        }
         _currentBattleTimeOfDay = saveData.CurrentBattleTimeOfDay;
         _currentBattleWeather = saveData.CurrentBattleWeather;
         _currentBattleWindDirection = saveData.CurrentBattleWindDirection;
@@ -1321,8 +1359,10 @@ public partial class BattleSceneController : Node2D
         _teamBStrategyPlans = Mathf.Clamp(saveData.TeamBStrategyPlans, 0, InitialTeamStrategyPlans);
         _teamAGold = Math.Max(0, saveData.TeamAGold);
         _teamAFood = Math.Max(0, saveData.TeamAFood);
+        _teamAZeroFoodDays = Mathf.Max(0, saveData.TeamAZeroFoodDays);
         _teamBGold = Math.Max(0, saveData.TeamBGold);
         _teamBFood = Math.Max(0, saveData.TeamBFood);
+        _teamBZeroFoodDays = Mathf.Max(0, saveData.TeamBZeroFoodDays);
         _showSelfTeamLogOnly = saveData.ShowSelfTeamLogOnly;
         _attackerOutpostVictorySecured = saveData.AttackerOutpostVictorySecured;
         _isBattleLogMinimized = saveData.IsBattleLogMinimized;
@@ -1824,6 +1864,8 @@ public partial class BattleSceneController : Node2D
         _disableAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/DisableAiButton");
         _startRoundButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/StartRoundButton");
         _nextAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/NextAiButton");
+        _attackerOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/AttackerOneDayFoodButton");
+        _defenderOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/DefenderOneDayFoodButton");
         _aiRoundStatusLabel ??= GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/AiRoundStatusLabel");
         _timeButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/TimeButton");
         _weatherButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WeatherButton");
@@ -2857,7 +2899,7 @@ public partial class BattleSceneController : Node2D
 
     private string FormatBattleDate()
     {
-        return BattleFormat("ui.battle.date", "{0} Apr {1}", BattleDateYear, BattleDateDay, BattleDateMonth);
+        return BattleFormat("ui.battle.date", "{0} Apr {1}", _battleDateYear, _battleDateDay, _battleDateMonth);
     }
 
     private bool IsForestGrid(BattleGridKey grid)
@@ -2961,19 +3003,19 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
-        var teamAHasBattleTeam = HasActiveBattleTeam(isDefender: false);
-        var teamBHasBattleTeam = HasActiveBattleTeam(isDefender: true);
-        if (!teamAHasBattleTeam && !teamBHasBattleTeam)
+        var teamAHasOfficerBattleTeam = HasActiveOfficerBattleTeam(isDefender: false);
+        var teamBHasOfficerBattleTeam = HasActiveOfficerBattleTeam(isDefender: true);
+        if (!teamAHasOfficerBattleTeam && !teamBHasOfficerBattleTeam)
         {
-            resultMessage = "Battle Finished\nDraw\nBoth sides have no battle teams.";
+            resultMessage = "Battle Finished\nDraw\nBoth sides have no officer-led battle teams.";
             return true;
         }
 
-        if (!teamAHasBattleTeam || !teamBHasBattleTeam)
+        if (!teamAHasOfficerBattleTeam || !teamBHasOfficerBattleTeam)
         {
-            var winnerName = teamAHasBattleTeam ? TeamAInfo.Name : TeamBInfo.Name;
-            var defeatedName = teamAHasBattleTeam ? TeamBInfo.Name : TeamAInfo.Name;
-            resultMessage = $"Battle Finished\n{winnerName} Victory\n{defeatedName} has no battle teams remaining.";
+            var winnerName = teamAHasOfficerBattleTeam ? TeamAInfo.Name : TeamBInfo.Name;
+            var defeatedName = teamAHasOfficerBattleTeam ? TeamBInfo.Name : TeamAInfo.Name;
+            resultMessage = $"Battle Finished\n{winnerName} Victory\n{defeatedName} has no officer-led battle teams remaining.";
             return true;
         }
 
@@ -2986,11 +3028,12 @@ public partial class BattleSceneController : Node2D
         return false;
     }
 
-    private bool HasActiveBattleTeam(bool isDefender)
+    private bool HasActiveOfficerBattleTeam(bool isDefender)
     {
         return _occupantsByGrid.Values
             .SelectMany(static occupants => occupants)
-            .Any(occupant => IsBattlePiece(occupant) && IsDefenderTeam(occupant) == isDefender);
+            .Any(occupant => IsDefenderTeam(occupant) == isDefender &&
+                             IsGeneralCountedPiece(occupant.Category, occupant.OfficerName));
     }
 
     private bool DoesAttackerHoldAllDefenseOutposts()
@@ -4399,8 +4442,8 @@ public partial class BattleSceneController : Node2D
             builder.AppendLine(BattleFormat("ui.battle.list_category", "- Category: {0}", FormatUnitCategory(_selectedUnit.Category)));
             builder.AppendLine(BattleFormat("ui.battle.list_grid", "- Grid: {0}", $"({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y}, L{_selectedUnitGrid.Value.Level})"));
             builder.AppendLine(BattleFormat("ui.battle.list_status", "- Status: {0}", FormatBattleStatus(_selectedUnit)));
-            builder.AppendLine(BattleFormat("ui.battle.list_move_range", "- Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, _selectedUnit.MoveRange));
-            builder.AppendLine(BattleFormat("ui.battle.list_energy", "- Energy: {0}/{1}", _selectedUnit.Energy, DefaultUnitEnergy));
+            builder.AppendLine(BattleFormat("ui.battle.list_move_range", "- Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, GetTeamMoveRangeCap(_selectedUnit)));
+            builder.AppendLine(BattleFormat("ui.battle.list_energy", "- Energy: {0}/{1}", _selectedUnit.Energy, GetTeamEnergyCap(_selectedUnit.TeamName)));
             if (_selectedUnit.MaxWeaponAmmo.HasValue)
             {
                 builder.AppendLine(BattleFormat("ui.battle.list_weapon_ammo", "- Weapon Ammo: {0}", FormatWeaponAmmo(_selectedUnit)));
@@ -6266,21 +6309,34 @@ public partial class BattleSceneController : Node2D
         return target != null && !IsHiddenFromSide(target, attackerTeamName) ? target : null;
     }
 
-    private static int GetAttackDamage(BattleOccupantInfo attacker)
+    private int GetAttackDamage(BattleOccupantInfo attacker)
     {
-        if (CanUseAmmoDepletedWeakAttack(attacker))
-        {
-            return Mathf.Max(1, Mathf.RoundToInt(GetBaseAttackDamage(attacker) * AmmoDepletedWeakAttackDamageRatio));
-        }
-
-        return GetBaseAttackDamage(attacker);
+        var damage = CanUseAmmoDepletedWeakAttack(attacker)
+            ? Mathf.Max(1, Mathf.RoundToInt(GetBaseAttackDamage(attacker) * AmmoDepletedWeakAttackDamageRatio))
+            : GetBaseAttackDamage(attacker);
+        return IsSustainedZeroFood(attacker.TeamName)
+            ? Mathf.Max(1, Mathf.RoundToInt(damage * SustainedZeroFoodAttackDamageRatio))
+            : damage;
     }
 
-    private static int GetAttackDamageAgainst(BattleOccupantInfo attacker, BattleOccupantInfo target)
+    private bool IsSustainedZeroFood(string teamName)
+    {
+        return GetTeamFood(teamName) <= 0 && GetTeamZeroFoodDays(teamName) >= 3;
+    }
+
+    private int GetAttackDamageAgainst(BattleOccupantInfo attacker, BattleOccupantInfo target)
     {
         var damage = GetAttackDamage(attacker);
         return HasTroopTypeAdvantage(attacker, target)
             ? Mathf.Max(1, Mathf.RoundToInt(damage * TroopTypeAdvantageDamageMultiplier))
+            : damage;
+    }
+
+    private int GetChargeDamage(BattleOccupantInfo cavalry, BattleOccupantInfo target)
+    {
+        var damage = target.TroopType == TroopSpearman ? CavalryChargeVsSpearmanDamage : CavalryChargeDamage;
+        return IsSustainedZeroFood(cavalry.TeamName)
+            ? Mathf.Max(1, Mathf.RoundToInt(damage * SustainedZeroFoodAttackDamageRatio))
             : damage;
     }
 
@@ -7328,11 +7384,19 @@ public partial class BattleSceneController : Node2D
         return unit.HasAttackedThisTurn ? 0 : unit.Energy;
     }
 
-    private static int GetAvailableMoveRange(BattleOccupantInfo unit)
+    private int GetTeamMoveRangeCap(BattleOccupantInfo unit)
+    {
+        var moveRange = GetEffectiveMoveRange(unit);
+        return IsSustainedZeroFood(unit.TeamName)
+            ? Math.Min(moveRange, SustainedZeroFoodMoveRangeCap)
+            : moveRange;
+    }
+
+    private int GetAvailableMoveRange(BattleOccupantInfo unit)
     {
         return unit.HasAttackedThisTurn
             ? 0
-            : Math.Min(unit.RemainingMoveRange, GetEffectiveMoveRange(unit));
+            : Math.Min(unit.RemainingMoveRange, GetTeamMoveRangeCap(unit));
     }
 
     private static int GetMoveEnergyCost(BattleCellData cell)
@@ -7655,7 +7719,7 @@ public partial class BattleSceneController : Node2D
     private void ExecuteCharge(BattleGridKey sourceGrid, BattleOccupantInfo cavalry, BattleGridKey targetGrid, BattleOccupantInfo target, BattleGridKey destinationGrid)
     {
         var direction = GetInfantryDirection(sourceGrid.Grid, targetGrid.Grid);
-        var damage = target.TroopType == TroopSpearman ? CavalryChargeVsSpearmanDamage : CavalryChargeDamage;
+        var damage = GetChargeDamage(cavalry, target);
         var targetHurtDuration = ApplyTargetHurtAnimation(sourceGrid, targetGrid, cavalry);
         var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, NormalDamageKilledRatio);
         ShowDamagePopup(targetGrid, casualtyResult.ActualDamage);
@@ -7726,7 +7790,10 @@ public partial class BattleSceneController : Node2D
         var movedCavalry = cavalry with
         {
             FacingDirection = direction,
-            IsHidden = remainsHidden
+            IsHidden = remainsHidden,
+            Energy = Math.Max(0, cavalry.Energy - NormalAttackEnergyCost),
+            HasAttackedThisTurn = true,
+            RemainingMoveRange = 0
         };
         destinationOccupants.Add(movedCavalry);
         UpdateMarkerStatusIndicator(movedCavalry);
@@ -7999,6 +8066,8 @@ public partial class BattleSceneController : Node2D
     {
         ResolveDailyBattleSupplyForTeam(TeamAInfo.Name, ref _teamAGold, ref _teamAFood, _teamATotalTroops);
         ResolveDailyBattleSupplyForTeam(TeamBInfo.Name, ref _teamBGold, ref _teamBFood, _teamBTotalTroops);
+        UpdateTeamZeroFoodDays(TeamAInfo.Name);
+        UpdateTeamZeroFoodDays(TeamBInfo.Name);
     }
 
     private void ResolveDailyBattleSupplyForTeam(string teamName, ref int gold, ref int food, int activeTroops)
@@ -8027,12 +8096,51 @@ public partial class BattleSceneController : Node2D
         if (foodBefore < dailyFoodNeed)
         {
             ApplyTeamMoralePenalty(teamName, StarvingMoralePenalty, "food shortage");
+            ApplyTeamStarvationDesertion(teamName);
             return;
         }
 
         if (food < dailyFoodNeed)
         {
             ApplyTeamMoralePenalty(teamName, LowFoodMoralePenalty, "low food");
+        }
+    }
+
+    private void ApplyTeamStarvationDesertion(string teamName)
+    {
+        var affectedUnits = GetAllBattlePieces()
+            .Where(entry => entry.Occupant.TeamName == teamName &&
+                            entry.Occupant.Category == CategoryUnit &&
+                            entry.Occupant.TroopCount > 0)
+            .ToList();
+        foreach (var (grid, unit) in affectedUnits)
+        {
+            if (!TryGetCurrentOccupantAtGrid(grid, unit, out var currentUnit))
+            {
+                continue;
+            }
+
+            var deserters = Math.Max(1, Mathf.FloorToInt(currentUnit.TroopCount * (StarvationDesertionPercent / 100.0f)));
+            deserters = Math.Min(deserters, currentUnit.TroopCount);
+            var updatedUnit = currentUnit with
+            {
+                TroopCount = currentUnit.TroopCount - deserters,
+                HitPoints = Math.Max(0, currentUnit.HitPoints - deserters)
+            };
+            UpdateMarkerStrengthBar(updatedUnit);
+            ReplaceOccupantAtGrid(grid, currentUnit, updatedUnit);
+            ApplyTeamTroopLoss(currentUnit, deserters);
+            ShowDamagePopup(grid, deserters);
+            AppendBattleLog(updatedUnit, "Supply", $"Food shortage: {deserters:N0} troop(s) leave battle.");
+            if (_selectedUnit == currentUnit)
+            {
+                _selectedUnit = updatedUnit;
+            }
+
+            if (updatedUnit.HitPoints <= 0)
+            {
+                DestroyOccupantAfterDelay(grid, updatedUnit, 0.0);
+            }
         }
     }
 
@@ -8154,6 +8262,46 @@ public partial class BattleSceneController : Node2D
         return teamName.Contains("Attacker") ? _teamAFood : _teamBFood;
     }
 
+    private void UpdateTeamZeroFoodDays(string teamName)
+    {
+        var hasActiveTroops = GetTeamActiveTroops(teamName) > 0;
+        var zeroFoodDays = hasActiveTroops && GetTeamFood(teamName) <= 0
+            ? GetTeamZeroFoodDays(teamName) + 1
+            : 0;
+        SetTeamZeroFoodDays(teamName, zeroFoodDays);
+    }
+
+    private int GetTeamZeroFoodDays(string teamName)
+    {
+        return teamName.Contains("Attacker") ? _teamAZeroFoodDays : _teamBZeroFoodDays;
+    }
+
+    private void SetTeamZeroFoodDays(string teamName, int zeroFoodDays)
+    {
+        if (teamName.Contains("Attacker"))
+        {
+            _teamAZeroFoodDays = Math.Max(0, zeroFoodDays);
+            return;
+        }
+
+        _teamBZeroFoodDays = Math.Max(0, zeroFoodDays);
+    }
+
+    private int GetTeamEnergyCap(string teamName)
+    {
+        if (GetTeamFood(teamName) > 0)
+        {
+            return DefaultUnitEnergy;
+        }
+
+        return Math.Max(1, GetTeamZeroFoodDays(teamName)) switch
+        {
+            1 => FirstZeroFoodEnergyCap,
+            2 => SecondZeroFoodEnergyCap,
+            _ => SustainedZeroFoodEnergyCap
+        };
+    }
+
     private int GetTeamActiveTroops(string teamName)
     {
         return teamName.Contains("Attacker") ? _teamATotalTroops : _teamBTotalTroops;
@@ -8176,7 +8324,7 @@ public partial class BattleSceneController : Node2D
             return 0;
         }
 
-        return enemyFoodDays < 1.0f
+        return enemyFoodDays <= 1.0f
             ? AiCriticalEnemyFoodPressureScore
             : AiLowEnemyFoodPressureScore;
     }
@@ -8187,11 +8335,19 @@ public partial class BattleSceneController : Node2D
         {
             _teamAGold = Math.Max(0, _teamAGold + goldDelta);
             _teamAFood = Math.Max(0, _teamAFood + foodDelta);
+            if (_teamAFood > 0)
+            {
+                _teamAZeroFoodDays = 0;
+            }
             return;
         }
 
         _teamBGold = Math.Max(0, _teamBGold + goldDelta);
         _teamBFood = Math.Max(0, _teamBFood + foodDelta);
+        if (_teamBFood > 0)
+        {
+            _teamBZeroFoodDays = 0;
+        }
     }
 
     private static bool UsesWeaponAmmo(BattleOccupantInfo unit)
@@ -9253,6 +9409,7 @@ public partial class BattleSceneController : Node2D
     private static bool IsGeneralCountedPiece(string category, string officerName)
     {
         return category == CategoryUnit &&
+               !string.IsNullOrWhiteSpace(officerName) &&
                !string.Equals(officerName, "Worker", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -9404,6 +9561,7 @@ public partial class BattleSceneController : Node2D
                occupant.TroopType == TroopCavalry &&
                !IsMessed(occupant) &&
                !HasUsedChargeThisTurn(occupant) &&
+               occupant.Energy >= NormalAttackEnergyCost &&
                IsCurrentTurnPiece(occupant);
     }
 
@@ -9417,7 +9575,7 @@ public partial class BattleSceneController : Node2D
         return troopType is TroopInfantry or TroopSpearman or TroopCavalry or TroopArcher or TroopCrossbow or TroopWorker;
     }
 
-    private static int GetUnionAttackDamage(IReadOnlyList<UnionAttackParticipant> participants, BattleOccupantInfo target)
+    private int GetUnionAttackDamage(IReadOnlyList<UnionAttackParticipant> participants, BattleOccupantInfo target)
     {
         var damage = 0;
         for (var index = 0; index < participants.Count; index++)
@@ -11178,8 +11336,8 @@ public partial class BattleSceneController : Node2D
                         : canCommandSelectedUnit
                             ? BattleText("ui.battle.ready", "Ready")
                             : BattleFormat("ui.battle.not_acting_side", "Not Acting Side ({0})", FormatTeamName(GetCurrentTurnSideName()))) + "\n" +
-                    BattleFormat("ui.battle.menu_energy", "Energy: {0}/{1}", _selectedUnit.Energy, DefaultUnitEnergy) + "\n" +
-                    BattleFormat("ui.battle.menu_move_range", "Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, _selectedUnit.MoveRange) + "\n" +
+                    BattleFormat("ui.battle.menu_energy", "Energy: {0}/{1}", _selectedUnit.Energy, GetTeamEnergyCap(_selectedUnit.TeamName)) + "\n" +
+                    BattleFormat("ui.battle.menu_move_range", "Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, GetTeamMoveRangeCap(_selectedUnit)) + "\n" +
                     BattleFormat("ui.battle.menu_morale", "Morale: {0}", FormatMorale(_selectedUnit)) + "\n" +
                     BattleFormat("ui.battle.menu_ammo", "Ammo: {0}", FormatWeaponAmmo(_selectedUnit)) + "\n" +
                     strengthText;
@@ -11658,6 +11816,75 @@ public partial class BattleSceneController : Node2D
                 }
             }
         }
+
+        ResolveBuildingRestAtTurnEnd(endingSideName);
+    }
+
+    private void ResolveBuildingRestAtTurnEnd(string endingSideName)
+    {
+        if (GetTeamFood(endingSideName) <= 0)
+        {
+            return;
+        }
+
+        foreach (var (grid, occupants) in _occupantsByGrid.ToList())
+        {
+            foreach (var unit in occupants.ToList())
+            {
+                if (!CanUnitRestInBuilding(grid, unit, endingSideName))
+                {
+                    continue;
+                }
+
+                var recoveredTroops = RecoverWoundedTroops(grid, unit, BuildingRestWoundedRecoveryAmount);
+                if (recoveredTroops > 0)
+                {
+                    AppendBattleLog(unit, "Rest", $"{FormatLogUnit(unit)} rests in a defensive position and recovers {recoveredTroops:N0} wounded troop(s).");
+                }
+            }
+        }
+    }
+
+    private bool CanUnitRestInBuilding(BattleGridKey grid, BattleOccupantInfo unit, string endingSideName)
+    {
+        if (unit.TeamName != endingSideName ||
+            unit.Category != CategoryUnit ||
+            unit.WoundedTroops <= 0 ||
+            IsMessed(unit) ||
+            !IsBuildingOrOwnedOutpost(grid, unit.TeamName) ||
+            HasUnitActed(unit) ||
+            unit.HasAttackedThisTurn ||
+            unit.IsGuarding ||
+            unit.Energy != GetTeamEnergyCap(unit.TeamName) ||
+            unit.RemainingMoveRange != GetTeamMoveRangeCap(unit) ||
+            HasAdjacentEnemy(grid, unit.TeamName))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool IsBuildingOrOwnedOutpost(BattleGridKey grid, string teamName)
+    {
+        if (_mapData == null || grid.Level != 0 || !IsWithinMap(grid.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        var ownsOutpost = cell.IsDefenseOutpost &&
+                          cell.DefenseOutpostOwner == (IsDefenderTeamName(teamName) ? BattleOutpostOwner.Defender : BattleOutpostOwner.Attacker);
+        return IsBuildingCoverActive(grid) || ownsOutpost;
+    }
+
+    private bool HasAdjacentEnemy(BattleGridKey grid, string teamName)
+    {
+        return GetAllBattlePieces().Any(entry =>
+            entry.Grid.Level == grid.Level &&
+            entry.Occupant.TeamName != teamName &&
+            Math.Abs(entry.Grid.X - grid.X) <= 1 &&
+            Math.Abs(entry.Grid.Y - grid.Y) <= 1);
     }
 
     private BattleOccupantInfo ApplyMessDesertion(BattleGridKey grid, BattleOccupantInfo unit)
@@ -11762,6 +11989,20 @@ public partial class BattleSceneController : Node2D
             _nextAiButton.Text = BattleText("ui.battle.next_ai", "Next");
         }
 
+        if (_attackerOneDayFoodButton != null)
+        {
+            _attackerOneDayFoodButton.Visible = isFieldBattle;
+            _attackerOneDayFoodButton.Disabled = !isFieldBattle || _isBattleFinished;
+            _attackerOneDayFoodButton.Text = BattleText("ui.battle.test_attacker_food_1_day", "Attacker Food: 1d");
+        }
+
+        if (_defenderOneDayFoodButton != null)
+        {
+            _defenderOneDayFoodButton.Visible = isFieldBattle;
+            _defenderOneDayFoodButton.Disabled = !isFieldBattle || _isBattleFinished;
+            _defenderOneDayFoodButton.Text = BattleText("ui.battle.test_defender_food_1_day", "Defender Food: 1d");
+        }
+
         if (_endTurnButton != null && isFieldBattle)
         {
             _endTurnButton.Disabled = !_isFieldAiRoundStarted || _isBattleFinished;
@@ -11779,23 +12020,37 @@ public partial class BattleSceneController : Node2D
         else if (!_isFieldAiRoundStarted)
         {
             _aiRoundStatusLabel.Visible = true;
-            _aiRoundStatusLabel.Text = BattleText("ui.battle.ai_status_not_started", "Test round not started: click Start Round");
+            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_not_started", "Test round not started: click Start Round"));
         }
         else if (allActed)
         {
             _aiRoundStatusLabel.Visible = true;
-            _aiRoundStatusLabel.Text = BattleText("ui.battle.ai_status_all_acted", "All battle teams have acted: click End Turn");
+            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_all_acted", "All battle teams have acted: click End Turn"));
         }
         else if (isAiSide)
         {
             _aiRoundStatusLabel.Visible = true;
-            _aiRoundStatusLabel.Text = BattleText("ui.battle.ai_status_review", "AI waiting for review: click Next, or End Turn");
+            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_review", "AI waiting for review: click Next, or End Turn"));
         }
         else
         {
             _aiRoundStatusLabel.Visible = true;
-            _aiRoundStatusLabel.Text = BattleText("ui.battle.ai_status_player", "Player turn: command battle teams, or End Turn");
+            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_player", "Player turn: command battle teams, or End Turn"));
         }
+    }
+
+    private void SetFieldAiRoundStatus(string status)
+    {
+        if (_aiRoundStatusLabel == null)
+        {
+            return;
+        }
+
+        _aiRoundStatusLabel.Text = BattleFormat(
+            "ui.battle.ai_status_active_turn",
+            "Active turn: {0} — {1}",
+            FormatTeamName(GetCurrentTurnSideName()),
+            status);
     }
 
     private void OnEnableAiButtonPressed()
@@ -11864,6 +12119,30 @@ public partial class BattleSceneController : Node2D
         RefreshBattleLogPanel();
         RefreshInfoPanel();
         RefreshHighlights();
+    }
+
+    private void OnAttackerOneDayFoodButtonPressed()
+    {
+        SetTeamFoodForAiTest(TeamAInfo.Name);
+    }
+
+    private void OnDefenderOneDayFoodButtonPressed()
+    {
+        SetTeamFoodForAiTest(TeamBInfo.Name);
+    }
+
+    private void SetTeamFoodForAiTest(string teamName)
+    {
+        if (!IsFieldBattleAiTest || _isBattleFinished)
+        {
+            return;
+        }
+
+        var foodForOneDay = CalculateDailyFoodNeed(GetTeamActiveTroops(teamName));
+        ApplyTeamResourceDelta(teamName, 0, foodForOneDay - GetTeamFood(teamName));
+        AppendBattleLog(teamName, "AI Test", $"Food test: set {FormatTeamName(teamName)} food to {foodForOneDay:N0} (1 day of current active-troop upkeep).");
+        ConfigureHud();
+        RefreshBattleLogPanel();
     }
 
     private void ExecuteOneAiAction()
@@ -12293,9 +12572,9 @@ public partial class BattleSceneController : Node2D
 
         var projectedEnemy = enemy with
         {
-            Energy = DefaultUnitEnergy,
+            Energy = GetTeamEnergyCap(enemy.TeamName),
             HasAttackedThisTurn = false,
-            RemainingMoveRange = GetEffectiveMoveRange(enemy)
+            RemainingMoveRange = GetTeamMoveRangeCap(enemy)
         };
         if (!CanUseAttackCommand(projectedEnemy))
         {
@@ -12325,6 +12604,27 @@ public partial class BattleSceneController : Node2D
         var ownsOutpost = cell.IsDefenseOutpost &&
                           cell.DefenseOutpostOwner == (IsDefenderTeamName(teamName) ? BattleOutpostOwner.Defender : BattleOutpostOwner.Attacker);
         return IsBuildingCoverActive(grid) || ownsOutpost;
+    }
+
+    private bool HasAiDirectAttackOpportunity(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        return unit.Energy >= NormalAttackEnergyCost &&
+               CanUseAttackCommand(unit) &&
+               CalculateAttackableGrids(sourceGrid, unit).Any(targetGrid =>
+                   _occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants) &&
+                   GetAiAttackTargetForAttack(targetOccupants, unit.TeamName, targetGrid) != null);
+    }
+
+    private bool IsAiOwnedOutpost(BattleGridKey grid, string teamName)
+    {
+        if (_mapData == null || grid.Level != 0 || !IsWithinMap(grid.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.IsDefenseOutpost &&
+               cell.DefenseOutpostOwner == (IsDefenderTeamName(teamName) ? BattleOutpostOwner.Defender : BattleOutpostOwner.Attacker);
     }
 
     private static bool IsAiVulnerable(BattleOccupantInfo unit)
@@ -12398,6 +12698,28 @@ public partial class BattleSceneController : Node2D
                     GetAiDecisionNoise(sourceGrid, sourceGrid, participantCount: 1))
                 {
                     IsHideAction = true
+                });
+            }
+
+            var enemyFoodPressure = GetAiEnemyFoodPressureScore(unit.TeamName);
+            var hasDirectAttack = HasAiDirectAttackOpportunity(sourceGrid, unit);
+            if (!hasDirectAttack &&
+                CanUseGuard(unit) &&
+                IsAiDefensivePosition(sourceGrid, unit.TeamName) &&
+                (enemyFoodPressure > 0 || IsAiOwnedOutpost(sourceGrid, unit.TeamName)))
+            {
+                actions.Add(new AiOffensiveAction(
+                    sourceGrid,
+                    unit,
+                    sourceGrid,
+                    null,
+                    null,
+                    null,
+                    null,
+                    AiGuardSurvivalScore + enemyFoodPressure + (IsAiOwnedOutpost(sourceGrid, unit.TeamName) ? AiOutpostThreatObjectiveScore : 0) + GetOfficerTacticalIntelligence(unit.OfficerName) * 8,
+                    GetAiDecisionNoise(sourceGrid, sourceGrid, participantCount: 1))
+                {
+                    IsGuardAction = true
                 });
             }
 
@@ -12491,6 +12813,11 @@ public partial class BattleSceneController : Node2D
                 .ToList();
             foreach (var objective in GetAiOutpostObjectives(unit, enemyGrids))
             {
+                if (sourceGrid == objective.Grid)
+                {
+                    continue;
+                }
+
                 var approachGrid = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
                     .OrderBy(grid => GetManhattanDistance(grid.Grid, objective.Grid.Grid))
                     .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
@@ -12548,6 +12875,16 @@ public partial class BattleSceneController : Node2D
         if (chosenAction.IsHideAction)
         {
             return TryExecuteAiHide(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.Score, chosenAction.Noise);
+        }
+
+        if (chosenAction.IsGuardAction)
+        {
+            _selectedUnit = chosenAction.Unit;
+            _selectedUnitGrid = chosenAction.SourceGrid;
+            FocusCameraOnBattleGrid(chosenAction.SourceGrid);
+            AppendBattleLog(chosenAction.Unit, "AI", $"Decision: guard defensive position while enemy food is low (score {chosenAction.Score}, variance {chosenAction.Noise}).");
+            OnGuardButtonPressed();
+            return HasUnitActed(chosenAction.Unit);
         }
 
         if (chosenAction.MoveAttackDestination.HasValue)
@@ -13226,22 +13563,40 @@ public partial class BattleSceneController : Node2D
     {
         var intelligence = GetOfficerTacticalIntelligence(action.Unit.OfficerName);
         var combat = GetOfficerBattleAttribute(action.Unit.OfficerName);
-        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.FencePlan != null || action.SupplyPlan.HasValue;
+        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.FencePlan != null || action.SupplyPlan.HasValue || action.IsGuardAction;
+        var isDirectAttack = action.UnionCandidate == null &&
+                             !action.MoveAttackDestination.HasValue &&
+                             !action.IsHideAction &&
+                             !action.IsGuardAction &&
+                             _occupantsByGrid.TryGetValue(action.TargetGrid, out var directTargetOccupants) &&
+                             GetAiAttackTargetForAttack(directTargetOccupants, action.Unit.TeamName, action.TargetGrid) != null;
         var ambushBonus = action.Unit.IsHidden && !isTacticalObjective && !action.IsHideAction
             ? AiHiddenAmbushAttackScoreBonus
             : 0;
         var enemyFoodPressure = GetAiEnemyFoodPressureScore(action.Unit.TeamName);
-        var foodPressureBonus = action.IsHideAction ||
+        var foodPressureBonus = isDirectAttack ||
+                                  action.IsHideAction ||
+                                  action.IsGuardAction ||
                                   action.OutpostObjective?.Reason.StartsWith("protect", StringComparison.Ordinal) == true
             ? enemyFoodPressure
             : 0;
+        var isDecisiveAction = action.Score >= 5000 ||
+                               action.OutpostObjective?.Reason.Contains("final", StringComparison.OrdinalIgnoreCase) == true;
         if (_occupantsByGrid.TryGetValue(action.TargetGrid, out var targetOccupants) &&
             GetAiAttackTargetForAttack(targetOccupants, action.Unit.TeamName, action.TargetGrid) is { TroopType: TroopSupplyCart })
         {
             foodPressureBonus += enemyFoodPressure * 2;
         }
 
-        return action.Score + ambushBonus + foodPressureBonus + (isTacticalObjective ? intelligence * 6 + combat * 2 : intelligence * 2 + combat * 6);
+        var foodPressurePenalty = enemyFoodPressure > 0 &&
+                                  !isTacticalObjective &&
+                                  !action.IsHideAction &&
+                                  !isDirectAttack &&
+                                  !isDecisiveAction &&
+                                  foodPressureBonus == 0
+            ? enemyFoodPressure
+            : 0;
+        return action.Score + ambushBonus + foodPressureBonus - foodPressurePenalty + (isTacticalObjective ? intelligence * 6 + combat * 2 : intelligence * 2 + combat * 6);
     }
 
     private int GetAiOffensiveActionScore(BattleGridKey targetGrid, string attackerTeamName, BattleOccupantInfo target, int damage, int supportCount)
@@ -13606,6 +13961,7 @@ public partial class BattleSceneController : Node2D
 
     private void RestoreTeamUnitEnergy(string teamName)
     {
+        var energyCap = GetTeamEnergyCap(teamName);
         foreach (var occupants in _occupantsByGrid.Values)
         {
             for (var index = 0; index < occupants.Count; index++)
@@ -13618,14 +13974,19 @@ public partial class BattleSceneController : Node2D
 
                 occupants[index] = occupant with
                 {
-                    Energy = DefaultUnitEnergy,
+                    Energy = energyCap,
                     HasAttackedThisTurn = false,
-                    RemainingMoveRange = GetEffectiveMoveRange(occupant),
+                    RemainingMoveRange = GetTeamMoveRangeCap(occupant),
                     IsGuarding = false,
                     GuardCounterAvailable = false,
                     GuardDamageReductionCount = 0
                 };
             }
+        }
+
+        if (energyCap < DefaultUnitEnergy)
+        {
+            AppendBattleLog(teamName, "Supply", $"Food is 0: all troops and vehicles begin this turn with Energy {energyCap}/{DefaultUnitEnergy}.");
         }
     }
 
@@ -13689,6 +14050,7 @@ public partial class BattleSceneController : Node2D
         {
             _currentTurnSide = BattleTurnSide.TeamA;
             ResolveDailyBattleSupply();
+            AdvanceBattleDate();
             _turnNumber++;
         }
 
@@ -13701,6 +14063,26 @@ public partial class BattleSceneController : Node2D
         RefreshCoordinateLabel();
         RefreshInfoPanel();
         RefreshHighlights();
+    }
+
+    private void AdvanceBattleDate()
+    {
+        _battleDateDay++;
+        var daysInMonth = DateTime.DaysInMonth(_battleDateYear, _battleDateMonth);
+        if (_battleDateDay <= daysInMonth)
+        {
+            return;
+        }
+
+        _battleDateDay = 1;
+        _battleDateMonth++;
+        if (_battleDateMonth <= 12)
+        {
+            return;
+        }
+
+        _battleDateMonth = 1;
+        _battleDateYear++;
     }
 
     private void OnWeatherButtonPressed()
@@ -14157,6 +14539,9 @@ public partial class BattleSceneController : Node2D
         public bool UseEditorAuthoredLayout { get; set; }
         public int TurnNumber { get; set; }
         public BattleTurnSide CurrentTurnSide { get; set; }
+        public int BattleDateYear { get; set; }
+        public int BattleDateMonth { get; set; }
+        public int BattleDateDay { get; set; }
         public BattleTimeOfDay CurrentBattleTimeOfDay { get; set; }
         public BattleWeatherType CurrentBattleWeather { get; set; }
         public BattleWindDirection CurrentBattleWindDirection { get; set; }
@@ -14165,8 +14550,10 @@ public partial class BattleSceneController : Node2D
         public int TeamBStrategyPlans { get; set; }
         public int TeamAGold { get; set; } = InitialTeamAGold;
         public int TeamAFood { get; set; } = InitialTeamAFood;
+        public int TeamAZeroFoodDays { get; set; }
         public int TeamBGold { get; set; } = InitialTeamBGold;
         public int TeamBFood { get; set; } = InitialTeamBFood;
+        public int TeamBZeroFoodDays { get; set; }
         public bool ShowSelfTeamLogOnly { get; set; }
         public float BattleLogExpandedWidth { get; set; }
         public float BattleLogExpandedHeight { get; set; }

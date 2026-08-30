@@ -652,6 +652,14 @@ text = "Start Round"
 layout_mode = 2
 text = "Next"
 
+[node name="AttackerOneDayFoodButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Attacker Food: 1d"
+
+[node name="DefenderOneDayFoodButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+layout_mode = 2
+text = "Defender Food: 1d"
+
 [node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
 layout_mode = 2
 text = "End"

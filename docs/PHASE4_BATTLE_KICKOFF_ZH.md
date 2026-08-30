@@ -315,7 +315,10 @@
 - 野戰 AI 的攻擊決策會把直接攻擊、合擊、合法的「移動後保留 `5` 能量攻擊」、Worker 工程與堡壘目標放入同一候選集，以既有預估傷害／目標 score、武將 Intelligence 與 Combat 加上可重現的微小變異排序；移動後攻擊不再只在其他方案沒有選擇時才考慮。低兵力戰隊的生存評估只計入敵軍依能量、地形路徑及攻擊格實際可達的威脅，並會比較直接攻擊、合擊與移動後攻擊收益。
 - 補給車僅在相鄰友軍有重傷、士氣不高於 `30` 或受損投石車時，優先於一般戰隊行動；一般補給與移動後補給會以回復量、士氣缺口、修理量及路徑成本計分，再與攻擊、工程與堡壘候選共同排序。
 - 野戰 AI 的一般戰隊可在符合安全距離與接敵條件的森林格選擇 `Hide`；隱藏後，對進入合法攻擊範圍的可見敵軍會提高攻擊候選分數以形成伏擊。AI 不會直接讀取敵方隱藏單位作為可見目標，但玩家仍可保留對森林格的盲攻。
-- 野戰 AI 會比較雙方 Food 可供應日數：敵方少於 `2` 日、且比己方更接近斷糧時，提高守堡、Guard、Hide 與攻擊敵方 `SupplyCart` 的候選分數；少於 `1` 日時提高程度更大，讓 AI 可選擇拖延或切斷補給線，同時不覆蓋既有必殺與最後堡壘勝利優先。
+- 野戰 AI 會比較雙方 Food 可供應日數：敵方少於 `2` 日、且比己方更接近斷糧時，提高守堡、Guard、Hide 與攻擊敵方 `SupplyCart` 的候選分數；只剩 `1` 日或更少時，位於 Building／己方 Fortress 的一般戰隊會將 Guard 放入全域候選，並降低一般非必殺攻擊的分數，讓 AI 優先拖延或切斷補給線。例外是存在任何合法直接攻擊目標（包含弓／弩遠距）時：Guard 不會列入候選，直接攻擊不會受低糧扣分並獲得同等戰術加分；必殺與最後堡壘勝利仍保留既有高分。已在其目標 Fortress 的單位不會產生接近同一堡壘的移動候選，沒有直接攻擊時 Guard 留守。
+- 野戰 top bar 提供僅供測試的「攻方糧食：1 日」與「守方糧食：1 日」按鈕，將指定方 Food 設為其目前 active troops 的一日消耗，方便驗證低糧 AI 行為，不修改 Scenario 初始資源。一日為攻、守雙方各完成一次回合；每次完成完整一日，會結算雙方日常補給並讓戰場日期前進。
+- 若 Food 不足以支付整日消耗，Food 會歸零，該方全隊扣 `15` 士氣，並讓每支一般戰隊立即流失 `10%` 現役兵力；流失量以傷害數字與 Battle Log 顯示，令斷糧效果可觀察且可測試。
+- Food 為 `0` 時，所有一般戰隊、攻城器與補給車會在各自回合開始依連續零糧完整日數，將 Energy 上限由 `10` 依序降至 `7`、`5`、`5`；Food 回復後，下一個己方回合立即回復 `10`。第 3 日起為固定瀕餓作戰：移動範圍最多 `1` 格，且一般攻擊、合擊與 Charge 傷害均為正常 `50%`，移動後沒有足夠 Energy 再攻擊。車體本身不會因而扣 HP，但 Energy 低於 `5` 時補給車無法補給／補彈，投石車無法一般射擊。
 - battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。無論玩家或 AI 觸發撤退，畫面中央皆會顯示「武將名／兵種」及 `Retreat` 的提示框約 2 秒後自動消失。
 - `Unit Command` menu 的 action buttons 超過 `4` 個可見指令時，指令區會限制高度並啟用垂直捲動；title 與 unit info 保持固定顯示。
 - 點選非目前 `Acting Side` 的單位時仍會顯示 unit info menu，但 action buttons 會隱藏，並在資訊中標示 `Command: Not Acting Side`，避免看起來像 command menu 無法彈出。
@@ -323,15 +326,16 @@
   - 一般戰鬥隊伍預設 `Morale 100`，Worker 預設 `Morale 80`。
   - 一般 battle team 的兵力分為 `Active Troops` 與 `Wounded Troops`：`Active` 會參與戰鬥與 HUD 總兵力，`Wounded` 暫時不能戰鬥但可被糧草車恢復。
   - 一般 battle team 的 marker HP bar 採三段顯示：綠色為 `Active Troops`、粉紅色為 `Wounded Troops`、黑色為 `Dead / Killed Troops`。
-  - HP 傷害、HP 維修與士氣變化會以 battle piece 上方浮字呈現；士氣浮字與 HP 傷害浮字使用不同顏色，`Morale +N` / `士氣 +N` 偏藍，`Morale -N` / `士氣 -N` 偏琥珀，避免和紅色傷害數字混淆。
+  - HP 傷害、HP 維修與士氣變化會以 battle piece 上方浮字呈現，所有這些增減浮字顯示 `4` 秒；士氣浮字與 HP 傷害浮字使用不同顏色，`Morale +N` / `士氣 +N` 偏藍，`Morale -N` / `士氣 -N` 偏琥珀，避免和紅色傷害數字混淆。
   - 一般攻擊造成的有效傷害目前拆為約 `40% killed / 60% wounded`；fire damage 拆為約 `70% killed / 30% wounded`。Battle Log 會顯示 killed 與 wounded 數字。
   - `Ram`、`Ladder`、`Catapult`、`SupplyCart` 等攻城器／後勤車沒有 morale，UI 以 `-` 表示。
   - 糧草車 `SupplyCart` 可每回合一次使用後勤行動，`Recovery / Repair` 與 `Resupply Weapon` 共用同一個每回合次數。
   - `Recovery / Repair`：對八方向 1 格內的同隊一般 battle team 恢復 `Morale +8`，上限仍為 `120`；若附近同隊 battle team 有 wounded，則每次最多恢復 `600` 名傷兵回到 `Active Troops`；若自己或八方向 1 格內同隊攻城器受損，則可維修 `HP +450`，不超過各自最大 HP。
+  - `Building`／己方 `Fortress` 的休整：一般戰隊在己方回合結束時，若 Food 大於 `0`、仍駐守該格、格子未起火、八方向沒有敵軍，且該回合未移動或使用指令，最多可將 `150` 名 wounded troops 回復為 active troops。休整不復活 dead troops，並且弱於補給車的 `600` 傷兵恢復。
   - `Resupply Weapon`：對八方向 1 格內同隊 `Archer`、`Crossbow`、`Catapult` 補滿武器彈藥。
   - `Archer` 武器彈藥為 `6/6`、`Crossbow` 為 `4/4`、`Catapult` 為 `3/3`；普通攻擊、合擊中的遠程參與者，以及 `Strategy (Fire)` 各消耗 `1` 發。`Archer` / `Crossbow` / `Catapult` 彈藥為 `0` 時仍可使用 1 格 `Weak Close Attack`，傷害約為各自原攻擊的 `35%`，且不播放箭矢／石彈彈道；`Strategy (Fire)` 仍需要彈藥。
   - `Archer` / `Crossbow` 使用 `Strategy (Fire)` 時會播放攻擊動畫與箭矢彈道；`Catapult` 則播放投石車攻擊動畫與投石彈道，再於目標格點燃 fire。
-  - 每個完整 battle day（Team B 結束後、Turn 前進時）會消耗雙方 Gold / Food：目前 prototype 以每 `100` active troops 消耗 `Food 5` 與 `Gold 1` 計算；若當日糧食不足，該隊一般 battle team `Morale -15`，若剩餘糧食低於下一日需求則 `Morale -6`。
+  - 每個完整 battle day（Team B 結束後、Turn 前進時）會消耗雙方 Gold / Food：目前 prototype 以每 `100` active troops 消耗 `Food 5` 與 `Gold 1` 計算；若當日糧食不足，Food 歸零、該隊一般 battle team `Morale -15`，且每支一般戰隊流失 `10%` active troops；若剩餘糧食低於下一日需求則 `Morale -6`。攻城器與補給車沒有 morale，也不套用兵員流失；但 Food 持續為 `0` 時，它們和一般戰隊一樣會在各自回合的 Energy 上限按零糧完整日數降為 `7`、`5`、`5`。第 3 日起為固定瀕餓作戰：移動範圍最多 `1` 格、一般攻擊／合擊／Charge 傷害為 `50%`；Food 回復後下一個己方回合回到 `10`。
   - 糧草車被摧毀時，同隊 Gold / Food 會額外損失 `25%`，同隊仍在場的一般 battle team 士氣會立刻降為目前值的 `50%`；糧草車主動撤退不觸發此懲罰。
   - 一般 battle team 若相鄰敵方 `SupplyCart`，command menu 會顯示 `Capture Cart`；成功後敵方 Gold / Food 損失 `25%` 並轉移給俘獲方，敵方仍在場的一般 battle team 士氣降為目前值的 `50%`，俘獲方一般 battle team `Morale +10`，且該糧草車會轉為俘獲方陣營並留在戰場，可由俘獲方後續控制與使用。
   - 一般 battle team 若同層 2 格內有敵方 officer / general 隊伍，command menu 會顯示 `Hire Officer`；點擊後會 highlight 所有可招降目標，玩家再點選要招降的目標。花費 Gold 可直接招降該隊伍並轉入己方，目前 prototype 先固定成本為 `100 Gold`。招降成功後會播放金色牽引線、目標格光環與 `招降成功` 浮字，招降方仍在場的一般 battle team `Morale +8`，被招降方仍在場的一般 battle team `Morale -8`。
@@ -447,7 +451,7 @@
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
 - `assets/battle/object/fortress_01.png` 是 `ObjectLayer` source ID `12` 的防禦堡壘 atlas，規格為 `1 row x 3 frame`、每格 `128x128`，只登錄前兩格。堡壘沿用 `Building` 的可駐守、20% 直接傷害減免及攻城器禁止進入規則；初始歸守方，runtime 額外顯示藍旗。任何一般戰鬥單位抵達堡壘格後，堡壘即改歸該隊，攻方為紅旗、守方為藍旗；旗幟不會在移動動畫尚未抵達前提早切換。歸屬與選用 frame 會被 battle quick save/load 保存。堡壘是縱深防線與反擊目標，不得貼近橋頭、渡口等前線突破格；應位於渡河／過隘之後的丘陵、道路分岔或防區內，讓攻方必須先突破前線、再深入才能爭奪勝利目標。晉陽以橋北主路控制點 `(11,8)` 配合東側山麓側防點 `(15,6)`；襄陽則有四座堡壘：西側丘陵 `(4,4)`、東側丘陵 `(19,4)`、北側預備線 `(10,5)` 與東側橋頭 `(14,8)`。襄陽攻方可選擇殲滅守軍，或在守方回合結束前同時佔領所有堡壘取勝。
-- 野戰勝利條件為：任一方沒有仍在場的 `Battle Team`（一般單位或攻城器，包含被殲滅及已撤退者）即敗北；此外，攻方只要所有防禦堡壘均為攻方歸屬，並在守方回合結束後仍保持該狀態，即以堡壘控制獲勝。此時點讓守方獲得完整一回合反奪堡壘的機會；守方沒有對稱的堡壘反佔勝利，仍以擊潰或逼退攻方取勝。
+- 野戰勝利條件為：任一方沒有仍在場的帶 officer 一般 `Battle Team`（`Worker`、無 officer 的一般單位、`Ram`／`Ladder`／`Catapult`／`SupplyCart` 均不計入）即敗北；因此只剩車輛不能繼續戰鬥。此外，攻方只要所有防禦堡壘均為攻方歸屬，並在守方回合結束後仍保持該狀態，即以堡壘控制獲勝。此時點讓守方獲得完整一回合反奪堡壘的機會；守方沒有對稱的堡壘反佔勝利，仍以擊潰或逼退攻方取勝。
 - `assets/battle/object/forest_01.png` 是 `ObjectLayer` source ID `2` 的 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Forest` 地形並保留選到的變體，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/wood_01.png` 是 `ObjectLayer` source ID `6` 的第二組 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；規則與 `forest_01.png` 相同，但 runtime rebuild / battle quick save/load 會額外保留圖集來源，避免將 wood 變體換回第一組森林圖。
 - `assets/battle/object/swamp_01.png` 是 `ObjectLayer` source ID `3` 的 swamp atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Swamp` 地形並保留選到的變體，移動消耗仍為 2，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
