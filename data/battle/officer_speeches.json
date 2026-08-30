@@ -1,0 +1,42 @@
+{
+  "entries": [
+    { "event": "opening", "persona": "vanguard", "priority": 10, "keys": ["ui.battle.speech.vanguard.opening.01", "ui.battle.speech.vanguard.opening.02"] },
+    { "event": "opening", "persona": "tactician", "priority": 10, "keys": ["ui.battle.speech.tactician.opening.01", "ui.battle.speech.tactician.opening.02"] },
+    { "event": "opening", "persona": "steadfast", "priority": 10, "keys": ["ui.battle.speech.steadfast.opening.01", "ui.battle.speech.steadfast.opening.02"] },
+    { "event": "opening", "persona": "ambitious", "priority": 10, "keys": ["ui.battle.speech.ambitious.opening.01", "ui.battle.speech.ambitious.opening.02"] },
+
+    { "event": "terrain_forest", "persona": "tactician", "priority": 20, "keys": ["ui.battle.speech.tactician.forest.01", "ui.battle.speech.tactician.forest.02"] },
+    { "event": "terrain_forest", "persona": "vanguard", "priority": 20, "keys": ["ui.battle.speech.vanguard.forest.01"] },
+    { "event": "terrain_hill", "persona": "tactician", "priority": 20, "keys": ["ui.battle.speech.tactician.hill.01"] },
+    { "event": "terrain_hill", "persona": "steadfast", "priority": 20, "keys": ["ui.battle.speech.steadfast.hill.01"] },
+    { "event": "terrain_bridge", "persona": "tactician", "priority": 20, "keys": ["ui.battle.speech.tactician.bridge.01"] },
+    { "event": "terrain_bridge", "persona": "steadfast", "priority": 20, "keys": ["ui.battle.speech.steadfast.bridge.01"] },
+    { "event": "terrain_swamp", "persona": "tactician", "priority": 20, "keys": ["ui.battle.speech.tactician.swamp.01"] },
+    { "event": "terrain_swamp", "persona": "vanguard", "priority": 20, "keys": ["ui.battle.speech.vanguard.swamp.01"] },
+
+    { "event": "attack", "persona": "vanguard", "priority": 30, "keys": ["ui.battle.speech.vanguard.attack.01", "ui.battle.speech.vanguard.attack.02"] },
+    { "event": "attack", "persona": "tactician", "priority": 30, "keys": ["ui.battle.speech.tactician.attack.01", "ui.battle.speech.tactician.attack.02"] },
+    { "event": "attack", "persona": "steadfast", "priority": 30, "keys": ["ui.battle.speech.steadfast.attack.01"] },
+    { "event": "attack", "persona": "ambitious", "priority": 30, "keys": ["ui.battle.speech.ambitious.attack.01", "ui.battle.speech.ambitious.attack.02"] },
+    { "event": "charge", "persona": "vanguard", "priority": 40, "keys": ["ui.battle.speech.vanguard.charge.01", "ui.battle.speech.vanguard.charge.02"] },
+    { "event": "charge", "persona": "ambitious", "priority": 40, "keys": ["ui.battle.speech.ambitious.charge.01"] },
+    { "event": "union", "persona": "tactician", "priority": 40, "keys": ["ui.battle.speech.tactician.union.01", "ui.battle.speech.tactician.union.02"] },
+    { "event": "union", "persona": "steadfast", "priority": 40, "keys": ["ui.battle.speech.steadfast.union.01"] },
+    { "event": "capture", "persona": "vanguard", "priority": 50, "keys": ["ui.battle.speech.vanguard.capture.01"] },
+    { "event": "capture", "persona": "tactician", "priority": 50, "keys": ["ui.battle.speech.tactician.capture.01"] },
+    { "event": "capture", "persona": "steadfast", "priority": 50, "keys": ["ui.battle.speech.steadfast.capture.01"] },
+    { "event": "capture", "persona": "ambitious", "priority": 50, "keys": ["ui.battle.speech.ambitious.capture.01"] },
+    { "event": "destroy", "persona": "vanguard", "priority": 55, "keys": ["ui.battle.speech.vanguard.destroy.01"] },
+    { "event": "destroy", "persona": "tactician", "priority": 55, "keys": ["ui.battle.speech.tactician.destroy.01"] },
+    { "event": "destroy", "persona": "steadfast", "priority": 55, "keys": ["ui.battle.speech.steadfast.destroy.01"] },
+    { "event": "destroy", "persona": "ambitious", "priority": 55, "keys": ["ui.battle.speech.ambitious.destroy.01"] },
+    { "event": "critical", "persona": "vanguard", "priority": 50, "keys": ["ui.battle.speech.vanguard.critical.01"] },
+    { "event": "critical", "persona": "tactician", "priority": 50, "keys": ["ui.battle.speech.tactician.critical.01"] },
+    { "event": "critical", "persona": "steadfast", "priority": 50, "keys": ["ui.battle.speech.steadfast.critical.01", "ui.battle.speech.steadfast.critical.02"] },
+    { "event": "critical", "persona": "ambitious", "priority": 50, "keys": ["ui.battle.speech.ambitious.critical.01"] },
+    { "event": "retreat", "persona": "vanguard", "priority": 60, "keys": ["ui.battle.speech.vanguard.retreat.01"] },
+    { "event": "retreat", "persona": "tactician", "priority": 60, "keys": ["ui.battle.speech.tactician.retreat.01"] },
+    { "event": "retreat", "persona": "steadfast", "priority": 60, "keys": ["ui.battle.speech.steadfast.retreat.01"] },
+    { "event": "retreat", "persona": "ambitious", "priority": 60, "keys": ["ui.battle.speech.ambitious.retreat.01"] }
+  ]
+}

@@ -41,12 +41,58 @@ public partial class BattleSceneController : Node2D
 {
     public sealed record LaunchOptions(BattleScenarioType ScenarioType, bool UseEditorAuthoredLayout);
 
+    private sealed record OfficerPortraitDefinition(string SheetPath, Rect2 Region);
+
+    private enum BattleOfficerSpeechEvent
+    {
+        Opening,
+        Attack,
+        Charge,
+        Union,
+        Capture,
+        Destroy,
+        Critical,
+        Retreat,
+        TerrainForest,
+        TerrainHill,
+        TerrainBridge,
+        TerrainSwamp
+    }
+
+    private sealed class BattleOfficerSpeechCatalog
+    {
+        public List<BattleOfficerSpeechEntry> Entries { get; set; } = new();
+    }
+
+    private sealed class BattleOfficerSpeechEntry
+    {
+        public string Event { get; set; } = string.Empty;
+        public string Persona { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public List<string> Keys { get; set; } = new();
+    }
+
     public static LaunchOptions? PendingLaunchOptions { get; set; }
+
+    private static readonly IReadOnlyDictionary<string, OfficerPortraitDefinition> OfficerPortraitDefinitions =
+        new Dictionary<string, OfficerPortraitDefinition>(StringComparer.Ordinal)
+        {
+            ["Xiahou Yuan"] = new("res://assets/portrait/team2.png", new Rect2(1234, 5, 300, 258)),
+            ["Zhang He"] = new("res://assets/portrait/team2.png", new Rect2(612, 270, 304, 242)),
+            ["Dong Zhuo"] = new("res://assets/portrait/team4.png", new Rect2(284, 7, 272, 226)),
+            ["Li Jue"] = new("res://assets/portrait/team4.png", new Rect2(841, 237, 272, 220)),
+            ["Guo Si"] = new("res://assets/portrait/team4.png", new Rect2(1120, 237, 276, 220)),
+            ["Cao Hong"] = new("res://assets/portrait/team5.png", new Rect2(501, 250, 250, 252)),
+            ["Cao Chun"] = new("res://assets/portrait/team7.png", new Rect2(250, 1003, 252, 250))
+        };
 
     private const float MapPaddingLeft = 220.0f;
     private const float MapPaddingTop = 220.0f;
     private const float MapPaddingRight = 220.0f;
     private const float MapPaddingBottom = 320.0f;
+    private const double OfficerSpeechDurationSeconds = 4.0;
+    private const ulong OfficerSpeechCooldownMilliseconds = 20000;
+    private const string OfficerSpeechCatalogPath = "res://data/battle/officer_speeches.json";
     // Camera2D zoom below 1.0 is closer; above 1.0 shows more of the battlefield.
     private const float MinimumBattleCameraZoom = 0.75f;
     private const float MaximumBattleCameraZoom = 1.35f;
@@ -334,6 +380,10 @@ public partial class BattleSceneController : Node2D
     {
         WriteIndented = true
     };
+    private static readonly JsonSerializerOptions OfficerSpeechJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     private BattleMapData? _mapData;
     private Node2D? _mapRoot;
@@ -362,6 +412,11 @@ public partial class BattleSceneController : Node2D
     private Label? _battleResultLabel;
     private Control? _retreatNotice;
     private Label? _retreatNoticeLabel;
+    private Control? _officerSpeechOverlay;
+    private TextureRect? _officerSpeechPortrait;
+    private Label? _officerSpeechTeamNameLabel;
+    private Label? _officerSpeechNameLabel;
+    private Label? _officerSpeechTextLabel;
     private Button? _allLogButton;
     private Button? _selfLogButton;
     private Button? _minimizeLogButton;
@@ -369,6 +424,8 @@ public partial class BattleSceneController : Node2D
     private Label? _battleLogTitleLabel;
     private Label? _windowTitleLabel;
     private Label? _unitMenuInfoLabel;
+    private TextureRect? _officerPortrait;
+    private readonly Dictionary<string, Texture2D> _officerPortraitTextures = new(StringComparer.Ordinal);
     private Button? _endTurnButton;
     private Button? _enableAiButton;
     private Button? _disableAiButton;
@@ -422,6 +479,11 @@ public partial class BattleSceneController : Node2D
     private bool _isBattleLogMinimized;
     private bool _isBattleFinished;
     private int _retreatNoticeSerial;
+    private int _officerSpeechSerial;
+    private int _activeOfficerSpeechPriority;
+    private readonly List<BattleOfficerSpeechEntry> _officerSpeechEntries = new();
+    private readonly Dictionary<string, ulong> _officerSpeechLastShownAt = new(StringComparer.Ordinal);
+    private readonly Random _officerSpeechRandom = new();
     private bool _attackerOutpostVictorySecured;
     private Vector2 _lastMousePosition;
     private Vector2 _commandMenuDragOffset;
@@ -625,6 +687,7 @@ public partial class BattleSceneController : Node2D
         }
 
         InitializeBattleLocalization();
+        LoadOfficerSpeechCatalog();
         ApplyPendingLaunchOptions();
         StartBattleBgm();
 
@@ -877,6 +940,8 @@ public partial class BattleSceneController : Node2D
         {
             _mapRoot.Position = GetClampedMapPosition(_mapRoot.Position);
         }
+
+        ShowOpeningOfficerSpeechAfterDelay();
     }
 
     private void InitializeBattleLocalization()
@@ -1043,6 +1108,7 @@ public partial class BattleSceneController : Node2D
     {
         _localization.ToggleLanguage();
         ConfigureHud();
+        RefreshMarkerNamePlates();
         RefreshBattleLogPanel();
         RefreshBattleOptionDialogText();
         if (_commandMenu?.Visible == true)
@@ -1588,7 +1654,7 @@ public partial class BattleSceneController : Node2D
             GetSavedMarkerFillColor(occupant),
             GetSavedMarkerBorderColor(occupant),
             saveData.Category == CategorySiegeEngine ? 21.0f : 19.0f);
-        marker.SetupNamePlate(string.IsNullOrWhiteSpace(saveData.OfficerName) ? saveData.DisplayName : saveData.OfficerName);
+        marker.SetupNamePlate(FormatMarkerName(saveData.OfficerName, saveData.DisplayName, saveData.TroopType));
         marker.SetupTeamArrow(GetTeamArrowColor(saveData.TeamName));
         marker.SetupSpriteAnimationScene(GetIdleSceneForOccupant(occupant));
         UpdateMarkerStrengthBar(occupant);
@@ -1849,6 +1915,11 @@ public partial class BattleSceneController : Node2D
         }
         _retreatNotice ??= GetNodeOrNull<Control>("UiLayer/RetreatNotice");
         _retreatNoticeLabel ??= GetNodeOrNull<Label>("UiLayer/RetreatNotice/Margin/Label");
+        _officerSpeechOverlay ??= GetNodeOrNull<Control>("UiLayer/OfficerSpeechOverlay");
+        _officerSpeechPortrait ??= GetNodeOrNull<TextureRect>("UiLayer/OfficerSpeechOverlay/Margin/Row/Portrait");
+        _officerSpeechTeamNameLabel ??= GetNodeOrNull<Label>("UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn/TeamName");
+        _officerSpeechNameLabel ??= GetNodeOrNull<Label>("UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn/OfficerName");
+        _officerSpeechTextLabel ??= GetNodeOrNull<Label>("UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn/SpeechText");
         _allLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/AllLogButton");
         _selfLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/SelfLogButton");
         _minimizeLogButton ??= GetNodeOrNull<Button>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow/MinimizeLogButton");
@@ -1857,7 +1928,8 @@ public partial class BattleSceneController : Node2D
         _timeOfDayOverlay ??= GetNodeOrNull<ColorRect>("UiLayer/TimeOfDayOverlay");
         _weatherOverlay ??= GetNodeOrNull<ColorRect>("UiLayer/WeatherOverlay");
         _windowTitleLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/WindowTitleLabel");
-        _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/UnitMenuInfoLabel");
+        _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow/UnitMenuInfoLabel");
+        _officerPortrait ??= GetNodeOrNull<TextureRect>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow/OfficerPortrait");
         _commandScroll ??= GetNodeOrNull<ScrollContainer>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll");
         _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
         _enableAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EnableAiButton");
@@ -2355,6 +2427,7 @@ public partial class BattleSceneController : Node2D
         cell.DefenseOutpostOwner = newOwner;
         RefreshDefenseOutpostFlag(grid.Grid);
         AppendBattleLog(occupant, "Outpost", $"{FormatLogUnit(occupant)} captures defense outpost ({(newOwner == BattleOutpostOwner.Defender ? "Defender" : "Attacker")})");
+        TryShowOfficerSpeech(occupant, BattleOfficerSpeechEvent.Capture);
     }
 
     private void ClearHighlightDepthVisuals()
@@ -2676,7 +2749,7 @@ public partial class BattleSceneController : Node2D
         var gridKey = GetDefaultGridKey(grid);
         marker.Position = GetMarkerPosition(gridKey);
         marker.Setup(label, fillColor, borderColor, radius);
-        marker.SetupNamePlate(string.IsNullOrWhiteSpace(officerName) ? displayName : officerName);
+        marker.SetupNamePlate(FormatMarkerName(officerName, displayName, troopType));
         marker.SetupTeamArrow(GetTeamArrowColor(teamName));
         if (category == CategoryUnit)
         {
@@ -3080,6 +3153,14 @@ public partial class BattleSceneController : Node2D
 
     private void HandleMouseButton(InputEventMouseButton mouseButton)
     {
+        if (mouseButton.Pressed &&
+            mouseButton.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown &&
+            IsPointInCommandMenu(mouseButton.GlobalPosition))
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (mouseButton.Pressed && TryAdjustBattleCameraZoom(mouseButton))
         {
             GetViewport().SetInputAsHandled();
@@ -3225,6 +3306,11 @@ public partial class BattleSceneController : Node2D
         }
 
         _isDraggingMap = false;
+    }
+
+    private bool IsPointInCommandMenu(Vector2 globalPosition)
+    {
+        return _commandMenu?.Visible == true && _commandMenu.GetGlobalRect().HasPoint(globalPosition);
     }
 
     private bool TryAdjustBattleCameraZoom(InputEventMouseButton mouseButton)
@@ -4181,14 +4267,10 @@ public partial class BattleSceneController : Node2D
     {
         return string.Join(
             "\n",
-            BattleFormat("ui.battle.menu_team", "Team: {0}", "-"),
             BattleFormat("ui.battle.menu_officer", "Officer: {0}", "-"),
-            BattleFormat("ui.battle.menu_type", "Type: {0}", "-"),
             BattleFormat("ui.battle.menu_status", "Status: {0}", "-"),
-            BattleFormat("ui.battle.menu_morale", "Morale: {0}", "-"),
-            BattleFormat("ui.battle.menu_ammo", "Ammo: {0}", "-"),
-            BattleFormat("ui.battle.menu_active", "Active: {0}", "-"),
-            BattleFormat("ui.battle.menu_wounded", "Wounded: {0}", "-"));
+            BattleFormat("ui.battle.menu_command", "Command: {0}", "-"),
+            BattleFormat("ui.battle.menu_active_wounded", "Troops: {0:N0} ({1})", "-", "-"));
     }
 
     private string FormatUnitCategory(string category)
@@ -4218,6 +4300,92 @@ public partial class BattleSceneController : Node2D
             TroopSupplyCart => BattleText("ui.battle.troop_supply_cart", "Supply Cart"),
             _ => troopType
         };
+    }
+
+    private string FormatOfficerName(string officerName)
+    {
+        return officerName switch
+        {
+            "Xiahou Yuan" => BattleText("ui.battle.officer_xiahou_yuan", "Xiahou Yuan"),
+            "Zhang He" => BattleText("ui.battle.officer_zhang_he", "Zhang He"),
+            "Dong Zhuo" => BattleText("ui.battle.officer_dong_zhuo", "Dong Zhuo"),
+            "Li Jue" => BattleText("ui.battle.officer_li_jue", "Li Jue"),
+            "Guo Si" => BattleText("ui.battle.officer_guo_si", "Guo Si"),
+            "Cao Hong" => BattleText("ui.battle.officer_cao_hong", "Cao Hong"),
+            "Cao Chun" => BattleText("ui.battle.officer_cao_chun", "Cao Chun"),
+            "" => "-",
+            _ => officerName
+        };
+    }
+
+    private string FormatMarkerName(string officerName, string displayName, string troopType)
+    {
+        if (!string.IsNullOrWhiteSpace(officerName) &&
+            !string.Equals(officerName, "Worker", StringComparison.OrdinalIgnoreCase))
+        {
+            return FormatOfficerName(officerName);
+        }
+
+        return string.IsNullOrWhiteSpace(troopType)
+            ? displayName
+            : FormatTroopType(troopType);
+    }
+
+    private void RefreshMarkerNamePlates()
+    {
+        foreach (var occupant in _occupantsByGrid.Values.SelectMany(static occupants => occupants))
+        {
+            if (occupant.Marker != null)
+            {
+                occupant.Marker.SetupNamePlate(FormatMarkerName(occupant.OfficerName, occupant.DisplayName, occupant.TroopType));
+            }
+        }
+    }
+
+    private void RefreshOfficerPortrait()
+    {
+        if (_officerPortrait == null)
+        {
+            return;
+        }
+
+        if (_selectedUnit == null || !IsGeneralCountedPiece(_selectedUnit.Category, _selectedUnit.OfficerName))
+        {
+            _officerPortrait.Texture = null;
+            _officerPortrait.Visible = false;
+            return;
+        }
+
+        var texture = GetOfficerPortraitTexture(_selectedUnit.OfficerName);
+        _officerPortrait.Texture = texture;
+        _officerPortrait.Visible = texture != null;
+    }
+
+    private Texture2D? GetOfficerPortraitTexture(string officerName)
+    {
+        if (_officerPortraitTextures.TryGetValue(officerName, out var cachedTexture))
+        {
+            return cachedTexture;
+        }
+
+        if (!OfficerPortraitDefinitions.TryGetValue(officerName, out var definition))
+        {
+            return null;
+        }
+
+        var sheetTexture = GD.Load<Texture2D>(definition.SheetPath);
+        if (sheetTexture == null)
+        {
+            return null;
+        }
+
+        var portraitTexture = new AtlasTexture
+        {
+            Atlas = sheetTexture,
+            Region = definition.Region
+        };
+        _officerPortraitTextures[officerName] = portraitTexture;
+        return portraitTexture;
     }
 
     private string FormatStrategyAvailability(BattleOccupantInfo unit)
@@ -4708,6 +4876,7 @@ public partial class BattleSceneController : Node2D
             {
                 CaptureDefenseOutpost(destinationGrid, movedOccupant);
                 RefreshOccludedUnitSilhouettes();
+                TryShowTerrainSpeech(movedOccupant, destinationGrid);
                 onMoveAnimationComplete?.Invoke();
             });
         AppendBattleLog(movedOccupant, "Move", $"{FormatLogUnit(movedOccupant)} {sourceGrid} -> {destinationGrid}");
@@ -5436,7 +5605,13 @@ public partial class BattleSceneController : Node2D
         ApplyAttackDamage(attacker, targetGrid, hurtAnimationDuration, damage, attackerGrid);
     }
 
-    private void ApplyAttackDamage(BattleOccupantInfo attacker, BattleGridKey targetGrid, double effectDelaySeconds, int? damageOverride = null, BattleGridKey? attackerGrid = null)
+    private void ApplyAttackDamage(
+        BattleOccupantInfo attacker,
+        BattleGridKey targetGrid,
+        double effectDelaySeconds,
+        int? damageOverride = null,
+        BattleGridKey? attackerGrid = null,
+        BattleOfficerSpeechEvent speechEvent = BattleOfficerSpeechEvent.Attack)
     {
         if (IsClosedGateStructureTarget(targetGrid))
         {
@@ -5470,12 +5645,17 @@ public partial class BattleSceneController : Node2D
             target,
             "Hurt",
             $"{FormatLogUnit(target)} got {casualtyResult.ActualDamage:N0} hurt by {FormatLogUnit(attacker)} at {targetGrid} ({FormatCasualtyResult(casualtyResult)})");
+        TryShowOfficerSpeech(attacker, speechEvent);
+        if (updatedTarget.HitPoints * 100 <= updatedTarget.MaxHitPoints * 35)
+        {
+            TryShowOfficerSpeech(updatedTarget, BattleOfficerSpeechEvent.Critical);
+        }
         ConfigureHud();
         RefreshInfoPanel();
         TryExecuteGuardCounterAttack(updatedTarget, targetGrid, attacker, attackerGrid);
         if (updatedTarget.HitPoints <= 0)
         {
-            DestroyOccupantAfterDelay(targetGrid, updatedTarget, effectDelaySeconds);
+            DestroyOccupantAfterDelay(targetGrid, updatedTarget, effectDelaySeconds, attacker);
         }
     }
 
@@ -5825,6 +6005,184 @@ public partial class BattleSceneController : Node2D
             HireOfficerPopupDelaySeconds);
     }
 
+    private void LoadOfficerSpeechCatalog()
+    {
+        _officerSpeechEntries.Clear();
+        if (!Godot.FileAccess.FileExists(OfficerSpeechCatalogPath))
+        {
+            return;
+        }
+
+        try
+        {
+            var catalog = JsonSerializer.Deserialize<BattleOfficerSpeechCatalog>(
+                Godot.FileAccess.GetFileAsString(OfficerSpeechCatalogPath),
+                OfficerSpeechJsonOptions);
+            if (catalog == null)
+            {
+                return;
+            }
+
+            _officerSpeechEntries.AddRange(catalog.Entries.Where(entry =>
+                !string.IsNullOrWhiteSpace(entry.Event) &&
+                !string.IsNullOrWhiteSpace(entry.Persona) &&
+                entry.Keys.Count > 0));
+        }
+        catch (JsonException exception)
+        {
+            GD.PushWarning($"Unable to load officer battle speech catalog: {exception.Message}");
+        }
+    }
+
+    private async void ShowOpeningOfficerSpeechAfterDelay()
+    {
+        await ToSignal(GetTree().CreateTimer(0.45), SceneTreeTimer.SignalName.Timeout);
+        if (!GodotObject.IsInstanceValid(this) || _isBattleFinished)
+        {
+            return;
+        }
+
+        var speakers = _occupantsByGrid.Values
+            .SelectMany(static occupants => occupants)
+            .Where(occupant => IsGeneralCountedPiece(occupant.Category, occupant.OfficerName))
+            .ToList();
+        var attackerSpeakers = speakers
+            .Where(occupant => occupant.TeamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var defenderSpeakers = speakers
+            .Where(occupant => occupant.TeamName.Contains("Defender", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (attackerSpeakers.Count > 0)
+        {
+            TryShowOfficerSpeech(attackerSpeakers[_officerSpeechRandom.Next(attackerSpeakers.Count)], BattleOfficerSpeechEvent.Opening);
+        }
+
+        if (defenderSpeakers.Count > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds + 0.2), SceneTreeTimer.SignalName.Timeout);
+            if (GodotObject.IsInstanceValid(this) && !_isBattleFinished)
+            {
+                TryShowOfficerSpeech(defenderSpeakers[_officerSpeechRandom.Next(defenderSpeakers.Count)], BattleOfficerSpeechEvent.Opening);
+            }
+        }
+    }
+
+    private void TryShowTerrainSpeech(BattleOccupantInfo occupant, BattleGridKey grid)
+    {
+        if (_mapData == null)
+        {
+            return;
+        }
+
+        var speechEvent = _mapData.GetCell(grid.X, grid.Y).Terrain switch
+        {
+            BattleTerrainType.Forest => BattleOfficerSpeechEvent.TerrainForest,
+            BattleTerrainType.Hill => BattleOfficerSpeechEvent.TerrainHill,
+            BattleTerrainType.Bridge => BattleOfficerSpeechEvent.TerrainBridge,
+            BattleTerrainType.Swamp => BattleOfficerSpeechEvent.TerrainSwamp,
+            _ => (BattleOfficerSpeechEvent?)null
+        };
+        if (speechEvent.HasValue)
+        {
+            TryShowOfficerSpeech(occupant, speechEvent.Value);
+        }
+    }
+
+    private void TryShowOfficerSpeech(BattleOccupantInfo occupant, BattleOfficerSpeechEvent speechEvent)
+    {
+        if (_officerSpeechOverlay == null ||
+            _officerSpeechTeamNameLabel == null ||
+            _officerSpeechNameLabel == null ||
+            _officerSpeechTextLabel == null ||
+            !IsGeneralCountedPiece(occupant.Category, occupant.OfficerName) ||
+            _officerSpeechEntries.Count == 0)
+        {
+            return;
+        }
+
+        var eventName = GetOfficerSpeechEventName(speechEvent);
+        var persona = GetOfficerSpeechPersona(occupant.OfficerName);
+        var candidates = _officerSpeechEntries
+            .Where(entry => entry.Event.Equals(eventName, StringComparison.OrdinalIgnoreCase) &&
+                            entry.Persona.Equals(persona, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        var entry = candidates[_officerSpeechRandom.Next(candidates.Count)];
+        var now = Time.GetTicksMsec();
+        if (_officerSpeechLastShownAt.TryGetValue(occupant.OfficerName, out var lastShownAt) &&
+            now - lastShownAt < OfficerSpeechCooldownMilliseconds &&
+            speechEvent != BattleOfficerSpeechEvent.Retreat)
+        {
+            return;
+        }
+
+        if (_officerSpeechOverlay.Visible && entry.Priority < _activeOfficerSpeechPriority)
+        {
+            return;
+        }
+
+        var key = entry.Keys[_officerSpeechRandom.Next(entry.Keys.Count)];
+        _officerSpeechTeamNameLabel.Text = FormatTeamName(occupant.TeamName);
+        _officerSpeechNameLabel.Text = FormatOfficerName(occupant.OfficerName);
+        _officerSpeechTextLabel.Text = BattleText(key, key);
+        if (_officerSpeechPortrait != null)
+        {
+            _officerSpeechPortrait.Texture = GetOfficerPortraitTexture(occupant.OfficerName);
+            _officerSpeechPortrait.Visible = _officerSpeechPortrait.Texture != null;
+        }
+
+        _officerSpeechLastShownAt[occupant.OfficerName] = now;
+        _activeOfficerSpeechPriority = entry.Priority;
+        var speechSerial = ++_officerSpeechSerial;
+        _officerSpeechOverlay.Visible = true;
+        _officerSpeechOverlay.MoveToFront();
+        HideOfficerSpeechAfterDelay(speechSerial);
+    }
+
+    private async void HideOfficerSpeechAfterDelay(int speechSerial)
+    {
+        await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds), SceneTreeTimer.SignalName.Timeout);
+        if (GodotObject.IsInstanceValid(this) && speechSerial == _officerSpeechSerial && _officerSpeechOverlay != null)
+        {
+            _officerSpeechOverlay.Visible = false;
+            _activeOfficerSpeechPriority = 0;
+        }
+    }
+
+    private static string GetOfficerSpeechEventName(BattleOfficerSpeechEvent speechEvent)
+    {
+        return speechEvent switch
+        {
+            BattleOfficerSpeechEvent.TerrainForest => "terrain_forest",
+            BattleOfficerSpeechEvent.TerrainHill => "terrain_hill",
+            BattleOfficerSpeechEvent.TerrainBridge => "terrain_bridge",
+            BattleOfficerSpeechEvent.TerrainSwamp => "terrain_swamp",
+            _ => speechEvent.ToString().ToLowerInvariant()
+        };
+    }
+
+    private static string GetOfficerSpeechPersona(string officerName)
+    {
+        var intelligence = GetOfficerTacticalIntelligence(officerName);
+        var combat = GetOfficerBattleAttribute(officerName);
+        if (intelligence >= 84)
+        {
+            return "tactician";
+        }
+
+        if (combat >= 84)
+        {
+            return "vanguard";
+        }
+
+        return officerName is "Cao Hong" or "Guo Si" ? "steadfast" : "ambitious";
+    }
+
     private async void ShowRetreatNotice(BattleOccupantInfo retreatingUnit)
     {
         if (_retreatNotice == null || _retreatNoticeLabel == null)
@@ -5839,6 +6197,7 @@ public partial class BattleSceneController : Node2D
         _retreatNoticeLabel.Text = $"{officerName} / {FormatTroopType(retreatingUnit.TroopType)}\n{BattleText("ui.battle.retreat", "Retreat")}";
         _retreatNotice.Visible = true;
         _retreatNotice.MoveToFront();
+        TryShowOfficerSpeech(retreatingUnit, BattleOfficerSpeechEvent.Retreat);
 
         await ToSignal(GetTree().CreateTimer(2.0), SceneTreeTimer.SignalName.Timeout);
         if (GodotObject.IsInstanceValid(this) && noticeSerial == _retreatNoticeSerial)
@@ -6217,19 +6576,32 @@ public partial class BattleSceneController : Node2D
                (occupant.TroopType == TroopArcher || occupant.TroopType == TroopCrossbow);
     }
 
-    private async void DestroyOccupantAfterDelay(BattleGridKey grid, BattleOccupantInfo occupant, double delaySeconds)
+    private async void DestroyOccupantAfterDelay(
+        BattleGridKey grid,
+        BattleOccupantInfo occupant,
+        double delaySeconds,
+        BattleOccupantInfo? destroyer = null)
     {
         if (delaySeconds > 0.0)
         {
             await ToSignal(GetTree().CreateTimer(delaySeconds), SceneTreeTimer.SignalName.Timeout);
         }
 
-        if (occupant.TroopType == TroopSupplyCart && IsOccupantAtGrid(grid, occupant))
+        if (!IsOccupantAtGrid(grid, occupant))
+        {
+            return;
+        }
+
+        if (occupant.TroopType == TroopSupplyCart)
         {
             ApplySupplyCartDestroyedMoralePenalty(occupant);
         }
 
         RemoveOccupant(grid, occupant);
+        if (destroyer != null)
+        {
+            TryShowOfficerSpeech(destroyer, BattleOfficerSpeechEvent.Destroy);
+        }
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
         ConfigureHud();
@@ -7727,9 +8099,14 @@ public partial class BattleSceneController : Node2D
             cavalry,
             "Charge",
             $"{FormatLogUnit(cavalry)} charges through {FormatLogUnit(target)} {sourceGrid} -> {destinationGrid}: {casualtyResult.ActualDamage:N0} damage ({FormatCasualtyResult(casualtyResult)})");
+        TryShowOfficerSpeech(cavalry, BattleOfficerSpeechEvent.Charge);
+        if (casualtyResult.UpdatedTarget.HitPoints * 100 <= casualtyResult.UpdatedTarget.MaxHitPoints * 35)
+        {
+            TryShowOfficerSpeech(casualtyResult.UpdatedTarget, BattleOfficerSpeechEvent.Critical);
+        }
         if (casualtyResult.UpdatedTarget.HitPoints <= 0)
         {
-            DestroyOccupantAfterDelay(targetGrid, casualtyResult.UpdatedTarget, targetHurtDuration);
+            DestroyOccupantAfterDelay(targetGrid, casualtyResult.UpdatedTarget, targetHurtDuration, cavalry);
         }
 
         var movedCavalry = MoveChargingCavalry(sourceGrid, cavalry, targetGrid, destinationGrid, direction);
@@ -7755,7 +8132,7 @@ public partial class BattleSceneController : Node2D
                 $"{FormatLogUnit(target)} counters {FormatLogUnit(movedCavalry)} charge: {counterResult.ActualDamage:N0} damage ({FormatCasualtyResult(counterResult)})");
             if (counterResult.UpdatedTarget.HitPoints <= 0)
             {
-                DestroyOccupantAfterDelay(destinationGrid, counterResult.UpdatedTarget, moveDuration);
+                DestroyOccupantAfterDelay(destinationGrid, counterResult.UpdatedTarget, moveDuration, target);
             }
         }
 
@@ -8578,7 +8955,13 @@ public partial class BattleSceneController : Node2D
             _selectedUnit!,
             "Attack",
             $"Union x{updatedParticipants.Count}: {string.Join(", ", updatedParticipants.Select(participant => FormatLogUnit(participant.Occupant)))} -> {candidate.TargetGrid}{unionAdvantageLog}");
-        ApplyAttackDamage(_selectedUnit!, candidate.TargetGrid, effectDelaySeconds, GetUnionAttackDamage(updatedParticipants, unionTarget), _selectedUnitGrid);
+        ApplyAttackDamage(
+            _selectedUnit!,
+            candidate.TargetGrid,
+            effectDelaySeconds,
+            GetUnionAttackDamage(updatedParticipants, unionTarget),
+            _selectedUnitGrid,
+            BattleOfficerSpeechEvent.Union);
         foreach (var participant in updatedParticipants)
         {
             if (participant.Grid == _selectedUnitGrid.Value)
@@ -8833,6 +9216,7 @@ public partial class BattleSceneController : Node2D
         ApplyTeamMoraleBonus(captor.TeamName, SupplyCartCaptureMoraleBonus, "captured supplies");
         ConvertBattlePieceToSide(targetGrid, supplyCart, captor.TeamName);
         MarkUnitActed(captor);
+        TryShowOfficerSpeech(captor, BattleOfficerSpeechEvent.Capture);
         AppendBattleLog(
             captor,
             "Supply",
@@ -9095,7 +9479,7 @@ public partial class BattleSceneController : Node2D
         RefreshHiddenUnitVisibility();
     }
 
-    private static void RefreshMarkerTeamVisual(BattleOccupantInfo occupant)
+    private void RefreshMarkerTeamVisual(BattleOccupantInfo occupant)
     {
         if (occupant.Marker == null)
         {
@@ -9107,7 +9491,7 @@ public partial class BattleSceneController : Node2D
             GetSavedMarkerFillColor(occupant),
             GetSavedMarkerBorderColor(occupant),
             occupant.Marker.Radius);
-        occupant.Marker.SetupNamePlate(string.IsNullOrWhiteSpace(occupant.OfficerName) ? occupant.DisplayName : occupant.OfficerName);
+        occupant.Marker.SetupNamePlate(FormatMarkerName(occupant.OfficerName, occupant.DisplayName, occupant.TroopType));
         occupant.Marker.SetupTeamArrow(GetTeamArrowColor(occupant.TeamName));
         UpdateMarkerStrengthBar(occupant);
     }
@@ -11322,31 +11706,38 @@ public partial class BattleSceneController : Node2D
             {
                 var strengthText = _selectedUnit.Category == CategorySiegeEngine
                     ? BattleFormat("ui.battle.menu_hp", "HP: {0}/{1}", _selectedUnit.HitPoints, _selectedUnit.MaxHitPoints)
-                    : BattleFormat("ui.battle.menu_active_wounded", "Active: {0:N0}\nWounded: {1}", _selectedUnit.TroopCount, FormatWoundedTroops(_selectedUnit));
-                var officerText = string.IsNullOrWhiteSpace(_selectedUnit.OfficerName)
-                    ? "-"
-                    : _selectedUnit.OfficerName;
-                _unitMenuInfoLabel.Text =
-                    BattleFormat("ui.battle.menu_team", "Team: {0}", FormatTeamName(_selectedUnit.TeamName)) + "\n" +
-                    BattleFormat("ui.battle.menu_officer", "Officer: {0}", officerText) + "\n" +
-                    BattleFormat("ui.battle.menu_type", "Type: {0}", FormatTroopType(_selectedUnit.TroopType)) + "\n" +
-                    BattleFormat("ui.battle.menu_status", "Status: {0}", FormatBattleStatus(_selectedUnit)) + "\n" +
-                    BattleFormat("ui.battle.menu_command", "Command: {0}", _selectedUnit.HasAttackedThisTurn
-                        ? BattleText("ui.battle.already_used_this_turn", "Already used this turn")
-                        : canCommandSelectedUnit
-                            ? BattleText("ui.battle.ready", "Ready")
-                            : BattleFormat("ui.battle.not_acting_side", "Not Acting Side ({0})", FormatTeamName(GetCurrentTurnSideName()))) + "\n" +
-                    BattleFormat("ui.battle.menu_energy", "Energy: {0}/{1}", _selectedUnit.Energy, GetTeamEnergyCap(_selectedUnit.TeamName)) + "\n" +
-                    BattleFormat("ui.battle.menu_move_range", "Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, GetTeamMoveRangeCap(_selectedUnit)) + "\n" +
-                    BattleFormat("ui.battle.menu_morale", "Morale: {0}", FormatMorale(_selectedUnit)) + "\n" +
-                    BattleFormat("ui.battle.menu_ammo", "Ammo: {0}", FormatWeaponAmmo(_selectedUnit)) + "\n" +
-                    strengthText;
+                    : BattleFormat("ui.battle.menu_active_wounded", "Troops: {0:N0} ({1})", _selectedUnit.TroopCount, FormatWoundedTroops(_selectedUnit));
+                var officerText = FormatOfficerName(_selectedUnit.OfficerName);
+                var infoLines = new List<string>();
+                if (IsGeneralCountedPiece(_selectedUnit.Category, _selectedUnit.OfficerName))
+                {
+                    infoLines.Add(BattleFormat("ui.battle.menu_officer", "Officer: {0}", officerText));
+                    infoLines.Add(BattleFormat("ui.battle.menu_intelligence", "Intelligence: {0}", GetOfficerTacticalIntelligence(_selectedUnit.OfficerName)));
+                    infoLines.Add(BattleFormat("ui.battle.menu_combat", "Combat: {0}", GetOfficerBattleAttribute(_selectedUnit.OfficerName)));
+                }
+
+                infoLines.Add(BattleFormat("ui.battle.menu_status", "Status: {0}", FormatBattleStatus(_selectedUnit)));
+                infoLines.Add(BattleFormat("ui.battle.menu_command", "Command: {0}", _selectedUnit.HasAttackedThisTurn
+                    ? BattleText("ui.battle.already_used_this_turn", "Already used this turn")
+                    : canCommandSelectedUnit
+                        ? BattleText("ui.battle.ready", "Ready")
+                        : BattleFormat("ui.battle.not_acting_side", "Not Acting Side ({0})", FormatTeamName(GetCurrentTurnSideName()))));
+                infoLines.Add(BattleFormat("ui.battle.menu_energy", "Energy: {0}/{1}", _selectedUnit.Energy, GetTeamEnergyCap(_selectedUnit.TeamName)));
+                infoLines.Add(BattleFormat("ui.battle.menu_move_range", "Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, GetTeamMoveRangeCap(_selectedUnit)));
+                if (_selectedUnit.Category != CategorySiegeEngine)
+                {
+                    infoLines.Add(BattleFormat("ui.battle.menu_morale", "Morale: {0}", FormatMorale(_selectedUnit)));
+                }
+                infoLines.Add(strengthText);
+                _unitMenuInfoLabel.Text = string.Join("\n", infoLines);
             }
             else
             {
                 _unitMenuInfoLabel.Text = BuildEmptyUnitMenuInfoText();
             }
         }
+
+        RefreshOfficerPortrait();
 
         if (_openGateButton != null)
         {
@@ -11646,6 +12037,12 @@ public partial class BattleSceneController : Node2D
         if (_unitMenuInfoLabel != null)
         {
             _unitMenuInfoLabel.Text = BuildEmptyUnitMenuInfoText();
+        }
+
+        if (_officerPortrait != null)
+        {
+            _officerPortrait.Texture = null;
+            _officerPortrait.Visible = false;
         }
 
         if (_openGateButton != null)
@@ -14138,12 +14535,12 @@ public partial class BattleSceneController : Node2D
     {
         if (teamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase))
         {
-            return BattleText("ui.battle.team_attacker", "Team A / Attacker");
+            return BattleText("ui.battle.team_attacker", "Cao Cao");
         }
 
         if (teamName.Contains("Defender", StringComparison.OrdinalIgnoreCase))
         {
-            return BattleText("ui.battle.team_defender", "Team B / Defender");
+            return BattleText("ui.battle.team_defender", "Dong Zhuo");
         }
 
         return teamName;

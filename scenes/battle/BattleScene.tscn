@@ -583,6 +583,68 @@ text = "Retreat"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="OfficerSpeechOverlay" type="PanelContainer" parent="UiLayer"]
+visible = false
+z_index = 110
+layout_mode = 1
+anchors_preset = 0
+offset_left = 28.0
+offset_top = 220.0
+offset_right = 470.0
+offset_bottom = 416.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/OfficerSpeechOverlay"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Row" type="HBoxContainer" parent="UiLayer/OfficerSpeechOverlay/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Portrait" type="TextureRect" parent="UiLayer/OfficerSpeechOverlay/Margin/Row"]
+custom_minimum_size = Vector2(116, 148)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="TextColumn" type="VBoxContainer" parent="UiLayer/OfficerSpeechOverlay/Margin/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TeamName" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.82, 0.98, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.04, 0.02, 0.95)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "Faction"
+
+[node name="OfficerName" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.81, 0.39, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.05, 0.01, 0.95)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+text = "Officer"
+
+[node name="SpeechText" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.04, 0.02, 0.95)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
+autowrap_mode = 2
+vertical_alignment = 1
+text = "Speech"
+
 [node name="TopBar" type="ColorRect" parent="UiLayer" unique_id=1605276365]
 offset_right = 1600.0
 offset_bottom = 142.0
@@ -817,8 +879,19 @@ mouse_filter = 0
 theme_override_font_sizes/font_size = 17
 text = "Unit Command"
 
-[node name="UnitMenuInfoLabel" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1345767573]
+[node name="OfficerInfoRow" type="HBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
 layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OfficerPortrait" type="TextureRect" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow"]
+custom_minimum_size = Vector2(78, 98)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="UnitMenuInfoLabel" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow" unique_id=1345767573]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/line_spacing = -4
 theme_override_font_sizes/font_size = 16
 text = "Team: -
