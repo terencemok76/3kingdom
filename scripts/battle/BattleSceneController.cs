@@ -77,6 +77,8 @@ public partial class BattleSceneController : Node2D
     private const int AiHideAmbushBaseScore = 700;
     private const int AiHideAmbushRange = 4;
     private const int AiHiddenAmbushAttackScoreBonus = 900;
+    private const int AiLowEnemyFoodPressureScore = 600;
+    private const int AiCriticalEnemyFoodPressureScore = 1200;
     private const float DefaultUnitVisualLift = -16.0f;
     private const float WallWalkUnitVisualLift = -58.0f;
     private const float WallWalkHighlightVisualLift = -42.0f;
@@ -8152,6 +8154,33 @@ public partial class BattleSceneController : Node2D
         return teamName.Contains("Attacker") ? _teamAFood : _teamBFood;
     }
 
+    private int GetTeamActiveTroops(string teamName)
+    {
+        return teamName.Contains("Attacker") ? _teamATotalTroops : _teamBTotalTroops;
+    }
+
+    private int GetAiEnemyFoodPressureScore(string teamName)
+    {
+        var enemyTeamName = teamName.Contains("Attacker") ? TeamBInfo.Name : TeamAInfo.Name;
+        var enemyDailyFoodNeed = CalculateDailyFoodNeed(GetTeamActiveTroops(enemyTeamName));
+        var ownDailyFoodNeed = CalculateDailyFoodNeed(GetTeamActiveTroops(teamName));
+        if (enemyDailyFoodNeed <= 0 || ownDailyFoodNeed <= 0)
+        {
+            return 0;
+        }
+
+        var enemyFoodDays = GetTeamFood(enemyTeamName) / (float)enemyDailyFoodNeed;
+        var ownFoodDays = GetTeamFood(teamName) / (float)ownDailyFoodNeed;
+        if (enemyFoodDays >= 2.0f || ownFoodDays <= enemyFoodDays)
+        {
+            return 0;
+        }
+
+        return enemyFoodDays < 1.0f
+            ? AiCriticalEnemyFoodPressureScore
+            : AiLowEnemyFoodPressureScore;
+    }
+
     private void ApplyTeamResourceDelta(string teamName, int goldDelta, int foodDelta)
     {
         if (teamName.Contains("Attacker"))
@@ -12045,7 +12074,8 @@ public partial class BattleSceneController : Node2D
             var intelligence = GetOfficerTacticalIntelligence(unit.OfficerName);
             var threat = GetAiThreatScore(sourceGrid, unit);
             var immediateAttackScore = GetAiBestOffensiveActionScore(sourceGrid, unit);
-            var safetyAction = GetAiBestSafetyMove(sourceGrid, unit, intelligence);
+            var enemyFoodPressure = GetAiEnemyFoodPressureScore(unit.TeamName);
+            var safetyAction = GetAiBestSafetyMove(sourceGrid, unit, intelligence, enemyFoodPressure);
             if (safetyAction.HasValue && safetyAction.Value.Score > immediateAttackScore)
             {
                 actions.Add(safetyAction.Value);
@@ -12058,7 +12088,7 @@ public partial class BattleSceneController : Node2D
                     unit,
                     null,
                     AiSurvivalActionKind.Guard,
-                    AiGuardSurvivalScore + threat + intelligence * 8,
+                    AiGuardSurvivalScore + threat + intelligence * 8 + enemyFoodPressure,
                     "guard favorable Building/Fortress position");
                 if (guardAction.Score > immediateAttackScore)
                 {
@@ -12088,7 +12118,7 @@ public partial class BattleSceneController : Node2D
                     unit,
                     null,
                     AiSurvivalActionKind.Stay,
-                    AiBuildingCoverSurvivalScore + threat + intelligence * 6,
+                    AiBuildingCoverSurvivalScore + threat + intelligence * 6 + enemyFoodPressure,
                     "remain in favorable defensive position");
                 if (stayAction.Score > immediateAttackScore)
                 {
@@ -12109,7 +12139,7 @@ public partial class BattleSceneController : Node2D
         return ExecuteAiSurvivalAction(chosenAction);
     }
 
-    private AiSurvivalAction? GetAiBestSafetyMove(BattleGridKey sourceGrid, BattleOccupantInfo unit, int intelligence)
+    private AiSurvivalAction? GetAiBestSafetyMove(BattleGridKey sourceGrid, BattleOccupantInfo unit, int intelligence, int enemyFoodPressure)
     {
         var supplyGrids = GetAllBattlePieces()
             .Where(entry => entry.Occupant.TeamName == unit.TeamName && entry.Occupant.TroopType == TroopSupplyCart)
@@ -12127,7 +12157,7 @@ public partial class BattleSceneController : Node2D
             var reason = string.Empty;
             if (hasCover)
             {
-                safetyScore += AiBuildingCoverSurvivalScore;
+                safetyScore += AiBuildingCoverSurvivalScore + enemyFoodPressure;
                 reason = "move to Building/Fortress cover";
             }
 
@@ -12566,7 +12596,8 @@ public partial class BattleSceneController : Node2D
 
         score = AiHideAmbushBaseScore +
                 (AiHideAmbushRange - nearestVisibleEnemyDistance) * 120 +
-                GetOfficerTacticalIntelligence(unit.OfficerName) * 5;
+                GetOfficerTacticalIntelligence(unit.OfficerName) * 5 +
+                GetAiEnemyFoodPressureScore(unit.TeamName);
         return true;
     }
 
@@ -13191,7 +13222,7 @@ public partial class BattleSceneController : Node2D
         return GetOfficerTacticalIntelligence(unit.OfficerName) * 4 + GetOfficerBattleAttribute(unit.OfficerName) * 2;
     }
 
-    private static int GetAiFinalOffensiveActionScore(AiOffensiveAction action)
+    private int GetAiFinalOffensiveActionScore(AiOffensiveAction action)
     {
         var intelligence = GetOfficerTacticalIntelligence(action.Unit.OfficerName);
         var combat = GetOfficerBattleAttribute(action.Unit.OfficerName);
@@ -13199,7 +13230,18 @@ public partial class BattleSceneController : Node2D
         var ambushBonus = action.Unit.IsHidden && !isTacticalObjective && !action.IsHideAction
             ? AiHiddenAmbushAttackScoreBonus
             : 0;
-        return action.Score + ambushBonus + (isTacticalObjective ? intelligence * 6 + combat * 2 : intelligence * 2 + combat * 6);
+        var enemyFoodPressure = GetAiEnemyFoodPressureScore(action.Unit.TeamName);
+        var foodPressureBonus = action.IsHideAction ||
+                                  action.OutpostObjective?.Reason.StartsWith("protect", StringComparison.Ordinal) == true
+            ? enemyFoodPressure
+            : 0;
+        if (_occupantsByGrid.TryGetValue(action.TargetGrid, out var targetOccupants) &&
+            GetAiAttackTargetForAttack(targetOccupants, action.Unit.TeamName, action.TargetGrid) is { TroopType: TroopSupplyCart })
+        {
+            foodPressureBonus += enemyFoodPressure * 2;
+        }
+
+        return action.Score + ambushBonus + foodPressureBonus + (isTacticalObjective ? intelligence * 6 + combat * 2 : intelligence * 2 + combat * 6);
     }
 
     private int GetAiOffensiveActionScore(BattleGridKey targetGrid, string attackerTeamName, BattleOccupantInfo target, int damage, int supportCount)
