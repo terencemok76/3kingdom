@@ -396,7 +396,7 @@
   - 同一 battle team 每個己方行動回合只能使用一次 Strategy；用過後直到下一次己方回合前不可再次使用。
   - `Mess` 成功率會依施術者與目標 officer battle attribute、目標 morale 與低士氣狀態調整；第一版不允許混亂部隊攻擊友軍，以避免隨機失控造成過強負回饋。
 - fire 會在 battle piece 完成移動、進入已燃燒的 `L0` 格時立刻結算一次火傷；留在火場內的單位仍會在每次 `End Turn` 再結算傷害。火勢依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
-  - 帶武將的一般 battle team 在自身格或同層八方向 `1` 格內有 fire 時，Strategy 會切換為 `Extinguish`；每次消耗 `3` 行動力且本回合不能再使用 Strategy，不消耗 Strategy Plan。成功率依武將 intelligence、天候與火場地形決定；成功會移除該格 fire，失敗則火勢保留，兩者皆顯示本地化浮字與 Battle Log。
+  - 帶武將的一般 battle team 在自身格或同層八方向 `1` 格內有 fire 時，Strategy 會切換為 `Extinguish`；每次消耗 `3` 行動力且本回合不能再使用 Strategy，不消耗 Strategy Plan。成功率依武將 intelligence、天候與火場地形決定；成功會移除該格 fire，失敗則火勢保留，兩者皆顯示本地化浮字與 Battle Log。AI 同樣可使用，但只會在火場威脅己方 battle piece 或己方 Fortress 時加入決策池；糧車、投石車、衝車、雲梯與 Worker 均不可滅火。
   - `WindPower` 會影響 fire spread speed：`Calm` 只允許森林／草地／木柵欄慢速帶火，每 3 個 burn tick 最多擴 1 格；`Strong` 會增加擴散格數並縮短 spread interval。
   - 森林與草地會燒得較久且擴散較快；道路、橋與庭院擴散較慢；護城河、城牆與牆頂不會成為 fire spread 目標。
   - fire visual 的 depth band 會高於 battle team，避免火焰被單位 sprite 蓋住。
@@ -458,7 +458,7 @@
 - `ObjectLayer` 內的 bridge tile 在 `MoatSiegeBattle` 應讀成 `Bridge` 地形；同一份 scene 在 `SiegeAssault` 模式下，這些格應回填為 `Road`，避免接近路線中斷成草地。
 - `assets/battle/object/object_01.png` 的第 5 格（atlas 索引 `4`）為 `WoodenFence`；`ObjectLayer` 讀取該圖塊時應建立可阻擋移動、可由 Worker 移除的木柵欄。
 - `assets/battle/object/building_01.png` 是 `ObjectLayer` 的 building atlas source，規格為 `1 row x 3 frame`、每格 `128x128`；三個 frame 都讀成可駐守的 `Building` 結構，runtime rebuild / battle quick save/load 需保留選到的 building frame。
-- `assets/battle/object/fortress_01.png` 是 `ObjectLayer` source ID `12` 的防禦堡壘 atlas，規格為 `1 row x 3 frame`、每格 `128x128`，只登錄前兩格。堡壘沿用 `Building` 的可駐守、20% 直接傷害減免及攻城器禁止進入規則；初始歸守方，runtime 額外顯示藍旗。任何一般戰鬥單位抵達堡壘格後，堡壘即改歸該隊，攻方為紅旗、守方為藍旗；旗幟不會在移動動畫尚未抵達前提早切換。歸屬與選用 frame 會被 battle quick save/load 保存。堡壘是縱深防線與反擊目標，不得貼近橋頭、渡口等前線突破格；應位於渡河／過隘之後的丘陵、道路分岔或防區內，讓攻方必須先突破前線、再深入才能爭奪勝利目標。晉陽以橋北主路控制點 `(11,8)` 配合東側山麓側防點 `(15,6)`；襄陽則有四座堡壘：西側丘陵 `(4,4)`、東側丘陵 `(19,4)`、北側預備線 `(10,5)` 與東側橋頭 `(14,8)`。襄陽攻方可選擇殲滅守軍，或在守方回合結束前同時佔領所有堡壘取勝。
+- `assets/battle/object/fortress_01.png` 是 `ObjectLayer` source ID `12` 的防禦堡壘 atlas，規格為 `1 row x 3 frame`、每格 `128x128`，只登錄前兩格。堡壘沿用 `Building` 的可駐守、20% 直接傷害減免及攻城器禁止進入規則；初始歸守方，runtime 額外顯示藍旗。野戰堡壘本體會保留在 editor 原有的 `ObjectLayer`，與相鄰森林一起使用原始等角深度排序；只有可變的歸屬旗標放入 runtime depth layer，避免重繪堡壘後跨圖層壓住森林。任何一般戰鬥單位抵達堡壘格後，堡壘即改歸該隊，攻方為紅旗、守方為藍旗；旗幟不會在移動動畫尚未抵達前提早切換。歸屬與選用 frame 會被 battle quick save/load 保存。堡壘是縱深防線與反擊目標，不得貼近橋頭、渡口等前線突破格；應位於渡河／過隘之後的丘陵、道路分岔或防區內，讓攻方必須先突破前線、再深入才能爭奪勝利目標。晉陽以橋北主路控制點 `(11,8)` 配合東側山麓側防點 `(15,6)`；襄陽則有四座堡壘：西側丘陵 `(4,4)`、東側丘陵 `(19,4)`、北側預備線 `(10,5)` 與東側橋頭 `(14,8)`。襄陽攻方可選擇殲滅守軍，或在守方回合結束前同時佔領所有堡壘取勝。
 - 野戰勝利條件為：任一方沒有仍在場的帶 officer 一般 `Battle Team`（`Worker`、無 officer 的一般單位、`Ram`／`Ladder`／`Catapult`／`SupplyCart` 均不計入）即敗北；因此只剩車輛不能繼續戰鬥。此外，攻方只要所有防禦堡壘均為攻方歸屬，並在守方回合結束後仍保持該狀態，即以堡壘控制獲勝。此時點讓守方獲得完整一回合反奪堡壘的機會；守方沒有對稱的堡壘反佔勝利，仍以擊潰或逼退攻方取勝。
 - `assets/battle/object/forest_01.png` 是 `ObjectLayer` source ID `2` 的 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成 `Forest` 地形並保留選到的變體，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/wood_01.png` 是 `ObjectLayer` source ID `6` 的第二組 forest atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；規則與 `forest_01.png` 相同，但 runtime rebuild / battle quick save/load 會額外保留圖集來源，避免將 wood 變體換回第一組森林圖。
@@ -467,7 +467,7 @@
 - `assets/battle/object/mountain_01.png` 是 `ObjectLayer` source ID `5` 的 mountain atlas，規格為 `2 rows x 4 frame`、每格 `128x128`；八個 frame 都讀成不可通行、不可起火的 `Mountain` 地形，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `assets/battle/object/farm_01.png` 是 `ObjectLayer` source ID `7` 的 farm atlas，規格為 `3 rows x 4 frame`、每格 `128x128`；十二個 frame 都讀成可通行、移動消耗為 1 的 `Farm` 地形，不提供建築防禦或森林 Hide，供 WYSIWYG 場景編輯與 runtime rebuild / battle quick save/load 使用。
 - `Building` 格只可容納一般人類 battle team，攻城梯、衝車、投石車與補給車等攻城器不可進入；駐守時承受的直接傷害降低 `20%`；火焰傷害不受減免，且建築格正在燃燒時防禦加成暫時失效。騎兵不可對建築格發動或穿越 Charge，格子資訊會顯示建築防禦狀態。
-- runtime 會將 Building 從固定 `ObjectLayer` 提升至與單位共用的 `BattleDepthLayer`，以 `grid.X + grid.Y` 排序：位於建築後方的單位會被遮住，位於前方或同格駐守的單位會顯示在建築前。可移動／施工及選取格高亮與 Building 在同一深度帶，但排序在建築之後、單位之前；因此合法移動至或直接點選防禦據點時，菱形 grid 仍清楚可見。
+- 一般 `Building` runtime 會從固定 `ObjectLayer` 提升至與單位共用的 `BattleDepthLayer`，以 `grid.X + grid.Y` 排序：位於建築後方的單位會被遮住，位於前方或同格駐守的單位會顯示在建築前。野戰 `source 12` 防禦堡壘例外，保留其 editor 的 `ObjectLayer` tile 以維持與森林等靜態物件的原始深度關係。可移動／施工及選取格高亮與一般 Building 在同一深度帶，但排序在建築之後、單位之前；因此合法移動至或直接點選防禦據點時，菱形 grid 仍清楚可見。
 - `BattleScene.tscn` 的 `ObjectLayer` 在 `(6, 12)` 放置 `building_01` frame 0，作為戰場內可直接測試的建築防禦據點。
 - runtime 需額外保留 bridge 的 visual flag，讓 `MoatLayer` 的河水底圖與 `ObjectLayer` 的橋面 sprite 可以同時存在，不會因 terrain 正規化而把橋面吃掉。
 - 若橋面或木柵欄在 editor 內使用了 `Flip H`，runtime 也必須保留該 object tile 的 `alternativeTile` 水平翻轉設定，否則 `NW` scene 進入遊戲後橋面方向或柵欄變化會跑掉。
@@ -489,7 +489,7 @@
 - 合擊由發起單位與相鄰、符合攻擊條件的同陣營友軍共同執行。發起單位消耗 `5` 行動力並標記為已攻擊；每名實際加入的友軍消耗 `4` 行動力，但不標記為已攻擊，仍可依其剩餘行動力與移動格數在同一行動方移動或一般攻擊。本階段不設定每回合合擊參與次數上限；合擊按鈕會顯示參與人數、發起成本與每名友軍成本。
 - 一般人類戰鬥單位（不含 Worker）可使用 `Guard`，消耗 `5` 行動力並完成行動。Guard 持續到下一次己方行動階段開始：受到近戰、弓兵或弩兵的一般攻擊時，初始傷害減少率暫定為 `20%`；每次有效攻擊後，下一次減傷率乘以 `0.5`（20%、10%、5%、2.5%…）。只有首次近戰直傷會以一般攻擊力 `40%` 反擊一次；投石、火計與牆頂投放均不減傷且不觸發反擊。每次 Guard 減傷都會在戰鬥紀錄顯示比例與減傷前後數值；單位狀態會顯示下次減傷率與反擊是否已用，quick save/load 會保存該狀態。
 - 補給車的恢復／維修與補充武器均消耗 `5` 行動力並完成行動。AI 會先嘗試原地補給，再將可用的一般攻擊、合擊與可達防禦堡壘放入同一批候選行動，以預計傷害、擊破獎勵、目標武將價值、合擊友軍行動力機會成本及堡壘目標分數計分；同分或相近分數以可重現的小幅變異打破固定行為。堡壘不是固定優先：攻方奪取未佔堡壘、守方回奪失守堡壘／防衛受威脅堡壘的分數均扣除距離，並受該 battle team officer Intelligence 影響；最後一座攻方未佔堡壘另有勝利加分。失守／敵方堡壘上的敵軍也會獲得額外 attack score。若可用行動力扣除路徑成本後仍保留 `5`，則會先完成移動動畫，再直接攻擊規劃時保留的目標（不在移動後重選）；Battle Log 會記錄該 score／variance，若攻擊因單位狀態、目標或射程失效而取消，也會記錄明確原因。若選擇純移動，log 會額外列出路徑耗能、移動後剩餘行動力／移動格數，以及沒有可用移動後攻擊方案的原因。否則僅移動至最接近目標的最遠合法位置並完成行動。
-- 攻方若沒有可見敵軍，仍會維持「殲滅或佔領全部 Fortress」的勝利任務：一般戰隊會以完整 A* 路徑朝未佔 Fortress 逐回合推進，不受一般據點分數被長距離成本扣成負值的限制。若 Fortress 已被 hidden 守軍佔用，AI 會先前進到合法相鄰格，等待發現或逼出守軍；Battle Log 會標示 `mission advance while enemy is hidden` 與完整路徑成本。
+- 攻方若沒有可見敵軍，仍會維持「殲滅或佔領全部 Fortress」的勝利任務：一般戰隊會以完整 A* 路徑朝未佔 Fortress 逐回合推進，不受一般據點分數被長距離成本扣成負值的限制。此時不會因敵軍低糧而選擇 Guard 或原地留守，避免放棄奪堡勝利條件；真正低兵力的撤退與火場等生存處理仍保留。每名候選單位的路徑判定均使用其自身兵種規則，不會沿用玩家最後點選或前一名 AI 的規則；因此騎兵不能進森林、攻城器不能過木橋等限制仍各自正確。若 Fortress 已被 hidden 守軍佔用，AI 會先前進到合法相鄰格，等待發現或逼出守軍；若橋頭或狹道暫被己方單位堵塞，完整路徑暫時無法建立時，AI 會改選本回合可合法到達且距 Fortress 更近的格子推進，而非等待。Battle Log 會標示 `mission advance while enemy is hidden` 及完整 A* 或 local progress 的路徑成本。
 - AI 的火計會與一般攻擊、合擊、據點、補給與工程行動同列評分；僅限有策略點、彈藥、未混亂且本回合未用過策略的弓兵、弩兵與投石車。AI 以當前天氣下的預計火傷、持續回合、可見敵方目標、武將價值與晴天強風加分評估目標格及第一波可能擴散格；若火場或預測擴散格有友軍，該方案直接排除。雨天不計擴散，仍只會在可傷及敵方的情況列入候選。Battle Log 記錄火計目標、預估敵我傷害、目標數、擴散格數、score 與 variance。
 - AI 不會把正在燃燒的 `L0` 格當作移動終點；此規則同時套用於一般移動、移動後攻擊、補給、避險與 Worker 工程移動。玩家仍可自行選擇進入火場，並在移動完成時立即承受火傷。
 - 野戰 Worker 會把相鄰河格的新木橋及未完工木橋視為工程候選；AI 模擬單格或連續最多四格河段全數完工後，友軍一般戰隊抵達敵軍或爭奪堡壘的最短路徑。僅在至少縮短 `3` 格、並以施工段數、接近施工岸距離、敵方威脅與 officer Intelligence 計分後勝過其他攻擊／合擊／堡壘候選時，Worker 才會先移往施工岸，跨回合完成施工／修復。開局與工程 Battle Log 會列出橋格、目標、路徑縮短值、score 與 variance。
@@ -499,3 +499,4 @@
 - 低兵力／HP（最大值 45% 以下）的 AI 一般戰隊另有存活決策：它會將目前可攻擊收益與預估敵方射程威脅比較，並依 officer Intelligence 評估移至 Building／己方 Fortress、接近補給車、Guard／留守或撤退。低於 22% 且威脅高於可立即攻擊收益時，撤退會成為候選；所有存活決策都會在 Battle Log 寫出原因、score 與 Intelligence。每次 AI 回合開始亦寫入開局堡壘／殲敵計畫與低兵力隊伍數。
 - 投石車一般攻擊的動畫順序為：投石車攻擊 → 石彈飛行完成 → 目標受傷與傷害數字 popup；弓兵與弩兵同樣在箭矢命中後才觸發傷害結算、戰鬥紀錄與 Guard 判定。
 - 頂欄會依目前語系顯示戰場名稱、日期與 Field Battle AI 控制鈕；繁中日期格式為 `YYYY 年 MM 月 DD 日`，英文維持 `YYYY Apr D`。
+- 戰鬥開始及每次行動方切換時，畫面中央會顯示目前勢力的本地化回合橫幅（如「曹操軍回合／董卓軍回合」），約 `2.5` 秒後自動關閉；橫幅不攔截滑鼠與操作。

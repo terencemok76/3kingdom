@@ -22,6 +22,7 @@
 	"ui.battle.ai_status_player": { "zhHant": "玩家回合：可操作戰隊，或直接按「結束回合」", "en": "Player turn: command battle teams, or End Turn" },
 	"ui.battle.team_attacker": { "zhHant": "曹操軍", "en": "Cao Cao" },
 	"ui.battle.team_defender": { "zhHant": "董卓軍", "en": "Dong Zhuo" },
+	"ui.battle.turn_banner": { "zhHant": "{0}回合", "en": "{0} Turn" },
 	"ui.battle.team_hud": { "zhHant": "{0}   兵力：{1:N0} / 傷兵 {2:N0}   武將：{3:N0}   工兵：{4:N0}   攻城器：{5:N0}   金：{6:N0}   糧：{7:N0}", "en": "{0}   Troops: {1:N0} / {2:N0} wounded   Generals: {3:N0}   Workers: {4:N0}   Siege: {5:N0}   Gold: {6:N0}   Food: {7:N0}" },
 	"ui.battle.coordinate_hover_click": { "zhHant": "指向：{0}    點選：{1}", "en": "Hover: {0}    Click: {1}" },
 	"ui.battle.coordinate_move_preview": { "zhHant": "{0}    移動：-{1}，剩餘行動力 {2}，剩餘移動格數 {3}/{4}；{5}", "en": "{0}    Move: -{1}, Remaining Energy {2}, Move Range {3}/{4}; {5}" },
