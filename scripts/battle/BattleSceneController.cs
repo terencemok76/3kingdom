@@ -310,6 +310,9 @@ public partial class BattleSceneController : Node2D
     private const int NormalAttackEnergyCost = 5;
     private const int SupplyActionEnergyCost = 5;
     private const int UnionAttackSupportEnergyCost = 4;
+    private const float HiddenAmbushDamageMultiplier = 1.25f;
+    private const int ExtinguishFireEnergyCost = 3;
+    private const int ExtinguishFireRange = 1;
     private const float GuardDamageReductionBase = 0.20f;
     private const float GuardDamageReductionDecay = 0.50f;
     private const float GuardCounterAttackRatio = 0.40f;
@@ -403,6 +406,8 @@ public partial class BattleSceneController : Node2D
     private Node2D? _battleDepthLayer;
     private Node2D? _occludedUnitSilhouetteLayer;
     private Control? _commandMenu;
+    private Control? _topBar;
+    private Control? _tileInfoPanel;
     private Control? _battleLogPanel;
     private Control? _battleLogHeaderRow;
     private Control? _battleLogContent;
@@ -412,6 +417,8 @@ public partial class BattleSceneController : Node2D
     private Label? _battleResultLabel;
     private Control? _retreatNotice;
     private Label? _retreatNoticeLabel;
+    private Control? _officerCaptureNotice;
+    private Label? _officerCaptureNoticeLabel;
     private Control? _officerSpeechOverlay;
     private TextureRect? _officerSpeechPortrait;
     private Label? _officerSpeechTeamNameLabel;
@@ -479,6 +486,7 @@ public partial class BattleSceneController : Node2D
     private bool _isBattleLogMinimized;
     private bool _isBattleFinished;
     private int _retreatNoticeSerial;
+    private int _officerCaptureNoticeSerial;
     private int _officerSpeechSerial;
     private int _activeOfficerSpeechPriority;
     private readonly List<BattleOfficerSpeechEntry> _officerSpeechEntries = new();
@@ -570,11 +578,13 @@ public partial class BattleSceneController : Node2D
     {
         public BattleGridKey? MoveAttackDestination { get; init; }
         public AiSupplyPlan? SupplyPlan { get; init; }
+        public AiFirePlan? FirePlan { get; init; }
         public bool IsHideAction { get; init; }
         public bool IsGuardAction { get; init; }
     }
     private readonly record struct AiOutpostObjective(BattleGridKey Grid, int Score, string Reason);
     private readonly record struct AiSupplyPlan(BattleGridKey ActionGrid, bool MoveBeforeSupply, int Score, string Reason);
+    private readonly record struct AiFirePlan(BattleGridKey TargetGrid, int Score, int EnemyDamage, int FriendlyDamage, int EnemyTargets, int SpreadTargets);
     private sealed record AiBridgeEngineeringPlan(
         IReadOnlyList<Vector2I> Corridor,
         BattleGridKey WorkGrid,
@@ -1902,6 +1912,8 @@ public partial class BattleSceneController : Node2D
             // Command buttons must stay clickable when the draggable battle log overlaps them.
             _commandMenu.ZIndex = 50;
         }
+        _topBar ??= GetNodeOrNull<Control>("UiLayer/TopBar");
+        _tileInfoPanel ??= GetNodeOrNull<Control>("UiLayer/SidePanel");
         _battleLogPanel ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel");
         _battleLogHeaderRow ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow");
         _battleLogContent ??= GetNodeOrNull<Control>("UiLayer/BattleLogPanel/Margin/LogContent");
@@ -1915,6 +1927,8 @@ public partial class BattleSceneController : Node2D
         }
         _retreatNotice ??= GetNodeOrNull<Control>("UiLayer/RetreatNotice");
         _retreatNoticeLabel ??= GetNodeOrNull<Label>("UiLayer/RetreatNotice/Margin/Label");
+        _officerCaptureNotice ??= GetNodeOrNull<Control>("UiLayer/OfficerCaptureNotice");
+        _officerCaptureNoticeLabel ??= GetNodeOrNull<Label>("UiLayer/OfficerCaptureNotice/Margin/Label");
         _officerSpeechOverlay ??= GetNodeOrNull<Control>("UiLayer/OfficerSpeechOverlay");
         _officerSpeechPortrait ??= GetNodeOrNull<TextureRect>("UiLayer/OfficerSpeechOverlay/Margin/Row/Portrait");
         _officerSpeechTeamNameLabel ??= GetNodeOrNull<Label>("UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn/TeamName");
@@ -3002,6 +3016,20 @@ public partial class BattleSceneController : Node2D
         return occupant.IsHidden && occupant.TeamName != viewerTeamName;
     }
 
+    private bool IsHiddenAmbushAttack(BattleGridKey sourceGrid, BattleOccupantInfo attacker)
+    {
+        return attacker.IsHidden &&
+               attacker.Category == CategoryUnit &&
+               IsForestGrid(sourceGrid);
+    }
+
+    private string FormatAmbushAttackLog(bool isHiddenAmbush)
+    {
+        return isHiddenAmbush
+            ? $"; {BattleText("ui.battle.ambush_damage_bonus", "Ambush: damage +25%")}"
+            : string.Empty;
+    }
+
     private bool IsVisibleToCurrentTurnSide(BattleOccupantInfo occupant)
     {
         return !IsHiddenFromSide(occupant, GetCurrentTurnSideName());
@@ -3155,7 +3183,8 @@ public partial class BattleSceneController : Node2D
     {
         if (mouseButton.Pressed &&
             mouseButton.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown &&
-            IsPointInCommandMenu(mouseButton.GlobalPosition))
+            (IsPointInCommandMenu(mouseButton.GlobalPosition) ||
+             IsPointInCameraZoomBlockedUi(mouseButton.GlobalPosition)))
         {
             GetViewport().SetInputAsHandled();
             return;
@@ -3311,6 +3340,13 @@ public partial class BattleSceneController : Node2D
     private bool IsPointInCommandMenu(Vector2 globalPosition)
     {
         return _commandMenu?.Visible == true && _commandMenu.GetGlobalRect().HasPoint(globalPosition);
+    }
+
+    private bool IsPointInCameraZoomBlockedUi(Vector2 globalPosition)
+    {
+        return (_topBar?.Visible == true && _topBar.GetGlobalRect().HasPoint(globalPosition)) ||
+               (_tileInfoPanel?.Visible == true && _tileInfoPanel.GetGlobalRect().HasPoint(globalPosition)) ||
+               (_battleLogPanel?.Visible == true && _battleLogPanel.GetGlobalRect().HasPoint(globalPosition));
     }
 
     private bool TryAdjustBattleCameraZoom(InputEventMouseButton mouseButton)
@@ -4390,18 +4426,20 @@ public partial class BattleSceneController : Node2D
 
     private string FormatStrategyAvailability(BattleOccupantInfo unit)
     {
-        if (!HasStrategyPlans(unit.TeamName))
-        {
-            return BattleText("ui.battle.no_strategy_plan", "No strategy plan");
-        }
-
         if (unit.Marker != null && _strategyUsedByMarkerThisTurn.Contains(unit.Marker))
         {
             return BattleText("ui.battle.already_used_this_turn", "Already used this turn");
         }
 
-        return ResolveStrategyAction(unit) switch
+        var strategyAction = ResolveStrategyAction(unit, _selectedUnitGrid);
+        if (strategyAction != BattleStrategyAction.Extinguish && !HasStrategyPlans(unit.TeamName))
         {
+            return BattleText("ui.battle.no_strategy_plan", "No strategy plan");
+        }
+
+        return strategyAction switch
+        {
+            BattleStrategyAction.Extinguish => BattleFormat("ui.battle.extinguish_ready", "Extinguish Ready (Energy {0})", ExtinguishFireEnergyCost),
             BattleStrategyAction.Fire => BattleText("ui.battle.fire_ready", "Fire Ready"),
             BattleStrategyAction.Mental => BattleText("ui.battle.mess_calm_ready", "Mess / Calm Ready"),
             _ => BattleText("ui.battle.unavailable", "Unavailable")
@@ -4875,6 +4913,7 @@ public partial class BattleSceneController : Node2D
             () =>
             {
                 CaptureDefenseOutpost(destinationGrid, movedOccupant);
+                ApplyBattleFireEntryDamage(destinationGrid, movedOccupant);
                 RefreshOccludedUnitSilhouettes();
                 TryShowTerrainSpeech(movedOccupant, destinationGrid);
                 onMoveAnimationComplete?.Invoke();
@@ -4981,12 +5020,18 @@ public partial class BattleSceneController : Node2D
         }
 
         var isWeakCloseAttack = CanUseAmmoDepletedWeakAttack(_selectedUnit);
+        var isHiddenAmbush = IsHiddenAmbushAttack(_selectedUnitGrid.Value, _selectedUnit);
         var attackDamage = target == null ? GetAttackDamage(_selectedUnit) : GetAttackDamageAgainst(_selectedUnit, target);
+        if (isHiddenAmbush)
+        {
+            attackDamage = Mathf.Max(1, Mathf.RoundToInt(attackDamage * HiddenAmbushDamageMultiplier));
+        }
         var attackingUnit = _selectedUnit with
         {
             FacingDirection = attackDirection,
             Energy = _selectedUnit.Energy - NormalAttackEnergyCost,
-            HasAttackedThisTurn = true
+            HasAttackedThisTurn = true,
+            IsHidden = !isHiddenAmbush && _selectedUnit.IsHidden
         };
         if (!TrySpendNormalAttackWeaponAmmo(attackingUnit, out attackingUnit))
         {
@@ -4995,6 +5040,18 @@ public partial class BattleSceneController : Node2D
 
         ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, attackingUnit);
         _selectedUnit = attackingUnit;
+        if (isHiddenAmbush)
+        {
+            ShowBattlePopup(
+                _selectedUnitGrid.Value,
+                BattleText("ui.battle.ambush_popup", "Ambush +25%"),
+                new Color(1.0f, 0.88f, 0.22f, 1.0f),
+                new Color(0.10f, 0.08f, 0.01f, 0.95f),
+                new Vector2(-48.0f, -108.0f),
+                1.6,
+                22);
+            RefreshHiddenUnitVisibility();
+        }
 
         var shouldTemporarilyRevealOccludedUnits =
             IsUnitOccludedByCastleVisual(_selectedUnitGrid.Value) ||
@@ -5035,7 +5092,7 @@ public partial class BattleSceneController : Node2D
         }
 
         var effectDelaySeconds = attackAnimationDuration + Math.Max(hurtAnimationDuration, projectileDuration);
-        AppendBattleLog(attackingUnit, "Attack", $"{FormatLogUnit(attackingUnit)} attacks {targetGrid}{FormatNormalAttackAmmoLog(attackingUnit, isWeakCloseAttack)}{FormatTroopTypeAdvantageLog(attackingUnit, target)}");
+        AppendBattleLog(attackingUnit, "Attack", $"{FormatLogUnit(attackingUnit)} attacks {targetGrid}{FormatNormalAttackAmmoLog(attackingUnit, isWeakCloseAttack)}{FormatTroopTypeAdvantageLog(attackingUnit, target)}{FormatAmbushAttackLog(isHiddenAmbush)}");
         if (!isProjectileAttack)
         {
             ApplyAttackDamage(attackingUnit, targetGrid, effectDelaySeconds, attackDamage, _selectedUnitGrid);
@@ -6206,6 +6263,29 @@ public partial class BattleSceneController : Node2D
         }
     }
 
+    private async void ShowOfficerCaptureNotice(BattleOccupantInfo capturedOfficer)
+    {
+        if (_officerCaptureNotice == null || _officerCaptureNoticeLabel == null)
+        {
+            return;
+        }
+
+        var noticeSerial = ++_officerCaptureNoticeSerial;
+        _officerCaptureNoticeLabel.Text = BattleFormat(
+            "ui.battle.officer_captured",
+            "{0} officer {1} has been captured!",
+            FormatTeamName(capturedOfficer.TeamName),
+            FormatOfficerName(capturedOfficer.OfficerName));
+        _officerCaptureNotice.Visible = true;
+        _officerCaptureNotice.MoveToFront();
+
+        await ToSignal(GetTree().CreateTimer(3.0), SceneTreeTimer.SignalName.Timeout);
+        if (GodotObject.IsInstanceValid(this) && noticeSerial == _officerCaptureNoticeSerial)
+        {
+            _officerCaptureNotice.Visible = false;
+        }
+    }
+
     private void ShowBattlePopup(
         BattleGridKey targetGrid,
         string text,
@@ -6580,7 +6660,8 @@ public partial class BattleSceneController : Node2D
         BattleGridKey grid,
         BattleOccupantInfo occupant,
         double delaySeconds,
-        BattleOccupantInfo? destroyer = null)
+        BattleOccupantInfo? destroyer = null,
+        bool captureOfficer = true)
     {
         if (delaySeconds > 0.0)
         {
@@ -6598,6 +6679,11 @@ public partial class BattleSceneController : Node2D
         }
 
         RemoveOccupant(grid, occupant);
+        if (captureOfficer && IsGeneralCountedPiece(occupant.Category, occupant.OfficerName))
+        {
+            AppendBattleLog(occupant, "Capture", $"{FormatOfficerName(occupant.OfficerName)} is captured after the battle team is destroyed.");
+            ShowOfficerCaptureNotice(occupant);
+        }
         if (destroyer != null)
         {
             TryShowOfficerSpeech(destroyer, BattleOfficerSpeechEvent.Destroy);
@@ -7310,6 +7396,52 @@ public partial class BattleSceneController : Node2D
         }
 
         return false;
+    }
+
+    private bool TryGetAiPathEndpointToward(
+        BattleGridKey startGrid,
+        BattleOccupantInfo unit,
+        BattleGridKey goalGrid,
+        out BattleGridKey destinationGrid,
+        out int fullPathEnergyCost,
+        out int fullPathSteps)
+    {
+        destinationGrid = default;
+        fullPathEnergyCost = 0;
+        fullPathSteps = 0;
+        if (_mapData == null || goalGrid == startGrid)
+        {
+            return false;
+        }
+
+        var fullPathBudget = BattleMapData.Width * BattleMapData.Height * 2;
+        if (!TryBuildMovePath(startGrid, goalGrid, fullPathBudget, fullPathBudget, out var fullPath))
+        {
+            return false;
+        }
+
+        fullPathEnergyCost = GetMovePathEnergyCost(fullPath);
+        fullPathSteps = fullPath.Count;
+        var availableEnergy = GetAvailableMoveEnergy(unit);
+        var availableRange = GetAvailableMoveRange(unit);
+        var spentEnergy = 0;
+        var steps = 0;
+        foreach (var grid in fullPath)
+        {
+            spentEnergy += GetMoveEnergyCost(_mapData.GetCell(grid.X, grid.Y));
+            steps++;
+            if (spentEnergy > availableEnergy || steps > availableRange)
+            {
+                break;
+            }
+
+            if (IsAiSafeMovementDestination(grid))
+            {
+                destinationGrid = grid;
+            }
+        }
+
+        return destinationGrid != default;
     }
 
     private static int EstimateMoveCost(BattleGridKey fromGrid, BattleGridKey toGrid)
@@ -8409,6 +8541,7 @@ public partial class BattleSceneController : Node2D
         AppendBattleLog(winner, "Duel", $"{FormatLogUnit(winner)} wins. {FormatLogUnit(loser)} captured; losing team leaves battle. Winner morale +10");
         ApplyRetreatTroopLoss(loser);
         RemoveOccupant(loserGrid, loser);
+        ShowOfficerCaptureNotice(loser);
         if (_selectedUnit == loser)
         {
             _selectedUnit = null;
@@ -8904,16 +9037,19 @@ public partial class BattleSceneController : Node2D
         var maxAttackAnimationDuration = 0.0;
         BattleOccupantInfo? updatedSelectedUnit = null;
         var updatedParticipants = new List<UnionAttackParticipant>();
+        var isHiddenAmbush = IsHiddenAmbushAttack(_selectedUnitGrid.Value, _selectedUnit);
         foreach (var participant in candidate.Participants)
         {
             var attackDirection = GetInfantryDirection(participant.Grid.Grid, candidate.TargetGrid.Grid);
             var isInitiator = participant.Grid == _selectedUnitGrid.Value;
+            var isInitiatorAmbush = isInitiator && isHiddenAmbush;
             var energyCost = isInitiator ? NormalAttackEnergyCost : UnionAttackSupportEnergyCost;
             var attackingUnit = participant.Occupant with
             {
                 FacingDirection = attackDirection,
                 Energy = participant.Occupant.Energy - energyCost,
-                HasAttackedThisTurn = isInitiator
+                HasAttackedThisTurn = isInitiator,
+                IsHidden = !isInitiatorAmbush && participant.Occupant.IsHidden
             };
             if (!TrySpendNormalAttackWeaponAmmo(attackingUnit, out attackingUnit))
             {
@@ -8938,6 +9074,18 @@ public partial class BattleSceneController : Node2D
         {
             _selectedUnit = updatedSelectedUnit;
         }
+        if (isHiddenAmbush)
+        {
+            ShowBattlePopup(
+                _selectedUnitGrid.Value,
+                BattleText("ui.battle.ambush_popup", "Ambush +25%"),
+                new Color(1.0f, 0.88f, 0.22f, 1.0f),
+                new Color(0.10f, 0.08f, 0.01f, 0.95f),
+                new Vector2(-48.0f, -108.0f),
+                1.6,
+                22);
+            RefreshHiddenUnitVisibility();
+        }
 
         var hurtAnimationDuration = GetTargetHurtAnimationDuration(_selectedUnitGrid.Value, candidate.TargetGrid, _selectedUnit!);
         PlayTargetHurtAnimationAfterDelay(maxAttackAnimationDuration, _selectedUnitGrid.Value, candidate.TargetGrid, _selectedUnit!);
@@ -8954,12 +9102,12 @@ public partial class BattleSceneController : Node2D
         AppendBattleLog(
             _selectedUnit!,
             "Attack",
-            $"Union x{updatedParticipants.Count}: {string.Join(", ", updatedParticipants.Select(participant => FormatLogUnit(participant.Occupant)))} -> {candidate.TargetGrid}{unionAdvantageLog}");
+            $"Union x{updatedParticipants.Count}: {string.Join(", ", updatedParticipants.Select(participant => FormatLogUnit(participant.Occupant)))} -> {candidate.TargetGrid}{unionAdvantageLog}{FormatAmbushAttackLog(isHiddenAmbush)}");
         ApplyAttackDamage(
             _selectedUnit!,
             candidate.TargetGrid,
             effectDelaySeconds,
-            GetUnionAttackDamage(updatedParticipants, unionTarget),
+            GetUnionAttackDamage(updatedParticipants, unionTarget, isHiddenAmbush),
             _selectedUnitGrid,
             BattleOfficerSpeechEvent.Union);
         foreach (var participant in updatedParticipants)
@@ -9959,14 +10107,16 @@ public partial class BattleSceneController : Node2D
         return troopType is TroopInfantry or TroopSpearman or TroopCavalry or TroopArcher or TroopCrossbow or TroopWorker;
     }
 
-    private int GetUnionAttackDamage(IReadOnlyList<UnionAttackParticipant> participants, BattleOccupantInfo target)
+    private int GetUnionAttackDamage(IReadOnlyList<UnionAttackParticipant> participants, BattleOccupantInfo target, bool ambushInitiator = false)
     {
         var damage = 0;
         for (var index = 0; index < participants.Count; index++)
         {
             var participantDamage = GetAttackDamageAgainst(participants[index].Occupant, target);
             damage += index == 0
-                ? participantDamage
+                ? ambushInitiator
+                    ? Mathf.Max(1, Mathf.RoundToInt(participantDamage * HiddenAmbushDamageMultiplier))
+                    : participantDamage
                 : Mathf.Max(1, participantDamage / 2);
         }
 
@@ -10177,7 +10327,7 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        _selectedStrategyAction = ResolveStrategyAction(_selectedUnit);
+        _selectedStrategyAction = ResolveStrategyAction(_selectedUnit, _selectedUnitGrid);
         _commandMode = BattleCommandMode.StrategySelect;
         _movableGrids.Clear();
         _attackableGrids.Clear();
@@ -10193,9 +10343,12 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        var strategyTargets = _selectedStrategyAction == BattleStrategyAction.Fire
-            ? CalculateFireStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit)
-            : CalculateMentalStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit);
+        var strategyTargets = _selectedStrategyAction switch
+        {
+            BattleStrategyAction.Extinguish => CalculateExtinguishStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit),
+            BattleStrategyAction.Fire => CalculateFireStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit),
+            _ => CalculateMentalStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit)
+        };
         foreach (var targetGrid in strategyTargets)
         {
             _strategyTargetGrids.Add(targetGrid);
@@ -10249,6 +10402,11 @@ public partial class BattleSceneController : Node2D
         if (_selectedStrategyAction == BattleStrategyAction.Mental)
         {
             return TryExecuteMentalStrategy(targetGrid);
+        }
+
+        if (_selectedStrategyAction == BattleStrategyAction.Extinguish)
+        {
+            return TryExecuteExtinguishStrategy(targetGrid);
         }
 
         if (!CanUseFireStrategy(_selectedUnit))
@@ -10311,8 +10469,13 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
-    private BattleStrategyAction ResolveStrategyAction(BattleOccupantInfo occupant)
+    private BattleStrategyAction ResolveStrategyAction(BattleOccupantInfo occupant, BattleGridKey? sourceGrid = null)
     {
+        if (sourceGrid.HasValue && CanUseExtinguishStrategy(occupant, sourceGrid.Value))
+        {
+            return BattleStrategyAction.Extinguish;
+        }
+
         if (CanUseFireStrategy(occupant))
         {
             return BattleStrategyAction.Fire;
@@ -10324,6 +10487,93 @@ public partial class BattleSceneController : Node2D
         }
 
         return BattleStrategyAction.None;
+    }
+
+    private IEnumerable<BattleGridKey> CalculateExtinguishStrategyTargetGrids(BattleGridKey sourceGrid, BattleOccupantInfo officer)
+    {
+        if (!CanUseExtinguishStrategy(officer, sourceGrid))
+        {
+            yield break;
+        }
+
+        foreach (var fireGrid in _activeFireByGrid.Keys)
+        {
+            if (fireGrid.Level == sourceGrid.Level &&
+                GetChebyshevDistance(sourceGrid.Grid, fireGrid.Grid) <= ExtinguishFireRange)
+            {
+                yield return fireGrid;
+            }
+        }
+    }
+
+    private bool TryExecuteExtinguishStrategy(BattleGridKey targetGrid)
+    {
+        if (_selectedUnit == null || !_selectedUnitGrid.HasValue || _selectedUnit.Marker == null ||
+            !CanUseExtinguishStrategy(_selectedUnit, _selectedUnitGrid.Value) ||
+            !_activeFireByGrid.ContainsKey(targetGrid) ||
+            GetChebyshevDistance(_selectedUnitGrid.Value.Grid, targetGrid.Grid) > ExtinguishFireRange)
+        {
+            return false;
+        }
+
+        var actingUnit = _selectedUnit with { Energy = _selectedUnit.Energy - ExtinguishFireEnergyCost };
+        ReplaceOccupantAtGrid(_selectedUnitGrid.Value, _selectedUnit, actingUnit);
+        _selectedUnit = actingUnit;
+        _strategyUsedByMarkerThisTurn.Add(actingUnit.Marker);
+
+        var successChance = GetExtinguishFireSuccessChance(actingUnit, targetGrid);
+        var success = GD.Randf() * 100.0f <= successChance;
+        if (success)
+        {
+            _activeFireByGrid.Remove(targetGrid);
+            RemoveFireVisual(targetGrid);
+            RefreshBattleDepthLayerOrder();
+            ShowBattlePopup(targetGrid, BattleText("ui.battle.extinguish_success_popup", "Fire Extinguished"), new Color(0.25f, 0.78f, 1.0f, 1.0f), new Color(0.01f, 0.10f, 0.16f, 0.95f), new Vector2(-46.0f, -108.0f), 1.6, 22);
+            AppendBattleLog(actingUnit, "Strategy", $"{FormatLogUnit(actingUnit)} extinguishes fire at {targetGrid} (success {successChance:N0}%, energy {ExtinguishFireEnergyCost})");
+        }
+        else
+        {
+            ShowBattlePopup(targetGrid, BattleText("ui.battle.extinguish_fail_popup", "Extinguish Failed"), new Color(1.0f, 0.72f, 0.20f, 1.0f), new Color(0.16f, 0.06f, 0.01f, 0.95f), new Vector2(-46.0f, -108.0f), 1.6, 22);
+            AppendBattleLog(actingUnit, "Strategy", $"{FormatLogUnit(actingUnit)} fails to extinguish fire at {targetGrid} ({successChance:N0}%, energy {ExtinguishFireEnergyCost})");
+        }
+
+        MarkUnitActed(actingUnit);
+        _commandMode = BattleCommandMode.None;
+        _selectedStrategyAction = BattleStrategyAction.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        _workableGrids.Clear();
+        _strategyTargetGrids.Clear();
+        _duelTargetGrids.Clear();
+        HideCommandMenu();
+        ConfigureHud();
+        RefreshInfoPanel();
+        RefreshHighlights();
+        return true;
+    }
+
+    private bool CanUseExtinguishStrategy(BattleOccupantInfo? occupant, BattleGridKey sourceGrid)
+    {
+        return occupant?.Marker != null &&
+               IsGeneralCountedPiece(occupant.Category, occupant.OfficerName) &&
+               occupant.Energy >= ExtinguishFireEnergyCost &&
+               !_strategyUsedByMarkerThisTurn.Contains(occupant.Marker) &&
+               !IsMessed(occupant) &&
+               _activeFireByGrid.Keys.Any(fireGrid =>
+                   fireGrid.Level == sourceGrid.Level &&
+                   GetChebyshevDistance(sourceGrid.Grid, fireGrid.Grid) <= ExtinguishFireRange);
+    }
+
+    private float GetExtinguishFireSuccessChance(BattleOccupantInfo officer, BattleGridKey targetGrid)
+    {
+        var weatherBonus = GetCurrentBattleWeather() switch
+        {
+            BattleWeatherType.Rain => 18,
+            BattleWeatherType.Cloudy => 8,
+            _ => 0
+        };
+        var terrainBonus = _mapData?.GetCell(targetGrid.X, targetGrid.Y).Terrain == BattleTerrainType.Forest ? -8 : 0;
+        return Mathf.Clamp(25.0f + (GetOfficerTacticalIntelligence(officer.OfficerName) * 0.6f) + weatherBonus + terrainBonus, 35.0f, 90.0f);
     }
 
     private IEnumerable<BattleGridKey> CalculateMentalStrategyTargetGrids(BattleGridKey sourceGrid, BattleOccupantInfo actor)
@@ -10648,14 +10898,35 @@ public partial class BattleSceneController : Node2D
         ApplyBattleFireDamageToStructure(targetGrid);
     }
 
-    private void ApplyBattleFireDamageToOccupants(BattleGridKey targetGrid, int damage)
+    private void ApplyBattleFireEntryDamage(BattleGridKey grid, BattleOccupantInfo enteringOccupant)
+    {
+        if (grid.Level != 0 ||
+            !_activeFireByGrid.ContainsKey(grid) ||
+            !TryGetCurrentOccupantAtGrid(grid, enteringOccupant, out var currentOccupant))
+        {
+            return;
+        }
+
+        ApplyBattleFireDamageToOccupants(grid, GetFireDamagePerTurn(GetCurrentBattleWeather()), currentOccupant);
+    }
+
+    private bool IsAiSafeMovementDestination(BattleGridKey grid)
+    {
+        return grid.Level != 0 || !_activeFireByGrid.ContainsKey(ToGroundGridKey(grid.Grid));
+    }
+
+    private void ApplyBattleFireDamageToOccupants(BattleGridKey targetGrid, int damage, BattleOccupantInfo? targetOverride = null)
     {
         if (damage <= 0 || !_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
         {
             return;
         }
 
-        var target = GetFireDamageTarget(targetOccupants);
+        var target = targetOverride == null
+            ? GetFireDamageTarget(targetOccupants)
+            : TryGetCurrentOccupantAtGrid(targetGrid, targetOverride, out var currentTarget)
+                ? currentTarget
+                : null;
         if (target == null)
         {
             return;
@@ -10669,7 +10940,7 @@ public partial class BattleSceneController : Node2D
         ConfigureHud();
         if (updatedTarget.HitPoints <= 0)
         {
-            DestroyOccupantAfterDelay(targetGrid, updatedTarget, 0.0);
+            DestroyOccupantAfterDelay(targetGrid, updatedTarget, 0.0, captureOfficer: true);
         }
     }
 
@@ -11867,15 +12138,19 @@ public partial class BattleSceneController : Node2D
 
         if (_strategyButton != null)
         {
-            var strategyAction = canCommandSelectedUnit && _selectedUnit != null ? ResolveStrategyAction(_selectedUnit) : BattleStrategyAction.None;
+            var strategyAction = canCommandSelectedUnit && _selectedUnit != null ? ResolveStrategyAction(_selectedUnit, _selectedUnitGrid) : BattleStrategyAction.None;
             var hasStrategyTarget = strategyAction != BattleStrategyAction.None &&
                                     _selectedUnit != null &&
                                     _selectedUnitGrid.HasValue &&
-                                    (strategyAction == BattleStrategyAction.Fire
-                                        ? CalculateFireStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit).Any()
-                                        : CalculateMentalStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit).Any());
+                                    (strategyAction == BattleStrategyAction.Extinguish
+                                        ? CalculateExtinguishStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit).Any()
+                                        : strategyAction == BattleStrategyAction.Fire
+                                            ? CalculateFireStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit).Any()
+                                            : CalculateMentalStrategyTargetGrids(_selectedUnitGrid.Value, _selectedUnit).Any());
             _strategyButton.Visible = hasStrategyTarget;
-            _strategyButton.Text = strategyAction == BattleStrategyAction.Fire && _selectedUnit?.MaxWeaponAmmo.HasValue == true
+            _strategyButton.Text = strategyAction == BattleStrategyAction.Extinguish
+                ? BattleFormat("ui.battle.strategy_extinguish_energy", "Strategy (Extinguish, Energy {0})", ExtinguishFireEnergyCost)
+                : strategyAction == BattleStrategyAction.Fire && _selectedUnit?.MaxWeaponAmmo.HasValue == true
                 ? BattleFormat("ui.battle.strategy_fire_ammo", "Strategy (Fire, Ammo {0})", FormatWeaponAmmo(_selectedUnit))
                 : strategyAction == BattleStrategyAction.Fire
                     ? BattleText("ui.battle.strategy_fire", "Strategy (Fire)")
@@ -12573,6 +12848,11 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
+        if (TryExecuteAiFortressMissionAdvance(candidates))
+        {
+            return;
+        }
+
         foreach (var candidate in candidates.Where(candidate => candidate.Occupant.TroopType != TroopSupplyCart))
         {
             if (TryExecuteAiMoveAndAttack(candidate.Grid, candidate.Occupant))
@@ -12593,6 +12873,79 @@ public partial class BattleSceneController : Node2D
         FocusCameraOnBattleGrid(waitingCandidate.Grid);
         AppendBattleLog(waitingCandidate.Occupant, "AI", $"Decision: wait at {waitingCandidate.Grid}; no legal move or attack.");
         MarkUnitActed(waitingCandidate.Occupant);
+    }
+
+    private bool TryExecuteAiFortressMissionAdvance(IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates)
+    {
+        if (candidates.Count == 0 || IsDefenderTeam(candidates[0].Occupant))
+        {
+            return false;
+        }
+
+        var teamName = candidates[0].Occupant.TeamName;
+        var hasVisibleEnemy = GetAllBattlePieces().Any(entry =>
+            entry.Occupant.TeamName != teamName &&
+            !IsHiddenFromSide(entry.Occupant, teamName));
+        if (hasVisibleEnemy)
+        {
+            return false;
+        }
+
+        var advances = new List<(BattleGridKey SourceGrid, BattleOccupantInfo Unit, BattleGridKey DestinationGrid, AiOutpostObjective Objective, int FullPathEnergy, int FullPathSteps)>();
+        foreach (var candidate in candidates.Where(candidate =>
+                     candidate.Occupant.Category == CategoryUnit &&
+                     candidate.Occupant.TroopType != TroopWorker &&
+                     !candidate.Occupant.HasAttackedThisTurn))
+        {
+            foreach (var objective in GetAiOutpostObjectives(candidate.Occupant, []))
+            {
+                // A hidden defender may already occupy the fortress. In that case, advance to a legal adjacent grid
+                // until the defender is discovered instead of treating the occupied fortress as an unreachable mission.
+                var missionGoals = new[] { objective.Grid }
+                    .Concat(GetMovementNeighbors(objective.Grid).Select(step => step.Grid))
+                    .Distinct();
+                foreach (var missionGoal in missionGoals)
+                {
+                    if (!TryGetAiPathEndpointToward(
+                            candidate.Grid,
+                            candidate.Occupant,
+                            missionGoal,
+                            out var destinationGrid,
+                            out var fullPathEnergy,
+                            out var fullPathSteps))
+                    {
+                        continue;
+                    }
+
+                    advances.Add((candidate.Grid, candidate.Occupant, destinationGrid, objective, fullPathEnergy, fullPathSteps));
+                    break;
+                }
+            }
+        }
+
+        if (advances.Count == 0)
+        {
+            return false;
+        }
+
+        var chosenAdvance = advances
+            .OrderByDescending(advance => advance.Objective.Score)
+            .ThenBy(advance => advance.FullPathEnergy)
+            .ThenBy(advance => advance.FullPathSteps)
+            .ThenByDescending(advance => GetAiOfficerDecisionTieBreakScore(advance.Unit))
+            .First();
+        var routedObjective = chosenAdvance.Objective with
+        {
+            Reason = $"mission advance while enemy is hidden; A* energy {chosenAdvance.FullPathEnergy}, steps {chosenAdvance.FullPathSteps}"
+        };
+        var score = routedObjective.Score + GetOfficerTacticalIntelligence(chosenAdvance.Unit.OfficerName) * 15;
+        return TryExecuteAiOutpostMove(
+            chosenAdvance.SourceGrid,
+            chosenAdvance.Unit,
+            chosenAdvance.DestinationGrid,
+            routedObjective,
+            score,
+            GetAiDecisionNoise(chosenAdvance.SourceGrid, chosenAdvance.DestinationGrid, participantCount: 1));
     }
 
     private bool TryExecuteAiSupply(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart)
@@ -12657,7 +13010,7 @@ public partial class BattleSceneController : Node2D
         }
 
         foreach (var destination in CalculateReachableGrids(sourceGrid, supplyCart.Energy - SupplyActionEnergyCost, GetAvailableMoveRange(supplyCart))
-                     .Where(grid => grid != sourceGrid))
+                     .Where(grid => grid != sourceGrid && IsAiSafeMovementDestination(grid)))
         {
             var actionScore = GetAiSupplyActionScore(destination, supplyCart);
             if (actionScore > 0)
@@ -12681,6 +13034,65 @@ public partial class BattleSceneController : Node2D
             .Where(target => target.Occupant.TroopType != TroopSupplyCart)
             .Sum(target => Mathf.Min(SupplyCartRepairAmount, target.Occupant.MaxHitPoints - target.Occupant.HitPoints) * 2);
         return moraleScore + recoveryScore + repairScore;
+    }
+
+    private bool TryGetAiSupplyApproach(
+        BattleGridKey sourceGrid,
+        BattleOccupantInfo supplyCart,
+        out BattleGridKey destinationGrid,
+        out BattleGridKey supplyActionGrid,
+        out int supplyScore,
+        out int fullPathEnergyCost,
+        out int fullPathSteps)
+    {
+        destinationGrid = default;
+        supplyActionGrid = default;
+        supplyScore = 0;
+        fullPathEnergyCost = 0;
+        fullPathSteps = 0;
+        if (_mapData == null)
+        {
+            return false;
+        }
+
+        var candidates = new List<(BattleGridKey ActionGrid, BattleGridKey DestinationGrid, int Score, int FullPathEnergy, int FullPathSteps)>();
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var actionGrid = ToGroundGridKey(new Vector2I(x, y));
+                if (actionGrid == sourceGrid || HasBlockingOccupant(actionGrid))
+                {
+                    continue;
+                }
+
+                var score = GetAiSupplyActionScore(actionGrid, supplyCart);
+                if (score <= 0 ||
+                    !TryGetAiPathEndpointToward(sourceGrid, supplyCart, actionGrid, out var nextDestination, out var pathEnergy, out var pathSteps))
+                {
+                    continue;
+                }
+
+                candidates.Add((actionGrid, nextDestination, score, pathEnergy, pathSteps));
+            }
+        }
+
+        var best = candidates
+            .OrderByDescending(candidate => candidate.Score)
+            .ThenBy(candidate => candidate.FullPathEnergy)
+            .ThenBy(candidate => candidate.FullPathSteps)
+            .FirstOrDefault();
+        if (best == default)
+        {
+            return false;
+        }
+
+        destinationGrid = best.DestinationGrid;
+        supplyActionGrid = best.ActionGrid;
+        supplyScore = best.Score;
+        fullPathEnergyCost = best.FullPathEnergy;
+        fullPathSteps = best.FullPathSteps;
+        return true;
     }
 
     private bool TryExecuteAiSupplyPlan(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart, AiSupplyPlan plan, int noise)
@@ -12822,7 +13234,8 @@ public partial class BattleSceneController : Node2D
             .Select(entry => entry.Grid)
             .ToList();
         var actions = new List<AiSurvivalAction>();
-        foreach (var destinationGrid in CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit)))
+        foreach (var destinationGrid in CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
+                     .Where(IsAiSafeMovementDestination))
         {
             var threat = GetAiThreatScore(destinationGrid, unit);
             var hasCover = IsAiDefensivePosition(destinationGrid, unit.TeamName);
@@ -12888,9 +13301,12 @@ public partial class BattleSceneController : Node2D
 
     private int GetAiBestOffensiveActionScore(BattleGridKey sourceGrid, BattleOccupantInfo unit)
     {
+        var fireScores = GetAiFirePlans(sourceGrid, unit).Select(plan => plan.Score).ToList();
         if (unit.Energy < NormalAttackEnergyCost || !CanUseAttackCommand(unit))
         {
-            return 0;
+            return fireScores.Count == 0
+                ? 0
+                : fireScores.Max() + GetAiCombatDecisionScore(unit);
         }
 
         var scores = CalculateAttackableGrids(sourceGrid, unit)
@@ -12904,7 +13320,7 @@ public partial class BattleSceneController : Node2D
 
         scores.AddRange(
             CalculateReachableGrids(sourceGrid, unit.Energy - NormalAttackEnergyCost, GetAvailableMoveRange(unit))
-                .Where(grid => grid != sourceGrid)
+                .Where(grid => grid != sourceGrid && IsAiSafeMovementDestination(grid))
                 .SelectMany(grid => CalculateAttackableGrids(grid, unit)
                     .Where(targetGrid => _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
                                          GetAiAttackTargetForAttack(occupants, unit.TeamName, targetGrid) != null)
@@ -12913,6 +13329,8 @@ public partial class BattleSceneController : Node2D
                         var target = GetAiAttackTargetForAttack(_occupantsByGrid[targetGrid], unit.TeamName, targetGrid)!;
                         return GetAiOffensiveActionScore(targetGrid, unit.TeamName, target, GetAttackDamageAgainst(unit, target), supportCount: 0);
                     })));
+
+        scores.AddRange(fireScores);
 
         var previousUnit = _selectedUnit;
         var previousUnitGrid = _selectedUnitGrid;
@@ -12944,6 +13362,125 @@ public partial class BattleSceneController : Node2D
         return scores.Count == 0
             ? 0
             : scores.Max() + GetAiCombatDecisionScore(unit);
+    }
+
+    private IEnumerable<AiFirePlan> GetAiFirePlans(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        if (!CanUseFireStrategy(unit) || _mapData == null)
+        {
+            yield break;
+        }
+
+        var weather = GetCurrentBattleWeather();
+        var fireDamagePerTurn = GetFireDamagePerTurn(weather);
+        foreach (var targetGrid in CalculateFireStrategyTargetGrids(sourceGrid, unit))
+        {
+            var targetCell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
+            var duration = GetInitialFireDuration(weather, targetCell);
+            var enemyDamage = 0;
+            var friendlyDamage = 0;
+            var enemyTargets = 0;
+            var score = 0;
+
+            ScoreAiFireGrid(
+                targetGrid,
+                unit.TeamName,
+                fireDamagePerTurn,
+                duration,
+                weightPercent: 100,
+                ref score,
+                ref enemyDamage,
+                ref friendlyDamage,
+                ref enemyTargets);
+
+            var spreadTargets = 0;
+            if (weather != BattleWeatherType.Rain && duration > 1)
+            {
+                foreach (var spreadGrid in GetFireSpreadTargets(targetGrid))
+                {
+                    spreadTargets++;
+                    ScoreAiFireGrid(
+                        spreadGrid,
+                        unit.TeamName,
+                        fireDamagePerTurn,
+                        Math.Max(1, duration - 1),
+                        weightPercent: 50,
+                        ref score,
+                        ref enemyDamage,
+                        ref friendlyDamage,
+                        ref enemyTargets);
+                }
+            }
+
+            // Fire is indiscriminate. Do not burn a friendly position even when the enemy value looks tempting.
+            if (friendlyDamage > 0 || enemyTargets == 0)
+            {
+                continue;
+            }
+
+            var intelligenceBonus = GetOfficerTacticalIntelligence(unit.OfficerName) * 8;
+            var windBonus = weather == BattleWeatherType.Sunny && GetCurrentBattleWindPower() == BattleWindPower.Strong
+                ? 180
+                : 0;
+            yield return new AiFirePlan(
+                targetGrid,
+                score + intelligenceBonus + windBonus,
+                enemyDamage,
+                friendlyDamage,
+                enemyTargets,
+                spreadTargets);
+        }
+    }
+
+    private void ScoreAiFireGrid(
+        BattleGridKey grid,
+        string actingTeamName,
+        int damagePerTurn,
+        int turns,
+        int weightPercent,
+        ref int score,
+        ref int enemyDamage,
+        ref int friendlyDamage,
+        ref int enemyTargets)
+    {
+        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
+        {
+            return;
+        }
+
+        foreach (var occupant in occupants)
+        {
+            if (!IsBattlePiece(occupant))
+            {
+                continue;
+            }
+
+            var projectedDamage = Math.Min(occupant.HitPoints, damagePerTurn * turns);
+            var weightedDamage = projectedDamage * weightPercent / 100;
+            if (occupant.TeamName == actingTeamName)
+            {
+                friendlyDamage += weightedDamage;
+                continue;
+            }
+
+            if (IsHiddenFromSide(occupant, actingTeamName))
+            {
+                continue;
+            }
+
+            enemyTargets++;
+            enemyDamage += weightedDamage;
+            score += weightedDamage;
+            if (projectedDamage >= occupant.HitPoints)
+            {
+                score += 5000;
+            }
+
+            if (occupant.Category == CategoryUnit && !string.IsNullOrWhiteSpace(occupant.OfficerName))
+            {
+                score += 200;
+            }
+        }
     }
 
     private int GetAiThreatScore(BattleGridKey grid, BattleOccupantInfo threatenedUnit)
@@ -13034,6 +13571,23 @@ public partial class BattleSceneController : Node2D
         var actions = new List<AiOffensiveAction>();
         foreach (var (sourceGrid, unit) in candidates)
         {
+            foreach (var firePlan in GetAiFirePlans(sourceGrid, unit))
+            {
+                actions.Add(new AiOffensiveAction(
+                    sourceGrid,
+                    unit,
+                    firePlan.TargetGrid,
+                    null,
+                    null,
+                    null,
+                    null,
+                    firePlan.Score,
+                    GetAiDecisionNoise(sourceGrid, firePlan.TargetGrid, participantCount: 1))
+                {
+                    FirePlan = firePlan
+                });
+            }
+
             if (unit.Energy >= NormalAttackEnergyCost && CanUseAttackCommand(unit))
             {
                 foreach (var targetGrid in CalculateAttackableGrids(sourceGrid, unit))
@@ -13150,7 +13704,7 @@ public partial class BattleSceneController : Node2D
             if (unit.Energy >= NormalAttackEnergyCost && CanUseAttackCommand(unit))
             {
                 foreach (var moveAttackPlan in CalculateReachableGrids(sourceGrid, unit.Energy - NormalAttackEnergyCost, GetAvailableMoveRange(unit))
-                             .Where(grid => grid != sourceGrid)
+                             .Where(grid => grid != sourceGrid && IsAiSafeMovementDestination(grid))
                              .SelectMany(grid => CalculateAttackableGrids(grid, unit)
                                  .Where(targetGrid => _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
                                                       GetAiAttackTargetForAttack(occupants, unit.TeamName, targetGrid) != null)
@@ -13215,22 +13769,34 @@ public partial class BattleSceneController : Node2D
                     continue;
                 }
 
-                var approachGrid = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
-                    .OrderBy(grid => GetManhattanDistance(grid.Grid, objective.Grid.Grid))
-                    .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
-                    .FirstOrDefault();
-                if (approachGrid == default)
+                if (!TryGetAiPathEndpointToward(
+                        sourceGrid,
+                        unit,
+                        objective.Grid,
+                        out var approachGrid,
+                        out var fullPathEnergyCost,
+                        out var fullPathSteps))
                 {
                     continue;
                 }
 
-                var score = GetAiOutpostObjectiveScore(unit, approachGrid, objective);
+                var score = objective.Score +
+                            GetOfficerTacticalIntelligence(unit.OfficerName) * 15 -
+                            fullPathEnergyCost * 300;
+                if (score <= 0)
+                {
+                    continue;
+                }
+                var routedObjective = objective with
+                {
+                    Reason = $"{objective.Reason}; A* energy {fullPathEnergyCost}, steps {fullPathSteps}"
+                };
                 actions.Add(new AiOffensiveAction(
                     sourceGrid,
                     unit,
                     approachGrid,
                     null,
-                    objective,
+                    routedObjective,
                     null,
                     null,
                     score,
@@ -13267,6 +13833,11 @@ public partial class BattleSceneController : Node2D
         if (chosenAction.SupplyPlan.HasValue)
         {
             return TryExecuteAiSupplyPlan(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.SupplyPlan.Value, chosenAction.Noise);
+        }
+
+        if (chosenAction.FirePlan.HasValue)
+        {
+            return TryExecuteAiFireStrategy(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.FirePlan.Value, chosenAction.Noise);
         }
 
         if (chosenAction.IsHideAction)
@@ -13343,6 +13914,29 @@ public partial class BattleSceneController : Node2D
         AppendBattleLog(unit, "AI", $"Decision: hide in forest and prepare ambush (score {score}, variance {noise}).");
         OnHideButtonPressed();
         return HasUnitActed(unit);
+    }
+
+    private bool TryExecuteAiFireStrategy(BattleGridKey sourceGrid, BattleOccupantInfo unit, AiFirePlan plan, int noise)
+    {
+        if (!CanUseFireStrategy(unit) || !CalculateFireStrategyTargetGrids(sourceGrid, unit).Contains(plan.TargetGrid))
+        {
+            AppendBattleLog(unit, "AI", $"Fire plan cancelled: target {plan.TargetGrid} is no longer legal.");
+            return false;
+        }
+
+        _selectedUnit = unit;
+        _selectedUnitGrid = sourceGrid;
+        _selectedGrid = plan.TargetGrid.Grid;
+        _selectedGridKey = plan.TargetGrid;
+        _selectedStrategyAction = BattleStrategyAction.Fire;
+        _strategyTargetGrids.Clear();
+        _strategyTargetGrids.Add(plan.TargetGrid);
+        FocusCameraOnBattleGrid(sourceGrid);
+        AppendBattleLog(
+            unit,
+            "AI",
+            $"Decision: fire strategy at {plan.TargetGrid}; enemy damage {plan.EnemyDamage}, friendly risk {plan.FriendlyDamage}, enemy targets {plan.EnemyTargets}, spread targets {plan.SpreadTargets}, score {plan.Score}, variance {noise}.");
+        return TryExecuteSelectedStrategy();
     }
 
     private int GetAiOutpostObjectiveScore(BattleOccupantInfo unit, BattleGridKey approachGrid, AiOutpostObjective objective)
@@ -13545,7 +14139,7 @@ public partial class BattleSceneController : Node2D
         }
 
         var destinations = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(worker), GetAvailableMoveRange(worker))
-            .Where(grid => grid.Level == 0 && GetOrthogonalNeighbors(grid.Grid).Contains(workGrid))
+            .Where(grid => grid.Level == 0 && IsAiSafeMovementDestination(grid) && GetOrthogonalNeighbors(grid.Grid).Contains(workGrid))
             .OrderBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
             .ToList();
         if (destinations.Count == 0)
@@ -13960,9 +14554,10 @@ public partial class BattleSceneController : Node2D
     {
         var intelligence = GetOfficerTacticalIntelligence(action.Unit.OfficerName);
         var combat = GetOfficerBattleAttribute(action.Unit.OfficerName);
-        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.FencePlan != null || action.SupplyPlan.HasValue || action.IsGuardAction;
+        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.FencePlan != null || action.SupplyPlan.HasValue || action.FirePlan.HasValue || action.IsGuardAction;
         var isDirectAttack = action.UnionCandidate == null &&
                              !action.MoveAttackDestination.HasValue &&
+                             !action.FirePlan.HasValue &&
                              !action.IsHideAction &&
                              !action.IsGuardAction &&
                              _occupantsByGrid.TryGetValue(action.TargetGrid, out var directTargetOccupants) &&
@@ -14100,6 +14695,7 @@ public partial class BattleSceneController : Node2D
         }
 
         var destination = CalculateReachableGrids(sourceGrid, unit.Energy - NormalAttackEnergyCost, GetAvailableMoveRange(unit))
+            .Where(IsAiSafeMovementDestination)
             .SelectMany(grid => CalculateAttackableGrids(grid, unit)
                 .Where(targetGrid => _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
                                      GetAiAttackTargetForAttack(occupants, unit.TeamName, targetGrid) != null)
@@ -14134,6 +14730,12 @@ public partial class BattleSceneController : Node2D
         int plannedScore,
         int plannedNoise)
     {
+
+        if (!IsAiSafeMovementDestination(destinationGrid))
+        {
+            AppendBattleLog(unit, "AI", $"Move+attack cancelled: destination {destinationGrid} is burning.");
+            return false;
+        }
 
         _selectedUnit = unit;
         _selectedUnitGrid = sourceGrid;
@@ -14199,6 +14801,7 @@ public partial class BattleSceneController : Node2D
         _selectedUnitGrid = sourceGrid;
         FocusCameraOnBattleGrid(sourceGrid);
         var destination = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
+            .Where(IsAiSafeMovementDestination)
             .OrderBy(grid => enemyGrids.Min(enemy => GetManhattanDistance(grid.Grid, enemy.Grid)))
             .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
             .FirstOrDefault();
@@ -14241,6 +14844,7 @@ public partial class BattleSceneController : Node2D
                 sourceGrid,
                 unit.Energy - NormalAttackEnergyCost,
                 GetAvailableMoveRange(unit))
+            .Where(IsAiSafeMovementDestination)
             .Any(grid => CalculateAttackableGrids(grid, unit)
                 .Any(targetGrid => _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
                                   GetAiAttackTargetForAttack(occupants, unit.TeamName, targetGrid) != null));
@@ -14263,11 +14867,14 @@ public partial class BattleSceneController : Node2D
 
         _selectedUnit = supplyCart;
         _selectedUnitGrid = sourceGrid;
-        var destination = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(supplyCart), GetAvailableMoveRange(supplyCart))
-            .OrderBy(grid => supportGrids.Min(target => GetManhattanDistance(grid.Grid, target.Grid)))
-            .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
-            .FirstOrDefault();
-        if (destination == default)
+        if (!TryGetAiSupplyApproach(
+                sourceGrid,
+                supplyCart,
+                out var destination,
+                out var supplyActionGrid,
+                out var supplyScore,
+                out var fullPathEnergyCost,
+                out var fullPathSteps))
         {
             return false;
         }
@@ -14277,7 +14884,7 @@ public partial class BattleSceneController : Node2D
         _selectedGridKey = destination;
         _movableGrids.Clear();
         _movableGrids.Add(destination);
-        AppendBattleLog(supplyCart, "AI", $"Decision: move {sourceGrid} -> {destination}; approach own battle team needing supply.");
+        AppendBattleLog(supplyCart, "AI", $"Decision: move {sourceGrid} -> {destination}; A* supply route to {supplyActionGrid} (support score {supplyScore}, full path energy {fullPathEnergyCost}, steps {fullPathSteps}).");
         return TryMoveSelectedUnit();
     }
 
@@ -15280,6 +15887,7 @@ public partial class BattleSceneController : Node2D
     private enum BattleStrategyAction
     {
         None,
+        Extinguish,
         Fire,
         Mental
     }

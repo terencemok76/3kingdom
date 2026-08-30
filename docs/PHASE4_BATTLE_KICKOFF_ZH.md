@@ -332,9 +332,11 @@
   - 一般 battle team 的兵力分為 `Active Troops` 與 `Wounded Troops`：`Active` 會參與戰鬥與 HUD 總兵力，`Wounded` 暫時不能戰鬥但可被糧草車恢復。
   - 一般 battle team 的 marker HP bar 採三段顯示：綠色為 `Active Troops`、粉紅色為 `Wounded Troops`、黑色為 `Dead / Killed Troops`。
   - HP 傷害、HP 維修與士氣變化會以 battle piece 上方浮字呈現，所有這些增減浮字顯示 `4` 秒；士氣浮字與 HP 傷害浮字使用不同顏色，`Morale +N` / `士氣 +N` 偏藍，`Morale -N` / `士氣 -N` 偏琥珀，避免和紅色傷害數字混淆。
-  - 一般攻擊造成的有效傷害目前拆為約 `40% killed / 60% wounded`；fire damage 拆為約 `70% killed / 30% wounded`。Battle Log 會顯示 killed 與 wounded 數字。
+- 一般攻擊造成的有效傷害目前拆為約 `40% killed / 60% wounded`；fire damage 拆為約 `70% killed / 30% wounded`。Battle Log 會顯示 killed 與 wounded 數字。
+- 任一傷害來源（一般攻擊、Charge、反擊、火焰或其他戰場傷害）擊破帶武將的一般 battle team 時，該武將視為被俘；戰隊實際移除後，中央會顯示本地化的「勢力＋武將被俘」提示框，約 3 秒自動關閉。
   - `Ram`、`Ladder`、`Catapult`、`SupplyCart` 等攻城器／後勤車沒有 morale，UI 以 `-` 表示。
   - 糧草車 `SupplyCart` 可每回合一次使用後勤行動，`Recovery / Repair` 與 `Resupply Weapon` 共用同一個每回合次數。
+  - AI 的 `SupplyCart` 與據點目標移動會先以完整合法 A* 路徑評估目標，再取本回合可沿路徑前進的最遠格；橋樑、深水、山地、阻擋單位與行動力都納入路徑。糧車紀錄會標明預定補給位置與完整路徑成本；據點計畫若完整路徑後仍為負分，AI 不會執行。
   - `Recovery / Repair`：對八方向 1 格內的同隊一般 battle team 恢復 `Morale +8`，上限仍為 `120`；若附近同隊 battle team 有 wounded，則每次最多恢復 `600` 名傷兵回到 `Active Troops`；若自己或八方向 1 格內同隊攻城器受損，則可維修 `HP +450`，不超過各自最大 HP。
   - `Building`／己方 `Fortress` 的休整：一般戰隊在己方回合結束時，若 Food 大於 `0`、仍駐守該格、格子未起火、八方向沒有敵軍，且該回合未移動或使用指令，最多可將 `150` 名 wounded troops 回復為 active troops。休整不復活 dead troops，並且弱於補給車的 `600` 傷兵恢復。
   - `Resupply Weapon`：對八方向 1 格內同隊 `Archer`、`Crossbow`、`Catapult` 補滿武器彈藥。
@@ -344,7 +346,7 @@
   - 糧草車被摧毀時，同隊 Gold / Food 會額外損失 `25%`，同隊仍在場的一般 battle team 士氣會立刻降為目前值的 `50%`；糧草車主動撤退不觸發此懲罰。
   - 一般 battle team 若相鄰敵方 `SupplyCart`，command menu 會顯示 `Capture Cart`；成功後敵方 Gold / Food 損失 `25%` 並轉移給俘獲方，敵方仍在場的一般 battle team 士氣降為目前值的 `50%`，俘獲方一般 battle team `Morale +10`，且該糧草車會轉為俘獲方陣營並留在戰場，可由俘獲方後續控制與使用。
   - 一般 battle team 若同層 2 格內有敵方 officer / general 隊伍，command menu 會顯示 `Hire Officer`；點擊後會 highlight 所有可招降目標，玩家再點選要招降的目標。花費 Gold 可直接招降該隊伍並轉入己方，目前 prototype 先固定成本為 `100 Gold`。招降成功後會播放金色牽引線、目標格光環與 `招降成功` 浮字，招降方仍在場的一般 battle team `Morale +8`，被招降方仍在場的一般 battle team `Morale -8`。
-  - Battle piece 在 `Forest` 地形可使用 prototype `Hide`，包含一般 battle team 與 `Ram` / `Ladder` / `Catapult` / `SupplyCart` 等攻城／後勤車；hidden 後己方仍可看見 marker，單位／車體本體使用暗綠半透明 hidden visual，name plate、HP bar、team arrow 與 `HIDE` 狀態 badge 保持正常清楚顯示，但不再額外顯示 hidden 狀態外圈 ring；敵方回合則完全看不到、不能選取，也不能以可見單位目標方式被 Union Attack / Duel / Strategy (Mess) / Hire Officer 指定。若敵方直接攻擊 hidden 單位所在的 `Forest` tile，或該 `Forest` tile 起火造成 fire damage，hidden 單位仍會像一般 battle team 一樣受傷並顯示傷害結果。hidden 單位執行 Move / Attack / Strategy / Duel / Capture Cart / Hire Officer 不會自動解除 hidden；只有移動後離開 `Forest` 才會轉回非 hidden。
+  - Battle piece 在 `Forest` 地形可使用 prototype `Hide`，包含一般 battle team 與 `Ram` / `Ladder` / `Catapult` / `SupplyCart` 等攻城／後勤車；hidden 後己方仍可看見 marker，單位／車體本體使用暗綠半透明 hidden visual，name plate、HP bar、team arrow 與 `HIDE` 狀態 badge 保持正常清楚顯示，但不再額外顯示 hidden 狀態外圈 ring；敵方回合則完全看不到、不能選取，也不能以可見單位目標方式被 Union Attack / Duel / Strategy (Mess) / Hire Officer 指定。若敵方直接攻擊 hidden 單位所在的 `Forest` tile，或該 `Forest` tile 起火造成 fire damage，hidden 單位仍會像一般 battle team 一樣受傷並顯示傷害結果。hidden 一般 battle team 從森林發動一般 Attack 時會觸發一次 `Ambush`，傷害 `+25%` 並立刻解除 hidden；不套用於火計、反擊、Charge 或 Union Attack 的支援者。其他 hidden 指令維持不會自動解除 hidden，移動後離開 `Forest` 也會轉回非 hidden。
   - `Cavalry` 不可將移動目的地設在 `Forest`；可從其他地形繞行，若因既有佈署或存檔已在森林內，仍可正常移出森林。
   - `Cavalry` 可使用 prototype `Charge`：只支援 `L0` 四方向相鄰敵方 battle team，目標格不可是 `Forest`，且目標後方同方向一格必須在地圖內、不是 `Forest`、沒有任何 battle team，並可通行。執行時騎兵先對目標造成 `1,650` charge damage，再穿過目標格落到後方格；即使目標被擊破，騎兵仍會完成穿越。若目標是 `Spearman`，charge damage 降為 `900`，且騎兵會承受 `600` counter damage；反傷不會阻止穿越。使用 `Charge` 後，該騎兵本回合不能再使用 `Move` / `Attack` / `Union Attack`。
   - 一般 `Attack`、Guard 反擊與 `Union Attack` 已套用固定兵種克制；有利方傷害為基礎傷害的 `125%`：`Infantry → Spearman`、`Spearman → Cavalry`、`Cavalry → Archer / Crossbow`、`Archer / Crossbow → Infantry`。只作用於一般隊伍間的傷害，不作用於攻城器、建築／城門或單挑。`Charge` 對 Spearman 的既有 `900` 傷害與 `600` 反傷為獨立特殊規則，不再額外疊加此 25%。Battle Log 會標記觸發的克制。
@@ -359,7 +361,7 @@
   - 單挑可跨 `L0` / `L2` 層，例如地面隊伍可挑戰牆頂隊伍，牆頂隊伍也可挑戰地面隊伍。
   - 點擊後可選擇相鄰 opponent；攻城器與 Worker 不可發起或接受單挑。
   - opponent 是否接受由 prototype battle score 判斷；差距過大時弱勢方可拒絕。
-  - 單挑只比較 officer / general battle attribute，不套用兵種修正或 morale bonus；勝方 morale 增加，敗方將領被俘且該 battle team 離場；平手時雙方保留並各自小幅增加 morale。
+  - 單挑只比較 officer / general battle attribute，不套用兵種修正或 morale bonus；勝方 morale 增加，敗方將領被俘且該 battle team 離場，並在實際離場後顯示本地化的「勢力＋武將被俘」提示框約 3 秒；平手時雙方保留並各自小幅增加 morale。
 - top bar 的 Team A / Team B 總兵力會隨部隊損兵更新；一般攻擊、合擊、牆頂投放攻擊與 fire damage 造成的 `TroopCount` loss 都會扣到對應陣營。
   - `Troops` 以 `active / wounded` 顯示一般戰鬥隊伍兵員，包含 Worker，但不包含攻城器 HP；active 會參與戰鬥，wounded 暫時不能戰鬥。
   - `Generals` 顯示目前仍在戰場上的一般部隊將領數量；`Worker` 與攻城器不算將領。
@@ -393,7 +395,8 @@
   - Team A / Team B 各自有 `Strategy Plans 6/6` 限制；`Strategy (Fire)`、`Strategy (Mess)`、`Strategy (Calm)` 每次成功進入施放流程消耗 `1` 點，Mess 失敗也算已消耗計策。
   - 同一 battle team 每個己方行動回合只能使用一次 Strategy；用過後直到下一次己方回合前不可再次使用。
   - `Mess` 成功率會依施術者與目標 officer battle attribute、目標 morale 與低士氣狀態調整；第一版不允許混亂部隊攻擊友軍，以避免隨機失控造成過強負回饋。
-  - fire 會在每次 `End Turn` 結算傷害，並依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
+- fire 會在 battle piece 完成移動、進入已燃燒的 `L0` 格時立刻結算一次火傷；留在火場內的單位仍會在每次 `End Turn` 再結算傷害。火勢依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
+  - 帶武將的一般 battle team 在自身格或同層八方向 `1` 格內有 fire 時，Strategy 會切換為 `Extinguish`；每次消耗 `3` 行動力且本回合不能再使用 Strategy，不消耗 Strategy Plan。成功率依武將 intelligence、天候與火場地形決定；成功會移除該格 fire，失敗則火勢保留，兩者皆顯示本地化浮字與 Battle Log。
   - `WindPower` 會影響 fire spread speed：`Calm` 只允許森林／草地／木柵欄慢速帶火，每 3 個 burn tick 最多擴 1 格；`Strong` 會增加擴散格數並縮短 spread interval。
   - 森林與草地會燒得較久且擴散較快；道路、橋與庭院擴散較慢；護城河、城牆與牆頂不會成為 fire spread 目標。
   - fire visual 的 depth band 會高於 battle team，避免火焰被單位 sprite 蓋住。
@@ -420,7 +423,7 @@
 - 戰鬥選單保留洛陽、漢中野戰，並新增鄴、晉陽、下邳、建業、襄陽、江陵六張地區野戰；各 `FIELD_<CITY>` 都載入自己的 `scenes/battle/field/FieldBattle<City>.tscn`，繼承共用戰鬥 UI，並以 `UseEditorAuthoredLayout` 讀取可在 Godot 直接編輯的 `GroundLayer`、`ObjectLayer` 與 `OverlayLayer`。
 - 新增野戰時須遵循 `docs/FIELD_BATTLE_DESIGN_RULES_ZH.md`：先定義核心行軍問題、前線與縱深，再配置堡壘、地形及部署；未來四張野戰沿用該文件的檢查表。
 - `FieldBattle` 的 editor preview 必須隱藏繼承自共用攻城 scene 的 `CastleLayer`，避免父 scene 的城牆資料在編輯器殘留顯示；野戰場景的 WYSIWYG 預覽應與 runtime 地圖一致。
-- 所有戰鬥場景共用 `BattleSceneController` 的相機縮放：滑鼠滾輪上為放大、下為縮小，`Camera2D.Zoom` 限制在 `0.75..1.35`（`0.75` 最近、`1.35` 最遠）；每次縮放後會重新夾住地圖位置，避免露出地圖外部。滾輪若被 UI 控制項處理，則不觸發戰場縮放。
+- 所有戰鬥場景共用 `BattleSceneController` 的相機縮放：滑鼠滾輪上為放大、下為縮小，`Camera2D.Zoom` 限制在 `0.75..1.35`（`0.75` 最近、`1.35` 最遠）；每次縮放後會重新夾住地圖位置，避免露出地圖外部。游標位於頂欄、格子資訊、戰鬥紀錄、`Unit Command` 或其他 UI 控制項時，滾輪不會觸發戰場縮放。
 - 新城市野戰應從 `scenes/battle/field/FieldBattleTemplate.tscn` 複製，建立對應的 `data/scenarios/battle/field_<city>.tres`；地圖視覺仍在 TileMap，runtime 規則、A* 與 AI 則由轉換後的 `BattleMapData` 使用。
   - `FieldBattleLuoyang.tscn` 以洛陽盆地的縮尺地形作為第一個城市野戰範例：北方以連續邙山山脊與疏密相間的山腳森林界定戰場，中央保留洛水河谷、兩岸濕地／岸地與穿越河谷的渡口道路；渡口北岸有兩座聚落建築，南方道路旁有兩座農舍與開闊農地。渡口三格寬的主線使用「官道」，山腳與農地支線使用「磨損道路」。`RiverEffectLayer` 只覆蓋洛水深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，渡口、淺水與河岸過渡保持靜態。場景使用既有 floor、building、tree、rock、forest、wood、hill、mountain 與 farm tiles。投石車初始部署由洛陽專屬 Scenario Data 設為南岸可通行格 `(14,17)`，避免共用預設 `(14,15)` 落在河面。
   - `FieldBattleHanzhong.tscn` 以漢中盆地為第二個城市野戰範例：北側秦嶺與南側大巴山的山林夾住中央漢水，河道在戰場內蜿蜒；單格中央官道直接接到 `bridge_01.png` 第二列的雙格石橋 `(12,11)`、`(12,12)`，橫越河段後連接南側平壩道路，南岸配置農地與聚落。橋前南北主線使用「官道」，平壩與聚落支線使用「磨損道路」；西側另有三格寬的淺灘 `(2..4,10..11)`，可通行但每格消耗 `2` 點移動力，形成較慢的側翼／伏擊路線。兩座堡壘後撤至北岸山前縱深 `(9,5)`、`(16,5)`，分別由守軍出生點 `(10,6)`、`(14,6)` 掩護；攻方必須先通過主橋或淺灘、再深入北岸防區才可同時奪取，不能把渡河本身當成直接勝利。兩個石橋格各自保留可通行、可受攻擊的 `Bridge` 地形、耐久度與水面底圖；`RiverEffectLayer` 只覆蓋深水河格，沿用既有 `moat_water.gdshader` 呈現流動水光，並置於橋物件下方；場景僅使用既有 floor、building、forest、swamp、hill、mountain、wood、farm、rock 與 bridge tiles；所有部署皆由 `field_hanzhong.tres` 定義。
@@ -486,6 +489,9 @@
 - 合擊由發起單位與相鄰、符合攻擊條件的同陣營友軍共同執行。發起單位消耗 `5` 行動力並標記為已攻擊；每名實際加入的友軍消耗 `4` 行動力，但不標記為已攻擊，仍可依其剩餘行動力與移動格數在同一行動方移動或一般攻擊。本階段不設定每回合合擊參與次數上限；合擊按鈕會顯示參與人數、發起成本與每名友軍成本。
 - 一般人類戰鬥單位（不含 Worker）可使用 `Guard`，消耗 `5` 行動力並完成行動。Guard 持續到下一次己方行動階段開始：受到近戰、弓兵或弩兵的一般攻擊時，初始傷害減少率暫定為 `20%`；每次有效攻擊後，下一次減傷率乘以 `0.5`（20%、10%、5%、2.5%…）。只有首次近戰直傷會以一般攻擊力 `40%` 反擊一次；投石、火計與牆頂投放均不減傷且不觸發反擊。每次 Guard 減傷都會在戰鬥紀錄顯示比例與減傷前後數值；單位狀態會顯示下次減傷率與反擊是否已用，quick save/load 會保存該狀態。
 - 補給車的恢復／維修與補充武器均消耗 `5` 行動力並完成行動。AI 會先嘗試原地補給，再將可用的一般攻擊、合擊與可達防禦堡壘放入同一批候選行動，以預計傷害、擊破獎勵、目標武將價值、合擊友軍行動力機會成本及堡壘目標分數計分；同分或相近分數以可重現的小幅變異打破固定行為。堡壘不是固定優先：攻方奪取未佔堡壘、守方回奪失守堡壘／防衛受威脅堡壘的分數均扣除距離，並受該 battle team officer Intelligence 影響；最後一座攻方未佔堡壘另有勝利加分。失守／敵方堡壘上的敵軍也會獲得額外 attack score。若可用行動力扣除路徑成本後仍保留 `5`，則會先完成移動動畫，再直接攻擊規劃時保留的目標（不在移動後重選）；Battle Log 會記錄該 score／variance，若攻擊因單位狀態、目標或射程失效而取消，也會記錄明確原因。若選擇純移動，log 會額外列出路徑耗能、移動後剩餘行動力／移動格數，以及沒有可用移動後攻擊方案的原因。否則僅移動至最接近目標的最遠合法位置並完成行動。
+- 攻方若沒有可見敵軍，仍會維持「殲滅或佔領全部 Fortress」的勝利任務：一般戰隊會以完整 A* 路徑朝未佔 Fortress 逐回合推進，不受一般據點分數被長距離成本扣成負值的限制。若 Fortress 已被 hidden 守軍佔用，AI 會先前進到合法相鄰格，等待發現或逼出守軍；Battle Log 會標示 `mission advance while enemy is hidden` 與完整路徑成本。
+- AI 的火計會與一般攻擊、合擊、據點、補給與工程行動同列評分；僅限有策略點、彈藥、未混亂且本回合未用過策略的弓兵、弩兵與投石車。AI 以當前天氣下的預計火傷、持續回合、可見敵方目標、武將價值與晴天強風加分評估目標格及第一波可能擴散格；若火場或預測擴散格有友軍，該方案直接排除。雨天不計擴散，仍只會在可傷及敵方的情況列入候選。Battle Log 記錄火計目標、預估敵我傷害、目標數、擴散格數、score 與 variance。
+- AI 不會把正在燃燒的 `L0` 格當作移動終點；此規則同時套用於一般移動、移動後攻擊、補給、避險與 Worker 工程移動。玩家仍可自行選擇進入火場，並在移動完成時立即承受火傷。
 - 野戰 Worker 會把相鄰河格的新木橋及未完工木橋視為工程候選；AI 模擬單格或連續最多四格河段全數完工後，友軍一般戰隊抵達敵軍或爭奪堡壘的最短路徑。僅在至少縮短 `3` 格、並以施工段數、接近施工岸距離、敵方威脅與 officer Intelligence 計分後勝過其他攻擊／合擊／堡壘候選時，Worker 才會先移往施工岸，跨回合完成施工／修復。開局與工程 Battle Log 會列出橋格、目標、路徑縮短值、score 與 variance。
 - 野戰 Worker 的木柵工程也屬同一 AI score 池：AI 只會在敵軍距離 `5` 格內、附近有己方戰隊支援、且木柵會讓敵軍到己方已佔 Fortress 的最短路徑增加至少 `3` 格時設置；若模擬顯示木柵會令己方通往敵軍的主路徑增加超過 `2` 格或中斷，則不會設置。現有木柵若已造成該己方路徑阻塞，Worker 可拆除。工程 Battle Log 會列出 build/remove、保護目標或重新開路理由、路徑影響、score 與 variance。
 - 設置木柵消耗 `5` 行動力，拆除消耗 `3` 行動力，兩者均完成 Worker 本回合行動；不足行動力時不顯示為可選工作目標。AI 木柵候選 score 會扣除此工程行動力機會成本。

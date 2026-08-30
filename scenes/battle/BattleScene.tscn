@@ -583,6 +583,41 @@ text = "Retreat"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="OfficerCaptureNotice" type="PanelContainer" parent="UiLayer"]
+visible = false
+z_index = 120
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -58.0
+offset_right = 250.0
+offset_bottom = 58.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/OfficerCaptureNotice"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="Label" type="Label" parent="UiLayer/OfficerCaptureNotice/Margin"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.72, 0.34, 1)
+theme_override_colors/font_outline_color = Color(0.12, 0.03, 0.01, 0.95)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 30
+text = "Officer Captured"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
 [node name="OfficerSpeechOverlay" type="PanelContainer" parent="UiLayer"]
 visible = false
 z_index = 110
