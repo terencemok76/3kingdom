@@ -41,6 +41,12 @@ public partial class BattleSceneController
                     CalculateReachableGrids(intent.SourceGrid, unit.Energy - intent.ReservedEnergy, GetAvailableMoveRange(unit)).Contains(intent.TargetGrid),
                 [BattleActionKind.Attack] = (intent, unit) => CalculateAttackableGrids(intent.SourceGrid, unit).Contains(intent.TargetGrid),
                 [BattleActionKind.Supply] = (_, _) => true,
+                [BattleActionKind.ResupplyWeapon] = (intent, unit) =>
+                    unit.TroopType == TroopSupplyCart &&
+                    unit.Energy >= SupplyActionEnergyCost &&
+                    unit.Marker != null &&
+                    !_supplyUsedByMarkerThisTurn.Contains(unit.Marker) &&
+                    GetWeaponResupplyTargets(intent.SourceGrid, unit).Any(),
                 [BattleActionKind.Guard] = (_, unit) => CanUseGuard(unit),
                 [BattleActionKind.Hide] = (intent, unit) => CanHideAtGrid(intent.SourceGrid, unit),
                 [BattleActionKind.Work] = IsWorkerWorkIntentLegal,
@@ -60,6 +66,7 @@ public partial class BattleSceneController
                 [BattleActionKind.Move] = ExecuteMoveActionIntent,
                 [BattleActionKind.Attack] = ExecuteAttackActionIntent,
                 [BattleActionKind.Supply] = ExecuteSupplyActionIntent,
+                [BattleActionKind.ResupplyWeapon] = ExecuteWeaponResupplyActionIntent,
                 [BattleActionKind.Guard] = ExecuteGuardActionIntent,
                 [BattleActionKind.Hide] = ExecuteHideActionIntent,
                 [BattleActionKind.Work] = ExecuteWorkActionIntent,
@@ -122,6 +129,12 @@ public partial class BattleSceneController
     private bool ExecuteSupplyActionIntent(BattleActionIntent _, BattleOccupantInfo unit, Action? __)
     {
         ExecuteSelectedSupply();
+        return HasUnitActed(unit);
+    }
+
+    private bool ExecuteWeaponResupplyActionIntent(BattleActionIntent _, BattleOccupantInfo unit, Action? __)
+    {
+        ExecuteSelectedWeaponResupply();
         return HasUnitActed(unit);
     }
 

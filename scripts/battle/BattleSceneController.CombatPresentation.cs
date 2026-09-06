@@ -603,10 +603,10 @@ public partial class BattleSceneController
         }
 
         var noticeSerial = ++_retreatNoticeSerial;
-        var officerName = string.IsNullOrWhiteSpace(retreatingUnit.OfficerName)
-            ? retreatingUnit.DisplayName
-            : retreatingUnit.OfficerName;
-        _retreatNoticeLabel.Text = $"{officerName} / {FormatTroopType(retreatingUnit.TroopType)}\n{BattleText("ui.battle.retreat", "Retreat")}";
+        var retreatingUnitName = IsGeneralCountedPiece(retreatingUnit.Category, retreatingUnit.OfficerName)
+            ? $"{FormatOfficerName(retreatingUnit.OfficerName)} / {FormatTroopType(retreatingUnit.TroopType)}"
+            : FormatTroopType(retreatingUnit.TroopType);
+        _retreatNoticeLabel.Text = $"{retreatingUnitName}\n{BattleText("ui.battle.retreat", "Retreat")}";
         _retreatNotice.Visible = true;
         _retreatNotice.MoveToFront();
         TryShowOfficerSpeech(retreatingUnit, BattleOfficerSpeechEvent.Retreat);
@@ -618,7 +618,32 @@ public partial class BattleSceneController
         }
     }
 
-    private async void ShowOfficerCaptureNotice(BattleOccupantInfo capturedOfficer)
+    private void ShowOfficerCaptureNotice(BattleOccupantInfo capturedOfficer)
+    {
+        ShowBattleEventNotice(BattleFormat(
+            "ui.battle.officer_captured",
+            "{0} officer {1} has been captured!",
+            FormatTeamName(capturedOfficer.TeamName),
+            FormatOfficerName(capturedOfficer.OfficerName)));
+    }
+
+    private void ShowWorkerDestroyedNotice(BattleOccupantInfo worker)
+    {
+        ShowBattleEventNotice(BattleFormat(
+            "ui.battle.worker_destroyed",
+            "{0} worker unit has been destroyed!",
+            FormatTeamName(worker.TeamName)));
+    }
+
+    private void ShowWoodenBridgeDestroyedNotice(BattleGridKey grid)
+    {
+        ShowBattleEventNotice(BattleFormat(
+            "ui.battle.wooden_bridge_destroyed",
+            "Wooden bridge {0} has been destroyed!",
+            grid));
+    }
+
+    private async void ShowBattleEventNotice(string text)
     {
         if (_officerCaptureNotice == null || _officerCaptureNoticeLabel == null)
         {
@@ -626,11 +651,7 @@ public partial class BattleSceneController
         }
 
         var noticeSerial = ++_officerCaptureNoticeSerial;
-        _officerCaptureNoticeLabel.Text = BattleFormat(
-            "ui.battle.officer_captured",
-            "{0} officer {1} has been captured!",
-            FormatTeamName(capturedOfficer.TeamName),
-            FormatOfficerName(capturedOfficer.OfficerName));
+        _officerCaptureNoticeLabel.Text = text;
         _officerCaptureNotice.Visible = true;
         _officerCaptureNotice.MoveToFront();
 
@@ -643,6 +664,8 @@ public partial class BattleSceneController
 
     private async void ShowTurnBanner()
     {
+        FocusCameraOnCurrentTurnTeam();
+
         if (_turnBanner == null || _turnBannerLabel == null)
         {
             return;
@@ -1060,6 +1083,11 @@ public partial class BattleSceneController
         {
             AppendBattleLog(occupant, "Capture", $"{FormatOfficerName(occupant.OfficerName)} is captured after the battle team is destroyed.");
             ShowOfficerCaptureNotice(occupant);
+        }
+        else if (occupant.Category == CategoryUnit && occupant.TroopType == TroopWorker)
+        {
+            AppendBattleLog(occupant, "Destroy", $"{FormatTroopType(occupant.TroopType)} is destroyed at {grid}.");
+            ShowWorkerDestroyedNotice(occupant);
         }
         if (destroyer != null)
         {

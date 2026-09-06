@@ -448,13 +448,7 @@ public partial class BattleSceneController
         UpdateMarkerStrengthBar(occupant);
         UpdateMarkerStatusIndicator(occupant);
 
-        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
-        {
-            occupants = new List<BattleOccupantInfo>();
-            _occupantsByGrid[grid] = occupants;
-        }
-
-        occupants.Add(occupant);
+        _occupantsByGrid.Add(grid, occupant);
         RegisterBattleDepthEntry(marker, grid, saveData.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         return marker;
     }

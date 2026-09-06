@@ -245,6 +245,7 @@ public partial class BattleSceneController
         var cell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
         if (cell.HasBridgeHealth)
         {
+            var wasWoodenBridge = cell.IsWoodenBridge;
             var bridgeDamage = GetStructureAttackDamage(attacker);
             if (bridgeDamage <= 0)
             {
@@ -260,6 +261,11 @@ public partial class BattleSceneController
             if (!cell.HasBridgeHealth)
             {
                 RefreshWorkerObjectLayers();
+                if (wasWoodenBridge)
+                {
+                    AppendBattleLog(attacker, "Destroy", $"Wooden bridge destroyed at {targetGrid}.");
+                    ShowWoodenBridgeDestroyedNotice(targetGrid);
+                }
             }
 
             ShowDamagePopup(targetGrid, actualBridgeDamage);
@@ -522,14 +528,7 @@ public partial class BattleSceneController
 
     private static bool HasTroopTypeAdvantage(BattleOccupantInfo attacker, BattleOccupantInfo target)
     {
-        return (attacker.TroopType, target.TroopType) switch
-        {
-            (TroopInfantry, TroopSpearman) => true,
-            (TroopSpearman, TroopCavalry) => true,
-            (TroopCavalry, TroopArcher or TroopCrossbow) => true,
-            (TroopArcher or TroopCrossbow, TroopInfantry) => true,
-            _ => false
-        };
+        return BattleCombatResolver.HasTroopTypeAdvantage(attacker, target);
     }
 
     private static string FormatTroopTypeAdvantageLog(BattleOccupantInfo attacker, BattleOccupantInfo? target)
@@ -541,48 +540,12 @@ public partial class BattleSceneController
 
     private static int GetBaseAttackDamage(BattleOccupantInfo attacker)
     {
-        if (attacker.Category == CategorySiegeEngine)
-        {
-            return attacker.TroopType switch
-            {
-                TroopRam => RamAttackDamage,
-                TroopCatapult => CatapultAttackDamage,
-                _ => 0
-            };
-        }
-
-        return attacker.TroopType switch
-        {
-            TroopInfantry => InfantryAttackDamage,
-            TroopSpearman => SpearmanAttackDamage,
-            TroopArcher or TroopCrossbow => ArcherAttackDamage,
-            TroopCavalry => CavalryAttackDamage,
-            TroopWorker => WorkerAttackDamage,
-            _ => 0
-        };
+        return BattleCombatResolver.GetBaseAttackDamage(attacker);
     }
 
     private static int GetStructureAttackDamage(BattleOccupantInfo attacker)
     {
-        if (attacker.Category == CategorySiegeEngine)
-        {
-            return attacker.TroopType switch
-            {
-                TroopRam => RamStructureDamage,
-                TroopCatapult => CatapultStructureDamage,
-                _ => 0
-            };
-        }
-
-        return attacker.TroopType switch
-        {
-            TroopInfantry => InfantryStructureDamage,
-            TroopSpearman => SpearmanStructureDamage,
-            TroopArcher or TroopCrossbow => ArcherStructureDamage,
-            TroopCavalry => CavalryStructureDamage,
-            TroopWorker => WorkerStructureDamage,
-            _ => 0
-        };
+        return BattleCombatResolver.GetStructureAttackDamage(attacker);
     }
 
 
@@ -774,20 +737,9 @@ public partial class BattleSceneController
         BattleSpriteDirection direction)
     {
         if (!_occupantsByGrid.TryGetValue(sourceGrid, out var sourceOccupants) ||
-            !sourceOccupants.Remove(cavalry))
+            !sourceOccupants.Contains(cavalry))
         {
             return cavalry;
-        }
-
-        if (sourceOccupants.Count == 0)
-        {
-            _occupantsByGrid.Remove(sourceGrid);
-        }
-
-        if (!_occupantsByGrid.TryGetValue(destinationGrid, out var destinationOccupants))
-        {
-            destinationOccupants = new List<BattleOccupantInfo>();
-            _occupantsByGrid[destinationGrid] = destinationOccupants;
         }
 
         var remainsHidden = cavalry.IsHidden && IsForestGrid(destinationGrid);
@@ -799,7 +751,10 @@ public partial class BattleSceneController
             HasAttackedThisTurn = true,
             RemainingMoveRange = 0
         };
-        destinationOccupants.Add(movedCavalry);
+        if (!_occupantsByGrid.Move(sourceGrid, cavalry, destinationGrid, movedCavalry))
+        {
+            return cavalry;
+        }
         UpdateMarkerStatusIndicator(movedCavalry);
         RegisterBattleDepthEntry(
             movedCavalry.Marker!,

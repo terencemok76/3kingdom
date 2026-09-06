@@ -12,6 +12,8 @@ internal static class BattleAiSettings
     internal const float AiCriticalHealthRatio = 0.22f;
     internal const int AiBuildingCoverSurvivalScore = 1200;
     internal const int AiSupplyApproachSurvivalScore = 1000;
+    internal const int AiAmmoDepletedResupplyBonus = 1200;
+    internal const int AiCatapultAmmoResupplyBonus = 800;
     internal const int AiGuardSurvivalScore = 900;
     internal const int AiRetreatSurvivalScore = 1800;
     internal const int AiBridgeMinimumPathReduction = 3;

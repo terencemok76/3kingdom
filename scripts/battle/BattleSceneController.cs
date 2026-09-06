@@ -184,7 +184,8 @@ public partial class BattleSceneController : Node2D
     private bool _isDraggingBattleLog;
     private bool _isResizingBattleLog;
     private bool _isBattleLogMinimized;
-    private bool _isBattleFinished;
+    private readonly BattleState _state = new();
+    private bool _isBattleFinished { get => _state.IsBattleFinished; set => _state.IsBattleFinished = value; }
     private int _retreatNoticeSerial;
     private int _officerCaptureNoticeSerial;
     private int _turnBannerSerial;
@@ -193,26 +194,26 @@ public partial class BattleSceneController : Node2D
     private readonly List<BattleOfficerSpeechEntry> _officerSpeechEntries = new();
     private readonly Dictionary<string, ulong> _officerSpeechLastShownAt = new(StringComparer.Ordinal);
     private readonly Random _officerSpeechRandom = new();
-    private bool _attackerOutpostVictorySecured;
+    private bool _attackerOutpostVictorySecured { get => _state.AttackerOutpostVictorySecured; set => _state.AttackerOutpostVictorySecured = value; }
     private Vector2 _lastMousePosition;
     private Vector2 _commandMenuDragOffset;
     private Vector2 _battleLogDragOffset;
     private Vector2 _battleLogResizeStartMouse;
     private Vector2 _battleLogResizeStartSize;
-    private Vector2I? _hoverGrid;
-    private Vector2I? _selectedGrid;
-    private BattleGridKey? _hoverGridKey;
-    private BattleGridKey? _selectedGridKey;
-    private BattleGridKey? _selectedUnitGrid;
-    private BattleOccupantInfo? _selectedUnit;
-    private readonly HashSet<BattleGridKey> _movableGrids = new();
-    private readonly HashSet<BattleGridKey> _attackableGrids = new();
-    private readonly HashSet<BattleGridKey> _workableGrids = new();
-    private readonly HashSet<BattleGridKey> _strategyTargetGrids = new();
-    private readonly HashSet<BattleGridKey> _duelTargetGrids = new();
-    private readonly HashSet<BattleGridKey> _chargeTargetGrids = new();
-    private readonly HashSet<BattleGridKey> _hireOfficerTargetGrids = new();
-    private readonly Dictionary<BattleGridKey, List<BattleOccupantInfo>> _occupantsByGrid = new();
+    private Vector2I? _hoverGrid { get => _state.HoverGrid; set => _state.HoverGrid = value; }
+    private Vector2I? _selectedGrid { get => _state.SelectedGrid; set => _state.SelectedGrid = value; }
+    private BattleGridKey? _hoverGridKey { get => _state.HoverGridKey; set => _state.HoverGridKey = value; }
+    private BattleGridKey? _selectedGridKey { get => _state.SelectedGridKey; set => _state.SelectedGridKey = value; }
+    private BattleGridKey? _selectedUnitGrid { get => _state.SelectedUnitGrid; set => _state.SelectedUnitGrid = value; }
+    private BattleOccupantInfo? _selectedUnit { get => _state.SelectedUnit; set => _state.SelectedUnit = value; }
+    private HashSet<BattleGridKey> _movableGrids => _state.MovableGrids;
+    private HashSet<BattleGridKey> _attackableGrids => _state.AttackableGrids;
+    private HashSet<BattleGridKey> _workableGrids => _state.WorkableGrids;
+    private HashSet<BattleGridKey> _strategyTargetGrids => _state.StrategyTargetGrids;
+    private HashSet<BattleGridKey> _duelTargetGrids => _state.DuelTargetGrids;
+    private HashSet<BattleGridKey> _chargeTargetGrids => _state.ChargeTargetGrids;
+    private HashSet<BattleGridKey> _hireOfficerTargetGrids => _state.HireOfficerTargetGrids;
+    private BattleUnitRepository _occupantsByGrid => _state.Units;
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
     private readonly Dictionary<Vector2I, Sprite2D> _buildingDepthSpritesByGrid = new();
@@ -223,41 +224,41 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
     private readonly Dictionary<BattleGridKey, BattleFireState> _activeFireByGrid = new();
     private readonly Dictionary<BattleGridKey, Node2D> _fireVisualsByGrid = new();
-    private readonly HashSet<BattlePieceMarker> _strategyUsedByMarkerThisTurn = new();
-    private readonly HashSet<BattlePieceMarker> _supplyUsedByMarkerThisTurn = new();
-    private readonly HashSet<BattlePieceMarker> _chargeUsedByMarkerThisTurn = new();
-    private readonly HashSet<BattlePieceMarker> _actedByMarkerThisRound = new();
+    private HashSet<BattlePieceMarker> _strategyUsedByMarkerThisTurn => _state.StrategyUsedByMarkerThisTurn;
+    private HashSet<BattlePieceMarker> _supplyUsedByMarkerThisTurn => _state.SupplyUsedByMarkerThisTurn;
+    private HashSet<BattlePieceMarker> _chargeUsedByMarkerThisTurn => _state.ChargeUsedByMarkerThisTurn;
+    private HashSet<BattlePieceMarker> _actedByMarkerThisRound => _state.ActedByMarkerThisRound;
     private readonly Dictionary<BattlePieceMarker, AiBridgeEngineeringPlan> _aiBridgePlanByWorker = new();
     private readonly List<BattleLogEntry> _battleLogs = new();
     private readonly List<ColorRect> _rainStreaks = new();
-    private BattleCommandMode _commandMode = BattleCommandMode.None;
-    private BattleStrategyAction _selectedStrategyAction = BattleStrategyAction.None;
-    private WorkerWorkAction _workerWorkAction = WorkerWorkAction.General;
-    private int _turnNumber = 1;
-    private BattleTurnSide _currentTurnSide = BattleTurnSide.TeamA;
-    private int _battleDateYear = BattleDateYear;
-    private int _battleDateMonth = BattleDateMonth;
-    private int _battleDateDay = BattleDateDay;
-    private BattleAiControlledSides _aiControlledSides;
-    private bool _isFieldAiRoundStarted;
-    private BattleTimeOfDay? _currentBattleTimeOfDay;
-    private BattleWeatherType? _currentBattleWeather;
-    private BattleWindDirection? _currentBattleWindDirection;
-    private BattleWindPower? _currentBattleWindPower;
-    private int _teamATotalTroops;
-    private int _teamBTotalTroops;
-    private int _teamASiegeUnits;
-    private int _teamBSiegeUnits;
-    private int _teamAGenerals;
-    private int _teamBGenerals;
-    private int _teamAStrategyPlans = InitialTeamStrategyPlans;
-    private int _teamBStrategyPlans = InitialTeamStrategyPlans;
-    private int _teamAGold = InitialTeamAGold;
-    private int _teamAFood = InitialTeamAFood;
-    private int _teamAZeroFoodDays;
-    private int _teamBGold = InitialTeamBGold;
-    private int _teamBFood = InitialTeamBFood;
-    private int _teamBZeroFoodDays;
+    private BattleCommandMode _commandMode { get => _state.CommandMode; set => _state.CommandMode = value; }
+    private BattleStrategyAction _selectedStrategyAction { get => _state.SelectedStrategyAction; set => _state.SelectedStrategyAction = value; }
+    private WorkerWorkAction _workerWorkAction { get => _state.WorkerWorkAction; set => _state.WorkerWorkAction = value; }
+    private int _turnNumber { get => _state.TurnNumber; set => _state.TurnNumber = value; }
+    private BattleTurnSide _currentTurnSide { get => _state.CurrentTurnSide; set => _state.CurrentTurnSide = value; }
+    private int _battleDateYear { get => _state.BattleDateYear; set => _state.BattleDateYear = value; }
+    private int _battleDateMonth { get => _state.BattleDateMonth; set => _state.BattleDateMonth = value; }
+    private int _battleDateDay { get => _state.BattleDateDay; set => _state.BattleDateDay = value; }
+    private BattleAiControlledSides _aiControlledSides { get => _state.AiControlledSides; set => _state.AiControlledSides = value; }
+    private bool _isFieldAiRoundStarted { get => _state.IsFieldAiRoundStarted; set => _state.IsFieldAiRoundStarted = value; }
+    private BattleTimeOfDay? _currentBattleTimeOfDay { get => _state.CurrentBattleTimeOfDay; set => _state.CurrentBattleTimeOfDay = value; }
+    private BattleWeatherType? _currentBattleWeather { get => _state.CurrentBattleWeather; set => _state.CurrentBattleWeather = value; }
+    private BattleWindDirection? _currentBattleWindDirection { get => _state.CurrentBattleWindDirection; set => _state.CurrentBattleWindDirection = value; }
+    private BattleWindPower? _currentBattleWindPower { get => _state.CurrentBattleWindPower; set => _state.CurrentBattleWindPower = value; }
+    private int _teamATotalTroops { get => _state.TeamATotalTroops; set => _state.TeamATotalTroops = value; }
+    private int _teamBTotalTroops { get => _state.TeamBTotalTroops; set => _state.TeamBTotalTroops = value; }
+    private int _teamASiegeUnits { get => _state.TeamASiegeUnits; set => _state.TeamASiegeUnits = value; }
+    private int _teamBSiegeUnits { get => _state.TeamBSiegeUnits; set => _state.TeamBSiegeUnits = value; }
+    private int _teamAGenerals { get => _state.TeamAGenerals; set => _state.TeamAGenerals = value; }
+    private int _teamBGenerals { get => _state.TeamBGenerals; set => _state.TeamBGenerals = value; }
+    private int _teamAStrategyPlans { get => _state.TeamAStrategyPlans; set => _state.TeamAStrategyPlans = value; }
+    private int _teamBStrategyPlans { get => _state.TeamBStrategyPlans; set => _state.TeamBStrategyPlans = value; }
+    private int _teamAGold { get => _state.TeamAGold; set => _state.TeamAGold = value; }
+    private int _teamAFood { get => _state.TeamAFood; set => _state.TeamAFood = value; }
+    private int _teamAZeroFoodDays { get => _state.TeamAZeroFoodDays; set => _state.TeamAZeroFoodDays = value; }
+    private int _teamBGold { get => _state.TeamBGold; set => _state.TeamBGold = value; }
+    private int _teamBFood { get => _state.TeamBFood; set => _state.TeamBFood = value; }
+    private int _teamBZeroFoodDays { get => _state.TeamBZeroFoodDays; set => _state.TeamBZeroFoodDays = value; }
     private bool _showSelfTeamLogOnly;
     private bool _battleBgmEnabled = true;
     private bool _battleSfxEnabled = true;
@@ -286,7 +287,12 @@ public partial class BattleSceneController : Node2D
         public bool IsGuardAction { get; init; }
     }
     private readonly record struct AiOutpostObjective(BattleGridKey Grid, int Score, string Reason);
-    private readonly record struct AiSupplyPlan(BattleGridKey ActionGrid, bool MoveBeforeSupply, int Score, string Reason);
+    private readonly record struct AiSupplyPlan(BattleGridKey ActionGrid, bool MoveBeforeSupply, AiSupplyActionKind Kind, int Score, string Reason);
+    private enum AiSupplyActionKind
+    {
+        RecoveryRepair,
+        WeaponResupply
+    }
     private readonly record struct AiExtinguishPlan(BattleGridKey TargetGrid, int Score, int ProtectedUnits, int ProjectedDamage);
     private readonly record struct AiFirePlan(BattleGridKey TargetGrid, int Score, int EnemyDamage, int FriendlyDamage, int EnemyTargets, int SpreadTargets);
     private sealed record AiBridgeEngineeringPlan(
@@ -1010,15 +1016,9 @@ public partial class BattleSceneController : Node2D
 
     private void RegisterOccupant(BattleGridKey grid, string displayName, string category, string shortLabel, string teamName, string officerName, string troopType, int troopCount, int moveRange, int attackRange, BattlePieceMarker? marker)
     {
-        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
-        {
-            occupants = new List<BattleOccupantInfo>();
-            _occupantsByGrid[grid] = occupants;
-        }
-
         var morale = GetInitialMorale(category, troopType);
         var weaponAmmo = GetInitialWeaponAmmo(category, troopType);
-        occupants.Add(new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, IsHidden: false, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast, DefaultUnitEnergy, HasAttackedThisTurn: false, RemainingMoveRange: moveRange, IsGuarding: false, GuardCounterAvailable: false, GuardDamageReductionCount: 0));
+        _occupantsByGrid.Add(grid, new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, IsHidden: false, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast, DefaultUnitEnergy, HasAttackedThisTurn: false, RemainingMoveRange: moveRange, IsGuarding: false, GuardCounterAvailable: false, GuardDamageReductionCount: 0));
     }
 
     private static void UpdateMarkerStrengthBar(BattleOccupantInfo occupant)
@@ -1082,18 +1082,7 @@ public partial class BattleSceneController : Node2D
 
     private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetOccupantsAtGrid(Vector2I grid)
     {
-        foreach (var (gridKey, occupants) in _occupantsByGrid)
-        {
-            if (gridKey.X != grid.X || gridKey.Y != grid.Y)
-            {
-                continue;
-            }
-
-            foreach (var occupant in occupants)
-            {
-                yield return (gridKey, occupant);
-            }
-        }
+        return _occupantsByGrid.GetAtGrid(grid);
     }
 
     private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetOccupantsAtSelectedGrid(Vector2I grid)
@@ -1331,60 +1320,25 @@ public partial class BattleSceneController : Node2D
 
     private void ReplaceOccupantAtGrid(BattleGridKey grid, BattleOccupantInfo oldOccupant, BattleOccupantInfo newOccupant)
     {
-        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
+        if (_occupantsByGrid.Replace(grid, oldOccupant, newOccupant))
         {
-            return;
-        }
-
-        var index = occupants.IndexOf(oldOccupant);
-        if (index >= 0)
-        {
-            occupants[index] = newOccupant;
             UpdateMarkerStatusIndicator(newOccupant);
         }
     }
 
     private bool TryGetCurrentOccupantAtGrid(BattleGridKey grid, BattleOccupantInfo occupant, out BattleOccupantInfo currentOccupant)
     {
-        currentOccupant = occupant;
-        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
-        {
-            return false;
-        }
-
-        if (occupants.Contains(occupant))
-        {
-            return true;
-        }
-
-        if (occupant.Marker == null)
-        {
-            return false;
-        }
-
-        var matchingOccupant = occupants.FirstOrDefault(candidate => candidate.Marker == occupant.Marker);
-        if (matchingOccupant == null)
-        {
-            return false;
-        }
-
-        currentOccupant = matchingOccupant;
-        return true;
+        return _occupantsByGrid.TryGetCurrent(grid, occupant, out currentOccupant);
     }
 
     private bool IsOccupantAtGrid(BattleGridKey grid, BattleOccupantInfo occupant)
     {
-        return _occupantsByGrid.TryGetValue(grid, out var occupants) && occupants.Contains(occupant);
+        return _occupantsByGrid.Contains(grid, occupant);
     }
 
     private void RemoveOccupant(BattleGridKey grid, BattleOccupantInfo occupant)
     {
-        if (!_occupantsByGrid.TryGetValue(grid, out var occupants))
-        {
-            return;
-        }
-
-        if (!occupants.Remove(occupant))
+        if (!_occupantsByGrid.Remove(grid, occupant))
         {
             return;
         }
@@ -1397,11 +1351,6 @@ public partial class BattleSceneController : Node2D
             occupant.Marker.QueueFree();
         }
 
-        if (occupants.Count == 0)
-        {
-            _occupantsByGrid.Remove(grid);
-        }
-
         if (_selectedUnit == occupant)
         {
             _selectedUnit = null;
@@ -1412,19 +1361,19 @@ public partial class BattleSceneController : Node2D
 
     private void ResolveDailyBattleSupply()
     {
-        ResolveDailyBattleSupplyForTeam(TeamAInfo.Name, ref _teamAGold, ref _teamAFood, _teamATotalTroops);
-        ResolveDailyBattleSupplyForTeam(TeamBInfo.Name, ref _teamBGold, ref _teamBFood, _teamBTotalTroops);
+        (_teamAGold, _teamAFood) = ResolveDailyBattleSupplyForTeam(TeamAInfo.Name, _teamAGold, _teamAFood, _teamATotalTroops);
+        (_teamBGold, _teamBFood) = ResolveDailyBattleSupplyForTeam(TeamBInfo.Name, _teamBGold, _teamBFood, _teamBTotalTroops);
         UpdateTeamZeroFoodDays(TeamAInfo.Name);
         UpdateTeamZeroFoodDays(TeamBInfo.Name);
     }
 
-    private void ResolveDailyBattleSupplyForTeam(string teamName, ref int gold, ref int food, int activeTroops)
+    private (int Gold, int Food) ResolveDailyBattleSupplyForTeam(string teamName, int gold, int food, int activeTroops)
     {
         var dailyFoodNeed = CalculateDailyFoodNeed(activeTroops);
         var dailyGoldNeed = CalculateDailyGoldNeed(activeTroops);
         if (dailyFoodNeed <= 0 && dailyGoldNeed <= 0)
         {
-            return;
+            return (gold, food);
         }
 
         var foodBefore = food;
@@ -1438,20 +1387,22 @@ public partial class BattleSceneController : Node2D
 
         if (dailyFoodNeed <= 0)
         {
-            return;
+            return (gold, food);
         }
 
         if (foodBefore < dailyFoodNeed)
         {
             ApplyTeamMoralePenalty(teamName, StarvingMoralePenalty, "food shortage");
             ApplyTeamStarvationDesertion(teamName);
-            return;
+            return (gold, food);
         }
 
         if (food < dailyFoodNeed)
         {
             ApplyTeamMoralePenalty(teamName, LowFoodMoralePenalty, "low food");
         }
+
+        return (gold, food);
     }
 
     private void ApplyTeamStarvationDesertion(string teamName)
@@ -1504,9 +1455,7 @@ public partial class BattleSceneController : Node2D
 
     private static int CalculateScaledResourceNeed(int activeTroops, int per100Troops)
     {
-        return activeTroops <= 0 || per100Troops <= 0
-            ? 0
-            : Mathf.CeilToInt(activeTroops / 100.0f * per100Troops);
+        return BattleSupplyService.CalculateScaledResourceNeed(activeTroops, per100Troops);
     }
 
     private void ApplyTeamMoralePenalty(string teamName, int penalty, string reason, double popupDelaySeconds = 0.0)
@@ -1708,20 +1657,17 @@ public partial class BattleSceneController : Node2D
 
     private static bool UsesWeaponAmmo(BattleOccupantInfo unit)
     {
-        return unit.MaxWeaponAmmo.HasValue;
+        return BattleSupplyService.UsesWeaponAmmo(unit);
     }
 
     private static bool HasWeaponAmmo(BattleOccupantInfo unit)
     {
-        return !UsesWeaponAmmo(unit) || unit.WeaponAmmo.GetValueOrDefault() > 0;
+        return BattleSupplyService.HasWeaponAmmo(unit);
     }
 
     private static bool CanUseAmmoDepletedWeakAttack(BattleOccupantInfo unit)
     {
-        return ((unit.Category == CategoryUnit && unit.TroopType is TroopArcher or TroopCrossbow) ||
-                (unit.Category == CategorySiegeEngine && unit.TroopType == TroopCatapult)) &&
-               unit.MaxWeaponAmmo.HasValue &&
-               unit.WeaponAmmo.GetValueOrDefault() <= 0;
+        return BattleSupplyService.CanUseAmmoDepletedWeakAttack(unit);
     }
 
     private static bool CanUseNormalAttackWithCurrentAmmo(BattleOccupantInfo unit)
@@ -1736,20 +1682,7 @@ public partial class BattleSceneController : Node2D
 
     private static bool TrySpendWeaponAmmo(BattleOccupantInfo unit, out BattleOccupantInfo updatedUnit)
     {
-        updatedUnit = unit;
-        if (!UsesWeaponAmmo(unit))
-        {
-            return true;
-        }
-
-        var currentAmmo = unit.WeaponAmmo.GetValueOrDefault();
-        if (currentAmmo <= 0)
-        {
-            return false;
-        }
-
-        updatedUnit = unit with { WeaponAmmo = currentAmmo - 1 };
-        return true;
+        return BattleSupplyService.TrySpendWeaponAmmo(unit, out updatedUnit);
     }
 
     private static bool TrySpendNormalAttackWeaponAmmo(BattleOccupantInfo unit, out BattleOccupantInfo updatedUnit)
@@ -2014,6 +1947,11 @@ public partial class BattleSceneController : Node2D
     }
 
     private void OnResupplyWeaponButtonPressed()
+    {
+        TryExecuteSelectedBattleAction(BattleActionKind.ResupplyWeapon);
+    }
+
+    private void ExecuteSelectedWeaponResupply()
     {
         if (_selectedUnit == null ||
             !_selectedUnitGrid.HasValue ||
@@ -2293,7 +2231,7 @@ public partial class BattleSceneController : Node2D
         return target != null;
     }
 
-    private IEnumerable<KeyValuePair<BattleGridKey, List<BattleOccupantInfo>>> GetHireOfficerRangeOccupantEntries(BattleGridKey sourceGrid)
+    private IEnumerable<KeyValuePair<BattleGridKey, IReadOnlyList<BattleOccupantInfo>>> GetHireOfficerRangeOccupantEntries(BattleGridKey sourceGrid)
     {
         foreach (var entry in _occupantsByGrid)
         {
@@ -2306,7 +2244,7 @@ public partial class BattleSceneController : Node2D
         }
     }
 
-    private IEnumerable<KeyValuePair<BattleGridKey, List<BattleOccupantInfo>>> GetAdjacentOccupantEntries(BattleGridKey sourceGrid)
+    private IEnumerable<KeyValuePair<BattleGridKey, IReadOnlyList<BattleOccupantInfo>>> GetAdjacentOccupantEntries(BattleGridKey sourceGrid)
     {
         foreach (var entry in _occupantsByGrid)
         {
@@ -3484,6 +3422,7 @@ public partial class BattleSceneController : Node2D
         var cell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
         if (cell.HasBridgeHealth)
         {
+            var wasWoodenBridge = cell.IsWoodenBridge;
             var actualBridgeDamage = _mapData.ApplyBridgeDamage(targetGrid.Grid, FireDamageToBridge);
             if (actualBridgeDamage > 0)
             {
@@ -3491,6 +3430,11 @@ public partial class BattleSceneController : Node2D
                 if (!cell.HasBridgeHealth)
                 {
                     RefreshWorkerObjectLayers();
+                    if (wasWoodenBridge)
+                    {
+                        AppendBattleLog(GetCurrentTurnSideName(), "Destroy", $"Wooden bridge destroyed by fire at {targetGrid}.");
+                        ShowWoodenBridgeDestroyedNotice(targetGrid);
+                    }
                 }
             }
 
@@ -3825,44 +3769,22 @@ public partial class BattleSceneController : Node2D
 
     private static BattleWeatherType GetNextBattleWeather(BattleWeatherType weather)
     {
-        return weather switch
-        {
-            BattleWeatherType.Sunny => BattleWeatherType.Cloudy,
-            BattleWeatherType.Cloudy => BattleWeatherType.Rain,
-            _ => BattleWeatherType.Sunny
-        };
+        return BattleEnvironmentSystem.GetNextWeather(weather);
     }
 
     private static BattleTimeOfDay GetNextBattleTimeOfDay(BattleTimeOfDay timeOfDay)
     {
-        return timeOfDay switch
-        {
-            BattleTimeOfDay.Dawn => BattleTimeOfDay.Morning,
-            BattleTimeOfDay.Morning => BattleTimeOfDay.Afternoon,
-            BattleTimeOfDay.Afternoon => BattleTimeOfDay.Night,
-            _ => BattleTimeOfDay.Dawn
-        };
+        return BattleEnvironmentSystem.GetNextTimeOfDay(timeOfDay);
     }
 
     private static BattleWindDirection GetNextBattleWindDirection(BattleWindDirection direction)
     {
-        return direction switch
-        {
-            BattleWindDirection.NorthEast => BattleWindDirection.NorthWest,
-            BattleWindDirection.NorthWest => BattleWindDirection.SouthWest,
-            BattleWindDirection.SouthWest => BattleWindDirection.SouthEast,
-            _ => BattleWindDirection.NorthEast
-        };
+        return BattleEnvironmentSystem.GetNextWindDirection(direction);
     }
 
     private static BattleWindPower GetNextBattleWindPower(BattleWindPower power)
     {
-        return power switch
-        {
-            BattleWindPower.Calm => BattleWindPower.Breeze,
-            BattleWindPower.Breeze => BattleWindPower.Strong,
-            _ => BattleWindPower.Calm
-        };
+        return BattleEnvironmentSystem.GetNextWindPower(power);
     }
 
     private string FormatBattleWeather(BattleWeatherType weather)
@@ -4492,68 +4414,9 @@ public partial class BattleSceneController : Node2D
         return Mathf.Clamp(mapOrigin, minPosition, maxPosition);
     }
 
-    private sealed record BattleOccupantInfo(
-        string DisplayName,
-        string Category,
-        string ShortLabel,
-        string TeamName,
-        string OfficerName,
-        string TroopType,
-        int TroopCount,
-        int HitPoints,
-        int MaxHitPoints,
-        int WoundedTroops,
-        int MessTurns,
-        bool IsHidden,
-        int? Morale,
-        int? WeaponAmmo,
-        int? MaxWeaponAmmo,
-        int MoveRange,
-        int AttackRange,
-        BattlePieceMarker? Marker,
-        BattleSpriteDirection FacingDirection,
-        int Energy,
-        bool HasAttackedThisTurn,
-        int RemainingMoveRange,
-        bool IsGuarding,
-        bool GuardCounterAvailable,
-        int GuardDamageReductionCount);
     private readonly record struct WallTopAttackAmmo(int DropStoneUses, int PourOilUses);
     private readonly record struct BattleFireState(int RemainingTurns, int BurnTurns);
 
     private sealed record BattleHudTeamInfo(string Name, int TotalTroops, int WoundedTroops, int TotalGenerals, int TotalSiegeUnits, int StrategyPlans, int TotalGold, int TotalFood);
-
-    private enum BattleCommandMode
-    {
-        None,
-        AwaitingCommand,
-        MoveSelect,
-        AttackSelect,
-        WorkSelect,
-        StrategySelect,
-        DuelSelect,
-        ChargeSelect,
-        HireOfficerSelect
-    }
-
-    private enum BattleStrategyAction
-    {
-        None,
-        Extinguish,
-        Fire,
-        Mental
-    }
-
-    private enum WorkerWorkAction
-    {
-        General,
-        WoodFence
-    }
-
-    private enum BattleTurnSide
-    {
-        TeamA,
-        TeamB
-    }
 
 }

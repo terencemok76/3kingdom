@@ -256,27 +256,23 @@ public partial class BattleSceneController
     private void RestoreTeamUnitEnergy(string teamName)
     {
         var energyCap = GetTeamEnergyCap(teamName);
-        foreach (var occupants in _occupantsByGrid.Values)
+        _occupantsByGrid.UpdateAll((_, occupant) =>
         {
-            for (var index = 0; index < occupants.Count; index++)
+            if (!IsBattlePiece(occupant) || occupant.TeamName != teamName)
             {
-                var occupant = occupants[index];
-                if (!IsBattlePiece(occupant) || occupant.TeamName != teamName)
-                {
-                    continue;
-                }
-
-                occupants[index] = occupant with
-                {
-                    Energy = energyCap,
-                    HasAttackedThisTurn = false,
-                    RemainingMoveRange = GetTeamMoveRangeCap(occupant),
-                    IsGuarding = false,
-                    GuardCounterAvailable = false,
-                    GuardDamageReductionCount = 0
-                };
+                return occupant;
             }
-        }
+
+            return occupant with
+            {
+                Energy = energyCap,
+                HasAttackedThisTurn = false,
+                RemainingMoveRange = GetTeamMoveRangeCap(occupant),
+                IsGuarding = false,
+                GuardCounterAvailable = false,
+                GuardDamageReductionCount = 0
+            };
+        });
 
         if (energyCap < DefaultUnitEnergy)
         {
@@ -304,6 +300,26 @@ public partial class BattleSceneController
         }
 
         _mapRoot.Position = GetClampedMapPosition(_camera.GlobalPosition - GetMarkerPosition(grid));
+    }
+
+    private void FocusCameraOnCurrentTurnTeam()
+    {
+        if (_camera == null || _mapRoot == null)
+        {
+            return;
+        }
+
+        var teamPositions = GetActingBattlePieces()
+            .Select(entry => GetMarkerPosition(entry.Grid))
+            .ToList();
+        if (teamPositions.Count == 0)
+        {
+            return;
+        }
+
+        var teamCenter = teamPositions.Aggregate(Vector2.Zero, static (sum, position) => sum + position) /
+                         teamPositions.Count;
+        _mapRoot.Position = GetClampedMapPosition(_camera.GlobalPosition - teamCenter);
     }
 
     private void OnEndTurnButtonPressed()
@@ -362,22 +378,8 @@ public partial class BattleSceneController
 
     private void AdvanceBattleDate()
     {
-        _battleDateDay++;
-        var daysInMonth = DateTime.DaysInMonth(_battleDateYear, _battleDateMonth);
-        if (_battleDateDay <= daysInMonth)
-        {
-            return;
-        }
-
-        _battleDateDay = 1;
-        _battleDateMonth++;
-        if (_battleDateMonth <= 12)
-        {
-            return;
-        }
-
-        _battleDateMonth = 1;
-        _battleDateYear++;
+        (_battleDateYear, _battleDateMonth, _battleDateDay) =
+            BattleTurnResolver.AdvanceDate(_battleDateYear, _battleDateMonth, _battleDateDay);
     }
 
     private void OnWeatherButtonPressed()

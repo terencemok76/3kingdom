@@ -53,18 +53,6 @@ public partial class BattleSceneController
             return false;
         }
 
-        sourceOccupants.Remove(movingOccupant);
-        if (sourceOccupants.Count == 0)
-        {
-            _occupantsByGrid.Remove(sourceGrid);
-        }
-
-        if (!_occupantsByGrid.TryGetValue(destinationGrid, out var destinationOccupants))
-        {
-            destinationOccupants = new List<BattleOccupantInfo>();
-            _occupantsByGrid[destinationGrid] = destinationOccupants;
-        }
-
         movePath = ExpandMovePathWithCarLadderWaypoints(sourceGrid, movePath, movingOccupant);
         var pathPositions = movePath.Select(GetMarkerPosition).ToArray();
         var pathDirections = BuildPathDirections(sourceGrid, movePath);
@@ -81,7 +69,10 @@ public partial class BattleSceneController
             Energy = movingOccupant.Energy - moveEnergyCost,
             RemainingMoveRange = movingOccupant.RemainingMoveRange - movePath.Count
         };
-        destinationOccupants.Add(movedOccupant);
+        if (!_occupantsByGrid.Move(sourceGrid, movingOccupant, destinationGrid, movedOccupant))
+        {
+            return false;
+        }
         UpdateMarkerStatusIndicator(movedOccupant);
         RegisterBattleDepthEntry(
             movedOccupant.Marker!,
@@ -882,30 +873,22 @@ public partial class BattleSceneController
 
     private static bool IsBattlePiece(BattleOccupantInfo occupant)
     {
-        return occupant.Category == CategoryUnit || occupant.Category == CategorySiegeEngine;
+        return BattleMovementService.IsBattlePiece(occupant);
     }
 
     private static bool CanUseCarLadderBridge(BattleOccupantInfo occupant)
     {
-        return IsAttackerPiece(occupant) &&
-               occupant.Category == CategoryUnit &&
-               (occupant.TroopType == TroopInfantry || occupant.TroopType == TroopSpearman || occupant.TroopType == TroopArcher);
+        return BattleMovementService.CanUseCarLadderBridge(occupant);
     }
 
     private static int GetMoveCost(BattleCellData cell)
     {
-        return Math.Max(cell.MovementCost, cell.Terrain switch
-        {
-            BattleTerrainType.Forest => 2,
-            BattleTerrainType.Swamp => 2,
-            BattleTerrainType.Hill => 2,
-            _ => 1
-        });
+        return BattleMovementService.GetMoveCost(cell);
     }
 
     private static int GetAvailableMoveEnergy(BattleOccupantInfo unit)
     {
-        return unit.HasAttackedThisTurn ? 0 : unit.Energy;
+        return BattleMovementService.GetAvailableMoveEnergy(unit);
     }
 
     private int GetTeamMoveRangeCap(BattleOccupantInfo unit)
@@ -925,12 +908,7 @@ public partial class BattleSceneController
 
     private static int GetMoveEnergyCost(BattleCellData cell)
     {
-        if (cell.Terrain == BattleTerrainType.Road)
-        {
-            return 1;
-        }
-
-        return Math.Max(2, GetMoveCost(cell) + 1);
+        return BattleMovementService.GetMoveEnergyCost(cell);
     }
 
     private int GetMovePathEnergyCost(IEnumerable<BattleGridKey> path)

@@ -5,6 +5,7 @@ internal enum BattleActionKind
     Move,
     Attack,
     Supply,
+    ResupplyWeapon,
     Guard,
     Hide,
     Work,

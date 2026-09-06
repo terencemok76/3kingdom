@@ -46,7 +46,9 @@ public partial class BattleSceneController
             return;
         }
 
-        foreach (var candidate in candidates.Where(candidate => candidate.Occupant.TroopType != TroopSupplyCart))
+        foreach (var candidate in candidates.Where(candidate =>
+                     candidate.Occupant.TroopType != TroopSupplyCart &&
+                     !IsAiAmmoDepletedCatapult(candidate.Occupant)))
         {
             if (TryExecuteAiMoveAndAttack(candidate.Grid, candidate.Occupant))
             {
@@ -54,7 +56,7 @@ public partial class BattleSceneController
             }
         }
 
-        foreach (var movingCandidate in candidates)
+        foreach (var movingCandidate in candidates.OrderBy(candidate => GetAiFallbackMovementPriority(candidate.Occupant)))
         {
             if (TryExecuteAiMove(movingCandidate.Grid, movingCandidate.Occupant))
             {
@@ -189,6 +191,26 @@ public partial class BattleSceneController
             supplyCart);
     }
 
+    private bool TryExecuteAiWeaponResupply(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart)
+    {
+        var targets = GetWeaponResupplyTargets(sourceGrid, supplyCart).ToList();
+        if (targets.Count == 0)
+        {
+            return false;
+        }
+
+        var missingAmmo = targets.Sum(target =>
+            target.Occupant.MaxWeaponAmmo.GetValueOrDefault() - target.Occupant.WeaponAmmo.GetValueOrDefault());
+        FocusCameraOnBattleGrid(sourceGrid);
+        AppendBattleLog(
+            supplyCart,
+            "AI",
+            $"Decision: resupply {targets.Count} weapon unit(s), missing ammo {missingAmmo}.");
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.ResupplyWeapon, sourceGrid, sourceGrid),
+            supplyCart);
+    }
+
     private bool TryExecuteAiPrioritySupply(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart)
     {
         if (!HasAiPrioritySupplyTarget(sourceGrid, supplyCart))
@@ -220,7 +242,13 @@ public partial class BattleSceneController
         var directScore = GetAiSupplyActionScore(sourceGrid, supplyCart);
         if (directScore > 0)
         {
-            yield return new AiSupplyPlan(sourceGrid, MoveBeforeSupply: false, directScore, "supply adjacent team");
+            yield return new AiSupplyPlan(sourceGrid, MoveBeforeSupply: false, AiSupplyActionKind.RecoveryRepair, directScore, "supply adjacent team");
+        }
+
+        var directWeaponScore = GetAiWeaponResupplyActionScore(sourceGrid, supplyCart);
+        if (directWeaponScore > 0)
+        {
+            yield return new AiSupplyPlan(sourceGrid, MoveBeforeSupply: false, AiSupplyActionKind.WeaponResupply, directWeaponScore, "resupply adjacent weapon units");
         }
 
         foreach (var destination in CalculateReachableGrids(sourceGrid, supplyCart.Energy - SupplyActionEnergyCost, GetAvailableMoveRange(supplyCart))
@@ -232,8 +260,21 @@ public partial class BattleSceneController
                 yield return new AiSupplyPlan(
                     destination,
                     MoveBeforeSupply: true,
+                    AiSupplyActionKind.RecoveryRepair,
                     actionScore - GetManhattanDistance(sourceGrid.Grid, destination.Grid) * 100,
                     "move and supply team");
+            }
+
+
+            var weaponScore = GetAiWeaponResupplyActionScore(destination, supplyCart);
+            if (weaponScore > 0)
+            {
+                yield return new AiSupplyPlan(
+                    destination,
+                    MoveBeforeSupply: true,
+                    AiSupplyActionKind.WeaponResupply,
+                    weaponScore - GetManhattanDistance(sourceGrid.Grid, destination.Grid) * 100,
+                    "move and resupply weapon units");
             }
         }
     }
@@ -248,6 +289,33 @@ public partial class BattleSceneController
             .Where(target => target.Occupant.TroopType != TroopSupplyCart)
             .Sum(target => Mathf.Min(SupplyCartRepairAmount, target.Occupant.MaxHitPoints - target.Occupant.HitPoints) * 2);
         return moraleScore + recoveryScore + repairScore;
+    }
+
+    private int GetAiWeaponResupplyActionScore(BattleGridKey supplyGrid, BattleOccupantInfo supplyCart)
+    {
+        return GetWeaponResupplyTargets(supplyGrid, supplyCart).Sum(target =>
+        {
+            var currentAmmo = target.Occupant.WeaponAmmo.GetValueOrDefault();
+            var maxAmmo = target.Occupant.MaxWeaponAmmo.GetValueOrDefault();
+            if (maxAmmo <= 0 || currentAmmo >= maxAmmo)
+            {
+                return 0;
+            }
+
+            var missingAmmo = maxAmmo - currentAmmo;
+            var score = GetBaseAttackDamage(target.Occupant) * missingAmmo / maxAmmo;
+            if (currentAmmo == 0)
+            {
+                score += AiAmmoDepletedResupplyBonus;
+            }
+
+            if (target.Occupant.TroopType == TroopCatapult)
+            {
+                score += AiCatapultAmmoResupplyBonus;
+            }
+
+            return score;
+        });
     }
 
     private bool TryGetAiSupplyApproach(
@@ -280,7 +348,9 @@ public partial class BattleSceneController
                     continue;
                 }
 
-                var score = GetAiSupplyActionScore(actionGrid, supplyCart);
+                var score = Math.Max(
+                    GetAiSupplyActionScore(actionGrid, supplyCart),
+                    GetAiWeaponResupplyActionScore(actionGrid, supplyCart));
                 if (score <= 0 ||
                     !TryGetAiPathEndpointToward(sourceGrid, supplyCart, actionGrid, out var nextDestination, out var pathEnergy, out var pathSteps))
                 {
@@ -314,7 +384,9 @@ public partial class BattleSceneController
         if (!plan.MoveBeforeSupply)
         {
             AppendBattleLog(supplyCart, "AI", $"Decision: {plan.Reason} (score {plan.Score}, variance {noise}).");
-            return TryExecuteAiSupply(sourceGrid, supplyCart);
+            return plan.Kind == AiSupplyActionKind.WeaponResupply
+                ? TryExecuteAiWeaponResupply(sourceGrid, supplyCart)
+                : TryExecuteAiSupply(sourceGrid, supplyCart);
         }
 
         FocusCameraOnBattleGrid(sourceGrid);
@@ -331,7 +403,14 @@ public partial class BattleSceneController
             {
                 if (_selectedUnit != null && _selectedUnitGrid.HasValue)
                 {
-                    TryExecuteAiSupply(_selectedUnitGrid.Value, _selectedUnit);
+                    if (plan.Kind == AiSupplyActionKind.WeaponResupply)
+                    {
+                        TryExecuteAiWeaponResupply(_selectedUnitGrid.Value, _selectedUnit);
+                    }
+                    else
+                    {
+                        TryExecuteAiSupply(_selectedUnitGrid.Value, _selectedUnit);
+                    }
                 }
             });
     }
@@ -378,7 +457,33 @@ public partial class BattleSceneController
 
         return candidate.WoundedTroops > 0 ||
                candidate.Morale.HasValue && candidate.Morale.Value < DefaultUnitMorale ||
-               candidate.Category == CategorySiegeEngine && candidate.HitPoints < candidate.MaxHitPoints;
+               candidate.Category == CategorySiegeEngine && candidate.HitPoints < candidate.MaxHitPoints ||
+               candidate.WeaponAmmo.HasValue &&
+               candidate.MaxWeaponAmmo.HasValue &&
+               candidate.WeaponAmmo.Value < candidate.MaxWeaponAmmo.Value;
+    }
+
+    private static bool IsAiAmmoDepletedCatapult(BattleOccupantInfo unit)
+    {
+        return unit.Category == CategorySiegeEngine &&
+               unit.TroopType == TroopCatapult &&
+               unit.MaxWeaponAmmo.HasValue &&
+               unit.WeaponAmmo.GetValueOrDefault() <= 0;
+    }
+
+    private static int GetAiFallbackMovementPriority(BattleOccupantInfo unit)
+    {
+        if (unit.TroopType == TroopSupplyCart)
+        {
+            return 3;
+        }
+
+        if (unit.Category == CategorySiegeEngine)
+        {
+            return 2;
+        }
+
+        return unit.TroopType == TroopWorker ? 1 : 0;
     }
 
    private int GetSupplyActionTargetCount(BattleGridKey supplyGrid, BattleOccupantInfo supplyCart)
@@ -1017,6 +1122,13 @@ public partial class BattleSceneController
                     });
                 }
 
+                continue;
+            }
+
+            // An empty catapult should recover its ranged role instead of joining
+            // fortress or generic close-approach movement at a bridge bottleneck.
+            if (IsAiAmmoDepletedCatapult(unit))
+            {
                 continue;
             }
 
@@ -2084,6 +2196,11 @@ public partial class BattleSceneController
             return TryExecuteAiSupplyMove(sourceGrid, unit);
         }
 
+        if (IsAiAmmoDepletedCatapult(unit))
+        {
+            return TryExecuteAiAmmoDepletedCatapultReposition(sourceGrid, unit);
+        }
+
         var enemyGrids = GetAllBattlePieces()
             .Where(entry => IsAttackerPiece(entry.Occupant) != IsAttackerPiece(unit) && !IsHiddenFromSide(entry.Occupant, unit.TeamName))
             .Select(entry => entry.Grid)
@@ -2106,6 +2223,15 @@ public partial class BattleSceneController
             return false;
         }
 
+        var currentEnemyDistance = enemyGrids.Min(enemy => GetManhattanDistance(sourceGrid.Grid, enemy.Grid));
+        var destinationEnemyDistance = enemyGrids.Min(enemy => GetManhattanDistance(destination.Grid, enemy.Grid));
+        if (unit.TroopType == TroopCatapult && destinationEnemyDistance >= currentEnemyDistance)
+        {
+            AppendBattleLog(unit, "AI", $"Decision: hold at {sourceGrid}; no forward catapult position is currently available.");
+            MarkUnitActed(unit);
+            return true;
+        }
+
         if (!TryBuildMovePath(sourceGrid, destination, unit.Energy, GetAvailableMoveRange(unit), out var movePath))
         {
             return false;
@@ -2120,6 +2246,50 @@ public partial class BattleSceneController
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
             unit);
+    }
+
+    private bool TryExecuteAiAmmoDepletedCatapultReposition(BattleGridKey sourceGrid, BattleOccupantInfo catapult)
+    {
+        var supplyGrids = GetAllBattlePieces()
+            .Where(entry => entry.Occupant.TeamName == catapult.TeamName && entry.Occupant.TroopType == TroopSupplyCart)
+            .Select(entry => entry.Grid)
+            .ToList();
+        if (supplyGrids.Count == 0)
+        {
+            AppendBattleLog(catapult, "AI", $"Decision: hold at {sourceGrid}; ammo 0 and no friendly Supply Cart remains.");
+            MarkUnitActed(catapult);
+            return true;
+        }
+
+        var currentSupplyDistance = supplyGrids.Min(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid));
+        if (currentSupplyDistance <= 1)
+        {
+            AppendBattleLog(catapult, "AI", $"Decision: hold at {sourceGrid}; ammo 0, waiting beside Supply Cart for weapon resupply.");
+            MarkUnitActed(catapult);
+            return true;
+        }
+
+        _selectedUnit = catapult;
+        _selectedUnitGrid = sourceGrid;
+        var destination = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(catapult), GetAvailableMoveRange(catapult))
+            .Where(grid => grid != sourceGrid && IsAiSafeMovementDestination(grid))
+            .Where(grid => supplyGrids.Min(supplyGrid => GetManhattanDistance(grid.Grid, supplyGrid.Grid)) < currentSupplyDistance)
+            .OrderBy(grid => supplyGrids.Min(supplyGrid => GetManhattanDistance(grid.Grid, supplyGrid.Grid)))
+            .ThenBy(grid => GetAiThreatScore(grid, catapult))
+            .ThenByDescending(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
+            .FirstOrDefault();
+        if (destination == default)
+        {
+            AppendBattleLog(catapult, "AI", $"Decision: hold at {sourceGrid}; ammo 0 and route toward Supply Cart is blocked.");
+            MarkUnitActed(catapult);
+            return true;
+        }
+
+        FocusCameraOnBattleGrid(sourceGrid);
+        AppendBattleLog(catapult, "AI", $"Decision: move {sourceGrid} -> {destination}; ammo 0, withdraw toward Supply Cart.");
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
+            catapult);
     }
 
     private string GetAiMoveOnlyReason(BattleGridKey sourceGrid, BattleOccupantInfo unit)

@@ -67,6 +67,8 @@
 	"ui.battle.resupply_weapon": { "zhHant": "補充武器（{0} 行動力）", "en": "Resupply Weapon (Energy {0})" },
 	"ui.battle.capture_cart": { "zhHant": "奪取糧車", "en": "Capture Cart" },
 	"ui.battle.officer_captured": { "zhHant": "{0}武將 {1} 被俘！", "en": "{0} officer {1} has been captured!" },
+	"ui.battle.worker_destroyed": { "zhHant": "{0}的工兵隊被消滅！", "en": "{0} worker unit has been destroyed!" },
+	"ui.battle.wooden_bridge_destroyed": { "zhHant": "木橋 {0} 已被摧毀！", "en": "Wooden bridge {0} has been destroyed!" },
 	"ui.battle.hire_officer": { "zhHant": "招降武將", "en": "Hire Officer" },
 	"ui.battle.hire_officer_cost": { "zhHant": "招降 {0}（{1:N0} 金）", "en": "Hire {0} ({1:N0} Gold)" },
 	"ui.battle.strategy": { "zhHant": "策略", "en": "Strategy" },
