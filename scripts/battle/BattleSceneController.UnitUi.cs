@@ -12,12 +12,12 @@ public partial class BattleSceneController
 {
     private static string FormatLogTeamName(string teamName)
     {
-        if (teamName.Contains("Attacker"))
+        if (BattleTeamIdentity.IsAttacker(teamName))
         {
             return "A";
         }
 
-        if (teamName.Contains("Defender"))
+        if (BattleTeamIdentity.IsDefender(teamName))
         {
             return "B";
         }

@@ -130,6 +130,7 @@
 - controller 不應直接把 scene node 當成規則來源：
   - 應先將 `TileMap` 與 `Scenario Data` 轉成 runtime `BattleMapData`
   - 後續的移動、阻擋、射程、攻城器、城門、城牆、HUD 與 AI 都只依賴 `BattleMapData`
+- 戰鬥 controller 的重構邊界已收斂：runtime `BattleState` 保存回合、陣營資源、環境與部隊等 authoritative simulation state；hover、選取格、指令模式與 action target collections 改由獨立 `BattleInteractionState` 保存，不納入戰鬥存檔。內部陣營名稱統一由 `BattleTeamIdentity` 解析成 `BattleTurnSide`，不再於規則、AI、顯示或存檔流程散落比對 `Attacker`／`Defender` 字串；未知陣營不會默認成守方。玩家與 AI 仍共用 `BattleActionIntent` 的合法性／執行入口，非法 intent 會還原原本選取狀態，不污染後續 UI 或 AI action context。
 
 ### 7.1 工作包
 

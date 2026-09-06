@@ -9,7 +9,7 @@ internal static class BattleMovementService
         unit.Category == CategoryUnit || unit.Category == CategorySiegeEngine;
 
     internal static bool CanUseCarLadderBridge(BattleOccupantInfo unit) =>
-        unit.TeamName.Contains("Attacker") &&
+        BattleTeamIdentity.IsAttacker(unit.TeamName) &&
         unit.Category == CategoryUnit &&
         unit.TroopType is TroopInfantry or TroopSpearman or TroopArcher;
 

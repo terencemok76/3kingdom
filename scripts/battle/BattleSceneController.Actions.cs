@@ -101,12 +101,20 @@ public partial class BattleSceneController
             return false;
         }
 
+        var previousSelectedUnit = _selectedUnit;
+        var previousSelectedUnitGrid = _selectedUnitGrid;
+        var previousSelectedGrid = _selectedGrid;
+        var previousSelectedGridKey = _selectedGridKey;
         _selectedUnit = unit;
         _selectedUnitGrid = intent.SourceGrid;
         _selectedGrid = intent.TargetGrid.Grid;
         _selectedGridKey = intent.TargetGrid;
         if (!ActionRuleQueries.IsLegal(intent, unit))
         {
+            _selectedUnit = previousSelectedUnit;
+            _selectedUnitGrid = previousSelectedUnitGrid;
+            _selectedGrid = previousSelectedGrid;
+            _selectedGridKey = previousSelectedGridKey;
             return false;
         }
 

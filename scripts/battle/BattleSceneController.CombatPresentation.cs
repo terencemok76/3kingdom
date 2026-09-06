@@ -459,10 +459,10 @@ public partial class BattleSceneController
             .Where(occupant => IsGeneralCountedPiece(occupant.Category, occupant.OfficerName))
             .ToList();
         var attackerSpeakers = speakers
-            .Where(occupant => occupant.TeamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase))
+            .Where(occupant => BattleTeamIdentity.IsAttacker(occupant.TeamName))
             .ToList();
         var defenderSpeakers = speakers
-            .Where(occupant => occupant.TeamName.Contains("Defender", StringComparison.OrdinalIgnoreCase))
+            .Where(occupant => BattleTeamIdentity.IsDefender(occupant.TeamName))
             .ToList();
 
         if (attackerSpeakers.Count > 0)

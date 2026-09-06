@@ -466,7 +466,7 @@ public partial class BattleSceneController
 
     private static Color GetSavedMarkerFillColor(BattleOccupantInfo occupant)
     {
-        if (occupant.TeamName.Contains("Defender", StringComparison.OrdinalIgnoreCase))
+        if (BattleTeamIdentity.IsDefender(occupant.TeamName))
         {
             return occupant.Category == CategorySiegeEngine ? new Color("31576f") : new Color("2d668d");
         }
@@ -476,7 +476,7 @@ public partial class BattleSceneController
 
     private static Color GetSavedMarkerBorderColor(BattleOccupantInfo occupant)
     {
-        return occupant.TeamName.Contains("Defender", StringComparison.OrdinalIgnoreCase)
+        return BattleTeamIdentity.IsDefender(occupant.TeamName)
             ? new Color("e0f0ff")
             : new Color("f0d6a8");
     }

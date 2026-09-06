@@ -119,7 +119,7 @@ public partial class BattleSceneController
 
     private static bool IsDefenderTeamName(string teamName)
     {
-        return teamName.Contains("Defender", StringComparison.OrdinalIgnoreCase);
+        return BattleTeamIdentity.IsDefender(teamName);
     }
 
     private void ConfirmAttackerOutpostVictoryAtTurnEnd()

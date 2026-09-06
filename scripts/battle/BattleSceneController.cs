@@ -79,8 +79,8 @@ public partial class BattleSceneController : Node2D
     public static LaunchOptions? PendingLaunchOptions { get; set; }
 
     // Camera2D zoom below 1.0 is closer; above 1.0 shows more of the battlefield.
-    private static readonly BattleHudTeamInfo TeamAInfo = new("Team A / Attacker", 0, 0, 0, 0, 0, InitialTeamAGold, InitialTeamAFood);
-    private static readonly BattleHudTeamInfo TeamBInfo = new("Team B / Defender", 0, 0, 0, 0, 0, InitialTeamBGold, InitialTeamBFood);
+    private static readonly BattleHudTeamInfo TeamAInfo = new(BattleTeamIdentity.AttackerName, 0, 0, 0, 0, 0, InitialTeamAGold, InitialTeamAFood);
+    private static readonly BattleHudTeamInfo TeamBInfo = new(BattleTeamIdentity.DefenderName, 0, 0, 0, 0, 0, InitialTeamBGold, InitialTeamBFood);
     private static readonly JsonSerializerOptions OfficerSpeechJsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -185,6 +185,7 @@ public partial class BattleSceneController : Node2D
     private bool _isResizingBattleLog;
     private bool _isBattleLogMinimized;
     private readonly BattleState _state = new();
+    private readonly BattleInteractionState _interaction = new();
     private bool _isBattleFinished { get => _state.IsBattleFinished; set => _state.IsBattleFinished = value; }
     private int _retreatNoticeSerial;
     private int _officerCaptureNoticeSerial;
@@ -200,19 +201,19 @@ public partial class BattleSceneController : Node2D
     private Vector2 _battleLogDragOffset;
     private Vector2 _battleLogResizeStartMouse;
     private Vector2 _battleLogResizeStartSize;
-    private Vector2I? _hoverGrid { get => _state.HoverGrid; set => _state.HoverGrid = value; }
-    private Vector2I? _selectedGrid { get => _state.SelectedGrid; set => _state.SelectedGrid = value; }
-    private BattleGridKey? _hoverGridKey { get => _state.HoverGridKey; set => _state.HoverGridKey = value; }
-    private BattleGridKey? _selectedGridKey { get => _state.SelectedGridKey; set => _state.SelectedGridKey = value; }
-    private BattleGridKey? _selectedUnitGrid { get => _state.SelectedUnitGrid; set => _state.SelectedUnitGrid = value; }
-    private BattleOccupantInfo? _selectedUnit { get => _state.SelectedUnit; set => _state.SelectedUnit = value; }
-    private HashSet<BattleGridKey> _movableGrids => _state.MovableGrids;
-    private HashSet<BattleGridKey> _attackableGrids => _state.AttackableGrids;
-    private HashSet<BattleGridKey> _workableGrids => _state.WorkableGrids;
-    private HashSet<BattleGridKey> _strategyTargetGrids => _state.StrategyTargetGrids;
-    private HashSet<BattleGridKey> _duelTargetGrids => _state.DuelTargetGrids;
-    private HashSet<BattleGridKey> _chargeTargetGrids => _state.ChargeTargetGrids;
-    private HashSet<BattleGridKey> _hireOfficerTargetGrids => _state.HireOfficerTargetGrids;
+    private Vector2I? _hoverGrid { get => _interaction.HoverGrid; set => _interaction.HoverGrid = value; }
+    private Vector2I? _selectedGrid { get => _interaction.SelectedGrid; set => _interaction.SelectedGrid = value; }
+    private BattleGridKey? _hoverGridKey { get => _interaction.HoverGridKey; set => _interaction.HoverGridKey = value; }
+    private BattleGridKey? _selectedGridKey { get => _interaction.SelectedGridKey; set => _interaction.SelectedGridKey = value; }
+    private BattleGridKey? _selectedUnitGrid { get => _interaction.SelectedUnitGrid; set => _interaction.SelectedUnitGrid = value; }
+    private BattleOccupantInfo? _selectedUnit { get => _interaction.SelectedUnit; set => _interaction.SelectedUnit = value; }
+    private HashSet<BattleGridKey> _movableGrids => _interaction.MovableGrids;
+    private HashSet<BattleGridKey> _attackableGrids => _interaction.AttackableGrids;
+    private HashSet<BattleGridKey> _workableGrids => _interaction.WorkableGrids;
+    private HashSet<BattleGridKey> _strategyTargetGrids => _interaction.StrategyTargetGrids;
+    private HashSet<BattleGridKey> _duelTargetGrids => _interaction.DuelTargetGrids;
+    private HashSet<BattleGridKey> _chargeTargetGrids => _interaction.ChargeTargetGrids;
+    private HashSet<BattleGridKey> _hireOfficerTargetGrids => _interaction.HireOfficerTargetGrids;
     private BattleUnitRepository _occupantsByGrid => _state.Units;
     private readonly Dictionary<Node2D, BattleDepthEntry> _battleDepthEntries = new();
     private readonly Dictionary<Vector2I, Sprite2D> _castleDepthSpritesByGrid = new();
@@ -231,9 +232,9 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<BattlePieceMarker, AiBridgeEngineeringPlan> _aiBridgePlanByWorker = new();
     private readonly List<BattleLogEntry> _battleLogs = new();
     private readonly List<ColorRect> _rainStreaks = new();
-    private BattleCommandMode _commandMode { get => _state.CommandMode; set => _state.CommandMode = value; }
-    private BattleStrategyAction _selectedStrategyAction { get => _state.SelectedStrategyAction; set => _state.SelectedStrategyAction = value; }
-    private WorkerWorkAction _workerWorkAction { get => _state.WorkerWorkAction; set => _state.WorkerWorkAction = value; }
+    private BattleCommandMode _commandMode { get => _interaction.CommandMode; set => _interaction.CommandMode = value; }
+    private BattleStrategyAction _selectedStrategyAction { get => _interaction.SelectedStrategyAction; set => _interaction.SelectedStrategyAction = value; }
+    private WorkerWorkAction _workerWorkAction { get => _interaction.WorkerWorkAction; set => _interaction.WorkerWorkAction = value; }
     private int _turnNumber { get => _state.TurnNumber; set => _state.TurnNumber = value; }
     private BattleTurnSide _currentTurnSide { get => _state.CurrentTurnSide; set => _state.CurrentTurnSide = value; }
     private int _battleDateYear { get => _state.BattleDateYear; set => _state.BattleDateYear = value; }
@@ -760,7 +761,9 @@ public partial class BattleSceneController : Node2D
         var cell = _mapData.GetCell(grid.X, grid.Y);
         if (!cell.IsDefenseOutpost) return;
 
-        var newOwner = occupant.TeamName.Contains("Defender", StringComparison.OrdinalIgnoreCase) ? BattleOutpostOwner.Defender : BattleOutpostOwner.Attacker;
+        var newOwner = BattleTeamIdentity.ResolveSide(occupant.TeamName) == BattleTurnSide.TeamB
+            ? BattleOutpostOwner.Defender
+            : BattleOutpostOwner.Attacker;
         if (cell.DefenseOutpostOwner == newOwner) return;
 
         cell.DefenseOutpostOwner = newOwner;
@@ -1626,7 +1629,7 @@ public partial class BattleSceneController : Node2D
 
     private bool IsAiAttackerHiddenEnemyFortressMission(string teamName)
     {
-        return teamName.Contains("Attacker") &&
+        return BattleTeamIdentity.IsAttacker(teamName) &&
                !GetAllBattlePieces().Any(entry =>
                    entry.Occupant.TeamName != teamName &&
                    !IsHiddenFromSide(entry.Occupant, teamName));
@@ -1634,7 +1637,7 @@ public partial class BattleSceneController : Node2D
 
     private int GetAiEnemyFoodPressureScore(string teamName)
     {
-        var enemyTeamName = teamName.Contains("Attacker") ? TeamBInfo.Name : TeamAInfo.Name;
+        var enemyTeamName = BattleTeamIdentity.GetOpponentName(teamName);
         var enemyDailyFoodNeed = CalculateDailyFoodNeed(GetTeamActiveTroops(enemyTeamName));
         var ownDailyFoodNeed = CalculateDailyFoodNeed(GetTeamActiveTroops(teamName));
         if (enemyDailyFoodNeed <= 0 || ownDailyFoodNeed <= 0)
@@ -1667,22 +1670,14 @@ public partial class BattleSceneController : Node2D
 
     private BattleTeamState GetBattleTeamState(string teamName)
     {
-        return teamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase)
-            ? _state.TeamA
-            : _state.TeamB;
+        return _state.GetTeam(BattleTeamIdentity.ResolveSide(teamName));
     }
 
     private bool TryGetBattleTeamState(string teamName, out BattleTeamState team)
     {
-        if (teamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase))
+        if (BattleTeamIdentity.TryResolveSide(teamName, out var side))
         {
-            team = _state.TeamA;
-            return true;
-        }
-
-        if (teamName.Contains("Defender", StringComparison.OrdinalIgnoreCase))
-        {
-            team = _state.TeamB;
+            team = _state.GetTeam(side);
             return true;
         }
 
@@ -4240,12 +4235,12 @@ public partial class BattleSceneController : Node2D
 
     private static bool IsAttackerPiece(BattleOccupantInfo occupant)
     {
-        return occupant.TeamName.Contains("Attacker");
+        return BattleTeamIdentity.IsAttacker(occupant.TeamName);
     }
 
     private static bool IsDefenderPiece(BattleOccupantInfo occupant)
     {
-        return occupant.TeamName.Contains("Defender");
+        return BattleTeamIdentity.IsDefender(occupant.TeamName);
     }
 
     private Vector2 ClampCommandMenuPosition(Vector2 desiredPosition)

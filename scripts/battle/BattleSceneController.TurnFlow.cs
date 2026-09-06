@@ -428,17 +428,17 @@ public partial class BattleSceneController
 
     private string GetCurrentTurnSideName()
     {
-        return _currentTurnSide == BattleTurnSide.TeamA ? "Team A / Attacker" : "Team B / Defender";
+        return BattleTeamIdentity.GetName(_currentTurnSide);
     }
 
     private string FormatTeamName(string teamName)
     {
-        if (teamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase))
+        if (BattleTeamIdentity.IsAttacker(teamName))
         {
             return BattleText("ui.battle.team_attacker", "Cao Cao");
         }
 
-        if (teamName.Contains("Defender", StringComparison.OrdinalIgnoreCase))
+        if (BattleTeamIdentity.IsDefender(teamName))
         {
             return BattleText("ui.battle.team_defender", "Dong Zhuo");
         }
