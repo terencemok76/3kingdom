@@ -40,20 +40,11 @@ internal sealed class BattleState
     internal BattleWeatherType? CurrentBattleWeather;
     internal BattleWindDirection? CurrentBattleWindDirection;
     internal BattleWindPower? CurrentBattleWindPower;
-    internal int TeamATotalTroops;
-    internal int TeamBTotalTroops;
-    internal int TeamASiegeUnits;
-    internal int TeamBSiegeUnits;
-    internal int TeamAGenerals;
-    internal int TeamBGenerals;
-    internal int TeamAStrategyPlans = InitialTeamStrategyPlans;
-    internal int TeamBStrategyPlans = InitialTeamStrategyPlans;
-    internal int TeamAGold = InitialTeamAGold;
-    internal int TeamAFood = InitialTeamAFood;
-    internal int TeamAZeroFoodDays;
-    internal int TeamBGold = InitialTeamBGold;
-    internal int TeamBFood = InitialTeamBFood;
-    internal int TeamBZeroFoodDays;
+    internal BattleTeamState TeamA { get; } = new(InitialTeamAGold, InitialTeamAFood);
+    internal BattleTeamState TeamB { get; } = new(InitialTeamBGold, InitialTeamBFood);
+
+    internal BattleTeamState GetTeam(BattleTurnSide side) =>
+        side == BattleTurnSide.TeamA ? TeamA : TeamB;
 }
 
 internal enum BattleCommandMode

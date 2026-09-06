@@ -34,6 +34,7 @@ public partial class BattleSceneController
                     infoLines.Add(BattleFormat("ui.battle.menu_combat", "Combat: {0}", GetOfficerBattleAttribute(_selectedUnit.OfficerName)));
                 }
 
+                infoLines.Add(BattleFormat("ui.battle.menu_type", "Type: {0}", FormatTroopType(_selectedUnit.TroopType)));
                 infoLines.Add(BattleFormat("ui.battle.menu_status", "Status: {0}", FormatBattleStatus(_selectedUnit)));
                 infoLines.Add(BattleFormat("ui.battle.menu_command", "Command: {0}", _selectedUnit.HasAttackedThisTurn
                     ? BattleText("ui.battle.already_used_this_turn", "Already used this turn")
@@ -101,10 +102,16 @@ public partial class BattleSceneController
         if (_workButton != null)
         {
             var hasBridgeWorkTarget = canCommandSelectedUnit &&
-                                      _selectedUnit?.TroopType == TroopWorker &&
-                                      HasWorkerWorkTarget(WorkerWorkAction.General);
+                                      _selectedUnit != null &&
+                                      HasWorkTarget(_selectedUnit, WorkerWorkAction.General);
             _workButton.Visible = hasBridgeWorkTarget;
-            _workButton.Text = BattleText("ui.battle.bridge", "Bridge");
+            _workButton.Text = _selectedUnit?.TroopType == TroopWorker
+                ? BattleText("ui.battle.bridge", "Bridge")
+                : BattleFormat(
+                    "ui.battle.repair_bridge",
+                    "Repair Bridge (+{0} HP, Energy {1})",
+                    BattleBridgeSystem.EmergencyRepairAmount,
+                    BattleBridgeSystem.EmergencyRepairEnergyCost);
             _workButton.Disabled = !hasBridgeWorkTarget;
         }
 
@@ -112,7 +119,7 @@ public partial class BattleSceneController
         {
             var hasWoodFenceWorkTarget = canCommandSelectedUnit &&
                                          _selectedUnit?.TroopType == TroopWorker &&
-                                         HasWorkerWorkTarget(WorkerWorkAction.WoodFence);
+                                         HasWorkTarget(_selectedUnit, WorkerWorkAction.WoodFence);
             _installWoodFenceButton.Visible = hasWoodFenceWorkTarget;
             _installWoodFenceButton.Text = $"{BattleText("ui.battle.wood_fence", "Wood Fence")} ({WorkerInstallWoodFenceEnergyCost}/{WorkerRemoveWoodFenceEnergyCost})";
             _installWoodFenceButton.Disabled = !hasWoodFenceWorkTarget;

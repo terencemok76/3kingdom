@@ -14,17 +14,22 @@ internal static class BattleMovementService
         unit.TroopType is TroopInfantry or TroopSpearman or TroopArcher;
 
     internal static int GetMoveCost(BattleCellData cell) =>
-        Math.Max(cell.MovementCost, cell.Terrain switch
-        {
-            BattleTerrainType.Forest => 2,
-            BattleTerrainType.Swamp => 2,
-            BattleTerrainType.Hill => 2,
-            _ => 1
-        });
+        Math.Max(
+            BattleBridgeSystem.GetMoveCost(cell),
+            Math.Max(cell.MovementCost, cell.Terrain switch
+            {
+                BattleTerrainType.Forest => 2,
+                BattleTerrainType.Swamp => 2,
+                BattleTerrainType.Hill => 2,
+                _ => 1
+            }));
 
     internal static int GetAvailableMoveEnergy(BattleOccupantInfo unit) =>
         unit.HasAttackedThisTurn ? 0 : unit.Energy;
 
     internal static int GetMoveEnergyCost(BattleCellData cell) =>
         cell.Terrain == BattleTerrainType.Road ? 1 : Math.Max(2, GetMoveCost(cell) + 1);
+
+    internal static int GetMoveRangeCost(BattleCellData cell) =>
+        BattleBridgeSystem.GetMoveRangeCost(cell);
 }

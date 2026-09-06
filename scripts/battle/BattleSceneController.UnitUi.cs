@@ -76,6 +76,7 @@ public partial class BattleSceneController
         return string.Join(
             "\n",
             BattleFormat("ui.battle.menu_officer", "Officer: {0}", "-"),
+            BattleFormat("ui.battle.menu_type", "Type: {0}", "-"),
             BattleFormat("ui.battle.menu_status", "Status: {0}", "-"),
             BattleFormat("ui.battle.menu_command", "Command: {0}", "-"),
             BattleFormat("ui.battle.menu_active_wounded", "Troops: {0:N0} ({1})", "-", "-"));
@@ -306,7 +307,20 @@ public partial class BattleSceneController
         if (cell.HasBridgeHealth)
         {
             builder.AppendLine(BattleFormat("ui.battle.bridge_hp", "Bridge HP: {0}/{1}", cell.BridgeHealth, cell.BridgeMaxHealth));
-            builder.AppendLine(BattleFormat("ui.battle.bridge_status", "Bridge Status: {0}", cell.IsBridgeDamaged ? BattleText("ui.battle.damaged", "Damaged") : BattleText("ui.battle.complete", "Complete")));
+            var bridgeStatus = cell.IsBridgeUnderConstruction
+                ? BattleText("ui.battle.under_construction", "Under Construction")
+                : BattleBridgeSystem.IsHeavilyDamaged(cell)
+                    ? BattleText("ui.battle.heavily_damaged", "Heavily Damaged")
+                    : cell.IsBridgeDamaged
+                        ? BattleText("ui.battle.damaged", "Damaged")
+                        : BattleText("ui.battle.complete", "Complete");
+            builder.AppendLine(BattleFormat("ui.battle.bridge_status", "Bridge Status: {0}", bridgeStatus));
+            var bridgePassage = cell.IsBridgeUnderConstruction
+                ? BattleText("ui.battle.bridge_passage_none", "Impassable")
+                : cell.IsWoodenBridge || BattleBridgeSystem.IsHeavilyDamaged(cell)
+                    ? BattleText("ui.battle.bridge_passage_regular_only", "Regular Troops Only")
+                    : BattleText("ui.battle.bridge_passage_all", "All Units");
+            builder.AppendLine(BattleFormat("ui.battle.bridge_passage", "Bridge Passage: {0}", bridgePassage));
         }
 
         builder.AppendLine(BattleFormat("ui.battle.deployment", "Deployment: {0}", FormatDeploymentZone(cell.DeploymentZone)));

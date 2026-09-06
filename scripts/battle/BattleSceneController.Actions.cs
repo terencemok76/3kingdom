@@ -49,7 +49,7 @@ public partial class BattleSceneController
                     GetWeaponResupplyTargets(intent.SourceGrid, unit).Any(),
                 [BattleActionKind.Guard] = (_, unit) => CanUseGuard(unit),
                 [BattleActionKind.Hide] = (intent, unit) => CanHideAtGrid(intent.SourceGrid, unit),
-                [BattleActionKind.Work] = IsWorkerWorkIntentLegal,
+                [BattleActionKind.Work] = IsWorkIntentLegal,
                 [BattleActionKind.Retreat] = (_, unit) => IsBattlePiece(unit),
                 [BattleActionKind.Extinguish] = (intent, unit) => CalculateExtinguishStrategyTargetGrids(intent.SourceGrid, unit).Contains(intent.TargetGrid),
                 [BattleActionKind.FireStrategy] = (intent, unit) => CalculateFireStrategyTargetGrids(intent.SourceGrid, unit).Contains(intent.TargetGrid),
@@ -79,7 +79,7 @@ public partial class BattleSceneController
                 [BattleActionKind.HireOfficer] = ExecuteHireOfficerActionIntent
             });
 
-    private bool IsWorkerWorkIntentLegal(BattleActionIntent intent, BattleOccupantInfo unit)
+    private bool IsWorkIntentLegal(BattleActionIntent intent, BattleOccupantInfo unit)
     {
         if (_mapData == null || intent.TargetGrid.Level != 0 ||
             GetManhattanDistance(intent.SourceGrid.Grid, intent.TargetGrid.Grid) != 1)
@@ -89,8 +89,9 @@ public partial class BattleSceneController
 
         var targetCell = _mapData.GetCell(intent.TargetGrid.X, intent.TargetGrid.Y);
         var workAction = intent.UseWoodFenceWork ? WorkerWorkAction.WoodFence : WorkerWorkAction.General;
-        return IsWorkerWorkTargetForAction(intent.TargetGrid.Grid, targetCell, workAction) &&
-               unit.Energy >= GetWorkerWorkEnergyCost(targetCell, workAction);
+        return CanUseWorkAction(unit, workAction) &&
+               IsWorkTargetForAction(unit, intent.TargetGrid.Grid, targetCell, workAction) &&
+               unit.Energy >= GetWorkEnergyCost(unit, targetCell, workAction);
     }
 
     private bool TryExecuteBattleActionIntent(BattleActionIntent intent, BattleOccupantInfo unit, Action? onMoveAnimationComplete = null)
@@ -155,7 +156,7 @@ public partial class BattleSceneController
         _workerWorkAction = intent.UseWoodFenceWork ? WorkerWorkAction.WoodFence : WorkerWorkAction.General;
         _workableGrids.Clear();
         _workableGrids.Add(intent.TargetGrid);
-        return TryPerformWorkerWork();
+        return TryPerformWork();
     }
 
     private bool ExecuteRetreatActionIntent(BattleActionIntent intent, BattleOccupantInfo unit, Action? __)

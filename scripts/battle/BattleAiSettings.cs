@@ -21,6 +21,10 @@ internal static class BattleAiSettings
     internal const int AiBridgeConstructionBaseScore = 450;
     internal const int AiBridgeSegmentPenalty = 220;
     internal const int AiBridgeApproachPenalty = 100;
+    internal const int AiBridgeRepairBaseScore = 400;
+    internal const int AiBridgeRepairCriticalScore = 600;
+    internal const int AiBridgeRepairThresholdScore = 500;
+    internal const int AiBridgeRepairNearbyFriendlyScore = 100;
     internal const int AiFenceConstructionBaseScore = 700;
     internal const int AiFenceRemovalBaseScore = 900;
     internal const int AiFencePathImpactScore = 500;

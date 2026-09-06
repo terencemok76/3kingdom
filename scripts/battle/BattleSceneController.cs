@@ -245,20 +245,20 @@ public partial class BattleSceneController : Node2D
     private BattleWeatherType? _currentBattleWeather { get => _state.CurrentBattleWeather; set => _state.CurrentBattleWeather = value; }
     private BattleWindDirection? _currentBattleWindDirection { get => _state.CurrentBattleWindDirection; set => _state.CurrentBattleWindDirection = value; }
     private BattleWindPower? _currentBattleWindPower { get => _state.CurrentBattleWindPower; set => _state.CurrentBattleWindPower = value; }
-    private int _teamATotalTroops { get => _state.TeamATotalTroops; set => _state.TeamATotalTroops = value; }
-    private int _teamBTotalTroops { get => _state.TeamBTotalTroops; set => _state.TeamBTotalTroops = value; }
-    private int _teamASiegeUnits { get => _state.TeamASiegeUnits; set => _state.TeamASiegeUnits = value; }
-    private int _teamBSiegeUnits { get => _state.TeamBSiegeUnits; set => _state.TeamBSiegeUnits = value; }
-    private int _teamAGenerals { get => _state.TeamAGenerals; set => _state.TeamAGenerals = value; }
-    private int _teamBGenerals { get => _state.TeamBGenerals; set => _state.TeamBGenerals = value; }
-    private int _teamAStrategyPlans { get => _state.TeamAStrategyPlans; set => _state.TeamAStrategyPlans = value; }
-    private int _teamBStrategyPlans { get => _state.TeamBStrategyPlans; set => _state.TeamBStrategyPlans = value; }
-    private int _teamAGold { get => _state.TeamAGold; set => _state.TeamAGold = value; }
-    private int _teamAFood { get => _state.TeamAFood; set => _state.TeamAFood = value; }
-    private int _teamAZeroFoodDays { get => _state.TeamAZeroFoodDays; set => _state.TeamAZeroFoodDays = value; }
-    private int _teamBGold { get => _state.TeamBGold; set => _state.TeamBGold = value; }
-    private int _teamBFood { get => _state.TeamBFood; set => _state.TeamBFood = value; }
-    private int _teamBZeroFoodDays { get => _state.TeamBZeroFoodDays; set => _state.TeamBZeroFoodDays = value; }
+    private int _teamATotalTroops { get => _state.TeamA.TotalTroops; set => _state.TeamA.TotalTroops = value; }
+    private int _teamBTotalTroops { get => _state.TeamB.TotalTroops; set => _state.TeamB.TotalTroops = value; }
+    private int _teamASiegeUnits { get => _state.TeamA.SiegeUnits; set => _state.TeamA.SiegeUnits = value; }
+    private int _teamBSiegeUnits { get => _state.TeamB.SiegeUnits; set => _state.TeamB.SiegeUnits = value; }
+    private int _teamAGenerals { get => _state.TeamA.Generals; set => _state.TeamA.Generals = value; }
+    private int _teamBGenerals { get => _state.TeamB.Generals; set => _state.TeamB.Generals = value; }
+    private int _teamAStrategyPlans { get => _state.TeamA.StrategyPlans; set => _state.TeamA.StrategyPlans = value; }
+    private int _teamBStrategyPlans { get => _state.TeamB.StrategyPlans; set => _state.TeamB.StrategyPlans = value; }
+    private int _teamAGold { get => _state.TeamA.Gold; set => _state.TeamA.Gold = value; }
+    private int _teamAFood { get => _state.TeamA.Food; set => _state.TeamA.Food = value; }
+    private int _teamAZeroFoodDays { get => _state.TeamA.ZeroFoodDays; set => _state.TeamA.ZeroFoodDays = value; }
+    private int _teamBGold { get => _state.TeamB.Gold; set => _state.TeamB.Gold = value; }
+    private int _teamBFood { get => _state.TeamB.Food; set => _state.TeamB.Food = value; }
+    private int _teamBZeroFoodDays { get => _state.TeamB.ZeroFoodDays; set => _state.TeamB.ZeroFoodDays = value; }
     private bool _showSelfTeamLogOnly;
     private bool _battleBgmEnabled = true;
     private bool _battleSfxEnabled = true;
@@ -281,6 +281,7 @@ public partial class BattleSceneController : Node2D
     {
         public BattleGridKey? MoveAttackDestination { get; init; }
         public AiSupplyPlan? SupplyPlan { get; init; }
+        public AiBridgeRepairPlan? BridgeRepairPlan { get; init; }
         public AiExtinguishPlan? ExtinguishPlan { get; init; }
         public AiFirePlan? FirePlan { get; init; }
         public bool IsHideAction { get; init; }
@@ -288,6 +289,7 @@ public partial class BattleSceneController : Node2D
     }
     private readonly record struct AiOutpostObjective(BattleGridKey Grid, int Score, string Reason);
     private readonly record struct AiSupplyPlan(BattleGridKey ActionGrid, bool MoveBeforeSupply, AiSupplyActionKind Kind, int Score, string Reason);
+    private readonly record struct AiBridgeRepairPlan(BattleGridKey TargetGrid, int RepairAmount, int Score, string Reason);
     private enum AiSupplyActionKind
     {
         RecoveryRepair,
@@ -989,28 +991,18 @@ public partial class BattleSceneController : Node2D
 
     private int GetStrategyPlans(string teamName)
     {
-        return teamName.Contains("Attacker") ? _teamAStrategyPlans : _teamBStrategyPlans;
+        return GetBattleTeamState(teamName).StrategyPlans;
     }
 
     private bool TrySpendStrategyPlan(string teamName)
     {
-        if (teamName.Contains("Attacker"))
-        {
-            if (_teamAStrategyPlans <= 0)
-            {
-                return false;
-            }
-
-            _teamAStrategyPlans--;
-            return true;
-        }
-
-        if (_teamBStrategyPlans <= 0)
+        var team = GetBattleTeamState(teamName);
+        if (team.StrategyPlans <= 0)
         {
             return false;
         }
 
-        _teamBStrategyPlans--;
+        team.StrategyPlans--;
         return true;
     }
 
@@ -1126,10 +1118,10 @@ public partial class BattleSceneController : Node2D
         TryExecuteSelectedBattleAction(BattleActionKind.Retreat);
     }
 
-    private bool TryPerformWorkerWork()
+    private bool TryPerformWork()
     {
         if (_mapData == null ||
-            _selectedUnit?.TroopType != TroopWorker ||
+            _selectedUnit == null ||
             IsMessed(_selectedUnit) ||
             !_selectedUnitGrid.HasValue ||
             !_selectedGrid.HasValue)
@@ -1145,13 +1137,14 @@ public partial class BattleSceneController : Node2D
 
         var sourceGrid = _selectedUnitGrid.Value;
         var targetCell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
-        var workEnergyCost = GetWorkerWorkEnergyCost(targetCell);
+        var workEnergyCost = GetWorkEnergyCost(_selectedUnit, targetCell, _workerWorkAction);
         if (_selectedUnit.Energy < workEnergyCost)
         {
             return false;
         }
 
-        if (!ApplyWorkerWork(targetGrid.Grid, targetCell, out var removedWoodFence))
+        var isWorker = _selectedUnit.TroopType == TroopWorker;
+        if (!ApplyWork(_selectedUnit, targetGrid.Grid, targetCell, out var removedWoodFence))
         {
             return false;
         }
@@ -1160,15 +1153,23 @@ public partial class BattleSceneController : Node2D
         var workingUnit = _selectedUnit with
         {
             FacingDirection = workDirection,
-            Energy = _selectedUnit.Energy - workEnergyCost
+            Energy = _selectedUnit.Energy - workEnergyCost,
+            HasAttackedThisTurn = _selectedUnit.HasAttackedThisTurn || !isWorker
         };
         ReplaceOccupantAtGrid(sourceGrid, _selectedUnit, workingUnit);
         _selectedUnit = workingUnit;
-        workingUnit.Marker?.PlayAction(
-            GetWorkerWorkScene(workDirection),
-            GetWorkerIdleScene(workDirection),
-            WorkerWorkAnimationDurationSeconds);
-        AppendBattleLog(workingUnit, "Action", $"{FormatLogUnit(workingUnit)} {FormatWorkerWorkAction(_workerWorkAction, removedWoodFence)} at {targetGrid} (energy {workEnergyCost})");
+        if (isWorker)
+        {
+            workingUnit.Marker?.PlayAction(
+                GetWorkerWorkScene(workDirection),
+                GetWorkerIdleScene(workDirection),
+                WorkerWorkAnimationDurationSeconds);
+        }
+
+        var workDescription = isWorker
+            ? FormatWorkerWorkAction(_workerWorkAction, removedWoodFence)
+            : "repairs bridge";
+        AppendBattleLog(workingUnit, "Action", $"{FormatLogUnit(workingUnit)} {workDescription} at {targetGrid} (energy {workEnergyCost})");
 
         _commandMode = BattleCommandMode.None;
         _selectedStrategyAction = BattleStrategyAction.None;
@@ -1181,11 +1182,6 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
-    private int GetWorkerWorkEnergyCost(BattleCellData targetCell)
-    {
-        return GetWorkerWorkEnergyCost(targetCell, _workerWorkAction);
-    }
-
     private static int GetWorkerWorkEnergyCost(BattleCellData targetCell, WorkerWorkAction workAction)
     {
         if (workAction != WorkerWorkAction.WoodFence)
@@ -1196,6 +1192,37 @@ public partial class BattleSceneController : Node2D
         return targetCell.Structure == BattleStructureType.WoodenFence
             ? WorkerRemoveWoodFenceEnergyCost
             : WorkerInstallWoodFenceEnergyCost;
+    }
+
+    private static int GetWorkEnergyCost(BattleOccupantInfo unit, BattleCellData targetCell, WorkerWorkAction workAction)
+    {
+        return unit.TroopType == TroopWorker
+            ? GetWorkerWorkEnergyCost(targetCell, workAction)
+            : BattleBridgeSystem.EmergencyRepairEnergyCost;
+    }
+
+    private bool ApplyWork(BattleOccupantInfo unit, Vector2I targetGrid, BattleCellData targetCell, out bool removedWoodFence)
+    {
+        if (unit.TroopType == TroopWorker)
+        {
+            return ApplyWorkerWork(targetGrid, targetCell, out removedWoodFence);
+        }
+
+        removedWoodFence = false;
+        if (!BattleBridgeSystem.CanEmergencyRepair(unit) ||
+            !BattleBridgeSystem.IsEmergencyRepairTarget(targetCell))
+        {
+            return false;
+        }
+
+        var repairedHp = BattleBridgeSystem.ApplyRepair(targetCell, BattleBridgeSystem.EmergencyRepairAmount);
+        if (repairedHp <= 0)
+        {
+            return false;
+        }
+
+        ShowRepairPopup(GetDefaultGridKey(targetGrid), repairedHp);
+        return true;
     }
 
     private bool ApplyWorkerWork(Vector2I targetGrid, BattleCellData targetCell, out bool removedWoodFence)
@@ -1244,6 +1271,7 @@ public partial class BattleSceneController : Node2D
             targetCell.BridgeAtlasSourceId = 8;
             targetCell.BridgeAtlasCoords = new Vector2I(0, 0);
             targetCell.IsWoodenBridge = isWoodenBridge;
+            targetCell.IsBridgeUnderConstruction = true;
             targetCell.BridgeRestoresToRiver = isWoodenBridge;
             targetCell.BridgeMaxHealth = isWoodenBridge ? BattleCellData.WoodenBridgeMaxDurability : BattleCellData.BridgeMaxDurability;
             targetCell.BridgeHealth = isWoodenBridge ? BattleCellData.WoodenBridgeConstructionStep : BattleCellData.BridgeConstructionStep;
@@ -1254,9 +1282,12 @@ public partial class BattleSceneController : Node2D
 
         if (targetCell.IsBridgeDamaged)
         {
-            targetCell.BridgeHealth = Math.Min(targetCell.BridgeMaxHealth, targetCell.BridgeHealth + WorkerBridgeRepairAmount);
-            targetCell.BlocksMovement = targetCell.BridgeHealth < targetCell.BridgeMaxHealth;
-            return true;
+            var repairedHp = BattleBridgeSystem.ApplyRepair(targetCell, WorkerBridgeRepairAmount);
+            if (repairedHp > 0)
+            {
+                ShowRepairPopup(GetDefaultGridKey(targetGrid), repairedHp);
+                return true;
+            }
         }
 
         if (targetCell.Structure == BattleStructureType.Gate && targetCell.HasStructureHealth && targetCell.StructureHealth < targetCell.StructureMaxHealth)
@@ -1369,40 +1400,35 @@ public partial class BattleSceneController : Node2D
 
     private (int Gold, int Food) ResolveDailyBattleSupplyForTeam(string teamName, int gold, int food, int activeTroops)
     {
-        var dailyFoodNeed = CalculateDailyFoodNeed(activeTroops);
-        var dailyGoldNeed = CalculateDailyGoldNeed(activeTroops);
-        if (dailyFoodNeed <= 0 && dailyGoldNeed <= 0)
+        var result = BattleSupplySystem.ResolveDailyUpkeep(gold, food, activeTroops);
+        if (result.FoodNeed <= 0 && result.GoldNeed <= 0)
         {
             return (gold, food);
         }
 
-        var foodBefore = food;
-        var goldBefore = gold;
-        food = Math.Max(0, food - dailyFoodNeed);
-        gold = Math.Max(0, gold - dailyGoldNeed);
         AppendBattleLog(
             teamName,
             "Supply",
-            $"Daily upkeep: food -{Math.Min(foodBefore, dailyFoodNeed):N0}/{dailyFoodNeed:N0}, gold -{Math.Min(goldBefore, dailyGoldNeed):N0}/{dailyGoldNeed:N0}");
+            $"Daily upkeep: food -{result.FoodSpent:N0}/{result.FoodNeed:N0}, gold -{result.GoldSpent:N0}/{result.GoldNeed:N0}");
 
-        if (dailyFoodNeed <= 0)
+        if (result.FoodNeed <= 0)
         {
-            return (gold, food);
+            return (result.Gold, result.Food);
         }
 
-        if (foodBefore < dailyFoodNeed)
+        if (result.IsFoodShortage)
         {
             ApplyTeamMoralePenalty(teamName, StarvingMoralePenalty, "food shortage");
             ApplyTeamStarvationDesertion(teamName);
-            return (gold, food);
+            return (result.Gold, result.Food);
         }
 
-        if (food < dailyFoodNeed)
+        if (result.IsLowFood)
         {
             ApplyTeamMoralePenalty(teamName, LowFoodMoralePenalty, "low food");
         }
 
-        return (gold, food);
+        return (result.Gold, result.Food);
     }
 
     private void ApplyTeamStarvationDesertion(string teamName)
@@ -1455,7 +1481,7 @@ public partial class BattleSceneController : Node2D
 
     private static int CalculateScaledResourceNeed(int activeTroops, int per100Troops)
     {
-        return BattleSupplyService.CalculateScaledResourceNeed(activeTroops, per100Troops);
+        return BattleSupplySystem.CalculateScaledResourceNeed(activeTroops, per100Troops);
     }
 
     private void ApplyTeamMoralePenalty(string teamName, int penalty, string reason, double popupDelaySeconds = 0.0)
@@ -1551,12 +1577,12 @@ public partial class BattleSceneController : Node2D
 
     private int GetTeamGold(string teamName)
     {
-        return teamName.Contains("Attacker") ? _teamAGold : _teamBGold;
+        return GetBattleTeamState(teamName).Gold;
     }
 
     private int GetTeamFood(string teamName)
     {
-        return teamName.Contains("Attacker") ? _teamAFood : _teamBFood;
+        return GetBattleTeamState(teamName).Food;
     }
 
     private void UpdateTeamZeroFoodDays(string teamName)
@@ -1570,18 +1596,12 @@ public partial class BattleSceneController : Node2D
 
     private int GetTeamZeroFoodDays(string teamName)
     {
-        return teamName.Contains("Attacker") ? _teamAZeroFoodDays : _teamBZeroFoodDays;
+        return GetBattleTeamState(teamName).ZeroFoodDays;
     }
 
     private void SetTeamZeroFoodDays(string teamName, int zeroFoodDays)
     {
-        if (teamName.Contains("Attacker"))
-        {
-            _teamAZeroFoodDays = Math.Max(0, zeroFoodDays);
-            return;
-        }
-
-        _teamBZeroFoodDays = Math.Max(0, zeroFoodDays);
+        GetBattleTeamState(teamName).ZeroFoodDays = Math.Max(0, zeroFoodDays);
     }
 
     private int GetTeamEnergyCap(string teamName)
@@ -1601,7 +1621,7 @@ public partial class BattleSceneController : Node2D
 
     private int GetTeamActiveTroops(string teamName)
     {
-        return teamName.Contains("Attacker") ? _teamATotalTroops : _teamBTotalTroops;
+        return GetBattleTeamState(teamName).TotalTroops;
     }
 
     private bool IsAiAttackerHiddenEnemyFortressMission(string teamName)
@@ -1636,38 +1656,53 @@ public partial class BattleSceneController : Node2D
 
     private void ApplyTeamResourceDelta(string teamName, int goldDelta, int foodDelta)
     {
-        if (teamName.Contains("Attacker"))
+        var team = GetBattleTeamState(teamName);
+        team.Gold = Math.Max(0, team.Gold + goldDelta);
+        team.Food = Math.Max(0, team.Food + foodDelta);
+        if (team.Food > 0)
         {
-            _teamAGold = Math.Max(0, _teamAGold + goldDelta);
-            _teamAFood = Math.Max(0, _teamAFood + foodDelta);
-            if (_teamAFood > 0)
-            {
-                _teamAZeroFoodDays = 0;
-            }
-            return;
+            team.ZeroFoodDays = 0;
+        }
+    }
+
+    private BattleTeamState GetBattleTeamState(string teamName)
+    {
+        return teamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase)
+            ? _state.TeamA
+            : _state.TeamB;
+    }
+
+    private bool TryGetBattleTeamState(string teamName, out BattleTeamState team)
+    {
+        if (teamName.Contains("Attacker", StringComparison.OrdinalIgnoreCase))
+        {
+            team = _state.TeamA;
+            return true;
         }
 
-        _teamBGold = Math.Max(0, _teamBGold + goldDelta);
-        _teamBFood = Math.Max(0, _teamBFood + foodDelta);
-        if (_teamBFood > 0)
+        if (teamName.Contains("Defender", StringComparison.OrdinalIgnoreCase))
         {
-            _teamBZeroFoodDays = 0;
+            team = _state.TeamB;
+            return true;
         }
+
+        team = null!;
+        return false;
     }
 
     private static bool UsesWeaponAmmo(BattleOccupantInfo unit)
     {
-        return BattleSupplyService.UsesWeaponAmmo(unit);
+        return BattleSupplySystem.UsesWeaponAmmo(unit);
     }
 
     private static bool HasWeaponAmmo(BattleOccupantInfo unit)
     {
-        return BattleSupplyService.HasWeaponAmmo(unit);
+        return BattleSupplySystem.HasWeaponAmmo(unit);
     }
 
     private static bool CanUseAmmoDepletedWeakAttack(BattleOccupantInfo unit)
     {
-        return BattleSupplyService.CanUseAmmoDepletedWeakAttack(unit);
+        return BattleSupplySystem.CanUseAmmoDepletedWeakAttack(unit);
     }
 
     private static bool CanUseNormalAttackWithCurrentAmmo(BattleOccupantInfo unit)
@@ -1682,7 +1717,7 @@ public partial class BattleSceneController : Node2D
 
     private static bool TrySpendWeaponAmmo(BattleOccupantInfo unit, out BattleOccupantInfo updatedUnit)
     {
-        return BattleSupplyService.TrySpendWeaponAmmo(unit, out updatedUnit);
+        return BattleSupplySystem.TrySpendWeaponAmmo(unit, out updatedUnit);
     }
 
     private static bool TrySpendNormalAttackWeaponAmmo(BattleOccupantInfo unit, out BattleOccupantInfo updatedUnit)
@@ -1700,15 +1735,11 @@ public partial class BattleSceneController : Node2D
         }
 
         target = currentTarget;
-        if (!target.WeaponAmmo.HasValue ||
-            !target.MaxWeaponAmmo.HasValue ||
-            target.WeaponAmmo.Value >= target.MaxWeaponAmmo.Value)
+        if (!BattleSupplySystem.TryRefillWeaponAmmo(target, out var updatedTarget, out refilledAmmo))
         {
             return false;
         }
 
-        refilledAmmo = target.MaxWeaponAmmo.Value - target.WeaponAmmo.Value;
-        var updatedTarget = target with { WeaponAmmo = target.MaxWeaponAmmo.Value };
         ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
         if (_selectedUnit == target)
         {
@@ -2468,16 +2499,11 @@ public partial class BattleSceneController : Node2D
         }
 
         target = currentTarget;
-        if (target.Category != CategorySiegeEngine || target.HitPoints >= target.MaxHitPoints)
+        if (!BattleSupplySystem.TryRepairSiegeEngine(target, repairAmount, out var updatedTarget, out var actualRepair))
         {
             return 0;
         }
 
-        var actualRepair = Mathf.Min(repairAmount, target.MaxHitPoints - target.HitPoints);
-        var updatedTarget = target with
-        {
-            HitPoints = target.HitPoints + actualRepair
-        };
         UpdateMarkerStrengthBar(updatedTarget);
         ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
         if (_selectedUnit == target)
@@ -2497,24 +2523,11 @@ public partial class BattleSceneController : Node2D
         }
 
         target = currentTarget;
-        if (target.Category != CategoryUnit || target.WoundedTroops <= 0)
+        if (!BattleSupplySystem.TryRecoverWoundedTroops(target, recoveryAmount, out var updatedTarget, out var actualRecovery))
         {
             return 0;
         }
 
-        var missingActiveCapacity = Mathf.Max(0, target.MaxHitPoints - target.TroopCount);
-        var actualRecovery = Mathf.Min(recoveryAmount, Mathf.Min(target.WoundedTroops, missingActiveCapacity));
-        if (actualRecovery <= 0)
-        {
-            return 0;
-        }
-
-        var updatedTarget = target with
-        {
-            TroopCount = target.TroopCount + actualRecovery,
-            HitPoints = target.HitPoints + actualRecovery,
-            WoundedTroops = target.WoundedTroops - actualRecovery
-        };
         UpdateMarkerStrengthBar(updatedTarget);
         ReplaceOccupantAtGrid(targetGrid, target, updatedTarget);
         ApplyTeamTroopDelta(target.Category, target.TeamName, actualRecovery);
@@ -2545,53 +2558,34 @@ public partial class BattleSceneController : Node2D
 
     private void ApplyTeamTroopDelta(string category, string teamName, int delta)
     {
-        if (category != CategoryUnit || delta == 0)
+        if (category != CategoryUnit || delta == 0 || !TryGetBattleTeamState(teamName, out var team))
         {
             return;
         }
 
-        if (teamName.Contains("Attacker"))
-        {
-            _teamATotalTroops = Mathf.Max(0, _teamATotalTroops + delta);
-        }
-        else if (teamName.Contains("Defender"))
-        {
-            _teamBTotalTroops = Mathf.Max(0, _teamBTotalTroops + delta);
-        }
+        team.TotalTroops = Mathf.Max(0, team.TotalTroops + delta);
     }
 
     private void ApplyTeamSiegeUnitDelta(string category, string teamName, int delta)
     {
-        if (category != CategorySiegeEngine || delta == 0)
+        if (category != CategorySiegeEngine || delta == 0 || !TryGetBattleTeamState(teamName, out var team))
         {
             return;
         }
 
-        if (teamName.Contains("Attacker"))
-        {
-            _teamASiegeUnits = Mathf.Max(0, _teamASiegeUnits + delta);
-        }
-        else if (teamName.Contains("Defender"))
-        {
-            _teamBSiegeUnits = Mathf.Max(0, _teamBSiegeUnits + delta);
-        }
+        team.SiegeUnits = Mathf.Max(0, team.SiegeUnits + delta);
     }
 
     private void ApplyTeamGeneralDelta(string category, string teamName, string officerName, int delta)
     {
-        if (!IsGeneralCountedPiece(category, officerName) || delta == 0)
+        if (!IsGeneralCountedPiece(category, officerName) ||
+            delta == 0 ||
+            !TryGetBattleTeamState(teamName, out var team))
         {
             return;
         }
 
-        if (teamName.Contains("Attacker"))
-        {
-            _teamAGenerals = Mathf.Max(0, _teamAGenerals + delta);
-        }
-        else if (teamName.Contains("Defender"))
-        {
-            _teamBGenerals = Mathf.Max(0, _teamBGenerals + delta);
-        }
+        team.Generals = Mathf.Max(0, team.Generals + delta);
     }
 
     private static bool IsGeneralCountedPiece(string category, string officerName)
@@ -3984,22 +3978,25 @@ public partial class BattleSceneController : Node2D
 
     private void OnWorkButtonPressed()
     {
-        BeginWorkerWorkSelection(WorkerWorkAction.General);
+        BeginWorkSelection(WorkerWorkAction.General);
     }
 
     private void OnInstallWoodFenceButtonPressed()
     {
-        BeginWorkerWorkSelection(WorkerWorkAction.WoodFence);
+        BeginWorkSelection(WorkerWorkAction.WoodFence);
     }
 
     private void OnUninstallWoodFenceButtonPressed()
     {
-        BeginWorkerWorkSelection(WorkerWorkAction.WoodFence);
+        BeginWorkSelection(WorkerWorkAction.WoodFence);
     }
 
-    private void BeginWorkerWorkSelection(WorkerWorkAction workAction)
+    private void BeginWorkSelection(WorkerWorkAction workAction)
     {
-        if (_selectedUnit?.TroopType != TroopWorker || IsMessed(_selectedUnit) || !_selectedUnitGrid.HasValue)
+        if (_selectedUnit == null ||
+            IsMessed(_selectedUnit) ||
+            !_selectedUnitGrid.HasValue ||
+            !CanUseWorkAction(_selectedUnit, workAction))
         {
             return;
         }
@@ -4020,8 +4017,8 @@ public partial class BattleSceneController : Node2D
 
             var targetCell = _mapData?.GetCell(targetGrid.X, targetGrid.Y);
             if (targetCell != null &&
-                IsWorkerWorkTarget(targetGrid, targetCell) &&
-                _selectedUnit.Energy >= GetWorkerWorkEnergyCost(targetCell))
+                IsWorkTargetForAction(_selectedUnit, targetGrid, targetCell, workAction) &&
+                _selectedUnit.Energy >= GetWorkEnergyCost(_selectedUnit, targetCell, workAction))
             {
                 _workableGrids.Add(new BattleGridKey(targetGrid.X, targetGrid.Y, 0));
             }
@@ -4032,13 +4029,25 @@ public partial class BattleSceneController : Node2D
         RefreshHighlights();
     }
 
-    private bool IsWorkerWorkTarget(Vector2I targetGrid, BattleCellData cell)
+    private static bool CanUseWorkAction(BattleOccupantInfo unit, WorkerWorkAction workAction)
     {
-        return IsWorkerWorkTargetForAction(targetGrid, cell, _workerWorkAction);
+        return unit.TroopType == TroopWorker ||
+               (workAction == WorkerWorkAction.General && BattleBridgeSystem.CanEmergencyRepair(unit));
     }
 
-    private bool IsWorkerWorkTargetForAction(Vector2I targetGrid, BattleCellData cell, WorkerWorkAction workAction)
+    private bool IsWorkTargetForAction(
+        BattleOccupantInfo unit,
+        Vector2I targetGrid,
+        BattleCellData cell,
+        WorkerWorkAction workAction)
     {
+        if (unit.TroopType != TroopWorker)
+        {
+            return workAction == WorkerWorkAction.General &&
+                   BattleBridgeSystem.CanEmergencyRepair(unit) &&
+                   BattleBridgeSystem.IsEmergencyRepairTarget(cell);
+        }
+
         if (workAction == WorkerWorkAction.WoodFence)
         {
             return cell.Structure == BattleStructureType.WoodenFence || CanInstallWoodFence(targetGrid, cell);
@@ -4058,19 +4067,19 @@ public partial class BattleSceneController : Node2D
                !HasBlockingOccupant(new BattleGridKey(targetGrid.X, targetGrid.Y, 0));
     }
 
-    private bool HasWorkerWorkTarget(WorkerWorkAction workAction)
+    private bool HasWorkTarget(BattleOccupantInfo unit, WorkerWorkAction workAction)
     {
         return _selectedUnitGrid.HasValue &&
                _mapData != null &&
-               _selectedUnit != null &&
-               !IsMessed(_selectedUnit) &&
+               !IsMessed(unit) &&
+               CanUseWorkAction(unit, workAction) &&
                GetOrthogonalNeighbors(_selectedUnitGrid.Value.Grid)
                    .Where(IsWithinMap)
                    .Any(grid =>
                    {
                        var cell = _mapData.GetCell(grid.X, grid.Y);
-                       return IsWorkerWorkTargetForAction(grid, cell, workAction) &&
-                              _selectedUnit.Energy >= GetWorkerWorkEnergyCost(cell, workAction);
+                       return IsWorkTargetForAction(unit, grid, cell, workAction) &&
+                              unit.Energy >= GetWorkEnergyCost(unit, cell, workAction);
                    });
     }
 

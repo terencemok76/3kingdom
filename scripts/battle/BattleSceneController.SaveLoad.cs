@@ -675,6 +675,7 @@ public partial class BattleSceneController
         public int BridgeMaxHealth { get; set; }
         public int BridgeHealth { get; set; }
         public bool IsWoodenBridge { get; set; }
+        public bool IsBridgeUnderConstruction { get; set; }
         public bool BridgeRestoresToRiver { get; set; }
 
         public static BattleCellSaveData FromCell(BattleCellData cell)
@@ -732,6 +733,7 @@ public partial class BattleSceneController
                 BridgeMaxHealth = cell.BridgeMaxHealth,
                 BridgeHealth = cell.BridgeHealth,
                 IsWoodenBridge = cell.IsWoodenBridge,
+                IsBridgeUnderConstruction = cell.IsBridgeUnderConstruction,
                 BridgeRestoresToRiver = cell.BridgeRestoresToRiver
             };
         }
@@ -786,7 +788,12 @@ public partial class BattleSceneController
             cell.BridgeMaxHealth = BridgeMaxHealth;
             cell.BridgeHealth = BridgeHealth;
             cell.IsWoodenBridge = IsWoodenBridge;
+            cell.IsBridgeUnderConstruction = IsBridgeUnderConstruction;
             cell.BridgeRestoresToRiver = BridgeRestoresToRiver;
+            if (cell.HasBridgeHealth)
+            {
+                cell.BlocksMovement = cell.IsBridgeUnderConstruction;
+            }
         }
     }
 

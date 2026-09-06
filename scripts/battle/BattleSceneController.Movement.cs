@@ -48,7 +48,8 @@ public partial class BattleSceneController
         }
 
         var moveEnergyCost = GetMovePathEnergyCost(movePath);
-        if (moveEnergyCost > movingOccupant.Energy || movePath.Count > GetAvailableMoveRange(movingOccupant))
+        var moveRangeCost = GetMovePathRangeCost(movePath);
+        if (moveEnergyCost > movingOccupant.Energy || moveRangeCost > GetAvailableMoveRange(movingOccupant))
         {
             return false;
         }
@@ -67,7 +68,7 @@ public partial class BattleSceneController
             FacingDirection = moveDirection,
             IsHidden = remainsHidden,
             Energy = movingOccupant.Energy - moveEnergyCost,
-            RemainingMoveRange = movingOccupant.RemainingMoveRange - movePath.Count
+            RemainingMoveRange = movingOccupant.RemainingMoveRange - moveRangeCost
         };
         if (!_occupantsByGrid.Move(sourceGrid, movingOccupant, destinationGrid, movedOccupant))
         {
@@ -258,7 +259,7 @@ public partial class BattleSceneController
 
                 var moveCost = GetMoveEnergyCost(cell);
                 var remainingEnergy = current.RemainingEnergy - moveCost;
-                var remainingRange = current.RemainingRange - 1;
+                var remainingRange = current.RemainingRange - GetMoveRangeCost(cell);
                 if (remainingEnergy < 0 || remainingRange < 0)
                 {
                     continue;
@@ -287,15 +288,15 @@ public partial class BattleSceneController
             return false;
         }
 
-        var frontier = new PriorityQueue<BattleGridKey, (int EstimatedTotalCost, int LayerChanges, int GateVerticalSteps, int Steps, int Sequence)>();
+        var frontier = new PriorityQueue<BattleGridKey, (int EstimatedTotalCost, int LayerChanges, int GateVerticalSteps, int RangeCost, int Steps, int Sequence)>();
         var bestCost = new Dictionary<BattleGridKey, int> { [startGrid] = 0 };
-        var pathStatsByGrid = new Dictionary<BattleGridKey, (int LayerChanges, int GateVerticalSteps, int Steps)>
+        var pathStatsByGrid = new Dictionary<BattleGridKey, (int LayerChanges, int GateVerticalSteps, int RangeCost, int Steps)>
         {
-            [startGrid] = (0, 0, 0)
+            [startGrid] = (0, 0, 0, 0)
         };
         var previousByGrid = new Dictionary<BattleGridKey, BattleGridKey>();
         var sequence = 0;
-        frontier.Enqueue(startGrid, (EstimateMoveCost(startGrid, destinationGrid), 0, 0, 0, sequence++));
+        frontier.Enqueue(startGrid, (EstimateMoveCost(startGrid, destinationGrid), 0, 0, 0, 0, sequence++));
 
         while (frontier.Count > 0)
         {
@@ -303,7 +304,7 @@ public partial class BattleSceneController
             if (current == destinationGrid)
             {
                 path = RebuildMovePath(startGrid, destinationGrid, previousByGrid);
-                return path.Count > 0 && path.Count <= rangeBudget;
+                return path.Count > 0 && GetMovePathRangeCost(path) <= rangeBudget;
             }
 
             foreach (var step in GetMovementNeighbors(current))
@@ -341,8 +342,9 @@ public partial class BattleSceneController
                 var newStats = (
                     LayerChanges: currentStats.LayerChanges + (current.Level == neighbor.Level ? 0 : 1),
                     GateVerticalSteps: currentStats.GateVerticalSteps + (IsGateVerticalLayerMove(current, neighbor) ? 1 : 0),
+                    RangeCost: currentStats.RangeCost + GetMoveRangeCost(cell),
                     Steps: currentStats.Steps + 1);
-                if (newStats.Steps > rangeBudget)
+                if (newStats.RangeCost > rangeBudget)
                 {
                     continue;
                 }
@@ -357,7 +359,7 @@ public partial class BattleSceneController
                 pathStatsByGrid[neighbor] = newStats;
                 previousByGrid[neighbor] = current;
                 var estimatedTotalCost = newCost + EstimateMoveCost(neighbor, destinationGrid);
-                frontier.Enqueue(neighbor, (estimatedTotalCost, newStats.LayerChanges, newStats.GateVerticalSteps, newStats.Steps, sequence++));
+                frontier.Enqueue(neighbor, (estimatedTotalCost, newStats.LayerChanges, newStats.GateVerticalSteps, newStats.RangeCost, newStats.Steps, sequence++));
             }
         }
 
@@ -391,12 +393,15 @@ public partial class BattleSceneController
         var availableEnergy = GetAvailableMoveEnergy(unit);
         var availableRange = GetAvailableMoveRange(unit);
         var spentEnergy = 0;
+        var spentRange = 0;
         var steps = 0;
         foreach (var grid in fullPath)
         {
-            spentEnergy += GetMoveEnergyCost(_mapData.GetCell(grid.X, grid.Y));
+            var cell = _mapData.GetCell(grid.X, grid.Y);
+            spentEnergy += GetMoveEnergyCost(cell);
+            spentRange += GetMoveRangeCost(cell);
             steps++;
-            if (spentEnergy > availableEnergy || steps > availableRange)
+            if (spentEnergy > availableEnergy || spentRange > availableRange)
             {
                 break;
             }
@@ -463,12 +468,13 @@ public partial class BattleSceneController
     }
 
     private static bool IsBetterPathTieBreak(
-        (int LayerChanges, int GateVerticalSteps, int Steps) candidate,
-        (int LayerChanges, int GateVerticalSteps, int Steps) known)
+        (int LayerChanges, int GateVerticalSteps, int RangeCost, int Steps) candidate,
+        (int LayerChanges, int GateVerticalSteps, int RangeCost, int Steps) known)
     {
         return candidate.LayerChanges < known.LayerChanges ||
                candidate.LayerChanges == known.LayerChanges && candidate.GateVerticalSteps < known.GateVerticalSteps ||
-               candidate.LayerChanges == known.LayerChanges && candidate.GateVerticalSteps == known.GateVerticalSteps && candidate.Steps < known.Steps;
+               candidate.LayerChanges == known.LayerChanges && candidate.GateVerticalSteps == known.GateVerticalSteps && candidate.RangeCost < known.RangeCost ||
+               candidate.LayerChanges == known.LayerChanges && candidate.GateVerticalSteps == known.GateVerticalSteps && candidate.RangeCost == known.RangeCost && candidate.Steps < known.Steps;
     }
 
     private static List<BattleGridKey> RebuildMovePath(BattleGridKey startGrid, BattleGridKey destinationGrid, IReadOnlyDictionary<BattleGridKey, BattleGridKey> previousByGrid)
@@ -911,6 +917,11 @@ public partial class BattleSceneController
         return BattleMovementService.GetMoveEnergyCost(cell);
     }
 
+    private static int GetMoveRangeCost(BattleCellData cell)
+    {
+        return BattleMovementService.GetMoveRangeCost(cell);
+    }
+
     private int GetMovePathEnergyCost(IEnumerable<BattleGridKey> path)
     {
         if (_mapData == null)
@@ -919,6 +930,16 @@ public partial class BattleSceneController
         }
 
         return path.Sum(grid => GetMoveEnergyCost(_mapData.GetCell(grid.X, grid.Y)));
+    }
+
+    private int GetMovePathRangeCost(IEnumerable<BattleGridKey> path)
+    {
+        if (_mapData == null)
+        {
+            return int.MaxValue;
+        }
+
+        return path.Sum(grid => GetMoveRangeCost(_mapData.GetCell(grid.X, grid.Y)));
     }
 
     private bool TryGetMovePreview(BattleGridKey? destinationGrid, out int energyCost, out int remainingEnergy, out int remainingMoveRange)
@@ -938,7 +959,7 @@ public partial class BattleSceneController
 
         energyCost = GetMovePathEnergyCost(movePath);
         remainingEnergy = _selectedUnit.Energy - energyCost;
-        remainingMoveRange = _selectedUnit.RemainingMoveRange - movePath.Count;
+        remainingMoveRange = _selectedUnit.RemainingMoveRange - GetMovePathRangeCost(movePath);
         return remainingEnergy >= 0 && remainingMoveRange >= 0;
     }
 
@@ -1128,6 +1149,11 @@ public partial class BattleSceneController
         _ = destinationGrid;
 
         if (_selectedUnit == null)
+        {
+            return false;
+        }
+
+        if (cell.HasBridgeHealth && !BattleBridgeSystem.CanUnitTraverse(_selectedUnit, cell))
         {
             return false;
         }

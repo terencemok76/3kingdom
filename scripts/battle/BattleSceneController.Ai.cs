@@ -1137,6 +1137,23 @@ public partial class BattleSceneController
                 continue;
             }
 
+            foreach (var repairPlan in GetAiBridgeRepairPlans(sourceGrid, unit))
+            {
+                actions.Add(new AiOffensiveAction(
+                    sourceGrid,
+                    unit,
+                    repairPlan.TargetGrid,
+                    null,
+                    null,
+                    null,
+                    null,
+                    repairPlan.Score,
+                    GetAiDecisionNoise(sourceGrid, repairPlan.TargetGrid, participantCount: 1))
+                {
+                    BridgeRepairPlan = repairPlan
+                });
+            }
+
             if (unit.Energy >= NormalAttackEnergyCost && CanUseAttackCommand(unit))
             {
                 foreach (var moveAttackPlan in CalculateReachableGrids(sourceGrid, unit.Energy - NormalAttackEnergyCost, GetAvailableMoveRange(unit))
@@ -1259,6 +1276,11 @@ public partial class BattleSceneController
         if (chosenAction.BridgePlan != null)
         {
             return TryExecuteAiBridgeEngineeringAction(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.BridgePlan, chosenAction.Noise);
+        }
+
+        if (chosenAction.BridgeRepairPlan.HasValue)
+        {
+            return TryExecuteAiBridgeRepair(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.BridgeRepairPlan.Value, chosenAction.Noise);
         }
 
         if (chosenAction.FencePlan != null)
@@ -1396,6 +1418,69 @@ public partial class BattleSceneController
             $"Decision: fire strategy at {plan.TargetGrid}; enemy damage {plan.EnemyDamage}, friendly risk {plan.FriendlyDamage}, enemy targets {plan.EnemyTargets}, spread targets {plan.SpreadTargets}, score {plan.Score}, variance {noise}.");
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.FireStrategy, sourceGrid, plan.TargetGrid),
+            unit);
+    }
+
+    private IEnumerable<AiBridgeRepairPlan> GetAiBridgeRepairPlans(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        if (_mapData == null ||
+            !BattleBridgeSystem.CanEmergencyRepair(unit) ||
+            unit.Energy < BattleBridgeSystem.EmergencyRepairEnergyCost ||
+            unit.HasAttackedThisTurn ||
+            IsMessed(unit))
+        {
+            yield break;
+        }
+
+        foreach (var target in GetOrthogonalNeighbors(sourceGrid.Grid).Where(IsWithinMap))
+        {
+            var cell = _mapData.GetCell(target.X, target.Y);
+            if (!BattleBridgeSystem.IsEmergencyRepairTarget(cell))
+            {
+                continue;
+            }
+
+            var repairAmount = Math.Min(
+                BattleBridgeSystem.EmergencyRepairAmount,
+                cell.BridgeMaxHealth - cell.BridgeHealth);
+            var crossesHeavyDamageThreshold = BattleBridgeSystem.IsHeavilyDamaged(cell) &&
+                                              (cell.BridgeHealth + repairAmount) * 2 > cell.BridgeMaxHealth;
+            var nearbyFriendlyUnits = GetAllBattlePieces()
+                .Count(entry => entry.Occupant.TeamName == unit.TeamName &&
+                                GetManhattanDistance(entry.Grid.Grid, target) <= 4);
+            var criticalBonus = cell.BridgeHealth * 4 <= cell.BridgeMaxHealth
+                ? AiBridgeRepairCriticalScore
+                : 0;
+            var thresholdBonus = crossesHeavyDamageThreshold
+                ? AiBridgeRepairThresholdScore
+                : 0;
+            var score = AiBridgeRepairBaseScore +
+                        repairAmount * 2 +
+                        criticalBonus +
+                        thresholdBonus +
+                        Math.Min(3, nearbyFriendlyUnits) * AiBridgeRepairNearbyFriendlyScore;
+            var reason = crossesHeavyDamageThreshold
+                ? "restore bridge above heavy-damage threshold"
+                : cell.BridgeHealth * 4 <= cell.BridgeMaxHealth
+                    ? "prevent critically damaged bridge from collapsing"
+                    : "maintain damaged bridge route";
+            yield return new AiBridgeRepairPlan(ToGroundGridKey(target), repairAmount, score, reason);
+        }
+    }
+
+    private bool TryExecuteAiBridgeRepair(
+        BattleGridKey sourceGrid,
+        BattleOccupantInfo unit,
+        AiBridgeRepairPlan plan,
+        int noise)
+    {
+        FocusCameraOnBattleGrid(sourceGrid);
+        AppendBattleLog(
+            unit,
+            "AI",
+            $"Decision: {plan.Reason} at {plan.TargetGrid}; repair {plan.RepairAmount} HP (score {plan.Score}, variance {noise}).");
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.Work, sourceGrid, plan.TargetGrid),
             unit);
     }
 
@@ -1988,7 +2073,7 @@ public partial class BattleSceneController
     {
         var intelligence = GetOfficerTacticalIntelligence(action.Unit.OfficerName);
         var combat = GetOfficerBattleAttribute(action.Unit.OfficerName);
-        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.FencePlan != null || action.SupplyPlan.HasValue || action.ExtinguishPlan.HasValue || action.FirePlan.HasValue || action.IsGuardAction;
+        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.BridgeRepairPlan.HasValue || action.FencePlan != null || action.SupplyPlan.HasValue || action.ExtinguishPlan.HasValue || action.FirePlan.HasValue || action.IsGuardAction;
         var isDirectAttack = action.UnionCandidate == null &&
                              !action.MoveAttackDestination.HasValue &&
                              !action.ExtinguishPlan.HasValue &&
@@ -2239,7 +2324,7 @@ public partial class BattleSceneController
 
         var moveEnergyCost = GetMovePathEnergyCost(movePath);
         var remainingEnergy = unit.Energy - moveEnergyCost;
-        var remainingMoveRange = unit.RemainingMoveRange - movePath.Count;
+        var remainingMoveRange = unit.RemainingMoveRange - GetMovePathRangeCost(movePath);
         var moveOnlyReason = GetAiMoveOnlyReason(sourceGrid, unit);
 
         AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination}; shortest legal approach to an enemy. Energy {unit.Energy} - {moveEnergyCost} = {remainingEnergy}, move range {remainingMoveRange}/{unit.MoveRange}; move+attack unavailable: {moveOnlyReason}.");
