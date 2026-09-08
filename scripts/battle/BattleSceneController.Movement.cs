@@ -415,6 +415,59 @@ public partial class BattleSceneController
         return destinationGrid != default;
     }
 
+    private bool TryGetAiPathEndpointTowardEnemy(
+        BattleGridKey startGrid,
+        BattleOccupantInfo unit,
+        BattleGridKey enemyGrid,
+        out BattleGridKey destinationGrid,
+        out int fullPathEnergyCost,
+        out int fullPathSteps)
+    {
+        destinationGrid = default;
+        fullPathEnergyCost = 0;
+        fullPathSteps = 0;
+
+        // The enemy grid itself is occupied, so route to a legal adjacent approach
+        // grid. This keeps full A* routing useful for pursuit across rivers, bridges,
+        // gates, and other detours instead of scoring only the straight-line distance.
+        var routes = new List<(BattleGridKey Destination, int EnergyCost, int Steps)>();
+        foreach (var approachGrid in GetMovementNeighbors(enemyGrid)
+                     .Select(step => step.Grid)
+                     .Where(grid => IsWithinMap(grid.Grid))
+                     .Distinct())
+        {
+            if (approachGrid == startGrid ||
+                !TryGetAiPathEndpointToward(
+                    startGrid,
+                    unit,
+                    approachGrid,
+                    out var endpoint,
+                    out var energyCost,
+                    out var steps))
+            {
+                continue;
+            }
+
+            routes.Add((endpoint, energyCost, steps));
+        }
+
+        if (routes.Count == 0)
+        {
+            return false;
+        }
+
+        var bestRoute = routes
+            .OrderBy(route => route.EnergyCost)
+            .ThenBy(route => route.Steps)
+            .ThenBy(route => route.Destination.Y)
+            .ThenBy(route => route.Destination.X)
+            .First();
+        destinationGrid = bestRoute.Destination;
+        fullPathEnergyCost = bestRoute.EnergyCost;
+        fullPathSteps = bestRoute.Steps;
+        return true;
+    }
+
     private bool TryGetAiLocalFortressAdvance(
         BattleGridKey startGrid,
         BattleOccupantInfo unit,
@@ -1254,6 +1307,16 @@ public partial class BattleSceneController
     {
         if (destinationGrid.Level != 0)
         {
+            return false;
+        }
+
+        if (_selectedUnit != null &&
+            IsAttackerPiece(_selectedUnit) &&
+            _selectedUnit.TroopType is TroopRam or TroopLadder &&
+            IsInsideCityGroundGrid(destinationGrid.Grid))
+        {
+            // Rams are gate-breaking equipment and ladders are wall-access equipment;
+            // neither may enter the inner courtyard through an opened or broken gate.
             return false;
         }
 

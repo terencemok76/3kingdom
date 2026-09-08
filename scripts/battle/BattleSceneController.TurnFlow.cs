@@ -330,7 +330,7 @@ public partial class BattleSceneController
             return;
         }
 
-        if (IsFieldBattleAiTest && !_isFieldAiRoundStarted)
+        if (IsStandaloneBattleAiTest && !_isFieldAiRoundStarted)
         {
             AppendBattleLog(GetCurrentTurnSideName(), "Round", "Start Round before ending this field-battle test round.");
             RefreshBattleLogPanel();
@@ -451,7 +451,7 @@ public partial class BattleSceneController
 
     private void OnWeatherButtonPressed()
     {
-        if (!EnableEnvironmentDebugControls)
+        if (!CanUseEnvironmentDebugControls)
         {
             return;
         }
@@ -464,7 +464,7 @@ public partial class BattleSceneController
 
     private void OnTimeButtonPressed()
     {
-        if (!EnableEnvironmentDebugControls)
+        if (!CanUseEnvironmentDebugControls)
         {
             return;
         }
@@ -477,7 +477,7 @@ public partial class BattleSceneController
 
     private void OnWindButtonPressed()
     {
-        if (!EnableEnvironmentDebugControls)
+        if (!CanUseEnvironmentDebugControls)
         {
             return;
         }
@@ -488,7 +488,7 @@ public partial class BattleSceneController
 
     private void OnWindPowerButtonPressed()
     {
-        if (!EnableEnvironmentDebugControls)
+        if (!CanUseEnvironmentDebugControls)
         {
             return;
         }
@@ -552,7 +552,7 @@ public partial class BattleSceneController
             return false;
         }
 
-        if (IsFieldBattleAiTest)
+        if (IsStandaloneBattleAiTest)
         {
             return _isFieldAiRoundStarted && !HasUnitActed(occupant);
         }

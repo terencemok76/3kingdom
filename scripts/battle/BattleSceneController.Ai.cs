@@ -23,6 +23,14 @@ public partial class BattleSceneController
             return;
         }
 
+        foreach (var candidate in candidates.Where(candidate => IsAiPostGateBreachSiegeEngine(candidate.Occupant)))
+        {
+            if (TryExecuteAiPostGateBreachSiegeEngineAction(candidate.Grid, candidate.Occupant))
+            {
+                return;
+            }
+        }
+
         foreach (var candidate in candidates.Where(candidate => candidate.Occupant.TroopType == TroopSupplyCart))
         {
             if (TryExecuteAiPrioritySupply(candidate.Grid, candidate.Occupant))
@@ -68,6 +76,66 @@ public partial class BattleSceneController
         FocusCameraOnBattleGrid(waitingCandidate.Grid);
         AppendBattleLog(waitingCandidate.Occupant, "AI", $"Decision: wait at {waitingCandidate.Grid}; no legal move or attack.");
         MarkUnitActed(waitingCandidate.Occupant);
+    }
+
+    private bool IsAiPostGateBreachSiegeEngine(BattleOccupantInfo unit)
+    {
+        return IsAttackerPiece(unit) &&
+               unit.Category == CategorySiegeEngine &&
+               unit.TroopType is TroopRam or TroopLadder &&
+               HasBreachedCityGate();
+    }
+
+    private bool HasBreachedCityGate()
+    {
+        if (_mapData == null)
+        {
+            return false;
+        }
+
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var cell = _mapData.GetCell(x, y);
+                if (cell.Structure == BattleStructureType.Gate && (cell.IsGateOpen || cell.IsBroken))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryExecuteAiPostGateBreachSiegeEngineAction(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        _selectedUnit = unit;
+        _selectedUnitGrid = sourceGrid;
+        FocusCameraOnBattleGrid(sourceGrid);
+
+        // A ladder remains on the exterior wall line to support climbing troops. It
+        // only moves away if it is physically occupying the opened gate corridor.
+        if (unit.TroopType == TroopLadder && !IsGateGrid(sourceGrid.Grid))
+        {
+            AppendBattleLog(unit, "AI", $"Gate breached: ladder holds at {sourceGrid} outside the wall and will not enter the inner city.");
+            MarkUnitActed(unit);
+            return true;
+        }
+
+        var rearDestination = GetAiRetreatExitAdvanceGrid(sourceGrid, unit);
+        if (rearDestination.HasValue)
+        {
+            var role = unit.TroopType == TroopRam ? "ram" : "ladder";
+            AppendBattleLog(unit, "AI", $"Gate breached: {role} withdraws {sourceGrid} -> {rearDestination.Value} to clear the gate corridor.");
+            return TryExecuteBattleActionIntent(
+                new BattleActionIntent(BattleActionKind.Move, sourceGrid, rearDestination.Value),
+                unit);
+        }
+
+        AppendBattleLog(unit, "AI", $"Gate breached: {unit.TroopType} holds at {sourceGrid}; no clear rear route is currently available.");
+        MarkUnitActed(unit);
+        return true;
     }
 
     private bool TryExecuteAiFortressMissionAdvance(IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates)
@@ -2338,11 +2406,35 @@ public partial class BattleSceneController
         _selectedUnit = unit;
         _selectedUnitGrid = sourceGrid;
         FocusCameraOnBattleGrid(sourceGrid);
-        var destination = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
-            .Where(IsAiSafeMovementDestination)
-            .OrderBy(grid => enemyGrids.Min(enemy => GetManhattanDistance(grid.Grid, enemy.Grid)))
-            .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
-            .FirstOrDefault();
+        var routedPursuits = new List<(BattleGridKey Destination, BattleGridKey Enemy, int EnergyCost, int Steps)>();
+        foreach (var enemyGrid in enemyGrids)
+        {
+            if (TryGetAiPathEndpointTowardEnemy(
+                    sourceGrid,
+                    unit,
+                    enemyGrid,
+                    out var endpoint,
+                    out var energyCost,
+                    out var steps))
+            {
+                routedPursuits.Add((endpoint, enemyGrid, energyCost, steps));
+            }
+        }
+
+        var usesFullRoute = routedPursuits.Count > 0;
+        var destination = usesFullRoute
+            ? routedPursuits
+                .OrderBy(route => route.EnergyCost)
+                .ThenBy(route => route.Steps)
+                .ThenBy(route => route.Enemy.Y)
+                .ThenBy(route => route.Enemy.X)
+                .First()
+                .Destination
+            : CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
+                .Where(IsAiSafeMovementDestination)
+                .OrderBy(grid => enemyGrids.Min(enemy => GetManhattanDistance(grid.Grid, enemy.Grid)))
+                .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
+                .FirstOrDefault();
         if (destination == default)
         {
             return false;
@@ -2367,7 +2459,10 @@ public partial class BattleSceneController
         var remainingMoveRange = unit.RemainingMoveRange - GetMovePathRangeCost(movePath);
         var moveOnlyReason = GetAiMoveOnlyReason(sourceGrid, unit);
 
-        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination}; shortest legal approach to an enemy. Energy {unit.Energy} - {moveEnergyCost} = {remainingEnergy}, move range {remainingMoveRange}/{unit.MoveRange}; move+attack unavailable: {moveOnlyReason}.");
+        var routeDescription = usesFullRoute
+            ? "A* legal approach to an enemy"
+            : "local legal approach to an enemy (no complete route currently available)";
+        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination}; {routeDescription}. Energy {unit.Energy} - {moveEnergyCost} = {remainingEnergy}, move range {remainingMoveRange}/{unit.MoveRange}; move+attack unavailable: {moveOnlyReason}.");
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
             unit);

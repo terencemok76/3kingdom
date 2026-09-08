@@ -4,8 +4,8 @@ namespace ThreeKingdom.Battle;
 
 public partial class BattleSceneController
 {
-    private bool IsFieldBattleAiTest => ScenarioType == BattleScenarioType.FieldBattle && _activeCampaign == null;
-    private bool IsBattleDebugAvailable => IsFieldBattleAiTest || _activeCampaign != null;
+    private bool IsStandaloneBattleAiTest => _activeCampaign == null;
+    private bool IsBattleDebugAvailable => IsStandaloneBattleAiTest || _activeCampaign != null;
     private bool IsDebugAiStepMode => _isFieldAiRoundStarted && IsBattleDebugAvailable;
 
     private void ConfigureFieldAiTestControls()
@@ -72,7 +72,7 @@ public partial class BattleSceneController
             _defenderOneDayFoodButton.Text = BattleText("ui.battle.test_defender_food_1_day", "Defender Food: 1d");
         }
 
-        if (_endTurnButton != null && (IsFieldBattleAiTest || IsDebugAiStepMode))
+        if (_endTurnButton != null && (IsStandaloneBattleAiTest || IsDebugAiStepMode))
         {
             _endTurnButton.Disabled = !_isFieldAiRoundStarted || _isBattleFinished;
         }
@@ -82,7 +82,7 @@ public partial class BattleSceneController
             return;
         }
 
-        if (!IsFieldBattleAiTest)
+        if (!IsStandaloneBattleAiTest)
         {
             _aiRoundStatusLabel.Visible = false;
         }

@@ -699,9 +699,11 @@ public partial class BattleSceneController : Node2D
         ShowTurnBanner();
     }
 
+    private bool CanUseEnvironmentDebugControls => EnableEnvironmentDebugControls || IsStandaloneBattleAiTest;
+
     private void InitializeFieldAiTestDefaults()
     {
-        if (_activeCampaign == null && ScenarioType == BattleScenarioType.FieldBattle)
+        if (IsStandaloneBattleAiTest)
         {
             _aiControlledSides = BattleAiControlledSides.Attacker | BattleAiControlledSides.Defender;
         }
@@ -4058,7 +4060,7 @@ public partial class BattleSceneController : Node2D
         {
             if (button != null)
             {
-                button.Disabled = !EnableEnvironmentDebugControls;
+                button.Disabled = !CanUseEnvironmentDebugControls;
                 button.TooltipText = tooltip;
             }
         }

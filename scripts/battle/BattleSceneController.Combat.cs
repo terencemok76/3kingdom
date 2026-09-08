@@ -1355,7 +1355,7 @@ public partial class BattleSceneController
                     if (distance > 0 &&
                         distance <= attackRange &&
                         IsAttackLevelCompatible(startGrid, attacker, gridKey) &&
-                        !IsClosedGateExteriorAttackBlocked(startGrid, gridKey))
+                        !IsClosedGateExteriorAttackBlocked(startGrid, attacker, gridKey))
                     {
                         yield return gridKey;
                     }
@@ -1401,7 +1401,7 @@ public partial class BattleSceneController
         return attacker.Category == CategorySiegeEngine && attacker.TroopType == TroopCatapult;
     }
 
-    private bool IsClosedGateExteriorAttackBlocked(BattleGridKey sourceGrid, BattleGridKey targetGrid)
+    private bool IsClosedGateExteriorAttackBlocked(BattleGridKey sourceGrid, BattleOccupantInfo attacker, BattleGridKey targetGrid)
     {
         if (_mapData == null || sourceGrid.Level != 0 || !IsWithinMap(sourceGrid.Grid))
         {
@@ -1409,12 +1409,49 @@ public partial class BattleSceneController
         }
 
         var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
-        if (sourceCell.Structure != BattleStructureType.Gate || sourceCell.IsGateOpen || sourceCell.IsBroken)
+        if (sourceCell.Structure == BattleStructureType.Gate && !sourceCell.IsGateOpen && !sourceCell.IsBroken)
+        {
+            return targetGrid.Level == 0 && !IsInsideCityGroundGrid(targetGrid.Grid);
+        }
+
+        // A closed city gate blocks exterior L0 projectile attacks into the inner
+        // courtyard. The gate itself remains a valid structure target, and wall-top
+        // defenders remain valid L2 ranged targets.
+        return IsAttackerPiece(attacker) &&
+               targetGrid.Level == 0 &&
+               !IsInsideCityGroundGrid(sourceGrid.Grid) &&
+               IsInsideCityGroundGrid(targetGrid.Grid) &&
+               !IsAttackableStructureGroundGrid(targetGrid.Grid) &&
+               AreAllCityGatesClosed();
+    }
+
+    private bool AreAllCityGatesClosed()
+    {
+        if (_mapData == null)
         {
             return false;
         }
 
-        return targetGrid.Level == 0 && !IsInsideCityGroundGrid(targetGrid.Grid);
+        var hasGate = false;
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var cell = _mapData.GetCell(x, y);
+                if (cell.Structure != BattleStructureType.Gate)
+                {
+                    continue;
+                }
+
+                hasGate = true;
+                if (cell.IsGateOpen || cell.IsBroken)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return hasGate;
     }
 
     private IEnumerable<BattleGridKey> GetAttackCandidateGridKeys(BattleGridKey sourceGrid, BattleOccupantInfo attacker, Vector2I targetGrid)
