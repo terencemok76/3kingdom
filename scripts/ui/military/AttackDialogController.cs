@@ -19,6 +19,9 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private readonly Dictionary<int, AttackOfficerDeploymentData> _deployments = new();
     private readonly List<int> _deploymentOfficerOrder = new();
     private OptionButton? _targetCityOption;
+    private HBoxContainer? _defenderPlanRow;
+    private Label? _defenderPlanLabel;
+    private OptionButton? _defenderPlanOption;
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private Tree? _officerList;
@@ -80,6 +83,17 @@ internal sealed class AttackDialogController : FloatingOverlayController
             : _context.Localization.T("ui.attack_deployments"));
         SetFieldRowVisible("GoldRow", !isDefenseMode);
         SetFieldRowVisible("FoodRow", !isDefenseMode);
+        if (_defenderPlanRow != null)
+        {
+            _defenderPlanRow.Visible = isDefenseMode || _context.IsGodModeEnabled();
+        }
+        if (_defenderPlanLabel != null)
+        {
+            _defenderPlanLabel.Text = isDefenseMode
+                ? _context.Localization.T("ui.defender_battle_plan")
+                : _context.Localization.T("ui.debug_defender_plan_override");
+        }
+        RefreshDefenderPlanOptions();
         RefreshTargetCityOptionTexts();
         RefreshOfficerTableText();
         RefreshDeploymentEditor();
@@ -96,7 +110,15 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _dialogMode = DialogMode.Attack;
         _dialogContextCity = _context.SelectedCity;
         _pendingDefenseCommand = null;
+        if (_defenderPlanRow != null)
+        {
+            _defenderPlanRow.Visible = _context.IsGodModeEnabled();
+        }
         RefreshText();
+        if (_context.IsGodModeEnabled() && _defenderPlanOption?.ItemCount > 0)
+        {
+            _defenderPlanOption.Select(0);
+        }
         SetWarning(string.Empty);
         _warningAcknowledgedTargetCityId = -1;
 
@@ -141,6 +163,10 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _dialogMode = DialogMode.Defense;
         _dialogContextCity = defendingCity;
         _pendingDefenseCommand = pendingCommand;
+        if (_defenderPlanRow != null)
+        {
+            _defenderPlanRow.Visible = true;
+        }
         RefreshText();
         SetWarning(string.Empty);
         _warningAcknowledgedTargetCityId = -1;
@@ -193,6 +219,9 @@ internal sealed class AttackDialogController : FloatingOverlayController
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
+        _defenderPlanRow = root.GetNodeOrNull<HBoxContainer>("DefenderPlanRow");
+        _defenderPlanLabel = root.GetNodeOrNull<Label>("DefenderPlanRow/DefenderPlanLabel");
+        _defenderPlanOption = root.GetNodeOrNull<OptionButton>("DefenderPlanRow/DefenderPlanOption");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
         _officerList = root.GetNodeOrNull<Tree>("OfficerTable");
@@ -607,6 +636,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
             }
 
             _pendingDefenseCommand.DefenderOfficerDeployments = attackDeployments;
+            _pendingDefenseCommand.DefenderBattlePlan = GetSelectedDefenderBattlePlan();
             SetWarning(string.Empty);
             HideOverlay();
             _context.ContinuePendingAttackResolution();
@@ -640,7 +670,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
             _goldSpinBox != null ? (int)_goldSpinBox.Value : 0,
             _foodSpinBox != null ? (int)_foodSpinBox.Value : 0,
             attackDeployments,
-            attackDeployments.Select(item => item.OfficerId).Distinct().ToList());
+            attackDeployments.Select(item => item.OfficerId).Distinct().ToList(),
+            _context.IsGodModeEnabled() ? GetSelectedDefenderBattlePlanOverride() : null);
 
         if (result.Success)
         {
@@ -689,6 +720,57 @@ internal sealed class AttackDialogController : FloatingOverlayController
     }
 
     private CityData? GetDialogCityContext() => _dialogContextCity ?? _context.SelectedCity;
+
+    private void RefreshDefenderPlanOptions()
+    {
+        if (_defenderPlanOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var selectedPlan = _dialogMode == DialogMode.Defense
+            ? _pendingDefenseCommand?.DefenderBattlePlan ?? DefenderBattlePlan.CityDefense
+            : GetSelectedDefenderBattlePlanOverride();
+        _defenderPlanOption.Clear();
+        if (_dialogMode == DialogMode.Attack)
+        {
+            _defenderPlanOption.AddItem(_context.Localization.T("ui.defender_plan_ai_auto"));
+            _defenderPlanOption.SetItemMetadata(0, -1);
+        }
+        var fieldIndex = _defenderPlanOption.ItemCount;
+        _defenderPlanOption.AddItem(_context.Localization.T("ui.defender_plan_field_intercept"));
+        _defenderPlanOption.SetItemMetadata(fieldIndex, (int)DefenderBattlePlan.FieldIntercept);
+        var cityIndex = _defenderPlanOption.ItemCount;
+        _defenderPlanOption.AddItem(_context.Localization.T("ui.defender_plan_city_defense"));
+        _defenderPlanOption.SetItemMetadata(cityIndex, (int)DefenderBattlePlan.CityDefense);
+        _defenderPlanOption.Select(selectedPlan switch
+        {
+            DefenderBattlePlan.FieldIntercept => fieldIndex,
+            DefenderBattlePlan.CityDefense => cityIndex,
+            _ => 0
+        });
+    }
+
+    private DefenderBattlePlan GetSelectedDefenderBattlePlan()
+        => GetSelectedDefenderBattlePlanOverride() ?? DefenderBattlePlan.CityDefense;
+
+    private DefenderBattlePlan? GetSelectedDefenderBattlePlanOverride()
+    {
+        if (_defenderPlanOption == null || _defenderPlanOption.Selected < 0)
+        {
+            return null;
+        }
+
+        var metadata = _defenderPlanOption.GetItemMetadata(_defenderPlanOption.Selected);
+        if (metadata.VariantType != Variant.Type.Int || metadata.AsInt32() < 0)
+        {
+            return null;
+        }
+
+        return metadata.AsInt32() == (int)DefenderBattlePlan.FieldIntercept
+            ? DefenderBattlePlan.FieldIntercept
+            : DefenderBattlePlan.CityDefense;
+    }
 
     private List<TroopType> GetAvailableTroopTypes()
     {

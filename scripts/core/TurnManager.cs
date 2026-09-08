@@ -274,6 +274,11 @@ public class TurnManager
             World.Year += 1;
         }
 
+        foreach (var campaign in World.ActiveBattleCampaigns.Where(campaign => campaign.Stage != CampaignStage.Resolved))
+        {
+            BattleCampaignService.BeginNextCampaignMonth(campaign, World.Year, World.Month);
+        }
+
         AdvanceDiplomacyRelations();
         AdvanceCityIntel();
         AdvanceOfficerNaturalDeaths();

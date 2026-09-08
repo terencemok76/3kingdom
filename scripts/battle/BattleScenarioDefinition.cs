@@ -76,6 +76,22 @@ public partial class BattleScenarioDefinition : Resource
     [Export]
     public Dictionary<string, Vector2I> UnitSpawnGrids { get; set; } = new();
 
+    // Optional scenario-authored side entrances for campaign reinforcements.  When empty,
+    // field battles use the standard NW (attacker) and SE (defender) two-row entrances.
+    [Export]
+    public Array<Vector2I> AttackerReinforcementEntranceGrids { get; set; } = new();
+
+    [Export]
+    public Array<Vector2I> DefenderReinforcementEntranceGrids { get; set; } = new();
+
+    // Optional scenario-authored exits for voluntary retreats.  When empty,
+    // attackers withdraw through SW and defenders withdraw through NE.
+    [Export]
+    public Array<Vector2I> AttackerRetreatExitGrids { get; set; } = new();
+
+    [Export]
+    public Array<Vector2I> DefenderRetreatExitGrids { get; set; } = new();
+
     public static BattleScenarioDefinition CreateBuiltIn(BattleScenarioType scenarioType)
     {
         return new BattleScenarioDefinition

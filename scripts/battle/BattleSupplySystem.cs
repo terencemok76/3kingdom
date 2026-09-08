@@ -4,36 +4,47 @@ using static ThreeKingdom.Battle.BattleUnitTypes;
 
 namespace ThreeKingdom.Battle;
 
-internal readonly record struct BattleDailySupplyResult(
+internal readonly record struct BattlePeriodSupplyResult(
     int Gold,
     int Food,
     int GoldNeed,
     int FoodNeed,
     int GoldSpent,
     int FoodSpent,
-    bool IsFoodShortage,
-    bool IsLowFood);
+    int GoldRemainder,
+    int FoodRemainder,
+    bool IsFoodShortage);
 
 internal static class BattleSupplySystem
 {
-    internal static BattleDailySupplyResult ResolveDailyUpkeep(int gold, int food, int activeTroops)
+    internal static BattlePeriodSupplyResult ResolvePeriodUpkeep(
+        int gold,
+        int food,
+        int activeTroops,
+        int goldRemainder,
+        int foodRemainder)
     {
-        var foodNeed = CalculateScaledResourceNeed(activeTroops, DailyFoodPer100ActiveTroops);
-        var goldNeed = CalculateScaledResourceNeed(activeTroops, DailyGoldPer100ActiveTroops);
-        var foodSpent = Mathf.Min(food, foodNeed);
-        var goldSpent = Mathf.Min(gold, goldNeed);
-        var remainingFood = Mathf.Max(0, food - foodNeed);
-        var remainingGold = Mathf.Max(0, gold - goldNeed);
+        var dailyFoodNeed = CalculateScaledResourceNeed(activeTroops, DailyFoodPer100ActiveTroops);
+        var dailyGoldNeed = CalculateScaledResourceNeed(activeTroops, DailyGoldPer100ActiveTroops);
+        var foodNumerator = dailyFoodNeed + Mathf.Clamp(foodRemainder, 0, BattleTimePeriodsPerDay - 1);
+        var goldNumerator = dailyGoldNeed + Mathf.Clamp(goldRemainder, 0, BattleTimePeriodsPerDay - 1);
+        var periodFoodNeed = foodNumerator / BattleTimePeriodsPerDay;
+        var periodGoldNeed = goldNumerator / BattleTimePeriodsPerDay;
+        var nextFoodRemainder = foodNumerator % BattleTimePeriodsPerDay;
+        var nextGoldRemainder = goldNumerator % BattleTimePeriodsPerDay;
+        var foodSpent = Mathf.Min(Mathf.Max(0, food), periodFoodNeed);
+        var goldSpent = Mathf.Min(Mathf.Max(0, gold), periodGoldNeed);
 
-        return new BattleDailySupplyResult(
-            remainingGold,
-            remainingFood,
-            goldNeed,
-            foodNeed,
+        return new BattlePeriodSupplyResult(
+            Mathf.Max(0, gold - periodGoldNeed),
+            Mathf.Max(0, food - periodFoodNeed),
+            periodGoldNeed,
+            periodFoodNeed,
             goldSpent,
             foodSpent,
-            IsFoodShortage: foodNeed > 0 && food < foodNeed,
-            IsLowFood: foodNeed > 0 && food >= foodNeed && remainingFood < foodNeed);
+            nextGoldRemainder,
+            nextFoodRemainder,
+            IsFoodShortage: periodFoodNeed > 0 && food < periodFoodNeed);
     }
 
     internal static int CalculateScaledResourceNeed(int activeTroops, int per100Troops) =>

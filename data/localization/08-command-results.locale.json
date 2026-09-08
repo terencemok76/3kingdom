@@ -134,7 +134,11 @@
     "cmd.attack.scheduled":  {
                                  "zhHant":  "「{0}」已排定攻擊命令，月末將進攻「{1}」。",
                                  "en":  "\"{0}\" scheduled an Attack against \"{1}\"."
-                             },
+    },
+    "cmd.attack.campaign_started":  {
+        "zhHant":  "{0} 對 {1} 的持續戰役已開始。",
+        "en":  "The continuing campaign from {0} against {1} has begun."
+    },
     "cmd.attack.scheduled_break_pact":  {
                                             "zhHant":  "「{0}」已排定攻擊命令，並自動解除與「{1}」的同盟或停戰。月末將進攻該城。",
                                             "en":  "\"{0}\" scheduled an Attack against \"{1}\" and automatically broke the active alliance or truce."
@@ -819,6 +823,10 @@
                                             "zhHant":  "不支援的待結算指令。",
                                             "en":  "Unsupported pending command."
                                         },
+    "cmd.attack.campaign_conflict":  {
+                                          "zhHant":  "來源或目標城市已參與尚未結束的戰役，出征資源已全數退回。",
+                                          "en":  "The source or target city is already committed to an active campaign. Reserved forces and supplies were returned."
+                                      },
     "cmd.world_not_initialized":  {
                                       "zhHant":  "世界狀態尚未初始化。",
                                       "en":  "World not initialized."

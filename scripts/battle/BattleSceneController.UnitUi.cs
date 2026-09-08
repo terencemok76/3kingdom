@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using ThreeKingdom.Core;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 
@@ -165,9 +168,38 @@ public partial class BattleSceneController
             return;
         }
 
-        var texture = GetOfficerPortraitTexture(_selectedUnit.OfficerName);
+        var texture = GetOfficerPortraitTexture(_selectedUnit);
         _officerPortrait.Texture = texture;
         _officerPortrait.Visible = texture != null;
+    }
+
+    private Texture2D? GetOfficerPortraitTexture(BattleOccupantInfo occupant)
+    {
+        var officerId = GetBattleOfficerId(occupant);
+        return officerId > 0
+            ? GetOfficerPortraitTexture(officerId) ?? GetOfficerPortraitTexture(occupant.OfficerName)
+            : GetOfficerPortraitTexture(occupant.OfficerName);
+    }
+
+    private int GetBattleOfficerId(BattleOccupantInfo occupant)
+    {
+        if (_activeCampaign != null && occupant.CampaignTeamId > 0)
+        {
+            return _activeCampaign.Teams.FirstOrDefault(team => team.Id == occupant.CampaignTeamId)?.OfficerId ?? 0;
+        }
+
+        var officer = CampaignRuntimeContext.World?.Officers.FirstOrDefault(candidate =>
+            candidate.Name.Equals(occupant.OfficerName, StringComparison.OrdinalIgnoreCase) ||
+            candidate.NameZhHant.Equals(occupant.OfficerName, StringComparison.OrdinalIgnoreCase));
+        return officer?.Id ?? 0;
+    }
+
+    private Texture2D? GetOfficerPortraitTexture(int officerId)
+    {
+        EnsureOfficerPortraitMappingsLoaded();
+        return _officerPortraitTexturesById.TryGetValue(officerId, out var portraitTexture)
+            ? portraitTexture
+            : null;
     }
 
     private Texture2D? GetOfficerPortraitTexture(string officerName)
@@ -195,6 +227,60 @@ public partial class BattleSceneController
         };
         _officerPortraitTextures[officerName] = portraitTexture;
         return portraitTexture;
+    }
+
+    private void EnsureOfficerPortraitMappingsLoaded()
+    {
+        if (_officerPortraitMappingsLoaded)
+        {
+            return;
+        }
+
+        _officerPortraitMappingsLoaded = true;
+        for (var teamIndex = 1; teamIndex <= 9; teamIndex++)
+        {
+            var sheetPath = $"res://assets/portrait/team{teamIndex}.png";
+            var mappingPath = $"res://data/person/person_image_{teamIndex}.json";
+            var sheetTexture = ResourceLoader.Load<Texture2D>(sheetPath);
+            if (sheetTexture == null || !Godot.FileAccess.FileExists(mappingPath))
+            {
+                continue;
+            }
+
+            using var mappingFile = Godot.FileAccess.Open(mappingPath, Godot.FileAccess.ModeFlags.Read);
+            var entries = JsonSerializer.Deserialize<List<BattleOfficerPortraitMapping>>(mappingFile.GetAsText());
+            if (entries == null)
+            {
+                continue;
+            }
+
+            foreach (var entry in entries.Where(entry => entry.CharId > 0 && entry.Width > 0 && entry.Height > 0))
+            {
+                _officerPortraitTexturesById[entry.CharId] = new AtlasTexture
+                {
+                    Atlas = sheetTexture,
+                    Region = new Rect2(entry.X, entry.Y, entry.Width, entry.Height)
+                };
+            }
+        }
+    }
+
+    private sealed class BattleOfficerPortraitMapping
+    {
+        [JsonPropertyName("charId")]
+        public int CharId { get; set; }
+
+        [JsonPropertyName("x")]
+        public float X { get; set; }
+
+        [JsonPropertyName("y")]
+        public float Y { get; set; }
+
+        [JsonPropertyName("width")]
+        public float Width { get; set; }
+
+        [JsonPropertyName("height")]
+        public float Height { get; set; }
     }
 
     private string FormatStrategyAvailability(BattleOccupantInfo unit)

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattlePresentationSettings;
 using static ThreeKingdom.Battle.BattleResourcePaths;
@@ -61,7 +62,7 @@ public partial class BattleSceneController
         {
             var json = File.ReadAllText(resolvedPath, Encoding.UTF8);
             var saveData = JsonSerializer.Deserialize<BattleSaveData>(json, BattleSaveJsonOptions);
-            if (saveData == null || saveData.Version != 1)
+            if (saveData == null || saveData.Version != 2)
             {
                 errorMessage = "unsupported battle save format";
                 return false;
@@ -74,6 +75,29 @@ public partial class BattleSceneController
         {
             errorMessage = ex.Message;
             GD.PushError($"Battle quick load failed: {ex}");
+            return false;
+        }
+    }
+
+    private string CreateCampaignBattleSnapshot() =>
+        JsonSerializer.Serialize(CreateBattleSaveData(), BattleSaveJsonOptions);
+
+    private bool TryApplyCampaignBattleSnapshot(string json)
+    {
+        try
+        {
+            var saveData = JsonSerializer.Deserialize<BattleSaveData>(json, BattleSaveJsonOptions);
+            if (saveData == null || saveData.Version != 2)
+            {
+                return false;
+            }
+
+            ApplyBattleSaveData(saveData);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            GD.PushError($"Campaign battle snapshot load failed: {ex}");
             return false;
         }
     }
@@ -93,14 +117,22 @@ public partial class BattleSceneController
             CurrentBattleWeather = GetCurrentBattleWeather(),
             CurrentBattleWindDirection = GetCurrentBattleWindDirection(),
             CurrentBattleWindPower = GetCurrentBattleWindPower(),
+            EnvironmentSeed = _environmentSeed,
+            EnvironmentStep = _environmentStep,
             TeamAStrategyPlans = _teamAStrategyPlans,
             TeamBStrategyPlans = _teamBStrategyPlans,
             TeamAGold = _teamAGold,
             TeamAFood = _teamAFood,
             TeamAZeroFoodDays = _teamAZeroFoodDays,
+            TeamAFoodUpkeepRemainder = _state.TeamA.FoodUpkeepRemainder,
+            TeamAGoldUpkeepRemainder = _state.TeamA.GoldUpkeepRemainder,
+            TeamAHadFoodShortageThisDay = _state.TeamA.HadFoodShortageThisDay,
             TeamBGold = _teamBGold,
             TeamBFood = _teamBFood,
             TeamBZeroFoodDays = _teamBZeroFoodDays,
+            TeamBFoodUpkeepRemainder = _state.TeamB.FoodUpkeepRemainder,
+            TeamBGoldUpkeepRemainder = _state.TeamB.GoldUpkeepRemainder,
+            TeamBHadFoodShortageThisDay = _state.TeamB.HadFoodShortageThisDay,
             ShowSelfTeamLogOnly = _showSelfTeamLogOnly,
             BattleLogExpandedWidth = _battleLogExpandedSize.X,
             BattleLogExpandedHeight = _battleLogExpandedSize.Y,
@@ -209,14 +241,23 @@ public partial class BattleSceneController
         _currentBattleWeather = saveData.CurrentBattleWeather;
         _currentBattleWindDirection = saveData.CurrentBattleWindDirection;
         _currentBattleWindPower = saveData.CurrentBattleWindPower;
+        _environmentSeed = saveData.EnvironmentSeed;
+        _environmentStep = Math.Max(0, saveData.EnvironmentStep);
+        InitializeEnvironmentSimulation();
         _teamAStrategyPlans = Mathf.Clamp(saveData.TeamAStrategyPlans, 0, InitialTeamStrategyPlans);
         _teamBStrategyPlans = Mathf.Clamp(saveData.TeamBStrategyPlans, 0, InitialTeamStrategyPlans);
         _teamAGold = Math.Max(0, saveData.TeamAGold);
         _teamAFood = Math.Max(0, saveData.TeamAFood);
         _teamAZeroFoodDays = Mathf.Max(0, saveData.TeamAZeroFoodDays);
+        _state.TeamA.FoodUpkeepRemainder = Mathf.Clamp(saveData.TeamAFoodUpkeepRemainder, 0, BattleTimePeriodsPerDay - 1);
+        _state.TeamA.GoldUpkeepRemainder = Mathf.Clamp(saveData.TeamAGoldUpkeepRemainder, 0, BattleTimePeriodsPerDay - 1);
+        _state.TeamA.HadFoodShortageThisDay = saveData.TeamAHadFoodShortageThisDay;
         _teamBGold = Math.Max(0, saveData.TeamBGold);
         _teamBFood = Math.Max(0, saveData.TeamBFood);
         _teamBZeroFoodDays = Mathf.Max(0, saveData.TeamBZeroFoodDays);
+        _state.TeamB.FoodUpkeepRemainder = Mathf.Clamp(saveData.TeamBFoodUpkeepRemainder, 0, BattleTimePeriodsPerDay - 1);
+        _state.TeamB.GoldUpkeepRemainder = Mathf.Clamp(saveData.TeamBGoldUpkeepRemainder, 0, BattleTimePeriodsPerDay - 1);
+        _state.TeamB.HadFoodShortageThisDay = saveData.TeamBHadFoodShortageThisDay;
         _showSelfTeamLogOnly = saveData.ShowSelfTeamLogOnly;
         _attackerOutpostVictorySecured = saveData.AttackerOutpostVictorySecured;
         _isBattleLogMinimized = saveData.IsBattleLogMinimized;
@@ -587,7 +628,7 @@ public partial class BattleSceneController
 
     private sealed class BattleSaveData
     {
-        public int Version { get; set; } = 1;
+        public int Version { get; set; } = 2;
         public BattleScenarioType ScenarioType { get; set; }
         public bool UseEditorAuthoredLayout { get; set; }
         public int TurnNumber { get; set; }
@@ -599,14 +640,22 @@ public partial class BattleSceneController
         public BattleWeatherType CurrentBattleWeather { get; set; }
         public BattleWindDirection CurrentBattleWindDirection { get; set; }
         public BattleWindPower CurrentBattleWindPower { get; set; }
+        public uint EnvironmentSeed { get; set; }
+        public int EnvironmentStep { get; set; }
         public int TeamAStrategyPlans { get; set; }
         public int TeamBStrategyPlans { get; set; }
         public int TeamAGold { get; set; } = InitialTeamAGold;
         public int TeamAFood { get; set; } = InitialTeamAFood;
         public int TeamAZeroFoodDays { get; set; }
+        public int TeamAFoodUpkeepRemainder { get; set; }
+        public int TeamAGoldUpkeepRemainder { get; set; }
+        public bool TeamAHadFoodShortageThisDay { get; set; }
         public int TeamBGold { get; set; } = InitialTeamBGold;
         public int TeamBFood { get; set; } = InitialTeamBFood;
         public int TeamBZeroFoodDays { get; set; }
+        public int TeamBFoodUpkeepRemainder { get; set; }
+        public int TeamBGoldUpkeepRemainder { get; set; }
+        public bool TeamBHadFoodShortageThisDay { get; set; }
         public bool ShowSelfTeamLogOnly { get; set; }
         public float BattleLogExpandedWidth { get; set; }
         public float BattleLogExpandedHeight { get; set; }
@@ -827,6 +876,9 @@ public partial class BattleSceneController
         public bool GuardCounterAvailable { get; set; }
         public int GuardDamageReductionCount { get; set; }
         public BattleSpriteDirection FacingDirection { get; set; }
+        public int CampaignTeamId { get; set; }
+        public int FactionId { get; set; }
+        public CampaignControllerType ControllerType { get; set; }
 
         public static BattleOccupantSaveData FromOccupant(BattleGridKey grid, BattleOccupantInfo occupant)
         {
@@ -858,7 +910,10 @@ public partial class BattleSceneController
                 IsGuarding = occupant.IsGuarding,
                 GuardCounterAvailable = occupant.GuardCounterAvailable,
                 GuardDamageReductionCount = occupant.GuardDamageReductionCount,
-                FacingDirection = occupant.FacingDirection
+                FacingDirection = occupant.FacingDirection,
+                CampaignTeamId = occupant.CampaignTeamId,
+                FactionId = occupant.FactionId,
+                ControllerType = occupant.ControllerType
             };
             saveData.UnitId = BuildUnitId(saveData);
             return saveData;
@@ -892,7 +947,10 @@ public partial class BattleSceneController
                 RemainingMoveRange ?? MoveRange,
                 IsGuarding,
                 GuardCounterAvailable,
-                GuardDamageReductionCount);
+                GuardDamageReductionCount,
+                CampaignTeamId,
+                FactionId,
+                ControllerType);
         }
 
         private static string BuildUnitId(BattleOccupantSaveData saveData)

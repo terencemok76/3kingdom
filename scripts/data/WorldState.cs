@@ -32,6 +32,8 @@ public class WorldState
     public int Year { get; set; }
     public int Month { get; set; }
     public int RandomSeed { get; set; }
+    public bool InteractiveBattlesEnabled { get; set; } = true;
+    public bool ResumeAttackResolutionAfterCampaign { get; set; }
     public List<CityData> Cities { get; set; } = new();
     public List<OfficerData> Officers { get; set; } = new();
     public List<ItemData> Items { get; set; } = new();
@@ -44,6 +46,7 @@ public class WorldState
     public List<CityIntelData> CityIntelRecords { get; set; } = new();
     public List<PendingSuccessionData> PendingSuccessionRecords { get; set; } = new();
     public List<PendingCapturedOfficerData> PendingCapturedOfficerRecords { get; set; } = new();
+    public List<ActiveBattleCampaignData> ActiveBattleCampaigns { get; set; } = new();
     public bool ViewAllInformationEnabled { get; set; }
 
     public CityData? GetCity(int cityId)

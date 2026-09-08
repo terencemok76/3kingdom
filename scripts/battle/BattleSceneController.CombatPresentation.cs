@@ -544,7 +544,7 @@ public partial class BattleSceneController
         _officerSpeechTextLabel.Text = BattleText(key, key);
         if (_officerSpeechPortrait != null)
         {
-            _officerSpeechPortrait.Texture = GetOfficerPortraitTexture(occupant.OfficerName);
+            _officerSpeechPortrait.Texture = GetOfficerPortraitTexture(occupant);
             _officerSpeechPortrait.Visible = _officerSpeechPortrait.Texture != null;
         }
 

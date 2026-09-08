@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Godot;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 
@@ -50,7 +51,7 @@ public partial class BattleSceneController
                 [BattleActionKind.Guard] = (_, unit) => CanUseGuard(unit),
                 [BattleActionKind.Hide] = (intent, unit) => CanHideAtGrid(intent.SourceGrid, unit),
                 [BattleActionKind.Work] = IsWorkIntentLegal,
-                [BattleActionKind.Retreat] = (_, unit) => IsBattlePiece(unit),
+                [BattleActionKind.Retreat] = (intent, unit) => CanRetreatFromGrid(intent.SourceGrid, unit),
                 [BattleActionKind.Extinguish] = (intent, unit) => CalculateExtinguishStrategyTargetGrids(intent.SourceGrid, unit).Contains(intent.TargetGrid),
                 [BattleActionKind.FireStrategy] = (intent, unit) => CalculateFireStrategyTargetGrids(intent.SourceGrid, unit).Contains(intent.TargetGrid),
                 [BattleActionKind.MentalStrategy] = (intent, unit) => CalculateMentalStrategyTargetGrids(intent.SourceGrid, unit).Contains(intent.TargetGrid),
@@ -92,6 +93,44 @@ public partial class BattleSceneController
         return CanUseWorkAction(unit, workAction) &&
                IsWorkTargetForAction(unit, intent.TargetGrid.Grid, targetCell, workAction) &&
                unit.Energy >= GetWorkEnergyCost(unit, targetCell, workAction);
+    }
+
+    private bool CanRetreatFromGrid(BattleGridKey grid, BattleOccupantInfo unit)
+    {
+        return IsBattlePiece(unit) &&
+               grid.Level == 0 &&
+               GetRetreatExitGrids(unit).Any(exitGrid => exitGrid == grid.Grid);
+    }
+
+    private IEnumerable<Vector2I> GetRetreatExitGrids(BattleOccupantInfo unit)
+    {
+        return GetRetreatExitGrids(IsAttackerPiece(unit));
+    }
+
+    private IEnumerable<Vector2I> GetRetreatExitGrids(bool attacker)
+    {
+        var scenarioDefinition = ResolveScenarioDefinition();
+        var configuredGrids = attacker
+            ? scenarioDefinition.AttackerRetreatExitGrids
+            : scenarioDefinition.DefenderRetreatExitGrids;
+        return configuredGrids.Count > 0
+            ? configuredGrids
+            : GetDefaultRetreatExitGrids(attacker);
+    }
+
+    private static IEnumerable<Vector2I> GetDefaultRetreatExitGrids(bool attacker)
+    {
+        const int exitDepth = 2;
+        const int exitWidth = 4;
+        var startX = attacker ? 0 : BattleMapData.Width - exitWidth;
+        var startY = attacker ? BattleMapData.Height - exitDepth : 0;
+        for (var y = startY; y < startY + exitDepth; y++)
+        {
+            for (var x = startX; x < startX + exitWidth; x++)
+            {
+                yield return new Vector2I(x, y);
+            }
+        }
     }
 
     private bool TryExecuteBattleActionIntent(BattleActionIntent intent, BattleOccupantInfo unit, Action? onMoveAnimationComplete = null)

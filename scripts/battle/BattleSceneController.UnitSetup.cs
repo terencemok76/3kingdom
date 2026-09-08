@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattlePresentationSettings;
 using static ThreeKingdom.Battle.BattleResourcePaths;
@@ -12,6 +13,11 @@ public partial class BattleSceneController
 {
     private void PopulateMarkers()
     {
+        if (TryPopulateCampaignMarkers())
+        {
+            return;
+        }
+
         var isFieldBattle = ResolveScenarioDefinition().ScenarioType == BattleScenarioType.FieldBattle;
         CreateMarker("MapRoot/UnitLayer/AttackerA", ResolveUnitSpawnGrid("AttackerA", new Vector2I(10, 20)), "I", "Attacker Infantry A", CategoryUnit, BattleTeamIdentity.AttackerName, "Xiahou Yuan", TroopInfantry, 6200, new Color("ad4832"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
         CreateMarker("MapRoot/UnitLayer/Spearman", ResolveUnitSpawnGrid("Spearman", new Vector2I(8, 18)), "S", "Attacker Spearman", CategoryUnit, BattleTeamIdentity.AttackerName, "Cao Hong", TroopSpearman, 4200, new Color("9b5931"), new Color("f0d6a8"), moveRange: 4, attackRange: 1);
@@ -55,6 +61,11 @@ public partial class BattleSceneController
             return;
         }
 
+        CreateMarker(marker, grid, label, displayName, category, teamName, officerName, troopType, troopCount, fillColor, borderColor, radius, moveRange, attackRange);
+    }
+
+    private void CreateMarker(BattlePieceMarker marker, Vector2I grid, string label, string displayName, string category, string teamName, string officerName, string troopType, int troopCount, Color fillColor, Color borderColor, float radius = 19.0f, int moveRange = 0, int attackRange = 1, int campaignTeamId = 0, int factionId = 0, CampaignControllerType controllerType = CampaignControllerType.Ai)
+    {
         var gridKey = GetDefaultGridKey(grid);
         marker.Position = GetMarkerPosition(gridKey);
         marker.Setup(label, fillColor, borderColor, radius);
@@ -76,7 +87,7 @@ public partial class BattleSceneController
         {
             marker.SetupSpriteAnimationScene(SpearmanIdleSouthEastScenePath);
         }
-        else if (category == CategoryUnit && troopType == TroopArcher)
+        else if (category == CategoryUnit && (troopType == TroopArcher || troopType == TroopCrossbow))
         {
             marker.SetupSpriteAnimationScene(ArcherIdleSouthEastScenePath);
         }
@@ -105,7 +116,7 @@ public partial class BattleSceneController
             marker.SetupSpriteAnimationScene(SupplyCarIdleSouthEastScenePath);
         }
 
-        RegisterOccupant(gridKey, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker);
+        RegisterOccupant(gridKey, displayName, category, label, teamName, officerName, troopType, troopCount, moveRange, attackRange, marker, campaignTeamId, factionId, controllerType);
         ApplyTeamTroopDelta(category, teamName, troopCount);
         ApplyTeamSiegeUnitDelta(category, teamName, 1);
         ApplyTeamGeneralDelta(category, teamName, officerName, 1);

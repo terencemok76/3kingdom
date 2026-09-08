@@ -183,7 +183,9 @@ public partial class BattleSceneController
     {
         return (_topBar?.Visible == true && _topBar.GetGlobalRect().HasPoint(globalPosition)) ||
                (_tileInfoPanel?.Visible == true && _tileInfoPanel.GetGlobalRect().HasPoint(globalPosition)) ||
-               (_battleLogPanel?.Visible == true && _battleLogPanel.GetGlobalRect().HasPoint(globalPosition));
+               (_battleLogPanel?.Visible == true && _battleLogPanel.GetGlobalRect().HasPoint(globalPosition)) ||
+               (_battleDebugOverlay?.Visible == true &&
+                _battleDebugPanel?.GetGlobalRect().HasPoint(globalPosition) == true);
     }
 
     private bool TryAdjustBattleCameraZoom(InputEventMouseButton mouseButton)

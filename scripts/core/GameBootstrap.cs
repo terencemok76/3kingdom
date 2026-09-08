@@ -68,6 +68,12 @@ public partial class GameBootstrap : Node
         startMenuController.StartGameConfirmed += OnStartGameConfirmed;
         startMenuController.LoadGameConfirmed += OnLoadGameConfirmed;
         startMenuController.BattleRequested += OnBattleRequested;
+        if (CampaignRuntimeContext.TryConsumeReturningWorld(out var returningWorld))
+        {
+            EnterGameplay(returningWorld);
+            return;
+        }
+
         startMenuController.ShowMainMenu();
     }
 

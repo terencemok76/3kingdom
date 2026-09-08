@@ -767,29 +767,9 @@ text = "Breeze"
 layout_mode = 2
 text = "Option"
 
-[node name="EnableAiButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
+[node name="BattleDebugButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
 layout_mode = 2
-text = "Enable AI"
-
-[node name="DisableAiButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Disable AI"
-
-[node name="StartRoundButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Start Round"
-
-[node name="NextAiButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Next"
-
-[node name="AttackerOneDayFoodButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Attacker Food: 1d"
-
-[node name="DefenderOneDayFoodButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Defender Food: 1d"
+text = "Debug"
 
 [node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
 layout_mode = 2
@@ -1202,3 +1182,134 @@ custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save Settings"
+
+[node name="BattleDebugOverlay" type="Control" parent="UiLayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Backdrop" type="ColorRect" parent="UiLayer/BattleDebugOverlay"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.45)
+
+[node name="Center" type="Control" parent="UiLayer/BattleDebugOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="UiLayer/BattleDebugOverlay/Center"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -122.5
+offset_right = 250.0
+offset_bottom = 122.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="DebugRoot" type="VBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="TitleBar" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleSpacerLeft" type="Control" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Battle Debug"
+horizontal_alignment = 1
+
+[node name="TitleSpacerRight" type="Control" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+custom_minimum_size = Vector2(30, 28)
+layout_mode = 2
+text = "x"
+
+[node name="AiControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="EnableAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Enable AI"
+
+[node name="DisableAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Disable AI"
+
+[node name="RoundControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="StartRoundButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Start Round"
+
+[node name="NextAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Next"
+
+[node name="FoodControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="AttackerOneDayFoodButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Attacker Food: 1d"
+
+[node name="DefenderOneDayFoodButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Defender Food: 1d"

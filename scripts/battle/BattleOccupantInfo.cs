@@ -1,4 +1,5 @@
 using Godot;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Battle;
 
@@ -27,4 +28,7 @@ internal sealed record BattleOccupantInfo(
     int RemainingMoveRange,
     bool IsGuarding,
     bool GuardCounterAvailable,
-    int GuardDamageReductionCount);
+    int GuardDamageReductionCount,
+    int CampaignTeamId = 0,
+    int FactionId = 0,
+    CampaignControllerType ControllerType = CampaignControllerType.Ai);

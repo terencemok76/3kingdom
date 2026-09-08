@@ -987,6 +987,9 @@ public partial class BattleSceneController
             return;
         }
 
+        AddRetreatExitHighlights(attacker: true, BattleHighlightVisualKind.AttackerRetreatExit);
+        AddRetreatExitHighlights(attacker: false, BattleHighlightVisualKind.DefenderRetreatExit);
+
         foreach (var grid in _movableGrids)
         {
             AddHighlightDepthVisual(grid, GetMoveHighlightVisualKind(grid));
@@ -1005,6 +1008,17 @@ public partial class BattleSceneController
         foreach (var grid in _strategyTargetGrids)
         {
             AddHighlightDepthVisual(grid, BattleHighlightVisualKind.Attackable);
+        }
+
+        if (_commandMode == BattleCommandMode.StrategySelect &&
+            _selectedStrategyAction == BattleStrategyAction.Fire &&
+            _hoverGridKey.HasValue &&
+            _strategyTargetGrids.Contains(_hoverGridKey.Value))
+        {
+            foreach (var spreadGrid in GetFireSpreadTargets(_hoverGridKey.Value))
+            {
+                AddHighlightDepthVisual(spreadGrid, BattleHighlightVisualKind.Workable);
+            }
         }
 
         foreach (var grid in _duelTargetGrids)
@@ -1036,6 +1050,16 @@ public partial class BattleSceneController
         }
 
         RefreshBattleDepthLayerOrder();
+    }
+
+    private void AddRetreatExitHighlights(bool attacker, BattleHighlightVisualKind visualKind)
+    {
+        foreach (var exitGrid in GetRetreatExitGrids(attacker)
+                     .Where(IsWithinMap)
+                     .Select(GetDefaultGridKey))
+        {
+            AddHighlightDepthVisual(exitGrid, visualKind);
+        }
     }
 
     private bool ShouldDisplaySelectedGridHighlight(BattleGridKey selectedGridKey)
@@ -1078,6 +1102,7 @@ public partial class BattleSceneController
             BattleHighlightVisualKind.WallTopMoveCannotAttack => BattleDepthRenderKind.MoveHighlight,
             BattleHighlightVisualKind.Attackable => BattleDepthRenderKind.AttackHighlight,
             BattleHighlightVisualKind.Workable => BattleDepthRenderKind.MoveHighlight,
+            BattleHighlightVisualKind.AttackerRetreatExit or BattleHighlightVisualKind.DefenderRetreatExit => BattleDepthRenderKind.MoveHighlight,
             BattleHighlightVisualKind.Selected => BattleDepthRenderKind.SelectedHighlight,
             _ => BattleDepthRenderKind.MoveHighlight
         };

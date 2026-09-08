@@ -73,7 +73,8 @@ internal sealed class MilitaryUiContext : IFloatingOverlayContext
     public void PopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeCheck) => _owner.MilitaryPopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck);
     public List<int> GetCheckedTreeMetadataIds(Tree? tree) => _owner.MilitaryGetCheckedTreeMetadataIds(tree);
     public CommandResult ExecuteMoveCommand(int targetCityId, int troops, int gold, int food, int horses, SiegeEngineAllocationData siegeEngineAllocation, List<int> officerIds, List<int> captiveOfficerIds) => _owner.MilitaryExecuteMoveCommand(targetCityId, troops, gold, food, horses, siegeEngineAllocation, officerIds, captiveOfficerIds);
-    public CommandResult ExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds) => _owner.MilitaryExecuteAttackCommand(targetCityId, troops, gold, food, deployments, officerIds);
+    public CommandResult ExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds, DefenderBattlePlan? defenderBattlePlanOverride = null) => _owner.MilitaryExecuteAttackCommand(targetCityId, troops, gold, food, deployments, officerIds, defenderBattlePlanOverride);
+    public bool IsGodModeEnabled() => TurnManager?.World?.ViewAllInformationEnabled ?? false;
     public string GetLocalizedResultMessage(CommandResult result) => _owner.MilitaryGetLocalizedResultMessage(result);
     public void ContinuePendingAttackResolution() => _owner.MilitaryContinuePendingAttackResolution();
     public bool IsResolvingEndTurn() => _owner.MilitaryIsResolvingEndTurn();

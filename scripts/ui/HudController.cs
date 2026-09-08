@@ -452,6 +452,8 @@ public partial class HudController : CanvasLayer
 
         ResetAliveFactionSnapshot();
         RefreshAllText();
+        ConfigureCampaignUi();
+        Callable.From(ResumeAttackResolutionAfterCampaignIfNeeded).CallDeferred();
     }
 
     public void OnCitySelected(CityData city)

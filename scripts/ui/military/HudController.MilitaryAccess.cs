@@ -50,8 +50,8 @@ public partial class HudController
     internal List<int> MilitaryGetCheckedTreeMetadataIds(Tree? tree) => GetCheckedTreeMetadataIds(tree).ToList();
     internal CommandResult MilitaryExecuteMoveCommand(int targetCityId, int troops, int gold, int food, int horses, SiegeEngineAllocationData siegeEngineAllocation, List<int> officerIds, List<int> captiveOfficerIds) =>
         ExecutePlayerCommand(CommandType.Move, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, horsesToSend: horses, siegeEngineAllocation: siegeEngineAllocation, officerIds: officerIds, captiveOfficerIds: captiveOfficerIds);
-    internal CommandResult MilitaryExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds) =>
-        ExecutePlayerCommand(CommandType.Attack, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, attackOfficerDeployments: deployments, officerIds: officerIds);
+    internal CommandResult MilitaryExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, List<int> officerIds, DefenderBattlePlan? defenderBattlePlanOverride = null) =>
+        ExecutePlayerCommand(CommandType.Attack, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, attackOfficerDeployments: deployments, officerIds: officerIds, defenderBattlePlanOverride: defenderBattlePlanOverride);
     internal string MilitaryGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
     internal void MilitaryContinuePendingAttackResolution() => ContinuePendingAttackResolution();
     internal bool MilitaryIsResolvingEndTurn() => _isResolvingEndTurn;

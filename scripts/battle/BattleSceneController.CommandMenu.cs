@@ -269,9 +269,16 @@ public partial class BattleSceneController
 
         if (_retreatButton != null)
         {
+            var canRetreat = canCommandSelectedUnit &&
+                             _selectedUnit != null &&
+                             _selectedUnitGrid.HasValue &&
+                             CanRetreatFromGrid(_selectedUnitGrid.Value, _selectedUnit);
             _retreatButton.Visible = canCommandSelectedUnit && _selectedUnit != null && IsBattlePiece(_selectedUnit);
-            _retreatButton.Disabled = _selectedUnit == null || !IsBattlePiece(_selectedUnit);
+            _retreatButton.Disabled = !canRetreat;
             _retreatButton.Text = BattleText("ui.battle.retreat", "Retreat");
+            _retreatButton.TooltipText = BattleText(
+                canRetreat ? "ui.battle.retreat_exit_ready" : "ui.battle.retreat_exit_required",
+                canRetreat ? "Leave through this exit" : "Reach your exit zone first");
         }
 
         if (_hideButton != null)

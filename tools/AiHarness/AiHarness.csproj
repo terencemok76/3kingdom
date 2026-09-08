@@ -6,9 +6,16 @@
     <Nullable>enable</Nullable>
     <AssemblyName>AiHarness</AssemblyName>
     <NoWarn>$(NoWarn);NU1900;CS8785</NoWarn>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**;tmpbuild\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ThreeKingdom.csproj" />
+    <ProjectReference Include="..\..\ThreeKingdom.csproj" Condition="'$(UsePrebuiltThreeKingdom)' != 'true'" />
+    <Reference Include="ThreeKingdom" Condition="'$(UsePrebuiltThreeKingdom)' == 'true'">
+      <HintPath>..\..\tmpbuild\bin\ThreeKingdom.dll</HintPath>
+    </Reference>
+    <Reference Include="GodotSharp" Condition="'$(UsePrebuiltThreeKingdom)' == 'true'">
+      <HintPath>..\..\tmpbuild\bin\GodotSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

@@ -425,6 +425,7 @@ public partial class CommandResolver
             var officer = world.GetOfficer(officerId);
             if (officer == null ||
                 IsOfficerAssignedThisMonth(world, officer) ||
+                BattleCampaignService.IsOfficerCommitted(world, officerId) ||
                 HasActiveInternalAffairsSchedule(world, officerId))
             {
                 return false;

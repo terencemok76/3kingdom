@@ -24,6 +24,8 @@ internal sealed class BattleState
     internal BattleWeatherType? CurrentBattleWeather;
     internal BattleWindDirection? CurrentBattleWindDirection;
     internal BattleWindPower? CurrentBattleWindPower;
+    internal uint EnvironmentSeed;
+    internal int EnvironmentStep;
     internal BattleTeamState TeamA { get; } = new(InitialTeamAGold, InitialTeamAFood);
     internal BattleTeamState TeamB { get; } = new(InitialTeamBGold, InitialTeamBFood);
 

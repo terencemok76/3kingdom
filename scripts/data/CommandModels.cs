@@ -115,6 +115,7 @@ public class CommandRequest
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public SiegeEngineAllocationData SiegeEngineAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
+    public DefenderBattlePlan? DefenderBattlePlanOverride { get; set; }
     public int? TargetFactionId { get; set; }
     public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();
@@ -139,6 +140,8 @@ public class PendingCommandData
     public SiegeEngineAllocationData SiegeEngineAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public List<AttackOfficerDeploymentData> DefenderOfficerDeployments { get; set; } = new();
+    public DefenderBattlePlan DefenderBattlePlan { get; set; } = DefenderBattlePlan.CityDefense;
+    public DefenderBattlePlan? DefenderBattlePlanOverride { get; set; }
     public int TargetFactionId { get; set; }
     public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();
@@ -152,4 +155,5 @@ public class CommandResult
     public string MessageZhHant { get; set; } = string.Empty;
     public string MessageEn { get; set; } = string.Empty;
     public bool? IsPlayerRelated { get; set; }
+    public int ActiveBattleCampaignId { get; set; }
 }

@@ -24,7 +24,8 @@ public partial class HudController : CanvasLayer
         List<int>? captiveOfficerIds = null,
         bool sellFood = false,
         MerchantTradeMode merchantTradeMode = MerchantTradeMode.BuyFood,
-        TroopType recruitTroopType = TroopType.Infantry)
+        TroopType recruitTroopType = TroopType.Infantry,
+        DefenderBattlePlan? defenderBattlePlanOverride = null)
     {
         if (_gameEnded || _turnManager?.World == null || _commandResolver == null || _selectedCity == null)
         {
@@ -52,6 +53,7 @@ public partial class HudController : CanvasLayer
             MerchantTradeMode = merchantTradeMode,
             RecruitTroopType = recruitTroopType,
             AttackOfficerDeployments = type == CommandType.Attack ? (attackOfficerDeployments ?? new List<AttackOfficerDeploymentData>()) : new List<AttackOfficerDeploymentData>(),
+            DefenderBattlePlanOverride = type == CommandType.Attack ? defenderBattlePlanOverride : null,
             OfficerIds = type is CommandType.Merchant or CommandType.Pass ? new List<int>() : (officerIds ?? new List<int>()),
             CaptiveOfficerIds = type == CommandType.Move ? (captiveOfficerIds ?? new List<int>()) : new List<int>()
         };

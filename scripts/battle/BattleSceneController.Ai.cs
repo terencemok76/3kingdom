@@ -560,16 +560,24 @@ public partial class BattleSceneController
 
             if (unit.HitPoints <= unit.MaxHitPoints * AiCriticalHealthRatio && threat > immediateAttackScore)
             {
+                var retreatDestination = GetAiRetreatExitAdvanceGrid(sourceGrid, unit);
                 var retreatAction = new AiSurvivalAction(
                     sourceGrid,
                     unit,
-                    null,
-                    AiSurvivalActionKind.Retreat,
+                    retreatDestination,
+                    CanRetreatFromGrid(sourceGrid, unit)
+                        ? AiSurvivalActionKind.Retreat
+                        : AiSurvivalActionKind.AdvanceToRetreatExit,
                     AiRetreatSurvivalScore + threat + intelligence * 12,
-                    "critical strength and projected enemy threat");
+                    CanRetreatFromGrid(sourceGrid, unit)
+                        ? "critical strength and projected enemy threat; reached exit"
+                        : "critical strength and projected enemy threat; advancing to exit");
                 if (retreatAction.Score > immediateAttackScore)
                 {
-                    actions.Add(retreatAction);
+                    if (retreatAction.Kind == AiSurvivalActionKind.Retreat || retreatDestination.HasValue)
+                    {
+                        actions.Add(retreatAction);
+                    }
                 }
             }
 
@@ -631,6 +639,34 @@ public partial class BattleSceneController
             : null;
     }
 
+    private BattleGridKey? GetAiRetreatExitAdvanceGrid(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        var exitGrids = GetRetreatExitGrids(unit)
+            .Where(IsWithinMap)
+            .Select(GetDefaultGridKey)
+            .ToList();
+        if (exitGrids.Count == 0)
+        {
+            return null;
+        }
+
+        var currentDistance = exitGrids.Min(exitGrid => GetManhattanDistance(sourceGrid.Grid, exitGrid.Grid));
+        var candidates = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
+            .Select(grid => new
+            {
+                Grid = grid,
+                Distance = exitGrids.Min(exitGrid => GetManhattanDistance(grid.Grid, exitGrid.Grid)),
+                Threat = GetAiThreatScore(grid, unit)
+            })
+            .Where(candidate => candidate.Distance < currentDistance)
+            .OrderBy(candidate => candidate.Distance)
+            .ThenBy(candidate => candidate.Threat)
+            .ThenBy(candidate => candidate.Grid.Y)
+            .ThenBy(candidate => candidate.Grid.X)
+            .ToList();
+        return candidates.Count == 0 ? null : candidates[0].Grid;
+    }
+
     private bool ExecuteAiSurvivalAction(AiSurvivalAction action)
     {
         var intelligence = GetOfficerTacticalIntelligence(action.Unit.OfficerName);
@@ -655,6 +691,10 @@ public partial class BattleSceneController
             case AiSurvivalActionKind.Retreat:
                 return TryExecuteBattleActionIntent(
                     new BattleActionIntent(BattleActionKind.Retreat, action.SourceGrid, action.SourceGrid),
+                    action.Unit);
+            case AiSurvivalActionKind.AdvanceToRetreatExit when action.DestinationGrid.HasValue:
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Move, action.SourceGrid, action.DestinationGrid.Value),
                     action.Unit);
             default:
                 return false;

@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 
@@ -247,7 +248,7 @@ public partial class BattleSceneController
 
     private void MarkUnitActedForAiOnly(BattleOccupantInfo unit)
     {
-        if (IsFieldBattleAiTest && IsCurrentTurnAiControlled())
+        if (IsDebugAiStepMode && IsCurrentTurnAiControlled())
         {
             MarkUnitActed(unit);
         }
@@ -337,14 +338,33 @@ public partial class BattleSceneController
         }
 
         var endingSideName = GetCurrentTurnSideName();
+        var completesTimePeriod = _currentTurnSide == BattleTurnSide.TeamB;
         CancelCommandAction(clearSelection: true);
-        ResolveBattleFireAtTurnEnd();
+        if (completesTimePeriod)
+        {
+            ResolveBattleFireAtTimePeriodEnd();
+        }
         ResolveBattleStatusAtTurnEnd(endingSideName);
         ConfirmAttackerOutpostVictoryAtTurnEnd();
         RefreshBattleResultState();
         if (_isBattleFinished)
         {
             return;
+        }
+
+        if (completesTimePeriod)
+        {
+            ResolveBattlePeriodSupply();
+            if (AdvanceBattleEnvironmentPeriod())
+            {
+                ResolveEndOfDaySupplyEffects();
+            }
+
+            RefreshBattleResultState();
+            if (_isBattleFinished)
+            {
+                return;
+            }
         }
         _strategyUsedByMarkerThisTurn.Clear();
         _supplyUsedByMarkerThisTurn.Clear();
@@ -359,8 +379,6 @@ public partial class BattleSceneController
         else
         {
             _currentTurnSide = BattleTurnSide.TeamA;
-            ResolveDailyBattleSupply();
-            AdvanceBattleDate();
             _turnNumber++;
         }
 
@@ -382,8 +400,62 @@ public partial class BattleSceneController
             BattleTurnResolver.AdvanceDate(_battleDateYear, _battleDateMonth, _battleDateDay);
     }
 
+    private void InitializeEnvironmentSimulation()
+    {
+        if (_environmentSeed != 0)
+        {
+            return;
+        }
+
+        _environmentSeed = GD.Randi();
+        if (_environmentSeed == 0)
+        {
+            _environmentSeed = 1;
+        }
+    }
+
+    private BattleEnvironmentForecast GetEnvironmentForecast()
+    {
+        return BattleEnvironmentSystem.CreateForecast(
+            _environmentSeed,
+            _environmentStep,
+            GetCurrentBattleTimeOfDay(),
+            GetCurrentBattleWeather(),
+            GetCurrentBattleWindDirection(),
+            GetCurrentBattleWindPower());
+    }
+
+    private bool AdvanceBattleEnvironmentPeriod()
+    {
+        var forecast = GetEnvironmentForecast();
+        _currentBattleTimeOfDay = forecast.TimeOfDay;
+        _currentBattleWeather = forecast.Weather;
+        _currentBattleWindDirection = forecast.WindDirection;
+        _currentBattleWindPower = forecast.WindPower;
+        _environmentStep++;
+        if (forecast.StartsNewDay)
+        {
+            AdvanceBattleDate();
+            HandleCampaignCompletedDay();
+        }
+
+        ApplyTimeOfDayVisual(animate: true);
+        ApplyWeatherVisual(animate: true);
+        AppendBattleLog(
+            BattleTeamIdentity.AttackerName,
+            "Environment",
+            $"Environment: {forecast.TimeOfDay}, {forecast.Weather}, wind {forecast.WindDirection} {forecast.WindPower}" +
+            (forecast.StartsNewDay ? $"; new day {FormatBattleDate()}" : string.Empty));
+        return forecast.StartsNewDay;
+    }
+
     private void OnWeatherButtonPressed()
     {
+        if (!EnableEnvironmentDebugControls)
+        {
+            return;
+        }
+
         _currentBattleWeather = GetNextBattleWeather(GetCurrentBattleWeather());
         ConfigureHud();
         ApplyWeatherVisual(animate: true);
@@ -392,6 +464,11 @@ public partial class BattleSceneController
 
     private void OnTimeButtonPressed()
     {
+        if (!EnableEnvironmentDebugControls)
+        {
+            return;
+        }
+
         _currentBattleTimeOfDay = GetNextBattleTimeOfDay(GetCurrentBattleTimeOfDay());
         ConfigureHud();
         ApplyTimeOfDayVisual(animate: true);
@@ -400,12 +477,22 @@ public partial class BattleSceneController
 
     private void OnWindButtonPressed()
     {
+        if (!EnableEnvironmentDebugControls)
+        {
+            return;
+        }
+
         _currentBattleWindDirection = GetNextBattleWindDirection(GetCurrentBattleWindDirection());
         ConfigureHud();
     }
 
     private void OnWindPowerButtonPressed()
     {
+        if (!EnableEnvironmentDebugControls)
+        {
+            return;
+        }
+
         _currentBattleWindPower = GetNextBattleWindPower(GetCurrentBattleWindPower());
         ConfigureHud();
     }
@@ -435,11 +522,23 @@ public partial class BattleSceneController
     {
         if (BattleTeamIdentity.IsAttacker(teamName))
         {
+            var campaignFactionName = GetCampaignFactionArmyName(CampaignBattleSide.Attacker);
+            if (!string.IsNullOrWhiteSpace(campaignFactionName))
+            {
+                return campaignFactionName;
+            }
+
             return BattleText("ui.battle.team_attacker", "Cao Cao");
         }
 
         if (BattleTeamIdentity.IsDefender(teamName))
         {
+            var campaignFactionName = GetCampaignFactionArmyName(CampaignBattleSide.Defender);
+            if (!string.IsNullOrWhiteSpace(campaignFactionName))
+            {
+                return campaignFactionName;
+            }
+
             return BattleText("ui.battle.team_defender", "Dong Zhuo");
         }
 
@@ -448,9 +547,17 @@ public partial class BattleSceneController
 
     private bool IsCurrentTurnPiece(BattleOccupantInfo occupant)
     {
-        return occupant.TeamName == GetCurrentTurnSideName() &&
-               !occupant.HasAttackedThisTurn &&
-               (!IsFieldBattleAiTest || (_isFieldAiRoundStarted && !HasUnitActed(occupant)));
+        if (occupant.TeamName != GetCurrentTurnSideName() || occupant.HasAttackedThisTurn)
+        {
+            return false;
+        }
+
+        if (IsFieldBattleAiTest)
+        {
+            return _isFieldAiRoundStarted && !HasUnitActed(occupant);
+        }
+
+        return !IsDebugAiStepMode || !IsCurrentTurnAiControlled() || !HasUnitActed(occupant);
     }
 
 

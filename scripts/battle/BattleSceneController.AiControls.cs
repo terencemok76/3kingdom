@@ -1,58 +1,78 @@
+using Godot;
+
 namespace ThreeKingdom.Battle;
 
 public partial class BattleSceneController
 {
-    private bool IsFieldBattleAiTest => ScenarioType == BattleScenarioType.FieldBattle;
+    private bool IsFieldBattleAiTest => ScenarioType == BattleScenarioType.FieldBattle && _activeCampaign == null;
+    private bool IsBattleDebugAvailable => IsFieldBattleAiTest || _activeCampaign != null;
+    private bool IsDebugAiStepMode => _isFieldAiRoundStarted && IsBattleDebugAvailable;
 
     private void ConfigureFieldAiTestControls()
     {
-        var isFieldBattle = IsFieldBattleAiTest;
+        var debugAvailable = IsBattleDebugAvailable;
         var isAiSide = IsCurrentTurnAiControlled();
         var allActed = HaveAllActingBattlePiecesActed();
 
+        if (_battleDebugButton != null)
+        {
+            _battleDebugButton.Visible = debugAvailable;
+            _battleDebugButton.Disabled = !debugAvailable;
+            _battleDebugButton.Text = BattleText("ui.battle.debug", "Debug");
+        }
+        if (!debugAvailable && _battleDebugOverlay != null)
+        {
+            _battleDebugOverlay.Visible = false;
+        }
+
         if (_enableAiButton != null)
         {
-            _enableAiButton.Visible = isFieldBattle;
-            _enableAiButton.Disabled = !isFieldBattle || _isFieldAiRoundStarted || isAiSide;
+            _enableAiButton.Visible = debugAvailable;
+            _enableAiButton.Disabled = !debugAvailable || _isBattleFinished || isAiSide;
             _enableAiButton.Text = BattleText("ui.battle.enable_ai", "Enable AI");
         }
 
         if (_disableAiButton != null)
         {
-            _disableAiButton.Visible = isFieldBattle;
-            _disableAiButton.Disabled = !isFieldBattle || _isFieldAiRoundStarted || !isAiSide;
+            _disableAiButton.Visible = debugAvailable;
+            _disableAiButton.Disabled = !debugAvailable || _isBattleFinished || !isAiSide;
             _disableAiButton.Text = BattleText("ui.battle.disable_ai", "Disable AI");
         }
 
         if (_startRoundButton != null)
         {
-            _startRoundButton.Visible = isFieldBattle;
-            _startRoundButton.Disabled = !isFieldBattle || _isBattleFinished || _isFieldAiRoundStarted;
+            _startRoundButton.Visible = debugAvailable;
+            _startRoundButton.Disabled = !debugAvailable || _isBattleFinished || _isFieldAiRoundStarted;
             _startRoundButton.Text = BattleText("ui.battle.start_round", "Start Round");
         }
 
         if (_nextAiButton != null)
         {
-            _nextAiButton.Visible = isFieldBattle;
-            _nextAiButton.Disabled = !isFieldBattle || !_isFieldAiRoundStarted || !isAiSide || allActed || _isBattleFinished;
+            _nextAiButton.Visible = debugAvailable;
+            _nextAiButton.Disabled = !debugAvailable || !_isFieldAiRoundStarted || !isAiSide || allActed || _isBattleFinished;
             _nextAiButton.Text = BattleText("ui.battle.next_ai", "Next");
+            _nextAiButton.TooltipText = !_isFieldAiRoundStarted
+                ? BattleText("ui.battle.next_ai_start_round_hint", "Start the round first.")
+                : !isAiSide
+                    ? BattleText("ui.battle.next_ai_enable_hint", "Enable AI for the current side, then click Next.")
+                    : string.Empty;
         }
 
         if (_attackerOneDayFoodButton != null)
         {
-            _attackerOneDayFoodButton.Visible = isFieldBattle;
-            _attackerOneDayFoodButton.Disabled = !isFieldBattle || _isBattleFinished;
+            _attackerOneDayFoodButton.Visible = debugAvailable;
+            _attackerOneDayFoodButton.Disabled = !debugAvailable || _isBattleFinished;
             _attackerOneDayFoodButton.Text = BattleText("ui.battle.test_attacker_food_1_day", "Attacker Food: 1d");
         }
 
         if (_defenderOneDayFoodButton != null)
         {
-            _defenderOneDayFoodButton.Visible = isFieldBattle;
-            _defenderOneDayFoodButton.Disabled = !isFieldBattle || _isBattleFinished;
+            _defenderOneDayFoodButton.Visible = debugAvailable;
+            _defenderOneDayFoodButton.Disabled = !debugAvailable || _isBattleFinished;
             _defenderOneDayFoodButton.Text = BattleText("ui.battle.test_defender_food_1_day", "Defender Food: 1d");
         }
 
-        if (_endTurnButton != null && isFieldBattle)
+        if (_endTurnButton != null && (IsFieldBattleAiTest || IsDebugAiStepMode))
         {
             _endTurnButton.Disabled = !_isFieldAiRoundStarted || _isBattleFinished;
         }
@@ -62,7 +82,7 @@ public partial class BattleSceneController
             return;
         }
 
-        if (!isFieldBattle)
+        if (!IsFieldBattleAiTest)
         {
             _aiRoundStatusLabel.Visible = false;
         }
@@ -102,9 +122,88 @@ public partial class BattleSceneController
             status);
     }
 
+    private void OnBattleDebugButtonPressed()
+    {
+        if (!IsBattleDebugAvailable)
+        {
+            return;
+        }
+
+        ConfigureFieldAiTestControls();
+        RefreshBattleDebugDialogText();
+        if (_battleDebugOverlay != null)
+        {
+            _battleDebugOverlay.Visible = true;
+        }
+    }
+
+    private void HideBattleDebugDialog()
+    {
+        _isDraggingBattleDebugDialog = false;
+        if (_battleDebugOverlay != null)
+        {
+            _battleDebugOverlay.Visible = false;
+        }
+    }
+
+    private void HandleBattleDebugDialogInput(InputEvent @event)
+    {
+        if (_battleDebugOverlay?.Visible != true || _battleDebugPanel == null)
+        {
+            return;
+        }
+
+        switch (@event)
+        {
+            case InputEventMouseButton mouseButton when mouseButton.ButtonIndex == MouseButton.Left:
+                if (mouseButton.Pressed)
+                {
+                    if (_battleDebugTitleBar?.GetGlobalRect().HasPoint(mouseButton.GlobalPosition) == true &&
+                        !(_battleDebugCloseButton?.GetGlobalRect().HasPoint(mouseButton.GlobalPosition) ?? false))
+                    {
+                        _isDraggingBattleDebugDialog = true;
+                        _battleDebugDialogDragOffset = mouseButton.GlobalPosition - _battleDebugPanel.Position;
+                        GetViewport().SetInputAsHandled();
+                    }
+                }
+                else
+                {
+                    _isDraggingBattleDebugDialog = false;
+                }
+
+                break;
+            case InputEventMouseMotion mouseMotion when _isDraggingBattleDebugDialog:
+                _battleDebugPanel.Position = ClampBattleDebugDialogPosition(
+                    mouseMotion.GlobalPosition - _battleDebugDialogDragOffset,
+                    _battleDebugPanel.Size);
+                GetViewport().SetInputAsHandled();
+                break;
+        }
+    }
+
+    private Vector2 ClampBattleDebugDialogPosition(Vector2 desiredPosition, Vector2 panelSize)
+    {
+        var viewportSize = GetViewportRect().Size;
+        return new Vector2(
+            Mathf.Clamp(desiredPosition.X, 0.0f, Mathf.Max(0.0f, viewportSize.X - panelSize.X)),
+            Mathf.Clamp(desiredPosition.Y, 0.0f, Mathf.Max(0.0f, viewportSize.Y - panelSize.Y)));
+    }
+
+    private void RefreshBattleDebugDialogText()
+    {
+        if (_battleDebugButton != null)
+        {
+            _battleDebugButton.Text = BattleText("ui.battle.debug", "Debug");
+        }
+        if (_battleDebugTitleLabel != null)
+        {
+            _battleDebugTitleLabel.Text = BattleText("ui.battle.debug_title", "Battle Debug");
+        }
+    }
+
     private void OnEnableAiButtonPressed()
     {
-        if (!IsFieldBattleAiTest || _isFieldAiRoundStarted)
+        if (!IsBattleDebugAvailable || _isBattleFinished)
         {
             return;
         }
@@ -117,7 +216,7 @@ public partial class BattleSceneController
 
     private void OnDisableAiButtonPressed()
     {
-        if (!IsFieldBattleAiTest || _isFieldAiRoundStarted)
+        if (!IsBattleDebugAvailable || _isBattleFinished)
         {
             return;
         }
@@ -130,7 +229,7 @@ public partial class BattleSceneController
 
     private void OnStartRoundButtonPressed()
     {
-        if (!IsFieldBattleAiTest || _isFieldAiRoundStarted || _isBattleFinished)
+        if (!IsBattleDebugAvailable || _isFieldAiRoundStarted || _isBattleFinished)
         {
             return;
         }
@@ -140,6 +239,13 @@ public partial class BattleSceneController
         _supplyUsedByMarkerThisTurn.Clear();
         _chargeUsedByMarkerThisTurn.Clear();
         _isFieldAiRoundStarted = true;
+        if (_activeCampaign != null)
+        {
+            // Match the standalone field-battle test: Debug owns both sides until the
+            // tester explicitly disables AI for the side currently taking its turn.
+            _aiControlledSides = BattleAiControlledSides.Attacker | BattleAiControlledSides.Defender;
+            AppendBattleLog(GetCurrentTurnSideName(), "AI", "Debug round started: AI control enabled for both sides.");
+        }
         AppendBattleLog(GetCurrentTurnSideName(), "Round", $"Round started. Controller: {(IsCurrentTurnAiControlled() ? "AI (step review)" : "Player")}.");
         if (IsCurrentTurnAiControlled())
         {
@@ -153,7 +259,7 @@ public partial class BattleSceneController
 
     private void OnNextAiButtonPressed()
     {
-        if (!IsFieldBattleAiTest || !_isFieldAiRoundStarted || !IsCurrentTurnAiControlled() || _isBattleFinished)
+        if (!IsBattleDebugAvailable || !_isFieldAiRoundStarted || !IsCurrentTurnAiControlled() || _isBattleFinished)
         {
             return;
         }
@@ -182,7 +288,7 @@ public partial class BattleSceneController
 
     private void SetTeamFoodForAiTest(string teamName)
     {
-        if (!IsFieldBattleAiTest || _isBattleFinished)
+        if (!IsBattleDebugAvailable || _isBattleFinished)
         {
             return;
         }

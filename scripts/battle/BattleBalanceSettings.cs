@@ -2,6 +2,7 @@ namespace ThreeKingdom.Battle;
 
 internal static class BattleBalanceSettings
 {
+    internal const int BattleTimePeriodsPerDay = 4;
     internal const int InfantryAttackDamage = 850;
     internal const int SpearmanAttackDamage = 800;
     internal const int ArcherAttackDamage = 900;
@@ -63,7 +64,7 @@ internal static class BattleBalanceSettings
     internal const int FireDamageToGate = 180;
     internal const int FireDamageToWoodenFence = 260;
     internal const int FireDamageToBridge = 220;
-    internal const int FireMaxSpreadCandidates = 8;
+    internal const int FireMaxSpreadCandidates = 2;
     internal const int RamAttackDamage = 500;
     internal const int CatapultAttackDamage = 1300;
     internal const int InfantryStructureDamage = 180;

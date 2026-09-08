@@ -116,6 +116,15 @@ public partial class HudController
             }
 
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
+            if (result.ActiveBattleCampaignId > 0)
+            {
+                world.PendingCommands.Remove(pendingCommand);
+                world.ResumeAttackResolutionAfterCampaign = true;
+                AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
+                LaunchCampaignBattle(result.ActiveBattleCampaignId);
+                return;
+            }
+
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
             CheckFactionEliminations();
             if (_personnelUiController?.HasPendingPlayerSuccession() == true)

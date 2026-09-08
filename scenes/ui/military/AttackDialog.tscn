@@ -152,6 +152,22 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="DefenderPlanRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DefenderPlanLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenderPlanRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Defense Plan"
+vertical_alignment = 1
+
+[node name="DefenderPlanOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenderPlanRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="TroopsRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 visible = false
 layout_mode = 2

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleAiSettings;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattlePresentationSettings;
@@ -45,7 +46,7 @@ internal enum BattleAiControlledSides
 [Tool]
 public partial class BattleSceneController : Node2D
 {
-    public sealed record LaunchOptions(BattleScenarioType ScenarioType, bool UseEditorAuthoredLayout);
+    public sealed record LaunchOptions(BattleScenarioType ScenarioType, bool UseEditorAuthoredLayout, int CampaignId = 0);
 
     private enum BattleOfficerSpeechEvent
     {
@@ -133,6 +134,8 @@ public partial class BattleSceneController : Node2D
     private Label? _unitMenuInfoLabel;
     private TextureRect? _officerPortrait;
     private readonly Dictionary<string, Texture2D> _officerPortraitTextures = new(StringComparer.Ordinal);
+    private readonly Dictionary<int, Texture2D> _officerPortraitTexturesById = new();
+    private bool _officerPortraitMappingsLoaded;
     private Button? _endTurnButton;
     private Button? _enableAiButton;
     private Button? _disableAiButton;
@@ -146,9 +149,15 @@ public partial class BattleSceneController : Node2D
     private Button? _windButton;
     private Button? _windPowerButton;
     private Button? _battleOptionButton;
+    private Button? _battleDebugButton;
     private Control? _battleOptionOverlay;
+    private Control? _battleDebugOverlay;
+    private PanelContainer? _battleDebugPanel;
+    private Control? _battleDebugTitleBar;
     private Label? _battleOptionTitleLabel;
+    private Label? _battleDebugTitleLabel;
     private Button? _battleOptionCloseButton;
+    private Button? _battleDebugCloseButton;
     private Button? _battleOptionSaveButton;
     private Button? _battleOptionLoadButton;
     private Button? _battleOptionLanguageButton;
@@ -184,6 +193,7 @@ public partial class BattleSceneController : Node2D
     private bool _isDraggingBattleLog;
     private bool _isResizingBattleLog;
     private bool _isBattleLogMinimized;
+    private bool _isDraggingBattleDebugDialog;
     private readonly BattleState _state = new();
     private readonly BattleInteractionState _interaction = new();
     private bool _isBattleFinished { get => _state.IsBattleFinished; set => _state.IsBattleFinished = value; }
@@ -199,6 +209,7 @@ public partial class BattleSceneController : Node2D
     private Vector2 _lastMousePosition;
     private Vector2 _commandMenuDragOffset;
     private Vector2 _battleLogDragOffset;
+    private Vector2 _battleDebugDialogDragOffset;
     private Vector2 _battleLogResizeStartMouse;
     private Vector2 _battleLogResizeStartSize;
     private Vector2I? _hoverGrid { get => _interaction.HoverGrid; set => _interaction.HoverGrid = value; }
@@ -246,6 +257,8 @@ public partial class BattleSceneController : Node2D
     private BattleWeatherType? _currentBattleWeather { get => _state.CurrentBattleWeather; set => _state.CurrentBattleWeather = value; }
     private BattleWindDirection? _currentBattleWindDirection { get => _state.CurrentBattleWindDirection; set => _state.CurrentBattleWindDirection = value; }
     private BattleWindPower? _currentBattleWindPower { get => _state.CurrentBattleWindPower; set => _state.CurrentBattleWindPower = value; }
+    private uint _environmentSeed { get => _state.EnvironmentSeed; set => _state.EnvironmentSeed = value; }
+    private int _environmentStep { get => _state.EnvironmentStep; set => _state.EnvironmentStep = value; }
     private int _teamATotalTroops { get => _state.TeamA.TotalTroops; set => _state.TeamA.TotalTroops = value; }
     private int _teamBTotalTroops { get => _state.TeamB.TotalTroops; set => _state.TeamB.TotalTroops = value; }
     private int _teamASiegeUnits { get => _state.TeamA.SiegeUnits; set => _state.TeamA.SiegeUnits = value; }
@@ -322,6 +335,7 @@ public partial class BattleSceneController : Node2D
     private enum AiSurvivalActionKind
     {
         MoveToSafety,
+        AdvanceToRetreatExit,
         Guard,
         Stay,
         Retreat
@@ -342,6 +356,9 @@ public partial class BattleSceneController : Node2D
 
     [Export]
     public bool UseEditorAuthoredLayout { get; set; }
+
+    [Export]
+    public bool EnableEnvironmentDebugControls { get; set; }
 
     [Export]
     public bool EditorBakeBattleLayout
@@ -412,6 +429,7 @@ public partial class BattleSceneController : Node2D
         InitializeBattleLocalization();
         LoadOfficerSpeechCatalog();
         ApplyPendingLaunchOptions();
+        InitializeCampaignRuntime();
         StartBattleBgm();
 
         if (_endTurnButton != null)
@@ -474,9 +492,19 @@ public partial class BattleSceneController : Node2D
             _battleOptionButton.Pressed += OnBattleOptionButtonPressed;
         }
 
+        if (_battleDebugButton != null)
+        {
+            _battleDebugButton.Pressed += OnBattleDebugButtonPressed;
+        }
+
         if (_battleOptionCloseButton != null)
         {
             _battleOptionCloseButton.Pressed += HideBattleOptionDialog;
+        }
+
+        if (_battleDebugCloseButton != null)
+        {
+            _battleDebugCloseButton.Pressed += HideBattleDebugDialog;
         }
 
         if (_battleOptionSaveButton != null)
@@ -645,12 +673,15 @@ public partial class BattleSceneController : Node2D
         }
 
         InitializeMapDataAndLayers();
+        InitializeEnvironmentSimulation();
         BuildCastleDepthVisuals();
         BuildBuildingDepthVisuals();
         PopulateMarkers();
+        RestoreCampaignSnapshotIfAvailable();
         InitializeFieldAiTestDefaults();
         RefreshBattleDepthLayerOrder();
         RefreshOccludedUnitSilhouettes();
+        RefreshHighlights();
         ConfigureHud();
         ApplyTimeOfDayVisual(animate: false);
         BuildWeatherVisuals();
@@ -670,7 +701,7 @@ public partial class BattleSceneController : Node2D
 
     private void InitializeFieldAiTestDefaults()
     {
-        if (ScenarioType == BattleScenarioType.FieldBattle)
+        if (_activeCampaign == null && ScenarioType == BattleScenarioType.FieldBattle)
         {
             _aiControlledSides = BattleAiControlledSides.Attacker | BattleAiControlledSides.Defender;
         }
@@ -780,7 +811,7 @@ public partial class BattleSceneController : Node2D
         var teamBLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/TeamBLabel");
         var coordinateLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/CoordinateLabel");
 
-        var scenarioName = FormatScenarioName(ResolveScenarioDefinition().DisplayName);
+        var scenarioName = GetCampaignHudScenarioName();
         if (titleLabel != null)
         {
             titleLabel.Text = BattleFormat(
@@ -812,6 +843,8 @@ public partial class BattleSceneController : Node2D
             _windPowerButton.Text = FormatBattleWindPower(GetCurrentBattleWindPower());
         }
 
+        ConfigureEnvironmentForecastTooltips();
+
         if (_endTurnButton != null)
         {
             _endTurnButton.Text = BattleText("ui.battle.end_turn", "End Turn");
@@ -830,6 +863,7 @@ public partial class BattleSceneController : Node2D
         }
 
         RefreshBattleOptionDialogText();
+        RefreshBattleDebugDialogText();
 
         if (summaryLabel != null)
         {
@@ -894,9 +928,30 @@ public partial class BattleSceneController : Node2D
             });
         }
 
+        var debugPanel = GetNodeOrNull<PanelContainer>("UiLayer/BattleDebugOverlay/Center/Panel");
+        if (debugPanel != null)
+        {
+            debugPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = new Color(0.05f, 0.05f, 0.06f, 0.88f),
+                BorderColor = new Color(0.58f, 0.48f, 0.28f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthTop = 2,
+                BorderWidthRight = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8,
+                ShadowColor = new Color(0.0f, 0.0f, 0.0f, 0.34f),
+                ShadowSize = 8
+            });
+        }
+
         foreach (var label in new[]
         {
             _battleOptionTitleLabel,
+            _battleDebugTitleLabel,
             _battleBgmVolumeValueLabel,
             _battleSfxVolumeValueLabel
         })
@@ -907,6 +962,13 @@ public partial class BattleSceneController : Node2D
         foreach (var button in new[]
         {
             _battleOptionCloseButton,
+            _battleDebugCloseButton,
+            _enableAiButton,
+            _disableAiButton,
+            _startRoundButton,
+            _nextAiButton,
+            _attackerOneDayFoodButton,
+            _defenderOneDayFoodButton,
             _battleOptionSaveButton,
             _battleOptionLoadButton,
             _battleOptionLanguageButton,
@@ -1009,11 +1071,11 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
-    private void RegisterOccupant(BattleGridKey grid, string displayName, string category, string shortLabel, string teamName, string officerName, string troopType, int troopCount, int moveRange, int attackRange, BattlePieceMarker? marker)
+    private void RegisterOccupant(BattleGridKey grid, string displayName, string category, string shortLabel, string teamName, string officerName, string troopType, int troopCount, int moveRange, int attackRange, BattlePieceMarker? marker, int campaignTeamId = 0, int factionId = 0, CampaignControllerType controllerType = CampaignControllerType.Ai)
     {
         var morale = GetInitialMorale(category, troopType);
         var weaponAmmo = GetInitialWeaponAmmo(category, troopType);
-        _occupantsByGrid.Add(grid, new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, IsHidden: false, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast, DefaultUnitEnergy, HasAttackedThisTurn: false, RemainingMoveRange: moveRange, IsGuarding: false, GuardCounterAvailable: false, GuardDamageReductionCount: 0));
+        _occupantsByGrid.Add(grid, new BattleOccupantInfo(displayName, category, shortLabel, teamName, officerName, troopType, troopCount, troopCount, troopCount, WoundedTroops: 0, MessTurns: 0, IsHidden: false, morale, weaponAmmo, weaponAmmo, moveRange, attackRange, marker, BattleSpriteDirection.SouthEast, DefaultUnitEnergy, HasAttackedThisTurn: false, RemainingMoveRange: moveRange, IsGuarding: false, GuardCounterAvailable: false, GuardDamageReductionCount: 0, campaignTeamId, factionId, controllerType));
     }
 
     private static void UpdateMarkerStrengthBar(BattleOccupantInfo occupant)
@@ -1377,6 +1439,8 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
+        HandleCampaignTeamRemoved(occupant);
+
         ApplyTeamSiegeUnitDelta(occupant.Category, occupant.TeamName, -1);
         ApplyTeamGeneralDelta(occupant.Category, occupant.TeamName, occupant.OfficerName, -1);
         if (occupant.Marker != null)
@@ -1393,45 +1457,57 @@ public partial class BattleSceneController : Node2D
         }
     }
 
-    private void ResolveDailyBattleSupply()
+    private void ResolveBattlePeriodSupply()
     {
-        (_teamAGold, _teamAFood) = ResolveDailyBattleSupplyForTeam(TeamAInfo.Name, _teamAGold, _teamAFood, _teamATotalTroops);
-        (_teamBGold, _teamBFood) = ResolveDailyBattleSupplyForTeam(TeamBInfo.Name, _teamBGold, _teamBFood, _teamBTotalTroops);
-        UpdateTeamZeroFoodDays(TeamAInfo.Name);
-        UpdateTeamZeroFoodDays(TeamBInfo.Name);
+        ResolveBattlePeriodSupplyForTeam(TeamAInfo.Name, _state.TeamA);
+        ResolveBattlePeriodSupplyForTeam(TeamBInfo.Name, _state.TeamB);
     }
 
-    private (int Gold, int Food) ResolveDailyBattleSupplyForTeam(string teamName, int gold, int food, int activeTroops)
+    private void ResolveBattlePeriodSupplyForTeam(string teamName, BattleTeamState team)
     {
-        var result = BattleSupplySystem.ResolveDailyUpkeep(gold, food, activeTroops);
+        var result = BattleSupplySystem.ResolvePeriodUpkeep(
+            team.Gold,
+            team.Food,
+            team.TotalTroops,
+            team.GoldUpkeepRemainder,
+            team.FoodUpkeepRemainder);
+        team.Gold = result.Gold;
+        team.Food = result.Food;
+        team.GoldUpkeepRemainder = result.GoldRemainder;
+        team.FoodUpkeepRemainder = result.FoodRemainder;
+        team.HadFoodShortageThisDay |= result.IsFoodShortage;
         if (result.FoodNeed <= 0 && result.GoldNeed <= 0)
         {
-            return (gold, food);
+            return;
         }
 
         AppendBattleLog(
             teamName,
             "Supply",
-            $"Daily upkeep: food -{result.FoodSpent:N0}/{result.FoodNeed:N0}, gold -{result.GoldSpent:N0}/{result.GoldNeed:N0}");
+            $"{GetCurrentBattleTimeOfDay()} upkeep: food -{result.FoodSpent:N0}/{result.FoodNeed:N0}, gold -{result.GoldSpent:N0}/{result.GoldNeed:N0}");
+    }
 
-        if (result.FoodNeed <= 0)
-        {
-            return (result.Gold, result.Food);
-        }
+    private void ResolveEndOfDaySupplyEffects()
+    {
+        ResolveEndOfDaySupplyEffectsForTeam(TeamAInfo.Name, _state.TeamA);
+        ResolveEndOfDaySupplyEffectsForTeam(TeamBInfo.Name, _state.TeamB);
+    }
 
-        if (result.IsFoodShortage)
+    private void ResolveEndOfDaySupplyEffectsForTeam(string teamName, BattleTeamState team)
+    {
+        UpdateTeamZeroFoodDays(teamName);
+        var dailyFoodNeed = CalculateDailyFoodNeed(team.TotalTroops);
+        if (team.HadFoodShortageThisDay)
         {
             ApplyTeamMoralePenalty(teamName, StarvingMoralePenalty, "food shortage");
             ApplyTeamStarvationDesertion(teamName);
-            return (result.Gold, result.Food);
         }
-
-        if (result.IsLowFood)
+        else if (dailyFoodNeed > 0 && team.Food < dailyFoodNeed)
         {
             ApplyTeamMoralePenalty(teamName, LowFoodMoralePenalty, "low food");
         }
 
-        return (result.Gold, result.Food);
+        team.HadFoodShortageThisDay = false;
     }
 
     private void ApplyTeamStarvationDesertion(string teamName)
@@ -1841,7 +1917,9 @@ public partial class BattleSceneController : Node2D
 
     private void ExecuteSelectedRetreat()
     {
-        if (_selectedUnit == null || !_selectedUnitGrid.HasValue || !IsBattlePiece(_selectedUnit))
+        if (_selectedUnit == null ||
+            !_selectedUnitGrid.HasValue ||
+            !CanRetreatFromGrid(_selectedUnitGrid.Value, _selectedUnit))
         {
             return;
         }
@@ -2537,6 +2615,7 @@ public partial class BattleSceneController : Node2D
 
     private void ApplyRetreatTroopLoss(BattleOccupantInfo retreatingUnit)
     {
+        HandleCampaignTeamRetreat(retreatingUnit);
         var retreatTroops = Mathf.Max(0, retreatingUnit.TroopCount);
         ApplyTeamTroopLoss(retreatingUnit, retreatTroops);
     }
@@ -3292,7 +3371,7 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
-    private void ResolveBattleFireAtTurnEnd()
+    private void ResolveBattleFireAtTimePeriodEnd()
     {
         if (_mapData == null || _activeFireByGrid.Count == 0)
         {
@@ -3960,6 +4039,31 @@ public partial class BattleSceneController : Node2D
         };
     }
 
+    private void ConfigureEnvironmentForecastTooltips()
+    {
+        if (_environmentSeed == 0)
+        {
+            return;
+        }
+
+        var forecast = GetEnvironmentForecast();
+        var tooltip = BattleFormat(
+            "ui.battle.environment_forecast",
+            "Next period: {0} / {1} / Wind {2} {3}",
+            FormatBattleTimeOfDay(forecast.TimeOfDay),
+            FormatBattleWeather(forecast.Weather),
+            FormatBattleWindDirection(forecast.WindDirection),
+            FormatBattleWindPower(forecast.WindPower));
+        foreach (var button in new[] { _timeButton, _weatherButton, _windButton, _windPowerButton })
+        {
+            if (button != null)
+            {
+                button.Disabled = !EnableEnvironmentDebugControls;
+                button.TooltipText = tooltip;
+            }
+        }
+    }
+
     private static Vector2I GetWindGridOffset(BattleWindDirection direction)
     {
         return direction switch
@@ -4397,10 +4501,39 @@ public partial class BattleSceneController : Node2D
     {
         var viewportSize = GetViewportRect().Size;
         var zoom = _camera?.Zoom ?? Vector2.One;
-        var center = _camera?.GlobalPosition ?? GetViewportRect().GetCenter();
-        var worldSize = new Vector2(viewportSize.X * zoom.X, viewportSize.Y * zoom.Y);
+        var usableScreenRect = GetMapUsableScreenRect(viewportSize);
+        var viewportCenter = viewportSize * 0.5f;
+        var screenCenter = usableScreenRect.GetCenter();
+        var cameraCenter = _camera?.GlobalPosition ?? viewportCenter;
+        var center = cameraCenter + ((screenCenter - viewportCenter) * zoom);
+        var worldSize = usableScreenRect.Size * zoom;
 
         return new Rect2(center - (worldSize * 0.5f), worldSize);
+    }
+
+    private Rect2 GetMapUsableScreenRect(Vector2 viewportSize)
+    {
+        var top = _topBar?.Visible == true
+            ? Mathf.Clamp(_topBar.GetGlobalRect().End.Y, 0.0f, viewportSize.Y)
+            : 0.0f;
+        var right = viewportSize.X;
+        foreach (var panel in new[] { _tileInfoPanel, _battleLogPanel })
+        {
+            if (panel?.Visible != true)
+            {
+                continue;
+            }
+
+            var panelRect = panel.GetGlobalRect();
+            if (panelRect.Position.X > 0.0f && panelRect.Position.X < right)
+            {
+                right = panelRect.Position.X;
+            }
+        }
+
+        // Keep a usable area even in unusually narrow windows or while a panel is resized.
+        right = Mathf.Max(160.0f, right);
+        return new Rect2(0.0f, top, right, Mathf.Max(160.0f, viewportSize.Y - top));
     }
 
     private static float ClampAxis(float mapOrigin, float mapMin, float mapMax, float viewMin, float viewMax)

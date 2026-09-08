@@ -19,6 +19,9 @@ internal sealed class BattleTeamState
     internal int Gold { get; set; }
     internal int Food { get; set; }
     internal int ZeroFoodDays { get; set; }
+    internal int FoodUpkeepRemainder { get; set; }
+    internal int GoldUpkeepRemainder { get; set; }
+    internal bool HadFoodShortageThisDay { get; set; }
 }
 
 internal static class BattleTeamIdentity

@@ -14,4 +14,10 @@
     <Compile Remove="tools\AiHarness\**\*.cs" />
     <None Include="tools\AiHarness\**\*" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>AiHarness</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

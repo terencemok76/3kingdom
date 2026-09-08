@@ -1,5 +1,6 @@
 using System.IO;
 using System.Reflection;
+using ThreeKingdom.Battle;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
@@ -10,9 +11,29 @@ internal static class Program
     private static readonly List<string> Passes = new();
     private static readonly List<string> Failures = new();
 
-    private static void Main()
+    private static void Main(string[] args)
     {
+        if (args.Contains("--battle-campaign-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunBattleCampaignLifecycleTest();
+            RunBattleCampaignReinforcementTest();
+            RunBattleCampaignReorganizationTest();
+            RunDefenderPlanOverrideTest();
+            PrintSummary();
+            return;
+        }
+
+        if (args.Contains("--battle-environment-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunBattlePeriodSupplyTest();
+            RunBattleEnvironmentForecastTest();
+            PrintSummary();
+            return;
+        }
+
         // Keep test order stable so regression diffs stay easy to compare across runs.
+        RunBattlePeriodSupplyTest();
+        RunBattleEnvironmentForecastTest();
         RunAttackSchedulingTest();
         RunAttackAutoBreakPactTest();
         RunDefensePromptEligibilityTest();
@@ -66,6 +87,11 @@ internal static class Program
         RunFreeOfficerMovementTest();
         RunMultiMonthSoakTest();
 
+        PrintSummary();
+    }
+
+    private static void PrintSummary()
+    {
         Console.WriteLine($"AI TEST SUMMARY: PASS={Passes.Count} FAIL={Failures.Count}");
         foreach (var line in Passes)
         {
@@ -79,6 +105,215 @@ internal static class Program
 
         Environment.ExitCode = Failures.Count == 0 ? 0 : 1;
     }
+
+    private static void RunBattlePeriodSupplyTest()
+    {
+        const int activeTroops = 4200;
+        var gold = 1000;
+        var food = 1000;
+        var goldRemainder = 0;
+        var foodRemainder = 0;
+        var totalGoldNeed = 0;
+        var totalFoodNeed = 0;
+        for (var period = 0; period < BattleBalanceSettings.BattleTimePeriodsPerDay; period++)
+        {
+            var result = BattleSupplySystem.ResolvePeriodUpkeep(
+                gold,
+                food,
+                activeTroops,
+                goldRemainder,
+                foodRemainder);
+            gold = result.Gold;
+            food = result.Food;
+            goldRemainder = result.GoldRemainder;
+            foodRemainder = result.FoodRemainder;
+            totalGoldNeed += result.GoldNeed;
+            totalFoodNeed += result.FoodNeed;
+        }
+
+        var expectedGoldNeed = BattleSupplySystem.CalculateScaledResourceNeed(
+            activeTroops,
+            BattleBalanceSettings.DailyGoldPer100ActiveTroops);
+        var expectedFoodNeed = BattleSupplySystem.CalculateScaledResourceNeed(
+            activeTroops,
+            BattleBalanceSettings.DailyFoodPer100ActiveTroops);
+        Assert(
+            totalGoldNeed == expectedGoldNeed && totalFoodNeed == expectedFoodNeed &&
+            goldRemainder == 0 && foodRemainder == 0,
+            "Battle four-period upkeep equals one day",
+            $"gold={totalGoldNeed}/{expectedGoldNeed}, food={totalFoodNeed}/{expectedFoodNeed}, remainder={goldRemainder}/{foodRemainder}");
+    }
+
+    private static void RunBattleEnvironmentForecastTest()
+    {
+        const uint seed = 0x1234ABCDu;
+        var first = BattleEnvironmentSystem.CreateForecast(
+            seed,
+            7,
+            BattleTimeOfDay.Afternoon,
+            BattleWeatherType.Cloudy,
+            BattleWindDirection.NorthEast,
+            BattleWindPower.Breeze);
+        var repeated = BattleEnvironmentSystem.CreateForecast(
+            seed,
+            7,
+            BattleTimeOfDay.Afternoon,
+            BattleWeatherType.Cloudy,
+            BattleWindDirection.NorthEast,
+            BattleWindPower.Breeze);
+        var nextPowerDistance = Math.Abs((int)first.WindPower - (int)BattleWindPower.Breeze);
+        var directionIsAdjacentOrSame = first.WindDirection is
+            BattleWindDirection.NorthEast or
+            BattleWindDirection.NorthWest or
+            BattleWindDirection.SouthEast;
+        Assert(
+            first == repeated &&
+            first.TimeOfDay == BattleTimeOfDay.Night &&
+            first.Weather == BattleWeatherType.Cloudy &&
+            !first.StartsNewDay &&
+            directionIsAdjacentOrSame &&
+            nextPowerDistance <= 1,
+            "Battle environment forecast is deterministic and bounded",
+            $"forecast={first}");
+    }
+
+    private static void RunBattleCampaignLifecycleTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var attack = CreateBattleCampaignAttack();
+        var campaign = BattleCampaignService.CreateCampaign(world, attack, DefenderBattlePlan.FieldIntercept);
+        var hasInnerDefense = BattleCampaignService.HasEffectiveInnerCityDefender(campaign);
+        var ramReserved = campaign.Teams.Any(team => team.SiegeEngineType == SiegeEngineType.Ram && team.Location == CampaignTeamLocation.Reserve);
+        for (var day = 0; day < BattleCampaignService.MaximumBattleDaysPerMonth; day++)
+        {
+            BattleCampaignService.AdvanceCompletedBattleDay(campaign);
+        }
+
+        var reachedLimit = BattleCampaignService.HasReachedMonthlyBattleLimit(campaign);
+        campaign.Teams.First(team => team.Side == CampaignBattleSide.Attacker).WoundedTroops = 200;
+        campaign.Teams.First(team => team.Side == CampaignBattleSide.Attacker).ActiveTroops -= 200;
+        campaign.Teams.First(team => team.Side == CampaignBattleSide.Defender && team.Location == CampaignTeamLocation.InnerCity).WoundedTroops = 200;
+        campaign.Teams.First(team => team.Side == CampaignBattleSide.Defender && team.Location == CampaignTeamLocation.InnerCity).ActiveTroops -= 200;
+        var attackerBefore = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).Sum(team => team.WoundedTroops);
+        var defenderBefore = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender).Sum(team => team.WoundedTroops);
+        BattleCampaignService.BeginNextCampaignMonth(campaign, 200, 2);
+        var attackerAfter = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).Sum(team => team.WoundedTroops);
+        var defenderAfter = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender).Sum(team => team.WoundedTroops);
+        Assert(
+            campaign.Stage == CampaignStage.FieldBattle && hasInnerDefense && ramReserved && reachedLimit &&
+            campaign.BattleDaysThisMonth == 0 && attackerAfter < attackerBefore && defenderAfter < defenderBefore,
+            "Battle campaign monthly lifecycle",
+            $"inner={hasInnerDefense}, ramReserved={ramReserved}, limit={reachedLimit}, wounded={attackerBefore}->{attackerAfter}/{defenderBefore}->{defenderAfter}");
+    }
+
+    private static void RunBattleCampaignReinforcementTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.CityDefense);
+        var order = BattleCampaignService.DispatchReinforcement(
+            world,
+            campaign,
+            3,
+            CampaignBattleSide.Attacker,
+            new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 } },
+            100,
+            200);
+        BattleCampaignService.AdvanceCompletedBattleDay(campaign);
+        var firstDayTraveling = order.Status == ReinforcementStatus.Traveling;
+        BattleCampaignService.AdvanceCompletedBattleDay(campaign);
+        Assert(
+            firstDayTraveling && order.Status == ReinforcementStatus.Deployed &&
+            campaign.Teams.Any(team => team.ReinforcementOrderId == order.Id),
+            "Battle campaign delayed reinforcement",
+            $"eta={order.RouteLinks * 2}, status={order.Status}");
+    }
+
+    private static void RunBattleCampaignReorganizationTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.CityDefense);
+        var proposed = campaign.Teams
+            .Where(team => team.FactionId == 1)
+            .Select(team => new CampaignBattleTeamData
+            {
+                Id = team.Id,
+                FactionId = team.FactionId,
+                Side = team.Side,
+                ControllerType = team.ControllerType,
+                OfficerId = team.OfficerId,
+                TroopType = team.TroopType,
+                SiegeEngineType = team.SiegeEngineType,
+                ActiveTroops = team.ActiveTroops,
+                WoundedTroops = team.WoundedTroops,
+                MaximumTroops = team.MaximumTroops,
+                Location = team.Location
+            }).ToList();
+        var accepted = BattleCampaignService.TryReorganizeFactionTeams(campaign, 1, proposed, out _);
+        proposed[0].ActiveTroops++;
+        var rejected = !BattleCampaignService.TryReorganizeFactionTeams(campaign, 1, proposed, out _);
+        Assert(accepted && rejected, "Battle campaign reorganization preserves totals", $"accepted={accepted}, rejectedInvalid={rejected}");
+    }
+
+    private static void RunDefenderPlanOverrideTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var services = CreateServices(world);
+        var scheduled = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 1,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            GoldToSend = 100,
+            FoodToSend = 500,
+            DefenderBattlePlanOverride = DefenderBattlePlan.FieldIntercept,
+            OfficerIds = new List<int> { 101 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 101, TroopType = TroopType.Infantry, TroopCount = 1000 }
+            }
+        });
+        var pending = world.PendingCommands.Single(command => command.Type == CommandType.Attack);
+        var resolved = services.Turn.ResolvePendingCommands(services.Resolver).Single();
+        var campaign = world.ActiveBattleCampaigns.Single();
+        Assert(
+            scheduled.Success && resolved.Success &&
+            pending.DefenderBattlePlanOverride == DefenderBattlePlan.FieldIntercept &&
+            campaign.DefenderPlan == DefenderBattlePlan.FieldIntercept && campaign.Stage == CampaignStage.FieldBattle,
+            "Debug defender plan override",
+            $"scheduled={scheduled.Success}, override={pending.DefenderBattlePlanOverride}, stage={campaign.Stage}");
+    }
+
+    private static WorldState CreateBattleCampaignWorld()
+    {
+        var world = TestHelpers.World();
+        world.InteractiveBattlesEnabled = true;
+        world.Cities.Add(TestHelpers.City(1, "PlayerCity", 1, 2000, 5000, 7000, new[] { 101 }, new[] { 2, 3 }));
+        world.Cities.Add(TestHelpers.City(2, "TargetCity", 2, 1800, 5000, 6000, new[] { 201, 202 }, new[] { 1, 3 }));
+        world.Cities.Add(TestHelpers.City(3, "ReserveCity", 1, 1200, 3000, 4000, new[] { 102 }, new[] { 1, 2 }));
+        world.Officers.Add(TestHelpers.Officer(101, "P1", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "P2", 3));
+        world.Officers.Add(TestHelpers.Officer(201, "D1", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "D2", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Defender", false, 201, new[] { 201, 202 }));
+        return world;
+    }
+
+    private static PendingCommandData CreateBattleCampaignAttack() => new()
+    {
+        Type = CommandType.Attack,
+        ActorFactionId = 1,
+        SourceCityId = 1,
+        TargetCityId = 2,
+        GoldToSend = 500,
+        FoodToSend = 2000,
+        AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+        {
+            new() { OfficerId = 101, TroopType = TroopType.Infantry, TroopCount = 3000 },
+            new() { OfficerId = 101, TroopType = TroopType.Siege, TroopCount = 500, SiegeEngineType = SiegeEngineType.Ram }
+        }
+    };
 
     private static void RunAttackSchedulingTest()
     {
@@ -173,7 +408,9 @@ internal static class Program
         Assert(searchPending == 1, "AI search scheduling", $"pending={searchPending}");
         Assert(city.LastSearchYear == world.Year && city.LastSearchMonth == world.Month, "AI search marked used", $"lastSearch={city.LastSearchYear}/{city.LastSearchMonth}");
         // Search resolves at month end, and internal affairs does not consume resources immediately.
-        Assert(city.Gold == 380 && city.Food == 420, "AI core action immediate costs", $"gold={city.Gold}, food={city.Food}");
+        var expectedGold = 500 - RecruitRules.GetRecruitGoldCost(TroopType.Infantry, 200);
+        var expectedFood = 500 - RecruitRules.GetRecruitFoodCost(TroopType.Infantry, 200);
+        Assert(city.Gold == expectedGold && city.Food == expectedFood, "AI core action immediate costs", $"gold={city.Gold}/{expectedGold}, food={city.Food}/{expectedFood}");
     }
 
     private static void RunAiDefensiveDiplomacyTruceTest()
@@ -2043,7 +2280,8 @@ internal static class Program
             Year = source.Year,
             Month = source.Month,
             RandomSeed = source.RandomSeed,
-            ViewAllInformationEnabled = source.ViewAllInformationEnabled
+            ViewAllInformationEnabled = source.ViewAllInformationEnabled,
+            InteractiveBattlesEnabled = source.InteractiveBattlesEnabled
         };
 
         clone.Cities.AddRange(source.Cities.Select(city => new CityData
@@ -2410,7 +2648,8 @@ internal static class TestHelpers
         {
             Year = year,
             Month = month,
-            RandomSeed = 1
+            RandomSeed = 1,
+            InteractiveBattlesEnabled = false
         };
     }
 }

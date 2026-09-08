@@ -573,6 +573,7 @@ public partial class CommandResolver
             GoldToSend = carriedGold,
             FoodToSend = carriedFood,
             AttackOfficerDeployments = validDeployments,
+            DefenderBattlePlanOverride = request.DefenderBattlePlanOverride,
             OfficerIds = selectedOfficerIds
         });
 
@@ -742,6 +743,18 @@ public partial class CommandResolver
                 });
         }
 
+        if (world.ActiveBattleCampaigns.Any(campaign =>
+                campaign.Stage != CampaignStage.Resolved &&
+                (campaign.SourceCityId == sourceCity.Id || campaign.TargetCityId == sourceCity.Id ||
+                 campaign.SourceCityId == targetCity.Id || campaign.TargetCityId == targetCity.Id)))
+        {
+            sourceCity.AddTroopAllocation(pendingCommand.TroopAllocation);
+            sourceCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
+            sourceCity.Gold += pendingCommand.GoldToSend;
+            sourceCity.Food += pendingCommand.FoodToSend;
+            return LocalizedResult(false, "cmd.attack.campaign_conflict");
+        }
+
         var attackingTroops = pendingCommand.TroopsToSend;
         if (attackingTroops <= 0)
         {
@@ -758,6 +771,31 @@ public partial class CommandResolver
         var defenderAllocation = pendingCommand.DefenderOfficerDeployments.Count > 0
             ? CreateTroopAllocationFromAttackDeployments(pendingCommand.DefenderOfficerDeployments)
             : null;
+        var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
+        if (world.InteractiveBattlesEnabled &&
+            (sourceCity.OwnerFactionId == playerFactionId || defendingFactionId == playerFactionId))
+        {
+            var defenderPlan = defendingFactionId == playerFactionId
+                ? pendingCommand.DefenderBattlePlan
+                : pendingCommand.DefenderBattlePlanOverride ?? BattleCampaignService.ChooseDefenderBattlePlan(world, targetCity, pendingCommand);
+            var campaign = BattleCampaignService.CreateCampaign(world, pendingCommand, defenderPlan);
+            var campaignResult = LocalizedResult(
+                true,
+                "cmd.attack.campaign_started",
+                new object[]
+                {
+                    GetCityName(sourceCity, GameLanguage.TraditionalChinese),
+                    GetCityName(targetCity, GameLanguage.TraditionalChinese)
+                },
+                new object[]
+                {
+                    GetCityName(sourceCity, GameLanguage.English),
+                    GetCityName(targetCity, GameLanguage.English)
+                });
+            campaignResult.ActiveBattleCampaignId = campaign.Id;
+            return campaignResult;
+        }
+
         var combat = _combatResolver.Resolve(
             world,
             sourceCity,

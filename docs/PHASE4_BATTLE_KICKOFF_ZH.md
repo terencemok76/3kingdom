@@ -318,12 +318,12 @@
 - Command Menu 的單位資訊固定顯示本地化「類型」列，讓步兵、工兵、投石車、糧車等兵種／車種可直接辨識。
 - 野戰 AI 的一般戰隊可在符合安全距離與接敵條件的森林格選擇 `Hide`；隱藏後，對進入合法攻擊範圍的可見敵軍會提高攻擊候選分數以形成伏擊。AI 不會直接讀取敵方隱藏單位作為可見目標，但玩家仍可保留對森林格的盲攻。
 - 野戰 AI 會比較雙方 Food 可供應日數：敵方少於 `2` 日、且比己方更接近斷糧時，提高守堡、Guard、Hide 與攻擊敵方 `SupplyCart` 的候選分數；只剩 `1` 日或更少時，位於 Building／己方 Fortress 的一般戰隊會將 Guard 放入全域候選，並降低一般非必殺攻擊的分數，讓 AI 優先拖延或切斷補給線。例外是存在任何合法直接攻擊目標（包含弓／弩遠距）時：Guard 不會列入候選，直接攻擊不會受低糧扣分並獲得同等戰術加分；必殺與最後堡壘勝利仍保留既有高分。已在其目標 Fortress 的單位不會產生接近同一堡壘的移動候選，沒有直接攻擊時 Guard 留守。
-- 野戰 top bar 提供僅供測試的「攻方糧食：1 日」與「守方糧食：1 日」按鈕，將指定方 Food 設為其目前 active troops 的一日消耗，方便驗證低糧 AI 行為，不修改 Scenario 初始資源。一日為攻、守雙方各完成一次回合；每次完成完整一日，會結算雙方日常補給並讓戰場日期前進。
+- 野戰測試與由 gameplay 進入的戰鬥 top bar 都有 `偵錯 / Debug`，會開啟非模態、可由標題列拖曳的 Debug 浮動面板；不顯示暗幕，也不攔截面板外的戰場輸入。兩者都可使用面板內的「啟用／停用 AI、開始回合、下一步、攻方／守方糧食：1 日」控制。campaign battle 未開始時維持原有正式回合流程；按下「開始回合」後會與野戰測試相同，將攻守雙方都設為 AI 單步檢閱，因此目前行動方的「下一步」可立即使用。Debug 回合進行中仍可對目前行動方切換 AI／玩家控制；停用 AI 後可手動接管尚未行動的隊伍，再啟用 AI 則可繼續用「下一步」測試。時間、天氣、風向與風力按鈕仍保留在 top bar。兩個一日糧食按鈕會將指定方 Food 設為其目前 active troops 的一日消耗，方便驗證低糧 AI 行為，不修改 Scenario 初始資源。一日分為 `Dawn / Morning / Afternoon / Night` 四個時段；攻、守雙方各完成一次行動後才結束一個時段。每個時段扣除當日 Gold／Food 消耗的四分之一，整數餘數會帶到後續時段，避免四次取整令實際消耗增加；只有 `Night -> Dawn` 才讓日期前進，結算整日低糧／斷糧士氣與逃兵效果。
 - 開戰及攻守方回合切換顯示回合 banner 時，鏡頭會同步移到目前行動陣營所有在場單位的畫面位置中心；若該方沒有在場單位則保留目前鏡頭位置。
 - 若 Food 不足以支付整日消耗，Food 會歸零，該方全隊扣 `15` 士氣，並讓每支一般戰隊立即流失 `10%` 現役兵力；流失量以傷害數字與 Battle Log 顯示，令斷糧效果可觀察且可測試。
 - Food 為 `0` 時，所有一般戰隊、攻城器與補給車會在各自回合開始依連續零糧完整日數，將 Energy 上限由 `10` 依序降至 `7`、`5`、`5`；Food 回復後，下一個己方回合立即回復 `10`。第 3 日起為固定瀕餓作戰：移動範圍最多 `1` 格，且一般攻擊、合擊與 Charge 傷害均為正常 `50%`，移動後沒有足夠 Energy 再攻擊。車體本身不會因而扣 HP，但 Energy 低於 `5` 時補給車無法補給／補彈，投石車無法一般射擊。
-- battle team 可使用 prototype `Retreat`：選取隊伍後可直接撤出戰場，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。無論玩家或 AI 觸發撤退，畫面中央皆會顯示單位名稱及 `Retreat` 的提示框約 2 秒後自動消失；武將隊顯示「武將名／兵種」，Worker 等無武將隊伍顯示本地化兵種名。
-- 戰場加入非模態的武將發言框：左上顯示武將肖像、姓名與台詞，4 秒後自動關閉，不會暫停玩家輸入或 AI。`data/battle/officer_speeches.json` 只存觸發事件、persona、優先權與 locale key；實際繁中／英文台詞存於 `data/localization/21-battle-officer-speeches.locale.json`。目前可在開戰、進入森林／丘陵／橋／沼澤、一般攻擊、Charge、合擊、奪取防禦據點／糧車、摧毀有歸屬的敵方部隊或攻城器、兵力低於 35% 及撤退時觸發；同一武將有 20 秒冷卻（撤退例外），高優先事件可覆蓋低優先發言。persona 依現有戰鬥智略／戰鬥數值與既有武將定位推導，不改變任何戰鬥規則、AI 判斷或地圖資料。
+- battle team 可使用 prototype `Retreat`，但必須先走入己方撤離區才可離開戰場：攻方預設為 SW、守方預設為 NE 的 `2×4` 格；每張 `BattleScenarioDefinition` 可覆寫雙方撤離格。兩方撤離區會常駐顯示：攻方紅色、守方藍色；未抵達前 Retreat 按鈕會停用並顯示提示。AI 的危急撤退會先朝可到達的撤離區推進，抵達後才離場。成功撤退後，該隊伍會從目前格子與畫面移除，並釋放佔用格；top bar 的對應陣營總兵力會扣除該隊伍撤退時的剩餘 `TroopCount`。無論玩家或 AI 觸發撤退，畫面中央皆會顯示單位名稱及 `Retreat` 的提示框約 2 秒後自動消失；武將隊顯示「武將名／兵種」，Worker 等無武將隊伍顯示本地化兵種名。
+- 戰場加入非模態的武將發言框：左上顯示武將肖像、姓名與台詞，4 秒後自動關閉，不會暫停玩家輸入或 AI。發言與指令選單的人像會優先依 campaign team 的 officer ID，讀取 `data/person/person_image_1..9.json` 對應的 portrait atlas；因此 gameplay battle 的繁中姓名（如周倉）亦可顯示正確頭像，舊 prototype 英文姓名對照保留作 fallback。`data/battle/officer_speeches.json` 只存觸發事件、persona、優先權與 locale key；實際繁中／英文台詞存於 `data/localization/21-battle-officer-speeches.locale.json`。目前可在開戰、進入森林／丘陵／橋／沼澤、一般攻擊、Charge、合擊、奪取防禦據點／糧車、摧毀有歸屬的敵方部隊或攻城器、兵力低於 35% 及撤退時觸發；同一武將有 20 秒冷卻（撤退例外），高優先事件可覆蓋低優先發言。persona 依現有戰鬥智略／戰鬥數值與既有武將定位推導，不改變任何戰鬥規則、AI 判斷或地圖資料。
 - 戰鬥畫面以 locale 顯示勢力名稱：內部仍以 `Team A / Attacker`、`Team B / Defender` 供戰鬥規則與 AI 判斷，但 top bar、行動方提示、HUD 與武將發言框顯示「曹操軍／董卓軍」（英文為 `Cao Cao`／`Dong Zhuo`）。發言框順序為勢力名、武將名、台詞。
 - `Unit Command` menu 的 action buttons 超過 `4` 個可見指令時，指令區會限制高度並啟用垂直捲動；title 與 unit info 保持固定顯示。
 - `Unit Command` 的 unit info 只保留戰鬥相關資料：不顯示勢力、兵種與彈藥，但保留指令行；一般戰隊的兵力合併為「兵力：現役（傷兵）」一行，括號只顯示傷兵數。投石車、衝車、雲梯與補給車不顯示士氣。
@@ -346,7 +346,7 @@
   - `Resupply Weapon`：對八方向 1 格內同隊 `Archer`、`Crossbow`、`Catapult` 補滿武器彈藥。
   - `Archer` 武器彈藥為 `6/6`、`Crossbow` 為 `4/4`、`Catapult` 為 `3/3`；普通攻擊、合擊中的遠程參與者，以及 `Strategy (Fire)` 各消耗 `1` 發。`Archer` / `Crossbow` / `Catapult` 彈藥為 `0` 時仍可使用 1 格 `Weak Close Attack`，傷害約為各自原攻擊的 `35%`，且不播放箭矢／石彈彈道；`Strategy (Fire)` 仍需要彈藥。
   - `Archer` / `Crossbow` 使用 `Strategy (Fire)` 時會播放攻擊動畫與箭矢彈道；`Catapult` 則播放投石車攻擊動畫與投石彈道，再於目標格點燃 fire。
-  - 每個完整 battle day（Team B 結束後、Turn 前進時）會消耗雙方 Gold / Food：目前 prototype 以每 `100` active troops 消耗 `Food 5` 與 `Gold 1` 計算；若當日糧食不足，Food 歸零、該隊一般 battle team `Morale -15`，且每支一般戰隊流失 `10%` active troops；若剩餘糧食低於下一日需求則 `Morale -6`。攻城器與補給車沒有 morale，也不套用兵員流失；但 Food 持續為 `0` 時，它們和一般戰隊一樣會在各自回合的 Energy 上限按零糧完整日數降為 `7`、`5`、`5`。第 3 日起為固定瀕餓作戰：移動範圍最多 `1` 格、一般攻擊／合擊／Charge 傷害為 `50%`；Food 回復後下一個己方回合回到 `10`。
+  - 每個完整戰鬥時段（攻守雙方各完成一次行動）會扣除雙方當日 Gold／Food 消耗的四分之一；目前 prototype 以每日每 `100` active troops 消耗 `Food 5` 與 `Gold 1` 計算，整數餘數帶到後續時段，確保四個時段合計等於整日需求。若該日任何時段糧食不足，Food 歸零，並在 `Night -> Dawn` 換日結算時讓該隊一般 battle team `Morale -15`、每支流失 `10%` active troops；若整日沒有短缺但換日後剩餘糧食低於下一日需求，則 `Morale -6`。攻城器與補給車沒有 morale，也不套用兵員流失；但 Food 持續為 `0` 時，它們和一般戰隊一樣會在各自回合的 Energy 上限按零糧完整日數降為 `7`、`5`、`5`。第 3 日起為固定瀕餓作戰：移動範圍最多 `1` 格、一般攻擊／合擊／Charge 傷害為 `50%`；Food 回復後下一個己方回合回到 `10`。
   - 糧草車被摧毀時，同隊 Gold / Food 會額外損失 `25%`，同隊仍在場的一般 battle team 士氣會立刻降為目前值的 `50%`；糧草車主動撤退不觸發此懲罰。
   - 一般 battle team 若相鄰敵方 `SupplyCart`，command menu 會顯示 `Capture Cart`；成功後敵方 Gold / Food 損失 `25%` 並轉移給俘獲方，敵方仍在場的一般 battle team 士氣降為目前值的 `50%`，俘獲方一般 battle team `Morale +10`，且該糧草車會轉為俘獲方陣營並留在戰場，可由俘獲方後續控制與使用。
   - 一般 battle team 若同層 2 格內有敵方 officer / general 隊伍，command menu 會顯示 `Hire Officer`；點擊後會 highlight 所有可招降目標，玩家再點選要招降的目標。花費 Gold 可直接招降該隊伍並轉入己方，目前 prototype 先固定成本為 `100 Gold`。招降成功後會播放金色牽引線、目標格光環與 `招降成功` 浮字，招降方仍在場的一般 battle team `Morale +8`，被招降方仍在場的一般 battle team `Morale -8`。
@@ -377,7 +377,7 @@
   - battle team 受傷紀錄會顯示受擊隊伍、傷害數字，以及造成傷害的攻擊隊伍；fire damage 則標記為 fire 來源。
   - log 可切換 `All` 或 `Self`；`Self` 目前依當前 acting side 顯示該隊伍相關紀錄。
   - 面板採用 gameplay floating log 風格，支援拖曳移動、最小化／還原，以及右下角 resize grip 調整大小。
-- Battle UI 已接入 `LocalizationService`，會跟隨 options language 顯示繁中或英文；目前涵蓋 top bar、battle log panel chrome、command menu、unit menu info、Tile Info/Selected Piece 面板，以及地形／建物／天候／時段／風向／指令狀態等可見 UI 文案。Tile Info/Selected Piece 是 debug 用資訊面板，已改為 scrollable text，方便檢查較長的格子與單位狀態。Top bar 只保留 battle-only `Option` 入口；popup 內可執行 battle quick save/load、切換語言、切換 BGM/SFX、調整 BGM/SFX volume，並透過 `OptionSettingsStore` 儲存設定；音訊設定與主遊戲共用同一份 options 存檔。Battle Log 的逐條事件敘述仍保留 prototype 文字，待後續整理成 log locale keys。
+- Battle UI 已接入 `LocalizationService`，會跟隨 options language 顯示繁中或英文；目前涵蓋 top bar、battle log panel chrome、command menu、unit menu info、Tile Info/Selected Piece 面板，以及地形／建物／天候／時段／風向／指令狀態等可見 UI 文案。Tile Info/Selected Piece 是 debug 用資訊面板，已改為 scrollable text，方便檢查較長的格子與單位狀態。Top bar 保留 battle-only `Option` 與 `偵錯 / Debug` 入口。由 gameplay 進入 campaign battle 時，top bar 會顯示實際攻守勢力、目標城市戰役名稱、campaign 日期、各方戰場上已部署兵力及 campaign 金糧，而不是 prototype 固定的曹操／董卓、鄴與預設資源；內城、預備與尚未抵達的增援不列入戰場兵力。Option popup 內可執行 battle quick save/load、切換語言、切換 BGM/SFX、調整 BGM/SFX volume，並透過 `OptionSettingsStore` 儲存設定；音訊設定與主遊戲共用同一份 options 存檔。Battle Log 的逐條事件敘述仍保留 prototype 文字，待後續整理成 log locale keys。
 - Command menu 只顯示目前可實際執行的 action；若 Move / Attack / Strategy / Charge / Hide / Capture Cart / Hire Officer / Supply / Worker action 等沒有合法目標或條件不足，就不在 action list 佔位顯示 disabled button。
 - Command menu 開啟時維持在 Battle Log 之上，因此兩個可拖曳面板重疊時，指令按鈕仍可正常點擊；它仍低於 battle option 與 battle finished overlay。
 - 牆頂單位可使用 prototype 專用攻擊：
@@ -389,17 +389,20 @@
   - `Pour Oil` 會顯示由牆頂傾倒的熱油流與落點濺射效果，並沿用一般受擊動畫。
   - 兩種牆頂投放攻擊均不播放一般武器攻擊動畫；兩者的範圍傷害與狀態效果，留待後續規則模組處理。
 - battle scenario 現在可定義 `TimeOfDay`、`Weather`、`WindDirection` 與 `WindPower`：
-  - top bar 會以按鈕顯示目前戰場時段、天氣、風向與風力；點擊可循環切換 prototype runtime 狀態。
+  - top bar 會以按鈕顯示目前戰場時段、天氣、風向與風力；一般遊戲中按鈕不可手動改變環境，游標提示會顯示已預先決定的下一時段之時段／天氣／風向／風力。只有在 Inspector 開啟 `Enable Environment Debug Controls` 時，才可點擊循環切換 prototype runtime 狀態。
+  - 攻守雙方完成一輪後自動依 `Dawn -> Morning -> Afternoon -> Night -> Dawn` 推進；同一時段內雙方使用完全相同的環境。天氣只在 `Night -> Dawn` 換日時變化：晴天只會維持或轉陰，陰天可轉晴／維持／轉雨，雨天只會維持或轉陰。
+  - 風向與風力每個時段更新一次；風向有 `60%` 維持、其餘只向相鄰方向轉一級，不會直接反轉。風力只會在 `Calm <-> Breeze <-> Strong` 相鄰級別間變化，晴天偏向維持／減弱，雨天提高增強機率。
+  - 每場新戰鬥建立獨立 environment seed；下一時段結果由 seed 與 environment step 可重現地產生，quick save/load 會保存兩者以及時段補給餘數，避免讀檔後重抽環境。
   - `Dawn / Morning / Afternoon / Night` 先作為輕量全域戰鬥條件；目前 `Night` 會令弓兵／弩兵／投石車有效攻擊射程 -1，但最少保留 1 格。
   - 時段會以戰場 overlay 呈現：`Dawn` 偏淡橙、`Morning` 微暖、`Afternoon` 偏金色、`Night` 偏深藍；切換時段時會用短 tween 過渡，且不遮住 top bar、tile info、command menu 或 battle log。
   - 天氣會以第二層戰場 overlay 呈現：`Sunny` 透明，`Cloudy` 套用灰藍 tint，`Rain` 套用更深灰藍 tint 並顯示斜向雨線；weather overlay 疊在 time overlay 上方、UI panel 下方，不攔截滑鼠。
   - `Tile Info` 不再重複顯示 scenario、weather、wind、time 等全域戰場狀態，只保留格子、地形、結構、部署與單位資訊。
-  - `Strategy` 的第一個落地版本為 fire tactic：目前由弓兵／弩兵／投石車使用，選擇 `L0` 目標格後建立 fire。
+  - `Strategy` 的第一個落地版本為 fire tactic：目前由弓兵／弩兵／投石車使用，選擇 `L0` 目標格後建立 fire；選擇火計目標時，游標指向合法目標會以另一種高亮預覽按目前風向、風力與地形排序後最可能延燒的格子。
   - 一般 battle team 可使用 prototype `Strategy (Mess / Calm)`：對同層 `3` 格 Chebyshev 範圍內敵方一般 battle team 可施加 `Mess`，成功後目標 `Mess 2 turns` 並 `Morale -12`；對同隊已 `Mess` 的一般 battle team 可使用 `Calm`，解除 `Mess` 並 `Morale +15`。
   - Team A / Team B 各自有 `Strategy Plans 6/6` 限制；`Strategy (Fire)`、`Strategy (Mess)`、`Strategy (Calm)` 每次成功進入施放流程消耗 `1` 點，Mess 失敗也算已消耗計策。
   - 同一 battle team 每個己方行動回合只能使用一次 Strategy；用過後直到下一次己方回合前不可再次使用。
   - `Mess` 成功率會依施術者與目標 officer battle attribute、目標 morale 與低士氣狀態調整；第一版不允許混亂部隊攻擊友軍，以避免隨機失控造成過強負回饋。
-- fire 會在 battle piece 完成移動、進入已燃燒的 `L0` 格時立刻結算一次火傷；留在火場內的單位仍會在每次 `End Turn` 再結算傷害。火勢依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。
+- fire 會在 battle piece 完成移動、進入已燃燒的 `L0` 格時立刻結算一次火傷；留在火場內的單位只在攻守雙方完成該完整時段後再結算一次火傷、持續時間與延燒，不會每個單方 `End Turn` 重複結算。火勢依 `WindDirection`、鄰格方向與地形權重擴散；風向提供偏好，但不再只沿單一直線延燒。每個火源每時段最多擴散至 `2` 個新火格，新火格要到下一時段才可繼續擴散。
   - 帶武將的一般 battle team 在自身格或同層八方向 `1` 格內有 fire 時，Strategy 會切換為 `Extinguish`；每次消耗 `3` 行動力且本回合不能再使用 Strategy，不消耗 Strategy Plan。成功率依武將 intelligence、天候與火場地形決定；成功會移除該格 fire，失敗則火勢保留，兩者皆顯示本地化浮字與 Battle Log。AI 同樣可使用，但只會在火場威脅己方 battle piece 或己方 Fortress 時加入決策池；糧車、投石車、衝車、雲梯與 Worker 均不可滅火。
   - `WindPower` 會影響 fire spread speed：`Calm` 只允許森林／草地／木柵欄慢速帶火，每 3 個 burn tick 最多擴 1 格；`Strong` 會增加擴散格數並縮短 spread interval。
   - 森林與草地會燒得較久且擴散較快；道路、橋與庭院擴散較慢；護城河、城牆與牆頂不會成為 fire spread 目標。
@@ -481,7 +484,7 @@
 - 讀取 `Use Editor Authored Layout` 的 scene 時，應先讀取原始 `TileMapLayer` 內容，再重建 shared tileset 與 runtime 視覺；不能在讀取前先重新指定 layer tileset，否則 bridge 之類的 editor-authored flip 資訊可能會遺失。
 - 目前 `NorthWest` 戰場的 bridge visual 應預設跟隨 `DefaultStructureFacing = NorthWest` 套用水平翻轉，避免即使 editor flip 資訊遺失，遊戲內橋面方向仍與 `NW` 場景相反。
 - `NE` / `NW` 戰場的「城內地面格」判定不應靠掃描牆線方向推測，應直接使用 runtime `BattleMapData` 的 `Terrain == Courtyard` 作為內城地面判定；這樣可同時避免 `NW` 關門守軍退城誤判，也不會讓 `SiegeAssault` 的攻城車在外城草地／道路被錯誤當成城內而無法移動。
-- battle prototype top bar 具備 battle-only `Save` / `Load`：存到 `user://saves/battle_quicksave.json`，讀回同一個 battle scene 的戰鬥狀態。第一版保存 scenario type、turn、time/weather/wind、Gold/Food、strategy plan、可變地圖 cell、存活單位位置與兵力/HP/士氣/彈藥/hidden 狀態、牆頂攻擊剩餘次數、fire state 與 battle log；Load 時會重用 scene 既有 battle piece marker 並更新位置／陣營／狀態，避免重複建立單位；尚未併入大地圖 `WorldState` slot save/load。
+- battle prototype top bar 具備 battle-only `Save` / `Load`：存到 `user://saves/battle_quicksave.json`，讀回同一個 battle scene 的戰鬥狀態。Version 2 保存 scenario type、turn、time/weather/wind、environment seed／step、時段補給整數餘數、Gold/Food、strategy plan、可變地圖 cell、存活單位位置與兵力/HP/士氣/彈藥/hidden 狀態、牆頂攻擊剩餘次數、fire state 與 battle log；Load 時會重用 scene 既有 battle piece marker 並更新位置／陣營／狀態，避免重複建立單位。舊版 battle quick save 不作轉換，可直接刪除或由新存檔覆蓋；尚未併入大地圖 `WorldState` slot save/load。
 - `Battle / 戰鬥` 入口目前已支援 5 個模式選項：
   - `FieldBattle`
   - `NE SiegeAssault`
@@ -507,3 +510,110 @@
 - 投石車一般攻擊的動畫順序為：投石車攻擊 → 石彈飛行完成 → 目標受傷與傷害數字 popup；弓兵與弩兵同樣在箭矢命中後才觸發傷害結算、戰鬥紀錄與 Guard 判定。
 - 頂欄會依目前語系顯示戰場名稱、日期與 Field Battle AI 控制鈕；繁中日期格式為 `YYYY 年 MM 月 DD 日`，英文維持 `YYYY Apr D`。
 - 戰鬥開始及每次行動方切換時，畫面中央會顯示目前勢力的本地化回合橫幅（如「曹操軍回合／董卓軍回合」），約 `2.5` 秒後自動關閉；橫幅不攔截滑鼠與操作。
+
+## 11. 跨月戰役、戰前外交與援軍（第一版實作中）
+
+本章同時記錄正式戰役層的規則與目前落地狀態。第一版已把持續戰役資料納入 `WorldState`／正式存檔，並以 Campaign snapshot 在 Gameplay 與戰場間傳遞；battle-only quick save 不再負責跨場景流程，舊 quick save 不保證相容。
+
+目前可玩的主幹包含：玩家參與的 Attack 建立 Campaign、守方選擇野戰或守城、實際出征隊伍進入戰場、每月 `10` 個作戰日、跨月保存／續戰、援軍確定性 ETA 與 `12` 隊上限、野戰勝利後三選一、城戰前資料層重編守恆、跨月傷兵恢復，以及勝負後城市／兵力／軍資結算。AI 對 AI 仍沿用快速戰略結算。
+
+仍待補強的介面與深度規則包括：玩家自訂本國援軍編成面板、完整戰前邀請／守方使者 UI、盟軍同側回合內的自動行動與協同指令、逐隊撤往指定鄰城、城門受阻時的外部援軍路徑，以及盟軍戰功／承諾報酬。資料模型、AI 接受判定、Gift／Expedition Supply、來源扣除、行軍、預備隊與控制權欄位已先建立；在上述 UI 完成前，不應把它們視為完整玩家流程。
+
+### 11.1 每月十個作戰日與跨月續戰
+
+- 每個戰略月份最多進行 `10` 個戰鬥日；一個戰鬥日仍由 `Dawn / Morning / Afternoon / Night` 四個時段組成，每個時段要等攻守雙方各完成一次行動才結束，因此每月最多推進 `40` 個完整戰鬥時段。
+- 第 `10` 日 Night 結束後仍未達成勝利、撤退或投降條件時，戰鬥只會暫停，不強制判定勝負或平手。系統保存兵力、傷兵、HP、士氣、Energy、彈藥、Gold／Food、火勢、可變地圖／建築耐久、據點歸屬、環境 seed／step、待命援軍及 Battle Log，然後返回 Gameplay 大地圖。
+- 大地圖月份正常前進；下一個戰略月可由「持續戰役」入口接續原有戰場。世界目前只有 Year／Month，未加入世界日曆前，UI 應顯示「本月作戰第 N／10 日」，不要將其誤寫成完整世界日期。
+- 戰役中的武將、戰隊、軍資及來源城市兵力必須被鎖定，不能同時再用於其他命令；戰場目標城市在戰役結束前亦不能被一般即時攻擊結算重複處理。
+- 第一版不設跨月後的強制勝負；以糧盡、士氣、撤退、投降、殲滅、據點或城市陷落自然結束。若實測出現長期無進展，優先提高攻方 AI 的撤退意願，而不是硬判一方獲勝。
+
+### 11.2 本國援軍
+
+- 攻守雙方均可在 Gameplay 的持續戰役面板，從相同勢力的其他城市派遣武將、戰隊、Gold 與 Food；本國增援是軍事命令，不需要外交接受判定。
+- 來源城市必須與戰場有完整友軍路線、沒有被包圍或參與另一場戰役，且派出後仍保留依周邊威脅計算的最低守軍。每座城市每個戰略月最多派出一次援軍。
+- 命令確認時立即從來源城市扣除並鎖定武將、兵力與軍資，建立 `ReinforcementOrder`；尚在行軍中的資源不能再被其他命令使用，也不會提前加入戰場補給。
+- 暫定確定性抵達時間：原始攻方出發城市與被攻城市守軍在開戰時部署；直接鄰接的本國城市於 `2` 個戰鬥日後抵達，相隔兩條／三條城市連接分別於 `4`／`6` 日後抵達。山區路線或出發時的惡劣天候可固定增加 `1` 日，但抵達日必須在確認派遣前顯示，不應於途中隨機重抽。
+- 援軍只在己方時段開始前的 Dawn 進場。攻方由攻方地圖邊界、營寨或已控制入口加入；守方由城內後方、守方邊界或仍受控制的城門加入。入口受阻時進入等待隊列，不可重疊生成或直接出現在敵軍旁邊。
+- 戰役提前結束時，未抵達援軍與軍資停止行軍並返回來源城市；已抵達但未使用的本國軍資於戰後按正式結算規則返回控制方城市。
+
+### 11.3 戰前外交、盟國與其他國家援助
+
+- 攻方在確認宣戰前可進入「戰前外交／動員」階段，邀請盟國共同攻擊目標城市，請求戰隊、Gold、Food 或全面支援。受邀國接受後才從其來源城市保留資源並建立援軍命令；盟軍仍需行軍若干日，不會在戰鬥第一日無延遲出現。
+- 組織聯軍會降低突襲保密性：邀請國越多、準備越久，守方越可能提早獲得完整來襲情報。快速突襲可壓縮守方求援時間，但攻方也較難在開戰前集結盟軍。
+- 守方收到來襲情報、但尚未進入戰場前，可從未部署參戰的武將中指派使者，向盟國或其他國家請求戰隊、Gold 與 Food。使者在任務完成或返回前不能加入戰場；其 Intelligence 與後續外交屬性會影響回覆速度、接受機率及可取得的支援量。
+- 守方能否求援及可等待多久，取決於預警時間：正常宣戰提供完整求援機會；突襲成功時只允許較短的回覆窗口；情報不足時，部分國家可能來不及在入場前答覆，但已送出的請求可在戰鬥開始後繼續等待。
+- 正式 `Alliance` 可派遣戰隊、武將與軍資；`Truce` 不等於共同參戰。普通友好國家原則上只提供 Gold／Food；若派出正式戰隊，即視為加入戰爭，必須產生對敵方的外交後果，且同一國家不能同時支援攻守雙方。
+- 外國 AI 依同盟／關係、共同敵人、距離、路線、自身城市安全、可用兵力與糧食、戰役重要性、預計抵達日、君主／軍師能力及承諾報酬判斷是否接受。自身瀕臨斷糧或首都／前線受威脅時，可拒絕派兵但改為提供較少軍資。
+- 外交回覆時間暫定最少 `1` 日，再按城市連接距離加入行軍日數；直接鄰接盟國的第一批援軍通常在第 `2` 日 Dawn 抵達。Gold／Food 第一版可與戰隊共用同一抵達日，日後再擴充獨立補給車隊與攔截玩法。
+- 攻下城市預設歸戰役發起國；盟國依出兵數、傷亡、軍資、參戰日數與戰功獲得報酬、關係或聲望。邀請時承諾的報酬若未履行，應降低關係及後續接受求援的機率。
+
+### 11.4 戰場陣營、國籍與控制權
+
+- 戰場始終只有 Attacker／Defender 兩個 `BattleSide`；聯軍不建立 Team C／Team D。每支戰隊另外保存實際 `FactionId`、`ControllerType`、`ReinforcementOrderId` 與可選的 `CooperationObjective`，使勝負與敵我規則沿用兩個陣營，外交、戰功及戰後返還則按實際國籍處理。
+- 玩家直接控制本國初始部隊及本國援軍，包括移動、攻擊、Strategy、Supply、撤退與進場優先順序；抵達日仍由行軍命令決定，不能由玩家任意提前。
+- 外國援軍由所屬國 AI 控制。玩家只能提出「自由作戰、攻擊指定區域、守備 Fortress／城門、保護補給、支援指定戰隊、保持陣地或建議撤退」等協同請求；AI 依關係、主將能力、士氣、補給與風險決定如何執行，合理請求在高關係下應有較高遵從率。
+- 不為每個參戰國建立獨立大回合；仍在攻方／守方行動階段內完成同側所有部隊行動。玩家結束本國操作後，同側尚未行動的盟軍 AI 完成行動，之後才交給敵方。
+- 外國軍資分為 `Gift` 與 `Expedition Supply`：Gift 抵達後加入戰役主導國可用資源；Expedition Supply 優先供援助國自己的部隊使用，由該國 AI 管理。戰後剩餘量依來源與承諾返還，避免邀請盟軍後直接奪取其全部補給。
+
+### 11.5 同時在場上限與援軍待命隊列
+
+- 25×25 prototype 地圖的第一版暫定每個陣營最多同時在場 `12` 個 battle pieces；本國、盟國、初始部隊與後續援軍共用同一上限。Supply Cart 最多 `2` 輛、攻城器最多 `3` 部，且包含在 `12` 個總上限內；各 Scenario 日後可依地圖大小覆寫。
+- 超過上限的已抵達援軍進入 Reserve Queue，不算作可直接操作的在場單位；在場部隊潰退、撤退或被消滅後，空出的名額才可由預備隊於下一個合法 Dawn／己方階段開始前補入。實作中的野戰增援使用獨立側翼入口：攻方預設由 NW、守方預設由 SE 的 2×4 格入口區進場，與各自初始部署區分離。每張 `BattleScenarioDefinition` 可覆寫雙方入口格；入口沒有可用格時，該援軍維持 Reserve，不會生成到敵軍旁或被當作陣亡。
+- 本國預備隊由玩家決定進場優先順序；盟國預備隊由所屬國 AI 決定。相同優先級依預計抵達日與派遣順序排列，入口受阻時繼續等待。
+- 已抵達戰區但等待部署的預備隊仍消耗 Food，避免利用在場上限囤積不耗糧的無限援軍。HUD／持續戰役面板至少顯示「在場 N／12、待命援軍數、下一批援軍所屬勢力與預計抵達日」。
+
+### 11.6 建議資料與實作順序
+
+- 在 `WorldState`／正式存檔新增持續戰役資料，例如 `ActiveBattleCampaignData`、`BattleParticipantData`、`BattleInvitationData` 與 `ReinforcementOrderData`；共同保存攻守主導國、來源／目標城市、本月與累積作戰日、完整 BattleState snapshot、各國參戰貢獻、援軍 ETA、待命隊列及戰役結果。
+- 玩家參與的戰役使用上述持續戰役流程；AI 對 AI 戰爭第一版可繼續採用戰略層自動結算，待持續戰役資料穩定後再決定是否模擬多場並行戰場。
+- 建議落地次序：跨月保存與返回 Gameplay → 本國援軍與抵達隊列 → 外國 Gold／Food 支援 → 外國戰隊與控制權 → AI 邀請、接受、協同及戰後報酬。
+
+### 11.7 守方迎擊方式與野戰轉守城戰
+
+- Debug／God Mode 開啟時，玩家主動攻擊敵城的出征面板會額外顯示 `Debug：強制守方迎擊`，可選 `AI 自動決定（不覆寫）`、`出城野戰` 或 `固守城市`。此 override 只用於重現與測試兩種場景；God Mode 關閉時不顯示，正式玩法仍由守方 AI 決定。
+- 守方收到攻擊情報、配置守軍及送出戰前求援後，必須在進入戰場前選擇 `Field Intercept`（出城野戰）或 `City Defense`（固守城市）。Field Intercept 只在有足夠預警、可用戰隊及安全出城路線時可選；突襲成功、城市已被包圍或沒有機動戰隊時，只能固守城市。
+- Field Intercept 不提供城牆、城門或城市 Defense 加成，且 Ladder／Ram 不得部署於 FieldBattle；攻方已帶來的 Ladder／Ram 保留在攻城隊列，只有戰役進入 City Battle 才可出場。Catapult 是否可用仍由各 Field Scenario 部署資料決定。
+- 守方野戰勝利會擊退攻方並結束本次城市攻擊；守方野戰失敗後，每支存活戰隊可依合法路線選擇退入目標城市、撤往友方鄰城、繼續作戰或投降。只有實際抵達守方撤退區／內城入口且未被包圍的戰隊可進入後續守城戰，不能在野戰敗北時自動傳送回城。
+- 撤往鄰城的戰隊立即離開戰場，進入行軍狀態，抵達前不可在該城市使用；路線必須保持本國／獲准盟國控制，目的地不能正被包圍。無合法撤退路線的敗軍可能潰散、投降或被俘。
+- 只要至少一支帶武將且仍有現役兵力的有效戰隊退入內城、城內仍有未參加野戰的有效守軍，或已有守方援軍成功進城，戰役便由 `FieldBattle` 轉入 `SiegeAssault`／`MoatSiegeBattle`。只有 Worker、Supply Cart、攻城器或無武將殘兵留城時，不足以阻止城市陷落。
+- 若野戰結束時城內沒有任何有效守軍，攻方直接取得城市，不建立空城 City Battle。戰役狀態應以同一份 `ActiveBattleCampaignData` 將 `CampaignStage` 從 FieldBattle 改為 CityBattle，而不是結算舊戰役後另建一場無關的新戰鬥。
+- 守方若一開始選擇 City Defense，所有合法守軍直接使用城市部署區與城防；一旦此階段敗北便失去城市，不再獲得另一場退回城內的戰鬥。這與 Field Intercept 的取捨是：野戰有機會提早擊退敵軍及拖延援軍，但沒有城防，而且敗軍可能無法撤回城市。
+- 守方 AI 以預警時間、城防完整度、兵力、地形、騎兵比例、安全撤退路線、己方／敵方援軍 ETA、Food，以及武將 Intelligence／Combat 評估迎擊方式；Combat 較高且野戰條件有利時提高 Field Intercept 分數，Intelligence 較高但兵力較少或城防完整時提高 City Defense 分數。
+
+### 11.8 野戰勝利後的攻方決策
+
+- 攻方贏得 FieldBattle、且城內仍有有效守軍時，玩家或攻方 AI 必須選擇 `Immediate Assault`（立即攻城）、`Prepare Next Month Siege`（持續包圍、下月攻城）或 `Withdraw`（撤退）。若城內沒有有效守軍，則跳過此選擇並直接取得城市。
+- Immediate Assault 在下一個 Dawn 轉入 City Battle，沿用當前已抵達部隊、兵力、傷兵、士氣、彈藥與 Gold／Food；守方傷兵不因場景切換自動恢復，雙方也不能提前使用尚未抵達的援軍。Ladder／Ram 此時才可由攻方攻城隊列加入部署。
+- Immediate Assault 仍受本月十個作戰日限制。例如第 `8` 日野戰勝利後，攻城只剩第 `9..10` 日；第 `10` 日 Night 仍未攻陷便保存並跨月。若野戰在第 `10` 日結束，當月已沒有合法攻城時段，只能建立下月包圍或撤退。
+- Prepare Next Month Siege 不代表攻方離開，而是把 `CampaignStage` 設為 `SiegePreparation`、維持城外營地與包圍後返回 Gameplay。下月攻方可由本國鄰城補充戰隊、Gold、Food、Ladder、Ram，亦可再次請求盟國；守方同樣可由本國與盟國求援，但援軍能否進城取決於包圍、外部進場路線及城門控制。
+- 延後期間雙方持續支付補給；守方可使用城市資源有限修復城門、城牆及設施，不能免費完全恢復。攻方若無法維持 Food、缺乏攻城器或敵方大批援軍即將抵達，應提高撤退意願。
+- Withdraw 會正式結束戰役，守方保有城市；攻方存活部隊、未使用軍資及尚未抵達援軍依路線返回來源城市。日後再次攻擊必須建立新的 Attack／Campaign，不能直接續用已撤退戰役，但野戰傷亡、戰功與武將經驗仍保留。
+- 攻方 AI 在守軍低兵力／低士氣、城防較弱、敵援將到且己方補給足夠時偏向 Immediate Assault；己方傷亡較高、攻城器／援軍將到且能維持包圍時偏向 Prepare Next Month Siege；斷糧、勝算過低或來源城市受威脅時偏向 Withdraw。Intelligence 著重援軍、糧食與恢復差距，Combat 提高在可接受勝算下立即進攻的傾向。
+
+### 11.9 城戰前重編成與跨月傷兵恢復
+
+- FieldBattle 轉入 City Battle 前提供一次 `Army Reorganization`。玩家可重編本國戰隊，外國盟軍由所屬國 AI 自行重編；不同國家的士兵不能互相轉入對方武將戰隊。
+- 重編前後必須分別保持現役兵力總數、傷兵總數與各兵種總數不變。只允許相同勢力、相同兵種間調動，不能把傷兵轉成現役、把步兵轉成騎兵／弓兵，或透過場景切換創造兵力。每隊仍受武將統率／戰隊容量限制；兵力調至 `0` 的戰隊退出首批部署，武將進入 Reserve。
+- 攻方重編池由野戰存活部隊與已抵達本國援軍組成；守方重編池由成功撤回城內的部隊、原有城內守軍及已抵達城市的本國援軍組成。盟國各自保存獨立兵力池。尚在行軍中的援軍不加入本次重編。
+- 重編不能清除 Morale、Mess、疲勞、Energy 或彈藥狀態。多隊合併／轉移時，Morale 依轉入兵力加權計算；傷兵仍按兵種與來源記錄，防止把低士氣或重傷部隊轉入另一武將後免費恢復。
+- 選擇 Prepare Next Month Siege 時，只有已成功撤回城內的傷兵可接受城市恢復；死亡、潰散、被俘及仍在城外的部隊不能恢復。第一版平衡基準暫定：城內有足夠 Food 時可將最多 `100%` 傷兵恢復為現役，攻方營地有足夠 Food／Supply Cart 時最多恢復 `50%`；Food 不足會按可支付比例降低恢復量，任何恢復均不能超過原戰隊／兵種容量。
+- 攻方也保留較低的營地恢復，避免「等待下月」只單方面強化守方而令 AI 永遠不應選擇；守方的完整恢復則代表城市醫療、人口與後勤優勢。實際比例應做成 balance setting，經跨月戰役 playtest 後再調整。
+
+### 11.10 City Battle 援軍外部進場
+
+- City Battle 進行期間，不論本國或外國、攻方或守方，後續抵達的戰隊均先到達城市外圍合法 entry zone，不可直接傳送到城內、城牆、城門格或敵軍旁邊。
+- 攻方援軍由攻方營地／攻城側地圖邊界加入；守方本國與盟國援軍以外部救援軍身分從守方後方地圖邊界加入，再嘗試突破包圍並抵達仍由守方控制的外城門。只有存在安全路線及可用城門時才能進城，否則留在城外與攻方交戰或等待後續時段。
+- 援軍只在己方合法 Dawn／行動階段開始前加入，並受每方同時在場 `12` 個 battle pieces 與 Reserve Queue 規則限制。entry zone 被佔、城門失守或路線切斷時延後部署，不重新隨機計算原始 ETA。
+
+### 11.11 分階段實作計畫
+
+1. **已完成—持續戰役資料層**：已新增 `CampaignStage`、`ActiveBattleCampaignData`、參戰勢力、戰場 snapshot、每月／累積作戰日、結果、Invitation 與 Reinforcement 資料，正式 WorldState 序列化會一併保存。
+2. **已完成—Attack resolution 切分**：玩家參與的 Attack 建立 Campaign；AI 對 AI 保留戰略 `CombatResolver`。參戰城市與武將會鎖定，衝突命令退回已保留資源。
+3. **部分完成—戰前決策 UI**：守方提示已有 Field Intercept／City Defense；攻方外交動員、守方使者與自訂支援內容仍待面板化。
+4. **已完成—snapshot 與場景切換主幹**：第十個完整作戰日後將戰場 DTO 寫入 Campaign、返回 Gameplay，下一月可由「持續戰役」重載；Field → City 使用同一 Campaign 並清除不相容地圖 snapshot。
+5. **部分完成—撤退與階段結果**：已有 Field／SiegePreparation／City／Resolved 狀態機、有效內城守軍檢查與空城直接陷落；守方撤退目前以退入內城為預設，指定鄰城／投降 UI 待補。
+6. **已完成—攻方三選一**：野戰勝利後可選 Immediate Assault、Prepare Next Month Siege、Withdraw；處理跨月準備、城市所有權與主力資源返還。
+7. **已完成—重編成與恢復服務**：純資料規則驗證勢力、現役、傷兵、兵種與容量守恆；跨月以 Food 支付守方最多 `100%`、攻方最多 `50%` 的傷兵恢復。玩家重編 UI 待補。
+8. **部分完成—本國援軍**：已完成友軍城市路徑、最低守軍、來源扣除、每城每月一次、`2 × route links` ETA、Reserve Queue、`12` 隊上限、抵達後部署，以及攻方 NW／守方 SE 側翼入口與入口阻塞待命；玩家自訂派遣 UI 與完整途中返還待補。
+9. **部分完成—外國援軍與控制權**：已有 Invitation、同盟／關係／城市安全接受判定、Gift／Expedition、`FactionId`／`ControllerType` 與跨國返還資料；同側盟軍自動回合、協同目標、外交後果及戰功報酬待補。
+10. **進行中—AI 與整體驗證**：已有守方迎擊 AI 與 Campaign lifecycle／援軍 ETA／重編守恆自動測試；仍需補足盟軍同側 AI、逐隊撤退、入口受阻及完整 Field → Gameplay → City 互動 smoke test。

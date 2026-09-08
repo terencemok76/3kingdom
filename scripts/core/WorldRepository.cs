@@ -325,6 +325,19 @@ public class WorldRepository
         world.CityIntelRecords ??= new List<WorldState.CityIntelData>();
         world.PendingSuccessionRecords ??= new List<WorldState.PendingSuccessionData>();
         world.PendingCapturedOfficerRecords ??= new List<WorldState.PendingCapturedOfficerData>();
+        world.ActiveBattleCampaigns ??= new List<ActiveBattleCampaignData>();
+
+        foreach (var campaign in world.ActiveBattleCampaigns)
+        {
+            campaign.Teams ??= new List<CampaignBattleTeamData>();
+            campaign.Participants ??= new List<BattleParticipantData>();
+            campaign.Reinforcements ??= new List<ReinforcementOrderData>();
+            campaign.Invitations ??= new List<BattleInvitationData>();
+            foreach (var reinforcement in campaign.Reinforcements)
+            {
+                reinforcement.Teams ??= new List<CampaignBattleTeamData>();
+            }
+        }
 
         foreach (var city in world.Cities)
         {

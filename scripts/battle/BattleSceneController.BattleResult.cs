@@ -44,6 +44,7 @@ public partial class BattleSceneController
         if (!wasFinished)
         {
             AppendBattleLog("Battle", "Result", resultMessage.Replace('\n', ' '));
+            HandleCampaignBattleFinished();
         }
     }
 

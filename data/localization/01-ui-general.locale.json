@@ -398,7 +398,12 @@
 	"ui.defense":  {
 					   "zhHant":  "防禦",
 					   "en":  "Defense"
-				   },
+	},
+	"ui.defender_battle_plan": { "zhHant": "迎擊方式", "en": "Defense Plan" },
+	"ui.debug_defender_plan_override": { "zhHant": "Debug：強制守方迎擊", "en": "Debug: Defender Plan" },
+	"ui.defender_plan_ai_auto": { "zhHant": "AI 自動決定（不覆寫）", "en": "AI decides (no override)" },
+	"ui.defender_plan_field_intercept": { "zhHant": "出城野戰", "en": "Field Intercept" },
+	"ui.defender_plan_city_defense": { "zhHant": "固守城市", "en": "City Defense" },
 	"ui.defense_deployments":  {
 								   "zhHant":  "守軍配兵",
 								   "en":  "Defense Deployments"
@@ -909,6 +914,10 @@
 								   "zhHant":  "本勢力",
 								   "en":  "Self"
 							   },
+		"ui.campaign.continue":  { "zhHant": "持續戰役 {0}/10", "en": "Campaign {0}/10" },
+		"ui.campaign.preparing":  { "zhHant": "下月攻城準備中", "en": "Preparing next month" },
+		"ui.campaign.status_eta":  { "zhHant": "在場 {0}，待命 {1}，下一批援軍 {2} 日", "en": "Active {0}, reserve {1}, next reinforcement in {2} day(s)" },
+		"ui.campaign.status_no_eta":  { "zhHant": "在場 {0}，待命 {1}，目前沒有行軍中的援軍", "en": "Active {0}, reserve {1}, no reinforcements traveling" },
 		"ui.log_filter_all":  {
 								  "zhHant":  "全部",
 								  "en":  "All"

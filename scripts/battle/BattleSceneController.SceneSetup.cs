@@ -104,25 +104,39 @@ public partial class BattleSceneController
         _officerPortrait ??= GetNodeOrNull<TextureRect>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow/OfficerPortrait");
         _commandScroll ??= GetNodeOrNull<ScrollContainer>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll");
         _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
-        _enableAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EnableAiButton");
-        _disableAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/DisableAiButton");
-        _startRoundButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/StartRoundButton");
-        _nextAiButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/NextAiButton");
-        _attackerOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/AttackerOneDayFoodButton");
-        _defenderOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/DefenderOneDayFoodButton");
+        _enableAiButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow/EnableAiButton");
+        _disableAiButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow/DisableAiButton");
+        _startRoundButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow/StartRoundButton");
+        _nextAiButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow/NextAiButton");
+        _attackerOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow/AttackerOneDayFoodButton");
+        _defenderOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow/DefenderOneDayFoodButton");
         _aiRoundStatusLabel ??= GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/AiRoundStatusLabel");
         _timeButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/TimeButton");
         _weatherButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WeatherButton");
         _windButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindButton");
         _windPowerButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindPowerButton");
         _battleOptionButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/BattleOptionButton");
+        _battleDebugButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/BattleDebugButton");
         _battleOptionOverlay ??= GetNodeOrNull<Control>("UiLayer/BattleOptionOverlay");
+        _battleDebugOverlay ??= GetNodeOrNull<Control>("UiLayer/BattleDebugOverlay");
+        _battleDebugPanel ??= GetNodeOrNull<PanelContainer>("UiLayer/BattleDebugOverlay/Center/Panel");
+        _battleDebugTitleBar ??= GetNodeOrNull<Control>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar");
+        if (_battleDebugTitleBar != null)
+        {
+            _battleDebugTitleBar.MouseDefaultCursorShape = Control.CursorShape.Drag;
+        }
         if (_battleOptionOverlay != null)
         {
             _battleOptionOverlay.ZIndex = 190;
         }
+        if (_battleDebugOverlay != null)
+        {
+            _battleDebugOverlay.ZIndex = 191;
+        }
         _battleOptionTitleLabel ??= GetNodeOrNull<Label>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar/TitleLabel");
+        _battleDebugTitleLabel ??= GetNodeOrNull<Label>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar/TitleLabel");
         _battleOptionCloseButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar/CloseButton");
+        _battleDebugCloseButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar/CloseButton");
         _battleOptionSaveButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow/SaveButton");
         _battleOptionLoadButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow/LoadButton");
         _battleOptionLanguageButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/LanguageButton");
@@ -175,6 +189,7 @@ public partial class BattleSceneController
 
     public override void _Input(InputEvent @event)
     {
+        HandleBattleDebugDialogInput(@event);
         HandleBattleLogPanelInput(@event);
     }
 
