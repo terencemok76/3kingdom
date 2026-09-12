@@ -323,7 +323,7 @@ public partial class BattleSceneController
             }
 
             silhouette.Name = $"Occluded_{occupant.ShortLabel}_{grid.X}_{grid.Y}_L{grid.Level}";
-            silhouette.Position = GetMarkerPosition(grid);
+            silhouette.Position = GetOccludedUnitSilhouettePosition(grid);
             _occludedUnitSilhouetteLayer.AddChild(silhouette);
             _occludedUnitSilhouettesByGrid[grid] = silhouette;
         }
@@ -374,12 +374,49 @@ public partial class BattleSceneController
                 return false;
             }
 
-            return cell.IsGateOpen
-                ? cell.HideGroundOccupantWhenGateOpen
-                : cell.HideGroundOccupantWithForeground;
+            // A unit occupying a closed gate is stationed on its protected inner side.
+            // Keep the normal sprite behind the gatehouse and show only the existing
+            // translucent silhouette, rather than making it look as if it stands outside.
+            if (!cell.IsGateOpen)
+            {
+                return true;
+            }
+
+            return cell.HideGroundOccupantWhenGateOpen;
         }
 
         return cell.HideGroundOccupantWithForeground;
+    }
+
+    private Vector2 GetOccludedUnitSilhouettePosition(BattleGridKey grid)
+    {
+        var gatePosition = GetMarkerPosition(grid);
+        if (_mapData == null ||
+            grid.Level != 0 ||
+            !IsWithinMap(grid.Grid))
+        {
+            return gatePosition;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (cell.Structure != BattleStructureType.Gate || cell.IsGateOpen || cell.IsBroken)
+        {
+            return gatePosition;
+        }
+
+        var innerCityGrid = GetOrthogonalNeighbors(grid.Grid)
+            .Where(IsWithinMap)
+            .Where(IsInsideCityGroundGrid)
+            .Select(ToGroundGridKey)
+            .FirstOrDefault();
+        if (innerCityGrid == default)
+        {
+            return gatePosition;
+        }
+
+        // Keep the battle piece logically on the gate so it can control the door, while
+        // moving its occluded representation toward the courtyard to avoid an outer-gate pose.
+        return gatePosition.Lerp(GetMarkerPosition(innerCityGrid), 0.55f);
     }
 
     private static Color GetOccludedUnitSilhouetteColor(BattleOccupantInfo occupant)

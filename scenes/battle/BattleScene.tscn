@@ -839,7 +839,7 @@ text = "Click a tile to inspect."
 autowrap_mode = 3
 
 [node name="BattleLogPanel" type="PanelContainer" parent="UiLayer"]
-custom_minimum_size = Vector2(240, 150)
+custom_minimum_size = Vector2(310, 150)
 offset_left = 1260.0
 offset_top = 540.0
 offset_right = 1570.0
@@ -882,6 +882,11 @@ text = "全部"
 custom_minimum_size = Vector2(72, 0)
 layout_mode = 2
 text = "本勢力"
+
+[node name="CopyLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+custom_minimum_size = Vector2(64, 0)
+layout_mode = 2
+text = "複製全部"
 
 [node name="MinimizeLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
 custom_minimum_size = Vector2(36, 0)

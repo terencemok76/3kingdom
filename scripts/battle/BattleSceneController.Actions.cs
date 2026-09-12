@@ -48,6 +48,7 @@ public partial class BattleSceneController
                     unit.Marker != null &&
                     !_supplyUsedByMarkerThisTurn.Contains(unit.Marker) &&
                     GetWeaponResupplyTargets(intent.SourceGrid, unit).Any(),
+                [BattleActionKind.ToggleGate] = (intent, unit) => CanToggleGateAtGrid(intent.SourceGrid, unit),
                 [BattleActionKind.Guard] = (_, unit) => CanUseGuard(unit),
                 [BattleActionKind.Hide] = (intent, unit) => CanHideAtGrid(intent.SourceGrid, unit),
                 [BattleActionKind.Work] = IsWorkIntentLegal,
@@ -68,6 +69,7 @@ public partial class BattleSceneController
                 [BattleActionKind.Attack] = ExecuteAttackActionIntent,
                 [BattleActionKind.Supply] = ExecuteSupplyActionIntent,
                 [BattleActionKind.ResupplyWeapon] = ExecuteWeaponResupplyActionIntent,
+                [BattleActionKind.ToggleGate] = ExecuteToggleGateActionIntent,
                 [BattleActionKind.Guard] = ExecuteGuardActionIntent,
                 [BattleActionKind.Hide] = ExecuteHideActionIntent,
                 [BattleActionKind.Work] = ExecuteWorkActionIntent,
@@ -160,11 +162,17 @@ public partial class BattleSceneController
         return ActionExecutor.TryExecute(intent, unit, onMoveAnimationComplete);
     }
 
-    private bool ExecuteMoveActionIntent(BattleActionIntent intent, BattleOccupantInfo _, Action? onMoveAnimationComplete)
+    private bool ExecuteMoveActionIntent(BattleActionIntent intent, BattleOccupantInfo unit, Action? onMoveAnimationComplete)
     {
         _movableGrids.Clear();
         _movableGrids.Add(intent.TargetGrid);
-        return TryMoveSelectedUnit(intent.MarkActedAfterMove, onMoveAnimationComplete);
+        // Players may keep spending their remaining energy/range after a move.
+        // AI evaluates one complete action at a time, except for an explicitly
+        // reserved move+attack sequence which must remain eligible for its
+        // follow-up attack callback.
+        var markAiActed = intent.MarkActedAfterMove ||
+                          (IsCurrentTurnAiControlled() && intent.ReservedEnergy == 0);
+        return TryMoveSelectedUnit(markAiActed, onMoveAnimationComplete);
     }
 
     private bool ExecuteAttackActionIntent(BattleActionIntent intent, BattleOccupantInfo _, Action? __)
@@ -184,6 +192,26 @@ public partial class BattleSceneController
     {
         ExecuteSelectedWeaponResupply();
         return HasUnitActed(unit);
+    }
+
+    private bool ExecuteToggleGateActionIntent(BattleActionIntent intent, BattleOccupantInfo unit, Action? __)
+    {
+        if (_mapData == null)
+        {
+            return false;
+        }
+
+        var gateWasOpen = _mapData.GetCell(intent.SourceGrid.X, intent.SourceGrid.Y).IsGateOpen;
+        ToggleGateGroup(GetConnectedGateGroup(intent.SourceGrid.Grid));
+        MarkUnitActed(unit);
+        TryShowOfficerSpeech(unit, gateWasOpen ? BattleOfficerSpeechEvent.GateClose : BattleOfficerSpeechEvent.GateOpen);
+        _commandMode = BattleCommandMode.None;
+        _movableGrids.Clear();
+        _attackableGrids.Clear();
+        HideCommandMenu();
+        RefreshInfoPanel();
+        RefreshHighlights();
+        return true;
     }
 
     private bool ExecuteGuardActionIntent(BattleActionIntent _, BattleOccupantInfo unit, Action? __)

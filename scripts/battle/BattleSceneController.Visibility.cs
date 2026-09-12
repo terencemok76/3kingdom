@@ -73,9 +73,27 @@ public partial class BattleSceneController
             return;
         }
 
-        var visible = IsVisibleToCurrentTurnSide(occupant);
+        // Castle occlusion owns the original marker's visibility.  A normal
+        // visibility refresh can happen in the same frame as movement and used
+        // to reveal the original marker beneath its gate silhouette, making one
+        // officer appear twice.
+        var visible = IsVisibleToCurrentTurnSide(occupant) &&
+                      !IsBattlePieceMarkerOccludedByCastleVisual(occupant.Marker);
         occupant.Marker.Visible = visible;
         occupant.Marker.SetHiddenBodyVisual(visible && occupant.IsHidden);
+    }
+
+    private bool IsBattlePieceMarkerOccludedByCastleVisual(BattlePieceMarker marker)
+    {
+        foreach (var (grid, occupants) in _occupantsByGrid)
+        {
+            if (occupants.Any(occupant => occupant.Marker == marker))
+            {
+                return IsUnitOccludedByCastleVisual(grid);
+            }
+        }
+
+        return false;
     }
 
 

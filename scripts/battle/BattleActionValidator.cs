@@ -33,8 +33,11 @@ internal static class BattleActionValidator
             return false;
         }
 
+        // MarkActedAfterMove only has meaning for movement.  Ordinary actions
+        // (including attack, strategy, and gate control) must use its default
+        // false value; requiring true here silently rejected every such action.
         if (intent.Kind != BattleActionKind.Move &&
-            (intent.ReservedEnergy != 0 || !intent.MarkActedAfterMove))
+            (intent.ReservedEnergy != 0 || intent.MarkActedAfterMove))
         {
             return false;
         }

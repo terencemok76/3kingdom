@@ -61,7 +61,9 @@ public partial class BattleSceneController : Node2D
         TerrainForest,
         TerrainHill,
         TerrainBridge,
-        TerrainSwamp
+        TerrainSwamp,
+        GateOpen,
+        GateClose
     }
 
     private sealed class BattleOfficerSpeechCatalog
@@ -127,6 +129,7 @@ public partial class BattleSceneController : Node2D
     private Label? _officerSpeechTextLabel;
     private Button? _allLogButton;
     private Button? _selfLogButton;
+    private Button? _copyLogButton;
     private Button? _minimizeLogButton;
     private Label? _battleLogLabel;
     private Label? _battleLogTitleLabel;
@@ -241,6 +244,7 @@ public partial class BattleSceneController : Node2D
     private HashSet<BattlePieceMarker> _chargeUsedByMarkerThisTurn => _state.ChargeUsedByMarkerThisTurn;
     private HashSet<BattlePieceMarker> _actedByMarkerThisRound => _state.ActedByMarkerThisRound;
     private readonly Dictionary<BattlePieceMarker, AiBridgeEngineeringPlan> _aiBridgePlanByWorker = new();
+    private AiGateSortiePlan? _aiGateSortiePlan;
     private readonly List<BattleLogEntry> _battleLogs = new();
     private readonly List<ColorRect> _rainStreaks = new();
     private BattleCommandMode _commandMode { get => _interaction.CommandMode; set => _interaction.CommandMode = value; }
@@ -302,6 +306,21 @@ public partial class BattleSceneController : Node2D
         public bool IsGuardAction { get; init; }
     }
     private readonly record struct AiOutpostObjective(BattleGridKey Grid, int Score, string Reason);
+    private enum AiGateSortiePhase
+    {
+        Exit,
+        Engage,
+        Return,
+        Close
+    }
+    private sealed record AiGateSortiePlan(
+        BattleGridKey GateGrid,
+        BattleGridKey TargetGrid,
+        BattleGridKey ExitGrid,
+        BattlePieceMarker SortieMarker,
+        int StartingTroopCount,
+        int ExecuteTurn,
+        AiGateSortiePhase Phase);
     private readonly record struct AiSupplyPlan(BattleGridKey ActionGrid, bool MoveBeforeSupply, AiSupplyActionKind Kind, int Score, string Reason);
     private readonly record struct AiBridgeRepairPlan(BattleGridKey TargetGrid, int RepairAmount, int Score, string Reason);
     private enum AiSupplyActionKind
@@ -652,6 +671,11 @@ public partial class BattleSceneController : Node2D
             _selfLogButton.Pressed += OnSelfLogButtonPressed;
         }
 
+        if (_copyLogButton != null)
+        {
+            _copyLogButton.Pressed += OnCopyLogButtonPressed;
+        }
+
         if (_minimizeLogButton != null)
         {
             _minimizeLogButton.Pressed += OnMinimizeLogButtonPressed;
@@ -696,7 +720,6 @@ public partial class BattleSceneController : Node2D
         }
 
         ShowOpeningOfficerSpeechAfterDelay();
-        ShowTurnBanner();
     }
 
     private bool CanUseEnvironmentDebugControls => EnableEnvironmentDebugControls || IsStandaloneBattleAiTest;
@@ -818,10 +841,9 @@ public partial class BattleSceneController : Node2D
         {
             titleLabel.Text = BattleFormat(
                 "ui.battle.title",
-                "Scenario: {0}   Date: {1}   Turn: {2}   Acting Side: {3}",
+                "Scenario: {0}   {1}   Acting Side: {2}",
                 scenarioName,
-                FormatBattleDate(),
-                _turnNumber,
+                FormatBattleMonthTimeline(),
                 FormatTeamName(GetCurrentTurnSideName()));
         }
 
@@ -906,6 +928,23 @@ public partial class BattleSceneController : Node2D
     private string FormatBattleDate()
     {
         return BattleFormat("ui.battle.date", "{0} Apr {1}", _battleDateYear, _battleDateDay, _battleDateMonth);
+    }
+
+    private string FormatBattleMonthTimeline()
+    {
+        var battleDayThisMonth = _activeCampaign != null
+            ? _activeCampaign.BattleDaysThisMonth + 1
+            : _battleDateDay;
+        battleDayThisMonth = Math.Clamp(battleDayThisMonth, 1, BattleCampaignService.MaximumBattleDaysPerMonth);
+        return BattleFormat(
+            "ui.battle.month_battle_timeline",
+            "Year {0}, Month {1:00} | Battle Day: {2}/{3} | {4} | Turn: {5}",
+            _battleDateYear,
+            _battleDateMonth,
+            battleDayThisMonth,
+            BattleCampaignService.MaximumBattleDaysPerMonth,
+            FormatBattleTimeOfDay(GetCurrentBattleTimeOfDay()),
+            _turnNumber);
     }
 
     private void ApplyBattleOptionDialogStyle()
@@ -2987,7 +3026,15 @@ public partial class BattleSceneController : Node2D
         }
 
         var effectDelaySeconds = PlayStrategyActionEffects(_selectedUnitGrid.Value, targetGrid, actingUnit, attackDirection);
-        AppendBattleLog(_selectedUnit, "Strategy", $"{FormatLogUnit(_selectedUnit)} ignites fire at {targetGrid}{FormatWeaponAmmoLog(_selectedUnit)}");
+        AppendBattleLog(
+            _selectedUnit,
+            "Strategy",
+            BattleFormat(
+                "log.strategy_fire",
+                "{0} ignites fire at {1}{2}",
+                FormatLogUnit(_selectedUnit),
+                targetGrid,
+                FormatWeaponAmmoLog(_selectedUnit)));
         MarkUnitActed(_selectedUnit);
         if (shouldTemporarilyRevealOccludedUnits)
         {
@@ -4186,23 +4233,7 @@ public partial class BattleSceneController : Node2D
 
     private void OnOpenGateButtonPressed()
     {
-        if (!TryGetSwitchableGate(out var gateGrid) || _mapData == null)
-        {
-            return;
-        }
-
-        ToggleGateGroup(GetConnectedGateGroup(gateGrid));
-        if (_selectedUnit != null)
-        {
-            MarkUnitActed(_selectedUnit);
-        }
-
-        _commandMode = BattleCommandMode.None;
-        _movableGrids.Clear();
-        _attackableGrids.Clear();
-        HideCommandMenu();
-        RefreshInfoPanel();
-        RefreshHighlights();
+        TryExecuteSelectedBattleAction(BattleActionKind.ToggleGate);
     }
 
     private void OpenGateGroup(IEnumerable<Vector2I> gateGroup)
@@ -4281,14 +4312,27 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
-        var unitCell = _mapData.GetCell(unitGrid.X, unitGrid.Y);
-        if (unitGrid.Level == 0 && unitCell.Structure == BattleStructureType.Gate && !unitCell.IsBroken)
+        if (CanToggleGateAtGrid(unitGrid, _selectedUnit))
         {
             gateGrid = unitGrid.Grid;
             return true;
         }
 
         return false;
+    }
+
+    private bool CanToggleGateAtGrid(BattleGridKey grid, BattleOccupantInfo unit)
+    {
+        if (_mapData == null ||
+            unit.Category != CategoryUnit ||
+            grid.Level != 0 ||
+            !IsWithinMap(grid.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.Structure == BattleStructureType.Gate && !cell.IsBroken;
     }
 
     private List<Vector2I> GetConnectedGateGroup(Vector2I startGateGrid)

@@ -104,11 +104,12 @@ public partial class BattleSceneController
                 RefreshOccludedUnitSilhouettes();
                 TryShowTerrainSpeech(movedOccupant, destinationGrid);
                 onMoveAnimationComplete?.Invoke();
+                RestorePlayerCommandMenuAfterMove(movedOccupant, destinationGrid);
             });
-        AppendBattleLog(movedOccupant, "Move", $"{FormatLogUnit(movedOccupant)} {sourceGrid} -> {destinationGrid}");
+        AppendBattleLog(movedOccupant, "Move", BattleFormat("log.move", "{0} {1} -> {2}", FormatLogUnit(movedOccupant), sourceGrid, destinationGrid));
         if (movingOccupant.IsHidden && !remainsHidden)
         {
-            AppendBattleLog(movedOccupant, "Status", $"{FormatLogUnit(movedOccupant)} leaves forest and is no longer hidden");
+            AppendBattleLog(movedOccupant, "Status", BattleFormat("log.leave_forest", "{0} leaves forest and is no longer hidden", FormatLogUnit(movedOccupant)));
         }
         RefreshHiddenUnitVisibility();
         if (markAiActed)
@@ -117,6 +118,25 @@ public partial class BattleSceneController
         }
 
         return true;
+    }
+
+    private void RestorePlayerCommandMenuAfterMove(BattleOccupantInfo movedOccupant, BattleGridKey destinationGrid)
+    {
+        // AI uses one planned action per step.  A player movement, however, is
+        // non-terminal: keep the same team selected and restore its commands
+        // after the animation, including when the marker itself is hidden by a
+        // closed gate's foreground occlusion.
+        if (IsCurrentTurnAiControlled() ||
+            _selectedUnit?.Marker != movedOccupant.Marker ||
+            _selectedUnitGrid != destinationGrid ||
+            !IsCurrentTurnPiece(movedOccupant))
+        {
+            return;
+        }
+
+        ShowCommandMenu(GetViewport().GetMousePosition());
+        RefreshInfoPanel();
+        RefreshHighlights();
     }
 
     private Color?[]? BuildMovePathModulates(BattleGridKey sourceGrid, IReadOnlyList<BattleGridKey> movePath, BattleOccupantInfo movingOccupant)

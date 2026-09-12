@@ -6,6 +6,7 @@ internal enum BattleActionKind
     Attack,
     Supply,
     ResupplyWeapon,
+    ToggleGate,
     Guard,
     Hide,
     Work,
@@ -27,5 +28,7 @@ internal readonly record struct BattleActionIntent(
     BattleGridKey SourceGrid,
     BattleGridKey TargetGrid,
     int ReservedEnergy = 0,
-    bool MarkActedAfterMove = true,
+    // Movement spends only its path energy and cumulative MoveRange.  It does not
+    // complete the team's turn unless a caller explicitly requests that behavior.
+    bool MarkActedAfterMove = false,
     bool UseWoodFenceWork = false);

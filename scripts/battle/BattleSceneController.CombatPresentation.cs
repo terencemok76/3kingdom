@@ -467,16 +467,45 @@ public partial class BattleSceneController
 
         if (attackerSpeakers.Count > 0)
         {
-            TryShowOfficerSpeech(attackerSpeakers[_officerSpeechRandom.Next(attackerSpeakers.Count)], BattleOfficerSpeechEvent.Opening);
+            var attackerSpeaker = attackerSpeakers[_officerSpeechRandom.Next(attackerSpeakers.Count)];
+            FocusCameraOnOfficerSpeechUnit(attackerSpeaker);
+            TryShowOfficerSpeech(attackerSpeaker, BattleOfficerSpeechEvent.Opening);
         }
 
         if (defenderSpeakers.Count > 0)
         {
-            await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds + 0.2), SceneTreeTimer.SignalName.Timeout);
+            if (attackerSpeakers.Count > 0)
+            {
+                await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds + 0.2), SceneTreeTimer.SignalName.Timeout);
+            }
+
             if (GodotObject.IsInstanceValid(this) && !_isBattleFinished)
             {
-                TryShowOfficerSpeech(defenderSpeakers[_officerSpeechRandom.Next(defenderSpeakers.Count)], BattleOfficerSpeechEvent.Opening);
+                var defenderSpeaker = defenderSpeakers[_officerSpeechRandom.Next(defenderSpeakers.Count)];
+                FocusCameraOnOfficerSpeechUnit(defenderSpeaker);
+                TryShowOfficerSpeech(defenderSpeaker, BattleOfficerSpeechEvent.Opening);
             }
+        }
+
+        if (attackerSpeakers.Count > 0 || defenderSpeakers.Count > 0)
+        {
+            await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds + 0.2), SceneTreeTimer.SignalName.Timeout);
+        }
+
+        if (GodotObject.IsInstanceValid(this) && !_isBattleFinished)
+        {
+            ShowTurnBanner();
+        }
+    }
+
+    private void FocusCameraOnOfficerSpeechUnit(BattleOccupantInfo occupant)
+    {
+        var speakerGrid = _occupantsByGrid
+            .FirstOrDefault(entry => entry.Value.Any(candidate => candidate.Marker == occupant.Marker))
+            .Key;
+        if (speakerGrid != default)
+        {
+            FocusCameraOnBattleGrid(speakerGrid);
         }
     }
 
@@ -528,7 +557,7 @@ public partial class BattleSceneController
         var now = Time.GetTicksMsec();
         if (_officerSpeechLastShownAt.TryGetValue(occupant.OfficerName, out var lastShownAt) &&
             now - lastShownAt < OfficerSpeechCooldownMilliseconds &&
-            speechEvent != BattleOfficerSpeechEvent.Retreat)
+            speechEvent is not (BattleOfficerSpeechEvent.Retreat or BattleOfficerSpeechEvent.GateOpen or BattleOfficerSpeechEvent.GateClose))
         {
             return;
         }
@@ -574,6 +603,8 @@ public partial class BattleSceneController
             BattleOfficerSpeechEvent.TerrainHill => "terrain_hill",
             BattleOfficerSpeechEvent.TerrainBridge => "terrain_bridge",
             BattleOfficerSpeechEvent.TerrainSwamp => "terrain_swamp",
+            BattleOfficerSpeechEvent.GateOpen => "gate_open",
+            BattleOfficerSpeechEvent.GateClose => "gate_close",
             _ => speechEvent.ToString().ToLowerInvariant()
         };
     }

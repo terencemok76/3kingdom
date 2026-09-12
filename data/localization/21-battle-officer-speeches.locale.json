@@ -48,5 +48,13 @@
   "ui.battle.speech.vanguard.retreat.01": { "zhHant": "暫退整隊，下一擊必雪此恥！", "en": "Fall back and reform. The next blow will repay this!" },
   "ui.battle.speech.tactician.retreat.01": { "zhHant": "此地已不可守，撤回再圖。", "en": "This ground cannot be held. Withdraw and plan anew." },
   "ui.battle.speech.steadfast.retreat.01": { "zhHant": "掩護同袍，依序撤離！", "en": "Cover our comrades. Withdraw in order!" },
-  "ui.battle.speech.ambitious.retreat.01": { "zhHant": "今日暫讓，來日必當討回！", "en": "We yield today only to reclaim it tomorrow!" }
+  "ui.battle.speech.ambitious.retreat.01": { "zhHant": "今日暫讓，來日必當討回！", "en": "We yield today only to reclaim it tomorrow!" },
+  "ui.battle.speech.vanguard.gate_open.01": { "zhHant": "開門！隨我出擊，莫失戰機！", "en": "Open the gate! Follow me out—seize the moment!" },
+  "ui.battle.speech.tactician.gate_open.01": { "zhHant": "門道已開，依計出擊，切勿戀戰。", "en": "The gate is open. Strike to plan, and do not overextend." },
+  "ui.battle.speech.steadfast.gate_open.01": { "zhHant": "城門已開，前隊出擊，後隊接應！", "en": "The gate is open. Front rank out, rear rank support!" },
+  "ui.battle.speech.ambitious.gate_open.01": { "zhHant": "城門既開，正好取敵首功！", "en": "The gate opens—now we take the first honor!" },
+  "ui.battle.speech.vanguard.gate_close.01": { "zhHant": "關門！不可讓敵軍趁隙而入！", "en": "Close the gate! Do not let the enemy slip through!" },
+  "ui.battle.speech.tactician.gate_close.01": { "zhHant": "收束門道，敵軍的機會到此為止。", "en": "Seal the passage. The enemy's chance ends here." },
+  "ui.battle.speech.steadfast.gate_close.01": { "zhHant": "城門關緊，城牆之內絕不失守！", "en": "Bar the gate. We do not yield the city within!" },
+  "ui.battle.speech.ambitious.gate_close.01": { "zhHant": "想進此門？先問過我的兵刃！", "en": "Want through this gate? First answer to my blade!" }
 }

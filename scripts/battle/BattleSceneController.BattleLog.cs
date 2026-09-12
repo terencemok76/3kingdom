@@ -44,6 +44,12 @@ public partial class BattleSceneController
                 : BattleText("ui.battle.self_log", "Self");
         }
 
+        if (_copyLogButton != null)
+        {
+            _copyLogButton.Text = BattleText("ui.battle.copy_all_log", "Copy All");
+            _copyLogButton.Disabled = _battleLogs.Count == 0;
+        }
+
         var selfTeamName = GetCurrentTurnSideName();
         var visibleLogs = _battleLogs
             .Where(entry => !_showSelfTeamLogOnly || entry.TeamName == selfTeamName)
@@ -61,7 +67,7 @@ public partial class BattleSceneController
         var builder = new StringBuilder();
         foreach (var entry in visibleLogs)
         {
-            builder.AppendLine($"T{entry.Turn} [{FormatLogTeamName(entry.TeamName)}] {entry.Category}: {entry.Message}");
+            builder.AppendLine($"T{entry.Turn} [{FormatLogTeamName(entry.TeamName)}] {FormatLogCategory(entry.Category)}: {entry.Message}");
         }
 
         _battleLogLabel.Text = builder.ToString().TrimEnd();
@@ -95,6 +101,7 @@ public partial class BattleSceneController
 
         ApplyBattleLogButtonStyle(_allLogButton);
         ApplyBattleLogButtonStyle(_selfLogButton);
+        ApplyBattleLogButtonStyle(_copyLogButton);
         ApplyBattleLogButtonStyle(_minimizeLogButton);
         if (_battleLogLabel != null)
         {
@@ -151,6 +158,54 @@ public partial class BattleSceneController
     {
         _showSelfTeamLogOnly = true;
         RefreshBattleLogPanel();
+    }
+
+    private void OnCopyLogButtonPressed()
+    {
+        if (_battleLogs.Count == 0)
+        {
+            return;
+        }
+
+        DisplayServer.ClipboardSet(BuildFullBattleLogText());
+        if (_copyLogButton != null)
+        {
+            _copyLogButton.Text = BattleText("ui.battle.copy_all_log_done", "Copied");
+        }
+    }
+
+    private string BuildFullBattleLogText()
+    {
+        var builder = new StringBuilder();
+        foreach (var entry in _battleLogs)
+        {
+            builder.AppendLine($"T{entry.Turn} [{FormatLogTeamName(entry.TeamName)}] {FormatLogCategory(entry.Category)}: {entry.Message}");
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
+    private string FormatLogCategory(string category)
+    {
+        return category switch
+        {
+            "AI" => BattleText("log.category.ai", "AI"),
+            "Action" => BattleText("log.category.action", "Action"),
+            "Attack" => BattleText("log.category.attack", "Attack"),
+            "Counter" => BattleText("log.category.counter", "Counter"),
+            "Destroy" => BattleText("log.category.destroy", "Destroy"),
+            "Guard" => BattleText("log.category.guard", "Guard"),
+            "Hurt" => BattleText("log.category.hurt", "Hurt"),
+            "Move" => BattleText("log.category.move", "Move"),
+            "Recovery" => BattleText("log.category.recovery", "Recovery"),
+            "Retreat" => BattleText("log.category.retreat", "Retreat"),
+            "Round" => BattleText("log.category.round", "Round"),
+            "Strategy" => BattleText("log.category.strategy", "Strategy"),
+            "Status" => BattleText("log.category.status", "Status"),
+            "Supply" => BattleText("log.category.supply", "Supply"),
+            "Turn" => BattleText("log.category.turn", "Turn"),
+            _ => category
+        };
     }
 
     private void HandleBattleLogPanelInput(InputEvent @event)
@@ -231,6 +286,7 @@ public partial class BattleSceneController
     {
         return (_allLogButton?.GetGlobalRect().HasPoint(globalPosition) ?? false) ||
                (_selfLogButton?.GetGlobalRect().HasPoint(globalPosition) ?? false) ||
+               (_copyLogButton?.GetGlobalRect().HasPoint(globalPosition) ?? false) ||
                (_minimizeLogButton?.GetGlobalRect().HasPoint(globalPosition) ?? false);
     }
 

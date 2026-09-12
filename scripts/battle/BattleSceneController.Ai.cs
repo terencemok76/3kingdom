@@ -23,6 +23,24 @@ public partial class BattleSceneController
             return;
         }
 
+        foreach (var candidate in candidates.Where(candidate => candidate.Occupant.TroopType == TroopLadder))
+        {
+            if (TryExecuteAiLadderDeployment(candidate.Grid, candidate.Occupant))
+            {
+                return;
+            }
+        }
+
+        if (TryExecuteAiGateControl(candidates))
+        {
+            return;
+        }
+
+        if (TryExecuteAiSiegeBreachAction(candidates))
+        {
+            return;
+        }
+
         foreach (var candidate in candidates.Where(candidate => IsAiPostGateBreachSiegeEngine(candidate.Occupant)))
         {
             if (TryExecuteAiPostGateBreachSiegeEngineAction(candidate.Grid, candidate.Occupant))
@@ -106,6 +124,826 @@ public partial class BattleSceneController
         }
 
         return false;
+    }
+
+    private bool TryExecuteAiLadderDeployment(BattleGridKey sourceGrid, BattleOccupantInfo ladder)
+    {
+        if (_mapData == null ||
+            ladder.TroopType != TroopLadder ||
+            !IsAttackerPiece(ladder) ||
+            _mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle)
+        {
+            return false;
+        }
+
+        _selectedUnit = ladder;
+        _selectedUnitGrid = sourceGrid;
+        FocusCameraOnBattleGrid(sourceGrid);
+
+        if (IsAiLadderDeploymentGrid(sourceGrid))
+        {
+            var wallTopCount = GetCarLadderWallTopEndpoints(sourceGrid.Grid).Count();
+            AppendBattleLog(ladder, "AI", $"Decision: hold ladder at {sourceGrid}; it supports {wallTopCount} wall-top access point(s) for friendly climbing teams.");
+            MarkUnitActed(ladder);
+            return true;
+        }
+
+        var plans = new List<(BattleGridKey Goal, BattleGridKey Destination, int Score, int PathEnergy, int PathSteps, int OpenWallTopCount, int NearbyClimberCount)>();
+        foreach (var goal in GetAiLadderDeploymentGrids())
+        {
+            if (!TryGetAiPathEndpointToward(sourceGrid, ladder, goal, out var destination, out var pathEnergy, out var pathSteps))
+            {
+                continue;
+            }
+
+            var wallTopEndpoints = GetCarLadderWallTopEndpoints(goal.Grid)
+                .Select(ToWallWalkGridKey)
+                .ToList();
+            var openWallTopCount = wallTopEndpoints.Count(grid => !HasBlockingOccupant(grid));
+            var groundEndpoints = GetCarLadderGroundEndpoints(goal.Grid)
+                .Select(ToGroundGridKey)
+                .ToList();
+            var nearbyClimberCount = GetAllBattlePieces()
+                .Count(entry =>
+                    entry.Occupant.TeamName == ladder.TeamName &&
+                    entry.Grid.Level != 2 &&
+                    CanUseCarLadderBridge(entry.Occupant) &&
+                    groundEndpoints.Any(endpoint => GetManhattanDistance(entry.Grid.Grid, endpoint.Grid) <= 6));
+            var enemyWallDefenderCount = wallTopEndpoints.Count(grid =>
+                _occupantsByGrid.TryGetValue(grid, out var occupants) &&
+                occupants.Any(occupant => IsAttackerPiece(occupant) != IsAttackerPiece(ladder)));
+            var score = openWallTopCount * 5000 +
+                        nearbyClimberCount * 1000 +
+                        enemyWallDefenderCount * 350 -
+                        pathEnergy * 300 -
+                        pathSteps * 40 -
+                        GetAiThreatScore(goal, ladder) / 2;
+            plans.Add((goal, destination, score, pathEnergy, pathSteps, openWallTopCount, nearbyClimberCount));
+        }
+
+        var plan = plans
+            .OrderByDescending(candidate => candidate.Score)
+            .ThenByDescending(candidate => candidate.OpenWallTopCount)
+            .ThenByDescending(candidate => candidate.NearbyClimberCount)
+            .ThenBy(candidate => candidate.PathEnergy)
+            .ThenBy(candidate => candidate.PathSteps)
+            .ThenBy(candidate => candidate.Goal.Y)
+            .ThenBy(candidate => candidate.Goal.X)
+            .FirstOrDefault();
+        if (plan == default)
+        {
+            return false;
+        }
+
+        var moveEnergyCost = 0;
+        var moveRangeCost = 0;
+        if (plan.Destination != sourceGrid &&
+            TryBuildMovePath(sourceGrid, plan.Destination, ladder.Energy, GetAvailableMoveRange(ladder), out var movePath))
+        {
+            moveEnergyCost = GetMovePathEnergyCost(movePath);
+            moveRangeCost = GetMovePathRangeCost(movePath);
+        }
+
+        AppendBattleLog(
+            ladder,
+            "AI",
+            $"Decision: deploy ladder toward {plan.Goal}; move {sourceGrid} -> {plan.Destination}. " +
+            $"Open wall-top entries {plan.OpenWallTopCount}, nearby climbers {plan.NearbyClimberCount}, " +
+            $"A* energy {plan.PathEnergy}, steps {plan.PathSteps}, this move energy {moveEnergyCost}, range {moveRangeCost}, score {plan.Score}.");
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.Move, sourceGrid, plan.Destination),
+            ladder);
+    }
+
+    private IEnumerable<BattleGridKey> GetAiLadderDeploymentGrids()
+    {
+        if (_mapData == null)
+        {
+            yield break;
+        }
+
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var grid = new Vector2I(x, y);
+                var deploymentGrid = ToGroundGridKey(grid);
+                if (IsGateGrid(grid) || !IsAiLadderDeploymentGrid(deploymentGrid))
+                {
+                    continue;
+                }
+
+                yield return deploymentGrid;
+            }
+        }
+    }
+
+    private bool IsAiLadderDeploymentGrid(BattleGridKey grid)
+    {
+        if (_mapData == null ||
+            grid.Level != 0 ||
+            !IsWithinMap(grid.Grid) ||
+            IsGateGrid(grid.Grid))
+        {
+            return false;
+        }
+
+        return GetCarLadderGroundEndpoints(grid.Grid).Any() &&
+               GetCarLadderWallTopEndpoints(grid.Grid).Any();
+    }
+
+    private bool TryExecuteAiGateControl(IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates)
+    {
+        if (_mapData == null || _mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle)
+        {
+            return false;
+        }
+
+        var gateGrids = GetAiGateGrids().ToList();
+        if (gateGrids.Count == 0)
+        {
+            return false;
+        }
+
+        var actingAttackers = candidates.Where(candidate => IsAttackerPiece(candidate.Occupant)).ToList();
+        if (actingAttackers.Count > 0)
+        {
+            foreach (var attacker in actingAttackers)
+            {
+                var attackerGateCell = _mapData.GetCell(attacker.Grid.X, attacker.Grid.Y);
+                if (!CanToggleGateAtGrid(attacker.Grid, attacker.Occupant) || attackerGateCell.IsGateOpen)
+                {
+                    continue;
+                }
+
+                FocusCameraOnBattleGrid(attacker.Grid);
+                AppendBattleLog(attacker.Occupant, "AI", BattleFormat("log.ai.gate_capture", "Gate capture: open controlled gate at {0} for the ground assault.", attacker.Grid));
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.ToggleGate, attacker.Grid, attacker.Grid),
+                    attacker.Occupant);
+            }
+
+            return false;
+        }
+
+        if (TryExecuteAiDefenderSortiePlan(candidates))
+        {
+            return true;
+        }
+
+        var defenderCandidates = candidates
+            .Where(candidate => IsDefenderPiece(candidate.Occupant) && candidate.Occupant.Category == CategoryUnit)
+            .ToList();
+        if (defenderCandidates.Count == 0)
+        {
+            return false;
+        }
+
+        var capturedGate = gateGrids.FirstOrDefault(gateGrid => HasAttackerGateController(gateGrid));
+        if (capturedGate != default)
+        {
+            foreach (var defender in defenderCandidates)
+            {
+                _selectedUnit = defender.Occupant;
+                _selectedUnitGrid = defender.Grid;
+                if (CalculateAttackableGrids(defender.Grid, defender.Occupant).Contains(capturedGate))
+                {
+                    var score = 20000 + GetAttackDamageAgainst(defender.Occupant, GetAiAttackTargetForAttack(_occupantsByGrid[capturedGate], defender.Occupant.TeamName, capturedGate)!);
+                    return TryExecuteAiAttack(defender.Grid, defender.Occupant, capturedGate, score, GetAiDecisionNoise(defender.Grid, capturedGate, participantCount: 1));
+                }
+            }
+
+            var recoveryMoves = new List<(BattleGridKey Source, BattleOccupantInfo Unit, BattleGridKey Destination, int PathEnergy, int PathSteps)>();
+            foreach (var defender in defenderCandidates)
+            {
+                _selectedUnit = defender.Occupant;
+                _selectedUnitGrid = defender.Grid;
+                if (TryGetAiPathEndpointTowardEnemy(defender.Grid, defender.Occupant, capturedGate, out var destination, out var pathEnergy, out var pathSteps))
+                {
+                    recoveryMoves.Add((defender.Grid, defender.Occupant, destination, pathEnergy, pathSteps));
+                }
+            }
+
+            var recoveryMove = recoveryMoves
+                .OrderBy(move => move.PathEnergy)
+                .ThenBy(move => move.PathSteps)
+                .ThenByDescending(move => move.Unit.TroopCount)
+                .FirstOrDefault();
+            if (recoveryMove != default)
+            {
+                FocusCameraOnBattleGrid(recoveryMove.Source);
+                AppendBattleLog(recoveryMove.Unit, "AI", BattleFormat("log.ai.gate_recover_move", "Gate defense: {0} moves {1} -> {2} to recover attacker-controlled gate {3}; A* energy {4}, steps {5}.", FormatLogUnit(recoveryMove.Unit), recoveryMove.Source, recoveryMove.Destination, capturedGate, recoveryMove.PathEnergy, recoveryMove.PathSteps));
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Move, recoveryMove.Source, recoveryMove.Destination),
+                    recoveryMove.Unit);
+            }
+        }
+
+        foreach (var defender in defenderCandidates.Where(candidate => candidate.Grid.Level == 2))
+        {
+            var wallTopThreat = gateGrids
+                .Where(gateGrid => GetManhattanDistance(defender.Grid.Grid, gateGrid.Grid) <= 1)
+                .Select(GetAiGateDefensePriority)
+                .DefaultIfEmpty(0)
+                .Max();
+            if (wallTopThreat > 0 &&
+                !HasAiDirectAttackOpportunity(defender.Grid, defender.Occupant) &&
+                CanUseGuard(defender.Occupant))
+            {
+                FocusCameraOnBattleGrid(defender.Grid);
+                AppendBattleLog(defender.Occupant, "AI", BattleFormat("log.ai.gate_wall_guard", "Gate defense: {0} holds wall top at {1} against gate threat {2}.", FormatLogUnit(defender.Occupant), defender.Grid, wallTopThreat));
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Guard, defender.Grid, defender.Grid),
+                    defender.Occupant);
+            }
+        }
+
+        foreach (var defender in defenderCandidates)
+        {
+            if (!CanToggleGateAtGrid(defender.Grid, defender.Occupant))
+            {
+                continue;
+            }
+
+            var gateCell = _mapData.GetCell(defender.Grid.X, defender.Grid.Y);
+            if (!gateCell.IsGateOpen &&
+                defender.Occupant.Marker != null &&
+                TryGetAiDefenderSortieTarget(defender.Grid, out var sortieTarget, out var sortieExit))
+            {
+                var sortiePlan = new AiGateSortiePlan(
+                    defender.Grid,
+                    sortieTarget,
+                    sortieExit,
+                    defender.Occupant.Marker,
+                    defender.Occupant.TroopCount,
+                    _turnNumber + 1,
+                    AiGateSortiePhase.Exit);
+                FocusCameraOnBattleGrid(defender.Grid);
+                if (!TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.ToggleGate, defender.Grid, defender.Grid),
+                    defender.Occupant))
+                {
+                    return false;
+                }
+
+                // Do not leave a pending sortie plan behind when opening the
+                // gate was rejected by the shared action rules.
+                _aiGateSortiePlan = sortiePlan;
+                AppendBattleLog(defender.Occupant, "AI", BattleFormat("log.ai.gate_sortie_open", "Gate defense: {0} opens controlled gate at {1}; sortie exit {2}, target {3}, scheduled for defender turn {4}.", FormatLogUnit(defender.Occupant), defender.Grid, sortieExit, sortieTarget, _turnNumber + 1));
+                return true;
+            }
+
+            if (gateCell.IsGateOpen)
+            {
+                if (IsAiDefenderSortiePlanHoldingGate(defender.Grid))
+                {
+                    continue;
+                }
+
+                FocusCameraOnBattleGrid(defender.Grid);
+                AppendBattleLog(defender.Occupant, "AI", BattleFormat("log.ai.gate_close", "Gate defense: {0} closes controlled gate at {1} before attackers can exploit the passage.", FormatLogUnit(defender.Occupant), defender.Grid));
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.ToggleGate, defender.Grid, defender.Grid),
+                    defender.Occupant);
+            }
+
+            if (GetAiGateDefensePriority(defender.Grid) > 0 && CanUseGuard(defender.Occupant))
+            {
+                FocusCameraOnBattleGrid(defender.Grid);
+                AppendBattleLog(defender.Occupant, "AI", BattleFormat("log.ai.gate_guard", "Gate defense: {0} guards threatened closed gate at {1}.", FormatLogUnit(defender.Occupant), defender.Grid));
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Guard, defender.Grid, defender.Grid),
+                    defender.Occupant);
+            }
+        }
+
+        var threatenedGates = gateGrids.Where(gateGrid => GetAiGateDefensePriority(gateGrid) > 0).ToList();
+        var protectionMoves = new List<(BattleGridKey Source, BattleOccupantInfo Unit, BattleGridKey Destination, BattleGridKey Gate, int Threat, int PathEnergy, int PathSteps)>();
+        foreach (var defender in defenderCandidates)
+        {
+            _selectedUnit = defender.Occupant;
+            _selectedUnitGrid = defender.Grid;
+            foreach (var gateGrid in threatenedGates)
+            {
+                if (defender.Grid == gateGrid ||
+                    !TryGetAiPathEndpointToward(defender.Grid, defender.Occupant, gateGrid, out var destination, out var pathEnergy, out var pathSteps))
+                {
+                    continue;
+                }
+
+                protectionMoves.Add((defender.Grid, defender.Occupant, destination, gateGrid, GetAiGateDefensePriority(gateGrid), pathEnergy, pathSteps));
+            }
+        }
+
+        var protectionMove = protectionMoves
+            .OrderByDescending(move => move.Threat)
+            .ThenBy(move => move.PathEnergy)
+            .ThenBy(move => move.PathSteps)
+            .ThenByDescending(move => move.Unit.TroopCount)
+            .FirstOrDefault();
+        if (protectionMove == default)
+        {
+            return false;
+        }
+
+        FocusCameraOnBattleGrid(protectionMove.Source);
+        AppendBattleLog(protectionMove.Unit, "AI", BattleFormat("log.ai.gate_protect_move", "Gate defense: {0} moves {1} -> {2} to protect threatened gate {3}; threat {4}, A* energy {5}, steps {6}.", FormatLogUnit(protectionMove.Unit), protectionMove.Source, protectionMove.Destination, protectionMove.Gate, protectionMove.Threat, protectionMove.PathEnergy, protectionMove.PathSteps));
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.Move, protectionMove.Source, protectionMove.Destination),
+            protectionMove.Unit);
+    }
+
+    private IEnumerable<BattleGridKey> GetAiGateGrids()
+    {
+        if (_mapData == null)
+        {
+            yield break;
+        }
+
+        for (var y = 0; y < BattleMapData.Height; y++)
+        {
+            for (var x = 0; x < BattleMapData.Width; x++)
+            {
+                var grid = new Vector2I(x, y);
+                if (_mapData.GetCell(x, y).Structure == BattleStructureType.Gate)
+                {
+                    yield return ToGroundGridKey(grid);
+                }
+            }
+        }
+    }
+
+    private bool TryExecuteAiDefenderSortiePlan(IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates)
+    {
+        var plan = _aiGateSortiePlan;
+        if (plan == null || _currentTurnSide != BattleTurnSide.TeamB)
+        {
+            return false;
+        }
+
+        if (_turnNumber > plan.ExecuteTurn + 4 || _mapData == null)
+        {
+            _aiGateSortiePlan = null;
+            return false;
+        }
+
+        var gateCell = _mapData.GetCell(plan.GateGrid.X, plan.GateGrid.Y);
+        if (!gateCell.IsGateOpen)
+        {
+            _aiGateSortiePlan = null;
+            return false;
+        }
+
+        var sortieUnit = GetAllBattlePieces().FirstOrDefault(entry => entry.Occupant.Marker == plan.SortieMarker);
+        if (sortieUnit == default || !IsDefenderPiece(sortieUnit.Occupant))
+        {
+            _aiGateSortiePlan = null;
+            return false;
+        }
+
+        if (plan.Phase == AiGateSortiePhase.Exit)
+        {
+            if (_turnNumber < plan.ExecuteTurn || sortieUnit.Grid != plan.GateGrid ||
+                !candidates.Any(candidate => candidate.Occupant.Marker == plan.SortieMarker))
+            {
+                return false;
+            }
+
+            _aiGateSortiePlan = plan with { Phase = AiGateSortiePhase.Engage };
+            FocusCameraOnBattleGrid(sortieUnit.Grid);
+            AppendBattleLog(sortieUnit.Occupant, "AI", BattleFormat("log.ai.sortie_exit", "Gate sortie: exit {0} -> {1}; target {2} remains isolated outside the city.", plan.GateGrid, plan.ExitGrid, plan.TargetGrid));
+            return TryExecuteBattleActionIntent(
+                new BattleActionIntent(BattleActionKind.Move, sortieUnit.Grid, plan.ExitGrid),
+                sortieUnit.Occupant);
+        }
+
+        if (plan.Phase == AiGateSortiePhase.Return)
+        {
+            var innerCityGoal = GetOrthogonalNeighbors(plan.GateGrid.Grid)
+                .Where(IsWithinMap)
+                .Where(IsInsideCityGroundGrid)
+                .Select(ToGroundGridKey)
+                .FirstOrDefault();
+            if (innerCityGoal == default ||
+                !candidates.Any(candidate => candidate.Occupant.Marker == plan.SortieMarker) ||
+                !TryGetAiPathEndpointToward(sortieUnit.Grid, sortieUnit.Occupant, innerCityGoal, out var returnDestination, out var returnEnergy, out var returnSteps))
+            {
+                return false;
+            }
+
+            _aiGateSortiePlan = plan with { Phase = AiGateSortiePhase.Close };
+            FocusCameraOnBattleGrid(sortieUnit.Grid);
+            AppendBattleLog(sortieUnit.Occupant, "AI", BattleFormat("log.ai.sortie_retreat", "Gate sortie: retreat {0} -> {1} through opened gate {2}; A* energy {3}, steps {4}.", sortieUnit.Grid, returnDestination, plan.GateGrid, returnEnergy, returnSteps));
+            return TryExecuteBattleActionIntent(
+                new BattleActionIntent(BattleActionKind.Move, sortieUnit.Grid, returnDestination),
+                sortieUnit.Occupant);
+        }
+
+        if (plan.Phase == AiGateSortiePhase.Close)
+        {
+            var closer = candidates.FirstOrDefault(candidate =>
+                candidate.Grid == plan.GateGrid &&
+                IsDefenderPiece(candidate.Occupant) &&
+                candidate.Occupant.Category == CategoryUnit &&
+                CanToggleGateAtGrid(candidate.Grid, candidate.Occupant));
+            if (closer != default)
+            {
+                _aiGateSortiePlan = null;
+                FocusCameraOnBattleGrid(closer.Grid);
+                AppendBattleLog(closer.Occupant, "AI", BattleFormat("log.ai.sortie_close", "Gate sortie: close gate {0} after the sortie unit returned to the inner city.", plan.GateGrid));
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.ToggleGate, closer.Grid, closer.Grid),
+                    closer.Occupant);
+            }
+
+            var closerMove = candidates
+                .Where(candidate => candidate.Occupant.Category == CategoryUnit && candidate.Occupant.Marker != plan.SortieMarker)
+                .Select(candidate =>
+                {
+                    var canReach = TryGetAiPathEndpointToward(candidate.Grid, candidate.Occupant, plan.GateGrid, out var destination, out var pathEnergy, out var pathSteps);
+                    return (Candidate: candidate, CanReach: canReach, Destination: destination, PathEnergy: pathEnergy, PathSteps: pathSteps);
+                })
+                .Where(move => move.CanReach)
+                .OrderBy(move => move.PathEnergy)
+                .ThenBy(move => move.PathSteps)
+                .FirstOrDefault();
+            if (closerMove != default)
+            {
+                FocusCameraOnBattleGrid(closerMove.Candidate.Grid);
+                AppendBattleLog(closerMove.Candidate.Occupant, "AI", BattleFormat("log.ai.sortie_closer_move", "Gate sortie: move {0} -> {1} to close returned-sortie gate {2}; A* energy {3}, steps {4}.", closerMove.Candidate.Grid, closerMove.Destination, plan.GateGrid, closerMove.PathEnergy, closerMove.PathSteps));
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Move, closerMove.Candidate.Grid, closerMove.Destination),
+                    closerMove.Candidate.Occupant);
+            }
+
+            return false;
+        }
+
+        if (plan.Phase != AiGateSortiePhase.Engage ||
+            !candidates.Any(candidate => candidate.Occupant.Marker == plan.SortieMarker))
+        {
+            return false;
+        }
+
+        if (IsAiSortieRetreatRequired(sortieUnit.Grid, sortieUnit.Occupant, plan) ||
+            !_occupantsByGrid.TryGetValue(plan.TargetGrid, out var targetOccupants) ||
+            !targetOccupants.Any(IsAttackerPiece))
+        {
+            _aiGateSortiePlan = plan with { Phase = AiGateSortiePhase.Return };
+            return TryExecuteAiDefenderSortiePlan(candidates);
+        }
+
+        _selectedUnit = sortieUnit.Occupant;
+        _selectedUnitGrid = sortieUnit.Grid;
+        if (CalculateAttackableGrids(sortieUnit.Grid, sortieUnit.Occupant).Contains(plan.TargetGrid))
+        {
+            var target = GetAiAttackTargetForAttack(targetOccupants, sortieUnit.Occupant.TeamName, plan.TargetGrid);
+            if (target != null)
+            {
+                var score = 16000 + GetAttackDamageAgainst(sortieUnit.Occupant, target);
+                FocusCameraOnBattleGrid(sortieUnit.Grid);
+                AppendBattleLog(sortieUnit.Occupant, "AI", BattleFormat("log.ai.sortie_attack", "Gate sortie: attack isolated attacker at {0} from exterior grid {1}.", plan.TargetGrid, sortieUnit.Grid));
+                return TryExecuteAiAttack(sortieUnit.Grid, sortieUnit.Occupant, plan.TargetGrid, score, GetAiDecisionNoise(sortieUnit.Grid, plan.TargetGrid, participantCount: 1));
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsAiSortieRetreatRequired(BattleGridKey sortieGrid, BattleOccupantInfo sortieUnit, AiGateSortiePlan plan)
+    {
+        if (sortieUnit.TroopCount * 100 <= plan.StartingTroopCount * 35 ||
+            sortieUnit.Morale.HasValue && sortieUnit.Morale.Value <= LowMoraleMovePenaltyThreshold)
+        {
+            return true;
+        }
+
+        var adjacentAttackers = GetOrthogonalNeighbors(sortieGrid.Grid)
+            .Select(ToGroundGridKey)
+            .Count(grid => _occupantsByGrid.TryGetValue(grid, out var occupants) && occupants.Any(IsAttackerPiece));
+        if (adjacentAttackers >= 2)
+        {
+            return true;
+        }
+
+        return TryGetAiGateBreachEstimate(plan.GateGrid, out var arrivalTurns, out var breachTurns, out _) &&
+               arrivalTurns <= 1 && breachTurns <= 2;
+    }
+
+    private bool IsAiDefenderSortiePlanHoldingGate(BattleGridKey gateGrid)
+    {
+        return _aiGateSortiePlan is { } plan &&
+               gateGrid.Level == 0 &&
+               GetConnectedGateGroup(plan.GateGrid.Grid).Contains(gateGrid.Grid) &&
+               plan.Phase == AiGateSortiePhase.Exit &&
+               _turnNumber <= plan.ExecuteTurn;
+    }
+
+    private bool TryExecuteAiSiegeBreachAction(IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates)
+    {
+        if (_mapData == null ||
+            _mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle ||
+            !candidates.Any(candidate => IsAttackerPiece(candidate.Occupant)))
+        {
+            return false;
+        }
+
+        var intactGates = GetAiGateGrids()
+            .Where(gateGrid =>
+            {
+                var cell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
+                return !cell.IsGateOpen && !cell.IsBroken && cell.HasStructureHealth;
+            })
+            .ToList();
+        if (intactGates.Count == 0)
+        {
+            return false;
+        }
+
+        var breachActions = new List<(BattleGridKey Source, BattleOccupantInfo Unit, BattleGridKey Gate, int Damage, int Score)>();
+        foreach (var attacker in candidates.Where(candidate => IsAttackerPiece(candidate.Occupant)))
+        {
+            if (attacker.Occupant.Energy < NormalAttackEnergyCost || !CanUseAttackCommand(attacker.Occupant))
+            {
+                continue;
+            }
+
+            _selectedUnit = attacker.Occupant;
+            _selectedUnitGrid = attacker.Grid;
+            foreach (var gateGrid in intactGates.Where(gateGrid => CalculateAttackableGrids(attacker.Grid, attacker.Occupant).Contains(gateGrid)))
+            {
+                var damage = GetStructureAttackDamage(attacker.Occupant);
+                if (damage <= 0)
+                {
+                    continue;
+                }
+
+                var gateHealth = _mapData.GetCell(gateGrid.X, gateGrid.Y).StructureHealth;
+                var turnsToBreach = Mathf.CeilToInt((float)gateHealth / damage);
+                var isRam = attacker.Occupant.TroopType == TroopRam;
+                var isFinishingTeamAttack = attacker.Occupant.Category == CategoryUnit && turnsToBreach <= 2;
+                if (!isRam && !isFinishingTeamAttack)
+                {
+                    continue;
+                }
+
+                var score = 12000 - turnsToBreach * 1200 + damage * 3 +
+                            (isRam ? 4000 : 0) +
+                            (turnsToBreach == 1 ? 6000 : 0) -
+                            GetAiThreatScore(attacker.Grid, attacker.Occupant) / 3;
+                breachActions.Add((attacker.Grid, attacker.Occupant, gateGrid, damage, score));
+            }
+        }
+
+        var breachAction = breachActions
+            .OrderByDescending(action => action.Score)
+            .ThenByDescending(action => action.Damage)
+            .ThenBy(action => action.Gate.Y)
+            .ThenBy(action => action.Gate.X)
+            .FirstOrDefault();
+        if (breachAction != default)
+        {
+            FocusCameraOnBattleGrid(breachAction.Source);
+            AppendBattleLog(breachAction.Unit, "AI", BattleFormat("log.ai.breach_attack", "Siege breach: attack gate {0} with {1}; structure damage {2}, score {3}.", breachAction.Gate, breachAction.Unit.TroopType, breachAction.Damage, breachAction.Score));
+            return TryExecuteBattleActionIntent(
+                new BattleActionIntent(BattleActionKind.Attack, breachAction.Source, breachAction.Gate),
+                breachAction.Unit);
+        }
+
+        var ramMoves = new List<(BattleGridKey Source, BattleOccupantInfo Ram, BattleGridKey Destination, BattleGridKey Gate, int PathEnergy, int PathSteps)>();
+        foreach (var ram in candidates.Where(candidate => IsAttackerPiece(candidate.Occupant) && candidate.Occupant.TroopType == TroopRam))
+        {
+            _selectedUnit = ram.Occupant;
+            _selectedUnitGrid = ram.Grid;
+            foreach (var gateGrid in intactGates)
+            {
+                foreach (var approachGrid in GetOrthogonalNeighbors(gateGrid.Grid).Select(ToGroundGridKey))
+                {
+                    if (!IsWithinMap(approachGrid.Grid) ||
+                        !TryGetAiPathEndpointToward(ram.Grid, ram.Occupant, approachGrid, out var destination, out var pathEnergy, out var pathSteps))
+                    {
+                        continue;
+                    }
+
+                    ramMoves.Add((ram.Grid, ram.Occupant, destination, gateGrid, pathEnergy, pathSteps));
+                }
+            }
+        }
+
+        var ramMove = ramMoves
+            .OrderBy(move => move.PathEnergy)
+            .ThenBy(move => move.PathSteps)
+            .ThenBy(move => move.Gate.Y)
+            .ThenBy(move => move.Gate.X)
+            .FirstOrDefault();
+        if (ramMove == default)
+        {
+            return false;
+        }
+
+        FocusCameraOnBattleGrid(ramMove.Source);
+        AppendBattleLog(ramMove.Ram, "AI", BattleFormat("log.ai.breach_move_ram", "Siege breach: move ram {0} -> {1} toward gate {2}; A* energy {3}, steps {4}.", ramMove.Source, ramMove.Destination, ramMove.Gate, ramMove.PathEnergy, ramMove.PathSteps));
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.Move, ramMove.Source, ramMove.Destination),
+            ramMove.Ram);
+    }
+
+    private bool HasAttackerGateController(BattleGridKey gateGrid)
+    {
+        return _occupantsByGrid.TryGetValue(gateGrid, out var occupants) &&
+               occupants.Any(occupant => IsAttackerPiece(occupant) && occupant.Category == CategoryUnit);
+    }
+
+    private int GetAiGateThreatLevel(BattleGridKey gateGrid)
+    {
+        if (_mapData == null || !IsWithinMap(gateGrid.Grid))
+        {
+            return 0;
+        }
+
+        if (HasAttackerGateController(gateGrid))
+        {
+            return 3;
+        }
+
+        if (_occupantsByGrid.TryGetValue(ToWallWalkGridKey(gateGrid.Grid), out var wallTopOccupants) &&
+            wallTopOccupants.Any(IsAttackerPiece))
+        {
+            return 2;
+        }
+
+        if (GetOrthogonalNeighbors(gateGrid.Grid)
+            .Select(ToGroundGridKey)
+            .Any(grid => _occupantsByGrid.TryGetValue(grid, out var occupants) && occupants.Any(IsAttackerPiece)))
+        {
+            return 2;
+        }
+
+        return GetUsableCarLadderGrids()
+            .Any(ladderGrid => GetCarLadderWallTopEndpoints(ladderGrid.Grid)
+                .Any(wallTopGrid => GetManhattanDistance(wallTopGrid, gateGrid.Grid) <= 1))
+            ? 1
+            : 0;
+    }
+
+    private int GetAiGateDefensePriority(BattleGridKey gateGrid)
+    {
+        var immediateThreat = GetAiGateThreatLevel(gateGrid);
+        if (immediateThreat <= 0 && !TryGetAiGateBreachEstimate(gateGrid, out _, out _, out _))
+        {
+            return 0;
+        }
+
+        var priority = immediateThreat * 5000;
+        if (!TryGetAiGateBreachEstimate(gateGrid, out var arrivalTurns, out var breachTurns, out var damage))
+        {
+            return priority;
+        }
+
+        var totalTurns = arrivalTurns + breachTurns;
+        return priority + Math.Max(0, 12000 - totalTurns * 2000) + damage * 25;
+    }
+
+    private bool TryGetAiGateBreachEstimate(BattleGridKey gateGrid, out int arrivalTurns, out int breachTurns, out int damage)
+    {
+        arrivalTurns = 0;
+        breachTurns = 0;
+        damage = 0;
+        if (_mapData == null || !IsWithinMap(gateGrid.Grid))
+        {
+            return false;
+        }
+
+        var gateCell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
+        if (gateCell.IsGateOpen || gateCell.IsBroken || !gateCell.HasStructureHealth)
+        {
+            return false;
+        }
+
+        var estimates = new List<(int ArrivalTurns, int BreachTurns, int Damage)>();
+        foreach (var attacker in GetAllBattlePieces().Where(entry => IsAttackerPiece(entry.Occupant)))
+        {
+            var structureDamage = GetStructureAttackDamage(attacker.Occupant);
+            if (structureDamage <= 0)
+            {
+                continue;
+            }
+
+            var requiredAttacks = Mathf.CeilToInt((float)gateCell.StructureHealth / structureDamage);
+            var isRam = attacker.Occupant.TroopType == TroopRam;
+            if (!isRam && requiredAttacks > 2)
+            {
+                continue;
+            }
+
+            var pathEnergy = 0;
+            var canAttackNow = CalculateAttackableGrids(attacker.Grid, attacker.Occupant).Contains(gateGrid);
+            if (!canAttackNow)
+            {
+                var approachCosts = new List<int>();
+                foreach (var approachGrid in GetOrthogonalNeighbors(gateGrid.Grid).Select(ToGroundGridKey))
+                {
+                    if (!IsWithinMap(approachGrid.Grid) ||
+                        !TryGetAiPathEndpointToward(attacker.Grid, attacker.Occupant, approachGrid, out _, out var fullPathEnergy, out _))
+                    {
+                        continue;
+                    }
+
+                    approachCosts.Add(fullPathEnergy);
+                }
+
+                if (approachCosts.Count == 0)
+                {
+                    continue;
+                }
+
+                pathEnergy = approachCosts.Min();
+            }
+
+            var energyPerTurn = Math.Max(1, GetTeamEnergyCap(attacker.Occupant.TeamName));
+            estimates.Add((Mathf.CeilToInt((float)pathEnergy / energyPerTurn), requiredAttacks, structureDamage));
+        }
+
+        var best = estimates
+            .OrderBy(estimate => estimate.ArrivalTurns + estimate.BreachTurns)
+            .ThenBy(estimate => estimate.ArrivalTurns)
+            .ThenByDescending(estimate => estimate.Damage)
+            .FirstOrDefault();
+        if (best == default)
+        {
+            return false;
+        }
+
+        arrivalTurns = best.ArrivalTurns;
+        breachTurns = best.BreachTurns;
+        damage = best.Damage;
+        return true;
+    }
+
+    private bool TryGetAiDefenderSortieTarget(BattleGridKey gateGrid, out BattleGridKey targetGrid, out BattleGridKey exitGrid)
+    {
+        targetGrid = default;
+        exitGrid = default;
+        if (_mapData == null ||
+            gateGrid.Level != 0 ||
+            !IsWithinMap(gateGrid.Grid) ||
+            _mapData.GetCell(gateGrid.X, gateGrid.Y).IsGateOpen ||
+            HasAttackerGateController(gateGrid))
+        {
+            return false;
+        }
+
+        if (_occupantsByGrid.TryGetValue(ToWallWalkGridKey(gateGrid.Grid), out var wallTopOccupants) &&
+            wallTopOccupants.Any(IsAttackerPiece))
+        {
+            return false;
+        }
+
+        var exteriorAttackers = GetAllBattlePieces()
+            .Where(entry => IsAttackerPiece(entry.Occupant) &&
+                            entry.Grid.Level == 0 &&
+                            !IsInsideCityGroundGrid(entry.Grid.Grid) &&
+                            GetManhattanDistance(entry.Grid.Grid, gateGrid.Grid) is >= 2 and <= 3)
+            .Select(entry => entry.Grid)
+            .ToList();
+        if (exteriorAttackers.Count != 1)
+        {
+            return false;
+        }
+
+        var exitGrids = GetOrthogonalNeighbors(gateGrid.Grid)
+            .Where(IsWithinMap)
+            .Where(grid => !IsInsideCityGroundGrid(grid))
+            .Select(ToGroundGridKey)
+            .Where(grid => !HasBlockingOccupant(grid))
+            .Where(grid => GetManhattanDistance(grid.Grid, exteriorAttackers[0].Grid) < GetManhattanDistance(gateGrid.Grid, exteriorAttackers[0].Grid))
+            .ToList();
+        if (exitGrids.Count == 0)
+        {
+            return false;
+        }
+
+        if (TryGetAiGateBreachEstimate(gateGrid, out var arrivalTurns, out var breachTurns, out _) &&
+            arrivalTurns <= 1 && breachTurns <= 2)
+        {
+            return false;
+        }
+
+        var defenderSupport = GetAllBattlePieces()
+            .Count(entry => IsDefenderPiece(entry.Occupant) &&
+                            entry.Occupant.Category == CategoryUnit &&
+                            GetManhattanDistance(entry.Grid.Grid, gateGrid.Grid) <= 2);
+        if (defenderSupport < 2)
+        {
+            return false;
+        }
+
+        var selectedTarget = exteriorAttackers[0];
+        targetGrid = selectedTarget;
+        exitGrid = exitGrids
+            .OrderBy(grid => GetManhattanDistance(grid.Grid, selectedTarget.Grid))
+            .First();
+        return true;
     }
 
     private bool TryExecuteAiPostGateBreachSiegeEngineAction(BattleGridKey sourceGrid, BattleOccupantInfo unit)
@@ -564,7 +1402,7 @@ public partial class BattleSceneController
     {
         var actingUnits = GetActingBattlePieces().ToList();
         var vulnerableCount = actingUnits.Count(entry => IsAiVulnerable(entry.Occupant));
-        var outpostSummary = "eliminate enemy";
+        var outpostSummary = BattleText("log.ai.opening_eliminate", "eliminate enemy");
         if (_mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle)
         {
             var owner = _currentTurnSide == BattleTurnSide.TeamB ? BattleOutpostOwner.Defender : BattleOutpostOwner.Attacker;
@@ -572,21 +1410,21 @@ public partial class BattleSceneController
                 .SelectMany(y => Enumerable.Range(0, BattleMapData.Width).Select(x => _mapData.GetCell(x, y)))
                 .Count(cell => cell.IsDefenseOutpost && cell.DefenseOutpostOwner != owner);
             outpostSummary = unresolvedOutposts > 0
-                ? $"eliminate enemy or contest {unresolvedOutposts} fortress(es)"
-                : "hold occupied fortresses and eliminate enemy";
+                ? BattleFormat("log.ai.opening_contest_fortress", "eliminate enemy or contest {0} fortress(es)", unresolvedOutposts)
+                : BattleText("log.ai.opening_hold_fortress", "hold occupied fortresses and eliminate enemy");
         }
 
-        var bridgeSummary = "no bridge route is worthwhile";
+        var bridgeSummary = BattleText("log.ai.opening_no_bridge", "no bridge route is worthwhile");
         foreach (var (grid, worker) in actingUnits.Where(entry => entry.Occupant.TroopType == TroopWorker))
         {
             if (TryGetAiBridgeEngineeringPlan(grid, worker, out var bridgePlan))
             {
-                bridgeSummary = $"bridge at {bridgePlan.WorkGrid} toward {bridgePlan.ObjectiveGrid}, route -{bridgePlan.PathReduction}";
+                bridgeSummary = BattleFormat("log.ai.opening_bridge", "bridge at {0} toward {1}, route -{2}", bridgePlan.WorkGrid, bridgePlan.ObjectiveGrid, bridgePlan.PathReduction);
                 break;
             }
         }
 
-        return $"Opening plan: {outpostSummary}; {bridgeSummary}; vulnerable teams {vulnerableCount}/{actingUnits.Count}. Intelligence favors cover, supply, and tactical objectives; Combat favors decisive attacks.";
+        return BattleFormat("log.ai.opening_plan", "Opening plan: {0}; {1}; vulnerable teams {2}/{3}. Intelligence favors cover, supply, and tactical objectives; Combat favors decisive attacks.", outpostSummary, bridgeSummary, vulnerableCount, actingUnits.Count);
     }
 
     private bool TryExecuteBestAiSurvivalAction(IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates)
@@ -742,7 +1580,14 @@ public partial class BattleSceneController
         _selectedUnit = action.Unit;
         _selectedUnitGrid = action.SourceGrid;
         FocusCameraOnBattleGrid(action.SourceGrid);
-        AppendBattleLog(action.Unit, "AI", $"Survival decision: {action.Kind}; {action.Reason} (score {action.Score}, intelligence {intelligence}, combat {combat}).");
+        AppendBattleLog(action.Unit, "AI", BattleFormat(
+            "log.ai.survival_decision",
+            "Survival decision: {0}; {1} (score {2}, intelligence {3}, combat {4}).",
+            FormatAiSurvivalActionKind(action.Kind),
+            FormatAiSurvivalReason(action.Reason),
+            action.Score,
+            intelligence,
+            combat));
         switch (action.Kind)
         {
             case AiSurvivalActionKind.MoveToSafety when action.DestinationGrid.HasValue:
@@ -767,6 +1612,34 @@ public partial class BattleSceneController
             default:
                 return false;
         }
+    }
+
+    private string FormatAiSurvivalActionKind(AiSurvivalActionKind kind)
+    {
+        return kind switch
+        {
+            AiSurvivalActionKind.MoveToSafety => BattleText("log.ai.survival_move_safety", "Move to safety"),
+            AiSurvivalActionKind.Guard => BattleText("log.ai.survival_guard", "Guard"),
+            AiSurvivalActionKind.Stay => BattleText("log.ai.survival_stay", "Hold position"),
+            AiSurvivalActionKind.Retreat => BattleText("log.ai.survival_retreat", "Retreat"),
+            AiSurvivalActionKind.AdvanceToRetreatExit => BattleText("log.ai.survival_advance_exit", "Advance to retreat exit"),
+            _ => kind.ToString()
+        };
+    }
+
+    private string FormatAiSurvivalReason(string reason)
+    {
+        return reason switch
+        {
+            "critical strength and projected enemy threat; reached exit" => BattleText("log.ai.survival_reason_critical_exit", "critical strength and projected enemy threat; reached exit"),
+            "critical strength and projected enemy threat; advancing to exit" => BattleText("log.ai.survival_reason_critical_advance", "critical strength and projected enemy threat; advancing to exit"),
+            "guard favorable Building/Fortress position" => BattleText("log.ai.survival_reason_guard_cover", "guard favorable Building/Fortress position"),
+            "remain in favorable defensive position" => BattleText("log.ai.survival_reason_hold_cover", "remain in favorable defensive position"),
+            "move to Building/Fortress cover" => BattleText("log.ai.survival_reason_move_cover", "move to Building/Fortress cover"),
+            "move next to supply cart" => BattleText("log.ai.survival_reason_move_supply", "move next to supply cart"),
+            "move to Building/Fortress cover and supply cart" => BattleText("log.ai.survival_reason_move_cover_supply", "move to Building/Fortress cover and supply cart"),
+            _ => reason
+        };
     }
 
     private int GetAiBestOffensiveActionScore(BattleGridKey sourceGrid, BattleOccupantInfo unit)
@@ -1523,7 +2396,16 @@ public partial class BattleSceneController
         AppendBattleLog(
             unit,
             "AI",
-            $"Decision: fire strategy at {plan.TargetGrid}; enemy damage {plan.EnemyDamage}, friendly risk {plan.FriendlyDamage}, enemy targets {plan.EnemyTargets}, spread targets {plan.SpreadTargets}, score {plan.Score}, variance {noise}.");
+            BattleFormat(
+                "log.ai.fire_strategy",
+                "Decision: fire strategy at {0}; enemy damage {1}, friendly risk {2}, enemy targets {3}, spread targets {4}, score {5}, variance {6}.",
+                plan.TargetGrid,
+                plan.EnemyDamage,
+                plan.FriendlyDamage,
+                plan.EnemyTargets,
+                plan.SpreadTargets,
+                plan.Score,
+                noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.FireStrategy, sourceGrid, plan.TargetGrid),
             unit);
@@ -2298,6 +3180,7 @@ public partial class BattleSceneController
 
         var destination = CalculateReachableGrids(sourceGrid, unit.Energy - NormalAttackEnergyCost, GetAvailableMoveRange(unit))
             .Where(IsAiSafeMovementDestination)
+            .Where(grid => !IsAiDefenderWorkerLeavingInnerCity(sourceGrid, grid, unit))
             .SelectMany(grid => CalculateAttackableGrids(grid, unit)
                 .Where(targetGrid => _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
                                      GetAiAttackTargetForAttack(occupants, unit.TeamName, targetGrid) != null)
@@ -2336,6 +3219,11 @@ public partial class BattleSceneController
         if (!IsAiSafeMovementDestination(destinationGrid))
         {
             AppendBattleLog(unit, "AI", $"Move+attack cancelled: destination {destinationGrid} is burning.");
+            return false;
+        }
+
+        if (IsAiDefenderWorkerLeavingInnerCity(sourceGrid, destinationGrid, unit))
+        {
             return false;
         }
 
@@ -2417,7 +3305,10 @@ public partial class BattleSceneController
                     out var energyCost,
                     out var steps))
             {
-                routedPursuits.Add((endpoint, enemyGrid, energyCost, steps));
+                if (!IsAiDefenderWorkerLeavingInnerCity(sourceGrid, endpoint, unit))
+                {
+                    routedPursuits.Add((endpoint, enemyGrid, energyCost, steps));
+                }
             }
         }
 
@@ -2432,6 +3323,7 @@ public partial class BattleSceneController
                 .Destination
             : CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(unit), GetAvailableMoveRange(unit))
                 .Where(IsAiSafeMovementDestination)
+                .Where(grid => !IsAiDefenderWorkerLeavingInnerCity(sourceGrid, grid, unit))
                 .OrderBy(grid => enemyGrids.Min(enemy => GetManhattanDistance(grid.Grid, enemy.Grid)))
                 .ThenBy(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid))
                 .FirstOrDefault();
@@ -2460,9 +3352,20 @@ public partial class BattleSceneController
         var moveOnlyReason = GetAiMoveOnlyReason(sourceGrid, unit);
 
         var routeDescription = usesFullRoute
-            ? "A* legal approach to an enemy"
-            : "local legal approach to an enemy (no complete route currently available)";
-        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destination}; {routeDescription}. Energy {unit.Energy} - {moveEnergyCost} = {remainingEnergy}, move range {remainingMoveRange}/{unit.MoveRange}; move+attack unavailable: {moveOnlyReason}.");
+            ? BattleText("log.ai.route_astar", "A* legal approach to an enemy")
+            : BattleText("log.ai.route_local", "local legal approach to an enemy (no complete route currently available)");
+        AppendBattleLog(unit, "AI", BattleFormat(
+            "log.ai.move_decision",
+            "Decision: move {0} -> {1}; {2}. Energy {3} - {4} = {5}, move range {6}/{7}; move+attack unavailable: {8}.",
+            sourceGrid,
+            destination,
+            routeDescription,
+            unit.Energy,
+            moveEnergyCost,
+            remainingEnergy,
+            remainingMoveRange,
+            unit.MoveRange,
+            moveOnlyReason));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
             unit);
@@ -2516,12 +3419,12 @@ public partial class BattleSceneController
     {
         if (unit.Energy < NormalAttackEnergyCost)
         {
-            return $"energy {unit.Energy} is below attack cost {NormalAttackEnergyCost}";
+            return BattleFormat("log.ai.move_only_low_energy", "energy {0} is below attack cost {1}", unit.Energy, NormalAttackEnergyCost);
         }
 
         if (!CanUseAttackCommand(unit))
         {
-            return "unit attack command is unavailable";
+            return BattleText("log.ai.move_only_no_attack", "unit attack command is unavailable");
         }
 
         var hasMoveAndAttackPlan = CalculateReachableGrids(
@@ -2529,12 +3432,26 @@ public partial class BattleSceneController
                 unit.Energy - NormalAttackEnergyCost,
                 GetAvailableMoveRange(unit))
             .Where(IsAiSafeMovementDestination)
+            .Where(grid => !IsAiDefenderWorkerLeavingInnerCity(sourceGrid, grid, unit))
             .Any(grid => CalculateAttackableGrids(grid, unit)
                 .Any(targetGrid => _occupantsByGrid.TryGetValue(targetGrid, out var occupants) &&
                                   GetAiAttackTargetForAttack(occupants, unit.TeamName, targetGrid) != null));
 
         return hasMoveAndAttackPlan
-            ? "a move+attack plan existed but was not selected"
-            : $"no legal attack position reachable while reserving {NormalAttackEnergyCost} energy";
+            ? BattleText("log.ai.move_only_not_selected", "a move+attack plan existed but was not selected")
+            : BattleFormat("log.ai.move_only_no_position", "no legal attack position reachable while reserving {0} energy", NormalAttackEnergyCost);
+    }
+
+    private bool IsAiDefenderWorkerLeavingInnerCity(BattleGridKey sourceGrid, BattleGridKey destinationGrid, BattleOccupantInfo unit)
+    {
+        // A gate opening is a controlled sortie route, not a general-purpose pursuit route
+        // for the garrison's engineering team. Explicit engineering/sortie actions bypass
+        // this generic move selector when they are introduced.
+        return IsDefenderPiece(unit) &&
+               unit.TroopType == TroopWorker &&
+               sourceGrid.Level == 0 &&
+               destinationGrid.Level == 0 &&
+               IsInsideCityGroundGrid(sourceGrid.Grid) &&
+               !IsInsideCityGroundGrid(destinationGrid.Grid);
     }
 }

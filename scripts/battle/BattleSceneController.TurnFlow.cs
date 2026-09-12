@@ -386,7 +386,7 @@ public partial class BattleSceneController
         RestoreTeamUnitEnergy(actingSideName);
         ResolveBattleStatusAtTurnStart(actingSideName);
         ShowTurnBanner();
-        AppendBattleLog(actingSideName, "Turn", $"Acting side: {actingSideName}");
+        AppendBattleLog(actingSideName, "Turn", BattleFormat("log.acting_side", "Acting side: {0}", FormatLogTeamName(actingSideName)));
         ConfigureHud();
         RefreshBattleLogPanel();
         RefreshCoordinateLabel();

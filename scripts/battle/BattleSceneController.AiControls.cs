@@ -222,7 +222,7 @@ public partial class BattleSceneController
         }
 
         _aiControlledSides &= ~GetCurrentAiSideFlag();
-        AppendBattleLog(GetCurrentTurnSideName(), "AI", "AI control disabled for this side.");
+        AppendBattleLog(GetCurrentTurnSideName(), "AI", BattleText("log.ai_control_disabled", "AI control disabled for this side."));
         ConfigureHud();
         RefreshBattleLogPanel();
     }
@@ -244,9 +244,9 @@ public partial class BattleSceneController
             // Match the standalone field-battle test: Debug owns both sides until the
             // tester explicitly disables AI for the side currently taking its turn.
             _aiControlledSides = BattleAiControlledSides.Attacker | BattleAiControlledSides.Defender;
-            AppendBattleLog(GetCurrentTurnSideName(), "AI", "Debug round started: AI control enabled for both sides.");
+            AppendBattleLog(GetCurrentTurnSideName(), "AI", BattleText("log.debug_round_started", "Debug round started: AI control enabled for both sides."));
         }
-        AppendBattleLog(GetCurrentTurnSideName(), "Round", $"Round started. Controller: {(IsCurrentTurnAiControlled() ? "AI (step review)" : "Player")}.");
+        AppendBattleLog(GetCurrentTurnSideName(), "Round", BattleFormat("log.round_started", "Round started. Controller: {0}.", IsCurrentTurnAiControlled() ? BattleText("log.controller_ai_review", "AI (step review)") : BattleText("log.controller_player", "Player")));
         if (IsCurrentTurnAiControlled())
         {
             AppendBattleLog(GetCurrentTurnSideName(), "AI", BuildAiOpeningPlanLog());
@@ -267,7 +267,7 @@ public partial class BattleSceneController
         ExecuteOneAiAction();
         if (HaveAllActingBattlePiecesActed())
         {
-            AppendBattleLog(GetCurrentTurnSideName(), "AI", "All AI battle teams have acted. Player: click End Turn.");
+            AppendBattleLog(GetCurrentTurnSideName(), "AI", BattleText("log.ai_all_acted", "All AI battle teams have acted. Player: click End Turn."));
         }
 
         ConfigureHud();

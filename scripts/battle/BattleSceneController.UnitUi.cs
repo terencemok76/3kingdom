@@ -13,29 +13,32 @@ namespace ThreeKingdom.Battle;
 
 public partial class BattleSceneController
 {
-    private static string FormatLogTeamName(string teamName)
+    private string FormatLogTeamName(string teamName)
     {
         if (BattleTeamIdentity.IsAttacker(teamName))
         {
-            return "A";
+            return BattleText("ui.battle.log_attacker", "Attacker");
         }
 
         if (BattleTeamIdentity.IsDefender(teamName))
         {
-            return "B";
+            return BattleText("ui.battle.log_defender", "Defender");
         }
 
         return teamName;
     }
 
-    private static string FormatLogUnit(BattleOccupantInfo unit)
+    private string FormatLogUnit(BattleOccupantInfo unit)
     {
-        if (string.IsNullOrWhiteSpace(unit.OfficerName))
+        if (!string.IsNullOrWhiteSpace(unit.OfficerName) &&
+            !string.Equals(unit.OfficerName, "Worker", StringComparison.OrdinalIgnoreCase))
         {
-            return unit.DisplayName;
+            return $"{FormatOfficerName(unit.OfficerName)}/{FormatTroopType(unit.TroopType)}";
         }
 
-        return $"{unit.OfficerName}/{unit.TroopType}";
+        return string.IsNullOrWhiteSpace(unit.TroopType)
+            ? unit.DisplayName
+            : FormatTroopType(unit.TroopType);
     }
 
     private static string FormatMorale(BattleOccupantInfo unit)
@@ -50,20 +53,20 @@ public partial class BattleSceneController
             : "-";
     }
 
-    private static string FormatWeaponAmmoLog(BattleOccupantInfo unit)
+    private string FormatWeaponAmmoLog(BattleOccupantInfo unit)
     {
         return unit.WeaponAmmo.HasValue && unit.MaxWeaponAmmo.HasValue
-            ? $" (ammo {unit.WeaponAmmo.Value:N0}/{unit.MaxWeaponAmmo.Value:N0})"
+            ? BattleFormat("log.weapon_ammo", " (ammo {0}/{1})", unit.WeaponAmmo.Value, unit.MaxWeaponAmmo.Value)
             : string.Empty;
     }
 
-    private static string FormatNormalAttackAmmoLog(BattleOccupantInfo unit, bool isWeakCloseAttack)
+    private string FormatNormalAttackAmmoLog(BattleOccupantInfo unit, bool isWeakCloseAttack)
     {
         if (isWeakCloseAttack)
         {
             return unit.MaxWeaponAmmo.HasValue
-                ? $" (weak close attack, ammo 0/{unit.MaxWeaponAmmo.Value:N0})"
-                : " (weak close attack)";
+                ? BattleFormat("log.weak_close_attack_ammo", " (weak close attack, ammo 0/{0})", unit.MaxWeaponAmmo.Value)
+                : BattleText("log.weak_close_attack", " (weak close attack)");
         }
 
         return FormatWeaponAmmoLog(unit);
