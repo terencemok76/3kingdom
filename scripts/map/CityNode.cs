@@ -8,6 +8,7 @@ public partial class CityNode : Node2D
     private static readonly Texture2D? CityTexture = GD.Load<Texture2D>("res://assets/map/city_1.png");
     private static readonly Texture2D? FlagTexture = GD.Load<Texture2D>("res://assets/map/flag_1.png");
     private static readonly Texture2D? ArrowTexture = GD.Load<Texture2D>("res://assets/map/arrow_1.png");
+    private static readonly Texture2D? BattleIconTexture = GD.Load<Texture2D>("res://assets/map/battle_icon.png");
 
     private const float MarkerSize = 56.0f;
     private const float FlagWidth = 48.0f;
@@ -22,6 +23,7 @@ public partial class CityNode : Node2D
     private const float ArrowBobSpeed = 3.4f;
     private const float CircleRadius = 12.0f;
     private const float EventRingRadius = 22.0f;
+    private const float BattleIconSize = 52.0f;
     private const float LabelStartY = 40.0f;
     private const float LabelLineHeight = 16.0f;
 
@@ -33,6 +35,7 @@ public partial class CityNode : Node2D
     private bool _hasEventOverlay;
     private string _eventTag = string.Empty;
     private Color _eventOverlayColor = Colors.Transparent;
+    private bool _hasCampaignOverlay;
     private double _eventOverlayStartTime;
     private double _eventOverlayEndTime;
 
@@ -123,6 +126,13 @@ public partial class CityNode : Node2D
         QueueRedraw();
     }
 
+    public void SetCampaignOverlay(bool hasCampaignOverlay)
+    {
+        _hasCampaignOverlay = hasCampaignOverlay;
+        RefreshLabelOverlay();
+        QueueRedraw();
+    }
+
     public override void _Draw()
     {
         if (CityTexture != null)
@@ -130,7 +140,6 @@ public partial class CityNode : Node2D
             var textureRect = new Rect2(new Vector2(-MarkerSize * 0.5f, -MarkerSize * 0.5f), new Vector2(MarkerSize, MarkerSize));
             DrawTextureRect(CityTexture, textureRect, false, Colors.White);
             DrawFactionFlag();
-            DrawSelectionArrow();
         }
         else
         {
@@ -139,6 +148,16 @@ public partial class CityNode : Node2D
             DrawCircle(Vector2.Zero, CircleRadius, _fillColor);
             DrawCircle(Vector2.Zero, CircleRadius + 1.0f, borderColor, false, borderWidth);
         }
+
+        if (_hasCampaignOverlay && BattleIconTexture != null)
+        {
+            var iconRect = new Rect2(
+                new Vector2(-BattleIconSize * 0.5f, -BattleIconSize * 0.5f),
+                new Vector2(BattleIconSize, BattleIconSize));
+            DrawTextureRect(BattleIconTexture, iconRect, false, Colors.White);
+        }
+
+        DrawSelectionArrow();
 
         if (_hasEventOverlay)
         {

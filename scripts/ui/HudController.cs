@@ -140,6 +140,7 @@ public partial class HudController : CanvasLayer
         Combat,
         OfficerLoyalty,
         Owner,
+        Faction,
         RelationStatus,
         RemainingMonths,
         RelationScore,
@@ -454,6 +455,7 @@ public partial class HudController : CanvasLayer
         RefreshAllText();
         ConfigureCampaignUi();
         Callable.From(ResumeAttackResolutionAfterCampaignIfNeeded).CallDeferred();
+        Callable.From(ShowPendingBattleReportIfNeeded).CallDeferred();
     }
 
     public void OnCitySelected(CityData city)

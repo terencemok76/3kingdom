@@ -25,6 +25,8 @@ public class AiController
     private const int SpyAssassinationDefenseThreshold = 58;
     private const int SpyAssassinationTargetValueThreshold = 320;
     private const int SpyInciteLoyaltyThreshold = 78;
+    private const int AiReinforcementMinimumTroops = 500;
+    private const int AiReinforcementFoodDays = 2;
 
     private CommandResolver? _commandResolver;
     private TurnManager? _turnManager;
@@ -132,8 +134,13 @@ public class AiController
         var availableOfficerIds = GetAvailableOfficerIds(world, city);
 
         CommandResult? militaryResult = null;
+        militaryResult = TryDispatchCampaignReinforcement(world, city, factionId, availableOfficerIds);
         foreach (var targetId in city.ConnectedCityIds)
         {
+            if (militaryResult != null)
+            {
+                break;
+            }
             var target = world.GetCity(targetId);
             if (target == null)
             {
@@ -156,14 +163,20 @@ public class AiController
                 : city.Troops >= BlindAttackTroopThreshold;
             if (shouldAttack)
             {
+                var deployments = CreateAiAttackDeployments(world, city, availableOfficerIds, city.Troops / 2);
+                if (deployments.Count == 0)
+                {
+                    continue;
+                }
                 militaryResult = _commandResolver.Execute(new CommandRequest
                 {
                     Type = CommandType.Attack,
                     ActorFactionId = factionId,
                     SourceCityId = cityId,
                     TargetCityId = targetId,
-                    TroopsToSend = city.Troops / 2,
-                    OfficerIds = new System.Collections.Generic.List<int>(availableOfficerIds)
+                    TroopsToSend = deployments.Sum(item => item.TroopCount),
+                    AttackOfficerDeployments = deployments,
+                    OfficerIds = deployments.Select(item => item.OfficerId).ToList()
                 });
                 break;
             }
@@ -418,6 +431,143 @@ public class AiController
         };
     }
 
+    private CommandResult? TryDispatchCampaignReinforcement(
+        WorldState world,
+        CityData sourceCity,
+        int factionId,
+        IReadOnlyList<int> availableOfficerIds)
+    {
+        if (_commandResolver == null || availableOfficerIds.Count == 0 || sourceCity.Troops - BattleCampaignService.MinimumCityGarrison < AiReinforcementMinimumTroops)
+        {
+            return null;
+        }
+
+        var candidates = world.ActiveBattleCampaigns
+            .Where(campaign => campaign.Stage != CampaignStage.Resolved)
+            .Select(campaign => new
+            {
+                Campaign = campaign,
+                Side = campaign.AttackerFactionId == factionId
+                    ? CampaignBattleSide.Attacker
+                    : campaign.DefenderFactionId == factionId
+                        ? CampaignBattleSide.Defender
+                        : (CampaignBattleSide?)null
+            })
+            .Where(item => item.Side.HasValue &&
+                           item.Campaign.TargetCityId != sourceCity.Id &&
+                           item.Campaign.SourceCityId != sourceCity.Id)
+            .Select(item => new
+            {
+                item.Campaign,
+                Side = item.Side!.Value,
+                RouteLinks = BattleCampaignService.GetFriendlyRouteLinks(world, sourceCity.Id, item.Campaign.TargetCityId, factionId)
+            })
+            .Where(item => item.RouteLinks > 0)
+            .OrderByDescending(item => GetCampaignReinforcementUrgency(world, item.Campaign, item.Side) - item.RouteLinks * 8)
+            .ThenBy(item => item.RouteLinks)
+            .ToList();
+        foreach (var candidate in candidates)
+        {
+            if (candidate.Campaign.Reinforcements.Any(order =>
+                    order.SourceCityId == sourceCity.Id &&
+                    order.DispatchYear == world.Year &&
+                    order.DispatchMonth == world.Month &&
+                    order.Status != ReinforcementStatus.Cancelled))
+            {
+                continue;
+            }
+
+            var reserveRatio = candidate.Side == CampaignBattleSide.Defender
+                ? GetDefenderReinforcementRatio(candidate.Campaign)
+                : 35;
+            var troopBudget = Math.Min(
+                sourceCity.Troops - BattleCampaignService.MinimumCityGarrison,
+                Math.Max(AiReinforcementMinimumTroops, sourceCity.Troops * reserveRatio / 100));
+            var deployments = CreateAiAttackDeployments(world, sourceCity, availableOfficerIds, troopBudget);
+            if (deployments.Count == 0)
+            {
+                continue;
+            }
+
+            var food = Math.Min(sourceCity.Food / 4, Math.Max(0, deployments.Sum(item => item.TroopCount) * AiReinforcementFoodDays / 100));
+            try
+            {
+                BattleCampaignService.DispatchReinforcement(
+                    world, candidate.Campaign, sourceCity.Id, candidate.Side, deployments, 0, food);
+                return LocalizedResult(true, "cmd.attack.reinforcement_scheduled");
+            }
+            catch (ReinforcementDispatchException)
+            {
+                // A second candidate may still be reachable and safe to reinforce.
+            }
+        }
+
+        return null;
+    }
+
+    private static int GetCampaignReinforcementUrgency(WorldState world, ActiveBattleCampaignData campaign, CampaignBattleSide side)
+    {
+        var friendlyTroops = campaign.Teams.Where(team => team.Side == side).Sum(team => Math.Max(0, team.ActiveTroops));
+        var enemyTroops = campaign.Teams.Where(team => team.Side != side).Sum(team => Math.Max(0, team.ActiveTroops));
+        var food = side == CampaignBattleSide.Attacker ? campaign.AttackerFood : campaign.DefenderFood;
+        var officers = campaign.Teams
+            .Where(team => team.Side == side)
+            .Select(team => world.GetOfficer(team.OfficerId))
+            .Where(officer => officer != null)
+            .ToList();
+        var intelligence = officers.Count == 0 ? 50 : officers.Average(officer => officer!.Intelligence);
+        var combat = officers.Count == 0 ? 50 : officers.Average(officer => officer!.Combat);
+        var cityDefense = world.GetCity(campaign.TargetCityId)?.Defense ?? 0;
+        // Intelligence weighs food, ETA and city-risk awareness. Combat expresses
+        // the willingness to commit against an adverse troop gap.
+        return (enemyTroops - friendlyTroops) / 100 +
+               (food < friendlyTroops ? 20 : 0) +
+               (side == CampaignBattleSide.Defender ? Math.Max(0, 100 - cityDefense) / 5 : 0) +
+               (int)intelligence / 8 +
+               (enemyTroops > friendlyTroops ? (int)combat / 10 : 0);
+    }
+
+    private static int GetDefenderReinforcementRatio(ActiveBattleCampaignData campaign)
+    {
+        var defenders = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender).Sum(team => Math.Max(0, team.ActiveTroops));
+        var attackers = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).Sum(team => Math.Max(0, team.ActiveTroops));
+        return attackers > defenders ? 50 : 30;
+    }
+
+    private static List<AttackOfficerDeploymentData> CreateAiAttackDeployments(
+        WorldState world,
+        CityData city,
+        IReadOnlyList<int> officerIds,
+        int troopBudget)
+    {
+        var usableOfficers = officerIds
+            .Where(id => city.OfficerIds.Contains(id) && !BattleCampaignService.IsOfficerCommitted(world, id))
+            .Take(BattleCampaignService.MaximumActivePiecesPerSide)
+            .ToList();
+        var pools = new List<(TroopType Type, int Count)>
+        {
+            (TroopType.Infantry, city.InfantryTroops), (TroopType.Spearman, city.SpearmanTroops),
+            (TroopType.Cavalry, city.CavalryTroops), (TroopType.Archer, city.ArcherTroops),
+            (TroopType.Crossbow, city.CrossbowTroops), (TroopType.Siege, city.SiegeTroops)
+        };
+        var remaining = Math.Min(Math.Max(0, troopBudget), pools.Sum(pool => pool.Count));
+        var result = new List<AttackOfficerDeploymentData>();
+        foreach (var officerId in usableOfficers)
+        {
+            var poolIndex = pools.FindIndex(pool => pool.Count > 0);
+            if (poolIndex < 0 || remaining <= 0)
+            {
+                break;
+            }
+            var remainingSlots = Math.Max(1, usableOfficers.Count - result.Count);
+            var count = Math.Min(pools[poolIndex].Count, Math.Max(1, remaining / remainingSlots));
+            result.Add(new AttackOfficerDeploymentData { OfficerId = officerId, TroopType = pools[poolIndex].Type, TroopCount = count });
+            pools[poolIndex] = (pools[poolIndex].Type, pools[poolIndex].Count - count);
+            remaining -= count;
+        }
+        return result;
+    }
+
     private static System.Collections.Generic.List<int> GetAvailableOfficerIds(WorldState world, CityData city)
     {
         var result = new System.Collections.Generic.List<int>();
@@ -430,6 +580,11 @@ public class AiController
             }
 
             if (officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month)
+            {
+                continue;
+            }
+
+            if (BattleCampaignService.IsOfficerCommitted(world, officerId))
             {
                 continue;
             }

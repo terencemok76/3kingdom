@@ -437,6 +437,7 @@ public partial class BattleSceneController
         {
             AdvanceBattleDate();
             HandleCampaignCompletedDay();
+            HandleStandaloneTestCompletedDay();
         }
 
         ApplyTimeOfDayVisual(animate: true);

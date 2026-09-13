@@ -135,6 +135,38 @@
                                  "zhHant":  "「{0}」已排定攻擊命令，月末將進攻「{1}」。",
                                  "en":  "\"{0}\" scheduled an Attack against \"{1}\"."
     },
+    "cmd.attack.reinforcement_scheduled":  {
+                                 "zhHant":  "「{0}」已向「{1}」的持續戰役派出援軍，預計 {2} 個戰日後抵達。",
+                                 "en":  "\"{0}\" dispatched reinforcements to the continuing battle at \"{1}\"; ETA {2} battle days."
+    },
+    "cmd.attack.reinforcement_unavailable":  {
+                                 "zhHant":  "「{0}」目前不符合派遣援軍的條件。",
+                                 "en":  "\"{0}\" cannot dispatch reinforcements under the current conditions."
+    },
+    "cmd.attack.reinforcement_already_dispatched":  {
+                                 "zhHant":  "「{0}」本月已向「{1}」的戰役派出援軍。",
+                                 "en":  "\"{0}\" has already reinforced the battle at \"{1}\" this month."
+    },
+    "cmd.attack.reinforcement_no_route":  {
+                                 "zhHant":  "「{0}」至「{1}」沒有可用的友軍增援路線。",
+                                 "en":  "No friendly reinforcement route is available from \"{0}\" to \"{1}\"."
+    },
+    "cmd.attack.reinforcement_minimum_garrison":  {
+                                 "zhHant":  "「{0}」派出後守軍為 {2}，低於最低守軍 {3}；請減少出兵或增加本城兵力。",
+                                 "en":  "\"{0}\" would retain {2} troops, below the minimum garrison of {3}. Send fewer troops or reinforce this city first."
+    },
+    "cmd.attack.reinforcement_invalid_deployment":  {
+                                 "zhHant":  "「{0}」的增援武將或兵種配置無效。",
+                                 "en":  "\"{0}\" has an invalid reinforcement officer or troop deployment."
+    },
+    "cmd.attack.reinforcement_insufficient_resources":  {
+                                 "zhHant":  "「{0}」沒有足夠的指定兵種、金或糧可派作援軍。",
+                                 "en":  "\"{0}\" lacks the selected troop type, gold, or food for reinforcements."
+    },
+    "cmd.attack.reinforcement_insufficient_siege_engines":  {
+                                 "zhHant":  "「{0}」沒有足夠的指定攻城器可派作援軍。",
+                                 "en":  "\"{0}\" lacks the selected siege engines for reinforcements."
+    },
     "cmd.attack.campaign_started":  {
         "zhHant":  "{0} 對 {1} 的持續戰役已開始。",
         "en":  "The continuing campaign from {0} against {1} has begun."

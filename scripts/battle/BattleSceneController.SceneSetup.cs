@@ -111,6 +111,7 @@ public partial class BattleSceneController
         _nextAiButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow/NextAiButton");
         _attackerOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow/AttackerOneDayFoodButton");
         _defenderOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow/DefenderOneDayFoodButton");
+        _monthlyBattleLimitOneDayButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/MonthLimitRow/MonthlyBattleLimitOneDayButton");
         _aiRoundStatusLabel ??= GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/AiRoundStatusLabel");
         _timeButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/TimeButton");
         _weatherButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WeatherButton");

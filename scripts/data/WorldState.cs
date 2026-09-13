@@ -26,6 +26,25 @@ public class WorldState
         public bool IsTestOnly { get; set; }
     }
 
+    public class BattleReportData
+    {
+        public int Id { get; set; }
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public int SourceCityId { get; set; }
+        public int TargetCityId { get; set; }
+        public int AttackerFactionId { get; set; }
+        public int DefenderFactionId { get; set; }
+        public int WinnerFactionId { get; set; }
+        public CampaignStage Stage { get; set; }
+        public int AttackerActiveTroops { get; set; }
+        public int AttackerWoundedTroops { get; set; }
+        public int DefenderActiveTroops { get; set; }
+        public int DefenderWoundedTroops { get; set; }
+        public List<int> CapturedOfficerIds { get; set; } = new();
+        public bool PlayerAcknowledged { get; set; }
+    }
+
     public string StoryId { get; set; } = string.Empty;
     public string StoryNameEn { get; set; } = string.Empty;
     public string StoryNameZhHant { get; set; } = string.Empty;
@@ -34,6 +53,7 @@ public class WorldState
     public int RandomSeed { get; set; }
     public bool InteractiveBattlesEnabled { get; set; } = true;
     public bool ResumeAttackResolutionAfterCampaign { get; set; }
+    public bool IsBattleResolutionPhase { get; set; }
     public List<CityData> Cities { get; set; } = new();
     public List<OfficerData> Officers { get; set; } = new();
     public List<ItemData> Items { get; set; } = new();
@@ -46,6 +66,7 @@ public class WorldState
     public List<CityIntelData> CityIntelRecords { get; set; } = new();
     public List<PendingSuccessionData> PendingSuccessionRecords { get; set; } = new();
     public List<PendingCapturedOfficerData> PendingCapturedOfficerRecords { get; set; } = new();
+    public List<BattleReportData> BattleReports { get; set; } = new();
     public List<ActiveBattleCampaignData> ActiveBattleCampaigns { get; set; } = new();
     public bool ViewAllInformationEnabled { get; set; }
 

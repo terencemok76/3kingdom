@@ -618,7 +618,7 @@ public partial class BattleSceneController
         };
     }
 
-    private static string GetOfficerSpeechPersona(string officerName)
+    private string GetOfficerSpeechPersona(string officerName)
     {
         var intelligence = GetOfficerTacticalIntelligence(officerName);
         var combat = GetOfficerBattleAttribute(officerName);
@@ -707,6 +707,26 @@ public partial class BattleSceneController
         if (GodotObject.IsInstanceValid(this) && noticeSerial == _officerCaptureNoticeSerial)
         {
             _officerCaptureNotice.Visible = false;
+        }
+    }
+
+    private async void ShowCampaignReinforcementArrivalNotice(string text)
+    {
+        // Reinforcements are resolved before EndCurrentTurn shows the next
+        // side's banner.  Yield one frame first: otherwise this method observes
+        // the old hidden state and displays its notice just before that banner.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        // Do not bring the arrival notice forward until the banner has fully
+        // left the screen, so these two centered notices can never overlap.
+        while (GodotObject.IsInstanceValid(this) && _turnBanner?.Visible == true)
+        {
+            await ToSignal(GetTree().CreateTimer(0.1), SceneTreeTimer.SignalName.Timeout);
+        }
+
+        if (GodotObject.IsInstanceValid(this) && !_isBattleFinished)
+        {
+            ShowBattleEventNotice(text);
         }
     }
 

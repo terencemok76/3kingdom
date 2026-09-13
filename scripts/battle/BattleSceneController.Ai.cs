@@ -3496,9 +3496,9 @@ public partial class BattleSceneController
         };
     }
 
-    private static int GetOfficerTacticalIntelligence(string officerName)
+    private int GetOfficerTacticalIntelligence(string officerName)
     {
-        return BattleOfficerAiProfiles.GetTacticalIntelligence(officerName);
+        return GetBattleOfficerData(officerName)?.Intelligence ?? BattleOfficerAiProfiles.GetTacticalIntelligence(officerName);
     }
 
     private int GetAiCommandIntelligence(BattleGridKey sourceGrid, BattleOccupantInfo unit)
@@ -3524,12 +3524,12 @@ public partial class BattleSceneController
         return commander?.Intelligence ?? AiUncommandedSupportIntelligence;
     }
 
-    private static int GetAiCombatDecisionScore(BattleOccupantInfo unit)
+    private int GetAiCombatDecisionScore(BattleOccupantInfo unit)
     {
         return GetOfficerBattleAttribute(unit.OfficerName) * 6;
     }
 
-    private static int GetAiOfficerDecisionTieBreakScore(BattleOccupantInfo unit)
+    private int GetAiOfficerDecisionTieBreakScore(BattleOccupantInfo unit)
     {
         return GetOfficerTacticalIntelligence(unit.OfficerName) * 4 + GetOfficerBattleAttribute(unit.OfficerName) * 2;
     }

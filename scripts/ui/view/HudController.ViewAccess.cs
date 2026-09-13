@@ -321,6 +321,9 @@ public partial class HudController
         var officers = new List<OfficerData>();
         string emptyMessage;
         var includeCityName = false;
+        var campaignAtSelectedCity = _turnManager.World.ActiveBattleCampaigns.FirstOrDefault(campaign =>
+            campaign.Stage != CampaignStage.Resolved &&
+            campaign.TargetCityId == _selectedCity.Id);
         if (_officerListMode == OfficerListMode.View && _officerListScope == OfficerListScope.Faction)
         {
             var faction = _turnManager.World.GetFaction(_selectedCity.OwnerFactionId);
@@ -349,37 +352,62 @@ public partial class HudController
         }
         else
         {
-            if (!CanViewCityFullInformation(_selectedCity))
+            if (campaignAtSelectedCity != null)
+            {
+                // A battle city is the effective location for both sides' committed
+                // officers. Their persistent CityId remains untouched for recovery,
+                // retreat, and campaign settlement.
+                foreach (var team in campaignAtSelectedCity.Teams.Where(team => team.OfficerId > 0))
+                {
+                    var officer = _turnManager.World.GetOfficer(team.OfficerId);
+                    if (officer != null)
+                    {
+                        officers.Add(officer);
+                    }
+                }
+
+                emptyMessage = _localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.";
+            }
+            else if (!CanViewCityFullInformation(_selectedCity))
             {
                 return null;
             }
-
-            foreach (var officerId in _selectedCity.OfficerIds)
+            else
             {
-                var officer = _turnManager.World.GetOfficer(officerId);
-                if (officer != null)
+                foreach (var officerId in _selectedCity.OfficerIds)
                 {
-                    officers.Add(officer);
-                }
-            }
+                    if (BattleCampaignService.IsOfficerCommitted(_turnManager.World, officerId))
+                    {
+                        continue;
+                    }
 
-            foreach (var officer in _turnManager.World.Officers)
-            {
-                if (officer.CityId == _selectedCity.Id && FreeOfficerMovement.IsVisibleFreeOfficer(_turnManager.World, officer))
+                    var officer = _turnManager.World.GetOfficer(officerId);
+                    if (officer != null)
+                    {
+                        officers.Add(officer);
+                    }
+                }
+
+                foreach (var officer in _turnManager.World.Officers)
                 {
-                    officers.Add(officer);
+                    if (officer.CityId == _selectedCity.Id &&
+                        FreeOfficerMovement.IsVisibleFreeOfficer(_turnManager.World, officer) &&
+                        !BattleCampaignService.IsOfficerCommitted(_turnManager.World, officer.Id))
+                    {
+                        officers.Add(officer);
+                    }
                 }
-            }
 
-            foreach (var officer in _turnManager.World.Officers)
-            {
-                if (officer.CaptiveFactionId == _selectedCity.OwnerFactionId && officer.JailedCityId == _selectedCity.Id)
+                foreach (var officer in _turnManager.World.Officers)
                 {
-                    officers.Add(officer);
+                    if (officer.CaptiveFactionId == _selectedCity.OwnerFactionId && officer.JailedCityId == _selectedCity.Id)
+                    {
+                        officers.Add(officer);
+                    }
                 }
-            }
 
-            emptyMessage = _localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.";
+                emptyMessage = _localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.";
+            }
         }
 
         return (GetSortedOfficers(officers).DistinctBy(officer => officer.Id).ToList(), includeCityName, emptyMessage);

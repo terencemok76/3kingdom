@@ -1,0 +1,273 @@
+[gd_scene format=3]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_report_panel"]
+bg_color = Color(0.075, 0.075, 0.09, 0.97)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.48, 0.37, 0.22, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_bar"]
+bg_color = Color(0.16, 0.13, 0.09, 1)
+border_width_bottom = 2
+border_color = Color(0.58, 0.45, 0.27, 1)
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_force_panel"]
+bg_color = Color(0.1, 0.1, 0.12, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.42, 0.34, 0.22, 0.96)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_normal"]
+bg_color = Color(0.8, 0.73, 0.56, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.31, 0.24, 0.14, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_hover"]
+bg_color = Color(0.88, 0.8, 0.61, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.3, 0.18, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_pressed"]
+bg_color = Color(0.67, 0.57, 0.39, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.18, 0.1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_normal"]
+bg_color = Color(0.22, 0.18, 0.12, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.58, 0.45, 0.27, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_close_hover"]
+bg_color = Color(0.38, 0.22, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.84, 0.68, 0.4, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="BattleReportDialog" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.025, 0.018, 0.62)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ReportPanel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(660, 400)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_report_panel")
+
+[node name="Root" type="VBoxContainer" parent="Center/ReportPanel"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="PanelContainer" parent="Center/ReportPanel/Root"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_bar")
+
+[node name="TitleRow" type="HBoxContainer" parent="Center/ReportPanel/Root/Header"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="Center/ReportPanel/Root/Header/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_font_sizes/font_size = 21
+text = "戰報"
+vertical_alignment = 1
+
+[node name="CloseButton" type="Button" parent="Center/ReportPanel/Root/Header/TitleRow"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_colors/font_hover_color = Color(1, 0.93, 0.75, 1)
+theme_override_font_sizes/font_size = 19
+theme_override_styles/normal = SubResource("StyleBoxFlat_close_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_close_hover")
+text = "×"
+
+[node name="Body" type="MarginContainer" parent="Center/ReportPanel/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 26
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 26
+theme_override_constants/margin_bottom = 20
+
+[node name="Content" type="VBoxContainer" parent="Center/ReportPanel/Root/Body"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="RouteLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.9, 0.82, 1)
+theme_override_font_sizes/font_size = 20
+text = "濮陽 → 平原"
+
+[node name="WinnerLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_font_sizes/font_size = 19
+text = "勝方：-"
+
+[node name="Rule" type="ColorRect" parent="Center/ReportPanel/Root/Body/Content"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+color = Color(0.48, 0.37, 0.22, 0.9)
+
+[node name="ForceRow" type="HBoxContainer" parent="Center/ReportPanel/Root/Body/Content"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="AttackerPanel" type="PanelContainer" parent="Center/ReportPanel/Root/Body/Content/ForceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_force_panel")
+
+[node name="Margin" type="MarginContainer" parent="Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SideLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_font_sizes/font_size = 18
+text = "攻方"
+
+[node name="ForceLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.9, 0.82, 1)
+theme_override_font_sizes/font_size = 18
+text = "兵力：0\n傷兵：0"
+
+[node name="DefenderPanel" type="PanelContainer" parent="Center/ReportPanel/Root/Body/Content/ForceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_force_panel")
+
+[node name="Margin" type="MarginContainer" parent="Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SideLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_font_sizes/font_size = 18
+text = "守方"
+
+[node name="ForceLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.9, 0.82, 1)
+theme_override_font_sizes/font_size = 18
+text = "兵力：0\n傷兵：0"
+
+[node name="CapturedLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.9, 0.82, 1)
+theme_override_font_sizes/font_size = 18
+text = "俘虜：無"
+
+[node name="ButtonRow" type="HBoxContainer" parent="Center/ReportPanel/Root/Body/Content"]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Center/ReportPanel/Root/Body/Content/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AcknowledgeButton" type="Button" parent="Center/ReportPanel/Root/Body/Content/ButtonRow"]
+custom_minimum_size = Vector2(148, 38)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+text = "確認戰報"

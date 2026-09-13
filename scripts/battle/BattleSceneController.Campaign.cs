@@ -15,7 +15,18 @@ public partial class BattleSceneController
     private ActiveBattleCampaignData? _activeCampaign;
     private bool _campaignResultHandled;
     private bool _campaignReturnQueued;
+    private bool _campaignMonthLimitReached;
+    private bool _standaloneMonthLimitReached;
+    private int _debugMonthlyBattleDayLimit;
     private VBoxContainer? _campaignDecisionPanel;
+
+    private int GetMonthlyBattleDayLimit() =>
+        _debugMonthlyBattleDayLimit > 0
+            ? _debugMonthlyBattleDayLimit
+            : BattleCampaignService.MaximumBattleDaysPerMonth;
+
+    private bool IsCampaignMonthLimitReached => _campaignMonthLimitReached && _activeCampaign != null;
+    private bool IsStandaloneMonthLimitReached => _standaloneMonthLimitReached && _activeCampaign == null;
 
     private void InitializeCampaignRuntime()
     {
@@ -263,27 +274,49 @@ public partial class BattleSceneController
             yield break;
         }
 
+        var deploymentZone = team.Side == CampaignBattleSide.Attacker
+            ? BattleDeploymentZone.Attacker
+            : BattleDeploymentZone.Defender;
         if (team.ReinforcementOrderId > 0)
         {
             var configuredGrids = team.Side == CampaignBattleSide.Attacker
                 ? _mapData.ScenarioDefinition.AttackerReinforcementEntranceGrids
                 : _mapData.ScenarioDefinition.DefenderReinforcementEntranceGrids;
-            var entranceGrids = configuredGrids.Count > 0
-                ? configuredGrids
-                : GetDefaultReinforcementEntranceGrids(team.Side);
-            foreach (var grid in entranceGrids)
+            foreach (var grid in configuredGrids)
             {
-                if (IsCampaignSpawnGridAvailable(grid, occupied))
+                // Scenario overrides remain constrained to this side's external
+                // start zone: reinforcements cannot appear inside a city or beside
+                // the enemy merely because a scenario entry was misconfigured.
+                if (IsCampaignReinforcementEntranceGrid(grid, deploymentZone) &&
+                    IsCampaignSpawnGridAvailable(grid, occupied))
                 {
                     yield return grid;
                 }
             }
+
+            foreach (var grid in GetCampaignDeploymentZoneGrids(deploymentZone, occupied)
+                         .Where(grid => !configuredGrids.Contains(grid)))
+            {
+                yield return grid;
+            }
             yield break;
         }
 
-        var deploymentZone = team.Side == CampaignBattleSide.Attacker
-            ? BattleDeploymentZone.Attacker
-            : BattleDeploymentZone.Defender;
+        foreach (var grid in GetCampaignDeploymentZoneGrids(deploymentZone, occupied))
+        {
+            yield return grid;
+        }
+    }
+
+    private IEnumerable<Vector2I> GetCampaignDeploymentZoneGrids(
+        BattleDeploymentZone deploymentZone,
+        HashSet<Vector2I> occupied)
+    {
+        if (_mapData == null)
+        {
+            yield break;
+        }
+
         for (var y = 0; y < BattleMapData.Height; y++)
         {
             for (var x = 0; x < BattleMapData.Width; x++)
@@ -297,19 +330,12 @@ public partial class BattleSceneController
         }
     }
 
-    private static IEnumerable<Vector2I> GetDefaultReinforcementEntranceGrids(CampaignBattleSide side)
+    private bool IsCampaignReinforcementEntranceGrid(Vector2I grid, BattleDeploymentZone deploymentZone)
     {
-        const int entranceDepth = 2;
-        const int entranceWidth = 4;
-        var startX = side == CampaignBattleSide.Attacker ? 0 : BattleMapData.Width - entranceWidth;
-        var startY = side == CampaignBattleSide.Attacker ? 0 : BattleMapData.Height - entranceDepth;
-        for (var y = startY; y < startY + entranceDepth; y++)
-        {
-            for (var x = startX; x < startX + entranceWidth; x++)
-            {
-                yield return new Vector2I(x, y);
-            }
-        }
+        return _mapData != null &&
+               grid.X >= 0 && grid.X < BattleMapData.Width &&
+               grid.Y >= 0 && grid.Y < BattleMapData.Height &&
+               _mapData.GetCell(grid.X, grid.Y).DeploymentZone == deploymentZone;
     }
 
     private bool IsCampaignSpawnGridAvailable(Vector2I grid, ISet<Vector2I> occupied)
@@ -351,7 +377,14 @@ public partial class BattleSceneController
             }
         }
 
-        AppendBattleLog("Battle", "Reinforcement", $"Reinforcement order {order.Id} waits: its entrance is blocked.");
+        AppendBattleLog(
+            team.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
+            "Reinforcement",
+            BattleFormat(
+                "log.campaign.reinforcement_entrance_blocked",
+                "Reinforcement entrance blocked; reserve retained: {0} ({1}).",
+                GetCampaignReinforcementSideName(order),
+                FormatCampaignReinforcementTeams(order)));
     }
 
     private void CreateCampaignMarker(Node2D unitLayer, Vector2I grid, CampaignBattleTeamData team)
@@ -424,6 +457,154 @@ public partial class BattleSceneController
         };
     }
 
+    private string GetCampaignReinforcementSideName(ReinforcementOrderData order)
+    {
+        var factionName = CampaignRuntimeContext.World == null
+            ? FormatTeamName(order.Side == CampaignBattleSide.Attacker
+                ? BattleTeamIdentity.AttackerName
+                : BattleTeamIdentity.DefenderName)
+            : _localization.GetFactionName(CampaignRuntimeContext.World, order.FactionId);
+        return BattleFormat("ui.battle.reinforcement_side", "{0} reinforcements", factionName);
+    }
+
+    private string FormatCampaignReinforcementTeams(ReinforcementOrderData order)
+    {
+        return string.Join("、", order.Teams
+            .Where(team => team.ActiveTroops > 0)
+            .Select(team =>
+            {
+                var officer = CampaignRuntimeContext.World?.GetOfficer(team.OfficerId);
+                var officerName = officer == null
+                    ? BattleText("ui.unknown", "Unknown")
+                    : FormatOfficerName(!string.IsNullOrWhiteSpace(officer.NameZhHant) ? officer.NameZhHant : officer.Name);
+                var troopType = FormatTroopType(GetCampaignBattleProfile(team).TroopType);
+                return BattleFormat("ui.battle.reinforcement_team", "{0}/{1} {2:N0}", officerName, troopType, team.ActiveTroops);
+            }));
+    }
+
+    private void AnnounceCampaignReinforcementArrivals(ISet<int> arrivingOrderIds)
+    {
+        if (_activeCampaign == null || arrivingOrderIds.Count == 0)
+        {
+            return;
+        }
+
+        var arrivals = _activeCampaign.Reinforcements
+            .Where(order => arrivingOrderIds.Contains(order.Id) &&
+                            order.Status is ReinforcementStatus.Deployed or ReinforcementStatus.Reserve)
+            .OrderBy(order => order.Id)
+            .ToList();
+        if (arrivals.Count == 0)
+        {
+            return;
+        }
+
+        // AdvanceCompletedBattleDay applies every newly-deployed order before this
+        // presentation pass. Rebuild the per-side running balance so each log row
+        // reports its own prior value, addition, and resulting value rather than
+        // subtracting only one order from the already-final total.
+        var attackerGold = _teamAGold - arrivals
+            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Attacker)
+            .Sum(order => order.Gold);
+        var attackerFood = _teamAFood - arrivals
+            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Attacker)
+            .Sum(order => order.Food);
+        var defenderGold = _teamBGold - arrivals
+            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Defender)
+            .Sum(order => order.Gold);
+        var defenderFood = _teamBFood - arrivals
+            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Defender)
+            .Sum(order => order.Food);
+
+        foreach (var order in arrivals)
+        {
+            var sideName = GetCampaignReinforcementSideName(order);
+            var teams = FormatCampaignReinforcementTeams(order);
+            AppendBattleLog(
+                order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
+                "Reinforcement",
+                BattleFormat(
+                    "log.campaign.reinforcement_arrived",
+                    "Reinforcements arrived: {0}; teams: {1}; gold {2:N0}, food {3:N0}.",
+                    sideName,
+                    teams,
+                    order.Gold,
+                    order.Food));
+            if (order.Status == ReinforcementStatus.Deployed)
+            {
+                var previousGold = order.Side == CampaignBattleSide.Attacker ? attackerGold : defenderGold;
+                var previousFood = order.Side == CampaignBattleSide.Attacker ? attackerFood : defenderFood;
+                var finalGold = previousGold + order.Gold;
+                var finalFood = previousFood + order.Food;
+                AppendBattleLog(
+                    order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
+                    "Reinforcement",
+                    BattleFormat(
+                        "log.campaign.reinforcement_resources_applied",
+                        "Reinforcement supplies applied: gold {0:N0} + {1:N0} = {2:N0}; food {3:N0} + {4:N0} = {5:N0}.",
+                        previousGold, order.Gold, finalGold,
+                        previousFood, order.Food, finalFood));
+                if (order.Side == CampaignBattleSide.Attacker)
+                {
+                    attackerGold = finalGold;
+                    attackerFood = finalFood;
+                }
+                else
+                {
+                    defenderGold = finalGold;
+                    defenderFood = finalFood;
+                }
+                ApplyTeamMoraleBonus(
+                    order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
+                    ReinforcementArrivalFriendlyMoraleBonus,
+                    BattleText("log.campaign.reinforcement_morale_friendly", "reinforcements arrived"));
+                ApplyTeamMoralePenalty(
+                    order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.DefenderName : BattleTeamIdentity.AttackerName,
+                    ReinforcementArrivalOpponentMoralePenalty,
+                    BattleText("log.campaign.reinforcement_morale_opponent", "enemy reinforcements arrived"));
+            }
+        }
+
+        ShowCampaignReinforcementArrivalNotice(FormatCampaignReinforcementArrivalNotice(arrivals));
+    }
+
+    private string FormatCampaignReinforcementArrivalNotice(IReadOnlyCollection<ReinforcementOrderData> arrivals)
+    {
+        var lines = arrivals
+            .GroupBy(order => new { order.Side, order.FactionId })
+            .OrderBy(group => group.Key.Side)
+            .ThenBy(group => group.Key.FactionId)
+            .Select(group =>
+            {
+                var representative = group.First();
+                var teams = string.Join("、", group.SelectMany(order => order.Teams)
+                    .Where(team => team.ActiveTroops > 0)
+                    .Select(team =>
+                    {
+                        var officer = CampaignRuntimeContext.World?.GetOfficer(team.OfficerId);
+                        var officerName = officer == null
+                            ? BattleText("ui.unknown", "Unknown")
+                            : FormatOfficerName(!string.IsNullOrWhiteSpace(officer.NameZhHant) ? officer.NameZhHant : officer.Name);
+                        return BattleFormat(
+                            "ui.battle.reinforcement_team",
+                            "{0}/{1} {2:N0}",
+                            officerName,
+                            FormatTroopType(GetCampaignBattleProfile(team).TroopType),
+                            team.ActiveTroops);
+                    }));
+                return BattleFormat(
+                    "ui.battle.reinforcement_arrival_group",
+                    "{0}: {1}",
+                    GetCampaignReinforcementSideName(representative),
+                    teams);
+            });
+        return BattleFormat(
+            "ui.battle.reinforcement_arrival_batch",
+            "Reinforcements arrived ({0})\n{1}",
+            arrivals.Count,
+            string.Join("\n", lines));
+    }
+
     private void HandleCampaignCompletedDay()
     {
         if (_activeCampaign == null || _campaignReturnQueued)
@@ -432,19 +613,60 @@ public partial class BattleSceneController
         }
 
         SyncCampaignFromBattle();
+        var arrivingOrderIds = _activeCampaign.Reinforcements
+            .Where(order => order.Status == ReinforcementStatus.Reserve ||
+                            (order.Status == ReinforcementStatus.Traveling && order.RemainingBattleDays <= 1))
+            .Select(order => order.Id)
+            .ToHashSet();
         BattleCampaignService.AdvanceCompletedBattleDay(_activeCampaign);
+        SyncCampaignResourcesToHud();
         if (GetNodeOrNull<Node2D>("MapRoot/UnitLayer") is { } unitLayer)
         {
             DeployCampaignTeams(unitLayer);
         }
-        if (!BattleCampaignService.HasReachedMonthlyBattleLimit(_activeCampaign))
+        AnnounceCampaignReinforcementArrivals(arrivingOrderIds);
+        ConfigureHud();
+        if (!BattleCampaignService.HasReachedMonthlyBattleLimit(_activeCampaign, GetMonthlyBattleDayLimit()))
         {
             return;
         }
 
         _activeCampaign.BattleSnapshotJson = CreateCampaignBattleSnapshot();
-        AppendBattleLog("Battle", "Campaign", "Monthly battle limit reached: battle suspended after 10 days.");
-        QueueCampaignReturnToGameplay();
+        _campaignMonthLimitReached = true;
+        if (CampaignRuntimeContext.World != null)
+        {
+            // A monthly pause returns control to Gameplay.  Do not resume the
+            // original attack-resolution chain, or it would advance the month
+            // and immediately launch this campaign again before the map is seen.
+            CampaignRuntimeContext.World.ResumeAttackResolutionAfterCampaign = false;
+            CampaignRuntimeContext.World.IsBattleResolutionPhase = true;
+        }
+        AppendBattleLog(
+            "Battle",
+            "Campaign",
+            BattleFormat(
+                "log.campaign.month_limit_reached",
+                "Monthly battle limit reached: battle suspended after {0} days.",
+                GetMonthlyBattleDayLimit()));
+    }
+
+    private void HandleStandaloneTestCompletedDay()
+    {
+        if (_activeCampaign != null ||
+            _debugMonthlyBattleDayLimit <= 0 ||
+            _standaloneMonthLimitReached ||
+            _battleDateDay <= _debugMonthlyBattleDayLimit)
+        {
+            return;
+        }
+
+        _standaloneMonthLimitReached = true;
+        AppendBattleLog(
+            "Battle",
+            "Debug",
+            BattleText(
+                "log.debug_month_limit_test_reached",
+                "Debug: the standalone test reached its monthly battle limit."));
     }
 
     private void SyncCampaignFromBattle()
@@ -480,6 +702,19 @@ public partial class BattleSceneController
         _activeCampaign.AttackerFood = _teamAFood;
         _activeCampaign.DefenderGold = _teamBGold;
         _activeCampaign.DefenderFood = _teamBFood;
+    }
+
+    private void SyncCampaignResourcesToHud()
+    {
+        if (_activeCampaign == null)
+        {
+            return;
+        }
+
+        _teamAGold = _activeCampaign.AttackerGold;
+        _teamAFood = _activeCampaign.AttackerFood;
+        _teamBGold = _activeCampaign.DefenderGold;
+        _teamBFood = _activeCampaign.DefenderFood;
     }
 
     private bool HandleCampaignBattleFinished()
@@ -621,8 +856,32 @@ public partial class BattleSceneController
         }
 
         _campaignReturnQueued = true;
+        if (CampaignRuntimeContext.World != null)
+        {
+            // A completed battle returns to the strategic battle-resolution phase.
+            // The player acknowledges its report and explicitly advances to the next
+            // same-month battle instead of immediately chaining scenes.
+            CampaignRuntimeContext.World.ResumeAttackResolutionAfterCampaign = false;
+            CampaignRuntimeContext.World.IsBattleResolutionPhase = true;
+        }
         CampaignRuntimeContext.ReturnToGameplay();
         CallDeferred(nameof(ReturnCampaignToGameplay));
+    }
+
+    private async void QueueCampaignReturnToGameplayAfterMonthLimitResult()
+    {
+        if (_campaignReturnQueued)
+        {
+            return;
+        }
+
+        _campaignReturnQueued = true;
+        CampaignRuntimeContext.ReturnToGameplay();
+        await ToSignal(GetTree().CreateTimer(2.5), SceneTreeTimer.SignalName.Timeout);
+        if (IsInsideTree())
+        {
+            ReturnCampaignToGameplay();
+        }
     }
 
     private void ReturnCampaignToGameplay()

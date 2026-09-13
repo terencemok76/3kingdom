@@ -72,6 +72,18 @@ public partial class BattleSceneController
             _defenderOneDayFoodButton.Text = BattleText("ui.battle.test_defender_food_1_day", "Defender Food: 1d");
         }
 
+        if (_monthlyBattleLimitOneDayButton != null)
+        {
+            _monthlyBattleLimitOneDayButton.Visible = debugAvailable;
+            _monthlyBattleLimitOneDayButton.Disabled = !debugAvailable || _isBattleFinished || _debugMonthlyBattleDayLimit > 0;
+            _monthlyBattleLimitOneDayButton.Text = _debugMonthlyBattleDayLimit > 0
+                ? BattleText("ui.battle.test_month_limit_1_day_enabled", "Month limit: 1 day queued")
+                : BattleText("ui.battle.test_month_limit_1_day", "Month limit: 1 day");
+            _monthlyBattleLimitOneDayButton.TooltipText = BattleText(
+                "ui.battle.test_month_limit_1_day_hint",
+                "End the next completed battle day and continue next month.");
+        }
+
         if (_endTurnButton != null && (IsStandaloneBattleAiTest || IsDebugAiStepMode))
         {
             _endTurnButton.Disabled = !_isFieldAiRoundStarted || _isBattleFinished;
@@ -284,6 +296,25 @@ public partial class BattleSceneController
     private void OnDefenderOneDayFoodButtonPressed()
     {
         SetTeamFoodForAiTest(TeamBInfo.Name);
+    }
+
+    private void OnMonthlyBattleLimitOneDayButtonPressed()
+    {
+        if (!IsBattleDebugAvailable || _isBattleFinished || _debugMonthlyBattleDayLimit > 0)
+        {
+            return;
+        }
+
+        _debugMonthlyBattleDayLimit = _activeCampaign?.BattleDaysThisMonth + 1 ?? _battleDateDay;
+        AppendBattleLog(
+            "Battle",
+            "Debug",
+            BattleText(
+                "log.debug_month_limit_1_day",
+                "Debug: the next completed battle day reaches this month's limit; the campaign will continue next month."));
+        ConfigureHud();
+        ConfigureFieldAiTestControls();
+        RefreshBattleLogPanel();
     }
 
     private void SetTeamFoodForAiTest(string teamName)

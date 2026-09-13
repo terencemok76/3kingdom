@@ -44,13 +44,46 @@ public partial class BattleSceneController
         if (!wasFinished)
         {
             AppendBattleLog("Battle", "Result", resultMessage.Replace('\n', ' '));
-            HandleCampaignBattleFinished();
+            if (IsCampaignMonthLimitReached)
+            {
+                QueueCampaignReturnToGameplayAfterMonthLimitResult();
+            }
+            else if (!IsStandaloneMonthLimitReached)
+            {
+                HandleCampaignBattleFinished();
+            }
         }
     }
 
     private bool TryBuildBattleResultMessage(out string resultMessage)
     {
         resultMessage = string.Empty;
+        if (IsCampaignMonthLimitReached && _activeCampaign != null)
+        {
+            var nextMonth = new DateTime(_activeCampaign.CurrentYear, _activeCampaign.CurrentMonth, 1).AddMonths(1);
+            resultMessage = string.Join('\n',
+                BattleText("ui.battle.result_month_paused", "Battle Paused"),
+                BattleFormat(
+                    "ui.battle.result_continue_next_month",
+                    "This campaign will continue in {0}/{1:00}.",
+                    nextMonth.Year,
+                    nextMonth.Month));
+            return true;
+        }
+
+        if (IsStandaloneMonthLimitReached)
+        {
+            var nextMonth = new DateTime(_battleDateYear, _battleDateMonth, 1).AddMonths(1);
+            resultMessage = string.Join('\n',
+                BattleText("ui.battle.result_month_paused", "Battle Paused"),
+                BattleFormat(
+                    "ui.battle.result_continue_test_next_month",
+                    "This test reached the month limit. Restart it to continue in {0}/{1:00}.",
+                    nextMonth.Year,
+                    nextMonth.Month));
+            return true;
+        }
+
         if (_mapData == null)
         {
             return false;

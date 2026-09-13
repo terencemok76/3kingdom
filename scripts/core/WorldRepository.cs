@@ -325,6 +325,7 @@ public class WorldRepository
         world.CityIntelRecords ??= new List<WorldState.CityIntelData>();
         world.PendingSuccessionRecords ??= new List<WorldState.PendingSuccessionData>();
         world.PendingCapturedOfficerRecords ??= new List<WorldState.PendingCapturedOfficerData>();
+        world.BattleReports ??= new List<WorldState.BattleReportData>();
         world.ActiveBattleCampaigns ??= new List<ActiveBattleCampaignData>();
 
         foreach (var campaign in world.ActiveBattleCampaigns)

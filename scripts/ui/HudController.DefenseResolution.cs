@@ -94,6 +94,11 @@ public partial class HudController
         }
 
         var world = _turnManager.World;
+        if (TryLaunchPlayerCampaignForCurrentMonth())
+        {
+            return;
+        }
+
         while (_pendingAttackResolutionQueue.Count > 0)
         {
             var pendingCommand = _pendingAttackResolutionQueue[0];
@@ -120,6 +125,7 @@ public partial class HudController
             {
                 world.PendingCommands.Remove(pendingCommand);
                 world.ResumeAttackResolutionAfterCampaign = true;
+                world.IsBattleResolutionPhase = true;
                 AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
                 LaunchCampaignBattle(result.ActiveBattleCampaignId);
                 return;
@@ -181,6 +187,7 @@ public partial class HudController
 
         var playerFactionId = _turnManager.GetPlayerFactionId();
         _turnManager.AdvanceMonth();
+        world.IsBattleResolutionPhase = false;
         foreach (var escapeEvent in _turnManager.ConsumeOfficerEscapeEvents())
         {
             var officer = world.GetOfficer(escapeEvent.OfficerId);

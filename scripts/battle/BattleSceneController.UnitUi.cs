@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 
@@ -195,6 +196,18 @@ public partial class BattleSceneController
             candidate.Name.Equals(occupant.OfficerName, StringComparison.OrdinalIgnoreCase) ||
             candidate.NameZhHant.Equals(occupant.OfficerName, StringComparison.OrdinalIgnoreCase));
         return officer?.Id ?? 0;
+    }
+
+    private OfficerData? GetBattleOfficerData(string officerName)
+    {
+        if (string.IsNullOrWhiteSpace(officerName))
+        {
+            return null;
+        }
+
+        return CampaignRuntimeContext.World?.Officers.FirstOrDefault(candidate =>
+            candidate.Name.Equals(officerName, StringComparison.OrdinalIgnoreCase) ||
+            candidate.NameZhHant.Equals(officerName, StringComparison.OrdinalIgnoreCase));
     }
 
     private Texture2D? GetOfficerPortraitTexture(int officerId)

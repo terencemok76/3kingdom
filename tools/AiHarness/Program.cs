@@ -17,6 +17,7 @@ internal static class Program
         {
             RunBattleCampaignLifecycleTest();
             RunBattleCampaignReinforcementTest();
+            RunAiCampaignReinforcementTest();
             RunBattleCampaignReorganizationTest();
             RunDefenderPlanOverrideTest();
             PrintSummary();
@@ -35,6 +36,7 @@ internal static class Program
         RunBattlePeriodSupplyTest();
         RunBattleEnvironmentForecastTest();
         RunAttackSchedulingTest();
+        RunAiCampaignReinforcementTest();
         RunAttackAutoBreakPactTest();
         RunDefensePromptEligibilityTest();
         RunDefenseDeploymentAffectsCombatOutcomeTest();
@@ -226,6 +228,61 @@ internal static class Program
             campaign.Teams.Any(team => team.ReinforcementOrderId == order.Id),
             "Battle campaign delayed reinforcement",
             $"eta={order.RouteLinks * 2}, status={order.Status}");
+    }
+
+    private static void RunAiCampaignReinforcementTest()
+    {
+        var attackerWorld = CreateBattleCampaignWorld();
+        var attackerCampaign = BattleCampaignService.CreateCampaign(
+            attackerWorld,
+            CreateBattleCampaignAttack(),
+            DefenderBattlePlan.CityDefense);
+        var attackerServices = CreateServices(attackerWorld);
+        var attackerSource = attackerWorld.GetCity(3)!;
+        var attackerTroopsBefore = attackerSource.Troops;
+        var attackerResult = attackerServices.Ai.RunSingleCityDecision(1, attackerSource.Id);
+        var attackerOrder = attackerCampaign.Reinforcements.SingleOrDefault();
+        var attackerValid = attackerOrder != null &&
+                            attackerOrder.Side == CampaignBattleSide.Attacker &&
+                            attackerOrder.SourceCityId == attackerSource.Id &&
+                            attackerOrder.Teams.Count > 0 &&
+                            attackerOrder.Teams.All(team =>
+                                team.OfficerId > 0 && Enum.IsDefined(typeof(TroopType), team.TroopType) && team.ActiveTroops > 0) &&
+                            attackerSource.Troops >= BattleCampaignService.MinimumCityGarrison &&
+                            attackerSource.Troops < attackerTroopsBefore;
+        Assert(
+            attackerResult.Success && attackerValid,
+            "AI attacker dispatches valid campaign reinforcement",
+            $"success={attackerResult.Success}, side={attackerOrder?.Side}, teams={attackerOrder?.Teams.Count ?? 0}, troops={attackerTroopsBefore}->{attackerSource.Troops}");
+
+        var defenderWorld = CreateBattleCampaignWorld();
+        var defenderSource = defenderWorld.GetCity(3)!;
+        defenderSource.OwnerFactionId = 2;
+        defenderWorld.GetFaction(1)!.OfficerIds.Remove(102);
+        defenderWorld.GetFaction(2)!.OfficerIds.Add(102);
+        var defenderOfficer = defenderWorld.GetOfficer(102)!;
+        defenderOfficer.CityId = defenderSource.Id;
+        var defenderCampaign = BattleCampaignService.CreateCampaign(
+            defenderWorld,
+            CreateBattleCampaignAttack(),
+            DefenderBattlePlan.CityDefense);
+        var defenderServices = CreateServices(defenderWorld);
+        var defenderTroopsBefore = defenderSource.Troops;
+        var defenderResult = defenderServices.Ai.RunSingleCityDecision(2, defenderSource.Id);
+        var defenderOrder = defenderCampaign.Reinforcements.SingleOrDefault();
+        var defenderValid = defenderOrder != null &&
+                            defenderOrder.Side == CampaignBattleSide.Defender &&
+                            defenderOrder.SourceCityId == defenderSource.Id &&
+                            defenderOrder.TargetCityId == defenderCampaign.TargetCityId &&
+                            defenderOrder.Teams.Count > 0 &&
+                            defenderOrder.Teams.All(team =>
+                                team.OfficerId > 0 && Enum.IsDefined(typeof(TroopType), team.TroopType) && team.ActiveTroops > 0) &&
+                            defenderSource.Troops >= BattleCampaignService.MinimumCityGarrison &&
+                            defenderSource.Troops < defenderTroopsBefore;
+        Assert(
+            defenderResult.Success && defenderValid,
+            "AI defender dispatches valid campaign reinforcement",
+            $"success={defenderResult.Success}, side={defenderOrder?.Side}, teams={defenderOrder?.Teams.Count ?? 0}, target={defenderOrder?.TargetCityId}, troops={defenderTroopsBefore}->{defenderSource.Troops}");
     }
 
     private static void RunBattleCampaignReorganizationTest()

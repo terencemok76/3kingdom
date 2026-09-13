@@ -147,6 +147,7 @@ public partial class BattleSceneController : Node2D
     private Button? _nextAiButton;
     private Button? _attackerOneDayFoodButton;
     private Button? _defenderOneDayFoodButton;
+    private Button? _monthlyBattleLimitOneDayButton;
     private Label? _aiRoundStatusLabel;
     private Button? _timeButton;
     private Button? _weatherButton;
@@ -488,6 +489,11 @@ public partial class BattleSceneController : Node2D
         if (_defenderOneDayFoodButton != null)
         {
             _defenderOneDayFoodButton.Pressed += OnDefenderOneDayFoodButtonPressed;
+        }
+
+        if (_monthlyBattleLimitOneDayButton != null)
+        {
+            _monthlyBattleLimitOneDayButton.Pressed += OnMonthlyBattleLimitOneDayButtonPressed;
         }
 
         if (_timeButton != null)
@@ -939,14 +945,15 @@ public partial class BattleSceneController : Node2D
         var battleDayThisMonth = _activeCampaign != null
             ? _activeCampaign.BattleDaysThisMonth + 1
             : _battleDateDay;
-        battleDayThisMonth = Math.Clamp(battleDayThisMonth, 1, BattleCampaignService.MaximumBattleDaysPerMonth);
+        var monthlyBattleDayLimit = GetMonthlyBattleDayLimit();
+        battleDayThisMonth = Math.Clamp(battleDayThisMonth, 1, monthlyBattleDayLimit);
         return BattleFormat(
             "ui.battle.month_battle_timeline",
             "Year {0}, Month {1:00} | Battle Day: {2}/{3} | {4} | Turn: {5}",
             _battleDateYear,
             _battleDateMonth,
             battleDayThisMonth,
-            BattleCampaignService.MaximumBattleDaysPerMonth,
+            monthlyBattleDayLimit,
             FormatBattleTimeOfDay(GetCurrentBattleTimeOfDay()),
             _turnNumber);
     }
@@ -1014,6 +1021,7 @@ public partial class BattleSceneController : Node2D
             _nextAiButton,
             _attackerOneDayFoodButton,
             _defenderOneDayFoodButton,
+            _monthlyBattleLimitOneDayButton,
             _battleOptionSaveButton,
             _battleOptionLoadButton,
             _battleOptionLanguageButton,
@@ -1976,14 +1984,14 @@ public partial class BattleSceneController : Node2D
         return opponentScore + 12 >= challengerScore;
     }
 
-    private static int GetDuelBattleScore(BattleOccupantInfo unit)
+    private int GetDuelBattleScore(BattleOccupantInfo unit)
     {
         return GetOfficerBattleAttribute(unit.OfficerName);
     }
 
-    private static int GetOfficerBattleAttribute(string officerName)
+    private int GetOfficerBattleAttribute(string officerName)
     {
-        return BattleOfficerAiProfiles.GetCombatAttribute(officerName);
+        return GetBattleOfficerData(officerName)?.Combat ?? BattleOfficerAiProfiles.GetCombatAttribute(officerName);
     }
 
     private void ExecuteSelectedGuard()
@@ -3400,7 +3408,7 @@ public partial class BattleSceneController : Node2D
                IsMessed(target);
     }
 
-    private static float GetMessStrategySuccessChance(BattleOccupantInfo actor, BattleOccupantInfo target)
+    private float GetMessStrategySuccessChance(BattleOccupantInfo actor, BattleOccupantInfo target)
     {
         var officerDelta = GetOfficerBattleAttribute(actor.OfficerName) - GetOfficerBattleAttribute(target.OfficerName);
         var targetMorale = target.Morale ?? DefaultUnitMorale;

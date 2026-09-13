@@ -96,6 +96,15 @@ public partial class HudController : CanvasLayer
 
         var world = _turnManager.World;
         AddLog(_localization.T("log.player_end_turn"), isPlayerRelated: true);
+        if (world.IsBattleResolutionPhase)
+        {
+            _isResolvingEndTurn = true;
+            _pendingNonAttackResolutionQueue.Clear();
+            _pendingAttackResolutionQueue.Clear();
+            _pendingAttackResolutionQueue.AddRange(_turnManager.GetPendingCommandsOfType(CommandType.Attack));
+            ContinuePendingAttackResolution();
+            return;
+        }
 
         foreach (var faction in world.Factions)
         {
@@ -341,6 +350,7 @@ public partial class HudController : CanvasLayer
         var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
         var hasSelectedCity = _selectedCity != null;
         var isPlayerCity = hasSelectedCity && _selectedCity!.OwnerFactionId == playerFactionId;
+        var canControlSelectedCity = isPlayerCity && world?.IsBattleResolutionPhase != true;
         var hasUsedRecruit = false;
         var hasUsedSearch = false;
 
@@ -361,57 +371,57 @@ public partial class HudController : CanvasLayer
 
         if (MainHudDevelopButton != null)
         {
-            MainHudDevelopButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudDevelopButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudRecruitButton != null)
         {
-            MainHudRecruitButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudRecruitButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudSearchButton != null)
         {
-            MainHudSearchButton.Disabled = !baseEnabled || !isPlayerCity || hasUsedSearch;
+            MainHudSearchButton.Disabled = !baseEnabled || !canControlSelectedCity || hasUsedSearch;
         }
 
         if (MainHudMerchantButton != null)
         {
-            MainHudMerchantButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudMerchantButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudDiplomacyButton != null)
         {
-            MainHudDiplomacyButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudDiplomacyButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudSpyButton != null)
         {
-            MainHudSpyButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudSpyButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudPersonnelButton != null)
         {
-            MainHudPersonnelButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudPersonnelButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (_advisorButton != null)
         {
-            _advisorButton.Disabled = !baseEnabled || !isPlayerCity;
+            _advisorButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudCivilButton != null)
         {
-            MainHudCivilButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudCivilButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudMoveButton != null)
         {
-            MainHudMoveButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudMoveButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudAttackButton != null)
         {
-            MainHudAttackButton.Disabled = !baseEnabled || !isPlayerCity;
+            MainHudAttackButton.Disabled = !baseEnabled || !canControlSelectedCity;
         }
 
         if (MainHudViewButton != null)
@@ -423,6 +433,7 @@ public partial class HudController : CanvasLayer
         {
             MainHudTestCaptureButton.Disabled = !baseEnabled || !isPlayerCity;
         }
+
     }
 
     private string GetLocalizedResultMessage(CommandResult result)

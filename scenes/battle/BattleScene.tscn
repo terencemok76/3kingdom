@@ -1318,3 +1318,13 @@ custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Defender Food: 1d"
+
+[node name="MonthLimitRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="MonthlyBattleLimitOneDayButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/MonthLimitRow"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Month limit: 1 day"

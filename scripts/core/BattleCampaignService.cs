@@ -5,6 +5,28 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Core;
 
+public enum ReinforcementDispatchFailure
+{
+    InvalidSource,
+    AlreadyDispatchedThisMonth,
+    NoFriendlyRoute,
+    MinimumGarrison,
+    InvalidDeployment,
+    InsufficientResources,
+    InsufficientSiegeEngines
+}
+
+public sealed class ReinforcementDispatchException : InvalidOperationException
+{
+    public ReinforcementDispatchException(ReinforcementDispatchFailure failure, string message)
+        : base(message)
+    {
+        Failure = failure;
+    }
+
+    public ReinforcementDispatchFailure Failure { get; }
+}
+
 public static class BattleCampaignService
 {
     public const int MaximumBattleDaysPerMonth = 10;
@@ -155,6 +177,9 @@ public static class BattleCampaignService
              campaign.Invitations.Any(invitation =>
                  invitation.Status == BattleInvitationStatus.Pending && invitation.EnvoyOfficerId == officerId)));
 
+    public static int GetFriendlyRouteLinks(WorldState world, int sourceCityId, int targetCityId, int factionId) =>
+        FindFriendlyRouteLinks(world, sourceCityId, targetCityId, factionId);
+
     public static ReinforcementOrderData DispatchReinforcement(
         WorldState world,
         ActiveBattleCampaignData campaign,
@@ -166,13 +191,13 @@ public static class BattleCampaignService
         CampaignSupplyOwnership supplyOwnership = CampaignSupplyOwnership.MainFaction)
     {
         var sourceCity = world.GetCity(sourceCityId) ??
-            throw new InvalidOperationException("Reinforcement source city is missing.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.InvalidSource, "Reinforcement source city is missing.");
         var expectedFactionId = side == CampaignBattleSide.Attacker
             ? campaign.AttackerFactionId
             : campaign.DefenderFactionId;
         if (supplyOwnership == CampaignSupplyOwnership.MainFaction && sourceCity.OwnerFactionId != expectedFactionId)
         {
-            throw new InvalidOperationException("Domestic reinforcements must come from the main faction.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.InvalidSource, "Domestic reinforcements must come from the main faction.");
         }
 
         if (campaign.Reinforcements.Any(order =>
@@ -181,13 +206,13 @@ public static class BattleCampaignService
                 order.DispatchMonth == world.Month &&
                 order.Status != ReinforcementStatus.Cancelled))
         {
-            throw new InvalidOperationException("This city has already reinforced the campaign this month.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.AlreadyDispatchedThisMonth, "This city has already reinforced the campaign this month.");
         }
 
         var routeLinks = FindFriendlyRouteLinks(world, sourceCity.Id, campaign.TargetCityId, sourceCity.OwnerFactionId);
         if (routeLinks <= 0)
         {
-            throw new InvalidOperationException("No valid reinforcement route reaches the battlefield.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.NoFriendlyRoute, "No valid reinforcement route reaches the battlefield.");
         }
 
         var normalizedDeployments = deployments
@@ -199,7 +224,7 @@ public static class BattleCampaignService
         var allocation = BuildTroopAllocation(normalizedDeployments);
         if (allocation.Total > 0 && sourceCity.Troops - allocation.Total < MinimumCityGarrison)
         {
-            throw new InvalidOperationException("The source city must retain its minimum garrison.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.MinimumGarrison, "The source city must retain its minimum garrison.");
         }
 
         ValidateCityCanSupply(sourceCity, normalizedDeployments, allocation, gold, food);
@@ -383,8 +408,10 @@ public static class BattleCampaignService
         PromoteReserves(campaign, CampaignBattleSide.Defender);
     }
 
-    public static bool HasReachedMonthlyBattleLimit(ActiveBattleCampaignData campaign) =>
-        campaign.BattleDaysThisMonth >= MaximumBattleDaysPerMonth;
+    public static bool HasReachedMonthlyBattleLimit(
+        ActiveBattleCampaignData campaign,
+        int maximumBattleDays = MaximumBattleDaysPerMonth) =>
+        campaign.BattleDaysThisMonth >= Math.Max(1, maximumBattleDays);
 
     public static void BeginNextCampaignMonth(ActiveBattleCampaignData campaign, int year, int month)
     {
@@ -416,6 +443,35 @@ public static class BattleCampaignService
             return;
         }
 
+        var winnerFactionId = winner == CampaignBattleSide.Attacker
+            ? campaign.AttackerFactionId
+            : campaign.DefenderFactionId;
+        var capturedOfficerIds = new List<int>();
+        var report = new WorldState.BattleReportData
+        {
+            Id = world.BattleReports.Count == 0 ? 1 : world.BattleReports.Max(item => item.Id) + 1,
+            Year = campaign.CurrentYear,
+            Month = campaign.CurrentMonth,
+            SourceCityId = campaign.SourceCityId,
+            TargetCityId = campaign.TargetCityId,
+            AttackerFactionId = campaign.AttackerFactionId,
+            DefenderFactionId = campaign.DefenderFactionId,
+            WinnerFactionId = winnerFactionId,
+            Stage = campaign.Stage,
+            AttackerActiveTroops = campaign.Teams
+                .Where(team => team.Side == CampaignBattleSide.Attacker)
+                .Sum(team => Math.Max(0, team.ActiveTroops)),
+            AttackerWoundedTroops = campaign.Teams
+                .Where(team => team.Side == CampaignBattleSide.Attacker)
+                .Sum(team => Math.Max(0, team.WoundedTroops)),
+            DefenderActiveTroops = campaign.Teams
+                .Where(team => team.Side == CampaignBattleSide.Defender)
+                .Sum(team => Math.Max(0, team.ActiveTroops)),
+            DefenderWoundedTroops = campaign.Teams
+                .Where(team => team.Side == CampaignBattleSide.Defender)
+                .Sum(team => Math.Max(0, team.WoundedTroops))
+        };
+
         ReturnUndeployedReinforcements(world, campaign);
 
         var attackerWonCity = winner == CampaignBattleSide.Attacker && campaign.Stage == CampaignStage.CityBattle;
@@ -429,6 +485,7 @@ public static class BattleCampaignService
                     officer.CityId = 0;
                     officer.CaptiveFactionId = campaign.AttackerFactionId;
                     officer.JailedCityId = targetCity.Id;
+                    capturedOfficerIds.Add(officerId);
                 }
             }
             targetCity.OfficerIds.Clear();
@@ -481,6 +538,27 @@ public static class BattleCampaignService
         campaign.Stage = CampaignStage.Resolved;
         campaign.IsAwaitingPlayerDecision = false;
         campaign.BattleSnapshotJson = string.Empty;
+        report.CapturedOfficerIds = capturedOfficerIds;
+        world.BattleReports.Add(report);
+
+        if (world.Factions.Any(faction => faction.Id == winnerFactionId && faction.IsPlayer))
+        {
+            foreach (var officerId in capturedOfficerIds)
+            {
+                if (world.PendingCapturedOfficerRecords.Any(record =>
+                        record.WinnerFactionId == winnerFactionId && record.OfficerId == officerId))
+                {
+                    continue;
+                }
+
+                world.PendingCapturedOfficerRecords.Add(new WorldState.PendingCapturedOfficerData
+                {
+                    WinnerFactionId = winnerFactionId,
+                    WinnerCityId = targetCity.Id,
+                    OfficerId = officerId
+                });
+            }
+        }
     }
 
     public static void ApplyPostFieldDecision(ActiveBattleCampaignData campaign, PostFieldBattleDecision decision)
@@ -606,9 +684,9 @@ public static class BattleCampaignService
                     continue;
                 }
 
-                team.Location = campaign.Stage == CampaignStage.CityBattle && side == CampaignBattleSide.Defender
-                    ? CampaignTeamLocation.InnerCity
-                    : CampaignTeamLocation.Field;
+                // A reinforcement is an external force even during a city battle.
+                // Only the city's original defenders may begin inside the walls.
+                team.Location = CampaignTeamLocation.Field;
                 team.Id = campaign.Teams.Count == 0 ? 1 : campaign.Teams.Max(item => item.Id) + 1;
                 campaign.Teams.Add(team);
                 activeCount++;
@@ -947,7 +1025,7 @@ public static class BattleCampaignService
     {
         if ((deployments.Count == 0 && gold <= 0 && food <= 0) || deployments.Any(item => IsInvalidDeployment(item, city)))
         {
-            throw new InvalidOperationException("The reinforcement deployment is invalid.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.InvalidDeployment, "The reinforcement deployment is invalid.");
         }
 
         if (allocation.Infantry > city.InfantryTroops ||
@@ -958,13 +1036,13 @@ public static class BattleCampaignService
             allocation.Siege > city.SiegeTroops ||
             gold < 0 || gold > city.Gold || food < 0 || food > city.Food)
         {
-            throw new InvalidOperationException("The source city lacks the selected troops or resources.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.InsufficientResources, "The source city lacks the selected troops or resources.");
         }
 
         var siege = BuildSiegeEngineAllocation(deployments);
         if (siege.Ram > city.RamCount || siege.Catapult > city.CatapultCount || siege.Ladder > city.LadderCount)
         {
-            throw new InvalidOperationException("The source city lacks the selected siege engines.");
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.InsufficientSiegeEngines, "The source city lacks the selected siege engines.");
         }
     }
 

@@ -234,6 +234,11 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
+            if (BattleCampaignService.IsOfficerCommitted(_turnManager.World, officerId))
+            {
+                continue;
+            }
+
             result.Add(officerId);
         }
 

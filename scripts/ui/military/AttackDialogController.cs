@@ -32,6 +32,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private bool _officerListSignalsConnected;
     private bool _officerListGuiInputConnected;
     private bool _confirmButtonSignalsConnected;
+    private bool _targetCitySignalsConnected;
     private string _lastSelectionSignature = string.Empty;
     private int _warningAcknowledgedTargetCityId = -1;
     private DialogMode _dialogMode = DialogMode.Attack;
@@ -61,14 +62,19 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
 
         var isDefenseMode = _dialogMode == DialogMode.Defense;
+        var isReinforcement = !isDefenseMode && IsReinforcementTarget();
         SetOverlayTitleText(isDefenseMode
             ? (_context.Localization.T("ui.defense") ?? "Defense")
-            : _context.Localization.T("ui.attack"));
+            : isReinforcement
+                ? _context.Localization.T("ui.campaign.reinforce") ?? "Reinforce"
+                : _context.Localization.T("ui.attack"));
         if (_confirmButton != null)
         {
             _confirmButton.Text = isDefenseMode
                 ? (_context.Localization.T("ui.confirm_defense") ?? "Confirm Defense")
-                : _context.Localization.T("ui.confirm_attack");
+                : isReinforcement
+                    ? _context.Localization.T("ui.campaign.confirm_reinforce") ?? "Confirm Reinforcement"
+                    : _context.Localization.T("ui.confirm_attack");
         }
 
         SetLabelText("TargetCityLabel", isDefenseMode ? _context.Localization.T("ui.attack") : _context.Localization.T("ui.target_city"));
@@ -148,6 +154,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _dialogMode = DialogMode.Attack;
         _dialogContextCity = _context.SelectedCity;
         PopulateOfficerList(_context.SelectedCity, _context.GetAvailableOfficerIdsForOrder());
+        RefreshText();
         RefreshDeploymentEditor();
         ShowOverlay();
     }
@@ -262,6 +269,12 @@ internal sealed class AttackDialogController : FloatingOverlayController
         {
             _confirmButton.Pressed += OnConfirmPressed;
             _confirmButtonSignalsConnected = true;
+        }
+
+        if (!_targetCitySignalsConnected && _targetCityOption != null)
+        {
+            _targetCityOption.ItemSelected += OnTargetCitySelected;
+            _targetCitySignalsConnected = true;
         }
     }
 
@@ -1040,6 +1053,35 @@ internal sealed class AttackDialogController : FloatingOverlayController
         return _dialogMode == DialogMode.Defense
             ? dialogCity.OfficerIds.ToList()
             : _context.GetAvailableOfficerIdsForOrder().ToList();
+    }
+
+    private void OnTargetCitySelected(long _)
+    {
+        if (_dialogMode == DialogMode.Attack)
+        {
+            RefreshText();
+        }
+    }
+
+    private bool IsReinforcementTarget()
+    {
+        var sourceCity = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        if (sourceCity == null || world == null || _targetCityOption == null || _targetCityOption.Selected < 0)
+        {
+            return false;
+        }
+
+        var metadata = _targetCityOption.GetItemMetadata(_targetCityOption.Selected);
+        if (metadata.VariantType != Variant.Type.Int)
+        {
+            return false;
+        }
+
+        return world.ActiveBattleCampaigns.Any(campaign =>
+            campaign.Stage != CampaignStage.Resolved &&
+            campaign.TargetCityId == metadata.AsInt32() &&
+            campaign.AttackerFactionId == sourceCity.OwnerFactionId);
     }
 
     private void RefreshTargetCityOptionTexts()

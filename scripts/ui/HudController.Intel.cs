@@ -110,21 +110,39 @@ public partial class HudController
 
     private string BuildMaskedOfficerName(OfficerData officer)
     {
-        return MaskedText(CanViewOfficerFullInformation(officer), _localization?.GetOfficerName(officer) ?? officer.Name);
+        return MaskedText(
+            CanViewOfficerFullInformation(officer) || TryGetBattleOfficerAtSelectedCity(officer, out _),
+            _localization?.GetOfficerName(officer) ?? officer.Name);
     }
 
     private string BuildMaskedOfficerRole(OfficerData officer)
     {
-        return MaskedText(CanViewOfficerFullInformation(officer), GetDisplayedOfficerRole(officer));
+        return MaskedText(
+            CanViewOfficerFullInformation(officer) || TryGetBattleOfficerAtSelectedCity(officer, out _),
+            GetDisplayedOfficerRole(officer));
     }
 
     private string BuildMaskedOfficerAppointments(OfficerData officer)
     {
+        if (TryGetBattleOfficerAtSelectedCity(officer, out var team))
+        {
+            return GetTroopTypeDisplayName(team.TroopType);
+        }
+
         return MaskedText(CanViewOfficerFullInformation(officer), BuildOfficerAppointmentsText(officer));
     }
 
     private string BuildMaskedOfficerStatus(WorldState world, OfficerData officer)
     {
+        if (TryGetBattleOfficerAtSelectedCity(officer, out var team))
+        {
+            var side = team.Side == CampaignBattleSide.Attacker
+                ? _localization?.T("ui.campaign.battle_officer_attacker") ?? "Attacker"
+                : _localization?.T("ui.campaign.battle_officer_defender") ?? "Defender";
+            var location = GetBattleOfficerLocationText(team.Location);
+            return _localization?.Format("ui.campaign.battle_officer_status", side, location) ?? $"{side} - {location}";
+        }
+
         return MaskedText(
             CanViewOfficerFullInformation(officer),
             officer.CaptiveFactionId > 0
@@ -133,6 +151,64 @@ public partial class HudController
             FreeOfficerMovement.IsFreeOfficer(world, officer)
                 ? _localization?.T("ui.free_officer") ?? "Free Officer"
                 : _localization?.GetOfficerStatus(world, officer) ?? "Idle");
+    }
+
+    private string GetBattleOfficerLocationText(CampaignTeamLocation location)
+    {
+        return location switch
+        {
+            CampaignTeamLocation.Field => _localization?.T("ui.campaign.battle_location_field") ?? "On Field",
+            CampaignTeamLocation.InnerCity => _localization?.T("ui.campaign.battle_location_inner_city") ?? "In City",
+            CampaignTeamLocation.Traveling => _localization?.T("ui.campaign.battle_location_traveling") ?? "Traveling",
+            CampaignTeamLocation.Reserve => _localization?.T("ui.campaign.battle_location_reserve") ?? "Reserve",
+            CampaignTeamLocation.NeighborCity => _localization?.T("ui.campaign.battle_location_neighbor_city") ?? "To Neighboring City",
+            CampaignTeamLocation.Eliminated => _localization?.T("ui.campaign.battle_location_eliminated") ?? "Eliminated",
+            CampaignTeamLocation.Captured => _localization?.T("ui.campaign.battle_location_captured") ?? "Captured",
+            _ => location.ToString()
+        };
+    }
+
+    private bool IsViewingBattleCityOfficerList()
+    {
+        return _officerListMode == OfficerListMode.View &&
+               _officerListContentMode == OfficerListContentMode.Officers &&
+               _officerListScope == OfficerListScope.City &&
+               _selectedCity != null &&
+               _turnManager?.World?.ActiveBattleCampaigns.Any(campaign =>
+                   campaign.Stage != CampaignStage.Resolved &&
+                   campaign.TargetCityId == _selectedCity.Id) == true;
+    }
+
+    private string GetBattleOfficerFactionName(OfficerData officer)
+    {
+        if (_turnManager?.World == null || !TryGetBattleOfficerAtSelectedCity(officer, out var team))
+        {
+            return UnknownInfoText;
+        }
+
+        return _localization?.GetFactionName(_turnManager.World, team.FactionId) ?? team.FactionId.ToString();
+    }
+
+    private bool TryGetBattleOfficerAtSelectedCity(
+        OfficerData officer,
+        out CampaignBattleTeamData team)
+    {
+        team = null!;
+        if (_selectedCity == null || _turnManager?.World == null)
+        {
+            return false;
+        }
+
+        var campaign = _turnManager.World.ActiveBattleCampaigns.FirstOrDefault(item =>
+            item.Stage != CampaignStage.Resolved &&
+            item.TargetCityId == _selectedCity.Id);
+        if (campaign == null)
+        {
+            return false;
+        }
+
+        team = campaign.Teams.FirstOrDefault(item => item.OfficerId == officer.Id)!;
+        return team != null;
     }
 
     private string BuildMaskedOfficerLoyalty(WorldState world, OfficerData officer)

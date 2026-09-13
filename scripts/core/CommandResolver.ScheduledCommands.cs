@@ -553,6 +553,48 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.attack.too_many_siege_engines", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
 
+        var campaign = world.ActiveBattleCampaigns.FirstOrDefault(item =>
+            item.Stage != CampaignStage.Resolved &&
+            item.TargetCityId == targetCity.Id &&
+            item.AttackerFactionId == sourceCity.OwnerFactionId);
+        if (campaign != null)
+        {
+            try
+            {
+                var reinforcement = BattleCampaignService.DispatchReinforcement(
+                    world,
+                    campaign,
+                    sourceCity.Id,
+                    CampaignBattleSide.Attacker,
+                    validDeployments,
+                    carriedGold,
+                    carriedFood);
+                return LocalizedResult(
+                    true,
+                    "cmd.attack.reinforcement_scheduled",
+                    new object[]
+                    {
+                        GetCityName(sourceCity, GameLanguage.TraditionalChinese),
+                        GetCityName(targetCity, GameLanguage.TraditionalChinese),
+                        reinforcement.RemainingBattleDays
+                    },
+                    new object[]
+                    {
+                        GetCityName(sourceCity, GameLanguage.English),
+                        GetCityName(targetCity, GameLanguage.English),
+                        reinforcement.RemainingBattleDays
+                    });
+            }
+            catch (ReinforcementDispatchException exception)
+            {
+                return GetReinforcementFailureResult(sourceCity, targetCity, troopAllocation.Total, exception);
+            }
+            catch (InvalidOperationException)
+            {
+                return LocalizedResult(false, "cmd.attack.reinforcement_unavailable", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+            }
+        }
+
         var autoBrokePact = TryBreakDiplomacyBlockForAttack(world, sourceCity.OwnerFactionId, targetCity.OwnerFactionId);
         MarkOfficersAssigned(world, selectedOfficerIds, CommandType.Attack);
         // Reserve attack resources immediately so same-month orders see the reduced stock.
@@ -582,6 +624,40 @@ public partial class CommandResolver
             autoBrokePact ? "cmd.attack.scheduled_break_pact" : "cmd.attack.scheduled",
             new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese) },
             new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
+    }
+
+    private CommandResult GetReinforcementFailureResult(
+        CityData sourceCity,
+        CityData targetCity,
+        int deployedTroops,
+        ReinforcementDispatchException exception)
+    {
+        var key = exception.Failure switch
+        {
+            ReinforcementDispatchFailure.AlreadyDispatchedThisMonth => "cmd.attack.reinforcement_already_dispatched",
+            ReinforcementDispatchFailure.NoFriendlyRoute => "cmd.attack.reinforcement_no_route",
+            ReinforcementDispatchFailure.MinimumGarrison => "cmd.attack.reinforcement_minimum_garrison",
+            ReinforcementDispatchFailure.InvalidDeployment => "cmd.attack.reinforcement_invalid_deployment",
+            ReinforcementDispatchFailure.InsufficientResources => "cmd.attack.reinforcement_insufficient_resources",
+            ReinforcementDispatchFailure.InsufficientSiegeEngines => "cmd.attack.reinforcement_insufficient_siege_engines",
+            _ => "cmd.attack.reinforcement_unavailable"
+        };
+        var remainingTroops = Math.Max(0, sourceCity.Troops - deployedTroops);
+        var zhArgs = new object[]
+        {
+            GetCityName(sourceCity, GameLanguage.TraditionalChinese),
+            GetCityName(targetCity, GameLanguage.TraditionalChinese),
+            remainingTroops,
+            BattleCampaignService.MinimumCityGarrison
+        };
+        var enArgs = new object[]
+        {
+            GetCityName(sourceCity, GameLanguage.English),
+            GetCityName(targetCity, GameLanguage.English),
+            remainingTroops,
+            BattleCampaignService.MinimumCityGarrison
+        };
+        return LocalizedResult(false, key, zhArgs, enArgs);
     }
 
     private CommandResult ResolveMove(WorldState world, CityData sourceCity, PendingCommandData pendingCommand)

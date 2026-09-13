@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
@@ -243,6 +244,7 @@ public partial class MapController : Node2D
                 Position = new Vector2(city.MapX, city.MapY)
             };
             cityNode.Bind(city, BuildCityLabel(city), GetCityFillColor(city));
+            cityNode.SetCampaignOverlay(HasActiveCampaign(city));
             _citiesLayer.AddChild(cityNode);
             _cityNodes.Add((city, cityNode));
         }
@@ -275,6 +277,7 @@ public partial class MapController : Node2D
         {
             entry.Node.SetDisplayLabel(BuildCityLabel(entry.City));
             entry.Node.SetFillColor(GetCityFillColor(entry.City));
+            entry.Node.SetCampaignOverlay(HasActiveCampaign(entry.City));
             entry.Node.QueueRedraw();
         }
 
@@ -449,6 +452,18 @@ public partial class MapController : Node2D
 
         var cityName = _localization.GetCityName(city);
         return $"{cityName}({city.Id})";
+    }
+
+    private bool HasActiveCampaign(CityData city)
+    {
+        if (_world == null)
+        {
+            return false;
+        }
+
+        return _world.ActiveBattleCampaigns.Any(item =>
+            item.Stage != CampaignStage.Resolved &&
+            item.TargetCityId == city.Id);
     }
 
     private Color GetCityFillColor(CityData city)
