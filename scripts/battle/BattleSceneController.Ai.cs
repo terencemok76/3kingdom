@@ -82,6 +82,11 @@ public partial class BattleSceneController
             }
         }
 
+        if (TryExecuteAiRoadYield(candidates))
+        {
+            return;
+        }
+
         foreach (var movingCandidate in candidates.OrderBy(candidate => GetAiFallbackMovementPriority(candidate.Occupant)))
         {
             if (TryExecuteAiMove(movingCandidate.Grid, movingCandidate.Occupant))
@@ -94,6 +99,120 @@ public partial class BattleSceneController
         FocusCameraOnBattleGrid(waitingCandidate.Grid);
         AppendBattleLog(waitingCandidate.Occupant, "AI", BattleFormat("log.ai.wait", "Decision: wait at {0}; no legal move or attack.", waitingCandidate.Grid));
         MarkUnitActed(waitingCandidate.Occupant);
+    }
+
+    private bool TryExecuteAiRoadYield(IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates)
+    {
+        if (_mapData == null)
+        {
+            return false;
+        }
+
+        foreach (var blocker in candidates
+                     .Where(candidate => candidate.Occupant.Category == CategoryUnit &&
+                                         !string.IsNullOrWhiteSpace(candidate.Occupant.OfficerName) &&
+                                         GetOfficerTacticalIntelligence(candidate.Occupant.OfficerName) >= AiRoadYieldIntelligenceThreshold)
+                     .OrderByDescending(candidate => GetOfficerTacticalIntelligence(candidate.Occupant.OfficerName))
+                     .ThenBy(candidate => candidate.Grid.Y)
+                     .ThenBy(candidate => candidate.Grid.X))
+        {
+            if (_mapData.GetCell(blocker.Grid.X, blocker.Grid.Y).Terrain != BattleTerrainType.Road ||
+                !TryGetAiRoadYieldDestination(blocker.Grid, blocker.Occupant, out var destination) ||
+                !TryGetAiTeammateBlockedByRoad(blocker.Grid, blocker.Occupant, candidates, out var delayedTeammate, out var enemyGrid))
+            {
+                continue;
+            }
+
+            _selectedUnit = blocker.Occupant;
+            _selectedUnitGrid = blocker.Grid;
+            FocusCameraOnBattleGrid(blocker.Grid);
+            AppendBattleLog(
+                blocker.Occupant,
+                "AI",
+                BattleFormat(
+                    "log.ai.road_yield",
+                    "Decision: yield road at {0}; move to {1} so {2} can advance toward {3}.",
+                    blocker.Grid,
+                    destination,
+                    FormatLogUnit(delayedTeammate),
+                    enemyGrid));
+            return TryExecuteBattleActionIntent(
+                new BattleActionIntent(BattleActionKind.Move, blocker.Grid, destination),
+                blocker.Occupant);
+        }
+
+        return false;
+    }
+
+    private bool TryGetAiRoadYieldDestination(BattleGridKey sourceGrid, BattleOccupantInfo blocker, out BattleGridKey destination)
+    {
+        destination = default;
+        var currentThreat = GetAiThreatScore(sourceGrid, blocker);
+        _selectedUnit = blocker;
+        _selectedUnitGrid = sourceGrid;
+        destination = CalculateReachableGrids(sourceGrid, GetAvailableMoveEnergy(blocker), GetAvailableMoveRange(blocker))
+            .Where(grid => grid.Level == sourceGrid.Level && GetManhattanDistance(sourceGrid.Grid, grid.Grid) == 1)
+            .Where(grid => _mapData!.GetCell(grid.X, grid.Y).Terrain != BattleTerrainType.Road)
+            .Where(IsAiSafeMovementDestination)
+            .Where(grid => GetAiThreatScore(grid, blocker) <= currentThreat)
+            .OrderBy(grid => GetAiThreatScore(grid, blocker))
+            .ThenBy(grid => grid.Y)
+            .ThenBy(grid => grid.X)
+            .FirstOrDefault();
+        return destination != default;
+    }
+
+    private bool TryGetAiTeammateBlockedByRoad(
+        BattleGridKey blockerGrid,
+        BattleOccupantInfo blocker,
+        IReadOnlyList<(BattleGridKey Grid, BattleOccupantInfo Occupant)> candidates,
+        out BattleOccupantInfo delayedTeammate,
+        out BattleGridKey enemyGrid)
+    {
+        delayedTeammate = null!;
+        enemyGrid = default;
+        var previousUnit = _selectedUnit;
+        var previousUnitGrid = _selectedUnitGrid;
+        try
+        {
+            foreach (var teammate in candidates.Where(candidate =>
+                         candidate.Occupant.Marker != blocker.Marker &&
+                         candidate.Occupant.TeamName == blocker.TeamName &&
+                         candidate.Occupant.Category == CategoryUnit))
+            {
+                _selectedUnit = teammate.Occupant;
+                _selectedUnitGrid = teammate.Grid;
+                foreach (var enemy in GetAllBattlePieces().Where(entry =>
+                             IsAttackerPiece(entry.Occupant) != IsAttackerPiece(teammate.Occupant) &&
+                             !IsHiddenFromSide(entry.Occupant, teammate.Occupant.TeamName)))
+                {
+                    foreach (var approachGrid in GetMovementNeighbors(enemy.Grid)
+                                 .Select(step => step.Grid)
+                                 .Where(grid => IsWithinMap(grid.Grid))
+                                 .Distinct())
+                    {
+                        var fullPathBudget = BattleMapData.Width * BattleMapData.Height * 2;
+                        if (TryBuildMovePath(teammate.Grid, approachGrid, fullPathBudget, fullPathBudget, out _) ||
+                            !TryBuildMovePath(teammate.Grid, approachGrid, fullPathBudget, fullPathBudget, out var yieldPath, blockerGrid) ||
+                            !yieldPath.Contains(blockerGrid))
+                        {
+                            continue;
+                        }
+
+                        delayedTeammate = teammate.Occupant;
+                        enemyGrid = enemy.Grid;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+        finally
+        {
+            _selectedUnit = previousUnit;
+            _selectedUnitGrid = previousUnitGrid;
+        }
     }
 
     private bool IsAiPostGateBreachSiegeEngine(BattleOccupantInfo unit)
@@ -707,7 +826,7 @@ public partial class BattleSceneController
         if (breachAction != default)
         {
             FocusCameraOnBattleGrid(breachAction.Source);
-            AppendBattleLog(breachAction.Unit, "AI", BattleFormat("log.ai.breach_attack", "Siege breach: attack gate {0} with {1}; structure damage {2}, score {3}.", breachAction.Gate, breachAction.Unit.TroopType, breachAction.Damage, breachAction.Score));
+            AppendBattleLog(breachAction.Unit, "AI", BattleFormat("log.ai.breach_attack", "Siege breach: attack gate {0} with {1}; structure damage {2}, score {3}.", breachAction.Gate, FormatTroopType(breachAction.Unit.TroopType), breachAction.Damage, breachAction.Score));
             return TryExecuteBattleActionIntent(
                 new BattleActionIntent(BattleActionKind.Attack, breachAction.Source, breachAction.Gate),
                 breachAction.Unit);
@@ -959,7 +1078,10 @@ public partial class BattleSceneController
         // only moves away if it is physically occupying the opened gate corridor.
         if (unit.TroopType == TroopLadder && !IsGateGrid(sourceGrid.Grid))
         {
-            AppendBattleLog(unit, "AI", $"Gate breached: ladder holds at {sourceGrid} outside the wall and will not enter the inner city.");
+            AppendBattleLog(unit, "AI", BattleFormat(
+                "log.ai.post_breach_ladder_hold",
+                "Gate breached: ladder holds at {0} outside the wall and will not enter the inner city.",
+                sourceGrid));
             MarkUnitActed(unit);
             return true;
         }
@@ -967,14 +1089,22 @@ public partial class BattleSceneController
         var rearDestination = GetAiRetreatExitAdvanceGrid(sourceGrid, unit);
         if (rearDestination.HasValue)
         {
-            var role = unit.TroopType == TroopRam ? "ram" : "ladder";
-            AppendBattleLog(unit, "AI", $"Gate breached: {role} withdraws {sourceGrid} -> {rearDestination.Value} to clear the gate corridor.");
+            AppendBattleLog(unit, "AI", BattleFormat(
+                "log.ai.post_breach_withdraw",
+                "Gate breached: {0} withdraws {1} -> {2} to clear the gate corridor.",
+                FormatTroopType(unit.TroopType),
+                sourceGrid,
+                rearDestination.Value));
             return TryExecuteBattleActionIntent(
                 new BattleActionIntent(BattleActionKind.Move, sourceGrid, rearDestination.Value),
                 unit);
         }
 
-        AppendBattleLog(unit, "AI", $"Gate breached: {unit.TroopType} holds at {sourceGrid}; no clear rear route is currently available.");
+        AppendBattleLog(unit, "AI", BattleFormat(
+            "log.ai.post_breach_hold",
+            "Gate breached: {0} holds at {1}; no clear rear route is currently available.",
+            FormatTroopType(unit.TroopType),
+            sourceGrid));
         MarkUnitActed(unit);
         return true;
     }
@@ -2512,7 +2642,8 @@ public partial class BattleSceneController
     private bool TryGetAiBridgeEngineeringPlan(BattleGridKey sourceGrid, BattleOccupantInfo worker, out AiBridgeEngineeringPlan plan)
     {
         plan = null!;
-        if (_mapData?.ScenarioDefinition.ScenarioType != BattleScenarioType.FieldBattle ||
+        if (_mapData == null ||
+            _mapData.ScenarioDefinition.ScenarioType is not (BattleScenarioType.FieldBattle or BattleScenarioType.MoatSiegeBattle) ||
             worker.TroopType != TroopWorker ||
             IsMessed(worker))
         {
@@ -2689,7 +2820,11 @@ public partial class BattleSceneController
         }
 
         var cell = _mapData.GetCell(grid.X, grid.Y);
-        return cell.Terrain == BattleTerrainType.River || (cell.IsWoodenBridge && cell.IsBridgeDamaged);
+        var supportsNewBridge = (_mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle &&
+                                 cell.Terrain == BattleTerrainType.River) ||
+                                (_mapData.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle &&
+                                 cell.Terrain == BattleTerrainType.Moat);
+        return supportsNewBridge || (cell.IsWoodenBridge && cell.IsBridgeDamaged);
     }
 
     private bool TryGetAiWorkerActionGrid(BattleGridKey sourceGrid, BattleOccupantInfo worker, Vector2I workGrid, out BattleGridKey actionGrid, out bool canWorkNow)
@@ -2775,13 +2910,29 @@ public partial class BattleSceneController
         FocusCameraOnBattleGrid(sourceGrid);
         if (plan.CanWorkNow)
         {
-            AppendBattleLog(worker, "AI", $"Engineering plan: build bridge at {plan.WorkGrid} toward {plan.ObjectiveGrid}; route improves by {plan.PathReduction} steps (score {plan.Score}, variance {noise}).");
+            AppendBattleLog(worker, "AI", BattleFormat(
+                "log.ai.bridge_engineering_work",
+                "Decision: build bridge at {0} toward {1}; route improves by {2} steps (score {3}, variance {4}).",
+                plan.WorkGrid,
+                plan.ObjectiveGrid,
+                plan.PathReduction,
+                plan.Score,
+                noise));
             return TryExecuteBattleActionIntent(
                 new BattleActionIntent(BattleActionKind.Work, sourceGrid, plan.WorkGrid),
                 worker);
         }
 
-        AppendBattleLog(worker, "AI", $"Engineering plan: move {sourceGrid} -> {plan.ActionGrid}, then build bridge at {plan.WorkGrid} toward {plan.ObjectiveGrid}; projected route improves by {plan.PathReduction} steps (score {plan.Score}, variance {noise}).");
+        AppendBattleLog(worker, "AI", BattleFormat(
+            "log.ai.bridge_engineering_move",
+            "Decision: move {0} -> {1}, then build bridge at {2} toward {3}; projected route improves by {4} steps (score {5}, variance {6}).",
+            sourceGrid,
+            plan.ActionGrid,
+            plan.WorkGrid,
+            plan.ObjectiveGrid,
+            plan.PathReduction,
+            plan.Score,
+            noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, plan.ActionGrid),
             worker);

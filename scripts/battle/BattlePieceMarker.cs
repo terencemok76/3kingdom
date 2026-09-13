@@ -136,9 +136,12 @@ public partial class BattlePieceMarker : Node2D
         QueueRedraw();
     }
 
-    public Node2D? CreateSilhouetteVisual(Color modulate)
+    public Node2D? CreateSilhouetteVisual(Color modulate, string? spriteScenePathOverride = null)
     {
-        if (string.IsNullOrWhiteSpace(_spriteScenePath))
+        var spriteScenePath = string.IsNullOrWhiteSpace(spriteScenePathOverride)
+            ? _spriteScenePath
+            : spriteScenePathOverride;
+        if (string.IsNullOrWhiteSpace(spriteScenePath))
         {
             return null;
         }
@@ -172,7 +175,7 @@ public partial class BattlePieceMarker : Node2D
             silhouette.SetupHealthBar(Mathf.RoundToInt(_healthRatio * 1000.0f), 1000);
         }
 
-        silhouette.SetupSpriteAnimationScene(_spriteScenePath);
+        silhouette.SetupSpriteAnimationScene(spriteScenePath);
         if (silhouette._spriteVisual == null)
         {
             return null;

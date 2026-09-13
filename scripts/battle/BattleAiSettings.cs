@@ -29,6 +29,7 @@ internal static class BattleAiSettings
     internal const int AiFenceRemovalBaseScore = 900;
     internal const int AiFencePathImpactScore = 500;
     internal const int AiFenceSupportScore = 250;
+    internal const int AiRoadYieldIntelligenceThreshold = 70;
     internal const int AiHideAmbushBaseScore = 700;
     internal const int AiHideAmbushRange = 4;
     internal const int AiHiddenAmbushAttackScoreBonus = 900;

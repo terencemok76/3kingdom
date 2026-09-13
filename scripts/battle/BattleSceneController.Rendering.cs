@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using static ThreeKingdom.Battle.BattlePresentationSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
+using static ThreeKingdom.Battle.BattleUnitVisualCatalog;
 
 namespace ThreeKingdom.Battle;
 
@@ -315,7 +316,12 @@ public partial class BattleSceneController
             }
 
             occupant.Marker.Visible = false;
-            var silhouette = occupant.Marker.CreateSilhouetteVisual(GetOccludedUnitSilhouetteColor(occupant));
+            // A silhouette is a resting visibility substitute.  Never copy the
+            // marker's transient attack/hurt scene: that clone has no action
+            // completion callback and would otherwise loop beneath the gate.
+            var silhouette = occupant.Marker.CreateSilhouetteVisual(
+                GetOccludedUnitSilhouetteColor(occupant),
+                GetOccludedUnitIdleScene(occupant));
             if (silhouette == null)
             {
                 ApplyHiddenMarkerVisibility(occupant);
@@ -338,6 +344,22 @@ public partial class BattleSceneController
         }
 
         _occludedUnitSilhouettesByGrid.Clear();
+    }
+
+    private static string GetOccludedUnitIdleScene(BattleOccupantInfo occupant)
+    {
+        return occupant.TroopType switch
+        {
+            TroopSpearman => GetSpearmanIdleScene(occupant.FacingDirection),
+            TroopArcher => GetArcherIdleScene(occupant.FacingDirection),
+            TroopCavalry => GetCavalryIdleScene(occupant.FacingDirection),
+            TroopWorker => GetWorkerIdleScene(occupant.FacingDirection),
+            TroopCatapult => GetCatapultIdleScene(occupant.FacingDirection),
+            TroopSupplyCart => GetSupplyCarIdleScene(occupant.FacingDirection),
+            TroopLadder => GetCarLadderIdleScene(occupant.FacingDirection),
+            TroopRam => GetCarIdleScene(occupant.FacingDirection),
+            _ => GetInfantryIdleScene(occupant.FacingDirection)
+        };
     }
 
     private void RestoreOccludedMarkerVisibility()

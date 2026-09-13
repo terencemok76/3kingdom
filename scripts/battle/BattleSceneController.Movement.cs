@@ -300,7 +300,13 @@ public partial class BattleSceneController
         }
     }
 
-    private bool TryBuildMovePath(BattleGridKey startGrid, BattleGridKey destinationGrid, int energyBudget, int rangeBudget, out List<BattleGridKey> path)
+    private bool TryBuildMovePath(
+        BattleGridKey startGrid,
+        BattleGridKey destinationGrid,
+        int energyBudget,
+        int rangeBudget,
+        out List<BattleGridKey> path,
+        BattleGridKey? ignoredBlockingGrid = null)
     {
         path = [];
         if (_mapData == null || energyBudget <= 0 || rangeBudget <= 0)
@@ -346,7 +352,7 @@ public partial class BattleSceneController
                     continue;
                 }
 
-                if (neighbor != startGrid && HasBlockingOccupant(neighbor))
+                if (neighbor != startGrid && neighbor != ignoredBlockingGrid && HasBlockingOccupant(neighbor))
                 {
                     continue;
                 }
