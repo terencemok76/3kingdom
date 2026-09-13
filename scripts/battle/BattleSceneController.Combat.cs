@@ -35,8 +35,13 @@ public partial class BattleSceneController
         }
 
         var attackDirection = GetInfantryDirection(_selectedUnitGrid.Value.Grid, targetGrid.Grid);
+        // A closed gate is a structure target even while a defender is logically
+        // stationed on its grid. Do not use that defender to calculate or report
+        // troop-type advantage: only the gate durability is being damaged.
+        var isClosedGateTarget = IsClosedGateStructureTarget(targetGrid);
         BattleOccupantInfo? target = null;
-        if (_occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
+        if (!isClosedGateTarget &&
+            _occupantsByGrid.TryGetValue(targetGrid, out var targetOccupants))
         {
             target = GetAttackTargetForAttack(targetOccupants, _selectedUnit.TeamName, targetGrid);
             if (target == null)
@@ -47,7 +52,11 @@ public partial class BattleSceneController
 
         var isWeakCloseAttack = CanUseAmmoDepletedWeakAttack(_selectedUnit);
         var isHiddenAmbush = IsHiddenAmbushAttack(_selectedUnitGrid.Value, _selectedUnit);
-        var attackDamage = target == null ? GetAttackDamage(_selectedUnit) : GetAttackDamageAgainst(_selectedUnit, target);
+        var attackDamage = isClosedGateTarget
+            ? GetStructureAttackDamage(_selectedUnit)
+            : target == null
+                ? GetAttackDamage(_selectedUnit)
+                : GetAttackDamageAgainst(_selectedUnit, target);
         if (isHiddenAmbush)
         {
             attackDamage = Mathf.Max(1, Mathf.RoundToInt(attackDamage * HiddenAmbushDamageMultiplier));
@@ -309,8 +318,55 @@ public partial class BattleSceneController
         }
 
         var actualDamage = ApplyGateGroupDamage(targetGrid.Grid, damage, attacker);
+        AppendGateDamageLog(attacker, targetGrid, actualDamage);
         ShowDamagePopup(targetGrid, actualDamage);
         RefreshInfoPanel();
+    }
+
+    private void AppendGateDamageLog(BattleOccupantInfo? attacker, BattleGridKey targetGrid, int actualDamage, bool causedByFire = false)
+    {
+        if (_mapData == null || actualDamage <= 0 || !IsWithinMap(targetGrid.Grid))
+        {
+            return;
+        }
+
+        var gateCell = _mapData.GetCell(targetGrid.X, targetGrid.Y);
+        if (gateCell.Structure != BattleStructureType.Gate)
+        {
+            return;
+        }
+
+        if (causedByFire)
+        {
+            AppendBattleLog(
+                GetCurrentTurnSideName(),
+                "Damage",
+                BattleFormat(
+                    "log.gate_fire_damaged",
+                    "Gate {0} takes {1:N0} fire damage; durability {2:N0}/{3:N0}.",
+                    targetGrid,
+                    actualDamage,
+                    gateCell.StructureHealth,
+                    gateCell.StructureMaxHealth));
+            return;
+        }
+
+        if (attacker == null)
+        {
+            return;
+        }
+
+        AppendBattleLog(
+            attacker,
+            "Damage",
+            BattleFormat(
+                "log.gate_damaged",
+                "{0} damages gate {1} for {2:N0}; durability {3:N0}/{4:N0}.",
+                FormatLogUnit(attacker),
+                targetGrid,
+                actualDamage,
+                gateCell.StructureHealth,
+                gateCell.StructureMaxHealth));
     }
 
     private BattleCasualtyResult ApplyUnitCasualties(
@@ -1163,7 +1219,9 @@ public partial class BattleSceneController
         foreach (var targetEntry in _occupantsByGrid)
         {
             var targetGrid = targetEntry.Key;
-            if (targetGrid.Level != selectedGrid.Level || !IsTouchingGrid(selectedGrid, targetGrid))
+            if (targetGrid.Level != selectedGrid.Level ||
+                !IsTouchingGrid(selectedGrid, targetGrid) ||
+                IsClosedGateStructureTarget(targetGrid))
             {
                 continue;
             }

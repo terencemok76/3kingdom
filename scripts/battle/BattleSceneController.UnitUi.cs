@@ -339,12 +339,15 @@ public partial class BattleSceneController
     }
 
 
-    private static string FormatWorkerWorkAction(WorkerWorkAction action, bool removedWoodFence = false)
+    private string FormatWorkerWorkAction(WorkerWorkAction action, BattleCellData targetCell, bool removedWoodFence = false)
     {
         return action switch
         {
-            WorkerWorkAction.WoodFence => removedWoodFence ? "removes wood fence" : "installs wood fence",
-            _ => "works on bridge"
+            WorkerWorkAction.WoodFence => removedWoodFence
+                ? BattleText("log.work.remove_fence", "removes wood fence")
+                : BattleText("log.work.install_fence", "installs wood fence"),
+            _ when targetCell.Structure == BattleStructureType.Gate => BattleText("log.work.repair_gate", "repairs gate"),
+            _ => BattleText("log.work.bridge", "works on bridge")
         };
     }
 

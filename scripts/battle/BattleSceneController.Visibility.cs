@@ -77,10 +77,34 @@ public partial class BattleSceneController
         // visibility refresh can happen in the same frame as movement and used
         // to reveal the original marker beneath its gate silhouette, making one
         // officer appear twice.
-        var visible = IsVisibleToCurrentTurnSide(occupant) &&
-                      !IsBattlePieceMarkerOccludedByCastleVisual(occupant.Marker);
+        var visible = _markersRevealedForMovement.Contains(occupant.Marker) ||
+                      (IsVisibleToCurrentTurnSide(occupant) &&
+                       !IsBattlePieceMarkerOccludedByCastleVisual(occupant.Marker));
         occupant.Marker.Visible = visible;
         occupant.Marker.SetHiddenBodyVisual(visible && occupant.IsHidden);
+    }
+
+    private void RevealMarkerForOccludedMovement(BattleOccupantInfo occupant)
+    {
+        if (occupant.Marker == null)
+        {
+            return;
+        }
+
+        _markersRevealedForMovement.Add(occupant.Marker);
+        occupant.Marker.Visible = true;
+        occupant.Marker.SetHiddenBodyVisual(occupant.IsHidden);
+    }
+
+    private void RestoreMarkerAfterOccludedMovement(BattleOccupantInfo occupant)
+    {
+        if (occupant.Marker == null)
+        {
+            return;
+        }
+
+        _markersRevealedForMovement.Remove(occupant.Marker);
+        ApplyHiddenMarkerVisibility(occupant);
     }
 
     private bool IsBattlePieceMarkerOccludedByCastleVisual(BattlePieceMarker marker)

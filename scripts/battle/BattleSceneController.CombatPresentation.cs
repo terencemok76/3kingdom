@@ -1070,6 +1070,10 @@ public partial class BattleSceneController
         }
 
         var direction = travel.Normalized();
+        var impactPosition = targetPosition - direction * 14.0f;
+        var gridDistance = Math.Max(
+            Math.Abs(targetGrid.Grid.X - sourceGrid.Grid.X),
+            Math.Abs(targetGrid.Grid.Y - sourceGrid.Grid.Y));
         var arrow = new Node2D
         {
             Position = sourcePosition,
@@ -1093,9 +1097,41 @@ public partial class BattleSceneController
         _battleDepthLayer.AddChild(arrow);
 
         var tween = arrow.CreateTween();
-        tween.TweenProperty(arrow, "position", targetPosition - direction * 14.0f, ArrowProjectileEffectDurationSeconds);
+        if (gridDistance >= ArrowProjectileArcMinimumGridDistance)
+        {
+            var arcHeight = Math.Min(
+                ArrowProjectileArcMaximumHeightPixels,
+                ArrowProjectileArcBaseHeightPixels +
+                (gridDistance - ArrowProjectileArcMinimumGridDistance) * ArrowProjectileArcHeightPerExtraGridPixels);
+            var controlPosition = (sourcePosition + impactPosition) * 0.5f + new Vector2(0.0f, -arcHeight);
+            tween.TweenMethod(Callable.From<float>(progress =>
+            {
+                arrow.Position = GetQuadraticProjectilePosition(sourcePosition, controlPosition, impactPosition, progress);
+                var tangent = GetQuadraticProjectileTangent(sourcePosition, controlPosition, impactPosition, progress);
+                if (tangent.LengthSquared() > 0.01f)
+                {
+                    arrow.Rotation = tangent.Angle();
+                }
+            }), 0.0f, 1.0f, ArrowProjectileEffectDurationSeconds)
+                .SetTrans(Tween.TransitionType.Linear);
+        }
+        else
+        {
+            tween.TweenProperty(arrow, "position", impactPosition, ArrowProjectileEffectDurationSeconds);
+        }
         tween.TweenCallback(Callable.From(() => arrow.QueueFree()));
         return ArrowProjectileEffectDurationSeconds;
+    }
+
+    private static Vector2 GetQuadraticProjectilePosition(Vector2 source, Vector2 control, Vector2 target, float progress)
+    {
+        var remaining = 1.0f - progress;
+        return remaining * remaining * source + 2.0f * remaining * progress * control + progress * progress * target;
+    }
+
+    private static Vector2 GetQuadraticProjectileTangent(Vector2 source, Vector2 control, Vector2 target, float progress)
+    {
+        return 2.0f * (1.0f - progress) * (control - source) + 2.0f * progress * (target - control);
     }
 
     private static bool IsArrowProjectileAttacker(BattleOccupantInfo occupant)

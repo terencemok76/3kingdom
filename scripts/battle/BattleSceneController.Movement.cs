@@ -80,7 +80,17 @@ public partial class BattleSceneController
             destinationGrid,
             movedOccupant.Category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
         RefreshBattleDepthLayerOrder();
-        ClearOccludedUnitSilhouettes();
+        // A wall-top move does not need to reveal ground units hidden behind the
+        // castle foreground.  Clearing every silhouette here made unrelated gate
+        // and wall silhouettes disappear until this animation completed.
+        var shouldTemporarilyRevealOccludedUnits =
+            IsUnitOccludedByCastleVisual(sourceGrid) ||
+            IsUnitOccludedByCastleVisual(destinationGrid);
+        if (shouldTemporarilyRevealOccludedUnits)
+        {
+            ClearOccludedUnitSilhouettes();
+            RevealMarkerForOccludedMovement(movedOccupant);
+        }
         _selectedUnitGrid = destinationGrid;
         _selectedUnit = movedOccupant;
         _selectedGrid = destinationGrid.Grid;
@@ -99,6 +109,7 @@ public partial class BattleSceneController
             pathModulates,
             () =>
             {
+                RestoreMarkerAfterOccludedMovement(movedOccupant);
                 CaptureDefenseOutpost(destinationGrid, movedOccupant);
                 ApplyBattleFireEntryDamage(destinationGrid, movedOccupant);
                 RefreshOccludedUnitSilhouettes();
@@ -306,7 +317,8 @@ public partial class BattleSceneController
         int energyBudget,
         int rangeBudget,
         out List<BattleGridKey> path,
-        BattleGridKey? ignoredBlockingGrid = null)
+        BattleGridKey? ignoredBlockingGrid = null,
+        IReadOnlySet<BattleGridKey>? additionalBlockedGrids = null)
     {
         path = [];
         if (_mapData == null || energyBudget <= 0 || rangeBudget <= 0)
@@ -352,7 +364,9 @@ public partial class BattleSceneController
                     continue;
                 }
 
-                if (neighbor != startGrid && neighbor != ignoredBlockingGrid && HasBlockingOccupant(neighbor))
+                if (neighbor != startGrid &&
+                    neighbor != ignoredBlockingGrid &&
+                    ((additionalBlockedGrids?.Contains(neighbor) ?? false) || HasBlockingOccupant(neighbor)))
                 {
                     continue;
                 }

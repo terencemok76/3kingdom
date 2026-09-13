@@ -43,6 +43,10 @@ internal static class BattlePresentationSettings
     internal const double DropStoneEffectDurationSeconds = 0.48;
     internal const double PourOilEffectDurationSeconds = 0.58;
     internal const double ArrowProjectileEffectDurationSeconds = 0.42;
+    internal const int ArrowProjectileArcMinimumGridDistance = 2;
+    internal const float ArrowProjectileArcBaseHeightPixels = 14.0f;
+    internal const float ArrowProjectileArcHeightPerExtraGridPixels = 9.0f;
+    internal const float ArrowProjectileArcMaximumHeightPixels = 50.0f;
     internal const double CatapultProjectileEffectDurationSeconds = 0.7;
     internal const double HireOfficerEffectDurationSeconds = 1.35;
     internal const double HireOfficerPopupDelaySeconds = 0.18;

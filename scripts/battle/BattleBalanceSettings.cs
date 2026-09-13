@@ -95,5 +95,5 @@ internal static class BattleBalanceSettings
     internal const int HireOfficerTeamMoralePenalty = 8;
     internal const int BattleDateYear = 191;
     internal const int BattleDateMonth = 4;
-    internal const int BattleDateDay = 4;
+    internal const int BattleDateDay = 1;
 }

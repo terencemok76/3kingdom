@@ -6,6 +6,7 @@ namespace ThreeKingdom.Battle;
 internal static class BattleBridgeSystem
 {
     internal const int EmergencyRepairAmount = 150;
+    internal const int EmergencyGateRepairAmount = 250;
     internal const int EmergencyRepairEnergyCost = 5;
     // BattleMovementService adds one energy to non-road terrain movement cost,
     // so a base cost of 2 produces the intended 3-energy bridge crossing.

@@ -237,6 +237,7 @@ public partial class BattleSceneController : Node2D
     private readonly Dictionary<Vector2I, Node2D> _outpostOwnerFlagsByGrid = new();
     private readonly List<BattleHighlightRenderer> _highlightDepthVisuals = new();
     private readonly Dictionary<BattleGridKey, Node2D> _occludedUnitSilhouettesByGrid = new();
+    private readonly HashSet<BattlePieceMarker> _markersRevealedForMovement = new();
     private readonly Dictionary<BattlePieceMarker, WallTopAttackAmmo> _wallTopAttackAmmoByMarker = new();
     private readonly Dictionary<BattleGridKey, BattleFireState> _activeFireByGrid = new();
     private readonly Dictionary<BattleGridKey, Node2D> _fireVisualsByGrid = new();
@@ -301,6 +302,7 @@ public partial class BattleSceneController : Node2D
         public BattleGridKey? MoveAttackDestination { get; init; }
         public AiSupplyPlan? SupplyPlan { get; init; }
         public AiBridgeRepairPlan? BridgeRepairPlan { get; init; }
+        public AiGateRepairPlan? GateRepairPlan { get; init; }
         public AiExtinguishPlan? ExtinguishPlan { get; init; }
         public AiFirePlan? FirePlan { get; init; }
         public bool IsHideAction { get; init; }
@@ -324,6 +326,7 @@ public partial class BattleSceneController : Node2D
         AiGateSortiePhase Phase);
     private readonly record struct AiSupplyPlan(BattleGridKey ActionGrid, bool MoveBeforeSupply, AiSupplyActionKind Kind, int Score, string Reason);
     private readonly record struct AiBridgeRepairPlan(BattleGridKey TargetGrid, int RepairAmount, int Score, string Reason);
+    private readonly record struct AiGateRepairPlan(BattleGridKey TargetGrid, int RepairAmount, int Score);
     private enum AiSupplyActionKind
     {
         RecoveryRepair,
@@ -1274,8 +1277,10 @@ public partial class BattleSceneController : Node2D
         }
 
         var workDescription = isWorker
-            ? FormatWorkerWorkAction(_workerWorkAction, removedWoodFence)
-            : "repairs bridge";
+            ? FormatWorkerWorkAction(_workerWorkAction, targetCell, removedWoodFence)
+            : targetCell.Structure == BattleStructureType.Gate
+                ? BattleText("log.work.repair_gate", "repairs gate")
+                : BattleText("log.work.bridge", "works on bridge");
         AppendBattleLog(workingUnit, "Action", $"{FormatLogUnit(workingUnit)} {workDescription} at {targetGrid} (energy {workEnergyCost})");
 
         _commandMode = BattleCommandMode.None;
@@ -1312,12 +1317,21 @@ public partial class BattleSceneController : Node2D
     {
         if (unit.TroopType == TroopWorker)
         {
-            return ApplyWorkerWork(targetGrid, targetCell, out removedWoodFence);
+            return ApplyWorkerWork(unit, targetGrid, targetCell, out removedWoodFence);
         }
 
         removedWoodFence = false;
-        if (!BattleBridgeSystem.CanEmergencyRepair(unit) ||
-            !BattleBridgeSystem.IsEmergencyRepairTarget(targetCell))
+        if (!BattleBridgeSystem.CanEmergencyRepair(unit))
+        {
+            return false;
+        }
+
+        if (CanRepairGate(unit, targetGrid, targetCell))
+        {
+            return RepairGate(targetGrid, BattleBridgeSystem.EmergencyGateRepairAmount) > 0;
+        }
+
+        if (!BattleBridgeSystem.IsEmergencyRepairTarget(targetCell))
         {
             return false;
         }
@@ -1332,7 +1346,7 @@ public partial class BattleSceneController : Node2D
         return true;
     }
 
-    private bool ApplyWorkerWork(Vector2I targetGrid, BattleCellData targetCell, out bool removedWoodFence)
+    private bool ApplyWorkerWork(BattleOccupantInfo unit, Vector2I targetGrid, BattleCellData targetCell, out bool removedWoodFence)
     {
         removedWoodFence = false;
         if (_mapData == null)
@@ -1397,25 +1411,9 @@ public partial class BattleSceneController : Node2D
             }
         }
 
-        if (targetCell.Structure == BattleStructureType.Gate && targetCell.HasStructureHealth && targetCell.StructureHealth < targetCell.StructureMaxHealth)
+        if (CanRepairGate(unit, targetGrid, targetCell))
         {
-            foreach (var gateGrid in GetConnectedGateGroup(targetGrid))
-            {
-                var gateCell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
-                gateCell.StructureHealth = Math.Min(gateCell.StructureMaxHealth, gateCell.StructureHealth + WorkerGateRepairAmount);
-                gateCell.IsGateOpen = false;
-                gateCell.BlocksMovement = true;
-                if (_castleLayer != null)
-                {
-                    BattleTileMapBuilder.SetCastleGateVisual(_castleLayer, gateGrid, isOpen: false);
-                }
-
-                RefreshCastleDepthVisual(gateGrid);
-            }
-
-            RefreshBattleDepthLayerOrder();
-            RefreshOccludedUnitSilhouettes();
-            return true;
+            return RepairGate(targetGrid, WorkerGateRepairAmount) > 0;
         }
 
         if (targetCell.Structure == BattleStructureType.Trap)
@@ -1429,6 +1427,64 @@ public partial class BattleSceneController : Node2D
         }
 
         return false;
+    }
+
+    private bool CanRepairGate(BattleOccupantInfo unit, Vector2I targetGrid, BattleCellData targetCell)
+    {
+        return IsDefenderPiece(unit) &&
+               targetCell.Structure == BattleStructureType.Gate &&
+               targetCell.HasStructureHealth &&
+               !targetCell.IsBroken &&
+               targetCell.StructureHealth < targetCell.StructureMaxHealth &&
+               (!targetCell.IsGateOpen || !HasFriendlyUnitOutsideCity(unit.TeamName));
+    }
+
+    private bool HasFriendlyUnitOutsideCity(string teamName)
+    {
+        return GetAllBattlePieces().Any(entry =>
+            entry.Occupant.TeamName == teamName &&
+            entry.Grid.Level == 0 &&
+            !IsInsideCityGroundGrid(entry.Grid.Grid));
+    }
+
+    private int RepairGate(Vector2I targetGrid, int repairAmount)
+    {
+        if (_mapData == null || repairAmount <= 0)
+        {
+            return 0;
+        }
+
+        var repairedHp = 0;
+        foreach (var gateGrid in GetConnectedGateGroup(targetGrid))
+        {
+            var gateCell = _mapData.GetCell(gateGrid.X, gateGrid.Y);
+            var actualRepair = Math.Min(repairAmount, gateCell.StructureMaxHealth - gateCell.StructureHealth);
+            if (actualRepair <= 0)
+            {
+                continue;
+            }
+
+            gateCell.StructureHealth += actualRepair;
+            gateCell.IsGateOpen = false;
+            gateCell.BlocksMovement = true;
+            repairedHp = Math.Max(repairedHp, actualRepair);
+            if (_castleLayer != null)
+            {
+                BattleTileMapBuilder.SetCastleGateVisual(_castleLayer, gateGrid, isOpen: false);
+            }
+
+            RefreshCastleDepthVisual(gateGrid);
+        }
+
+        if (repairedHp <= 0)
+        {
+            return 0;
+        }
+
+        ShowRepairPopup(GetDefaultGridKey(targetGrid), repairedHp);
+        RefreshBattleDepthLayerOrder();
+        RefreshOccludedUnitSilhouettes();
+        return repairedHp;
     }
 
     private void RefreshWorkerObjectLayers()
@@ -3518,6 +3574,11 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
+        if (IsClosedGateGroundFireProtected(targetGrid, target))
+        {
+            return;
+        }
+
         var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, FireDamageKilledRatio, ignoresBuildingCover: true);
         var updatedTarget = casualtyResult.UpdatedTarget;
 
@@ -3528,6 +3589,22 @@ public partial class BattleSceneController : Node2D
         {
             DestroyOccupantAfterDelay(targetGrid, updatedTarget, 0.0, captureOfficer: true);
         }
+    }
+
+    private bool IsClosedGateGroundFireProtected(BattleGridKey grid, BattleOccupantInfo occupant)
+    {
+        if (_mapData == null ||
+            grid.Level != 0 ||
+            !IsDefenderPiece(occupant) ||
+            !IsWithinMap(grid.Grid))
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        return cell.Structure == BattleStructureType.Gate &&
+               !cell.IsGateOpen &&
+               !cell.IsBroken;
     }
 
     private void ApplyBattleFireDamageToStructure(BattleGridKey targetGrid)
@@ -3579,6 +3656,7 @@ public partial class BattleSceneController : Node2D
             var actualDamage = ApplyGateGroupDamage(targetGrid.Grid, FireDamageToGate);
             if (actualDamage > 0)
             {
+                AppendGateDamageLog(null, targetGrid, actualDamage, causedByFire: true);
                 ShowDamagePopup(targetGrid, actualDamage);
             }
         }
@@ -3592,6 +3670,13 @@ public partial class BattleSceneController : Node2D
         }
 
         var sourceCell = _mapData.GetCell(sourceGrid.X, sourceGrid.Y);
+        if (IsClosedIntactGate(sourceCell))
+        {
+            // Fire may burn and damage a closed gate, but the gatehouse is a sealed
+            // barrier: it cannot carry that fire into (or out of) the inner city.
+            yield break;
+        }
+
         var maxSpreadTargets = GetFireSpreadTargetCount(sourceCell, GetCurrentBattleWindPower());
         if (maxSpreadTargets <= 0)
         {
@@ -3699,6 +3784,13 @@ public partial class BattleSceneController : Node2D
         }
 
         return true;
+    }
+
+    private static bool IsClosedIntactGate(BattleCellData cell)
+    {
+        return cell.Structure == BattleStructureType.Gate &&
+               !cell.IsGateOpen &&
+               !cell.IsBroken;
     }
 
     private static int GetInitialFireDuration(BattleWeatherType weather, BattleCellData cell)
@@ -4194,7 +4286,7 @@ public partial class BattleSceneController : Node2D
         {
             return workAction == WorkerWorkAction.General &&
                    BattleBridgeSystem.CanEmergencyRepair(unit) &&
-                   BattleBridgeSystem.IsEmergencyRepairTarget(cell);
+                   (BattleBridgeSystem.IsEmergencyRepairTarget(cell) || CanRepairGate(unit, targetGrid, cell));
         }
 
         if (workAction == WorkerWorkAction.WoodFence)
@@ -4205,7 +4297,7 @@ public partial class BattleSceneController : Node2D
         return (cell.Terrain == BattleTerrainType.Moat && _mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle) ||
                (cell.Terrain == BattleTerrainType.River && _mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle) ||
                cell.IsBridgeDamaged ||
-               (cell.Structure == BattleStructureType.Gate && cell.HasStructureHealth && cell.StructureHealth < cell.StructureMaxHealth) ||
+               CanRepairGate(unit, targetGrid, cell) ||
                cell.Structure == BattleStructureType.Trap;
     }
 

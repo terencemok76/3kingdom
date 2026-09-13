@@ -108,11 +108,104 @@ public partial class BattleSceneController
 
         if (TryApplyCampaignBattleSnapshot(_activeCampaign.BattleSnapshotJson))
         {
+            if (IsCampaignSnapshotFromPreviousMonth())
+            {
+                RebaseCampaignSnapshotForNewMonth();
+                _activeCampaign.BattleSnapshotJson = CreateCampaignBattleSnapshot();
+            }
+
             AppendBattleLog("Battle", "Campaign", $"Resumed campaign {_activeCampaign.Id}, month day {_activeCampaign.BattleDaysThisMonth + 1}.");
         }
         else
         {
             _activeCampaign.BattleSnapshotJson = string.Empty;
+        }
+    }
+
+    private bool IsCampaignSnapshotFromPreviousMonth()
+    {
+        return _activeCampaign != null &&
+               (_battleDateYear != _activeCampaign.CurrentYear ||
+                _battleDateMonth != _activeCampaign.CurrentMonth);
+    }
+
+    private void RebaseCampaignSnapshotForNewMonth()
+    {
+        if (_activeCampaign == null)
+        {
+            return;
+        }
+
+        // The snapshot is deliberately retained for terrain, gates, fires, positions, and unit state.
+        // Only the temporal/action state starts the new strategic month again at its first dawn.
+        _battleDateYear = _activeCampaign.CurrentYear;
+        _battleDateMonth = _activeCampaign.CurrentMonth;
+        _battleDateDay = 1;
+        _currentBattleTimeOfDay = BattleTimeOfDay.Dawn;
+        _currentTurnSide = BattleTurnSide.TeamA;
+        _turnNumber = Math.Max(1, _turnNumber + 1);
+        _isFieldAiRoundStarted = false;
+        _strategyUsedByMarkerThisTurn.Clear();
+        _supplyUsedByMarkerThisTurn.Clear();
+        _chargeUsedByMarkerThisTurn.Clear();
+        _actedByMarkerThisRound.Clear();
+
+        _teamAGold = _activeCampaign.AttackerGold;
+        _teamAFood = _activeCampaign.AttackerFood;
+        _teamBGold = _activeCampaign.DefenderGold;
+        _teamBFood = _activeCampaign.DefenderFood;
+        ResetCampaignTeamDailyUpkeep(_state.TeamA);
+        ResetCampaignTeamDailyUpkeep(_state.TeamB);
+        ApplyCampaignMonthRecoveryToBattleUnits();
+        RestoreTeamUnitEnergy(BattleTeamIdentity.AttackerName);
+        RestoreTeamUnitEnergy(BattleTeamIdentity.DefenderName);
+        RecalculateBattleHudTotals();
+        ConfigureHud();
+        ApplyTimeOfDayVisual(animate: false);
+        RefreshInfoPanel();
+        RefreshHighlights();
+    }
+
+    private static void ResetCampaignTeamDailyUpkeep(BattleTeamState team)
+    {
+        team.FoodUpkeepRemainder = 0;
+        team.GoldUpkeepRemainder = 0;
+        team.HadFoodShortageThisDay = false;
+    }
+
+    private void ApplyCampaignMonthRecoveryToBattleUnits()
+    {
+        if (_activeCampaign == null)
+        {
+            return;
+        }
+
+        var teamsById = _activeCampaign.Teams.ToDictionary(team => team.Id);
+        _occupantsByGrid.UpdateAll((_, occupant) =>
+        {
+            if (occupant.Category != CategoryUnit ||
+                occupant.CampaignTeamId <= 0 ||
+                !teamsById.TryGetValue(occupant.CampaignTeamId, out var team))
+            {
+                return occupant;
+            }
+
+            return occupant with
+            {
+                TroopCount = team.ActiveTroops,
+                HitPoints = team.ActiveTroops,
+                MaxHitPoints = Math.Max(team.MaximumTroops, team.ActiveTroops + team.WoundedTroops),
+                WoundedTroops = team.WoundedTroops,
+                Morale = team.Morale
+            };
+        });
+
+        foreach (var occupant in _occupantsByGrid.Values.SelectMany(items => items))
+        {
+            if (occupant.Category == CategoryUnit && occupant.CampaignTeamId > 0)
+            {
+                UpdateMarkerStrengthBar(occupant);
+            }
         }
     }
 
