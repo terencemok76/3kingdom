@@ -308,7 +308,7 @@ public partial class BattleSceneController
             return;
         }
 
-        var actualDamage = ApplyGateGroupDamage(targetGrid.Grid, damage);
+        var actualDamage = ApplyGateGroupDamage(targetGrid.Grid, damage, attacker);
         ShowDamagePopup(targetGrid, actualDamage);
         RefreshInfoPanel();
     }
@@ -420,7 +420,7 @@ public partial class BattleSceneController
                !cell.IsBroken;
     }
 
-    private int ApplyGateGroupDamage(Vector2I gateGrid, int damage)
+    private int ApplyGateGroupDamage(Vector2I gateGrid, int damage, BattleOccupantInfo? destroyer = null)
     {
         if (_mapData == null)
         {
@@ -447,6 +447,11 @@ public partial class BattleSceneController
         if (remainingHealth <= 0)
         {
             OpenGateGroup(gateGroup);
+            ShowGateDestroyedNotice(ToGroundGridKey(gateGrid));
+            if (destroyer != null)
+            {
+                TryShowOfficerSpeech(destroyer, BattleOfficerSpeechEvent.GateBreach);
+            }
             return actualDamage;
         }
 

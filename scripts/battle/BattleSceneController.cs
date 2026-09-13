@@ -63,7 +63,8 @@ public partial class BattleSceneController : Node2D
         TerrainBridge,
         TerrainSwamp,
         GateOpen,
-        GateClose
+        GateClose,
+        GateBreach
     }
 
     private sealed class BattleOfficerSpeechCatalog

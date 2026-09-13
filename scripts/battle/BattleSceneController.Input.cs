@@ -504,9 +504,11 @@ public partial class BattleSceneController
                 return ToGroundGridKey(destinationGrid);
             }
 
-            return IsInsideCityGroundGrid(sourceGrid.Grid)
-                ? ToWallWalkGridKey(destinationGrid)
-                : null;
+            // A wall-top cell is never an implicit ramp from the adjacent courtyard.
+            // Vertical L0 <-> L2 movement is exposed only by the explicit gate
+            // transition in GetMovementNeighbors, or by a deployed attacker ladder.
+            // This resolver is shared by previews, A*, action validation, and AI.
+            return null;
         }
 
         return ToGroundGridKey(destinationGrid);

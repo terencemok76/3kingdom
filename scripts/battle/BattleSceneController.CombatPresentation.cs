@@ -217,12 +217,16 @@ public partial class BattleSceneController
         }
 
         var hurtDirection = GetInfantryDirection(attackerGrid.Grid, targetGrid.Grid);
+        Action? onHurtAnimationComplete = IsUnitOccludedByCastleVisual(targetGrid)
+            ? RefreshOccludedUnitSilhouettes
+            : null;
         if (target.TroopType == TroopSpearman)
         {
             target.Marker.PlayAction(
                 GetSpearmanHurtScene(hurtDirection),
                 GetSpearmanIdleScene(target.FacingDirection),
-                SpearmanHurtAnimationDurationSeconds);
+                SpearmanHurtAnimationDurationSeconds,
+                onHurtAnimationComplete);
             return SpearmanHurtAnimationDurationSeconds;
         }
 
@@ -231,7 +235,8 @@ public partial class BattleSceneController
             target.Marker.PlayAction(
                 GetArcherHurtScene(hurtDirection),
                 GetArcherIdleScene(target.FacingDirection),
-                ArcherHurtAnimationDurationSeconds);
+                ArcherHurtAnimationDurationSeconds,
+                onHurtAnimationComplete);
             return ArcherHurtAnimationDurationSeconds;
         }
 
@@ -240,7 +245,8 @@ public partial class BattleSceneController
             target.Marker.PlayAction(
                 GetCavalryHurtScene(hurtDirection),
                 GetCavalryIdleScene(target.FacingDirection),
-                CavalryHurtAnimationDurationSeconds);
+                CavalryHurtAnimationDurationSeconds,
+                onHurtAnimationComplete);
             return CavalryHurtAnimationDurationSeconds;
         }
 
@@ -249,14 +255,16 @@ public partial class BattleSceneController
             target.Marker.PlayAction(
                 GetWorkerHurtScene(hurtDirection),
                 GetWorkerIdleScene(target.FacingDirection),
-                WorkerHurtAnimationDurationSeconds);
+                WorkerHurtAnimationDurationSeconds,
+                onHurtAnimationComplete);
             return WorkerHurtAnimationDurationSeconds;
         }
 
         target.Marker.PlayAction(
             GetInfantryHurtScene(hurtDirection),
             GetInfantryIdleScene(target.FacingDirection),
-            InfantryHurtAnimationDurationSeconds);
+            InfantryHurtAnimationDurationSeconds,
+            onHurtAnimationComplete);
         return InfantryHurtAnimationDurationSeconds;
     }
 
@@ -557,7 +565,7 @@ public partial class BattleSceneController
         var now = Time.GetTicksMsec();
         if (_officerSpeechLastShownAt.TryGetValue(occupant.OfficerName, out var lastShownAt) &&
             now - lastShownAt < OfficerSpeechCooldownMilliseconds &&
-            speechEvent is not (BattleOfficerSpeechEvent.Retreat or BattleOfficerSpeechEvent.GateOpen or BattleOfficerSpeechEvent.GateClose))
+            speechEvent is not (BattleOfficerSpeechEvent.Retreat or BattleOfficerSpeechEvent.GateOpen or BattleOfficerSpeechEvent.GateClose or BattleOfficerSpeechEvent.GateBreach))
         {
             return;
         }
@@ -605,6 +613,7 @@ public partial class BattleSceneController
             BattleOfficerSpeechEvent.TerrainSwamp => "terrain_swamp",
             BattleOfficerSpeechEvent.GateOpen => "gate_open",
             BattleOfficerSpeechEvent.GateClose => "gate_close",
+            BattleOfficerSpeechEvent.GateBreach => "gate_breach",
             _ => speechEvent.ToString().ToLowerInvariant()
         };
     }
@@ -671,6 +680,14 @@ public partial class BattleSceneController
         ShowBattleEventNotice(BattleFormat(
             "ui.battle.wooden_bridge_destroyed",
             "Wooden bridge {0} has been destroyed!",
+            grid));
+    }
+
+    private void ShowGateDestroyedNotice(BattleGridKey grid)
+    {
+        ShowBattleEventNotice(BattleFormat(
+            "ui.battle.gate_destroyed",
+            "Gate {0} has been breached!",
             grid));
     }
 

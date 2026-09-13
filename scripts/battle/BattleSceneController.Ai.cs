@@ -92,7 +92,7 @@ public partial class BattleSceneController
 
         var waitingCandidate = candidates[0];
         FocusCameraOnBattleGrid(waitingCandidate.Grid);
-        AppendBattleLog(waitingCandidate.Occupant, "AI", $"Decision: wait at {waitingCandidate.Grid}; no legal move or attack.");
+        AppendBattleLog(waitingCandidate.Occupant, "AI", BattleFormat("log.ai.wait", "Decision: wait at {0}; no legal move or attack.", waitingCandidate.Grid));
         MarkUnitActed(waitingCandidate.Occupant);
     }
 
@@ -143,7 +143,11 @@ public partial class BattleSceneController
         if (IsAiLadderDeploymentGrid(sourceGrid))
         {
             var wallTopCount = GetCarLadderWallTopEndpoints(sourceGrid.Grid).Count();
-            AppendBattleLog(ladder, "AI", $"Decision: hold ladder at {sourceGrid}; it supports {wallTopCount} wall-top access point(s) for friendly climbing teams.");
+            AppendBattleLog(ladder, "AI", BattleFormat(
+                "log.ai.ladder_hold",
+                "Decision: hold ladder at {0}; it supports {1} wall-top access point(s) for friendly climbing teams.",
+                sourceGrid,
+                wallTopCount));
             MarkUnitActed(ladder);
             return true;
         }
@@ -204,12 +208,11 @@ public partial class BattleSceneController
             moveRangeCost = GetMovePathRangeCost(movePath);
         }
 
-        AppendBattleLog(
-            ladder,
-            "AI",
-            $"Decision: deploy ladder toward {plan.Goal}; move {sourceGrid} -> {plan.Destination}. " +
-            $"Open wall-top entries {plan.OpenWallTopCount}, nearby climbers {plan.NearbyClimberCount}, " +
-            $"A* energy {plan.PathEnergy}, steps {plan.PathSteps}, this move energy {moveEnergyCost}, range {moveRangeCost}, score {plan.Score}.");
+        AppendBattleLog(ladder, "AI", BattleFormat(
+            "log.ai.ladder_deploy",
+            "Decision: deploy ladder toward {0}; move {1} -> {2}. Open wall-top entries {3}, nearby climbers {4}, A* energy {5}, steps {6}, this move energy {7}, range {8}, score {9}.",
+            plan.Goal, sourceGrid, plan.Destination, plan.OpenWallTopCount, plan.NearbyClimberCount,
+            plan.PathEnergy, plan.PathSteps, moveEnergyCost, moveRangeCost, plan.Score));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, plan.Destination),
             ladder);
@@ -1091,7 +1094,7 @@ public partial class BattleSceneController
         AppendBattleLog(
             supplyCart,
             "AI",
-            $"Decision: supply own team (wounded {recoveryCount}, morale {moraleCount}, repair {repairCount}).");
+            BattleFormat("log.ai.supply", "Decision: supply own team (wounded {0}, morale {1}, repair {2}).", recoveryCount, moraleCount, repairCount));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Supply, sourceGrid, sourceGrid),
             supplyCart);
@@ -1111,7 +1114,7 @@ public partial class BattleSceneController
         AppendBattleLog(
             supplyCart,
             "AI",
-            $"Decision: resupply {targets.Count} weapon unit(s), missing ammo {missingAmmo}.");
+            BattleFormat("log.ai.weapon_resupply", "Decision: resupply {0} weapon unit(s), missing ammo {1}.", targets.Count, missingAmmo));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.ResupplyWeapon, sourceGrid, sourceGrid),
             supplyCart);
@@ -1289,14 +1292,14 @@ public partial class BattleSceneController
     {
         if (!plan.MoveBeforeSupply)
         {
-            AppendBattleLog(supplyCart, "AI", $"Decision: {plan.Reason} (score {plan.Score}, variance {noise}).");
+            AppendBattleLog(supplyCart, "AI", BattleFormat("log.ai.supply_plan", "Decision: {0} (score {1}, variance {2}).", GetAiSupplyPlanReasonText(plan), plan.Score, noise));
             return plan.Kind == AiSupplyActionKind.WeaponResupply
                 ? TryExecuteAiWeaponResupply(sourceGrid, supplyCart)
                 : TryExecuteAiSupply(sourceGrid, supplyCart);
         }
 
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(supplyCart, "AI", $"Decision: move {sourceGrid} -> {plan.ActionGrid}, reserve {SupplyActionEnergyCost} energy, then {plan.Reason} (score {plan.Score}, variance {noise}).");
+        AppendBattleLog(supplyCart, "AI", BattleFormat("log.ai.supply_move_plan", "Decision: move {0} -> {1}, reserve {2} energy, then {3} (score {4}, variance {5}).", sourceGrid, plan.ActionGrid, SupplyActionEnergyCost, GetAiSupplyPlanReasonText(plan), plan.Score, noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(
                 BattleActionKind.Move,
@@ -1319,6 +1322,17 @@ public partial class BattleSceneController
                     }
                 }
             });
+    }
+
+    private string GetAiSupplyPlanReasonText(AiSupplyPlan plan)
+    {
+        return plan.Kind == AiSupplyActionKind.WeaponResupply
+            ? BattleText(
+                plan.MoveBeforeSupply ? "log.ai.supply_reason_move_weapon" : "log.ai.supply_reason_weapon",
+                plan.MoveBeforeSupply ? "move and resupply weapon units" : "resupply adjacent weapon units")
+            : BattleText(
+                plan.MoveBeforeSupply ? "log.ai.supply_reason_move_team" : "log.ai.supply_reason_team",
+                plan.MoveBeforeSupply ? "move and supply team" : "supply adjacent team");
     }
 
     private bool TryExecuteAiSupplyMove(BattleGridKey sourceGrid, BattleOccupantInfo supplyCart)
@@ -1348,7 +1362,7 @@ public partial class BattleSceneController
         }
 
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(supplyCart, "AI", $"Decision: move {sourceGrid} -> {destination}; A* supply route to {supplyActionGrid} (support score {supplyScore}, full path energy {fullPathEnergyCost}, steps {fullPathSteps}).");
+        AppendBattleLog(supplyCart, "AI", BattleFormat("log.ai.supply_route", "Decision: move {0} -> {1}; A* supply route to {2} (support score {3}, full path energy {4}, steps {5}).", sourceGrid, destination, supplyActionGrid, supplyScore, fullPathEnergyCost, fullPathSteps));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
             supplyCart);
@@ -2299,7 +2313,13 @@ public partial class BattleSceneController
                     ? "guard occupied fortress while enemy food is low"
                     : "guard occupied fortress"
                 : "guard defensive position while enemy food is low";
-            AppendBattleLog(chosenAction.Unit, "AI", $"Decision: {guardReason} (score {chosenAction.Score}, variance {chosenAction.Noise}).");
+            var guardReasonText = guardReason switch
+            {
+                "guard occupied fortress while enemy food is low" => BattleText("log.ai.guard_fortress_low_food", "guard occupied fortress while enemy food is low"),
+                "guard occupied fortress" => BattleText("log.ai.guard_fortress", "guard occupied fortress"),
+                _ => BattleText("log.ai.guard_low_food", "guard defensive position while enemy food is low")
+            };
+            AppendBattleLog(chosenAction.Unit, "AI", BattleFormat("log.ai.guard_decision", "Decision: {0} (score {1}, variance {2}).", guardReasonText, chosenAction.Score, chosenAction.Noise));
             return TryExecuteBattleActionIntent(
                 new BattleActionIntent(BattleActionKind.Guard, chosenAction.SourceGrid, chosenAction.SourceGrid),
                 chosenAction.Unit);
@@ -2334,7 +2354,7 @@ public partial class BattleSceneController
         AppendBattleLog(
             unit,
             "AI",
-            $"Decision: extinguish fire at {plan.TargetGrid}; protect {plan.ProtectedUnits} unit(s), projected fire damage {plan.ProjectedDamage}, score {plan.Score}, variance {noise}.");
+            BattleFormat("log.ai.extinguish", "Decision: extinguish fire at {0}; protect {1} unit(s), projected fire damage {2}, score {3}, variance {4}.", plan.TargetGrid, plan.ProtectedUnits, plan.ProjectedDamage, plan.Score, noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Extinguish, sourceGrid, plan.TargetGrid),
             unit);
@@ -2378,7 +2398,7 @@ public partial class BattleSceneController
     private bool TryExecuteAiHide(BattleGridKey sourceGrid, BattleOccupantInfo unit, int score, int noise)
     {
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(unit, "AI", $"Decision: hide in forest and prepare ambush (score {score}, variance {noise}).");
+        AppendBattleLog(unit, "AI", BattleFormat("log.ai.hide", "Decision: hide in forest and prepare ambush (score {0}, variance {1}).", score, noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Hide, sourceGrid, sourceGrid),
             unit);
@@ -2468,7 +2488,7 @@ public partial class BattleSceneController
         AppendBattleLog(
             unit,
             "AI",
-            $"Decision: {plan.Reason} at {plan.TargetGrid}; repair {plan.RepairAmount} HP (score {plan.Score}, variance {noise}).");
+            BattleFormat("log.ai.bridge_repair", "Decision: {0} at {1}; repair {2} HP (score {3}, variance {4}).", GetAiBridgeRepairReasonText(plan.Reason), plan.TargetGrid, plan.RepairAmount, plan.Score, noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Work, sourceGrid, plan.TargetGrid),
             unit);
@@ -2479,6 +2499,16 @@ public partial class BattleSceneController
        var intelligence = GetOfficerTacticalIntelligence(unit.OfficerName);
        return objective.Score + intelligence * 15 - GetManhattanDistance(approachGrid.Grid, objective.Grid.Grid) * 300;
    }
+    private string GetAiBridgeRepairReasonText(string reason)
+    {
+        return reason switch
+        {
+            "restore bridge above heavy-damage threshold" => BattleText("log.ai.bridge_repair_threshold", "restore bridge above heavy-damage threshold"),
+            "prevent critically damaged bridge from collapsing" => BattleText("log.ai.bridge_repair_critical", "prevent critically damaged bridge from collapsing"),
+            _ => BattleText("log.ai.bridge_repair_maintain", "maintain damaged bridge route")
+        };
+    }
+
     private bool TryGetAiBridgeEngineeringPlan(BattleGridKey sourceGrid, BattleOccupantInfo worker, out AiBridgeEngineeringPlan plan)
     {
         plan = null!;
@@ -2978,7 +3008,7 @@ public partial class BattleSceneController
     private bool TryExecuteAiOutpostMove(BattleGridKey sourceGrid, BattleOccupantInfo unit, BattleGridKey destinationGrid, AiOutpostObjective objective, int score, int noise)
     {
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destinationGrid}; fortress plan target {objective.Grid}: {objective.Reason} (score {score}, intelligence {GetOfficerTacticalIntelligence(unit.OfficerName)}, variance {noise}).");
+        AppendBattleLog(unit, "AI", BattleFormat("log.ai.outpost_move", "Decision: move {0} -> {1}; fortress plan target {2}: {3} (score {4}, intelligence {5}, variance {6}).", sourceGrid, destinationGrid, objective.Grid, GetAiOutpostReasonText(objective.Reason), score, GetOfficerTacticalIntelligence(unit.OfficerName), noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, destinationGrid),
             unit);
@@ -3042,6 +3072,18 @@ public partial class BattleSceneController
         }
 
         return objectives;
+    }
+
+    private string GetAiOutpostReasonText(string reason)
+    {
+        return reason switch
+        {
+            "recapture lost fortress" => BattleText("log.ai.outpost_recapture", "recapture lost fortress"),
+            "capture final fortress for victory" => BattleText("log.ai.outpost_final_capture", "capture final fortress for victory"),
+            "capture unoccupied fortress" => BattleText("log.ai.outpost_capture", "capture unoccupied fortress"),
+            _ when reason.StartsWith("protect fortress from enemy at distance ") => BattleFormat("log.ai.outpost_protect", "protect fortress from enemy at distance {0}", reason["protect fortress from enemy at distance ".Length..]),
+            _ => reason
+        };
     }
 
     private static int GetOfficerTacticalIntelligence(string officerName)
@@ -3132,7 +3174,7 @@ public partial class BattleSceneController
     private bool TryExecuteAiUnionAttack(BattleGridKey sourceGrid, BattleOccupantInfo unit, UnionAttackCandidate candidate, int score, int noise)
     {
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(unit, "AI", $"Decision: union attack {candidate.TargetGrid} with {candidate.Participants.Count} battle teams (score {score}, variance {noise}).");
+        AppendBattleLog(unit, "AI", BattleFormat("log.ai.union_attack", "Decision: union attack {0} with {1} battle teams (score {2}, variance {3}).", candidate.TargetGrid, candidate.Participants.Count, score, noise));
         OnUnionAttackButtonPressed();
         return HasUnitActed(unit);
     }
@@ -3165,7 +3207,7 @@ public partial class BattleSceneController
     private bool TryExecuteAiAttack(BattleGridKey sourceGrid, BattleOccupantInfo unit, BattleGridKey targetGrid, int score, int noise)
     {
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(unit, "AI", $"Decision: attack {targetGrid}; score {score}, variance {noise}.");
+        AppendBattleLog(unit, "AI", BattleFormat("log.ai.attack", "Decision: attack {0}; score {1}, variance {2}.", targetGrid, score, noise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Attack, sourceGrid, targetGrid),
             unit);
@@ -3228,7 +3270,7 @@ public partial class BattleSceneController
         }
 
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(unit, "AI", $"Decision: move {sourceGrid} -> {destinationGrid}, reserve {NormalAttackEnergyCost} energy, then attack {plannedTarget} (score {plannedScore}, variance {plannedNoise}).");
+        AppendBattleLog(unit, "AI", BattleFormat("log.ai.move_attack", "Decision: move {0} -> {1}, reserve {2} energy, then attack {3} (score {4}, variance {5}).", sourceGrid, destinationGrid, NormalAttackEnergyCost, plannedTarget, plannedScore, plannedNoise));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(
                 BattleActionKind.Move,
@@ -3336,7 +3378,7 @@ public partial class BattleSceneController
         var destinationEnemyDistance = enemyGrids.Min(enemy => GetManhattanDistance(destination.Grid, enemy.Grid));
         if (unit.TroopType == TroopCatapult && destinationEnemyDistance >= currentEnemyDistance)
         {
-            AppendBattleLog(unit, "AI", $"Decision: hold at {sourceGrid}; no forward catapult position is currently available.");
+            AppendBattleLog(unit, "AI", BattleFormat("log.ai.catapult_hold_forward", "Decision: hold at {0}; no forward catapult position is currently available.", sourceGrid));
             MarkUnitActed(unit);
             return true;
         }
@@ -3379,7 +3421,7 @@ public partial class BattleSceneController
             .ToList();
         if (supplyGrids.Count == 0)
         {
-            AppendBattleLog(catapult, "AI", $"Decision: hold at {sourceGrid}; ammo 0 and no friendly Supply Cart remains.");
+            AppendBattleLog(catapult, "AI", BattleFormat("log.ai.catapult_no_ammo_no_supply", "Decision: hold at {0}; ammo 0 and no friendly Supply Cart remains.", sourceGrid));
             MarkUnitActed(catapult);
             return true;
         }
@@ -3387,7 +3429,7 @@ public partial class BattleSceneController
         var currentSupplyDistance = supplyGrids.Min(grid => GetManhattanDistance(sourceGrid.Grid, grid.Grid));
         if (currentSupplyDistance <= 1)
         {
-            AppendBattleLog(catapult, "AI", $"Decision: hold at {sourceGrid}; ammo 0, waiting beside Supply Cart for weapon resupply.");
+            AppendBattleLog(catapult, "AI", BattleFormat("log.ai.catapult_no_ammo_wait", "Decision: hold at {0}; ammo 0, waiting beside Supply Cart for weapon resupply.", sourceGrid));
             MarkUnitActed(catapult);
             return true;
         }
@@ -3403,13 +3445,13 @@ public partial class BattleSceneController
             .FirstOrDefault();
         if (destination == default)
         {
-            AppendBattleLog(catapult, "AI", $"Decision: hold at {sourceGrid}; ammo 0 and route toward Supply Cart is blocked.");
+            AppendBattleLog(catapult, "AI", BattleFormat("log.ai.catapult_no_ammo_blocked", "Decision: hold at {0}; ammo 0 and route toward Supply Cart is blocked.", sourceGrid));
             MarkUnitActed(catapult);
             return true;
         }
 
         FocusCameraOnBattleGrid(sourceGrid);
-        AppendBattleLog(catapult, "AI", $"Decision: move {sourceGrid} -> {destination}; ammo 0, withdraw toward Supply Cart.");
+        AppendBattleLog(catapult, "AI", BattleFormat("log.ai.catapult_no_ammo_move", "Decision: move {0} -> {1}; ammo 0, withdraw toward Supply Cart.", sourceGrid, destination));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
             catapult);

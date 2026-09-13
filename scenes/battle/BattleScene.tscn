@@ -544,7 +544,7 @@ theme_override_constants/margin_bottom = 24
 [node name="ResultLabel" type="Label" parent="UiLayer/BattleResultOverlay/ResultPanel/Margin"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
-text = "Battle Result"
+text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3

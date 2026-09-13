@@ -56,5 +56,9 @@
   "ui.battle.speech.vanguard.gate_close.01": { "zhHant": "關門！不可讓敵軍趁隙而入！", "en": "Close the gate! Do not let the enemy slip through!" },
   "ui.battle.speech.tactician.gate_close.01": { "zhHant": "收束門道，敵軍的機會到此為止。", "en": "Seal the passage. The enemy's chance ends here." },
   "ui.battle.speech.steadfast.gate_close.01": { "zhHant": "城門關緊，城牆之內絕不失守！", "en": "Bar the gate. We do not yield the city within!" },
-  "ui.battle.speech.ambitious.gate_close.01": { "zhHant": "想進此門？先問過我的兵刃！", "en": "Want through this gate? First answer to my blade!" }
+  "ui.battle.speech.ambitious.gate_close.01": { "zhHant": "想進此門？先問過我的兵刃！", "en": "Want through this gate? First answer to my blade!" },
+  "ui.battle.speech.vanguard.gate_breach.01": { "zhHant": "城門已破！全軍隨我殺入！", "en": "The gate is broken! All forces, storm in with me!" },
+  "ui.battle.speech.tactician.gate_breach.01": { "zhHant": "缺口已開，按計奪門，勿使敵軍重整！", "en": "The breach is open. Seize the gate to plan before they regroup!" },
+  "ui.battle.speech.steadfast.gate_breach.01": { "zhHant": "城門既破，前隊突入，後隊跟進！", "en": "The gate has fallen. Front rank through, rear rank follow!" },
+  "ui.battle.speech.ambitious.gate_breach.01": { "zhHant": "破城首功在此，誰敢與我爭先！", "en": "The first honor of the breach is mine—who dares outrun me!" }
 }

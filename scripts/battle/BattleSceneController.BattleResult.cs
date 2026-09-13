@@ -60,21 +60,30 @@ public partial class BattleSceneController
         var teamBHasOfficerBattleTeam = HasActiveOfficerBattleTeam(isDefender: true);
         if (!teamAHasOfficerBattleTeam && !teamBHasOfficerBattleTeam)
         {
-            resultMessage = "Battle Finished\nDraw\nBoth sides have no officer-led battle teams.";
+            resultMessage = string.Join('\n',
+                BattleText("ui.battle.result_finished", "Battle Finished"),
+                BattleText("ui.battle.result_draw", "Draw"),
+                BattleText("ui.battle.result_both_no_officer_teams", "Both sides have no officer-led battle teams."));
             return true;
         }
 
         if (!teamAHasOfficerBattleTeam || !teamBHasOfficerBattleTeam)
         {
-            var winnerName = teamAHasOfficerBattleTeam ? TeamAInfo.Name : TeamBInfo.Name;
-            var defeatedName = teamAHasOfficerBattleTeam ? TeamBInfo.Name : TeamAInfo.Name;
-            resultMessage = $"Battle Finished\n{winnerName} Victory\n{defeatedName} has no officer-led battle teams remaining.";
+            var winnerName = FormatTeamName(teamAHasOfficerBattleTeam ? TeamAInfo.Name : TeamBInfo.Name);
+            var defeatedName = FormatTeamName(teamAHasOfficerBattleTeam ? TeamBInfo.Name : TeamAInfo.Name);
+            resultMessage = string.Join('\n',
+                BattleText("ui.battle.result_finished", "Battle Finished"),
+                BattleFormat("ui.battle.result_victory", "{0} Victory", winnerName),
+                BattleFormat("ui.battle.result_no_officer_teams", "{0} has no officer-led battle teams remaining.", defeatedName));
             return true;
         }
 
         if (_attackerOutpostVictorySecured)
         {
-            resultMessage = $"Battle Finished\n{TeamAInfo.Name} Victory\nAll defense outposts are occupied and held.";
+            resultMessage = string.Join('\n',
+                BattleText("ui.battle.result_finished", "Battle Finished"),
+                BattleFormat("ui.battle.result_victory", "{0} Victory", FormatTeamName(TeamAInfo.Name)),
+                BattleText("ui.battle.result_outpost_victory", "All defense outposts are occupied and held."));
             return true;
         }
 
