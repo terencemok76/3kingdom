@@ -1,14 +1,13 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattlePresentationSettings;
-using static ThreeKingdom.Battle.BattleResourcePaths;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 using static ThreeKingdom.Battle.BattleUnitVisualCatalog;
 
@@ -16,67 +15,294 @@ namespace ThreeKingdom.Battle;
 
 public partial class BattleSceneController
 {
+    private const int CampaignSaveSlotCount = 10;
     private static readonly JsonSerializerOptions BattleSaveJsonOptions = new()
     {
         WriteIndented = true
     };
 
-    private bool TrySaveBattleQuickSave(out string errorMessage)
+    private void ShowCampaignSaveLoadDialog()
     {
-        errorMessage = string.Empty;
-        if (_mapData == null)
+        if (_activeCampaign == null || CampaignRuntimeContext.World == null)
         {
-            errorMessage = "battle map is not ready";
-            return false;
+            ShowBattleEventNotice(BattleText(
+                "ui.battle.save_load_campaign_only",
+                "Save / Load is only available in a campaign battle."));
+            return;
         }
 
-        try
+        if (_campaignSaveLoadOverlay != null)
         {
-            var saveData = CreateBattleSaveData();
-            Directory.CreateDirectory(ProjectSettings.GlobalizePath("user://saves"));
-            File.WriteAllText(
-                ProjectSettings.GlobalizePath(BattleQuickSavePath),
-                JsonSerializer.Serialize(saveData, BattleSaveJsonOptions),
-                Encoding.UTF8);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-            GD.PushError($"Battle quick save failed: {ex}");
-            return false;
-        }
-    }
-
-    private bool TryLoadBattleQuickSave(out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        var resolvedPath = ProjectSettings.GlobalizePath(BattleQuickSavePath);
-        if (!File.Exists(resolvedPath))
-        {
-            errorMessage = "battle quick save file not found";
-            return false;
+            _campaignSaveLoadOverlay.Visible = true;
+            return;
         }
 
-        try
+        var repository = new WorldRepository();
+        var scene = GD.Load<PackedScene>("res://scenes/ui/system/SaveLoadDialog.tscn");
+        var overlay = scene?.Instantiate<Control>();
+        var uiLayer = GetNodeOrNull<CanvasLayer>("UiLayer");
+        if (overlay == null || uiLayer == null)
         {
-            var json = File.ReadAllText(resolvedPath, Encoding.UTF8);
-            var saveData = JsonSerializer.Deserialize<BattleSaveData>(json, BattleSaveJsonOptions);
-            if (saveData == null || saveData.Version != 2)
+            ShowBattleEventNotice(BattleText("ui.battle.save_slot_no_battle", "Save / Load UI could not be opened."));
+            return;
+        }
+
+        _campaignSaveLoadOverlay = overlay;
+        overlay.ZIndex = 220;
+        uiLayer.AddChild(overlay);
+
+        var root = overlay.GetNodeOrNull<VBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot");
+        var slotList = root?.GetNodeOrNull<ItemList>("SlotList");
+        var descriptionInput = root?.GetNodeOrNull<LineEdit>("DescriptionLineEdit");
+        var summaryLabel = root?.GetNodeOrNull<RichTextLabel>("SummaryLabel");
+        var saveButton = root?.GetNodeOrNull<Button>("ButtonRow/SaveSlotButton");
+        var loadButton = root?.GetNodeOrNull<Button>("ButtonRow/LoadSlotButton");
+        var closeButton = root?.GetNodeOrNull<Button>("ButtonRow/CloseSlotButton");
+        var panel = overlay.GetNodeOrNull<PanelContainer>("CenterContainer/AdvisorDialogPanel");
+        var centerContainer = overlay.GetNodeOrNull<Control>("CenterContainer");
+        var titleBar = root?.GetNodeOrNull<Control>("TitleBarPanel/TitleBar");
+        var titleLabel = root?.GetNodeOrNull<Label>("TitleBarPanel/TitleBar/TitleLabel");
+        var titleCloseButton = root?.GetNodeOrNull<Button>("TitleBarPanel/TitleBar/CloseButton");
+        if (root == null || slotList == null || descriptionInput == null || summaryLabel == null || saveButton == null || loadButton == null || closeButton == null || panel == null || centerContainer == null || titleBar == null)
+        {
+            overlay.QueueFree();
+            _campaignSaveLoadOverlay = null;
+            ShowBattleEventNotice(BattleText("ui.battle.save_slot_no_battle", "Save / Load UI could not be opened."));
+            return;
+        }
+
+        overlay.MouseFilter = Control.MouseFilterEnum.Ignore;
+        centerContainer.MouseFilter = Control.MouseFilterEnum.Ignore;
+        panel.MouseFilter = Control.MouseFilterEnum.Stop;
+        root.MouseFilter = Control.MouseFilterEnum.Stop;
+        titleBar.MouseFilter = Control.MouseFilterEnum.Stop;
+        titleBar.MouseDefaultCursorShape = Control.CursorShape.Drag;
+        panel.Size = panel.CustomMinimumSize;
+        var viewportSize = overlay.GetViewportRect().Size;
+        panel.Position = new Vector2(
+            Mathf.Max(0.0f, (viewportSize.X - panel.Size.X) * 0.5f),
+            Mathf.Max(0.0f, (viewportSize.Y - panel.Size.Y) * 0.5f));
+
+        var isDragging = false;
+        var dragOffset = Vector2.Zero;
+        titleBar.GuiInput += @event =>
+        {
+            if (@event is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
             {
-                errorMessage = "unsupported battle save format";
-                return false;
+                if (mouseButton.Pressed)
+                {
+                    isDragging = true;
+                    dragOffset = mouseButton.GlobalPosition - panel.GlobalPosition;
+                }
+                else
+                {
+                    isDragging = false;
+                }
+
+                titleBar.AcceptEvent();
+                return;
             }
 
-            ApplyBattleSaveData(saveData);
-            return true;
-        }
-        catch (Exception ex)
+            if (@event is InputEventMouseMotion mouseMotion && isDragging)
+            {
+                var maxX = Mathf.Max(0.0f, overlay.GetViewportRect().Size.X - panel.Size.X);
+                var maxY = Mathf.Max(0.0f, overlay.GetViewportRect().Size.Y - panel.Size.Y);
+                var target = mouseMotion.GlobalPosition - dragOffset;
+                panel.Position = new Vector2(
+                    Mathf.Clamp(target.X, 0.0f, maxX),
+                    Mathf.Clamp(target.Y, 0.0f, maxY));
+                titleBar.AcceptEvent();
+            }
+        };
+        panel.GuiInput += @event =>
         {
-            errorMessage = ex.Message;
-            GD.PushError($"Battle quick load failed: {ex}");
-            return false;
+            if (@event is InputEventMouseButton or InputEventMouseMotion)
+            {
+                panel.AcceptEvent();
+            }
+        };
+
+        if (titleLabel != null)
+        {
+            titleLabel.Text = BattleText("ui.save_load", "Save / Load");
         }
+        var slotListLabel = root.GetNodeOrNull<Label>("SlotListLabel");
+        if (slotListLabel != null)
+        {
+            slotListLabel.Text = BattleText("ui.save_slots", "Save Slots");
+        }
+        var descriptionLabel = root.GetNodeOrNull<Label>("DescriptionLabel");
+        if (descriptionLabel != null)
+        {
+            descriptionLabel.Text = BattleText("ui.description", "Description");
+        }
+        var summaryTitleLabel = root.GetNodeOrNull<Label>("SummaryTitleLabel");
+        if (summaryTitleLabel != null)
+        {
+            summaryTitleLabel.Text = BattleText("ui.save_details", "Save Details");
+        }
+        descriptionInput.PlaceholderText = BattleText("ui.save_description_placeholder", "Enter a description for this slot");
+        saveButton.Text = BattleText("ui.save", "Save");
+        loadButton.Text = BattleText("ui.load", "Load");
+        closeButton.Text = BattleText("ui.close", "Close");
+
+        var selectedSlot = 1;
+        void RefreshSlotList()
+        {
+            slotList.Clear();
+            for (var slot = 1; slot <= CampaignSaveSlotCount; slot++)
+            {
+                var summary = repository.LoadSaveSlotSummary(BuildCampaignSaveSlotPath(slot), slot);
+                slotList.AddItem(BuildCampaignSaveSlotListText(summary));
+                slotList.SetItemMetadata(slotList.ItemCount - 1, slot);
+            }
+
+            selectedSlot = Mathf.Clamp(selectedSlot, 1, CampaignSaveSlotCount);
+            slotList.Select(selectedSlot - 1);
+            RefreshSelectedSlot();
+        }
+
+        void RefreshSelectedSlot()
+        {
+            var summary = repository.LoadSaveSlotSummary(BuildCampaignSaveSlotPath(selectedSlot), selectedSlot);
+            descriptionInput.Text = summary.Exists ? summary.Description : string.Empty;
+            summaryLabel.Text = BuildCampaignSaveSlotSummaryText(summary);
+        }
+
+        void Close()
+        {
+            _campaignSaveLoadOverlay = null;
+            overlay.QueueFree();
+        }
+
+        slotList.ItemSelected += index =>
+        {
+            selectedSlot = (int)index + 1;
+            RefreshSelectedSlot();
+        };
+        saveButton.Pressed += () =>
+        {
+            SaveCampaignToSlot(repository, selectedSlot, descriptionInput.Text);
+            RefreshSlotList();
+        };
+        loadButton.Pressed += () =>
+        {
+            Close();
+            LoadCampaignFromSlot(repository, selectedSlot);
+        };
+        closeButton.Pressed += Close;
+        if (titleCloseButton != null)
+        {
+            titleCloseButton.Pressed += Close;
+        }
+        RefreshSlotList();
+    }
+
+    private string BuildCampaignSaveSlotListText(SaveSlotSummary summary)
+    {
+        var slotPrefix = BattleFormat("fmt.save_slot_prefix", "Slot {0}", summary.SlotIndex);
+        if (!summary.Exists)
+        {
+            return $"{slotPrefix} {BattleText("ui.empty", "Empty")}";
+        }
+
+        var description = summary.Exists
+            ? (string.IsNullOrWhiteSpace(summary.Description) ? BattleText("ui.no_description", "No Description") : summary.Description)
+            : BattleText("ui.empty", "Empty");
+        var saveType = BattleText(summary.IsCampaignBattleSave ? "ui.save_type_campaign_battle" : "ui.save_type_gameplay", summary.IsCampaignBattleSave ? "Campaign Battle" : "Gameplay");
+        return BattleFormat("fmt.save_slot_list_item", "{0} [{1}] {2}", slotPrefix, saveType, description);
+    }
+
+    private string BuildCampaignSaveSlotSummaryText(SaveSlotSummary summary)
+    {
+        if (!summary.Exists)
+        {
+            return BattleText("fmt.save_slot_empty_summary", "This save slot is empty.\nEnter a description and save the game here.");
+        }
+
+        var storyName = _localization.IsTraditionalChinese
+            ? (!string.IsNullOrWhiteSpace(summary.StoryNameZhHant) ? summary.StoryNameZhHant : summary.StoryNameEn)
+            : (!string.IsNullOrWhiteSpace(summary.StoryNameEn) ? summary.StoryNameEn : summary.StoryNameZhHant);
+        var saveType = BattleText(summary.IsCampaignBattleSave ? "ui.save_type_campaign_battle" : "ui.save_type_gameplay", summary.IsCampaignBattleSave ? "Campaign Battle" : "Gameplay");
+        var description = string.IsNullOrWhiteSpace(summary.Description) ? BattleText("ui.no_description", "No Description") : summary.Description;
+        var savedAt = DateTime.TryParse(summary.SavedAtUtc, out var savedTime)
+            ? savedTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+            : BattleText("ui.unknown", "Unknown");
+        return BattleFormat("fmt.save_slot_summary", "Slot: {0}\nType: {1}\nDescription: {2}\nStory: {3}\nSaved: {4}\nProgress: Year {5}, Month {6}", summary.SlotIndex, saveType, description, storyName, savedAt, summary.Year, summary.Month);
+    }
+
+    private void SaveCampaignToSlot(WorldRepository repository, int slot, string description)
+    {
+        if (_activeCampaign == null || CampaignRuntimeContext.World == null)
+        {
+            return;
+        }
+
+        _activeCampaign.BattleSnapshotJson = CreateCampaignBattleSnapshot();
+        var resolvedDescription = string.IsNullOrWhiteSpace(description)
+            ? $"Campaign {_activeCampaign.Id} · Battle T{_turnNumber}"
+            : description.Trim();
+        var saved = repository.SaveGame(BuildCampaignSaveSlotPath(slot), CampaignRuntimeContext.World, resolvedDescription, slot);
+        AppendBattleLog(GetCurrentTurnSideName(), "Save", saved
+            ? $"Campaign battle saved to slot {slot}."
+            : $"Campaign battle save failed for slot {slot}.");
+    }
+
+    private void LoadCampaignFromSlot(WorldRepository repository, int slot)
+    {
+        var world = repository.LoadSavedGame(BuildCampaignSaveSlotPath(slot));
+        var playerFactionId = world?.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? -1;
+        var campaign = world?.ActiveBattleCampaigns.FirstOrDefault(item =>
+            item.Stage != CampaignStage.Resolved &&
+            (item.AttackerFactionId == playerFactionId || item.DefenderFactionId == playerFactionId) &&
+            !string.IsNullOrWhiteSpace(item.BattleSnapshotJson));
+        if (world == null || campaign == null)
+        {
+            ShowBattleEventNotice(BattleText(
+                "ui.battle.save_slot_no_battle",
+                "This slot does not contain a resumable campaign battle."));
+            return;
+        }
+
+        var targetCity = world.GetCity(campaign.TargetCityId);
+        if (targetCity == null)
+        {
+            ShowBattleEventNotice(BattleText(
+                "ui.battle.save_slot_no_battle",
+                "This slot does not contain a resumable campaign battle."));
+            return;
+        }
+
+        CampaignRuntimeContext.Launch(world, campaign.Id);
+        var scenarioType = campaign.Stage == CampaignStage.FieldBattle
+            ? BattleScenarioType.FieldBattle
+            : BattleScenarioType.SiegeAssault;
+        PendingLaunchOptions = new LaunchOptions(scenarioType, true, campaign.Id);
+        GetTree().ChangeSceneToFile(ResolveCampaignSaveScenePath(targetCity, scenarioType));
+    }
+
+    private static string BuildCampaignSaveSlotPath(int slot) => $"user://saves/slot{slot:00}.json";
+
+    private static string ResolveCampaignSaveScenePath(CityData city, BattleScenarioType scenarioType)
+    {
+        if (scenarioType != BattleScenarioType.FieldBattle)
+        {
+            return city.Id % 2 == 0
+                ? "res://scenes/battle/BattleSceneNorthWest.tscn"
+                : "res://scenes/battle/BattleScene.tscn";
+        }
+
+        return city.NameEn.Trim().ToUpperInvariant() switch
+        {
+            "HANZHONG" => "res://scenes/battle/field/FieldBattleHanzhong.tscn",
+            "YE" => "res://scenes/battle/field/FieldBattleYe.tscn",
+            "JINYANG" => "res://scenes/battle/field/FieldBattleJinyang.tscn",
+            "XIAPI" => "res://scenes/battle/field/FieldBattleXiapi.tscn",
+            "JIANYE" => "res://scenes/battle/field/FieldBattleJianye.tscn",
+            "XIANGYANG" => "res://scenes/battle/field/FieldBattleXiangyang.tscn",
+            "JIANG LING" or "JIANGLING" => "res://scenes/battle/field/FieldBattleJiangling.tscn",
+            _ => "res://scenes/battle/field/FieldBattleLuoyang.tscn"
+        };
     }
 
     private string CreateCampaignBattleSnapshot() =>

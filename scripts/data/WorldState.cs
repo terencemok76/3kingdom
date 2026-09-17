@@ -37,10 +37,24 @@ public class WorldState
         public int DefenderFactionId { get; set; }
         public int WinnerFactionId { get; set; }
         public CampaignStage Stage { get; set; }
+        public int AttackerCommittedTroops { get; set; }
+        public int AttackerLostTroops { get; set; }
+        public int AttackerReturnedTroops { get; set; }
         public int AttackerActiveTroops { get; set; }
         public int AttackerWoundedTroops { get; set; }
+        public int AttackerGoldSpent { get; set; }
+        public int AttackerFoodSpent { get; set; }
+        public int AttackerGoldGained { get; set; }
+        public int AttackerFoodGained { get; set; }
+        public int DefenderCommittedTroops { get; set; }
+        public int DefenderLostTroops { get; set; }
+        public int DefenderReturnedTroops { get; set; }
         public int DefenderActiveTroops { get; set; }
         public int DefenderWoundedTroops { get; set; }
+        public int DefenderGoldSpent { get; set; }
+        public int DefenderFoodSpent { get; set; }
+        public int DefenderGoldGained { get; set; }
+        public int DefenderFoodGained { get; set; }
         public List<int> CapturedOfficerIds { get; set; } = new();
         public bool PlayerAcknowledged { get; set; }
     }

@@ -99,7 +99,11 @@ public static class BattleCampaignService
             AttackerGold = Math.Max(0, attack.GoldToSend),
             AttackerFood = Math.Max(0, attack.FoodToSend),
             DefenderGold = Math.Max(0, targetCity.Gold),
-            DefenderFood = Math.Max(0, targetCity.Food)
+            DefenderFood = Math.Max(0, targetCity.Food),
+            AttackerGoldInvested = Math.Max(0, attack.GoldToSend),
+            AttackerFoodInvested = Math.Max(0, attack.FoodToSend),
+            DefenderGoldInvested = Math.Max(0, targetCity.Gold),
+            DefenderFoodInvested = Math.Max(0, targetCity.Food)
         };
         targetCity.Gold = 0;
         targetCity.Food = 0;
@@ -108,7 +112,8 @@ public static class BattleCampaignService
             attack.AttackOfficerDeployments,
             campaign.AttackerFactionId,
             CampaignBattleSide.Attacker,
-            playerFactionId));
+            playerFactionId,
+            originCityId: sourceCity.Id));
 
         var defenderDeployments = attack.DefenderOfficerDeployments.Count > 0
             ? CloneDeployments(attack.DefenderOfficerDeployments)
@@ -125,7 +130,8 @@ public static class BattleCampaignService
             playerFactionId,
             defenderPlan == DefenderBattlePlan.CityDefense
                 ? CampaignTeamLocation.InnerCity
-                : CampaignTeamLocation.Field));
+                : CampaignTeamLocation.Field,
+            originCityId: targetCity.Id));
 
         if (defenderPlan == DefenderBattlePlan.FieldIntercept)
         {
@@ -138,7 +144,8 @@ public static class BattleCampaignService
                 campaign.DefenderFactionId,
                 CampaignBattleSide.Defender,
                 playerFactionId,
-                CampaignTeamLocation.InnerCity));
+                CampaignTeamLocation.InnerCity,
+                originCityId: targetCity.Id));
         }
 
         for (var index = 0; index < campaign.Teams.Count; index++)
@@ -255,7 +262,8 @@ public static class BattleCampaignService
             side,
             playerFactionId,
             CampaignTeamLocation.Traveling,
-            orderId));
+            orderId,
+            sourceCity.Id));
 
         sourceCity.RemoveTroopAllocation(allocation);
         sourceCity.RemoveSiegeEngineAllocation(BuildSiegeEngineAllocation(normalizedDeployments));
@@ -447,6 +455,17 @@ public static class BattleCampaignService
             ? campaign.AttackerFactionId
             : campaign.DefenderFactionId;
         var capturedOfficerIds = new List<int>();
+        var attackerTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).ToList();
+        var defenderTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender).ToList();
+        var attackerCommittedTroops = attackerTeams.Sum(team => Math.Max(0, team.MaximumTroops));
+        var attackerActiveTroops = attackerTeams.Sum(team => Math.Max(0, team.ActiveTroops));
+        var attackerWoundedTroops = attackerTeams.Sum(team => Math.Max(0, team.WoundedTroops));
+        var attackerReturnedTroops = attackerTeams.Sum(team => Math.Max(0, team.ReturnedTroops));
+        var defenderCommittedTroops = defenderTeams.Sum(team => Math.Max(0, team.MaximumTroops));
+        var defenderActiveTroops = defenderTeams.Sum(team => Math.Max(0, team.ActiveTroops));
+        var defenderWoundedTroops = defenderTeams.Sum(team => Math.Max(0, team.WoundedTroops));
+        var defenderReturnedTroops = defenderTeams.Sum(team => Math.Max(0, team.ReturnedTroops));
+        var attackerWonCity = winner == CampaignBattleSide.Attacker && campaign.Stage == CampaignStage.CityBattle;
         var report = new WorldState.BattleReportData
         {
             Id = world.BattleReports.Count == 0 ? 1 : world.BattleReports.Max(item => item.Id) + 1,
@@ -458,23 +477,28 @@ public static class BattleCampaignService
             DefenderFactionId = campaign.DefenderFactionId,
             WinnerFactionId = winnerFactionId,
             Stage = campaign.Stage,
-            AttackerActiveTroops = campaign.Teams
-                .Where(team => team.Side == CampaignBattleSide.Attacker)
-                .Sum(team => Math.Max(0, team.ActiveTroops)),
-            AttackerWoundedTroops = campaign.Teams
-                .Where(team => team.Side == CampaignBattleSide.Attacker)
-                .Sum(team => Math.Max(0, team.WoundedTroops)),
-            DefenderActiveTroops = campaign.Teams
-                .Where(team => team.Side == CampaignBattleSide.Defender)
-                .Sum(team => Math.Max(0, team.ActiveTroops)),
-            DefenderWoundedTroops = campaign.Teams
-                .Where(team => team.Side == CampaignBattleSide.Defender)
-                .Sum(team => Math.Max(0, team.WoundedTroops))
+            AttackerCommittedTroops = attackerCommittedTroops,
+            AttackerLostTroops = Math.Max(0, attackerCommittedTroops - attackerActiveTroops - attackerWoundedTroops - attackerReturnedTroops),
+            AttackerReturnedTroops = attackerReturnedTroops,
+            AttackerActiveTroops = attackerActiveTroops,
+            AttackerWoundedTroops = attackerWoundedTroops,
+            AttackerGoldSpent = campaign.AttackerGoldSpent,
+            AttackerFoodSpent = campaign.AttackerFoodSpent,
+            AttackerGoldGained = campaign.AttackerGoldGained + (attackerWonCity ? Math.Max(0, campaign.DefenderGold) : 0),
+            AttackerFoodGained = campaign.AttackerFoodGained + (attackerWonCity ? Math.Max(0, campaign.DefenderFood) : 0),
+            DefenderCommittedTroops = defenderCommittedTroops,
+            DefenderLostTroops = Math.Max(0, defenderCommittedTroops - defenderActiveTroops - defenderWoundedTroops - defenderReturnedTroops),
+            DefenderReturnedTroops = defenderReturnedTroops,
+            DefenderActiveTroops = defenderActiveTroops,
+            DefenderWoundedTroops = defenderWoundedTroops,
+            DefenderGoldSpent = campaign.DefenderGoldSpent,
+            DefenderFoodSpent = campaign.DefenderFoodSpent,
+            DefenderGoldGained = campaign.DefenderGoldGained,
+            DefenderFoodGained = campaign.DefenderFoodGained
         };
 
         ReturnUndeployedReinforcements(world, campaign);
 
-        var attackerWonCity = winner == CampaignBattleSide.Attacker && campaign.Stage == CampaignStage.CityBattle;
         if (attackerWonCity)
         {
             targetCity.OwnerFactionId = campaign.AttackerFactionId;
@@ -482,6 +506,7 @@ public static class BattleCampaignService
             {
                 if (world.GetOfficer(officerId) is { } officer)
                 {
+                    officer.HomeCityId = targetCity.Id;
                     officer.CityId = 0;
                     officer.CaptiveFactionId = campaign.AttackerFactionId;
                     officer.JailedCityId = targetCity.Id;
@@ -491,7 +516,11 @@ public static class BattleCampaignService
             targetCity.OfficerIds.Clear();
         }
 
-        foreach (var team in campaign.Teams.Where(team => team.Location is not (CampaignTeamLocation.Eliminated or CampaignTeamLocation.Captured)))
+        CaptureDefeatedCampaignTeams(world, campaign, winner, targetCity.Id, capturedOfficerIds);
+
+        foreach (var team in campaign.Teams.Where(team =>
+                     team.Location is not (CampaignTeamLocation.Eliminated or CampaignTeamLocation.Captured) &&
+                     team.RetreatDestinationCityId <= 0))
         {
             var destination = ResolveReturnCity(world, campaign, team, winner, attackerWonCity);
             if (destination == null)
@@ -541,23 +570,20 @@ public static class BattleCampaignService
         report.CapturedOfficerIds = capturedOfficerIds;
         world.BattleReports.Add(report);
 
-        if (world.Factions.Any(faction => faction.Id == winnerFactionId && faction.IsPlayer))
+        foreach (var officerId in capturedOfficerIds)
         {
-            foreach (var officerId in capturedOfficerIds)
+            if (world.PendingCapturedOfficerRecords.Any(record =>
+                    record.WinnerFactionId == winnerFactionId && record.OfficerId == officerId))
             {
-                if (world.PendingCapturedOfficerRecords.Any(record =>
-                        record.WinnerFactionId == winnerFactionId && record.OfficerId == officerId))
-                {
-                    continue;
-                }
-
-                world.PendingCapturedOfficerRecords.Add(new WorldState.PendingCapturedOfficerData
-                {
-                    WinnerFactionId = winnerFactionId,
-                    WinnerCityId = targetCity.Id,
-                    OfficerId = officerId
-                });
+                continue;
             }
+
+            world.PendingCapturedOfficerRecords.Add(new WorldState.PendingCapturedOfficerData
+            {
+                WinnerFactionId = winnerFactionId,
+                WinnerCityId = targetCity.Id,
+                OfficerId = officerId
+            });
         }
     }
 
@@ -705,11 +731,15 @@ public static class BattleCampaignService
                 {
                     campaign.AttackerGold += order.Gold;
                     campaign.AttackerFood += order.Food;
+                    campaign.AttackerGoldInvested += order.Gold;
+                    campaign.AttackerFoodInvested += order.Food;
                 }
                 else
                 {
                     campaign.DefenderGold += order.Gold;
                     campaign.DefenderFood += order.Food;
+                    campaign.DefenderGoldInvested += order.Gold;
+                    campaign.DefenderFoodInvested += order.Food;
                 }
             }
         }
@@ -827,7 +857,8 @@ public static class BattleCampaignService
         CampaignBattleSide side,
         int playerFactionId,
         CampaignTeamLocation defaultLocation = CampaignTeamLocation.Field,
-        int reinforcementOrderId = 0)
+        int reinforcementOrderId = 0,
+        int originCityId = 0)
     {
         var teams = new List<CampaignBattleTeamData>();
         foreach (var deployment in deployments.Where(item => item.TroopCount > 0))
@@ -849,6 +880,7 @@ public static class BattleCampaignService
                 ActiveTroops = deployment.TroopCount,
                 MaximumTroops = deployment.TroopCount,
                 ReinforcementOrderId = reinforcementOrderId,
+                OriginCityId = originCityId,
                 Location = location
             });
         }
@@ -911,6 +943,136 @@ public static class BattleCampaignService
         return result;
     }
 
+    /// <summary>
+    /// Returns direct, strategic destinations for an officer who has reached its
+    /// own battle exit. The team's own valid origin city is always listed first;
+    /// the adjacent friendly and neutral cities around the campaign anchor follow.
+    /// </summary>
+    public static IReadOnlyList<CityData> GetRetreatDestinations(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        CampaignBattleTeamData team)
+    {
+        var anchorCityId = team.Side == CampaignBattleSide.Defender
+            ? campaign.TargetCityId
+            : campaign.SourceCityId;
+        var anchor = world.GetCity(anchorCityId);
+        if (anchor == null)
+        {
+            return Array.Empty<CityData>();
+        }
+
+        var destinations = new List<CityData>();
+        var origin = world.GetCity(GetRetreatOriginCityId(campaign, team));
+        if (origin != null && origin.OwnerFactionId == team.FactionId)
+        {
+            destinations.Add(origin);
+        }
+
+        destinations.AddRange(anchor.ConnectedCityIds
+            .Distinct()
+            .Select(world.GetCity)
+            .Where(city => city != null &&
+                           (city.OwnerFactionId == team.FactionId || city.OwnerFactionId == 0))
+            .Select(city => city!)
+            .OrderBy(city => city.OwnerFactionId == team.FactionId ? 0 : 1)
+            .ThenBy(city => city.Id)
+            .Where(city => destinations.All(existing => existing.Id != city.Id)));
+
+        return destinations;
+    }
+
+    /// <summary>
+    /// Resolves a team's source city, including campaign snapshots created before
+    /// OriginCityId was serialized. This keeps older campaign saves retreatable.
+    /// </summary>
+    public static int GetRetreatOriginCityId(ActiveBattleCampaignData campaign, CampaignBattleTeamData team)
+    {
+        if (team.OriginCityId > 0)
+        {
+            return team.OriginCityId;
+        }
+
+        var reinforcement = campaign.Reinforcements.FirstOrDefault(order => order.Id == team.ReinforcementOrderId);
+        if (reinforcement != null && reinforcement.SourceCityId > 0)
+        {
+            return reinforcement.SourceCityId;
+        }
+
+        return team.Side == CampaignBattleSide.Defender
+            ? campaign.TargetCityId
+            : campaign.SourceCityId;
+    }
+
+    public static bool TryRetreatTeamToCity(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        CampaignBattleTeamData team,
+        int destinationCityId)
+    {
+        var destination = GetRetreatDestinations(world, campaign, team)
+            .FirstOrDefault(city => city.Id == destinationCityId);
+        if (destination == null)
+        {
+            return false;
+        }
+
+        if (destination.OwnerFactionId == 0)
+        {
+            destination.OwnerFactionId = team.FactionId;
+        }
+
+        ReturnTeamToCity(world, destination, team);
+        team.ActiveTroops = 0;
+        team.WoundedTroops = 0;
+        team.Location = CampaignTeamLocation.NeighborCity;
+        team.RetreatDestinationCityId = destination.Id;
+        return true;
+    }
+
+    public static bool TryReturnSupportTeamToOrigin(
+        WorldState world,
+        CampaignBattleTeamData team)
+    {
+        var destination = world.GetCity(team.OriginCityId);
+        if (destination == null || destination.OwnerFactionId != team.FactionId)
+        {
+            return false;
+        }
+
+        ReturnTeamToCity(world, destination, team);
+        team.ActiveTroops = 0;
+        team.WoundedTroops = 0;
+        team.Location = CampaignTeamLocation.NeighborCity;
+        team.RetreatDestinationCityId = destination.Id;
+        return true;
+    }
+
+    private static void ReturnTeamToCity(WorldState world, CityData destination, CampaignBattleTeamData team)
+    {
+        var returnedTroops = Math.Max(0, team.ActiveTroops + team.WoundedTroops);
+        destination.AddTroops(team.TroopType, returnedTroops);
+        team.ReturnedTroops += returnedTroops;
+        if (team.TroopType == TroopType.Siege && team.SiegeEngineType != SiegeEngineType.None)
+        {
+            destination.AddSiegeEngine(team.SiegeEngineType, 1);
+        }
+
+        if (team.OfficerId > 0)
+        {
+            RemoveOfficerFromAllCities(world, team.OfficerId);
+            if (!destination.OfficerIds.Contains(team.OfficerId))
+            {
+                destination.OfficerIds.Add(team.OfficerId);
+            }
+
+            if (world.GetOfficer(team.OfficerId) is { } officer)
+            {
+                officer.CityId = destination.Id;
+            }
+        }
+    }
+
     private static CityData? ResolveReturnCity(
         WorldState world,
         ActiveBattleCampaignData campaign,
@@ -939,6 +1101,40 @@ public static class BattleCampaignService
         foreach (var city in world.Cities)
         {
             city.OfficerIds.Remove(officerId);
+        }
+    }
+
+    private static void CaptureDefeatedCampaignTeams(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        CampaignBattleSide winner,
+        int jailCityId,
+        ICollection<int> capturedOfficerIds)
+    {
+        var winnerFactionId = winner == CampaignBattleSide.Attacker
+            ? campaign.AttackerFactionId
+            : campaign.DefenderFactionId;
+        foreach (var team in campaign.Teams.Where(team =>
+                     team.Side != winner &&
+                     team.OfficerId > 0 &&
+                     team.Location is not (CampaignTeamLocation.NeighborCity or CampaignTeamLocation.Captured)))
+        {
+            var officer = world.GetOfficer(team.OfficerId);
+            if (officer == null || (officer.DeathYear > 0 && world.Year > officer.DeathYear))
+            {
+                continue;
+            }
+
+            officer.HomeCityId = team.OriginCityId > 0 ? team.OriginCityId : officer.CityId;
+            RemoveOfficerFromAllCities(world, officer.Id);
+            officer.CityId = 0;
+            officer.CaptiveFactionId = winnerFactionId;
+            officer.JailedCityId = jailCityId;
+            officer.FreeOfficerStayMonths = 0;
+            team.ActiveTroops = 0;
+            team.WoundedTroops = 0;
+            team.Location = CampaignTeamLocation.Captured;
+            capturedOfficerIds.Add(officer.Id);
         }
     }
 

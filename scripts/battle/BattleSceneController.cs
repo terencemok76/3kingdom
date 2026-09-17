@@ -123,6 +123,7 @@ public partial class BattleSceneController : Node2D
     private Label? _officerCaptureNoticeLabel;
     private Control? _turnBanner;
     private Label? _turnBannerLabel;
+    private Control? _turnInputBlocker;
     private Control? _officerSpeechOverlay;
     private TextureRect? _officerSpeechPortrait;
     private Label? _officerSpeechTeamNameLabel;
@@ -163,8 +164,8 @@ public partial class BattleSceneController : Node2D
     private Label? _battleDebugTitleLabel;
     private Button? _battleOptionCloseButton;
     private Button? _battleDebugCloseButton;
-    private Button? _battleOptionSaveButton;
-    private Button? _battleOptionLoadButton;
+    private Button? _battleOptionSaveLoadButton;
+    private Control? _campaignSaveLoadOverlay;
     private Button? _battleOptionLanguageButton;
     private Button? _battleBgmToggleButton;
     private HSlider? _battleBgmVolumeSlider;
@@ -536,14 +537,9 @@ public partial class BattleSceneController : Node2D
             _battleDebugCloseButton.Pressed += HideBattleDebugDialog;
         }
 
-        if (_battleOptionSaveButton != null)
+        if (_battleOptionSaveLoadButton != null)
         {
-            _battleOptionSaveButton.Pressed += OnBattleOptionSaveButtonPressed;
-        }
-
-        if (_battleOptionLoadButton != null)
-        {
-            _battleOptionLoadButton.Pressed += OnBattleOptionLoadButtonPressed;
+            _battleOptionSaveLoadButton.Pressed += OnBattleOptionSaveLoadButtonPressed;
         }
 
         if (_battleOptionLanguageButton != null)
@@ -1022,8 +1018,7 @@ public partial class BattleSceneController : Node2D
             _attackerOneDayFoodButton,
             _defenderOneDayFoodButton,
             _monthlyBattleLimitOneDayButton,
-            _battleOptionSaveButton,
-            _battleOptionLoadButton,
+            _battleOptionSaveLoadButton,
             _battleOptionLanguageButton,
             _battleBgmToggleButton,
             _battleSfxToggleButton,
@@ -1582,6 +1577,7 @@ public partial class BattleSceneController : Node2D
         team.GoldUpkeepRemainder = result.GoldRemainder;
         team.FoodUpkeepRemainder = result.FoodRemainder;
         team.HadFoodShortageThisDay |= result.IsFoodShortage;
+        RecordCampaignResourceChange(teamName, -result.GoldSpent, -result.FoodSpent);
         if (result.FoodNeed <= 0 && result.GoldNeed <= 0)
         {
             return;
@@ -1842,12 +1838,33 @@ public partial class BattleSceneController : Node2D
     private void ApplyTeamResourceDelta(string teamName, int goldDelta, int foodDelta)
     {
         var team = GetBattleTeamState(teamName);
+        var previousGold = team.Gold;
+        var previousFood = team.Food;
         team.Gold = Math.Max(0, team.Gold + goldDelta);
         team.Food = Math.Max(0, team.Food + foodDelta);
+        RecordCampaignResourceChange(teamName, team.Gold - previousGold, team.Food - previousFood);
         if (team.Food > 0)
         {
             team.ZeroFoodDays = 0;
         }
+    }
+
+    private void RecordCampaignResourceChange(string teamName, int goldDelta, int foodDelta)
+    {
+        if (_activeCampaign == null || (goldDelta == 0 && foodDelta == 0))
+        {
+            return;
+        }
+
+        if (teamName == TeamAInfo.Name)
+        {
+            if (goldDelta < 0) _activeCampaign.AttackerGoldSpent += -goldDelta; else _activeCampaign.AttackerGoldGained += goldDelta;
+            if (foodDelta < 0) _activeCampaign.AttackerFoodSpent += -foodDelta; else _activeCampaign.AttackerFoodGained += foodDelta;
+            return;
+        }
+
+        if (goldDelta < 0) _activeCampaign.DefenderGoldSpent += -goldDelta; else _activeCampaign.DefenderGoldGained += goldDelta;
+        if (foodDelta < 0) _activeCampaign.DefenderFoodSpent += -foodDelta; else _activeCampaign.DefenderFoodGained += foodDelta;
     }
 
     private BattleTeamState GetBattleTeamState(string teamName)
@@ -2032,7 +2049,24 @@ public partial class BattleSceneController : Node2D
 
         var retreatingUnit = _selectedUnit;
         var retreatingGrid = _selectedUnitGrid.Value;
-        ApplyRetreatTroopLoss(retreatingUnit);
+        if (TryHandleCampaignRetreat(retreatingUnit, retreatingGrid))
+        {
+            return;
+        }
+
+        CompleteSelectedRetreat(retreatingUnit, retreatingGrid, campaignReturnHandled: false);
+    }
+
+    private void CompleteSelectedRetreat(
+        BattleOccupantInfo retreatingUnit,
+        BattleGridKey retreatingGrid,
+        bool campaignReturnHandled)
+    {
+        if (!campaignReturnHandled)
+        {
+            ApplyRetreatTroopLoss(retreatingUnit);
+        }
+
         ShowRetreatNotice(retreatingUnit);
         AppendBattleLog(retreatingUnit, "Retreat", $"{FormatLogUnit(retreatingUnit)} retreats from {retreatingGrid}");
         RemoveOccupant(retreatingGrid, retreatingUnit);

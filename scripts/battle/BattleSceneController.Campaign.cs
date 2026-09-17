@@ -830,6 +830,217 @@ public partial class BattleSceneController
             : CampaignTeamLocation.NeighborCity;
     }
 
+    // Returns true whenever this is a campaign retreat, including a blocked or
+    // player-prompted retreat.  Standalone test battles keep their old behaviour.
+    private bool TryHandleCampaignRetreat(BattleOccupantInfo unit, BattleGridKey grid)
+    {
+        if (_activeCampaign == null || CampaignRuntimeContext.World == null || unit.CampaignTeamId <= 0)
+        {
+            return false;
+        }
+
+        var team = _activeCampaign.Teams.FirstOrDefault(item => item.Id == unit.CampaignTeamId);
+        if (team == null)
+        {
+            return false;
+        }
+
+        // Battle damage is held on the live occupant until the campaign snapshot
+        // sync.  Copy it before a retreat writes the team back to a city.
+        team.ActiveTroops = Math.Max(0, unit.TroopCount);
+        team.WoundedTroops = Math.Max(0, unit.WoundedTroops);
+
+        if (team.OfficerId <= 0)
+        {
+            if (!BattleCampaignService.TryReturnSupportTeamToOrigin(CampaignRuntimeContext.World, team))
+            {
+                ShowBattleEventNotice(BattleText(
+                    "ui.battle.retreat_no_destination",
+                    "No city is available for this retreat."));
+                AppendBattleLog(unit, "Retreat", $"{FormatLogUnit(unit)} cannot retreat: no valid origin city.");
+                MarkCampaignRetreatBlockedForAi(unit);
+                return true;
+            }
+
+            CompleteSelectedRetreat(unit, grid, campaignReturnHandled: true);
+            return true;
+        }
+
+        var destinations = BattleCampaignService.GetRetreatDestinations(CampaignRuntimeContext.World, _activeCampaign, team);
+        if (destinations.Count == 0)
+        {
+            ShowBattleEventNotice(BattleText(
+                "ui.battle.retreat_no_destination",
+                "No city is available for this retreat."));
+            AppendBattleLog(unit, "Retreat", $"{FormatLogUnit(unit)} cannot retreat: no adjacent friendly or neutral city.");
+            MarkCampaignRetreatBlockedForAi(unit);
+            return true;
+        }
+
+        if (team.ControllerType == CampaignControllerType.Player)
+        {
+            ShowCampaignRetreatDestinationDialog(unit, grid, team, destinations);
+            return true;
+        }
+
+        // AI prefers an existing friendly city with the strongest garrison; it
+        // only claims a neutral neighbour when no friendly refuge exists.
+        var destination = destinations
+            .OrderBy(city => city.OwnerFactionId == team.FactionId ? 0 : 1)
+            .ThenByDescending(city => city.Troops + city.Defense * 10)
+            .ThenBy(city => city.Id)
+            .First();
+        if (BattleCampaignService.TryRetreatTeamToCity(CampaignRuntimeContext.World, _activeCampaign, team, destination.Id))
+        {
+            AppendBattleLog(unit, "Retreat", $"{FormatLogUnit(unit)} retreats to {destination.NameZhHant}.");
+            CompleteSelectedRetreat(unit, grid, campaignReturnHandled: true);
+        }
+
+        return true;
+    }
+
+    private void MarkCampaignRetreatBlockedForAi(BattleOccupantInfo unit)
+    {
+        if (IsCurrentTurnAiControlled())
+        {
+            MarkUnitActed(unit);
+        }
+    }
+
+    private void ShowCampaignRetreatDestinationDialog(
+        BattleOccupantInfo unit,
+        BattleGridKey grid,
+        CampaignBattleTeamData team,
+        IReadOnlyList<CityData> destinations)
+    {
+        var scene = GD.Load<PackedScene>("res://scenes/ui/main/RetreatDestinationDialog.tscn");
+        var overlay = scene?.Instantiate<Control>();
+        var uiLayer = GetNodeOrNull<CanvasLayer>("UiLayer");
+        if (overlay == null || uiLayer == null)
+        {
+            ShowBattleEventNotice(BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat."));
+            return;
+        }
+
+        var root = overlay.GetNodeOrNull<VBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot");
+        var panel = overlay.GetNodeOrNull<PanelContainer>("CenterContainer/AdvisorDialogPanel");
+        var centerContainer = overlay.GetNodeOrNull<Control>("CenterContainer");
+        var titleBar = root?.GetNodeOrNull<Control>("TitleBarPanel/TitleBar");
+        var titleLabel = root?.GetNodeOrNull<Label>("TitleBarPanel/TitleBar/TitleLabel");
+        var titleCloseButton = root?.GetNodeOrNull<Button>("TitleBarPanel/TitleBar/CloseButton");
+        var promptLabel = root?.GetNodeOrNull<Label>("PromptLabel");
+        var destinationContainer = root?.GetNodeOrNull<VBoxContainer>("DestinationScroll/Destinations");
+        var noDestinationLabel = root?.GetNodeOrNull<Label>("DestinationScroll/Destinations/NoDestinationLabel");
+        var cancelButton = root?.GetNodeOrNull<Button>("ButtonRow/CancelButton");
+        if (root == null || panel == null || centerContainer == null || titleBar == null || promptLabel == null || destinationContainer == null || noDestinationLabel == null || cancelButton == null)
+        {
+            overlay.QueueFree();
+            ShowBattleEventNotice(BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat."));
+            return;
+        }
+
+        uiLayer.AddChild(overlay);
+        overlay.ZIndex = 220;
+        overlay.MouseFilter = Control.MouseFilterEnum.Ignore;
+        centerContainer.MouseFilter = Control.MouseFilterEnum.Ignore;
+        panel.MouseFilter = Control.MouseFilterEnum.Stop;
+        root.MouseFilter = Control.MouseFilterEnum.Stop;
+        titleBar.MouseFilter = Control.MouseFilterEnum.Stop;
+        titleBar.MouseDefaultCursorShape = Control.CursorShape.Drag;
+        panel.Size = panel.CustomMinimumSize;
+        var viewportSize = overlay.GetViewportRect().Size;
+        panel.Position = new Vector2(
+            Mathf.Max(0.0f, (viewportSize.X - panel.Size.X) * 0.5f),
+            Mathf.Max(0.0f, (viewportSize.Y - panel.Size.Y) * 0.5f));
+
+        var isDragging = false;
+        var dragOffset = Vector2.Zero;
+        titleBar.GuiInput += @event =>
+        {
+            if (@event is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
+            {
+                if (mouseButton.Pressed)
+                {
+                    isDragging = true;
+                    dragOffset = mouseButton.GlobalPosition - panel.GlobalPosition;
+                }
+                else
+                {
+                    isDragging = false;
+                }
+
+                titleBar.AcceptEvent();
+                return;
+            }
+
+            if (@event is InputEventMouseMotion mouseMotion && isDragging)
+            {
+                var maxX = Mathf.Max(0.0f, overlay.GetViewportRect().Size.X - panel.Size.X);
+                var maxY = Mathf.Max(0.0f, overlay.GetViewportRect().Size.Y - panel.Size.Y);
+                var target = mouseMotion.GlobalPosition - dragOffset;
+                panel.Position = new Vector2(
+                    Mathf.Clamp(target.X, 0.0f, maxX),
+                    Mathf.Clamp(target.Y, 0.0f, maxY));
+                titleBar.AcceptEvent();
+            }
+        };
+        panel.GuiInput += @event =>
+        {
+            if (@event is InputEventMouseButton or InputEventMouseMotion)
+            {
+                panel.AcceptEvent();
+            }
+        };
+
+        if (titleLabel != null)
+        {
+            titleLabel.Text = BattleText("ui.battle.retreat_destination_title", "Choose retreat destination");
+        }
+        promptLabel.Text = BattleText("ui.battle.retreat_destination_prompt", "Choose an adjacent friendly or neutral city.");
+        noDestinationLabel.Visible = destinations.Count == 0;
+        noDestinationLabel.Text = BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat.");
+        cancelButton.Text = BattleText("ui.battle.retreat_cancel", "Cancel");
+        ApplyBattleOptionButtonStyle(cancelButton);
+
+        void Close()
+        {
+            overlay.QueueFree();
+        }
+
+        cancelButton.Pressed += Close;
+        if (titleCloseButton != null)
+        {
+            titleCloseButton.Pressed += Close;
+        }
+
+        foreach (var city in destinations)
+        {
+            var destination = city;
+            var originCityId = BattleCampaignService.GetRetreatOriginCityId(_activeCampaign!, team);
+            var button = new Button
+            {
+                CustomMinimumSize = new Vector2(0.0f, 42.0f),
+                Text = destination.Id == originCityId
+                    ? $"{BattleText("ui.battle.retreat_return_origin", "Return to origin")}：{destination.NameZhHant}"
+                    : destination.OwnerFactionId == team.FactionId
+                    ? $"{BattleText("ui.battle.retreat", "Retreat")}：{destination.NameZhHant}"
+                    : $"{BattleText("ui.battle.retreat", "Retreat")}：{destination.NameZhHant}（{BattleText("ui.battle.retreat_neutral", "Neutral")}）"
+            };
+            ApplyBattleOptionButtonStyle(button);
+            button.Pressed += () =>
+            {
+                if (CampaignRuntimeContext.World != null && _activeCampaign != null &&
+                    BattleCampaignService.TryRetreatTeamToCity(CampaignRuntimeContext.World, _activeCampaign, team, destination.Id))
+                {
+                    AppendBattleLog(unit, "Retreat", $"{FormatLogUnit(unit)} retreats to {destination.NameZhHant}.");
+                    Close();
+                    CompleteSelectedRetreat(unit, grid, campaignReturnHandled: true);
+                }
+            };
+            destinationContainer.AddChild(button);
+        }
+    }
+
     private void HandleCampaignTeamRemoved(BattleOccupantInfo unit)
     {
         if (_activeCampaign == null || unit.CampaignTeamId <= 0)

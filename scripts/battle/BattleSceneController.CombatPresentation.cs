@@ -744,6 +744,11 @@ public partial class BattleSceneController
             "ui.battle.turn_banner",
             "{0} Turn",
             FormatTeamName(GetCurrentTurnSideName()));
+        if (_turnInputBlocker != null)
+        {
+            _turnInputBlocker.Visible = true;
+            _turnInputBlocker.MoveToFront();
+        }
         _turnBanner.Visible = true;
         _turnBanner.MoveToFront();
 
@@ -751,6 +756,10 @@ public partial class BattleSceneController
         if (GodotObject.IsInstanceValid(this) && bannerSerial == _turnBannerSerial)
         {
             _turnBanner.Visible = false;
+            if (_turnInputBlocker != null)
+            {
+                _turnInputBlocker.Visible = false;
+            }
         }
     }
 

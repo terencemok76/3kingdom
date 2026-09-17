@@ -120,7 +120,10 @@ public class WorldRepository
             StoryNameEn = document.World.StoryNameEn,
             StoryNameZhHant = document.World.StoryNameZhHant,
             Year = document.World.Year,
-            Month = document.World.Month
+            Month = document.World.Month,
+            IsCampaignBattleSave = document.World.ActiveBattleCampaigns.Any(campaign =>
+                campaign.Stage != CampaignStage.Resolved &&
+                !string.IsNullOrWhiteSpace(campaign.BattleSnapshotJson))
         };
     }
 

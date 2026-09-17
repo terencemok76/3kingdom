@@ -59,6 +59,10 @@
                                   "zhHant":  "失敗：你已失去所有城市。",
                                   "en":  "Defeat: You have lost all cities."
                               },
+    "log.defeat_all_officers": {
+                                    "zhHant": "失敗：你已沒有存活的所屬武將。",
+                                    "en": "Defeat: You have no surviving officers."
+                                },
     "log.monthly_economy":  {
                                 "zhHant":  "已完成每月城市經濟結算。",
                                 "en":  "Monthly city economy resolved."

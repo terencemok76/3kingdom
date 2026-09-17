@@ -152,9 +152,27 @@ public partial class CommandResolver
             return CapturedOfficerDisposition.Recruit;
         }
 
+        if (totalCoreStats <= 220 && officer.Loyalty <= 35)
+        {
+            return CapturedOfficerDisposition.Kill;
+        }
+
         return totalCoreStats >= 340
             ? CapturedOfficerDisposition.Jail
             : CapturedOfficerDisposition.Free;
+    }
+
+    public void ResolveAiCapturedOfficerDispositions()
+    {
+        if (_turnManager?.World == null)
+        {
+            return;
+        }
+
+        foreach (var faction in _turnManager.World.Factions.Where(faction => !faction.IsPlayer))
+        {
+            AutoResolvePendingCapturedOfficers(_turnManager.World, faction.Id);
+        }
     }
 
     private static List<int> GetBattleCaptureOfficerIds(
@@ -219,6 +237,14 @@ public partial class CommandResolver
     private void CaptureOfficer(WorldState world, OfficerData officer, int captorFactionId, int jailedCityId)
     {
         var removalOutcome = RemoveOfficerFromCurrentService(world, officer, clearDeathYear: false);
+        if (removalOutcome.RemovedCityId > 0)
+        {
+            officer.HomeCityId = removalOutcome.RemovedCityId;
+        }
+        if (removalOutcome.WasRuler)
+        {
+            officer.DisplacedRulerFactionId = removalOutcome.RemovedFactionId;
+        }
         officer.CaptiveFactionId = captorFactionId;
         officer.JailedCityId = jailedCityId;
         officer.FreeOfficerStayMonths = 0;
@@ -231,9 +257,15 @@ public partial class CommandResolver
 
     private CommandResult ResolveCapturedOfficerKill(WorldState world, CityData city, OfficerData officer)
     {
+        var rulerFactionId = world.Factions
+            .FirstOrDefault(faction => faction.RulerOfficerId == officer.Id)?.Id ?? 0;
         officer.CaptiveFactionId = 0;
         officer.JailedCityId = 0;
         _ = EliminateOfficer(world, officer);
+        if (rulerFactionId > 0)
+        {
+            ResolveRulerDeath(world, rulerFactionId);
+        }
 
         return LocalizedResult(
             true,
@@ -495,16 +527,18 @@ public partial class CommandResolver
 
     private CommandResult ResolveCapturedOfficerFree(WorldState world, CityData city, OfficerData officer)
     {
+        var homeCity = officer.HomeCityId > 0 ? world.GetCity(officer.HomeCityId) : null;
+        var releaseCity = homeCity ?? city;
         officer.CaptiveFactionId = 0;
         officer.JailedCityId = 0;
-        officer.CityId = city.Id;
+        officer.CityId = releaseCity.Id;
         officer.FreeOfficerStayMonths = 2;
 
         return LocalizedResult(
             true,
             "cmd.captured_officer.free",
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(city, GameLanguage.TraditionalChinese) },
-            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English) });
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetCityName(releaseCity, GameLanguage.TraditionalChinese) },
+            new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(releaseCity, GameLanguage.English) });
     }
 
     private CommandResult ResolveCapturedOfficerJail(WorldState world, CityData city, OfficerData officer)

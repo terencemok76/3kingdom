@@ -11,6 +11,11 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
+    private const string FactionOutcomeDialogScenePath = "res://scenes/ui/main/FactionOutcomeDialog.tscn";
+    private readonly Queue<(string Title, string Message, bool ReturnToMainMenu)> _factionOutcomeQueue = new();
+    private Control? _factionOutcomeDialog;
+    private bool _factionOutcomeReturnsToMainMenu;
+
     private CommandResult ExecutePlayerCommand(
         CommandType type,
         int? targetCityId = null,
@@ -207,6 +212,30 @@ public partial class HudController : CanvasLayer
             _gameEnded = true;
             AddLog(_localization?.T("log.defeat_all_cities") ?? "Defeat: You have lost all cities.", isPlayerRelated: true);
             SetGameplayButtonsEnabled(false);
+            QueueFactionOutcome(
+                _localization?.T("ui.game_over_title") ?? "Game Over",
+                _localization?.T("ui.game_over_no_cities") ?? "You have lost all cities.",
+                returnToMainMenu: true);
+            return;
+        }
+
+        var playerFaction = world.GetFaction(playerFactionId);
+        var playerOfficerIds = playerFaction?.OfficerIds
+            .Append(playerFaction.RulerOfficerId)
+            .Where(id => id > 0)
+            .ToHashSet() ?? new HashSet<int>();
+        var hasLivingPlayerOfficer = world.Officers.Any(officer =>
+            (playerOfficerIds.Contains(officer.Id) || officer.Belongs == playerFactionId.ToString()) &&
+            (officer.DeathYear <= 0 || officer.DeathYear >= world.Year));
+        if (!hasLivingPlayerOfficer)
+        {
+            _gameEnded = true;
+            AddLog(_localization?.T("log.defeat_all_officers") ?? "Defeat: You have no surviving officers.", isPlayerRelated: true);
+            SetGameplayButtonsEnabled(false);
+            QueueFactionOutcome(
+                _localization?.T("ui.game_over_title") ?? "Game Over",
+                _localization?.T("ui.game_over_no_officers") ?? "You have no surviving officers.",
+                returnToMainMenu: true);
             return;
         }
 
@@ -261,6 +290,9 @@ public partial class HudController : CanvasLayer
 
             var factionName = _localization.GetFactionName(world, factionId);
             AddLog(_localization.FormatFactionDestroyed(factionName));
+            QueueFactionOutcome(
+                _localization.T("ui.faction_destroyed_title"),
+                _localization.Format("ui.faction_destroyed_message", factionName));
         }
 
         _aliveFactionIds.Clear();
@@ -268,6 +300,51 @@ public partial class HudController : CanvasLayer
         {
             _aliveFactionIds.Add(factionId);
         }
+    }
+
+    private void QueueFactionOutcome(string title, string message, bool returnToMainMenu = false)
+    {
+        _factionOutcomeQueue.Enqueue((title, message, returnToMainMenu));
+        Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
+    }
+
+    private void ShowNextFactionOutcomeIfPossible()
+    {
+        if (_factionOutcomeDialog != null || _factionOutcomeQueue.Count == 0 || _battleReportDialog != null)
+        {
+            return;
+        }
+
+        var outcome = _factionOutcomeQueue.Dequeue();
+        _factionOutcomeReturnsToMainMenu = outcome.ReturnToMainMenu;
+        _factionOutcomeDialog = GD.Load<PackedScene>(FactionOutcomeDialogScenePath).Instantiate<Control>();
+        var overlayRoot = GetNodeOrNull<Control>("Root") as Node ?? this;
+        overlayRoot.AddChild(_factionOutcomeDialog);
+        _factionOutcomeDialog.GetNode<Label>("Center/OutcomePanel/Root/Header/TitleLabel").Text = outcome.Title;
+        _factionOutcomeDialog.GetNode<Label>("Center/OutcomePanel/Root/Body/Content/MessageLabel").Text = outcome.Message;
+        var acknowledgeButton = _factionOutcomeDialog.GetNode<Button>("Center/OutcomePanel/Root/Body/Content/ButtonRow/AcknowledgeButton");
+        acknowledgeButton.Text = _localization?.T("ui.acknowledge") ?? "Acknowledge";
+        acknowledgeButton.Pressed += CloseFactionOutcome;
+        _factionOutcomeDialog.Visible = true;
+    }
+
+    private void CloseFactionOutcome()
+    {
+        if (_factionOutcomeDialog == null)
+        {
+            return;
+        }
+
+        _factionOutcomeDialog.QueueFree();
+        _factionOutcomeDialog = null;
+        if (_factionOutcomeReturnsToMainMenu)
+        {
+            _factionOutcomeReturnsToMainMenu = false;
+            (GetParent() as GameBootstrap)?.ReturnToMainMenu();
+            return;
+        }
+
+        Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
     }
 
     private void SetGameplayButtonsEnabled(bool enabled)

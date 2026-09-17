@@ -6,8 +6,12 @@ public partial class GameAudioController : Node
 {
     private const string DefaultBgmPath = "res://assets/bgm/bgm_main_menu_01.ogg";
     private const string SecondaryBgmPath = "res://assets/bgm/bgm_main_menu_02.ogg";
+    private const string WorldMapBgmPath = "res://assets/bgm/bgm_world_map_01.ogg";
+    private const string SecondaryWorldMapBgmPath = "res://assets/bgm/bgm_world_map_02.ogg";
     private const string BattleBgmPath = "res://assets/bgm/bgm_battle_01.ogg";
     private const string SecondaryBattleBgmPath = "res://assets/bgm/bgm_battle_02.ogg";
+    private const string VictoryBgmPath = "res://assets/bgm/bgm_victory_01.ogg";
+    private const string DefeatBgmPath = "res://assets/bgm/bgm_defeat_01.ogg";
     private const string ClickSfxPath = "res://assets/sfx/menu/click_sound.ogg";
     private const string ClickCitySfxPath = "res://assets/sfx/menu/click_city_sound.ogg";
 
@@ -24,6 +28,15 @@ public partial class GameAudioController : Node
         BattleBgmPath,
         SecondaryBattleBgmPath
     };
+
+    private static readonly string[] WorldMapBgmPaths =
+    {
+        WorldMapBgmPath,
+        SecondaryWorldMapBgmPath
+    };
+
+    private static readonly string[] VictoryBgmPaths = { VictoryBgmPath };
+    private static readonly string[] DefeatBgmPaths = { DefeatBgmPath };
 
     private string[] _bgmPaths = MainMenuBgmPaths;
     private AudioStreamPlayer? _bgmPlayer;
@@ -158,6 +171,25 @@ public partial class GameAudioController : Node
     public void PlayBattleBgm()
     {
         SetBgmPlaylist(BattleBgmPaths);
+    }
+
+    public void PlayGameplayBgm()
+    {
+        SetBgmPlaylist(WorldMapBgmPaths);
+    }
+
+    public void PlayBattleOutcomeBgm(bool playerWon)
+    {
+        SetBgmPlaylist(playerWon ? VictoryBgmPaths : DefeatBgmPaths);
+    }
+
+    public void StopBattleOutcomeBgm()
+    {
+        if ((ReferenceEquals(_bgmPaths, VictoryBgmPaths) || ReferenceEquals(_bgmPaths, DefeatBgmPaths)) &&
+            _bgmPlayer != null)
+        {
+            _bgmPlayer.Stop();
+        }
     }
 
     private void SetBgmPlaylist(string[] bgmPaths)

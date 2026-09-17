@@ -152,16 +152,16 @@
                                  "en":  "Slot {0}"
                              },
     "fmt.save_slot_list_item":  {
-                                    "zhHant":  "{0} {1}",
-                                    "en":  "{0} {1}"
+                                    "zhHant":  "{0}【{1}】 {2}",
+                                    "en":  "{0} [{1}] {2}"
                                 },
     "fmt.save_slot_empty_summary":  {
                                         "zhHant":  "這個存檔欄位目前是空的。\n輸入描述後即可存檔到這裡。",
                                         "en":  "This save slot is empty.\nEnter a description and save the game here."
                                     },
     "fmt.save_slot_summary":  {
-                                  "zhHant":  "欄位：{0}\n描述：{1}\n劇本：{2}\n存檔時間：{3}\n進度：{4}年 {5}月",
-                                  "en":  "Slot: {0}\nDescription: {1}\nStory: {2}\nSaved: {3}\nProgress: Year {4}, Month {5}"
+                                  "zhHant":  "欄位：{0}\n類型：{1}\n描述：{2}\n劇本：{3}\n存檔時間：{4}\n進度：{5}年 {6}月",
+                                  "en":  "Slot: {0}\nType: {1}\nDescription: {2}\nStory: {3}\nSaved: {4}\nProgress: Year {5}, Month {6}"
                               },
     "fmt.save_confirm_message":  {
                                      "zhHant":  "確定要存到欄位 {0} 嗎？",

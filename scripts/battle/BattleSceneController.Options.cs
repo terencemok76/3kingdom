@@ -1,7 +1,6 @@
 using Godot;
 using System;
 using ThreeKingdom.Core;
-using static ThreeKingdom.Battle.BattleResourcePaths;
 
 namespace ThreeKingdom.Battle;
 
@@ -104,28 +103,6 @@ public partial class BattleSceneController
         audioController.PlayBattleBgm();
     }
 
-    private void OnBattleSaveButtonPressed()
-    {
-        if (TrySaveBattleQuickSave(out var errorMessage))
-        {
-            AppendBattleLog(GetCurrentTurnSideName(), "Save", $"Battle quick save completed: {BattleQuickSavePath}");
-            return;
-        }
-
-        AppendBattleLog(GetCurrentTurnSideName(), "Save", $"Battle quick save failed: {errorMessage}");
-    }
-
-    private void OnBattleLoadButtonPressed()
-    {
-        if (TryLoadBattleQuickSave(out var errorMessage))
-        {
-            AppendBattleLog(GetCurrentTurnSideName(), "Load", $"Battle quick load completed: {BattleQuickSavePath}");
-            return;
-        }
-
-        AppendBattleLog(GetCurrentTurnSideName(), "Load", $"Battle quick load failed: {errorMessage}");
-    }
-
     private void OnBattleOptionButtonPressed()
     {
         ShowBattleOptionDialog();
@@ -148,15 +125,9 @@ public partial class BattleSceneController
         }
     }
 
-    private void OnBattleOptionSaveButtonPressed()
+    private void OnBattleOptionSaveLoadButtonPressed()
     {
-        OnBattleSaveButtonPressed();
-        RefreshBattleOptionDialogText();
-    }
-
-    private void OnBattleOptionLoadButtonPressed()
-    {
-        OnBattleLoadButtonPressed();
+        ShowCampaignSaveLoadDialog();
         RefreshBattleOptionDialogText();
     }
 
@@ -222,14 +193,10 @@ public partial class BattleSceneController
             _battleOptionTitleLabel.Text = BattleText("ui.options", "Options");
         }
 
-        if (_battleOptionSaveButton != null)
+        if (_battleOptionSaveLoadButton != null)
         {
-            _battleOptionSaveButton.Text = BattleText("ui.battle.save", "Save");
-        }
-
-        if (_battleOptionLoadButton != null)
-        {
-            _battleOptionLoadButton.Text = BattleText("ui.battle.load", "Load");
+            _battleOptionSaveLoadButton.Text = BattleText("ui.save_load", "Save / Load");
+            _battleOptionSaveLoadButton.Disabled = _activeCampaign == null || CampaignRuntimeContext.World == null;
         }
 
         if (_battleOptionLanguageButton != null)

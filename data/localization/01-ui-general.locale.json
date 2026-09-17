@@ -882,6 +882,14 @@
 								   "zhHant":  "沒有描述",
 								   "en":  "No Description"
 							   },
+		"ui.save_type_gameplay":  {
+								   "zhHant":  "大地圖",
+								   "en":  "Gameplay"
+							   },
+		"ui.save_type_campaign_battle":  {
+								   "zhHant":  "戰役戰鬥",
+								   "en":  "Campaign Battle"
+							   },
 		"ui.on":  {
 					   "zhHant":  "開",
 					   "en":  "On"

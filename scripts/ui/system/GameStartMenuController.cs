@@ -1310,7 +1310,13 @@ public partial class GameStartMenuController : CanvasLayer
         var description = !summary.Exists
             ? _localization.T("ui.empty")
             : (string.IsNullOrWhiteSpace(summary.Description) ? _localization.T("ui.no_description") : summary.Description);
-        return _localization.Format("fmt.save_slot_list_item", _localization.Format("fmt.save_slot_prefix", summary.SlotIndex), description);
+        if (!summary.Exists)
+        {
+            return $"{_localization.Format("fmt.save_slot_prefix", summary.SlotIndex)} {description}";
+        }
+
+        var saveType = summary.Exists ? GetSaveSlotTypeText(summary) : string.Empty;
+        return _localization.Format("fmt.save_slot_list_item", _localization.Format("fmt.save_slot_prefix", summary.SlotIndex), saveType, description);
     }
 
     private string BuildSaveSlotSummaryText(SaveSlotSummary summary)
@@ -1332,11 +1338,18 @@ public partial class GameStartMenuController : CanvasLayer
         return _localization.Format(
             "fmt.save_slot_summary",
             summary.SlotIndex,
+            GetSaveSlotTypeText(summary),
             description,
             storyName,
             FormatSavedTime(summary.SavedAtUtc),
             summary.Year,
             summary.Month);
+    }
+
+    private string GetSaveSlotTypeText(SaveSlotSummary summary)
+    {
+        var key = summary.IsCampaignBattleSave ? "ui.save_type_campaign_battle" : "ui.save_type_gameplay";
+        return _localization?.T(key) ?? (summary.IsCampaignBattleSave ? "Campaign Battle" : "Gameplay");
     }
 
     private string FormatSavedTime(string savedAtUtc)

@@ -105,7 +105,13 @@ public partial class HudController
             ? GetEmptySlotText()
             : (string.IsNullOrWhiteSpace(summary.Description) ? GetNoDescriptionText() : summary.Description);
 
-        return LocalizeFormat("fmt.save_slot_list_item", "{0} {1}", GetSlotPrefix(summary.SlotIndex), description);
+        if (!summary.Exists)
+        {
+            return $"{GetSlotPrefix(summary.SlotIndex)} {description}";
+        }
+
+        var saveType = summary.Exists ? GetSaveSlotTypeText(summary) : string.Empty;
+        return LocalizeFormat("fmt.save_slot_list_item", "{0} {1} {2}", GetSlotPrefix(summary.SlotIndex), saveType, description);
     }
 
     private string BuildSaveSlotSummaryText(SaveSlotSummary summary)
@@ -124,8 +130,9 @@ public partial class HudController
 
         return LocalizeFormat(
             "fmt.save_slot_summary",
-            "Slot: {0}\nDescription: {1}\nStory: {2}\nSaved: {3}\nProgress: Year {4}, Month {5}",
+            "Slot: {0}\nType: {1}\nDescription: {2}\nStory: {3}\nSaved: {4}\nProgress: Year {5}, Month {6}",
             summary.SlotIndex,
+            GetSaveSlotTypeText(summary),
             description,
             storyName,
             savedTime,
@@ -159,6 +166,9 @@ public partial class HudController
     private string GetCloseButtonText() => Localize("ui.close", "Close");
     private string GetEmptySlotText() => Localize("ui.empty", "Empty");
     private string GetNoDescriptionText() => Localize("ui.no_description", "No Description");
+    private string GetSaveSlotTypeText(SaveSlotSummary summary) => Localize(
+        summary.IsCampaignBattleSave ? "ui.save_type_campaign_battle" : "ui.save_type_gameplay",
+        summary.IsCampaignBattleSave ? "Campaign Battle" : "Gameplay");
     private string GetSlotPrefix(int slotIndex) => LocalizeFormat("fmt.save_slot_prefix", "Slot {0}", slotIndex);
 
     private string GetAudioToggleButtonText(bool isBgm, bool enabled)

@@ -31,6 +31,11 @@ public static class FreeOfficerMovement
                 continue;
             }
 
+            if (TryRestoreDisplacedRulerFaction(world, officer))
+            {
+                continue;
+            }
+
             if (officer.CityId > 0 && world.GetCity(officer.CityId) != null)
             {
                 if (officer.FreeOfficerStayMonths <= 0)
@@ -68,6 +73,11 @@ public static class FreeOfficerMovement
         foreach (var officer in world.Officers)
         {
             if (IsEmployed(world, officer) || !IsOldEnough(world, officer))
+            {
+                continue;
+            }
+
+            if (TryRestoreDisplacedRulerFaction(world, officer))
             {
                 continue;
             }
@@ -118,7 +128,38 @@ public static class FreeOfficerMovement
 
             officer.CityId = connectedCityIds[random.Next(connectedCityIds.Count)];
             officer.FreeOfficerStayMonths = RollStayMonths(random);
+            _ = TryRestoreDisplacedRulerFaction(world, officer);
         }
+    }
+
+    private static bool TryRestoreDisplacedRulerFaction(WorldState world, OfficerData officer)
+    {
+        if (officer.DisplacedRulerFactionId <= 0 || officer.CaptiveFactionId > 0)
+        {
+            return false;
+        }
+
+        var faction = world.GetFaction(officer.DisplacedRulerFactionId);
+        var city = officer.CityId > 0 ? world.GetCity(officer.CityId) : null;
+        if (faction == null || city == null ||
+            world.Cities.Any(item => item.OwnerFactionId == faction.Id) ||
+            city.OwnerFactionId != 0)
+        {
+            return false;
+        }
+
+        city.OwnerFactionId = faction.Id;
+        city.Loyalty = Math.Max(city.Loyalty, 50);
+        faction.RulerOfficerId = officer.Id;
+        if (!faction.OfficerIds.Contains(officer.Id))
+        {
+            faction.OfficerIds.Add(officer.Id);
+        }
+
+        officer.Belongs = faction.Id.ToString();
+        officer.DisplacedRulerFactionId = 0;
+        officer.FreeOfficerStayMonths = 0;
+        return true;
     }
 
     public static bool IsFreeOfficer(WorldState world, OfficerData officer)

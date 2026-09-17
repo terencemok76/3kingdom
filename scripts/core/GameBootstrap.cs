@@ -153,7 +153,20 @@ public partial class GameBootstrap : Node
         hudController.Visible = true;
         hudController.ApplyLoadedWorld(world);
         startMenuController.HideMenu();
+        _audioController?.PlayGameplayBgm();
+        if (hudController.TryResumeSavedCampaignBattle())
+        {
+            return;
+        }
         GD.Print("Game flow bootstrap complete.");
+    }
+
+    public void ReturnToMainMenu()
+    {
+        GetNodeOrNull<MapController>("MapScene")?.Hide();
+        GetNodeOrNull<HudController>("HUD")?.Hide();
+        GetNodeOrNull<GameStartMenuController>("GameStartMenu")?.ShowMainMenu();
+        _audioController?.PlayMainMenuBgm();
     }
 
     private static void SetPlayerFaction(WorldState world, int factionId)

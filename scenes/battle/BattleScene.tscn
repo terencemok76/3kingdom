@@ -618,6 +618,17 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
+[node name="TurnInputBlocker" type="Control" parent="UiLayer"]
+visible = false
+z_index = 89
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
 [node name="TurnBanner" type="PanelContainer" parent="UiLayer"]
 visible = false
 z_index = 90
@@ -1116,17 +1127,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="SaveButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow"]
+[node name="SaveLoadButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow"]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Save"
-
-[node name="LoadButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow"]
-custom_minimum_size = Vector2(0, 34)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Load"
+text = "Save / Load"
 
 [node name="LanguageButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
 custom_minimum_size = Vector2(0, 34)

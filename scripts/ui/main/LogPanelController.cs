@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
 
@@ -33,6 +34,7 @@ internal sealed class LogPanelController
     private Button? _minimizeButton;
     private Button? _selfFactionButton;
     private Button? _allLogButton;
+    private Button? _copyLogButton;
     private Button? _clearLogButton;
     private Button? _resizeHandle;
     private ColorRect? _background;
@@ -128,6 +130,7 @@ internal sealed class LogPanelController
             Message = message,
             IsPlayerRelated = isPlayerRelated
         });
+        UpdateCopyButtonText();
         RebuildLogView();
     }
 
@@ -314,6 +317,7 @@ internal sealed class LogPanelController
 
         _selfFactionButton = CreateHeaderActionButton(OnSelfFactionFilterPressed);
         _allLogButton = CreateHeaderActionButton(OnAllLogFilterPressed);
+        _copyLogButton = CreateHeaderActionButton(OnCopyLogPressed, 64.0f);
         _clearLogButton = CreateHeaderActionButton(OnClearLogPressed);
 
         if (_selfFactionButton != null)
@@ -328,18 +332,24 @@ internal sealed class LogPanelController
             _headerRow.MoveChild(_allLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 2));
         }
 
+        if (_copyLogButton != null)
+        {
+            _headerRow.AddChild(_copyLogButton);
+            _headerRow.MoveChild(_copyLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 3));
+        }
+
         if (_clearLogButton != null)
         {
             _headerRow.AddChild(_clearLogButton);
-            _headerRow.MoveChild(_clearLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 3));
+            _headerRow.MoveChild(_clearLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 4));
         }
     }
 
-    private Button CreateHeaderActionButton(System.Action pressedAction)
+    private Button CreateHeaderActionButton(System.Action pressedAction, float minimumWidth = 72.0f)
     {
         var button = new Button
         {
-            CustomMinimumSize = new Vector2(72.0f, 22.0f),
+            CustomMinimumSize = new Vector2(minimumWidth, 22.0f),
             FocusMode = Control.FocusModeEnum.None
         };
         CopySharedButtonTheme(button);
@@ -391,6 +401,8 @@ internal sealed class LogPanelController
         {
             _clearLogButton.Text = isTraditionalChinese ? "清除日誌" : "Clear Log";
         }
+
+        UpdateCopyButtonText();
     }
 
     private void UpdateFilterButtonVisualState()
@@ -429,7 +441,36 @@ internal sealed class LogPanelController
     private void OnClearLogPressed()
     {
         _entries.Clear();
+        UpdateCopyButtonText();
         RebuildLogView();
+    }
+
+    private void OnCopyLogPressed()
+    {
+        if (_entries.Count == 0)
+        {
+            return;
+        }
+
+        // Copy the complete chronological log, independent of the current
+        // self-faction/all display filter, matching the battle-log Copy All
+        // behavior and preserving messages that are currently hidden.
+        DisplayServer.ClipboardSet(string.Join("\n", _entries.Select(entry => entry.Message)));
+        if (_copyLogButton != null)
+        {
+            _copyLogButton.Text = _context.Localization?.IsTraditionalChinese == true ? "已複製" : "Copied";
+        }
+    }
+
+    private void UpdateCopyButtonText()
+    {
+        if (_copyLogButton == null)
+        {
+            return;
+        }
+
+        _copyLogButton.Text = _context.Localization?.IsTraditionalChinese == true ? "複製全部" : "Copy All";
+        _copyLogButton.Disabled = _entries.Count == 0;
     }
 
     private void RebuildLogView()

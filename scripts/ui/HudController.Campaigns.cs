@@ -68,6 +68,18 @@ public partial class HudController
         return true;
     }
 
+    internal bool TryResumeSavedCampaignBattle()
+    {
+        var campaign = GetPlayerCampaign();
+        if (campaign == null || string.IsNullOrWhiteSpace(campaign.BattleSnapshotJson))
+        {
+            return false;
+        }
+
+        LaunchCampaignBattle(campaign.Id);
+        return true;
+    }
+
     private void LaunchCampaignBattle(int campaignId)
     {
         if (_turnManager?.World == null)
@@ -138,6 +150,7 @@ public partial class HudController
         }
 
         var playerFactionId = _turnManager!.GetPlayerFactionId();
+        _commandResolver?.ResolveAiCapturedOfficerDispositions();
         var report = world.BattleReports.LastOrDefault(item =>
             !item.PlayerAcknowledged &&
             (item.AttackerFactionId == playerFactionId || item.DefenderFactionId == playerFactionId));
@@ -172,22 +185,62 @@ public partial class HudController
 
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/RouteLabel").Text =
             localization.Format("ui.campaign.battle_report_route", sourceName, targetName);
+        var playerWon = report.WinnerFactionId == playerFactionId;
+        var outcomeLabel = _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/OutcomeLabel");
+        outcomeLabel.Text = localization.T(playerWon
+            ? "ui.campaign.battle_report_victory"
+            : "ui.campaign.battle_report_defeat");
+        outcomeLabel.AddThemeColorOverride("font_color", playerWon
+            ? new Color(0.94f, 0.84f, 0.62f, 1.0f)
+            : new Color(0.9f, 0.38f, 0.34f, 1.0f));
+        GameAudioController.Instance?.PlayBattleOutcomeBgm(playerWon);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/WinnerLabel").Text =
             localization.Format("ui.campaign.battle_report_winner", winnerName);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content/SideLabel").Text =
             localization.T("ui.campaign.battle_report_attacker");
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content/ForceLabel").Text =
-            localization.Format("ui.campaign.battle_report_force", report.AttackerActiveTroops, report.AttackerWoundedTroops);
+            localization.Format(
+                "ui.campaign.battle_report_force",
+                Math.Max(report.AttackerCommittedTroops, report.AttackerActiveTroops + report.AttackerWoundedTroops),
+                report.AttackerLostTroops,
+                report.AttackerWoundedTroops,
+                report.AttackerReturnedTroops,
+                report.AttackerActiveTroops);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/SideLabel").Text =
             localization.T("ui.campaign.battle_report_defender");
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/ForceLabel").Text =
-            localization.Format("ui.campaign.battle_report_force", report.DefenderActiveTroops, report.DefenderWoundedTroops);
+            localization.Format(
+                "ui.campaign.battle_report_force",
+                Math.Max(report.DefenderCommittedTroops, report.DefenderActiveTroops + report.DefenderWoundedTroops),
+                report.DefenderLostTroops,
+                report.DefenderWoundedTroops,
+                report.DefenderReturnedTroops,
+                report.DefenderActiveTroops);
+        _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ResourceLabel").Text =
+            localization.Format(
+                "ui.campaign.battle_report_resources",
+                report.AttackerGoldSpent,
+                report.AttackerFoodSpent,
+                report.AttackerGoldGained,
+                report.AttackerFoodGained,
+                report.DefenderGoldSpent,
+                report.DefenderFoodSpent,
+                report.DefenderGoldGained,
+                report.DefenderFoodGained);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/CapturedLabel").Text = capturedLine;
 
         var acknowledgeButton = _battleReportDialog.GetNode<Button>("Center/ReportPanel/Root/Body/Content/ButtonRow/AcknowledgeButton");
         acknowledgeButton.Text = localization.T("ui.campaign.battle_report_acknowledge");
         acknowledgeButton.Pressed += () => CloseBattleReport(report);
-        _battleReportDialog.GetNode<Button>("Center/ReportPanel/Root/Header/CloseButton").Pressed += () => CloseBattleReport(report);
+        var closeButton = _battleReportDialog.GetNodeOrNull<Button>("Center/ReportPanel/Root/Header/TitleRow/CloseButton");
+        if (closeButton == null)
+        {
+            GD.PushWarning("Battle report close button is missing; the acknowledge button remains available.");
+        }
+        else
+        {
+            closeButton.Pressed += () => CloseBattleReport(report);
+        }
         _battleReportDialog.Visible = true;
     }
 
@@ -201,6 +254,9 @@ public partial class HudController
         report.PlayerAcknowledged = true;
         _battleReportDialog.QueueFree();
         _battleReportDialog = null;
+        GameAudioController.Instance?.StopBattleOutcomeBgm();
+        GameAudioController.Instance?.PlayGameplayBgm();
+        ShowNextFactionOutcomeIfPossible();
         if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
         {
             _militaryUiController.ShowCapturedOfficerDialog();

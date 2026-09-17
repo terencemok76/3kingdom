@@ -3,6 +3,30 @@
         "zhHant": "城市武將",
         "en": "City Officers"
     },
+    "ui.faction_destroyed_title": {
+        "zhHant": "勢力滅亡",
+        "en": "Faction Destroyed"
+    },
+    "ui.faction_destroyed_message": {
+        "zhHant": "「{0}」已滅亡；所屬城市已成為無主城市。",
+        "en": "{0} has been destroyed. Its cities are now unclaimed."
+    },
+    "ui.game_over_title": {
+        "zhHant": "遊戲敗北",
+        "en": "Game Over"
+    },
+    "ui.game_over_no_cities": {
+        "zhHant": "你已失去所有城市，勢力無法延續。",
+        "en": "You have lost all cities. Your faction cannot continue."
+    },
+    "ui.game_over_no_officers": {
+        "zhHant": "你已沒有存活的所屬武將，勢力無法延續。",
+        "en": "You have no surviving officers. Your faction cannot continue."
+    },
+    "ui.acknowledge": {
+        "zhHant": "確認",
+        "en": "Acknowledge"
+    },
     "ui.diplomacy_status_alliance": {
         "zhHant": "同盟",
         "en": "Alliance"

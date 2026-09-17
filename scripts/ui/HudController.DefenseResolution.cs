@@ -102,12 +102,12 @@ public partial class HudController
         while (_pendingAttackResolutionQueue.Count > 0)
         {
             var pendingCommand = _pendingAttackResolutionQueue[0];
-            _pendingAttackResolutionQueue.RemoveAt(0);
 
             var sourceCity = world.GetCity(pendingCommand.SourceCityId);
             var targetCity = world.GetCity(pendingCommand.TargetCityId);
             if (sourceCity == null || targetCity == null)
             {
+                _pendingAttackResolutionQueue.RemoveAt(0);
                 var missingResult = _commandResolver.ResolvePendingCommand(pendingCommand);
                 AddLog(GetLocalizedResultMessage(missingResult), IsPlayerRelatedPendingCommand(pendingCommand, _turnManager.GetPlayerFactionId()));
                 CheckFactionEliminations();
@@ -120,6 +120,10 @@ public partial class HudController
                 return;
             }
 
+            // Keep the pending command at the front of the queue while the
+            // player chooses defenders.  Confirm Defense resumes this method;
+            // only then is the same configured attack removed and resolved.
+            _pendingAttackResolutionQueue.RemoveAt(0);
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
             if (result.ActiveBattleCampaignId > 0)
             {

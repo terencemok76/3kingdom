@@ -18,4 +18,5 @@ public class SaveSlotSummary
     public string StoryNameZhHant { get; set; } = string.Empty;
     public int Year { get; set; }
     public int Month { get; set; }
+    public bool IsCampaignBattleSave { get; set; }
 }

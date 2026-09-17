@@ -92,8 +92,17 @@ public class CampaignBattleTeamData
     public int ActiveTroops { get; set; }
     public int WoundedTroops { get; set; }
     public int MaximumTroops { get; set; }
+    // Survivors already returned to a strategic city remain attributable to
+    // this battle when its final report is assembled.
+    public int ReturnedTroops { get; set; }
     public int Morale { get; set; } = 100;
     public int ReinforcementOrderId { get; set; }
+    // Each team may originate from a different city when it is a reinforcement.
+    // This is used when an unattended support piece leaves through a retreat exit.
+    public int OriginCityId { get; set; }
+    // A positive value means the team has already been returned to this city during
+    // the campaign and must not be returned a second time at campaign resolution.
+    public int RetreatDestinationCityId { get; set; }
     public CampaignTeamLocation Location { get; set; } = CampaignTeamLocation.Field;
     public string CooperationObjective { get; set; } = string.Empty;
 }
@@ -170,6 +179,18 @@ public class ActiveBattleCampaignData
     public int AttackerFood { get; set; }
     public int DefenderGold { get; set; }
     public int DefenderFood { get; set; }
+    public int AttackerGoldInvested { get; set; }
+    public int AttackerFoodInvested { get; set; }
+    public int DefenderGoldInvested { get; set; }
+    public int DefenderFoodInvested { get; set; }
+    public int AttackerGoldSpent { get; set; }
+    public int AttackerFoodSpent { get; set; }
+    public int AttackerGoldGained { get; set; }
+    public int AttackerFoodGained { get; set; }
+    public int DefenderGoldSpent { get; set; }
+    public int DefenderFoodSpent { get; set; }
+    public int DefenderGoldGained { get; set; }
+    public int DefenderFoodGained { get; set; }
     public int AttackerGoldUpkeepRemainder { get; set; }
     public int AttackerFoodUpkeepRemainder { get; set; }
     public int DefenderGoldUpkeepRemainder { get; set; }

@@ -87,6 +87,7 @@ public partial class BattleSceneController
         _officerCaptureNoticeLabel ??= GetNodeOrNull<Label>("UiLayer/OfficerCaptureNotice/Margin/Label");
         _turnBanner ??= GetNodeOrNull<Control>("UiLayer/TurnBanner");
         _turnBannerLabel ??= GetNodeOrNull<Label>("UiLayer/TurnBanner/Margin/Label");
+        _turnInputBlocker ??= GetNodeOrNull<Control>("UiLayer/TurnInputBlocker");
         _officerSpeechOverlay ??= GetNodeOrNull<Control>("UiLayer/OfficerSpeechOverlay");
         _officerSpeechPortrait ??= GetNodeOrNull<TextureRect>("UiLayer/OfficerSpeechOverlay/Margin/Row/Portrait");
         _officerSpeechTeamNameLabel ??= GetNodeOrNull<Label>("UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn/TeamName");
@@ -139,8 +140,7 @@ public partial class BattleSceneController
         _battleDebugTitleLabel ??= GetNodeOrNull<Label>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar/TitleLabel");
         _battleOptionCloseButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar/CloseButton");
         _battleDebugCloseButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar/CloseButton");
-        _battleOptionSaveButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow/SaveButton");
-        _battleOptionLoadButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow/LoadButton");
+        _battleOptionSaveLoadButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow/SaveLoadButton");
         _battleOptionLanguageButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/LanguageButton");
         _battleBgmToggleButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow/BgmToggleButton");
         _battleBgmVolumeSlider ??= GetNodeOrNull<HSlider>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow/BgmVolumeSlider");
@@ -173,6 +173,11 @@ public partial class BattleSceneController
     public override void _UnhandledInput(InputEvent @event)
     {
         ScreenshotShortcut.HandleInput(this, @event);
+        if (IsTurnBannerInputLocked())
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (GetViewport().IsInputHandled())
         {
             return;
@@ -191,9 +196,17 @@ public partial class BattleSceneController
 
     public override void _Input(InputEvent @event)
     {
+        if (IsTurnBannerInputLocked())
+        {
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         HandleBattleDebugDialogInput(@event);
         HandleBattleLogPanelInput(@event);
     }
+
+    private bool IsTurnBannerInputLocked() => _turnInputBlocker?.Visible == true;
 
     public override void _Process(double delta)
     {

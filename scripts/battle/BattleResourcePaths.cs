@@ -10,5 +10,4 @@ internal static class BattleResourcePaths
     internal const string NorthEastMoatScenarioPath = "res://data/scenarios/battle/moat_siege.tres";
     internal const string NorthWestSiegeScenarioPath = "res://data/scenarios/battle/siege_nw.tres";
     internal const string NorthWestMoatScenarioPath = "res://data/scenarios/battle/moat_siege_nw.tres";
-    internal const string BattleQuickSavePath = "user://saves/battle_quicksave.json";
 }

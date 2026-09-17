@@ -60,6 +60,12 @@ public class OfficerData
     public int CityId { get; set; }
     public int CaptiveFactionId { get; set; }
     public int JailedCityId { get; set; }
+    // Last city where the officer served before capture.  A released officer
+    // returns here as a free officer when the city still exists.
+    public int HomeCityId { get; set; }
+    // Set when a captured ruler's faction collapses with no successor.  The
+    // officer can later reclaim a neutral city and restore that faction.
+    public int DisplacedRulerFactionId { get; set; }
     [JsonIgnore]
     public int FreeOfficerStayMonths { get; set; }
     [JsonIgnore]
