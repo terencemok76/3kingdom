@@ -153,14 +153,17 @@ public partial class HudController : CanvasLayer
                 var result = _aiController.RunSingleCityDecision(faction.Id, cityId);
                 var cityName = _localization.GetCityName(city);
                 var factionName = _localization.GetFactionName(world, faction.Id);
-                var playerTargetedDiplomacy = _aiController.LastDiplomacyDecisionTargetFactionId == _turnManager.GetPlayerFactionId();
-                if ((_aiDecisionDebugEnabled || playerTargetedDiplomacy) &&
-                    !string.IsNullOrWhiteSpace(_aiController.LastDecisionDebugDetail))
+                if (_aiDecisionDebugEnabled && !string.IsNullOrWhiteSpace(_aiController.LastAttackDecisionDetail))
                 {
-                    var diplomacyDetail = _aiDecisionDebugEnabled
-                        ? _localization.Format("fmt.ai_debug_detail", _aiController.LastDecisionDebugDetail)
-                        : _aiController.LastDecisionDebugDetail;
-                    AddLog(diplomacyDetail, isPlayerRelated: playerTargetedDiplomacy);
+                    AddLog(
+                        _localization.Format("fmt.ai_debug_detail", _aiController.LastAttackDecisionDetail),
+                        isPlayerRelated: _aiController.LastAttackDecisionTargetFactionId == _turnManager.GetPlayerFactionId());
+                }
+                if (_aiDecisionDebugEnabled && !string.IsNullOrWhiteSpace(_aiController.LastDecisionDebugDetail))
+                {
+                    AddLog(
+                        _localization.Format("fmt.ai_debug_detail", _aiController.LastDecisionDebugDetail),
+                        isPlayerRelated: _aiController.LastDiplomacyDecisionTargetFactionId == _turnManager.GetPlayerFactionId());
                 }
                 AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(result)));
                 if (_aiDecisionDebugEnabled)
@@ -309,7 +312,10 @@ public partial class HudController : CanvasLayer
             }
 
             var factionName = _localization.GetFactionName(world, factionId);
-            AddLog(_localization.FormatFactionDestroyed(factionName));
+            var faction = world.GetFaction(factionId);
+            var ruler = faction == null ? null : world.GetOfficer(faction.RulerOfficerId);
+            var rulerName = ruler == null ? string.Empty : _localization.GetOfficerName(ruler);
+            AddLog(_localization.FormatFactionDestroyed(factionName, rulerName));
             QueueFactionOutcome(
                 _localization.T("ui.faction_destroyed_title"),
                 _localization.Format("ui.faction_destroyed_message", factionName));

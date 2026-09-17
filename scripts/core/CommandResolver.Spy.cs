@@ -96,6 +96,7 @@ public partial class CommandResolver
         if (success)
         {
             var result = ResolveSuccessfulSpyAction(world, pendingCommand.ActorFactionId, targetCity, officer, pendingCommand.SpyActionType, pendingCommand.TargetOfficerId);
+            AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, result);
             if (exposed)
             {
                 ApplySpyExposurePenalty(world, pendingCommand.ActorFactionId, officer, targetCity.OwnerFactionId, 6, 3);
@@ -111,7 +112,7 @@ public partial class CommandResolver
         if (exposed)
         {
             ApplySpyExposurePenalty(world, pendingCommand.ActorFactionId, officer, targetCity.OwnerFactionId, 10, 6);
-            return LocalizedResult(
+            var result = LocalizedResult(
                 false,
                 "cmd.spy.failed_exposed",
                 new object[]
@@ -126,9 +127,11 @@ public partial class CommandResolver
                     GetSpyActionName(pendingCommand.SpyActionType, GameLanguage.English),
                     GetCityName(targetCity, GameLanguage.English)
                 });
+            AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, result);
+            return result;
         }
 
-        return LocalizedResult(
+        var failedResult = LocalizedResult(
             false,
             "cmd.spy.failed",
             new object[]
@@ -143,6 +146,25 @@ public partial class CommandResolver
                 GetSpyActionName(pendingCommand.SpyActionType, GameLanguage.English),
                 GetCityName(targetCity, GameLanguage.English)
             });
+        AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, failedResult);
+        return failedResult;
+    }
+
+    private void AddSpyActorPrefix(WorldState world, int actorFactionId, OfficerData officer, CommandResult result)
+    {
+        var rulerZhHant = GetRulerDisplayName(world, actorFactionId, GameLanguage.TraditionalChinese);
+        var rulerEn = GetRulerDisplayName(world, actorFactionId, GameLanguage.English);
+        result.MessageZhHant = _localization?.FormatForLanguage(
+            GameLanguage.TraditionalChinese,
+            "fmt.spy_result_actor",
+            rulerZhHant,
+            result.MessageZhHant) ?? $"{rulerZhHant}: {result.MessageZhHant}";
+        result.MessageEn = _localization?.FormatForLanguage(
+            GameLanguage.English,
+            "fmt.spy_result_actor",
+            rulerEn,
+            result.MessageEn) ?? $"{rulerEn}: {result.MessageEn}";
+        result.Message = result.MessageEn;
     }
 
     private CommandResult ResolveSuccessfulSpyAction(WorldState world, int actorFactionId, CityData targetCity, OfficerData officer, SpyActionType actionType)
@@ -164,7 +186,6 @@ public partial class CommandResolver
                     "cmd.spy.recon_success",
                     new object[]
                     {
-                        GetRulerDisplayName(world, actorFactionId, GameLanguage.TraditionalChinese),
                         GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
                         GetCityName(targetCity, GameLanguage.TraditionalChinese),
                         targetCity.Gold,
@@ -176,7 +197,6 @@ public partial class CommandResolver
                     },
                     new object[]
                     {
-                        GetRulerDisplayName(world, actorFactionId, GameLanguage.English),
                         GetOfficerDisplayName(officer, GameLanguage.English),
                         GetCityName(targetCity, GameLanguage.English),
                         targetCity.Gold,

@@ -351,8 +351,13 @@ public class LocalizationService
         return Format("fmt.month_advanced", year, month);
     }
 
-    public string FormatFactionDestroyed(string factionName)
+    public string FormatFactionDestroyed(string factionName, string rulerName = "")
     {
+        if (!string.IsNullOrWhiteSpace(rulerName))
+        {
+            return Format("fmt.faction_destroyed_ruler", rulerName);
+        }
+
         return Format("fmt.faction_destroyed", factionName);
     }
 

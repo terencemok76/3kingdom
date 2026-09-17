@@ -67,6 +67,10 @@
                                   "zhHant":  "勢力滅亡：{0}",
                                   "en":  "Faction destroyed: {0}"
                               },
+    "fmt.faction_destroyed_ruler":  {
+                                        "zhHant":  "勢力滅亡：【{0}】軍",
+                                        "en":  "Faction destroyed: {0} Forces"
+                                    },
     "fmt.hire_officer_preview":  {
                                      "zhHant":  "預覽：基本金 -{0}，贈金 -{1}，贈糧 -{2}",
                                      "en":  "Preview: Base Gold -{0}, Gift Gold -{1}, Gift Food -{2}"
@@ -171,6 +175,22 @@
                                                 "zhHant":  "AI 外交決策：{0}／{1} 對 {2} 提出「{3}」。原因：{4}",
                                                 "en":  "AI diplomacy decision: {0}/{1} proposes {3} to {2}. Reason: {4}"
                                             },
+    "fmt.ai_attack_decision_reason":  {
+                                            "zhHant":  "AI 攻擊決策：{0}／{1} 對「{2}」出征，派遣 {3:N0} 兵。原因：{4}",
+                                            "en":  "AI attack decision: {0}/{1} attacks \"{2}\" with {3:N0} troops. Reason: {4}"
+                                        },
+    "fmt.ai_attack_reason_visible":  {
+                                        "zhHant":  "已取得情報；目標守軍 {0:N0}，我方 {1:N0}，兵力差 {2:N0}。君主野心 {3:N0}，進攻門檻 +{4:N0}。",
+                                        "en":  "Target intelligence is available: defender troops {0:N0}, our troops {1:N0}, difference {2:N0}. Ruler ambition {3:N0}; attack threshold +{4:N0}."
+                                    },
+    "fmt.ai_attack_reason_blind":  {
+                                      "zhHant":  "尚未取得目標情報；君主野心 {1:N0}，本城兵力 {0:N0} 已達盲攻門檻 {2:N0}。",
+                                      "en":  "Target intelligence is unavailable: ruler ambition {1:N0}; city troops {0:N0} meet blind-attack threshold {2:N0}."
+                                  },
+    "fmt.spy_result_actor":  {
+                                  "zhHant":  "【{0}】{1}",
+                                  "en":  "{0}: {1}"
+                              },
     "fmt.ai_debug_diplomacy_reason_truce":  {
                                                "zhHant":  "相鄰城市「{0}」兵力 {2:N0}，比我方 {3:N0} 多 {4:N0}（停戰威脅門檻 +{5:N0}）；提議 {6} 個月停戰。",
                                                "en":  "Adjacent city \"{1}\" has {2:N0} troops, {4:N0} more than our {3:N0} (truce threat threshold +{5:N0}); propose a {6}-month truce."

@@ -996,7 +996,14 @@ public partial class BattleSceneController
         {
             titleLabel.Text = BattleText("ui.battle.retreat_destination_title", "Choose retreat destination");
         }
-        promptLabel.Text = BattleText("ui.battle.retreat_destination_prompt", "Choose an adjacent friendly or neutral city.");
+        var retreatOriginCityId = BattleCampaignService.GetRetreatOriginCityId(_activeCampaign!, team);
+        var defenderAlreadyInOriginCity = team.Side == CampaignBattleSide.Defender &&
+                                           retreatOriginCityId == _activeCampaign!.TargetCityId;
+        promptLabel.Text = BattleText(
+            defenderAlreadyInOriginCity
+                ? "ui.battle.retreat_destination_prompt_defender"
+                : "ui.battle.retreat_destination_prompt",
+            "Choose an adjacent friendly or neutral city.");
         noDestinationLabel.Visible = destinations.Count == 0;
         noDestinationLabel.Text = BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat.");
         cancelButton.Text = BattleText("ui.battle.retreat_cancel", "Cancel");
@@ -1016,11 +1023,10 @@ public partial class BattleSceneController
         foreach (var city in destinations)
         {
             var destination = city;
-            var originCityId = BattleCampaignService.GetRetreatOriginCityId(_activeCampaign!, team);
             var button = new Button
             {
                 CustomMinimumSize = new Vector2(0.0f, 42.0f),
-                Text = destination.Id == originCityId
+                Text = destination.Id == retreatOriginCityId
                     ? $"{BattleText("ui.battle.retreat_return_origin", "Return to origin")}：{destination.NameZhHant}"
                     : destination.OwnerFactionId == team.FactionId
                     ? $"{BattleText("ui.battle.retreat", "Retreat")}：{destination.NameZhHant}"

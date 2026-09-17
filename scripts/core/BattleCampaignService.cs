@@ -945,8 +945,9 @@ public static class BattleCampaignService
 
     /// <summary>
     /// Returns direct, strategic destinations for an officer who has reached its
-    /// own battle exit. The team's own valid origin city is always listed first;
-    /// the adjacent friendly and neutral cities around the campaign anchor follow.
+    /// own battle exit. A team's valid origin city is listed first, except when a
+    /// defender is already inside that same target city; adjacent friendly and
+    /// neutral cities around the campaign anchor follow.
     /// </summary>
     public static IReadOnlyList<CityData> GetRetreatDestinations(
         WorldState world,
@@ -964,7 +965,11 @@ public static class BattleCampaignService
 
         var destinations = new List<CityData>();
         var origin = world.GetCity(GetRetreatOriginCityId(campaign, team));
-        if (origin != null && origin.OwnerFactionId == team.FactionId)
+        var defenderAlreadyInOriginCity = team.Side == CampaignBattleSide.Defender &&
+                                           origin?.Id == anchorCityId;
+        if (origin != null &&
+            origin.OwnerFactionId == team.FactionId &&
+            !defenderAlreadyInOriginCity)
         {
             destinations.Add(origin);
         }

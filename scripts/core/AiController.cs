@@ -8,6 +8,11 @@ namespace ThreeKingdom.Core;
 public class AiController
 {
     private const int BlindAttackTroopThreshold = 3000;
+    private const int BaseAttackTroopAdvantageThreshold = 300;
+    private const int MinimumAttackTroopAdvantageThreshold = 50;
+    private const int MaximumAttackTroopAdvantageThreshold = 450;
+    private const int MinimumBlindAttackTroopThreshold = 2600;
+    private const int MaximumBlindAttackTroopThreshold = 3400;
     private const int BlindSpyTroopThreshold = 1800;
     private const int DiplomacyThreatTroopGap = 500;
     private const int DiplomacyGiftGoldThreshold = 500;
@@ -34,6 +39,8 @@ public class AiController
 
     public string LastDecisionDebugDetail { get; private set; } = string.Empty;
     public int LastDiplomacyDecisionTargetFactionId { get; private set; } = -1;
+    public string LastAttackDecisionDetail { get; private set; } = string.Empty;
+    public int LastAttackDecisionTargetFactionId { get; private set; } = -1;
 
     public void Initialize(CommandResolver commandResolver, TurnManager turnManager, LocalizationService localization)
     {
@@ -124,6 +131,8 @@ public class AiController
     {
         LastDecisionDebugDetail = string.Empty;
         LastDiplomacyDecisionTargetFactionId = -1;
+        LastAttackDecisionDetail = string.Empty;
+        LastAttackDecisionTargetFactionId = -1;
 
         if (_commandResolver == null || _turnManager?.World == null)
         {
@@ -164,9 +173,11 @@ public class AiController
             }
 
             var canInspectTarget = world.CanFactionViewCity(factionId, target.Id);
+            var attackTroopAdvantageThreshold = GetAttackTroopAdvantageThreshold(world, factionId);
+            var blindAttackTroopThreshold = GetBlindAttackTroopThreshold(world, factionId);
             var shouldAttack = canInspectTarget
-                ? city.Troops > target.Troops + 300
-                : city.Troops >= BlindAttackTroopThreshold;
+                ? city.Troops > target.Troops + attackTroopAdvantageThreshold
+                : city.Troops >= blindAttackTroopThreshold;
             if (shouldAttack)
             {
                 var deployments = CreateAiAttackDeployments(world, city, availableOfficerIds, city.Troops / 2);
@@ -174,6 +185,15 @@ public class AiController
                 {
                     continue;
                 }
+                SetAttackDecisionDebug(
+                    world,
+                    city,
+                    factionId,
+                    target,
+                    canInspectTarget,
+                    deployments.Sum(item => item.TroopCount),
+                    attackTroopAdvantageThreshold,
+                    blindAttackTroopThreshold);
                 militaryResult = _commandResolver.Execute(new CommandRequest
                 {
                     Type = CommandType.Attack,
@@ -1085,6 +1105,82 @@ public class AiController
             DiplomacyActionType.BreakPact => "command.diplomacy.break_pact",
             _ => "command.diplomacy.alliance"
         };
+    }
+
+    private void SetAttackDecisionDebug(
+        WorldState world,
+        CityData sourceCity,
+        int actorFactionId,
+        CityData targetCity,
+        bool canInspectTarget,
+        int deployedTroops,
+        int attackTroopAdvantageThreshold,
+        int blindAttackTroopThreshold)
+    {
+        var useChinese = _localization?.IsTraditionalChinese != false;
+        var language = useChinese ? GameLanguage.TraditionalChinese : GameLanguage.English;
+        var actorFaction = world.GetFaction(actorFactionId);
+        var actorName = useChinese
+            ? actorFaction?.NameZhHant ?? actorFaction?.NameEn ?? actorFactionId.ToString()
+            : actorFaction?.NameEn ?? actorFaction?.NameZhHant ?? actorFactionId.ToString();
+        var sourceCityName = useChinese ? sourceCity.NameZhHant : sourceCity.NameEn;
+        var targetCityName = useChinese ? targetCity.NameZhHant : targetCity.NameEn;
+        sourceCityName = string.IsNullOrWhiteSpace(sourceCityName) ? sourceCity.Name : sourceCityName;
+        targetCityName = string.IsNullOrWhiteSpace(targetCityName) ? targetCity.Name : targetCityName;
+        var reasonKey = canInspectTarget
+            ? "fmt.ai_attack_reason_visible"
+            : "fmt.ai_attack_reason_blind";
+        var reasonArguments = canInspectTarget
+            ? new object[]
+            {
+                targetCity.Troops,
+                sourceCity.Troops,
+                sourceCity.Troops - targetCity.Troops,
+                GetRulerAmbition(world, actorFactionId),
+                attackTroopAdvantageThreshold
+            }
+            : new object[]
+            {
+                sourceCity.Troops,
+                GetRulerAmbition(world, actorFactionId),
+                blindAttackTroopThreshold
+            };
+        var reason = _localization?.FormatForLanguage(language, reasonKey, reasonArguments) ?? reasonKey;
+
+        LastAttackDecisionTargetFactionId = targetCity.OwnerFactionId;
+        LastAttackDecisionDetail = _localization?.FormatForLanguage(
+            language,
+            "fmt.ai_attack_decision_reason",
+            actorName,
+            sourceCityName,
+            targetCityName,
+            deployedTroops,
+            reason) ?? $"AI attack decision: {actorName}/{sourceCityName} -> {targetCityName}: {reason}";
+    }
+
+    private static int GetRulerAmbition(WorldState world, int factionId)
+    {
+        var faction = world.GetFaction(factionId);
+        var ruler = faction == null ? null : world.GetOfficer(faction.RulerOfficerId);
+        return System.Math.Clamp(ruler?.Ambition ?? 50, 0, 100);
+    }
+
+    private static int GetAttackTroopAdvantageThreshold(WorldState world, int factionId)
+    {
+        var ambition = GetRulerAmbition(world, factionId);
+        return System.Math.Clamp(
+            BaseAttackTroopAdvantageThreshold + 250 - ambition * 5,
+            MinimumAttackTroopAdvantageThreshold,
+            MaximumAttackTroopAdvantageThreshold);
+    }
+
+    private static int GetBlindAttackTroopThreshold(WorldState world, int factionId)
+    {
+        var ambition = GetRulerAmbition(world, factionId);
+        return System.Math.Clamp(
+            BlindAttackTroopThreshold + (50 - ambition) * 8,
+            MinimumBlindAttackTroopThreshold,
+            MaximumBlindAttackTroopThreshold);
     }
 
     private CommandResult? TryIssueSpyCommand(

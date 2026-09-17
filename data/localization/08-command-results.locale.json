@@ -392,52 +392,52 @@
                                    "en":  "But the operative was exposed."
                                },
     "cmd.spy.failed":  {
-                           "zhHant":  "「{0}」對「{2}」執行「{1}」失敗。",
-                           "en":  "\"{0}\" failed to perform \"{1}\" on \"{2}\"."
+                           "zhHant":  "{0} 對「{2}」執行「{1}」失敗。",
+                           "en":  "{0} failed to perform \"{1}\" on \"{2}\"."
                        },
     "cmd.spy.failed_exposed":  {
-                                   "zhHant":  "「{0}」對「{2}」執行「{1}」失敗，且身份暴露。",
-                                   "en":  "\"{0}\" failed to perform \"{1}\" on \"{2}\" and was exposed."
+                                   "zhHant":  "{0} 對「{2}」執行「{1}」失敗，且身份暴露。",
+                                   "en":  "{0} failed to perform \"{1}\" on \"{2}\" and was exposed."
                                },
     "cmd.spy.assassination_no_target":  {
-                                            "zhHant":  "「{0}」潛入「{1}」，但未找到可下手的目標。",
-                                            "en":  "\"{0}\" infiltrated \"{1}\", but found no valid assassination target."
+                                            "zhHant":  "{0} 潛入「{1}」，但未找到可下手的目標。",
+                                            "en":  "{0} infiltrated \"{1}\", but found no valid assassination target."
                                         },
     "cmd.spy.assassination_invalid_target":  {
                                                  "zhHant":  "指定的暗殺目標目前不在目標城市，無法執行。",
                                                  "en":  "The selected assassination target is no longer in the target city."
                                              },
     "cmd.spy.assassination_success":  {
-                                         "zhHant":  "「{0}」在「{2}」暗殺成功，目標「{1}」已被除去。",
-                                         "en":  "\"{0}\" succeeded in an assassination at \"{2}\". Target \"{1}\" was eliminated."
+                                         "zhHant":  "{0} 在「{2}」暗殺成功，目標「{1}」已被除去。",
+                                         "en":  "{0} succeeded in an assassination at \"{2}\". Target \"{1}\" was eliminated."
                                      },
     "cmd.spy.assassination_success_ruler_succeeded":  {
-                                                         "zhHant":  "「{0}」暗殺君主「{1}」成功，勢力「{3}」已由「{2}」繼位。",
-                                                         "en":  "\"{0}\" assassinated ruler \"{1}\". Faction \"{3}\" is now led by \"{2}\"."
+                                                         "zhHant":  "{0} 暗殺君主「{1}」成功，勢力「{3}」已由「{2}」繼位。",
+                                                         "en":  "{0} assassinated ruler \"{1}\". Faction \"{3}\" is now led by \"{2}\"."
                                                      },
     "cmd.spy.assassination_success_faction_destroyed":  {
-                                                            "zhHant":  "「{0}」暗殺君主「{1}」成功，勢力「{2}」已滅亡。",
-                                                            "en":  "\"{0}\" assassinated ruler \"{1}\". Faction \"{2}\" has collapsed."
+                                                            "zhHant":  "{0} 暗殺君主「{1}」成功，勢力「{2}」已滅亡。",
+                                                            "en":  "{0} assassinated ruler \"{1}\". Faction \"{2}\" has collapsed."
                                                         },
     "cmd.spy.incite_success":  {
-                                   "zhHant":  "「{0}」在「{1}」煽動民心成功，忠誠 -{2}。",
-                                   "en":  "\"{0}\" incited unrest in \"{1}\" successfully. Loyalty -{2}."
+                                   "zhHant":  "{0} 在「{1}」煽動民心成功，忠誠 -{2}。",
+                                   "en":  "{0} incited unrest in \"{1}\" successfully. Loyalty -{2}."
                                },
     "cmd.spy.officer_required":  {
                                      "zhHant":  "「{0}」間諜任務需要指派一位本城武將。",
                                      "en":  "\"{0}\" requires one local officer for a spy mission."
                                  },
     "cmd.spy.recon_success":  {
-                                  "zhHant":  "{0}：{1} 偵查「{2}」成功：金 {3}，糧 {4}，兵 {5}，防 {6}，忠 {7}，武將 {8}。",
-                                  "en":  "{0}: {1} recon succeeded on \"{2}\": Gold {3}, Food {4}, Troops {5}, Defense {6}, Loyalty {7}, Officers {8}."
+                                  "zhHant":  "{0} 偵查「{1}」成功：金 {2}，糧 {3}，兵 {4}，防 {5}，忠 {6}，武將 {7}。",
+                                  "en":  "{0} recon succeeded on \"{1}\": Gold {2}, Food {3}, Troops {4}, Defense {5}, Loyalty {6}, Officers {7}."
                               },
     "cmd.spy.ruler_blocked":  {
                                  "zhHant":  "君主不可直接執行間諜任務，請指派其他武將。",
                                  "en":  "The ruler cannot directly perform spy missions; assign another officer."
                              },
     "cmd.spy.sabotage_success":  {
-                                     "zhHant":  "「{0}」對「{1}」破壞成功：金 -{2}，糧 -{3}，防 -{4}。",
-                                     "en":  "\"{0}\" sabotaged \"{1}\" successfully: Gold -{2}, Food -{3}, Defense -{4}."
+                                     "zhHant":  "{0} 對「{1}」破壞成功：金 -{2}，糧 -{3}，防 -{4}。",
+                                     "en":  "{0} sabotaged \"{1}\" successfully: Gold -{2}, Food -{3}, Defense -{4}."
                                  },
     "cmd.spy.same_faction":  {
                                 "zhHant":  "不能對本勢力城市執行間諜任務。",

@@ -114,7 +114,7 @@ internal sealed class LogPanelController
     {
         if (_context.LogPanelHeaderLabel != null)
         {
-            _context.LogPanelHeaderLabel.Text = _context.Localization?.IsTraditionalChinese == true ? "日誌" : "Log";
+            _context.LogPanelHeaderLabel.Text = GetLocalizedText("ui.gameplay_log_title", "Log");
         }
     }
 
@@ -385,21 +385,19 @@ internal sealed class LogPanelController
 
     private void UpdateFilterButtonText()
     {
-        var isTraditionalChinese = _context.Localization?.IsTraditionalChinese == true;
-
         if (_selfFactionButton != null)
         {
-            _selfFactionButton.Text = isTraditionalChinese ? "本勢力" : "Self Faction";
+            _selfFactionButton.Text = GetLocalizedText("ui.gameplay_log_filter_self", "Self");
         }
 
         if (_allLogButton != null)
         {
-            _allLogButton.Text = isTraditionalChinese ? "全部" : "All";
+            _allLogButton.Text = GetLocalizedText("ui.gameplay_log_filter_all", "All");
         }
 
         if (_clearLogButton != null)
         {
-            _clearLogButton.Text = isTraditionalChinese ? "清除日誌" : "Clear Log";
+            _clearLogButton.Text = GetLocalizedText("ui.gameplay_log_clear", "Clear Log");
         }
 
         UpdateCopyButtonText();
@@ -428,6 +426,7 @@ internal sealed class LogPanelController
     {
         _filterMode = LogFilterMode.SelfFaction;
         UpdateFilterButtonVisualState();
+        UpdateCopyButtonText();
         RebuildLogView();
     }
 
@@ -435,6 +434,7 @@ internal sealed class LogPanelController
     {
         _filterMode = LogFilterMode.All;
         UpdateFilterButtonVisualState();
+        UpdateCopyButtonText();
         RebuildLogView();
     }
 
@@ -447,18 +447,16 @@ internal sealed class LogPanelController
 
     private void OnCopyLogPressed()
     {
-        if (_entries.Count == 0)
+        var entriesToCopy = GetFilteredEntries().ToList();
+        if (entriesToCopy.Count == 0)
         {
             return;
         }
 
-        // Copy the complete chronological log, independent of the current
-        // self-faction/all display filter, matching the battle-log Copy All
-        // behavior and preserving messages that are currently hidden.
-        DisplayServer.ClipboardSet(string.Join("\n", _entries.Select(entry => entry.Message)));
+        DisplayServer.ClipboardSet(string.Join("\n", entriesToCopy.Select(entry => entry.Message)));
         if (_copyLogButton != null)
         {
-            _copyLogButton.Text = _context.Localization?.IsTraditionalChinese == true ? "已複製" : "Copied";
+            _copyLogButton.Text = GetLocalizedText("ui.gameplay_log_copied", "Copied");
         }
     }
 
@@ -469,8 +467,19 @@ internal sealed class LogPanelController
             return;
         }
 
-        _copyLogButton.Text = _context.Localization?.IsTraditionalChinese == true ? "複製全部" : "Copy All";
-        _copyLogButton.Disabled = _entries.Count == 0;
+        _copyLogButton.Text = _filterMode == LogFilterMode.SelfFaction
+            ? GetLocalizedText("ui.gameplay_log_copy_self", "Copy Self")
+            : GetLocalizedText("ui.gameplay_log_copy_all", "Copy All");
+        _copyLogButton.Disabled = !GetFilteredEntries().Any();
+    }
+
+    private string GetLocalizedText(string key, string fallback) => _context.Localization?.T(key) ?? fallback;
+
+    private IEnumerable<LogEntry> GetFilteredEntries()
+    {
+        return _filterMode == LogFilterMode.SelfFaction
+            ? _entries.Where(entry => entry.IsPlayerRelated)
+            : _entries;
     }
 
     private void RebuildLogView()
@@ -484,13 +493,8 @@ internal sealed class LogPanelController
         logText.Clear();
         _hasEntries = false;
 
-        foreach (var entry in _entries)
+        foreach (var entry in GetFilteredEntries())
         {
-            if (_filterMode == LogFilterMode.SelfFaction && !entry.IsPlayerRelated)
-            {
-                continue;
-            }
-
             if (_hasEntries)
             {
                 logText.Newline();

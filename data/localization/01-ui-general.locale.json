@@ -933,5 +933,33 @@
 		"ui.log_filter_all":  {
 								  "zhHant":  "全部",
 								  "en":  "All"
+							  },
+		"ui.gameplay_log_title":  {
+								  "zhHant":  "日誌",
+								  "en":  "Log"
+							  },
+		"ui.gameplay_log_filter_self":  {
+								  "zhHant":  "本勢力",
+								  "en":  "Self"
+							  },
+		"ui.gameplay_log_filter_all":  {
+								  "zhHant":  "全部",
+								  "en":  "All"
+							  },
+		"ui.gameplay_log_copy_self":  {
+								  "zhHant":  "複製本勢力",
+								  "en":  "Copy Self"
+							  },
+		"ui.gameplay_log_copy_all":  {
+								  "zhHant":  "複製全部",
+								  "en":  "Copy All"
+							  },
+		"ui.gameplay_log_copied":  {
+								  "zhHant":  "已複製",
+								  "en":  "Copied"
+							  },
+		"ui.gameplay_log_clear":  {
+								  "zhHant":  "清除日誌",
+								  "en":  "Clear Log"
 							  }
 }
