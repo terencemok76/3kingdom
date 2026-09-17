@@ -428,8 +428,8 @@
                                      "en":  "\"{0}\" requires one local officer for a spy mission."
                                  },
     "cmd.spy.recon_success":  {
-                                  "zhHant":  "「{0}」偵查「{1}」成功：主事者「{2}」，金 {3}，糧 {4}，兵 {5}，防 {6}，忠 {7}，武將 {8}。",
-                                  "en":  "\"{0}\" recon succeeded on \"{1}\": leader \"{2}\", Gold {3}, Food {4}, Troops {5}, Defense {6}, Loyalty {7}, Officers {8}."
+                                  "zhHant":  "{0}：{1} 偵查「{2}」成功：金 {3}，糧 {4}，兵 {5}，防 {6}，忠 {7}，武將 {8}。",
+                                  "en":  "{0}: {1} recon succeeded on \"{2}\": Gold {3}, Food {4}, Troops {5}, Defense {6}, Loyalty {7}, Officers {8}."
                               },
     "cmd.spy.ruler_blocked":  {
                                  "zhHant":  "君主不可直接執行間諜任務，請指派其他武將。",

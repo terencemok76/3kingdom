@@ -913,7 +913,11 @@
 		"ui.option_god_mode":  {
 								   "zhHant":  "God Mode",
 								   "en":  "God Mode"
-							   },
+								},
+		"ui.option_ai_decision_debug":  {
+								   "zhHant":  "AI 決策偵錯",
+								   "en":  "AI Decision Debug"
+								},
 		"ui.log_panel_title":  {
 								   "zhHant":  "??",
 								   "en":  "Log"

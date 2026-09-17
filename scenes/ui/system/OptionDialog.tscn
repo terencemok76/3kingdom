@@ -158,6 +158,13 @@ size_flags_horizontal = 3
 focus_mode = 0
 text = "God Mode"
 
+[node name="AiDecisionDebugButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "AI Decision Debug"
+
 [node name="BgmAudioRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3

@@ -147,6 +147,50 @@
                                 "zhHant":  "{0}：{1}",
                                 "en":  "{0}: {1}"
                             },
+    "fmt.option_ai_decision_debug":  {
+                                "zhHant":  "{0}：{1}",
+                                "en":  "{0}: {1}"
+                            },
+    "fmt.ai_debug_evaluation_start":  {
+                                          "zhHant":  "[AI Debug] {0}：兵力 {1:N0}、金 {2:N0}、糧 {3:N0}；開始評估軍事、外交、計略與內政。",
+                                          "en":  "[AI Debug] {0}: troops {1:N0}, gold {2:N0}, food {3:N0}; evaluating military, diplomacy, strategy, and domestic affairs."
+                                      },
+    "fmt.ai_debug_final_success":  {
+                                      "zhHant":  "[AI Debug] {0}：最終決策已執行；{1}",
+                                      "en":  "[AI Debug] {0}: final decision executed; {1}"
+                                  },
+    "fmt.ai_debug_final_failure":  {
+                                      "zhHant":  "[AI Debug] {0}：最終決策未執行；{1}",
+                                      "en":  "[AI Debug] {0}: final decision was not executed; {1}"
+                                  },
+    "fmt.ai_debug_detail":  {
+                                "zhHant":  "[AI Debug] {0}",
+                                "en":  "[AI Debug] {0}"
+                            },
+    "fmt.ai_diplomacy_decision_reason":  {
+                                                "zhHant":  "AI 外交決策：{0}／{1} 對 {2} 提出「{3}」。原因：{4}",
+                                                "en":  "AI diplomacy decision: {0}/{1} proposes {3} to {2}. Reason: {4}"
+                                            },
+    "fmt.ai_debug_diplomacy_reason_truce":  {
+                                               "zhHant":  "相鄰城市「{0}」兵力 {2:N0}，比我方 {3:N0} 多 {4:N0}（停戰威脅門檻 +{5:N0}）；提議 {6} 個月停戰。",
+                                               "en":  "Adjacent city \"{1}\" has {2:N0} troops, {4:N0} more than our {3:N0} (truce threat threshold +{5:N0}); propose a {6}-month truce."
+                                           },
+    "fmt.ai_debug_diplomacy_reason_break_pact":  {
+                                                    "zhHant":  "現有協議關係值 {0} ≤ {1}；勢力兵力 {2:N0} 對 {3:N0}，優勢 {4:N0}（毀約門檻 +{5:N0}）。",
+                                                    "en":  "Existing pact relation is {0} (at most {1}); faction troops {2:N0} vs. {3:N0}, advantage {4:N0} (break-pact threshold +{5:N0})."
+                                                },
+    "fmt.ai_debug_diplomacy_reason_demand":  {
+                                                "zhHant":  "本城金 {0:N0} ≥ {1:N0}；關係值 {2} ≤ {3}；勢力兵力優勢 {4:N0}（索貢門檻 +{5:N0}）；索取金 {6:N0}。",
+                                                "en":  "City gold {0:N0} meets {1:N0}; relation {2} is at most {3}; faction troop advantage {4:N0} meets demand threshold +{5:N0}; demand {6:N0} gold."
+                                            },
+    "fmt.ai_debug_diplomacy_reason_alliance":  {
+                                                  "zhHant":  "關係值 {0} ≥ 同盟門檻 {1:N0}，且目前無有效協議；提議 {2} 個月同盟。",
+                                                  "en":  "Relation {0} meets alliance threshold {1:N0}, with no active pact; propose a {2}-month alliance."
+                                              },
+    "fmt.ai_debug_diplomacy_reason_gift":  {
+                                              "zhHant":  "本城金 {0:N0} ≥ 送禮門檻 {1:N0}；以目前最低的關係值 {2} 為優先，贈送金 {3:N0} 改善關係。",
+                                              "en":  "City gold {0:N0} meets gift threshold {1:N0}; select the lowest current relation ({2}) and give {3:N0} gold to improve it."
+                                          },
     "fmt.save_slot_prefix":  {
                                  "zhHant":  "存檔 {0}",
                                  "en":  "Slot {0}"

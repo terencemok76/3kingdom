@@ -38,12 +38,18 @@ public partial class HudController
         get => _sfxVolume;
         set => _sfxVolume = value;
     }
+    internal bool SystemAiDecisionDebugEnabled
+    {
+        get => _aiDecisionDebugEnabled;
+        set => _aiDecisionDebugEnabled = value;
+    }
 
     internal void SystemPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
     internal void SystemPlayUiClickSfx() => PlayUiClickSfx();
     internal void SystemAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
     internal void SystemToggleLanguage() => OnLanguageButtonPressed();
     internal void SystemToggleGodMode() => OnGodModePressed();
+    internal void SystemToggleAiDecisionDebug() => _aiDecisionDebugEnabled = !_aiDecisionDebugEnabled;
     internal void SystemApplyAudioSettings() => ApplyAudioSettings();
     internal void SystemSaveOptionSettings() => SaveOptionSettings();
     internal void SystemRestoreDefaultLayout() => RestoreDefaultFloatingPanelLayout();
@@ -74,6 +80,7 @@ public partial class HudController
     internal string SystemGetOptionSaveLoadButtonText() => GetOptionSaveLoadButtonText();
     internal string SystemGetOptionLanguageButtonText() => GetOptionLanguageButtonText();
     internal string SystemGetOptionGodModeButtonText() => GetOptionGodModeButtonText();
+    internal string SystemGetOptionAiDecisionDebugButtonText() => GetOptionAiDecisionDebugButtonText();
     internal string SystemGetAudioToggleButtonText(bool isBgm, bool enabled) => GetAudioToggleButtonText(isBgm, enabled);
     internal string SystemGetSaveSettingsButtonText() => GetSaveSettingsButtonText();
     internal string SystemGetRestoreLayoutButtonText() => GetRestoreLayoutButtonText();

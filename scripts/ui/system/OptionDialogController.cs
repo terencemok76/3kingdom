@@ -9,6 +9,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private Button? _saveLoadButton;
     private Button? _languageButton;
     private Button? _godModeButton;
+    private Button? _aiDecisionDebugButton;
     private Button? _bgmToggleButton;
     private Button? _sfxToggleButton;
     private HSlider? _bgmVolumeSlider;
@@ -63,6 +64,10 @@ internal sealed class OptionDialogController : FloatingOverlayController
         {
             _godModeButton.Text = _context.GetOptionGodModeButtonText();
         }
+        if (_aiDecisionDebugButton != null)
+        {
+            _aiDecisionDebugButton.Text = _context.GetOptionAiDecisionDebugButtonText();
+        }
 
         if (_bgmToggleButton != null)
         {
@@ -114,6 +119,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
         _saveLoadButton = root.GetNodeOrNull<Button>("SaveLoadButton");
         _languageButton = root.GetNodeOrNull<Button>("LanguageButton");
         _godModeButton = root.GetNodeOrNull<Button>("GodModeButton");
+        _aiDecisionDebugButton = root.GetNodeOrNull<Button>("AiDecisionDebugButton");
         _bgmToggleButton = root.GetNodeOrNull<Button>("BgmAudioRow/BgmToggleButton");
         _sfxToggleButton = root.GetNodeOrNull<Button>("SfxAudioRow/SfxToggleButton");
         _bgmVolumeSlider = root.GetNodeOrNull<HSlider>("BgmAudioRow/BgmVolumeSlider");
@@ -134,6 +140,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
                      _saveLoadButton,
                      _languageButton,
                      _godModeButton,
+                     _aiDecisionDebugButton,
                      _bgmToggleButton,
                      _sfxToggleButton,
                      _saveSettingsButton,
@@ -165,6 +172,10 @@ internal sealed class OptionDialogController : FloatingOverlayController
         if (_godModeButton != null)
         {
             _godModeButton.Pressed += OnGodModePressed;
+        }
+        if (_aiDecisionDebugButton != null)
+        {
+            _aiDecisionDebugButton.Pressed += OnAiDecisionDebugPressed;
         }
         if (_bgmToggleButton != null)
         {
@@ -204,6 +215,12 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private void OnGodModePressed()
     {
         _context.ToggleGodMode();
+        RefreshText();
+    }
+
+    private void OnAiDecisionDebugPressed()
+    {
+        _context.ToggleAiDecisionDebug();
         RefreshText();
     }
 

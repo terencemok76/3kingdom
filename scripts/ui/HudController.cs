@@ -254,6 +254,7 @@ public partial class HudController : CanvasLayer
     private bool _sfxEnabled = true;
     private float _bgmVolume = 1.0f;
     private float _sfxVolume = 1.0f;
+    private bool _aiDecisionDebugEnabled;
     internal UiEventHub UiEventHub => _uiEventHub;
     public override void _Ready()
     {
@@ -472,7 +473,22 @@ public partial class HudController : CanvasLayer
 
     public void AddLog(string message, bool isPlayerRelated = false)
     {
-        _mainHudUiController?.AddLog(message, isPlayerRelated);
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        var world = _turnManager?.World;
+        if (world == null)
+        {
+            _mainHudUiController?.AddLog(message, isPlayerRelated);
+            return;
+        }
+
+        var datedMessage = _localization?.IsTraditionalChinese == false
+            ? $"{world.Year}-{world.Month:00} | {message}"
+            : $"{world.Year}年{world.Month}月｜{message}";
+        _mainHudUiController?.AddLog(datedMessage, isPlayerRelated);
     }
 
     private void OnLanguageButtonPressed()

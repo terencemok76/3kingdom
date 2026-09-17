@@ -42,6 +42,11 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
         get => _owner.SystemSfxVolume;
         set => _owner.SystemSfxVolume = value;
     }
+    public bool AiDecisionDebugEnabled
+    {
+        get => _owner.SystemAiDecisionDebugEnabled;
+        set => _owner.SystemAiDecisionDebugEnabled = value;
+    }
 
     public Control CreateOverlay(string scenePath, System.Action closeAction)
     {
@@ -75,6 +80,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.SystemAddLog(message, isPlayerRelated);
     public void ToggleLanguage() => _owner.SystemToggleLanguage();
     public void ToggleGodMode() => _owner.SystemToggleGodMode();
+    public void ToggleAiDecisionDebug() => _owner.SystemToggleAiDecisionDebug();
     public void ApplyAudioSettings() => _owner.SystemApplyAudioSettings();
     public void SaveOptionSettings() => _owner.SystemSaveOptionSettings();
     public void RestoreDefaultLayout() => _owner.SystemRestoreDefaultLayout();
@@ -87,6 +93,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     public string GetOptionSaveLoadButtonText() => _owner.SystemGetOptionSaveLoadButtonText();
     public string GetOptionLanguageButtonText() => _owner.SystemGetOptionLanguageButtonText();
     public string GetOptionGodModeButtonText() => _owner.SystemGetOptionGodModeButtonText();
+    public string GetOptionAiDecisionDebugButtonText() => _owner.SystemGetOptionAiDecisionDebugButtonText();
     public string GetAudioToggleButtonText(bool isBgm, bool enabled) => _owner.SystemGetAudioToggleButtonText(isBgm, enabled);
     public string GetSaveSettingsButtonText() => _owner.SystemGetSaveSettingsButtonText();
     public string GetRestoreLayoutButtonText() => _owner.SystemGetRestoreLayoutButtonText();

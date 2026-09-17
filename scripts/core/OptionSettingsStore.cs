@@ -11,6 +11,7 @@ public sealed class OptionSettingsData
     public bool SfxEnabled { get; set; } = true;
     public float BgmVolume { get; set; } = 1.0f;
     public float SfxVolume { get; set; } = 1.0f;
+    public bool AiDecisionDebugEnabled { get; set; }
     public bool LeftPanelMinimized { get; set; }
     public float LeftPanelX { get; set; } = 10.0f;
     public float LeftPanelY { get; set; } = 70.0f;

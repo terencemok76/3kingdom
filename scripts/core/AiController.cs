@@ -32,6 +32,9 @@ public class AiController
     private TurnManager? _turnManager;
     private LocalizationService? _localization;
 
+    public string LastDecisionDebugDetail { get; private set; } = string.Empty;
+    public int LastDiplomacyDecisionTargetFactionId { get; private set; } = -1;
+
     public void Initialize(CommandResolver commandResolver, TurnManager turnManager, LocalizationService localization)
     {
         _commandResolver = commandResolver;
@@ -119,6 +122,9 @@ public class AiController
 
     public CommandResult RunSingleCityDecision(int factionId, int cityId)
     {
+        LastDecisionDebugDetail = string.Empty;
+        LastDiplomacyDecisionTargetFactionId = -1;
+
         if (_commandResolver == null || _turnManager?.World == null)
         {
             return LocalizedResult(false, "cmd.ai_not_initialized");
@@ -787,6 +793,20 @@ public class AiController
             .FirstOrDefault(target => target.Troops >= city.Troops + DiplomacyThreatTroopGap);
         if (threatenedNeighbor != null)
         {
+            SetDiplomacyDecisionDebug(
+                world,
+                city,
+                factionId,
+                threatenedNeighbor.OwnerFactionId,
+                DiplomacyActionType.Truce,
+                "fmt.ai_debug_diplomacy_reason_truce",
+                threatenedNeighbor.NameZhHant,
+                threatenedNeighbor.NameEn,
+                threatenedNeighbor.Troops,
+                city.Troops,
+                threatenedNeighbor.Troops - city.Troops,
+                DiplomacyThreatTroopGap,
+                3);
             var truceResult = _commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Diplomacy,
@@ -826,6 +846,22 @@ public class AiController
                 GetFactionTroopTotal(world, factionId) >= GetFactionTroopTotal(world, targetFactionId) + DiplomacyBreakPactTroopAdvantage);
         if (breakPactTargetFactionId > 0)
         {
+            var relation = world.GetDiplomacyRelation(factionId, breakPactTargetFactionId);
+            var ownTroops = GetFactionTroopTotal(world, factionId);
+            var targetTroops = GetFactionTroopTotal(world, breakPactTargetFactionId);
+            SetDiplomacyDecisionDebug(
+                world,
+                city,
+                factionId,
+                breakPactTargetFactionId,
+                DiplomacyActionType.BreakPact,
+                "fmt.ai_debug_diplomacy_reason_break_pact",
+                relation?.RelationScore ?? 0,
+                DiplomacyBreakPactMaxRelationScore,
+                ownTroops,
+                targetTroops,
+                ownTroops - targetTroops,
+                DiplomacyBreakPactTroopAdvantage);
             var breakPactResult = _commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Diplomacy,
@@ -864,6 +900,23 @@ public class AiController
                 .FirstOrDefault();
             if (demandTargetFactionId > 0)
             {
+                var relation = world.GetDiplomacyRelation(factionId, demandTargetFactionId);
+                var ownTroops = GetFactionTroopTotal(world, factionId);
+                var targetTroops = GetFactionTroopTotal(world, demandTargetFactionId);
+                SetDiplomacyDecisionDebug(
+                    world,
+                    city,
+                    factionId,
+                    demandTargetFactionId,
+                    DiplomacyActionType.Demand,
+                    "fmt.ai_debug_diplomacy_reason_demand",
+                    city.Gold,
+                    DiplomacyDemandGoldThreshold,
+                    relation?.RelationScore ?? 0,
+                    DiplomacyDemandMaxRelationScore,
+                    ownTroops - targetTroops,
+                    DiplomacyDemandTroopAdvantage,
+                    Math.Min(DiplomacyDemandAmount, city.Gold));
                 var demandResult = _commandResolver.Execute(new CommandRequest
                 {
                     Type = CommandType.Diplomacy,
@@ -899,6 +952,17 @@ public class AiController
                 world.Cities.Any(targetCity => targetCity.OwnerFactionId == targetFactionId));
         if (allianceTargetFactionId > 0)
         {
+            var relation = world.GetDiplomacyRelation(factionId, allianceTargetFactionId);
+            SetDiplomacyDecisionDebug(
+                world,
+                city,
+                factionId,
+                allianceTargetFactionId,
+                DiplomacyActionType.Alliance,
+                "fmt.ai_debug_diplomacy_reason_alliance",
+                relation?.RelationScore ?? 0,
+                DiplomacyAllianceRelationThreshold,
+                4);
             var allianceResult = _commandResolver.Execute(new CommandRequest
             {
                 Type = CommandType.Diplomacy,
@@ -939,6 +1003,18 @@ public class AiController
             return null;
         }
 
+        var giftRelation = world.GetDiplomacyRelation(factionId, giftTargetFactionId.FactionId);
+        SetDiplomacyDecisionDebug(
+            world,
+            city,
+            factionId,
+            giftTargetFactionId.FactionId,
+            DiplomacyActionType.Gift,
+            "fmt.ai_debug_diplomacy_reason_gift",
+            city.Gold,
+            DiplomacyGiftGoldThreshold,
+            giftRelation?.RelationScore ?? 0,
+            Math.Min(DiplomacyGiftAmount, city.Gold));
         var giftResult = _commandResolver.Execute(new CommandRequest
         {
             Type = CommandType.Diplomacy,
@@ -956,6 +1032,59 @@ public class AiController
         }
 
         return giftResult;
+    }
+
+    private void SetDiplomacyDecisionDebug(
+        WorldState world,
+        CityData city,
+        int actorFactionId,
+        int targetFactionId,
+        DiplomacyActionType actionType,
+        string reasonKey,
+        params object[] reasonArguments)
+    {
+        var useChinese = _localization?.IsTraditionalChinese != false;
+        var actorFaction = world.GetFaction(actorFactionId);
+        var targetFaction = world.GetFaction(targetFactionId);
+        var actorName = useChinese
+            ? actorFaction?.NameZhHant ?? actorFaction?.NameEn ?? actorFactionId.ToString()
+            : actorFaction?.NameEn ?? actorFaction?.NameZhHant ?? actorFactionId.ToString();
+        var targetName = useChinese
+            ? targetFaction?.NameZhHant ?? targetFaction?.NameEn ?? targetFactionId.ToString()
+            : targetFaction?.NameEn ?? targetFaction?.NameZhHant ?? targetFactionId.ToString();
+        var cityName = useChinese
+            ? city.NameZhHant
+            : city.NameEn;
+        if (string.IsNullOrWhiteSpace(cityName))
+        {
+            cityName = city.Name;
+        }
+
+        var language = useChinese ? GameLanguage.TraditionalChinese : GameLanguage.English;
+        var actionName = _localization?.TForLanguage(language, GetDiplomacyActionLocaleKey(actionType)) ?? actionType.ToString();
+        var reason = _localization?.FormatForLanguage(language, reasonKey, reasonArguments) ?? reasonKey;
+        LastDiplomacyDecisionTargetFactionId = targetFactionId;
+        LastDecisionDebugDetail = _localization?.FormatForLanguage(
+            language,
+            "fmt.ai_diplomacy_decision_reason",
+            actorName,
+            cityName,
+            targetName,
+            actionName,
+            reason) ?? $"[AI Debug] Diplomacy decision: {actorName}/{cityName} -> {targetName}: {reason}";
+    }
+
+    private static string GetDiplomacyActionLocaleKey(DiplomacyActionType actionType)
+    {
+        return actionType switch
+        {
+            DiplomacyActionType.Alliance => "command.diplomacy.alliance",
+            DiplomacyActionType.Truce => "command.diplomacy.truce",
+            DiplomacyActionType.Gift => "command.diplomacy.gift",
+            DiplomacyActionType.Demand => "command.diplomacy.demand",
+            DiplomacyActionType.BreakPact => "command.diplomacy.break_pact",
+            _ => "command.diplomacy.alliance"
+        };
     }
 
     private CommandResult? TryIssueSpyCommand(

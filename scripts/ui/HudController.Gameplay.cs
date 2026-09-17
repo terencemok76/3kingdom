@@ -146,10 +146,30 @@ public partial class HudController : CanvasLayer
                     continue;
                 }
 
+                if (_aiDecisionDebugEnabled)
+                {
+                    AddLog(_localization.Format("fmt.ai_debug_evaluation_start", _localization.GetCityName(city), city.Troops, city.Gold, city.Food), isPlayerRelated: false);
+                }
                 var result = _aiController.RunSingleCityDecision(faction.Id, cityId);
                 var cityName = _localization.GetCityName(city);
                 var factionName = _localization.GetFactionName(world, faction.Id);
+                var playerTargetedDiplomacy = _aiController.LastDiplomacyDecisionTargetFactionId == _turnManager.GetPlayerFactionId();
+                if ((_aiDecisionDebugEnabled || playerTargetedDiplomacy) &&
+                    !string.IsNullOrWhiteSpace(_aiController.LastDecisionDebugDetail))
+                {
+                    var diplomacyDetail = _aiDecisionDebugEnabled
+                        ? _localization.Format("fmt.ai_debug_detail", _aiController.LastDecisionDebugDetail)
+                        : _aiController.LastDecisionDebugDetail;
+                    AddLog(diplomacyDetail, isPlayerRelated: playerTargetedDiplomacy);
+                }
                 AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(result)));
+                if (_aiDecisionDebugEnabled)
+                {
+                    AddLog(_localization.Format(
+                        result.Success ? "fmt.ai_debug_final_success" : "fmt.ai_debug_final_failure",
+                        cityName,
+                        GetLocalizedResultMessage(result)), isPlayerRelated: false);
+                }
                 CheckFactionEliminations();
             }
         }

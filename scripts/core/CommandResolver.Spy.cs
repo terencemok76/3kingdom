@@ -164,9 +164,9 @@ public partial class CommandResolver
                     "cmd.spy.recon_success",
                     new object[]
                     {
+                        GetRulerDisplayName(world, actorFactionId, GameLanguage.TraditionalChinese),
                         GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
                         GetCityName(targetCity, GameLanguage.TraditionalChinese),
-                        GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.TraditionalChinese),
                         targetCity.Gold,
                         targetCity.Food,
                         targetCity.Troops,
@@ -176,9 +176,9 @@ public partial class CommandResolver
                     },
                     new object[]
                     {
+                        GetRulerDisplayName(world, actorFactionId, GameLanguage.English),
                         GetOfficerDisplayName(officer, GameLanguage.English),
                         GetCityName(targetCity, GameLanguage.English),
-                        GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.English),
                         targetCity.Gold,
                         targetCity.Food,
                         targetCity.Troops,

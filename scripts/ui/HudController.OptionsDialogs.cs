@@ -63,6 +63,7 @@ public partial class HudController
         _sfxEnabled = settings.SfxEnabled;
         _bgmVolume = Mathf.Clamp(settings.BgmVolume, 0.0f, 1.0f);
         _sfxVolume = Mathf.Clamp(settings.SfxVolume, 0.0f, 1.0f);
+        _aiDecisionDebugEnabled = settings.AiDecisionDebugEnabled;
         _localization?.SetLanguage(settings.Language);
         ApplyLoadedFloatingPanelSettings(
             settings.LeftPanelMinimized,
@@ -87,7 +88,8 @@ public partial class HudController
             BgmEnabled = _bgmEnabled,
             SfxEnabled = _sfxEnabled,
             BgmVolume = _bgmVolume,
-            SfxVolume = _sfxVolume
+            SfxVolume = _sfxVolume,
+            AiDecisionDebugEnabled = _aiDecisionDebugEnabled
         };
 
         PopulateFloatingPanelSettings(settings);
@@ -194,6 +196,10 @@ public partial class HudController
         "{0}: {1}",
         Localize("ui.option_god_mode", "God Mode"),
         (_turnManager?.World?.ViewAllInformationEnabled ?? false) ? Localize("ui.on", "On") : Localize("ui.off", "Off"));
+    private string GetOptionAiDecisionDebugButtonText() => LocalizeFormat(
+        "fmt.option_ai_decision_debug", "{0}: {1}",
+        Localize("ui.option_ai_decision_debug", "AI Decision Debug"),
+        _aiDecisionDebugEnabled ? Localize("ui.on", "On") : Localize("ui.off", "Off"));
 
     private string Localize(string key, string fallback)
     {
