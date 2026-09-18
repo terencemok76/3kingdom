@@ -7,6 +7,10 @@
                                           "zhHant":  "配兵摘要：{0} | 總兵力 {1}",
                                           "en":  "Deployment Summary: {0} | Total Troops {1}"
                                       },
+    "fmt.attack_target_faction_city":  {
+                                                "zhHant":  "【{0}】{1}",
+                                                "en":  "{0} | {1}"
+                                            },
     "fmt.city_header":  {
                             "zhHant":  "{0}: {1}",
                             "en":  "{0}: {1}"

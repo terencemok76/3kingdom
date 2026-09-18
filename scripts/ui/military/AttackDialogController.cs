@@ -22,6 +22,15 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private HBoxContainer? _defenderPlanRow;
     private Label? _defenderPlanLabel;
     private OptionButton? _defenderPlanOption;
+    private HBoxContainer? _defenseSupportRow;
+    private Label? _defenseSupportLabel;
+    private OptionButton? _defenseSupportSource;
+    private SpinBox? _defenseSupportTroops;
+    private Button? _defenseSupportAddButton;
+    private Label? _defenseSupportSummary;
+    private HBoxContainer? _defenseMessengerRow;
+    private Label? _defenseMessengerLabel;
+    private OptionButton? _defenseMessengerOption;
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private Tree? _officerList;
@@ -38,6 +47,10 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private DialogMode _dialogMode = DialogMode.Attack;
     private CityData? _dialogContextCity;
     private PendingCommandData? _pendingDefenseCommand;
+    private readonly Dictionary<int, AttackOfficerDeploymentData> _defenderDeployments = new();
+    private bool _editingDomesticReinforcement;
+    private int _domesticReinforcementSourceCityId;
+    private int _selectedDefenseEnvoyOfficerId;
 
     protected override Vector2 MinimumOverlaySize => new(620.0f, 630.0f);
 
@@ -89,6 +102,14 @@ internal sealed class AttackDialogController : FloatingOverlayController
             : _context.Localization.T("ui.attack_deployments"));
         SetFieldRowVisible("GoldRow", !isDefenseMode);
         SetFieldRowVisible("FoodRow", !isDefenseMode);
+        if (_defenseSupportRow != null)
+        {
+            _defenseSupportRow.Visible = isDefenseMode;
+        }
+        if (_defenseMessengerRow != null)
+        {
+            _defenseMessengerRow.Visible = isDefenseMode;
+        }
         if (_defenderPlanRow != null)
         {
             _defenderPlanRow.Visible = isDefenseMode || _context.IsGodModeEnabled();
@@ -100,6 +121,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
                 : _context.Localization.T("ui.debug_defender_plan_override");
         }
         RefreshDefenderPlanOptions();
+        RefreshDefenseSupportControls();
+        RefreshDefenseMessengerOptions();
         RefreshTargetCityOptionTexts();
         RefreshOfficerTableText();
         RefreshDeploymentEditor();
@@ -138,7 +161,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
                 continue;
             }
 
-            var label = _context.Localization?.GetCityName(city) ?? city.NameEn;
+            var label = GetAttackTargetLabel(city);
             _targetCityOption.AddItem(label);
             _targetCityOption.SetItemMetadata(_targetCityOption.ItemCount - 1, city.Id);
         }
@@ -170,6 +193,10 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _dialogMode = DialogMode.Defense;
         _dialogContextCity = defendingCity;
         _pendingDefenseCommand = pendingCommand;
+        _defenderDeployments.Clear();
+        _editingDomesticReinforcement = false;
+        _domesticReinforcementSourceCityId = 0;
+        _selectedDefenseEnvoyOfficerId = 0;
         if (_defenderPlanRow != null)
         {
             _defenderPlanRow.Visible = true;
@@ -179,7 +206,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _warningAcknowledgedTargetCityId = -1;
 
         _targetCityOption.Clear();
-        var attackerLabel = _context.Localization?.GetCityName(attackingCity) ?? attackingCity.NameEn;
+        var attackerLabel = GetAttackTargetLabel(attackingCity);
         _targetCityOption.AddItem(attackerLabel);
         _targetCityOption.SetItemMetadata(0, attackingCity.Id);
         _targetCityOption.Select(0);
@@ -221,6 +248,9 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _lastSelectionSignature = string.Empty;
         _deployments.Clear();
         _deploymentOfficerOrder.Clear();
+        _defenderDeployments.Clear();
+        _editingDomesticReinforcement = false;
+        _domesticReinforcementSourceCityId = 0;
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -229,6 +259,15 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _defenderPlanRow = root.GetNodeOrNull<HBoxContainer>("DefenderPlanRow");
         _defenderPlanLabel = root.GetNodeOrNull<Label>("DefenderPlanRow/DefenderPlanLabel");
         _defenderPlanOption = root.GetNodeOrNull<OptionButton>("DefenderPlanRow/DefenderPlanOption");
+        _defenseSupportRow = root.GetNodeOrNull<HBoxContainer>("DefenseSupportRow");
+        _defenseSupportLabel = root.GetNodeOrNull<Label>("DefenseSupportRow/DefenseSupportLabel");
+        _defenseSupportSource = root.GetNodeOrNull<OptionButton>("DefenseSupportRow/DefenseSupportSource");
+        _defenseSupportTroops = root.GetNodeOrNull<SpinBox>("DefenseSupportRow/DefenseSupportTroops");
+        _defenseSupportAddButton = root.GetNodeOrNull<Button>("DefenseSupportRow/DefenseSupportAddButton");
+        _defenseSupportSummary = root.GetNodeOrNull<Label>("DefenseSupportSummary");
+        _defenseMessengerRow = root.GetNodeOrNull<HBoxContainer>("DefenseMessengerRow");
+        _defenseMessengerLabel = root.GetNodeOrNull<Label>("DefenseMessengerRow/DefenseMessengerLabel");
+        _defenseMessengerOption = root.GetNodeOrNull<OptionButton>("DefenseMessengerRow/DefenseMessengerOption");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
         _officerList = root.GetNodeOrNull<Tree>("OfficerTable");
@@ -269,6 +308,19 @@ internal sealed class AttackDialogController : FloatingOverlayController
         {
             _confirmButton.Pressed += OnConfirmPressed;
             _confirmButtonSignalsConnected = true;
+        }
+        if (_defenseSupportAddButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_defenseSupportAddButton);
+            _defenseSupportAddButton.Pressed += OnDefenseSupportAddPressed;
+        }
+        if (_defenseMessengerOption != null)
+        {
+            _defenseMessengerOption.ItemSelected += OnDefenseMessengerSelected;
+        }
+        if (_defenseSupportSource != null)
+        {
+            _defenseSupportSource.ItemSelected += _ => RefreshDefenseMessengerOptions();
         }
 
         if (!_targetCitySignalsConnected && _targetCityOption != null)
@@ -390,6 +442,10 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
         UpdateOfficerCheckHighlights();
         UpdateDeploymentSummary();
+        if (_dialogMode == DialogMode.Defense && !_editingDomesticReinforcement)
+        {
+            RefreshDefenseMessengerOptions();
+        }
     }
 
     private void UpdateOfficerCheckHighlights()
@@ -488,7 +544,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
         var troopTypeOption = new OptionButton
         {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(190.0f, 0.0f)
         };
         foreach (var troopType in GetAvailableTroopTypes())
         {
@@ -506,7 +563,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
                 deployment.SiegeEngineType = SiegeEngineType.None;
             }
 
-            deployment.TroopCount = Mathf.Clamp(deployment.TroopCount, 0, GetAvailableTroopCount(deployment.TroopType));
+            deployment.TroopCount = Mathf.Clamp(deployment.TroopCount, 0, GetMaxDeployableTroopCount(officer.Id, deployment.TroopType));
             _deployments[officer.Id] = deployment;
             RefreshDeploymentEditor();
         };
@@ -520,15 +577,32 @@ internal sealed class AttackDialogController : FloatingOverlayController
             Rounded = true,
             CustomMinimumSize = new Vector2(90.0f, 0.0f)
         };
-        ConfigureSpinBox(troopCountSpinBox, GetAvailableTroopCount(deployment.TroopType), deployment.TroopCount);
+        ConfigureSpinBox(troopCountSpinBox, GetMaxDeployableTroopCount(officer.Id, deployment.TroopType), deployment.TroopCount);
         troopCountSpinBox.ValueChanged += value =>
         {
-            deployment.TroopCount = (int)value;
+            deployment.TroopCount = Mathf.Clamp(
+                (int)value,
+                0,
+                GetMaxDeployableTroopCount(officer.Id, deployment.TroopType));
             _deployments[officer.Id] = deployment;
-            UpdateDeploymentSummary();
+            RefreshDeploymentEditor();
         };
         ApplyInputThemeToSubtree(troopCountSpinBox);
         row.AddChild(troopCountSpinBox);
+
+        var maxTroopCountButton = new Button
+        {
+            Text = _context.Localization?.T("ui.max") ?? "Max",
+            CustomMinimumSize = new Vector2(58.0f, 0.0f)
+        };
+        maxTroopCountButton.Pressed += () =>
+        {
+            deployment.TroopCount = GetMaxDeployableTroopCount(officer.Id, deployment.TroopType);
+            _deployments[officer.Id] = deployment;
+            RefreshDeploymentEditor();
+        };
+        _context.ApplyCommandButtonTheme(maxTroopCountButton);
+        row.AddChild(maxTroopCountButton);
 
         var siegeEngineOption = new OptionButton
         {
@@ -648,6 +722,12 @@ internal sealed class AttackDialogController : FloatingOverlayController
                 return;
             }
 
+            if (_editingDomesticReinforcement)
+            {
+                SaveDomesticDefenseReinforcement(attackDeployments);
+                return;
+            }
+
             _pendingDefenseCommand.DefenderOfficerDeployments = attackDeployments;
             _pendingDefenseCommand.DefenderBattlePlan = GetSelectedDefenderBattlePlan();
             SetWarning(string.Empty);
@@ -734,6 +814,243 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
     private CityData? GetDialogCityContext() => _dialogContextCity ?? _context.SelectedCity;
 
+    private void RefreshDefenseSupportControls()
+    {
+        if (_dialogMode != DialogMode.Defense || _pendingDefenseCommand == null ||
+            _context.TurnManager?.World == null || _dialogContextCity == null)
+        {
+            return;
+        }
+
+        var world = _context.TurnManager.World;
+        var defendingCity = world.GetCity(_pendingDefenseCommand.TargetCityId) ?? _dialogContextCity;
+        var defenderFactionId = defendingCity.OwnerFactionId;
+        if (_defenseSupportLabel != null)
+        {
+            _defenseSupportLabel.Text = _context.Localization?.T("ui.defense_reinforcement") ?? "Reinforce";
+        }
+        if (_defenseSupportSource != null && !_editingDomesticReinforcement)
+        {
+            _defenseSupportSource.Clear();
+            foreach (var city in defendingCity.ConnectedCityIds
+                         .Select(world.GetCity)
+                         .Where(city => city != null && city.OwnerFactionId > 0)
+                         .Cast<CityData>()
+                         .Where(city => city.OwnerFactionId == defenderFactionId || IsActiveAlly(defenderFactionId, city.OwnerFactionId))
+                         .OrderBy(city => city.OwnerFactionId == defenderFactionId ? 0 : 1)
+                         .ThenBy(city => city.Id))
+            {
+                var cityName = _context.Localization?.GetCityName(city) ?? city.Name;
+                var factionName = _context.Localization?.GetFactionName(world, city.OwnerFactionId) ?? city.OwnerFactionId.ToString();
+                _defenseSupportSource.AddItem($"{cityName} ({factionName})");
+                _defenseSupportSource.SetItemMetadata(_defenseSupportSource.ItemCount - 1, city.Id);
+            }
+        }
+        if (_defenseSupportTroops != null)
+        {
+            _defenseSupportTroops.Visible = !_editingDomesticReinforcement;
+            _defenseSupportTroops.MinValue = 100;
+            _defenseSupportTroops.MaxValue = 10000;
+            _defenseSupportTroops.Step = 100;
+            _defenseSupportTroops.Value = Math.Max(100, _defenseSupportTroops.Value);
+        }
+        if (_defenseSupportSource != null)
+        {
+            _defenseSupportSource.Visible = !_editingDomesticReinforcement;
+        }
+        if (_defenseSupportAddButton != null)
+        {
+            _defenseSupportAddButton.Text = _editingDomesticReinforcement
+                ? (_context.Localization?.T("ui.defense_reinforcement_save") ?? "Save Reinforcement")
+                : (_context.Localization?.T("ui.defense_reinforcement_add") ?? "Add Reinforcement");
+        }
+        if (_defenseSupportSummary != null)
+        {
+            _defenseSupportSummary.Visible = _pendingDefenseCommand.DefenseReinforcementRequests.Count > 0;
+            _defenseSupportSummary.Text = string.Join("\n", _pendingDefenseCommand.DefenseReinforcementRequests.Select(request =>
+            {
+                var city = world.GetCity(request.SourceCityId);
+                var name = city == null ? request.SourceCityId.ToString() : (_context.Localization?.GetCityName(city) ?? city.Name);
+                return request.IsAllianceRequest
+                    ? $"{name}: {_context.Localization?.T("ui.defense_reinforcement_ally") ?? "Ally request"} {request.RequestedTroops:N0}"
+                    : $"{name}: {_context.Localization?.T("ui.defense_reinforcement_domestic") ?? "Domestic reinforcement"} {request.Deployments.Sum(item => item.TroopCount):N0}";
+            }));
+        }
+    }
+
+    private bool IsActiveAlly(int defenderFactionId, int otherFactionId)
+    {
+        if (defenderFactionId == otherFactionId || _context.TurnManager?.World == null)
+        {
+            return false;
+        }
+        var relation = _context.TurnManager.World.GetDiplomacyRelation(defenderFactionId, otherFactionId);
+        return relation is { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 };
+    }
+
+    private void RefreshDefenseMessengerOptions()
+    {
+        if (_defenseMessengerRow == null || _defenseMessengerLabel == null || _defenseMessengerOption == null ||
+            _dialogMode != DialogMode.Defense || _pendingDefenseCommand == null || _context.TurnManager?.World == null)
+        {
+            return;
+        }
+
+        var world = _context.TurnManager.World;
+        var defendingCity = world.GetCity(_pendingDefenseCommand.TargetCityId);
+        var sourceCity = GetSelectedDefenseSupportSourceCity();
+        var requiresEnvoy = defendingCity != null && sourceCity != null && sourceCity.OwnerFactionId != defendingCity.OwnerFactionId;
+        _defenseMessengerRow.Visible = requiresEnvoy && !_editingDomesticReinforcement;
+        if (!requiresEnvoy || defendingCity == null)
+        {
+            return;
+        }
+
+        _defenseMessengerLabel.Text = _context.Localization?.T("ui.defense_reinforcement_envoy") ?? "Envoy";
+        var selectedDefenderIds = _context.GetCheckedTreeMetadataIds(_officerList).ToHashSet();
+        _defenseMessengerOption.Clear();
+        _defenseMessengerOption.AddItem(_context.Localization?.T("ui.defense_reinforcement_envoy_select") ?? "Select envoy");
+        _defenseMessengerOption.SetItemMetadata(0, 0);
+        var selectedIndex = 0;
+        foreach (var officer in defendingCity.OfficerIds
+                     .Where(id => !selectedDefenderIds.Contains(id) && !BattleCampaignService.IsOfficerCommitted(world, id))
+                     .Select(world.GetOfficer)
+                     .Where(officer => officer != null)
+                     .Cast<OfficerData>()
+                     .OrderByDescending(officer => officer.Intelligence + officer.Charm))
+        {
+            _defenseMessengerOption.AddItem($"{_context.Localization?.GetOfficerName(officer) ?? officer.Name}  智 {officer.Intelligence}／魅 {officer.Charm}");
+            _defenseMessengerOption.SetItemMetadata(_defenseMessengerOption.ItemCount - 1, officer.Id);
+            if (officer.Id == _selectedDefenseEnvoyOfficerId)
+            {
+                selectedIndex = _defenseMessengerOption.ItemCount - 1;
+            }
+        }
+        _defenseMessengerOption.Select(selectedIndex);
+    }
+
+    private CityData? GetSelectedDefenseSupportSourceCity()
+    {
+        var sourceOption = _defenseSupportSource;
+        if (sourceOption == null || sourceOption.Selected < 0 || _context.TurnManager?.World == null)
+        {
+            return null;
+        }
+        var metadata = sourceOption.GetItemMetadata(sourceOption.Selected);
+        return metadata.VariantType == Variant.Type.Int
+            ? _context.TurnManager.World.GetCity(metadata.AsInt32())
+            : null;
+    }
+
+    private void OnDefenseMessengerSelected(long index)
+    {
+        if (_defenseMessengerOption == null || index < 0 || index >= _defenseMessengerOption.ItemCount)
+        {
+            return;
+        }
+        var metadata = _defenseMessengerOption.GetItemMetadata((int)index);
+        _selectedDefenseEnvoyOfficerId = metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : 0;
+    }
+
+    private void OnDefenseSupportAddPressed()
+    {
+        if (_editingDomesticReinforcement)
+        {
+            OnConfirmPressed();
+            return;
+        }
+        var sourceOption = _defenseSupportSource;
+        if (sourceOption == null || sourceOption.Selected < 0 || _context.TurnManager?.World == null || _pendingDefenseCommand == null)
+        {
+            return;
+        }
+        var metadata = sourceOption.GetItemMetadata(sourceOption.Selected);
+        if (metadata.VariantType != Variant.Type.Int)
+        {
+            return;
+        }
+        var source = _context.TurnManager.World.GetCity(metadata.AsInt32());
+        if (source == null || _dialogContextCity == null)
+        {
+            return;
+        }
+        if (source.OwnerFactionId != _dialogContextCity.OwnerFactionId)
+        {
+            if (_selectedDefenseEnvoyOfficerId <= 0)
+            {
+                SetWarning(_context.Localization?.T("ui.defense_reinforcement_envoy_required") ?? "Select an envoy for this allied request.");
+                return;
+            }
+            UpsertDefenseReinforcement(new DefenseReinforcementRequestData
+            {
+                SourceCityId = source.Id,
+                IsAllianceRequest = true,
+                EnvoyOfficerId = _selectedDefenseEnvoyOfficerId,
+                RequestedTroops = _defenseSupportTroops == null ? 1000 : (int)_defenseSupportTroops.Value
+            });
+            RefreshDefenseSupportControls();
+            return;
+        }
+
+        _defenderDeployments.Clear();
+        foreach (var pair in _deployments)
+        {
+            _defenderDeployments[pair.Key] = CloneDeployment(pair.Value);
+        }
+        _deployments.Clear();
+        _deploymentOfficerOrder.Clear();
+        _dialogContextCity = source;
+        _editingDomesticReinforcement = true;
+        _domesticReinforcementSourceCityId = source.Id;
+        PopulateOfficerList(source, source.OfficerIds.ToList());
+        RefreshText();
+        RefreshDeploymentEditor();
+    }
+
+    private void SaveDomesticDefenseReinforcement(List<AttackOfficerDeploymentData> deployments)
+    {
+        UpsertDefenseReinforcement(new DefenseReinforcementRequestData
+        {
+            SourceCityId = _domesticReinforcementSourceCityId > 0 ? _domesticReinforcementSourceCityId : GetDialogCityContext()?.Id ?? 0,
+            Deployments = deployments.Select(CloneDeployment).ToList()
+        });
+        _deployments.Clear();
+        foreach (var pair in _defenderDeployments)
+        {
+            _deployments[pair.Key] = CloneDeployment(pair.Value);
+        }
+        _deploymentOfficerOrder.Clear();
+        _deploymentOfficerOrder.AddRange(_deployments.Keys);
+        _dialogContextCity = _context.TurnManager?.World?.GetCity(_pendingDefenseCommand?.TargetCityId ?? 0);
+        _editingDomesticReinforcement = false;
+        _domesticReinforcementSourceCityId = 0;
+        _selectedDefenseEnvoyOfficerId = 0;
+        if (_dialogContextCity != null)
+        {
+            PopulateOfficerList(_dialogContextCity, _dialogContextCity.OfficerIds.ToList());
+        }
+        RefreshText();
+        RefreshDeploymentEditor();
+    }
+
+    private void UpsertDefenseReinforcement(DefenseReinforcementRequestData request)
+    {
+        if (_pendingDefenseCommand == null || request.SourceCityId <= 0)
+        {
+            return;
+        }
+        _pendingDefenseCommand.DefenseReinforcementRequests.RemoveAll(item => item.SourceCityId == request.SourceCityId);
+        _pendingDefenseCommand.DefenseReinforcementRequests.Add(request);
+    }
+
+    private static AttackOfficerDeploymentData CloneDeployment(AttackOfficerDeploymentData deployment) => new()
+    {
+        OfficerId = deployment.OfficerId,
+        TroopType = deployment.TroopType,
+        TroopCount = deployment.TroopCount,
+        SiegeEngineType = deployment.SiegeEngineType
+    };
+
     private void RefreshDefenderPlanOptions()
     {
         if (_defenderPlanOption == null || _context.Localization == null)
@@ -802,6 +1119,14 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private TroopType GetDefaultTroopType() => GetAvailableTroopTypes().FirstOrDefault();
 
     private int GetAvailableTroopCount(TroopType troopType) => GetDialogCityContext()?.GetTroops(troopType) ?? 0;
+
+    private int GetMaxDeployableTroopCount(int officerId, TroopType troopType)
+    {
+        var alreadyAssigned = _deployments.Values
+            .Where(deployment => deployment.OfficerId != officerId && deployment.TroopType == troopType)
+            .Sum(deployment => deployment.TroopCount);
+        return Math.Max(0, GetAvailableTroopCount(troopType) - alreadyAssigned);
+    }
 
     private int GetAvailableSiegeEngineCount(SiegeEngineType siegeEngineType) => GetDialogCityContext()?.GetSiegeEngineCount(siegeEngineType) ?? 0;
 
@@ -1104,8 +1429,23 @@ internal sealed class AttackDialogController : FloatingOverlayController
             var city = world.GetCity(metadata.AsInt32());
             if (city != null)
             {
-                _targetCityOption.SetItemText(index, localization.GetCityName(city));
+                _targetCityOption.SetItemText(index, GetAttackTargetLabel(city));
             }
         }
+    }
+
+    private string GetAttackTargetLabel(CityData city)
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (world == null || localization == null)
+        {
+            return city.NameEn;
+        }
+
+        return localization.Format(
+            "fmt.attack_target_faction_city",
+            localization.GetFactionName(world, city.OwnerFactionId),
+            localization.GetCityName(city));
     }
 }

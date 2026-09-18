@@ -100,6 +100,8 @@ public class CampaignBattleTeamData
     // Each team may originate from a different city when it is a reinforcement.
     // This is used when an unattended support piece leaves through a retreat exit.
     public int OriginCityId { get; set; }
+    // Loaned allied troops return to OriginCity while their envoy returns home.
+    public int OfficerReturnCityId { get; set; }
     // A positive value means the team has already been returned to this city during
     // the campaign and must not be returned a second time at campaign resolution.
     public int RetreatDestinationCityId { get; set; }
@@ -145,6 +147,7 @@ public class BattleInvitationData
     public int CampaignId { get; set; }
     public int InviterFactionId { get; set; }
     public int InvitedFactionId { get; set; }
+    public int RequestedSourceCityId { get; set; }
     public CampaignBattleSide Side { get; set; }
     public BattleInvitationSupportType SupportType { get; set; }
     public BattleInvitationStatus Status { get; set; } = BattleInvitationStatus.Pending;

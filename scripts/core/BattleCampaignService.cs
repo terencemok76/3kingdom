@@ -64,7 +64,8 @@ public static class BattleCampaignService
     public static ActiveBattleCampaignData CreateCampaign(
         WorldState world,
         PendingCommandData attack,
-        DefenderBattlePlan defenderPlan)
+        DefenderBattlePlan defenderPlan,
+        IReadOnlyList<PendingCommandData>? jointAttacks = null)
     {
         var sourceCity = world.GetCity(attack.SourceCityId) ??
             throw new InvalidOperationException("Attack source city is missing.");
@@ -74,6 +75,16 @@ public static class BattleCampaignService
             sourceCity.OwnerFactionId == targetCity.OwnerFactionId)
         {
             throw new InvalidOperationException("Attack route is no longer valid.");
+        }
+
+        var attackingOrders = new List<PendingCommandData> { attack };
+        if (jointAttacks != null)
+        {
+            attackingOrders.AddRange(jointAttacks.Where(order =>
+                order.Type == CommandType.Attack &&
+                order.ActorFactionId == attack.ActorFactionId &&
+                order.TargetCityId == attack.TargetCityId &&
+                order.SourceCityId != attack.SourceCityId));
         }
 
         var campaignId = world.ActiveBattleCampaigns.Count == 0
@@ -96,24 +107,29 @@ public static class BattleCampaignService
                 ? CampaignStage.FieldBattle
                 : CampaignStage.CityBattle,
             IsPlayerInvolved = sourceCity.OwnerFactionId == playerFactionId || targetCity.OwnerFactionId == playerFactionId,
-            AttackerGold = Math.Max(0, attack.GoldToSend),
-            AttackerFood = Math.Max(0, attack.FoodToSend),
+            AttackerGold = attackingOrders.Sum(order => Math.Max(0, order.GoldToSend)),
+            AttackerFood = attackingOrders.Sum(order => Math.Max(0, order.FoodToSend)),
             DefenderGold = Math.Max(0, targetCity.Gold),
             DefenderFood = Math.Max(0, targetCity.Food),
-            AttackerGoldInvested = Math.Max(0, attack.GoldToSend),
-            AttackerFoodInvested = Math.Max(0, attack.FoodToSend),
+            AttackerGoldInvested = attackingOrders.Sum(order => Math.Max(0, order.GoldToSend)),
+            AttackerFoodInvested = attackingOrders.Sum(order => Math.Max(0, order.FoodToSend)),
             DefenderGoldInvested = Math.Max(0, targetCity.Gold),
             DefenderFoodInvested = Math.Max(0, targetCity.Food)
         };
         targetCity.Gold = 0;
         targetCity.Food = 0;
 
-        campaign.Teams.AddRange(CreateTeams(
-            attack.AttackOfficerDeployments,
-            campaign.AttackerFactionId,
-            CampaignBattleSide.Attacker,
-            playerFactionId,
-            originCityId: sourceCity.Id));
+        foreach (var attackingOrder in attackingOrders)
+        {
+            var attackingSourceCity = world.GetCity(attackingOrder.SourceCityId) ??
+                throw new InvalidOperationException("Joint attack source city is missing.");
+            campaign.Teams.AddRange(CreateTeams(
+                attackingOrder.AttackOfficerDeployments,
+                campaign.AttackerFactionId,
+                CampaignBattleSide.Attacker,
+                playerFactionId,
+                originCityId: attackingSourceCity.Id));
+        }
 
         var defenderDeployments = attack.DefenderOfficerDeployments.Count > 0
             ? CloneDeployments(attack.DefenderOfficerDeployments)
@@ -182,7 +198,8 @@ public static class BattleCampaignService
                  (order.Status is ReinforcementStatus.Traveling or ReinforcementStatus.Arrived or ReinforcementStatus.Reserve or ReinforcementStatus.Deployed) &&
                  order.Teams.Any(team => team.OfficerId == officerId)) ||
              campaign.Invitations.Any(invitation =>
-                 invitation.Status == BattleInvitationStatus.Pending && invitation.EnvoyOfficerId == officerId)));
+                 invitation.Status is BattleInvitationStatus.Pending or BattleInvitationStatus.Accepted &&
+                 invitation.EnvoyOfficerId == officerId)));
 
     public static int GetFriendlyRouteLinks(WorldState world, int sourceCityId, int targetCityId, int factionId) =>
         FindFriendlyRouteLinks(world, sourceCityId, targetCityId, factionId);
@@ -293,7 +310,8 @@ public static class BattleCampaignService
         int envoyOfficerId,
         int requestedTroops,
         int requestedGold,
-        int requestedFood)
+        int requestedFood,
+        int requestedSourceCityId = 0)
     {
         if (campaign.Invitations.Any(item =>
                 item.InvitedFactionId == invitedFactionId &&
@@ -309,6 +327,7 @@ public static class BattleCampaignService
             CampaignId = campaign.Id,
             InviterFactionId = inviterFactionId,
             InvitedFactionId = invitedFactionId,
+            RequestedSourceCityId = requestedSourceCityId,
             Side = side,
             SupportType = supportType,
             EnvoyOfficerId = envoyOfficerId,
@@ -335,6 +354,7 @@ public static class BattleCampaignService
 
         var candidateCities = world.Cities
             .Where(city => city.OwnerFactionId == invitation.InvitedFactionId)
+            .Where(city => invitation.RequestedSourceCityId <= 0 || city.Id == invitation.RequestedSourceCityId)
             .Select(city => (City: city, Links: FindFriendlyRouteLinks(world, city.Id, campaign.TargetCityId, invitation.InvitedFactionId)))
             .Where(item => item.Links > 0)
             .OrderBy(item => item.Links)
@@ -342,8 +362,10 @@ public static class BattleCampaignService
             .ToList();
         var source = candidateCities.FirstOrDefault();
         var relationScore = relation?.RelationScore ?? 0;
+        var envoy = world.GetOfficer(invitation.EnvoyOfficerId);
+        var envoyBonus = envoy == null ? 0 : Math.Min(20, (envoy.Intelligence + envoy.Charm) / 10);
         var safeTroops = source.City == null ? 0 : Math.Max(0, source.City.Troops - MinimumCityGarrison);
-        var acceptanceScore = relationScore + (isAlliance ? 35 : 0) + Math.Min(25, safeTroops / 400);
+        var acceptanceScore = relationScore + (isAlliance ? 35 : 0) + Math.Min(25, safeTroops / 400) + envoyBonus;
         if (source.City == null || acceptanceScore < 45)
         {
             invitation.Status = BattleInvitationStatus.Declined;
@@ -357,17 +379,21 @@ public static class BattleCampaignService
         invitation.DecisionReason = "Support accepted.";
         var deployments = invitation.SupportType == BattleInvitationSupportType.Resources
             ? new List<AttackOfficerDeploymentData>()
-            : CreateDefaultDefenderDeployments(source.City, 25);
+            : CreateAiAllianceReinforcementDeployments(world, source.City, invitation.RequestedTroops);
+        var envoyLoanedInfantry = DetermineAiEnvoyLoanedInfantry(world, campaign, invitation, source.City);
         if (invitation.RequestedTroops > 0)
         {
-            LimitDeploymentTroops(deployments, invitation.RequestedTroops);
+            LimitDeploymentTroops(deployments, Math.Max(1, invitation.RequestedTroops - envoyLoanedInfantry));
         }
+        var allocation = BuildTroopAllocation(deployments);
+        envoyLoanedInfantry = Math.Min(envoyLoanedInfantry, Math.Max(0, source.City.InfantryTroops - allocation.Infantry));
+        envoyLoanedInfantry = Math.Min(envoyLoanedInfantry, Math.Max(0, source.City.Troops - allocation.Total - MinimumCityGarrison));
 
         var gold = Math.Min(invitation.RequestedGold, Math.Max(0, source.City.Gold / 3));
         var food = Math.Min(invitation.RequestedFood, Math.Max(0, source.City.Food / 3));
         try
         {
-            DispatchReinforcement(
+            var order = DispatchReinforcement(
                 world,
                 campaign,
                 source.City.Id,
@@ -378,6 +404,7 @@ public static class BattleCampaignService
                 invitation.SupportType == BattleInvitationSupportType.Resources
                     ? CampaignSupplyOwnership.Gift
                     : CampaignSupplyOwnership.Expedition);
+            AttachAiEnvoyLoanedInfantry(world, campaign, invitation, source.City, order, envoyLoanedInfantry);
         }
         catch (InvalidOperationException ex)
         {
@@ -386,6 +413,116 @@ public static class BattleCampaignService
             return false;
         }
         return true;
+    }
+
+    private static int DetermineAiEnvoyLoanedInfantry(WorldState world, ActiveBattleCampaignData campaign, BattleInvitationData invitation, CityData sourceCity)
+    {
+        var envoy = world.GetOfficer(invitation.EnvoyOfficerId);
+        var defenderCity = world.GetCity(campaign.TargetCityId);
+        if (envoy == null || defenderCity == null || !defenderCity.OfficerIds.Contains(envoy.Id) || invitation.RequestedTroops <= 1)
+        {
+            return 0;
+        }
+
+        // The allied ruler decides the loan without an extra player input.
+        var desired = Math.Min(invitation.RequestedTroops - 1,
+            Math.Max(1, invitation.RequestedTroops / 4) + Math.Max(0, envoy.Intelligence + envoy.Charm - 100) * 2);
+        var safeInfantry = Math.Max(0, Math.Min(sourceCity.InfantryTroops, sourceCity.Troops - MinimumCityGarrison));
+        return Math.Min(desired, safeInfantry);
+    }
+
+    private static List<AttackOfficerDeploymentData> CreateAiAllianceReinforcementDeployments(WorldState world, CityData sourceCity, int requestedTroops)
+    {
+        var teamLimit = requestedTroops <= 400 ? 1 : requestedTroops <= 1000 ? 2 : 3;
+        var selectedOfficers = sourceCity.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => officer.Leadership + officer.Combat)
+            .ThenByDescending(officer => officer.Intelligence)
+            .Take(teamLimit)
+            .Select(officer => officer.Id)
+            .ToHashSet();
+        return CreateDefaultDefenderDeployments(sourceCity, 25)
+            .Where(deployment => selectedOfficers.Contains(deployment.OfficerId))
+            .ToList();
+    }
+
+    private static void AttachAiEnvoyLoanedInfantry(WorldState world, ActiveBattleCampaignData campaign, BattleInvitationData invitation, CityData sourceCity, ReinforcementOrderData order, int troopCount)
+    {
+        if (troopCount <= 0 || invitation.EnvoyOfficerId <= 0)
+        {
+            return;
+        }
+
+        sourceCity.InfantryTroops -= troopCount;
+        order.Teams.Add(new CampaignBattleTeamData
+        {
+            Id = order.Teams.Count + 1,
+            FactionId = sourceCity.OwnerFactionId,
+            Side = invitation.Side,
+            ControllerType = CampaignControllerType.Player,
+            OfficerId = invitation.EnvoyOfficerId,
+            TroopType = TroopType.Infantry,
+            ActiveTroops = troopCount,
+            MaximumTroops = troopCount,
+            ReinforcementOrderId = order.Id,
+            OriginCityId = sourceCity.Id,
+            OfficerReturnCityId = campaign.TargetCityId,
+            Location = CampaignTeamLocation.Traveling,
+            CooperationObjective = "allied-envoy-loan"
+        });
+        var participant = campaign.Participants.FirstOrDefault(item => item.FactionId == sourceCity.OwnerFactionId && item.Side == invitation.Side);
+        if (participant != null)
+        {
+            participant.TroopsCommitted += troopCount;
+        }
+        if (world.GetOfficer(invitation.EnvoyOfficerId) is { } envoy)
+        {
+            envoy.LastAssignedYear = world.Year;
+            envoy.LastAssignedMonth = world.Month;
+            envoy.LastAssignedCommand = CommandType.Attack;
+        }
+    }
+
+    public static void DispatchDefenseReinforcementRequests(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        PendingCommandData attack)
+    {
+        foreach (var request in attack.DefenseReinforcementRequests)
+        {
+            try
+            {
+                var source = world.GetCity(request.SourceCityId);
+                if (source == null || source.Id == campaign.TargetCityId)
+                {
+                    continue;
+                }
+
+                if (!request.IsAllianceRequest && source.OwnerFactionId == campaign.DefenderFactionId)
+                {
+                    DispatchReinforcement(world, campaign, source.Id, CampaignBattleSide.Defender,
+                        request.Deployments, 0, 0);
+                    continue;
+                }
+
+                if (!request.IsAllianceRequest || source.OwnerFactionId == campaign.DefenderFactionId)
+                {
+                    continue;
+                }
+
+                var invitation = CreateInvitation(campaign, campaign.DefenderFactionId,
+                    source.OwnerFactionId, CampaignBattleSide.Defender,
+                    BattleInvitationSupportType.Troops, request.EnvoyOfficerId, request.RequestedTroops, 0, 0, source.Id);
+                ResolveAiInvitation(world, campaign, invitation);
+            }
+            catch (ReinforcementDispatchException)
+            {
+                // A source can become unavailable while another pending command
+                // resolves.  Preserve all other defense requests.
+            }
+        }
     }
 
     public static void AdvanceCompletedBattleDay(ActiveBattleCampaignData campaign)
@@ -540,13 +677,16 @@ public static class BattleCampaignService
                 }
                 destination.AddSiegeEngineAllocation(engines);
             }
-            if (team.OfficerId > 0 && !destination.OfficerIds.Contains(team.OfficerId))
+            var officerDestination = team.OfficerReturnCityId > 0
+                ? world.GetCity(team.OfficerReturnCityId) ?? destination
+                : destination;
+            if (team.OfficerId > 0 && !officerDestination.OfficerIds.Contains(team.OfficerId))
             {
                 RemoveOfficerFromAllCities(world, team.OfficerId);
-                destination.OfficerIds.Add(team.OfficerId);
+                officerDestination.OfficerIds.Add(team.OfficerId);
                 if (world.GetOfficer(team.OfficerId) is { } officer)
                 {
-                    officer.CityId = destination.Id;
+                    officer.CityId = officerDestination.Id;
                 }
             }
         }
@@ -1130,7 +1270,9 @@ public static class BattleCampaignService
                 continue;
             }
 
-            officer.HomeCityId = team.OriginCityId > 0 ? team.OriginCityId : officer.CityId;
+            officer.HomeCityId = team.OfficerReturnCityId > 0
+                ? team.OfficerReturnCityId
+                : (team.OriginCityId > 0 ? team.OriginCityId : officer.CityId);
             RemoveOfficerFromAllCities(world, officer.Id);
             officer.CityId = 0;
             officer.CaptiveFactionId = winnerFactionId;
@@ -1327,6 +1469,8 @@ public static class BattleCampaignService
         MaximumTroops = team.MaximumTroops,
         Morale = team.Morale,
         ReinforcementOrderId = team.ReinforcementOrderId,
+        OriginCityId = team.OriginCityId,
+        OfficerReturnCityId = team.OfficerReturnCityId,
         Location = team.Location,
         CooperationObjective = team.CooperationObjective
     };

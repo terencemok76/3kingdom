@@ -777,6 +777,18 @@ public partial class CommandResolver
         result.Message = _localization.CurrentLanguage == GameLanguage.TraditionalChinese ? result.MessageZhHant : result.MessageEn;
     }
 
+    private static List<PendingCommandData> GetPendingJointAttacks(WorldState world, PendingCommandData primaryAttack)
+    {
+        return world.PendingCommands
+            .Where(order =>
+                order != primaryAttack &&
+                order.Type == CommandType.Attack &&
+                order.ActorFactionId == primaryAttack.ActorFactionId &&
+                order.TargetCityId == primaryAttack.TargetCityId &&
+                order.SourceCityId != primaryAttack.SourceCityId)
+            .ToList();
+    }
+
     private CommandResult ResolveAttack(WorldState world, CityData sourceCity, PendingCommandData pendingCommand)
     {
         if (_combatResolver == null)
@@ -851,21 +863,34 @@ public partial class CommandResolver
         if (world.InteractiveBattlesEnabled &&
             (sourceCity.OwnerFactionId == playerFactionId || defendingFactionId == playerFactionId))
         {
+            var jointAttacks = GetPendingJointAttacks(world, pendingCommand);
             var defenderPlan = defendingFactionId == playerFactionId
                 ? pendingCommand.DefenderBattlePlan
                 : pendingCommand.DefenderBattlePlanOverride ?? BattleCampaignService.ChooseDefenderBattlePlan(world, targetCity, pendingCommand);
-            var campaign = BattleCampaignService.CreateCampaign(world, pendingCommand, defenderPlan);
+            var campaign = BattleCampaignService.CreateCampaign(world, pendingCommand, defenderPlan, jointAttacks);
+            BattleCampaignService.DispatchDefenseReinforcementRequests(world, campaign, pendingCommand);
+            foreach (var jointAttack in jointAttacks)
+            {
+                world.PendingCommands.Remove(jointAttack);
+            }
+
+            var jointSourceCities = jointAttacks
+                .Select(order => world.GetCity(order.SourceCityId))
+                .Where(city => city != null)
+                .Select(city => city!)
+                .Prepend(sourceCity)
+                .ToList();
             var campaignResult = LocalizedResult(
                 true,
-                "cmd.attack.campaign_started",
+                jointAttacks.Count > 0 ? "cmd.attack.joint_campaign_started" : "cmd.attack.campaign_started",
                 new object[]
                 {
-                    GetCityName(sourceCity, GameLanguage.TraditionalChinese),
+                    string.Join(", ", jointSourceCities.Select(city => GetCityName(city, GameLanguage.TraditionalChinese))),
                     GetCityName(targetCity, GameLanguage.TraditionalChinese)
                 },
                 new object[]
                 {
-                    GetCityName(sourceCity, GameLanguage.English),
+                    string.Join(", ", jointSourceCities.Select(city => GetCityName(city, GameLanguage.English))),
                     GetCityName(targetCity, GameLanguage.English)
                 });
             campaignResult.ActiveBattleCampaignId = campaign.Id;

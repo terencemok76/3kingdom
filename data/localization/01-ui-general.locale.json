@@ -399,6 +399,17 @@
 					   "zhHant":  "防禦",
 					   "en":  "Defense"
 	},
+	"ui.defense_reinforcement": { "zhHant": "請求援軍", "en": "Request Aid" },
+	"ui.defense_reinforcement_add": { "zhHant": "加入援軍", "en": "Add Aid" },
+	"ui.defense_reinforcement_save": { "zhHant": "儲存援軍", "en": "Save Aid" },
+	"ui.defense_reinforcement_domestic": { "zhHant": "本國援軍", "en": "Domestic aid" },
+	"ui.defense_reinforcement_ally": { "zhHant": "同盟請求", "en": "Ally request" },
+	"ui.defense_reinforcement_envoy": { "zhHant": "請求使者", "en": "Request Envoy" },
+	"ui.defense_reinforcement_envoy_select": { "zhHant": "選擇使者", "en": "Select envoy" },
+	"ui.defense_reinforcement_envoy_required": { "zhHant": "向同盟請求援軍前，請先選擇未編入守軍的使者。", "en": "Select an envoy who is not assigned to the defenders before requesting allied aid." },
+	"ui.alliance_reinforcement_response_title": { "zhHant": "同盟援軍回覆", "en": "Alliance Reinforcement Response" },
+	"log.alliance_reinforcement_accepted": { "zhHant": "{0} 同意援軍請求：核准最多 {1:N0} 人，援軍已開始行軍。", "en": "{0} accepted the reinforcement request: up to {1:N0} troops have begun traveling." },
+	"log.alliance_reinforcement_declined": { "zhHant": "{0} 拒絕援軍請求：{1}", "en": "{0} declined the reinforcement request: {1}" },
 	"ui.defender_battle_plan": { "zhHant": "迎擊方式", "en": "Defense Plan" },
 	"ui.debug_defender_plan_override": { "zhHant": "Debug：強制守方迎擊", "en": "Debug: Defender Plan" },
 	"ui.defender_plan_ai_auto": { "zhHant": "AI 自動決定（不覆寫）", "en": "AI decides (no override)" },
@@ -408,6 +419,10 @@
 								   "zhHant":  "守軍配兵",
 								   "en":  "Defense Deployments"
 							   },
+	"ui.max":  {
+								 "zhHant":  "最大",
+								 "en":  "Max"
+							 },
 	"ui.defense_officers":  {
 							   "zhHant":  "守城武將",
 							   "en":  "Defending Officers"

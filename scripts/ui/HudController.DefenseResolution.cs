@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
@@ -7,6 +8,8 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController
 {
+    private readonly Queue<string> _allianceReinforcementResponseQueue = new();
+    private int _campaignWaitingForAllianceResponse;
     private void ResolveEndTurnPendingCommands()
     {
         if (_turnManager == null || _commandResolver == null || _localization == null)
@@ -102,6 +105,11 @@ public partial class HudController
         while (_pendingAttackResolutionQueue.Count > 0)
         {
             var pendingCommand = _pendingAttackResolutionQueue[0];
+            if (!world.PendingCommands.Contains(pendingCommand))
+            {
+                _pendingAttackResolutionQueue.RemoveAt(0);
+                continue;
+            }
 
             var sourceCity = world.GetCity(pendingCommand.SourceCityId);
             var targetCity = world.GetCity(pendingCommand.TargetCityId);
@@ -131,7 +139,7 @@ public partial class HudController
                 world.ResumeAttackResolutionAfterCampaign = true;
                 world.IsBattleResolutionPhase = true;
                 AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
-                LaunchCampaignBattle(result.ActiveBattleCampaignId);
+                QueueAllianceReinforcementResponses(result.ActiveBattleCampaignId);
                 return;
             }
 
@@ -145,6 +153,56 @@ public partial class HudController
         }
 
         FinishEndTurnResolution();
+    }
+
+    private void QueueAllianceReinforcementResponses(int campaignId)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            LaunchCampaignBattle(campaignId);
+            return;
+        }
+        var campaign = _turnManager.World.ActiveBattleCampaigns.FirstOrDefault(item => item.Id == campaignId);
+        if (campaign == null)
+        {
+            LaunchCampaignBattle(campaignId);
+            return;
+        }
+        foreach (var invitation in campaign.Invitations.Where(item => item.Side == CampaignBattleSide.Defender))
+        {
+            var factionName = _localization.GetFactionName(_turnManager.World, invitation.InvitedFactionId);
+            var message = invitation.Status == BattleInvitationStatus.Accepted
+                ? _localization.Format("log.alliance_reinforcement_accepted", factionName, invitation.RequestedTroops)
+                : _localization.Format("log.alliance_reinforcement_declined", factionName, invitation.DecisionReason);
+            AddLog(message, isPlayerRelated: true);
+            _allianceReinforcementResponseQueue.Enqueue(message);
+        }
+        _campaignWaitingForAllianceResponse = campaignId;
+        ShowNextAllianceReinforcementResponse();
+    }
+
+    private void ShowNextAllianceReinforcementResponse()
+    {
+        if (_allianceReinforcementResponseQueue.Count == 0)
+        {
+            var campaignId = _campaignWaitingForAllianceResponse;
+            _campaignWaitingForAllianceResponse = 0;
+            LaunchCampaignBattle(campaignId);
+            return;
+        }
+        var dialog = new AcceptDialog
+        {
+            Title = _localization?.T("ui.alliance_reinforcement_response_title") ?? "Alliance Response",
+            DialogText = _allianceReinforcementResponseQueue.Dequeue(),
+            Exclusive = true
+        };
+        AddChild(dialog);
+        dialog.Confirmed += () =>
+        {
+            dialog.QueueFree();
+            ShowNextAllianceReinforcementResponse();
+        };
+        dialog.PopupCentered(new Vector2I(520, 180));
     }
 
     private bool ShouldPromptForPlayerDefense(CityData targetCity, PendingCommandData pendingCommand)

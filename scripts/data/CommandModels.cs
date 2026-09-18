@@ -140,12 +140,24 @@ public class PendingCommandData
     public SiegeEngineAllocationData SiegeEngineAllocation { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public List<AttackOfficerDeploymentData> DefenderOfficerDeployments { get; set; } = new();
+    // Chosen while the player configures a defense.  These are dispatched only
+    // after the campaign exists, so their ETA starts on battle day one.
+    public List<DefenseReinforcementRequestData> DefenseReinforcementRequests { get; set; } = new();
     public DefenderBattlePlan DefenderBattlePlan { get; set; } = DefenderBattlePlan.CityDefense;
     public DefenderBattlePlan? DefenderBattlePlanOverride { get; set; }
     public int TargetFactionId { get; set; }
     public int DurationMonths { get; set; } = 3;
     public List<int> OfficerIds { get; set; } = new();
     public List<int> CaptiveOfficerIds { get; set; } = new();
+}
+
+public class DefenseReinforcementRequestData
+{
+    public int SourceCityId { get; set; }
+    public bool IsAllianceRequest { get; set; }
+    public int EnvoyOfficerId { get; set; }
+    public int RequestedTroops { get; set; }
+    public List<AttackOfficerDeploymentData> Deployments { get; set; } = new();
 }
 
 public class CommandResult

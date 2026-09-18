@@ -168,6 +168,53 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="DefenseSupportRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DefenseSupportLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenseSupportRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Reinforce"
+vertical_alignment = 1
+
+[node name="DefenseSupportSource" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenseSupportRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DefenseSupportTroops" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenseSupportRow"]
+custom_minimum_size = Vector2(88, 0)
+layout_mode = 2
+rounded = true
+
+[node name="DefenseSupportAddButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenseSupportRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Add"
+
+[node name="DefenseMessengerRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DefenseMessengerLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenseMessengerRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Envoy"
+vertical_alignment = 1
+
+[node name="DefenseMessengerOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefenseMessengerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DefenseSupportSummary" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+visible = false
+layout_mode = 2
+autowrap_mode = 3
+
 [node name="TroopsRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 visible = false
 layout_mode = 2
