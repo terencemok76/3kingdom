@@ -150,7 +150,10 @@ public partial class HudController
         }
 
         var playerFactionId = _turnManager!.GetPlayerFactionId();
-        _commandResolver?.ResolveAiCapturedOfficerDispositions();
+        foreach (var dispositionResult in _commandResolver?.ResolveAiCapturedOfficerDispositions() ?? Enumerable.Empty<CommandResult>())
+        {
+            AddAiCapturedOfficerDispositionLog(dispositionResult);
+        }
         var report = world.BattleReports.LastOrDefault(item =>
             !item.PlayerAcknowledged &&
             (item.AttackerFactionId == playerFactionId || item.DefenderFactionId == playerFactionId));
@@ -264,6 +267,14 @@ public partial class HudController
         _battleReportDialog = null;
         GameAudioController.Instance?.StopBattleOutcomeBgm();
         GameAudioController.Instance?.PlayGameplayBgm();
+        QueueCapturedRulerChangeOutcomes(
+            report.CapturedOfficerIds,
+            report.AttackerFactionId,
+            report.AttackerRulerOfficerId,
+            report.SourceCityId,
+            report.TargetCityId,
+            report.Year,
+            report.Month);
         ShowNextFactionOutcomeIfPossible();
         if (_personnelUiController?.HasPendingPlayerSuccession() == true)
         {

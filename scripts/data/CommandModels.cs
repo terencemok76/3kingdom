@@ -168,5 +168,11 @@ public class CommandResult
     public string MessageEn { get; set; } = string.Empty;
     public bool? IsPlayerRelated { get; set; }
     public bool IsRulerChange { get; set; }
+    public List<int> CapturedOfficerIds { get; set; } = new();
+    // Transient result notices generated while resolving a primary command,
+    // such as an AI captor's prisoner disposition.
+    public List<CommandResult> FollowUpResults { get; set; } = new();
+    public int ActorFactionId { get; set; }
+    public int AttackerRulerOfficerId { get; set; }
     public int ActiveBattleCampaignId { get; set; }
 }

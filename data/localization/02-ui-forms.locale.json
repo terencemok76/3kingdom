@@ -176,5 +176,25 @@
 		"ui.ruler_changed_message":  {
 									 "zhHant":  "勢力君主已由「{0}」更替為「{1}」。",
 									 "en":  "The faction ruler has changed from \"{0}\" to \"{1}\"."
+								 },
+		"ui.ruler_changed_capture_reason":  {
+									 "zhHant":  "{0}，「{1}」由「{2}」攻擊「{3}」期間，君主「{4}」被俘。",
+									 "en":  "{0}: During \"{1}\"'s attack from \"{2}\" on \"{3}\", ruler \"{4}\" was captured."
+								 },
+		"ui.ruler_changed_death_reason":  {
+									 "zhHant":  "前任君主「{0}」已死亡，故進行繼承。",
+									 "en":  "Former ruler \"{0}\" has died, so succession was required."
+								 },
+		"ui.ruler_changed_captured_reason":  {
+									 "zhHant":  "前任君主「{0}」被俘，故進行繼承。",
+									 "en":  "Former ruler \"{0}\" was captured, so succession was required."
+								 },
+		"ui.ruler_changed_manual_reason":  {
+									 "zhHant":  "因人事任命，前任君主「{0}」卸任。",
+									 "en":  "Former ruler \"{0}\" stepped down through a personnel appointment."
+								 },
+		"ui.ruler_changed_manual_reason_ai":  {
+									 "zhHant":  "因勢力人事決策而改立新君主。",
+									 "en":  "A new ruler was appointed by faction personnel decision."
 								 }
 }

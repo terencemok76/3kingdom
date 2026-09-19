@@ -52,6 +52,12 @@ public partial class HudController
             return;
         }
 
+        if (HasQueuedFactionOutcomes())
+        {
+            Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
+            return;
+        }
+
         var playerFactionId = _turnManager.GetPlayerFactionId();
         while (_pendingNonAttackResolutionQueue.Count > 0)
         {
@@ -67,6 +73,10 @@ public partial class HudController
             _turnManager.World.PendingCommands.Remove(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
             CheckFactionEliminations();
+            if (HasQueuedFactionOutcomes())
+            {
+                return;
+            }
             if (QueuePlayerAllianceResultNotification(pendingCommand, result, playerFactionId))
             {
                 return;
@@ -159,6 +169,12 @@ public partial class HudController
             return;
         }
 
+        if (HasQueuedFactionOutcomes())
+        {
+            Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
+            return;
+        }
+
         var world = _turnManager.World;
         if (TryLaunchPlayerCampaignForCurrentMonth())
         {
@@ -207,7 +223,23 @@ public partial class HudController
             }
 
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedAttackCommand(sourceCity, targetCity));
+            foreach (var followUpResult in result.FollowUpResults)
+            {
+                AddAiCapturedOfficerDispositionLog(followUpResult);
+            }
+            QueueCapturedRulerChangeOutcomes(
+                result.CapturedOfficerIds,
+                pendingCommand.ActorFactionId,
+                result.AttackerRulerOfficerId,
+                pendingCommand.SourceCityId,
+                pendingCommand.TargetCityId,
+                world.Year,
+                world.Month);
             CheckFactionEliminations();
+            if (HasQueuedFactionOutcomes())
+            {
+                return;
+            }
             if (_personnelUiController?.HasPendingPlayerSuccession() == true)
             {
                 _personnelUiController.ShowSuccessionDialog();

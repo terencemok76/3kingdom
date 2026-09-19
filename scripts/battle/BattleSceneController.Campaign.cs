@@ -246,15 +246,17 @@ public partial class BattleSceneController
             var occupied = _occupantsByGrid.Select(entry => entry.Key.Grid).ToHashSet();
             foreach (var team in teams)
             {
-                var grid = GetCampaignSpawnGrids(team, occupied).FirstOrDefault();
-                if (grid == default && !IsCampaignSpawnGridAvailable(grid, occupied))
+                var spawn = GetCampaignSpawnGrids(team, occupied)
+                    .Select(grid => (Found: true, Grid: grid))
+                    .FirstOrDefault();
+                if (!spawn.Found)
                 {
                     KeepBlockedReinforcementInReserve(team);
                     continue;
                 }
 
-                CreateCampaignMarker(unitLayer, grid, team);
-                occupied.Add(grid);
+                CreateCampaignMarker(unitLayer, spawn.Grid, team);
+                occupied.Add(spawn.Grid);
             }
         }
     }
@@ -285,6 +287,24 @@ public partial class BattleSceneController
             var configuredGrids = team.Side == CampaignBattleSide.Attacker
                 ? _mapData.ScenarioDefinition.AttackerReinforcementEntranceGrids
                 : _mapData.ScenarioDefinition.DefenderReinforcementEntranceGrids;
+            if (_activeCampaign?.Stage == CampaignStage.FieldBattle)
+            {
+                foreach (var grid in configuredGrids
+                             .Where(grid => IsFieldBattleReinforcementEdgeGrid(grid, team.Side))
+                             .Where(grid => IsCampaignSpawnGridAvailable(grid, occupied)))
+                {
+                    yield return grid;
+                }
+
+                foreach (var grid in GetFieldBattleReinforcementEdgeGrids(team.Side)
+                             .Where(grid => !configuredGrids.Contains(grid))
+                             .Where(grid => IsCampaignSpawnGridAvailable(grid, occupied)))
+                {
+                    yield return grid;
+                }
+                yield break;
+            }
+
             foreach (var grid in configuredGrids)
             {
                 if (IsCampaignReinforcementEntranceGrid(grid, team.Side) &&
@@ -317,6 +337,94 @@ public partial class BattleSceneController
         {
             yield return grid;
         }
+    }
+
+    private static IEnumerable<Vector2I> GetDefaultFieldBattleReinforcementEdgeGrids(CampaignBattleSide side)
+    {
+        const int entranceDepth = 2;
+        const int entranceWidth = 4;
+        var startX = side == CampaignBattleSide.Attacker ? 0 : BattleMapData.Width - entranceWidth;
+        var startY = side == CampaignBattleSide.Attacker ? 0 : BattleMapData.Height - entranceDepth;
+        for (var y = startY; y < startY + entranceDepth; y += 1)
+        {
+            for (var x = startX; x < startX + entranceWidth; x += 1)
+            {
+                yield return new Vector2I(x, y);
+            }
+        }
+    }
+
+    private static IEnumerable<Vector2I> GetFieldBattleReinforcementEdgeGrids(CampaignBattleSide side)
+    {
+        var yielded = new HashSet<Vector2I>();
+        foreach (var grid in GetDefaultFieldBattleReinforcementEdgeGrids(side))
+        {
+            if (yielded.Add(grid))
+            {
+                yield return grid;
+            }
+        }
+
+        // The scene determines which edge cells are traversable.  After the preferred
+        // corner entrance, scan the same outer two-cell border so mountains, water, or
+        // authored obstacles never force a reinforcement beside the initial formation.
+        if (side == CampaignBattleSide.Attacker)
+        {
+            for (var x = 0; x < BattleMapData.Width; x += 1)
+            {
+                for (var y = 0; y < 2; y += 1)
+                {
+                    var grid = new Vector2I(x, y);
+                    if (yielded.Add(grid))
+                    {
+                        yield return grid;
+                    }
+                }
+            }
+            for (var y = 0; y < BattleMapData.Height; y += 1)
+            {
+                for (var x = 0; x < 2; x += 1)
+                {
+                    var grid = new Vector2I(x, y);
+                    if (yielded.Add(grid))
+                    {
+                        yield return grid;
+                    }
+                }
+            }
+            yield break;
+        }
+
+        for (var x = BattleMapData.Width - 1; x >= 0; x -= 1)
+        {
+            for (var y = BattleMapData.Height - 1; y >= BattleMapData.Height - 2; y -= 1)
+            {
+                var grid = new Vector2I(x, y);
+                if (yielded.Add(grid))
+                {
+                    yield return grid;
+                }
+            }
+        }
+        for (var y = BattleMapData.Height - 1; y >= 0; y -= 1)
+        {
+            for (var x = BattleMapData.Width - 1; x >= BattleMapData.Width - 2; x -= 1)
+            {
+                var grid = new Vector2I(x, y);
+                if (yielded.Add(grid))
+                {
+                    yield return grid;
+                }
+            }
+        }
+    }
+
+    private static bool IsFieldBattleReinforcementEdgeGrid(Vector2I grid, CampaignBattleSide side)
+    {
+        return side == CampaignBattleSide.Attacker
+            ? grid.X is >= 0 and < 2 || grid.Y is >= 0 and < 2
+            : grid.X is >= BattleMapData.Width - 2 and < BattleMapData.Width ||
+              grid.Y is >= BattleMapData.Height - 2 and < BattleMapData.Height;
     }
 
     private IEnumerable<Vector2I> GetCampaignDeploymentZoneGrids(

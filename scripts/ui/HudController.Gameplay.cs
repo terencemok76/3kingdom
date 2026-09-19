@@ -132,7 +132,9 @@ public partial class HudController : CanvasLayer
                     isPlayerRelated: appointmentResult.IsRulerChange);
                 if (appointmentResult.IsRulerChange)
                 {
-                    QueueFactionOutcome(_localization.T("ui.ruler_changed_title"), appointmentMessage);
+                    QueueFactionOutcome(
+                        _localization.T("ui.ruler_changed_title"),
+                        $"{_localization.T("ui.ruler_changed_manual_reason_ai")}\n\n{appointmentMessage}");
                 }
             }
 
@@ -341,6 +343,72 @@ public partial class HudController : CanvasLayer
         Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
     }
 
+    private bool HasQueuedFactionOutcomes() =>
+        _factionOutcomeDialog != null || _factionOutcomeQueue.Count > 0;
+
+    private void QueueCapturedRulerChangeOutcomes(
+        IEnumerable<int> capturedOfficerIds,
+        int attackerFactionId,
+        int attackerRulerOfficerId,
+        int sourceCityId,
+        int targetCityId,
+        int year,
+        int month)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return;
+        }
+
+        var world = _turnManager.World;
+        var sourceCity = world.GetCity(sourceCityId);
+        var targetCity = world.GetCity(targetCityId);
+        var attackerRuler = attackerRulerOfficerId > 0
+            ? world.GetOfficer(attackerRulerOfficerId)
+            : null;
+        var attackerName = attackerRuler == null
+            ? _localization.GetFactionName(world, attackerFactionId)
+            : _localization.GetOfficerName(attackerRuler);
+        foreach (var capturedRuler in capturedOfficerIds
+                     .Distinct()
+                     .Select(world.GetOfficer)
+                     .Where(officer => officer?.DisplacedRulerFactionId > 0)
+                     .Cast<OfficerData>())
+        {
+            var faction = world.GetFaction(capturedRuler.DisplacedRulerFactionId);
+            var successor = faction == null || faction.RulerOfficerId <= 0
+                ? null
+                : world.GetOfficer(faction.RulerOfficerId);
+            if (successor == null)
+            {
+                // A player faction has a pending succession dialog, while a
+                // faction without a successor is handled by the elimination flow.
+                continue;
+            }
+
+            var capturedRulerName = _localization.GetOfficerName(capturedRuler);
+            var successionMessage = _localization.Format(
+                "ui.ruler_changed_message",
+                capturedRulerName,
+                _localization.GetOfficerName(successor));
+            var captureReason = sourceCity == null || targetCity == null
+                ? string.Empty
+                : _localization.Format(
+                    "ui.ruler_changed_capture_reason",
+                    _localization.FormatYearMonth(year, month),
+                    attackerName,
+                    _localization.GetCityName(sourceCity),
+                    _localization.GetCityName(targetCity),
+                    capturedRulerName);
+
+            QueueFactionOutcome(
+                _localization.T("ui.ruler_changed_title"),
+                string.IsNullOrEmpty(captureReason)
+                    ? successionMessage
+                    : $"{captureReason}\n\n{successionMessage}");
+        }
+    }
+
     private void ShowNextFactionOutcomeIfPossible()
     {
         if (_factionOutcomeDialog != null || _factionOutcomeQueue.Count == 0 || _battleReportDialog != null)
@@ -374,6 +442,12 @@ public partial class HudController : CanvasLayer
         {
             _factionOutcomeReturnsToMainMenu = false;
             (GetParent() as GameBootstrap)?.ReturnToMainMenu();
+            return;
+        }
+
+        if (_isResolvingEndTurn)
+        {
+            Callable.From(ContinuePendingNonAttackResolution).CallDeferred();
             return;
         }
 
@@ -564,6 +638,21 @@ public partial class HudController : CanvasLayer
         }
 
         return result.Message;
+    }
+
+    private void AddAiCapturedOfficerDispositionLog(CommandResult result)
+    {
+        var world = _turnManager?.World;
+        if (world == null || _localization == null || result.ActorFactionId <= 0)
+        {
+            AddLog(GetLocalizedResultMessage(result));
+            return;
+        }
+
+        AddLog(_localization.Format(
+            "fmt.ai_captured_officer_disposition",
+            _localization.GetFactionName(world, result.ActorFactionId),
+            GetLocalizedResultMessage(result)));
     }
 
 

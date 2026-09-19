@@ -36,6 +36,7 @@ public class WorldState
         public int SourceCityId { get; set; }
         public int TargetCityId { get; set; }
         public int AttackerFactionId { get; set; }
+        public int AttackerRulerOfficerId { get; set; }
         public int DefenderFactionId { get; set; }
         public int WinnerFactionId { get; set; }
         public CampaignStage Stage { get; set; }

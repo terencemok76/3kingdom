@@ -163,6 +163,7 @@ public class ActiveBattleCampaignData
 {
     public int Id { get; set; }
     public int AttackerFactionId { get; set; }
+    public int AttackerRulerOfficerId { get; set; }
     public int DefenderFactionId { get; set; }
     public int SourceCityId { get; set; }
     public int TargetCityId { get; set; }

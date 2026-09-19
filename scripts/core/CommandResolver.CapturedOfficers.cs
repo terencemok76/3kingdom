@@ -50,6 +50,7 @@ public partial class CommandResolver
             CapturedOfficerDisposition.Jail => ResolveCapturedOfficerJail(world, city, officer),
             _ => LocalizedResult(false, "cmd.captured_officer.invalid_action")
         };
+        result.ActorFactionId = actorFactionId;
 
         if (result.Success)
         {
@@ -110,14 +111,15 @@ public partial class CommandResolver
         }
     }
 
-    private void AutoResolvePendingCapturedOfficers(WorldState world, int winnerFactionId)
+    private List<CommandResult> AutoResolvePendingCapturedOfficers(WorldState world, int winnerFactionId)
     {
+        var results = new List<CommandResult>();
         while (true)
         {
             var pendingRecord = world.GetNextPendingCapturedOfficer(winnerFactionId);
             if (pendingRecord == null)
             {
-                return;
+                return results;
             }
 
             var officer = world.GetOfficer(pendingRecord.OfficerId);
@@ -141,6 +143,11 @@ public partial class CommandResolver
                     world.PendingCapturedOfficerRecords.Remove(pendingRecord);
                 }
             }
+
+            if (result.Success)
+            {
+                results.Add(result);
+            }
         }
     }
 
@@ -162,17 +169,20 @@ public partial class CommandResolver
             : CapturedOfficerDisposition.Free;
     }
 
-    public void ResolveAiCapturedOfficerDispositions()
+    public List<CommandResult> ResolveAiCapturedOfficerDispositions()
     {
+        var results = new List<CommandResult>();
         if (_turnManager?.World == null)
         {
-            return;
+            return results;
         }
 
         foreach (var faction in _turnManager.World.Factions.Where(faction => !faction.IsPlayer))
         {
-            AutoResolvePendingCapturedOfficers(_turnManager.World, faction.Id);
+            results.AddRange(AutoResolvePendingCapturedOfficers(_turnManager.World, faction.Id));
         }
+
+        return results;
     }
 
     private static List<int> GetBattleCaptureOfficerIds(
@@ -619,6 +629,8 @@ public partial class CommandResolver
         {
             return;
         }
+
+        result.CapturedOfficerIds = capturedOfficerIds.Distinct().ToList();
 
         var capturedNamesZh = capturedOfficerIds
             .Select(world.GetOfficer)

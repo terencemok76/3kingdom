@@ -95,6 +95,7 @@ public static class BattleCampaignService
         {
             Id = campaignId,
             AttackerFactionId = sourceCity.OwnerFactionId,
+            AttackerRulerOfficerId = world.GetFaction(sourceCity.OwnerFactionId)?.RulerOfficerId ?? 0,
             DefenderFactionId = targetCity.OwnerFactionId,
             SourceCityId = sourceCity.Id,
             TargetCityId = targetCity.Id,
@@ -611,6 +612,7 @@ public static class BattleCampaignService
             SourceCityId = campaign.SourceCityId,
             TargetCityId = campaign.TargetCityId,
             AttackerFactionId = campaign.AttackerFactionId,
+            AttackerRulerOfficerId = campaign.AttackerRulerOfficerId,
             DefenderFactionId = campaign.DefenderFactionId,
             WinnerFactionId = winnerFactionId,
             Stage = campaign.Stage,

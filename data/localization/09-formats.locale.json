@@ -242,5 +242,9 @@
     "fmt.quick_save_name":  {
                                 "zhHant":  "快速存檔",
                                 "en":  "Quick Save"
-                            }
+                            },
+    "fmt.ai_captured_officer_disposition":  {
+                                                "zhHant":  "【{0}】{1}",
+                                                "en":  "[{0}] {1}"
+                                            }
 }

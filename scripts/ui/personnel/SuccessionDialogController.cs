@@ -222,10 +222,15 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         var factionId = _pendingFactionId;
         var currentWorld = _context.TurnManager?.World;
         var currentFaction = currentWorld?.GetFaction(factionId);
-            var previousRuler = currentFaction == null || currentWorld == null
-                ? null
-                : currentWorld.GetOfficer(currentFaction.RulerOfficerId);
-            var result = _isVoluntaryRulerChange
+        var wasVoluntaryRulerChange = _isVoluntaryRulerChange;
+        var pendingSuccession = wasVoluntaryRulerChange
+            ? null
+            : currentWorld?.GetPendingSuccession(factionId);
+        var previousRulerOfficerId = wasVoluntaryRulerChange
+            ? currentFaction?.RulerOfficerId ?? 0
+            : pendingSuccession?.PreviousRulerOfficerId ?? 0;
+        var previousRuler = currentWorld?.GetOfficer(previousRulerOfficerId);
+        var result = wasVoluntaryRulerChange
             ? commandResolver.ResolvePlayerRulerChange(factionId, _selectedOfficerId)
             : commandResolver.ResolvePlayerSuccession(factionId, _selectedOfficerId);
         if (!result.Success)
@@ -251,9 +256,16 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         var successorName = successor == null
             ? localization.T("ui.unknown")
             : localization.GetOfficerName(successor);
+        var reasonMessage = wasVoluntaryRulerChange
+            ? localization.Format("ui.ruler_changed_manual_reason", previousRulerName)
+            : localization.Format(
+                pendingSuccession?.TriggeredByCapture == true
+                    ? "ui.ruler_changed_captured_reason"
+                    : "ui.ruler_changed_death_reason",
+                previousRulerName);
         _context.QueueFactionOutcome(
             localization.T("ui.ruler_changed_title"),
-            localization.Format("ui.ruler_changed_message", previousRulerName, successorName));
+            $"{reasonMessage}\n\n{localization.Format("ui.ruler_changed_message", previousRulerName, successorName)}");
         _context.UiEventHub.PublishFactionLeadershipChanged(factionId, cityId);
         if (cityId > 0)
         {

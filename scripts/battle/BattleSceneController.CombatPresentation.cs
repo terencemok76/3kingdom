@@ -678,16 +678,20 @@ public partial class BattleSceneController
         var candidates = GetAllBattlePieces()
             .Where(entry => entry.Occupant.TeamName != retreatingUnit.TeamName &&
                             !entry.Occupant.IsHidden &&
-                            IsGeneralCountedPiece(entry.Occupant.Category, entry.Occupant.OfficerName) &&
-                            GetManhattanDistance(entry.Grid.Grid, retreatingGrid.Grid) <= 6)
-            .Select(entry => entry.Occupant)
+                            IsGeneralCountedPiece(entry.Occupant.Category, entry.Occupant.OfficerName))
             .ToList();
         if (candidates.Count == 0)
         {
             return;
         }
 
-        TryShowOfficerSpeech(candidates[_officerSpeechRandom.Next(candidates.Count)], BattleOfficerSpeechEvent.EnemyRetreat);
+        var nearbyCandidates = candidates
+            .Where(entry => GetManhattanDistance(entry.Grid.Grid, retreatingGrid.Grid) <= 6)
+            .ToList();
+        var speaker = nearbyCandidates.Count > 0
+            ? nearbyCandidates[_officerSpeechRandom.Next(nearbyCandidates.Count)].Occupant
+            : candidates[_officerSpeechRandom.Next(candidates.Count)].Occupant;
+        TryShowOfficerSpeech(speaker, BattleOfficerSpeechEvent.EnemyRetreat);
     }
 
     private void ShowOfficerCaptureNotice(BattleOccupantInfo capturedOfficer)

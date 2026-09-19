@@ -963,13 +963,18 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
         var metadata = _defenseMessengerOption.GetItemMetadata((int)index);
         _selectedDefenseEnvoyOfficerId = metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : 0;
+        RefreshOfficerTableText();
+        RefreshDeploymentEditor();
     }
 
     private void OnDefenseSupportSourceSelected()
     {
+        _selectedDefenseEnvoyOfficerId = 0;
         var defenderFactionId = _context.TurnManager?.World?.GetCity(_pendingDefenseCommand?.TargetCityId ?? 0)?.OwnerFactionId ?? -1;
         UpdateDefenseSupportButtonLabel(defenderFactionId);
         RefreshDefenseMessengerOptions();
+        RefreshOfficerTableText();
+        RefreshDeploymentEditor();
     }
 
     private void OnDefenseSupportAddPressed()
@@ -1395,9 +1400,34 @@ internal sealed class AttackDialogController : FloatingOverlayController
             return new List<int>();
         }
 
-        return _dialogMode == DialogMode.Defense
-            ? dialogCity.OfficerIds.ToList()
-            : _context.GetAvailableOfficerIdsForOrder().ToList();
+        if (_dialogMode != DialogMode.Defense || _editingDomesticReinforcement)
+        {
+            return _dialogMode == DialogMode.Defense
+                ? dialogCity.OfficerIds.ToList()
+                : _context.GetAvailableOfficerIdsForOrder().ToList();
+        }
+
+        var reservedOfficerIds = GetReservedDefenseOfficerIds();
+        return dialogCity.OfficerIds
+            .Where(officerId => !reservedOfficerIds.Contains(officerId))
+            .ToList();
+    }
+
+    private HashSet<int> GetReservedDefenseOfficerIds()
+    {
+        var reservedOfficerIds = _pendingDefenseCommand?.DefenseReinforcementRequests
+            .Where(request => request.IsAllianceRequest && request.EnvoyOfficerId > 0)
+            .Select(request => request.EnvoyOfficerId)
+            .ToHashSet() ?? new HashSet<int>();
+        var sourceCity = GetSelectedDefenseSupportSourceCity();
+        var defendingCity = _context.TurnManager?.World?.GetCity(_pendingDefenseCommand?.TargetCityId ?? 0);
+        if (_selectedDefenseEnvoyOfficerId > 0 && sourceCity != null && defendingCity != null &&
+            sourceCity.OwnerFactionId != defendingCity.OwnerFactionId)
+        {
+            reservedOfficerIds.Add(_selectedDefenseEnvoyOfficerId);
+        }
+
+        return reservedOfficerIds;
     }
 
     private void OnTargetCitySelected(long _)

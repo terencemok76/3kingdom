@@ -849,7 +849,15 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.attack.no_troops_resolution");
         }
 
+        var attackingFactionId = sourceCity.OwnerFactionId;
         var defendingFactionId = targetCity.OwnerFactionId;
+        // Battle log names describe who issued this attack, not the faction
+        // leadership after captures, succession, or city ownership changes.
+        var attackingRulerNameZh = GetRulerDisplayName(world, attackingFactionId, GameLanguage.TraditionalChinese);
+        var defendingRulerNameZh = GetRulerDisplayName(world, defendingFactionId, GameLanguage.TraditionalChinese);
+        var attackingRulerNameEn = GetRulerDisplayName(world, attackingFactionId, GameLanguage.English);
+        var defendingRulerNameEn = GetRulerDisplayName(world, defendingFactionId, GameLanguage.English);
+        var attackingRulerOfficerId = world.GetFaction(attackingFactionId)?.RulerOfficerId ?? 0;
         var defendingOfficerIds = new List<int>(targetCity.OfficerIds);
         var selectedDefendingOfficerIds = pendingCommand.DefenderOfficerDeployments
             .Select(item => item.OfficerId)
@@ -947,6 +955,7 @@ public partial class CommandResolver
 
         if (!combat.AttackerWon)
         {
+            var aiCapturedOfficerResults = new List<CommandResult>();
             var capturedAttackerOfficerIds = CaptureBattleLoserOfficers(
                 world,
                 defendingFactionId,
@@ -959,7 +968,7 @@ public partial class CommandResolver
             QueueCapturedOfficersForWinner(world, defendingFactionId, targetCity.Id, capturedAttackerOfficerIds);
             if (defendingFactionId != _turnManager?.GetPlayerFactionId())
             {
-                AutoResolvePendingCapturedOfficers(world, defendingFactionId);
+                aiCapturedOfficerResults.AddRange(AutoResolvePendingCapturedOfficers(world, defendingFactionId));
             }
 
             AwardBattleExperience(world, pendingCommand.OfficerIds, 16);
@@ -983,9 +992,9 @@ public partial class CommandResolver
                 "cmd.attack.failed",
                 new object[]
                 {
-                    GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                    attackingRulerNameZh,
                     GetCityName(sourceCity, GameLanguage.TraditionalChinese),
-                    GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                    defendingRulerNameZh,
                     GetCityName(targetCity, GameLanguage.TraditionalChinese),
                     returningTroops,
                     returnedGold,
@@ -993,14 +1002,16 @@ public partial class CommandResolver
                 },
                 new object[]
                 {
-                    GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.English),
+                    attackingRulerNameEn,
                     GetCityName(sourceCity, GameLanguage.English),
-                    GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.English),
+                    defendingRulerNameEn,
                     GetCityName(targetCity, GameLanguage.English),
                     returningTroops,
                     returnedGold,
                     returnedFood
                 });
+            failedResult.AttackerRulerOfficerId = attackingRulerOfficerId;
+            failedResult.FollowUpResults = aiCapturedOfficerResults;
             if (battleDeathSummaries.Count > 0)
             {
                 AppendLocalizedText(
@@ -1015,6 +1026,7 @@ public partial class CommandResolver
 
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
         ClearCityPrefectAuthorization(targetCity);
+        var aiCapturedOfficerResultsAfterVictory = new List<CommandResult>();
         var capturedDefenderOfficerIds = CaptureBattleLoserOfficers(
             world,
             sourceCity.OwnerFactionId,
@@ -1027,7 +1039,7 @@ public partial class CommandResolver
         QueueCapturedOfficersForWinner(world, sourceCity.OwnerFactionId, targetCity.Id, capturedDefenderOfficerIds);
         if (sourceCity.OwnerFactionId != _turnManager?.GetPlayerFactionId())
         {
-            AutoResolvePendingCapturedOfficers(world, sourceCity.OwnerFactionId);
+            aiCapturedOfficerResultsAfterVictory.AddRange(AutoResolvePendingCapturedOfficers(world, sourceCity.OwnerFactionId));
         }
         AwardBattleExperience(world, pendingCommand.OfficerIds, 26);
         AwardBattleExperience(world, defendingOfficerIds, 12);
@@ -1052,9 +1064,9 @@ public partial class CommandResolver
             "cmd.attack.success",
             new object[]
             {
-                GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                attackingRulerNameZh,
                 GetCityName(sourceCity, GameLanguage.TraditionalChinese),
-                GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.TraditionalChinese),
+                defendingRulerNameZh,
                 GetCityName(targetCity, GameLanguage.TraditionalChinese),
                 garrison,
                 pendingCommand.GoldToSend,
@@ -1062,14 +1074,16 @@ public partial class CommandResolver
             },
             new object[]
             {
-                GetRulerDisplayName(world, sourceCity.OwnerFactionId, GameLanguage.English),
+                attackingRulerNameEn,
                 GetCityName(sourceCity, GameLanguage.English),
-                GetRulerDisplayName(world, targetCity.OwnerFactionId, GameLanguage.English),
+                defendingRulerNameEn,
                 GetCityName(targetCity, GameLanguage.English),
                 garrison,
                 pendingCommand.GoldToSend,
                 pendingCommand.FoodToSend
             });
+        successResult.AttackerRulerOfficerId = attackingRulerOfficerId;
+        successResult.FollowUpResults = aiCapturedOfficerResultsAfterVictory;
         if (battleDeathSummaries.Count > 0)
         {
             AppendLocalizedText(
