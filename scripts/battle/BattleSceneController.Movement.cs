@@ -88,7 +88,7 @@ public partial class BattleSceneController
             IsUnitOccludedByCastleVisual(destinationGrid);
         if (shouldTemporarilyRevealOccludedUnits)
         {
-            ClearOccludedUnitSilhouettes();
+            RemoveOccludedUnitSilhouette(sourceGrid);
             RevealMarkerForOccludedMovement(movedOccupant);
         }
         _selectedUnitGrid = destinationGrid;

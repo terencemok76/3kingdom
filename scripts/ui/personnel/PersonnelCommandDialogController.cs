@@ -7,6 +7,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
     private readonly PersonnelUiContext _context;
     private readonly System.Action _showBonusDialog;
     private readonly System.Action _showAssignRoleDialog;
+    private readonly System.Action _showRulerChangeDialog;
     private readonly System.Action _showPrefectAuthorizationDialog;
     private readonly System.Action _showFireOfficerDialog;
     private readonly System.Action _showRequestItemDialog;
@@ -22,6 +23,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         PersonnelUiContext context,
         System.Action showBonusDialog,
         System.Action showAssignRoleDialog,
+        System.Action showRulerChangeDialog,
         System.Action showPrefectAuthorizationDialog,
         System.Action showFireOfficerDialog,
         System.Action showRequestItemDialog,
@@ -32,6 +34,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         _context = context;
         _showBonusDialog = showBonusDialog;
         _showAssignRoleDialog = showAssignRoleDialog;
+        _showRulerChangeDialog = showRulerChangeDialog;
         _showPrefectAuthorizationDialog = showPrefectAuthorizationDialog;
         _showFireOfficerDialog = showFireOfficerDialog;
         _showRequestItemDialog = showRequestItemDialog;
@@ -101,6 +104,7 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
         _commandOption.Clear();
         AddOption("command.personnel.give_bonus");
         AddOption("command.personnel.assign_title");
+        AddOption("command.personnel.change_ruler");
         AddOption("command.personnel.prefect_authorization");
         AddOption("command.personnel.fire_officer");
         AddOption("command.personnel.request_item");
@@ -170,6 +174,9 @@ internal sealed class PersonnelCommandDialogController : FloatingOverlayControll
                 return;
             case "command.personnel.assign_title":
                 _showAssignRoleDialog();
+                return;
+            case "command.personnel.change_ruler":
+                _showRulerChangeDialog();
                 return;
             case "command.personnel.prefect_authorization":
                 _showPrefectAuthorizationDialog();

@@ -251,7 +251,7 @@ public partial class CommandResolver
 
         if (removalOutcome.RemovedFactionId > 0 && removalOutcome.WasRuler)
         {
-            ResolveRulerDeath(world, removalOutcome.RemovedFactionId);
+            ResolveRulerDeath(world, removalOutcome.RemovedFactionId, officer.Id, triggeredByCapture: true);
         }
     }
 
@@ -639,5 +639,45 @@ public partial class CommandResolver
             result,
             _localization.FormatForLanguage(GameLanguage.TraditionalChinese, "cmd.attack.capture_suffix", string.Join("、", capturedNamesZh)),
             _localization.FormatForLanguage(GameLanguage.English, "cmd.attack.capture_suffix", string.Join(", ", capturedNamesEn)));
+
+        var rulerCaptureSummariesZh = capturedOfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer?.DisplacedRulerFactionId > 0)
+            .Select(officer => BuildCapturedRulerSummary(world, officer!, GameLanguage.TraditionalChinese))
+            .Where(summary => !string.IsNullOrWhiteSpace(summary));
+        var rulerCaptureSummariesEn = capturedOfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer?.DisplacedRulerFactionId > 0)
+            .Select(officer => BuildCapturedRulerSummary(world, officer!, GameLanguage.English))
+            .Where(summary => !string.IsNullOrWhiteSpace(summary));
+        AppendLocalizedText(
+            result,
+            string.Join(" ", rulerCaptureSummariesZh),
+            string.Join(" ", rulerCaptureSummariesEn));
+    }
+
+    private string BuildCapturedRulerSummary(WorldState world, OfficerData capturedRuler, GameLanguage language)
+    {
+        var rulerName = GetOfficerDisplayName(capturedRuler, language);
+        var factionId = capturedRuler.DisplacedRulerFactionId;
+        var faction = world.GetFaction(factionId);
+        if (faction == null || !IsFactionAlive(world, factionId))
+        {
+            return _localization?.FormatForLanguage(language, "cmd.attack.ruler_captured_faction_destroyed_suffix", rulerName) ?? string.Empty;
+        }
+
+        if (world.GetPendingSuccession(factionId) != null)
+        {
+            return _localization?.FormatForLanguage(language, "cmd.attack.ruler_captured_pending_succession_suffix", rulerName) ?? string.Empty;
+        }
+
+        var successor = world.GetOfficer(faction.RulerOfficerId);
+        return successor == null
+            ? string.Empty
+            : _localization?.FormatForLanguage(
+                language,
+                "cmd.attack.ruler_captured_succeeded_suffix",
+                rulerName,
+                GetOfficerDisplayName(successor, language)) ?? string.Empty;
     }
 }

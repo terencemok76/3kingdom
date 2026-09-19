@@ -9,7 +9,9 @@ internal static class BattlePresentationSettings
     internal const float MapPaddingRight = 220.0f;
     internal const float MapPaddingBottom = 320.0f;
     internal const double OfficerSpeechDurationSeconds = 4.0;
-    internal const double TurnBannerDurationSeconds = 2.5;
+    internal const double TurnBannerDurationSeconds = 1.5;
+    internal const double ReinforcementArrivalSpeechChance = 0.65;
+    internal const double EnemyRetreatSpeechChance = 0.55;
     internal const ulong OfficerSpeechCooldownMilliseconds = 20000;
     internal const float MinimumBattleCameraZoom = 0.75f;
     internal const float MaximumBattleCameraZoom = 1.35f;

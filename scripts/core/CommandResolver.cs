@@ -155,6 +155,135 @@ public partial class CommandResolver
             });
     }
 
+    public CommandResult ResolvePlayerRulerChange(int factionId, int successorOfficerId)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var faction = world.GetFaction(factionId);
+        if (faction == null || !faction.IsPlayer || faction.RulerOfficerId <= 0)
+        {
+            return LocalizedResult(false, "cmd.ruler_change.invalid_faction");
+        }
+
+        if (world.GetPendingSuccession(factionId) != null)
+        {
+            return LocalizedResult(false, "cmd.ruler_change.pending_succession");
+        }
+
+        if (successorOfficerId == faction.RulerOfficerId)
+        {
+            return LocalizedResult(false, "cmd.ruler_change.already_ruler");
+        }
+
+        var successor = world.GetOfficer(successorOfficerId);
+        if (successor == null ||
+            !faction.OfficerIds.Contains(successorOfficerId) ||
+            successor.CityId <= 0 ||
+            successor.CaptiveFactionId > 0 ||
+            (successor.DeathYear > 0 && world.Year > successor.DeathYear) ||
+            BattleCampaignService.IsOfficerCommitted(world, successorOfficerId))
+        {
+            return LocalizedResult(false, "cmd.ruler_change.invalid_successor");
+        }
+
+        var previousRuler = world.GetOfficer(faction.RulerOfficerId);
+        var previousNameZh = previousRuler == null ? string.Empty : GetOfficerDisplayName(previousRuler, GameLanguage.TraditionalChinese);
+        var previousNameEn = previousRuler == null ? string.Empty : GetOfficerDisplayName(previousRuler, GameLanguage.English);
+        ApplyFactionSuccessor(world, faction, successor);
+        return LocalizedResult(
+            true,
+            "cmd.ruler_change.resolved",
+            new object[] { previousNameZh, GetOfficerDisplayName(successor, GameLanguage.TraditionalChinese) },
+            new object[] { previousNameEn, GetOfficerDisplayName(successor, GameLanguage.English) });
+    }
+
+    public CommandResult ResolveAiRulerChange(int factionId, int successorOfficerId)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var faction = world.GetFaction(factionId);
+        if (faction == null || faction.IsPlayer || faction.RulerOfficerId <= 0 ||
+            world.GetPendingSuccession(factionId) != null)
+        {
+            return LocalizedResult(false, "cmd.ai_ruler_change.invalid");
+        }
+
+        var previousRuler = world.GetOfficer(faction.RulerOfficerId);
+        var successor = world.GetOfficer(successorOfficerId);
+        if (previousRuler == null || successor == null || successor.Id == previousRuler.Id ||
+            !faction.OfficerIds.Contains(successor.Id) || successor.CityId <= 0 ||
+            successor.CaptiveFactionId > 0 ||
+            (successor.DeathYear > 0 && world.Year > successor.DeathYear) ||
+            BattleCampaignService.IsOfficerCommitted(world, successor.Id))
+        {
+            return LocalizedResult(false, "cmd.ai_ruler_change.invalid");
+        }
+
+        var previousNameZh = GetOfficerDisplayName(previousRuler, GameLanguage.TraditionalChinese);
+        var previousNameEn = GetOfficerDisplayName(previousRuler, GameLanguage.English);
+        ApplyFactionSuccessor(world, faction, successor);
+        previousRuler.Loyalty = System.Math.Min(100, previousRuler.Loyalty + 5);
+        var highAmbitionLoyaltyPenalty = successor.Ambition > 70
+            ? System.Math.Max(1, (successor.Ambition - 60) / 15)
+            : 0;
+        if (highAmbitionLoyaltyPenalty > 0)
+        {
+            foreach (var officerId in faction.OfficerIds)
+            {
+                if (officerId == successor.Id || officerId == previousRuler.Id)
+                {
+                    continue;
+                }
+
+                var factionOfficer = world.GetOfficer(officerId);
+                if (factionOfficer != null)
+                {
+                    factionOfficer.Loyalty = System.Math.Max(0, factionOfficer.Loyalty - highAmbitionLoyaltyPenalty);
+                }
+            }
+        }
+        faction.LastRulerChangeYear = world.Year;
+        faction.LastRulerChangeMonth = world.Month;
+
+        var result = LocalizedResult(
+            true,
+            "cmd.ai_ruler_change.resolved",
+            new object[]
+            {
+                previousNameZh,
+                GetOfficerDisplayName(successor, GameLanguage.TraditionalChinese)
+            },
+            new object[]
+            {
+                previousNameEn,
+                GetOfficerDisplayName(successor, GameLanguage.English)
+            });
+        if (highAmbitionLoyaltyPenalty > 0)
+        {
+            AppendLocalizedText(
+                result,
+                _localization?.FormatForLanguage(
+                    GameLanguage.TraditionalChinese,
+                    "cmd.ai_ruler_change.high_ambition_suffix",
+                    highAmbitionLoyaltyPenalty) ?? string.Empty,
+                _localization?.FormatForLanguage(
+                    GameLanguage.English,
+                    "cmd.ai_ruler_change.high_ambition_suffix",
+                    highAmbitionLoyaltyPenalty) ?? string.Empty);
+        }
+        result.IsRulerChange = true;
+        result.IsPlayerRelated = true;
+        return result;
+    }
+
 
     private void ConfigureRandom(int seed)
     {

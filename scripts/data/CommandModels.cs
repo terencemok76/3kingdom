@@ -167,5 +167,6 @@ public class CommandResult
     public string MessageZhHant { get; set; } = string.Empty;
     public string MessageEn { get; set; } = string.Empty;
     public bool? IsPlayerRelated { get; set; }
+    public bool IsRulerChange { get; set; }
     public int ActiveBattleCampaignId { get; set; }
 }

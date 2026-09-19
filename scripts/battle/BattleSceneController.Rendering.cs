@@ -346,6 +346,16 @@ public partial class BattleSceneController
         _occludedUnitSilhouettesByGrid.Clear();
     }
 
+    private void RemoveOccludedUnitSilhouette(BattleGridKey grid)
+    {
+        if (!_occludedUnitSilhouettesByGrid.Remove(grid, out var silhouette))
+        {
+            return;
+        }
+
+        silhouette.QueueFree();
+    }
+
     private static string GetOccludedUnitIdleScene(BattleOccupantInfo occupant)
     {
         return occupant.TroopType switch
@@ -410,36 +420,7 @@ public partial class BattleSceneController
         return cell.HideGroundOccupantWithForeground;
     }
 
-    private Vector2 GetOccludedUnitSilhouettePosition(BattleGridKey grid)
-    {
-        var gatePosition = GetMarkerPosition(grid);
-        if (_mapData == null ||
-            grid.Level != 0 ||
-            !IsWithinMap(grid.Grid))
-        {
-            return gatePosition;
-        }
-
-        var cell = _mapData.GetCell(grid.X, grid.Y);
-        if (cell.Structure != BattleStructureType.Gate || cell.IsGateOpen || cell.IsBroken)
-        {
-            return gatePosition;
-        }
-
-        var innerCityGrid = GetOrthogonalNeighbors(grid.Grid)
-            .Where(IsWithinMap)
-            .Where(IsInsideCityGroundGrid)
-            .Select(ToGroundGridKey)
-            .FirstOrDefault();
-        if (innerCityGrid == default)
-        {
-            return gatePosition;
-        }
-
-        // Keep the battle piece logically on the gate so it can control the door, while
-        // moving its occluded representation toward the courtyard to avoid an outer-gate pose.
-        return gatePosition.Lerp(GetMarkerPosition(innerCityGrid), 0.55f);
-    }
+    private Vector2 GetOccludedUnitSilhouettePosition(BattleGridKey grid) => GetMarkerPosition(grid);
 
     private static Color GetOccludedUnitSilhouetteColor(BattleOccupantInfo occupant)
     {

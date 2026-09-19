@@ -607,6 +607,8 @@ public partial class BattleSceneController
     {
         return speechEvent switch
         {
+            BattleOfficerSpeechEvent.ReinforcementArrival => "reinforcement_arrival",
+            BattleOfficerSpeechEvent.EnemyRetreat => "enemy_retreat",
             BattleOfficerSpeechEvent.TerrainForest => "terrain_forest",
             BattleOfficerSpeechEvent.TerrainHill => "terrain_hill",
             BattleOfficerSpeechEvent.TerrainBridge => "terrain_bridge",
@@ -635,7 +637,7 @@ public partial class BattleSceneController
         return officerName is "Cao Hong" or "Guo Si" ? "steadfast" : "ambitious";
     }
 
-    private async void ShowRetreatNotice(BattleOccupantInfo retreatingUnit)
+    private async void ShowRetreatNotice(BattleOccupantInfo retreatingUnit, BattleGridKey retreatingGrid)
     {
         if (_retreatNotice == null || _retreatNoticeLabel == null)
         {
@@ -650,12 +652,42 @@ public partial class BattleSceneController
         _retreatNotice.Visible = true;
         _retreatNotice.MoveToFront();
         TryShowOfficerSpeech(retreatingUnit, BattleOfficerSpeechEvent.Retreat);
+        TryShowOpponentRetreatSpeechAfterDelay(retreatingUnit, retreatingGrid);
 
         await ToSignal(GetTree().CreateTimer(2.0), SceneTreeTimer.SignalName.Timeout);
         if (GodotObject.IsInstanceValid(this) && noticeSerial == _retreatNoticeSerial)
         {
             _retreatNotice.Visible = false;
         }
+    }
+
+    private async void TryShowOpponentRetreatSpeechAfterDelay(BattleOccupantInfo retreatingUnit, BattleGridKey retreatingGrid)
+    {
+        if (!IsGeneralCountedPiece(retreatingUnit.Category, retreatingUnit.OfficerName) ||
+            _officerSpeechRandom.NextDouble() > EnemyRetreatSpeechChance)
+        {
+            return;
+        }
+
+        await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds + 0.1), SceneTreeTimer.SignalName.Timeout);
+        if (!GodotObject.IsInstanceValid(this) || _isBattleFinished)
+        {
+            return;
+        }
+
+        var candidates = GetAllBattlePieces()
+            .Where(entry => entry.Occupant.TeamName != retreatingUnit.TeamName &&
+                            !entry.Occupant.IsHidden &&
+                            IsGeneralCountedPiece(entry.Occupant.Category, entry.Occupant.OfficerName) &&
+                            GetManhattanDistance(entry.Grid.Grid, retreatingGrid.Grid) <= 6)
+            .Select(entry => entry.Occupant)
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        TryShowOfficerSpeech(candidates[_officerSpeechRandom.Next(candidates.Count)], BattleOfficerSpeechEvent.EnemyRetreat);
     }
 
     private void ShowOfficerCaptureNotice(BattleOccupantInfo capturedOfficer)
@@ -691,7 +723,7 @@ public partial class BattleSceneController
             grid));
     }
 
-    private async void ShowBattleEventNotice(string text)
+    private async void ShowBattleEventNotice(string text, Action? afterHidden = null)
     {
         if (_officerCaptureNotice == null || _officerCaptureNoticeLabel == null)
         {
@@ -707,10 +739,14 @@ public partial class BattleSceneController
         if (GodotObject.IsInstanceValid(this) && noticeSerial == _officerCaptureNoticeSerial)
         {
             _officerCaptureNotice.Visible = false;
+            afterHidden?.Invoke();
         }
     }
 
-    private async void ShowCampaignReinforcementArrivalNotice(string text)
+    private async void ShowCampaignReinforcementArrivalNotice(
+        string text,
+        IReadOnlyCollection<(BattleGridKey Grid, int MoraleDelta)> deferredMoralePopups,
+        IReadOnlyList<BattleOccupantInfo> arrivingOfficerSpeakers)
     {
         // Reinforcements are resolved before EndCurrentTurn shows the next
         // side's banner.  Yield one frame first: otherwise this method observes
@@ -726,8 +762,27 @@ public partial class BattleSceneController
 
         if (GodotObject.IsInstanceValid(this) && !_isBattleFinished)
         {
-            ShowBattleEventNotice(text);
+            ShowBattleEventNotice(text, () =>
+            {
+                foreach (var (grid, moraleDelta) in deferredMoralePopups)
+                {
+                    ShowMoralePopup(grid, moraleDelta);
+                }
+                TryShowCampaignReinforcementArrivalSpeech(arrivingOfficerSpeakers);
+            });
         }
+    }
+
+    private void TryShowCampaignReinforcementArrivalSpeech(IReadOnlyList<BattleOccupantInfo> arrivingOfficerSpeakers)
+    {
+        if (arrivingOfficerSpeakers.Count == 0 ||
+            _officerSpeechRandom.NextDouble() > ReinforcementArrivalSpeechChance)
+        {
+            return;
+        }
+
+        var speaker = arrivingOfficerSpeakers[_officerSpeechRandom.Next(arrivingOfficerSpeakers.Count)];
+        TryShowOfficerSpeech(speaker, BattleOfficerSpeechEvent.ReinforcementArrival);
     }
 
     private async void ShowTurnBanner()

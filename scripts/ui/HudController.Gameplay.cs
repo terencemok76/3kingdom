@@ -126,7 +126,14 @@ public partial class HudController : CanvasLayer
                 }
 
                 var factionName = _localization.GetFactionName(world, faction.Id);
-                AddLog(_localization.FormatAiCityAction(factionName, "-", GetLocalizedResultMessage(appointmentResult)));
+                var appointmentMessage = GetLocalizedResultMessage(appointmentResult);
+                AddLog(
+                    _localization.FormatAiCityAction(factionName, "-", appointmentMessage),
+                    isPlayerRelated: appointmentResult.IsRulerChange);
+                if (appointmentResult.IsRulerChange)
+                {
+                    QueueFactionOutcome(_localization.T("ui.ruler_changed_title"), appointmentMessage);
+                }
             }
 
             var cityIds = new List<int>();

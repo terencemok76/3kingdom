@@ -499,6 +499,19 @@ public partial class BattleSceneController
                 return ToGroundGridKey(destinationGrid);
             }
 
+            // A closed gate is still a defendable L0 station.  Its wall-top
+            // classification must not prevent defenders in the courtyard from
+            // reaching it; later shared movement checks keep the exterior side
+            // blocked until the gate opens or breaks.
+            if (sourceGrid.Level == 0 &&
+                IsGateGrid(destinationGrid) &&
+                _selectedUnit != null &&
+                IsDefenderPiece(_selectedUnit) &&
+                IsInsideCityGroundGrid(sourceGrid.Grid))
+            {
+                return ToGroundGridKey(destinationGrid);
+            }
+
             if (CanUseGateGroundPassage(destinationGrid) && sourceGrid.Level == 0)
             {
                 return ToGroundGridKey(destinationGrid);

@@ -320,7 +320,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
         if (_defenseSupportSource != null)
         {
-            _defenseSupportSource.ItemSelected += _ => RefreshDefenseMessengerOptions();
+            _defenseSupportSource.ItemSelected += _ => OnDefenseSupportSourceSelected();
         }
 
         if (!_targetCitySignalsConnected && _targetCityOption != null)
@@ -860,9 +860,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
         if (_defenseSupportAddButton != null)
         {
-            _defenseSupportAddButton.Text = _editingDomesticReinforcement
-                ? (_context.Localization?.T("ui.defense_reinforcement_save") ?? "Save Reinforcement")
-                : (_context.Localization?.T("ui.defense_reinforcement_add") ?? "Add Reinforcement");
+            UpdateDefenseSupportButtonLabel(defenderFactionId);
         }
         if (_defenseSupportSummary != null)
         {
@@ -886,6 +884,21 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
         var relation = _context.TurnManager.World.GetDiplomacyRelation(defenderFactionId, otherFactionId);
         return relation is { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 };
+    }
+
+    private void UpdateDefenseSupportButtonLabel(int defenderFactionId)
+    {
+        if (_defenseSupportAddButton == null)
+        {
+            return;
+        }
+
+        var sourceCity = GetSelectedDefenseSupportSourceCity();
+        _defenseSupportAddButton.Text = _editingDomesticReinforcement
+            ? (_context.Localization?.T("ui.defense_reinforcement_save") ?? "Save Reinforcement")
+            : sourceCity != null && sourceCity.OwnerFactionId == defenderFactionId
+                ? (_context.Localization?.T("ui.defense_reinforcement_organize") ?? "Organize Reinforcement")
+                : (_context.Localization?.T("ui.defense_reinforcement_request") ?? "Request");
     }
 
     private void RefreshDefenseMessengerOptions()
@@ -950,6 +963,13 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
         var metadata = _defenseMessengerOption.GetItemMetadata((int)index);
         _selectedDefenseEnvoyOfficerId = metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : 0;
+    }
+
+    private void OnDefenseSupportSourceSelected()
+    {
+        var defenderFactionId = _context.TurnManager?.World?.GetCity(_pendingDefenseCommand?.TargetCityId ?? 0)?.OwnerFactionId ?? -1;
+        UpdateDefenseSupportButtonLabel(defenderFactionId);
+        RefreshDefenseMessengerOptions();
     }
 
     private void OnDefenseSupportAddPressed()
@@ -1443,9 +1463,14 @@ internal sealed class AttackDialogController : FloatingOverlayController
             return city.NameEn;
         }
 
+        var ruler = world.GetFaction(city.OwnerFactionId) is { } faction
+            ? world.GetOfficer(faction.RulerOfficerId)
+            : null;
         return localization.Format(
             "fmt.attack_target_faction_city",
-            localization.GetFactionName(world, city.OwnerFactionId),
+            ruler != null
+                ? localization.GetOfficerName(ruler)
+                : localization.GetFactionName(world, city.OwnerFactionId),
             localization.GetCityName(city));
     }
 }

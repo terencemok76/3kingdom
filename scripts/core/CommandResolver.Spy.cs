@@ -268,7 +268,7 @@ public partial class CommandResolver
                 var prefectOutcome = EliminateOfficer(world, targetOfficer);
                 if (wasRuler && targetFactionId > 0)
                 {
-                    ResolveRulerDeath(world, targetFactionId);
+                    ResolveRulerDeath(world, targetFactionId, targetOfficer.Id);
                 }
 
                 var targetFaction = world.GetFaction(targetFactionId);

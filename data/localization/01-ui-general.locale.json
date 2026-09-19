@@ -27,6 +27,10 @@
 										"zhHant":  "武將「{0}」已被俘。請決定其在「{1}」的處置。",
 										"en":  "Officer \"{0}\" has been captured. Decide their fate in \"{1}\"."
 									},
+	"ui.captured_ruler_summary":  {
+										"zhHant":  "君主「{0}」已被俘。請決定其在「{1}」的處置；其原勢力已進入繼承程序。",
+										"en":  "Ruler \"{0}\" has been captured. Decide their fate in \"{1}\"; their former faction has entered succession."
+									},
 	"ui.captured_officer.kill":  {
 									 "zhHant":  "處決",
 									 "en":  "Kill"
@@ -401,6 +405,8 @@
 	},
 	"ui.defense_reinforcement": { "zhHant": "請求援軍", "en": "Request Aid" },
 	"ui.defense_reinforcement_add": { "zhHant": "加入援軍", "en": "Add Aid" },
+	"ui.defense_reinforcement_request": { "zhHant": "提出請求", "en": "Request" },
+	"ui.defense_reinforcement_organize": { "zhHant": "編組援軍", "en": "Organize Reinforcement" },
 	"ui.defense_reinforcement_save": { "zhHant": "儲存援軍", "en": "Save Aid" },
 	"ui.defense_reinforcement_domestic": { "zhHant": "本國援軍", "en": "Domestic aid" },
 	"ui.defense_reinforcement_ally": { "zhHant": "同盟請求", "en": "Ally request" },

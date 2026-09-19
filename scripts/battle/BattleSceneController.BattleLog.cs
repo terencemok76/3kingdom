@@ -50,7 +50,7 @@ public partial class BattleSceneController
             _copyLogButton.Disabled = _battleLogs.Count == 0;
         }
 
-        var selfTeamName = GetCurrentTurnSideName();
+        var selfTeamName = GetPlayerTeamName();
         var visibleLogs = _battleLogs
             .Where(entry => !_showSelfTeamLogOnly || entry.TeamName == selfTeamName)
             .TakeLast(80)

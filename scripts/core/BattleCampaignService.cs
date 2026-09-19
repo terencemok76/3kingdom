@@ -644,6 +644,7 @@ public static class BattleCampaignService
                 if (world.GetOfficer(officerId) is { } officer)
                 {
                     officer.HomeCityId = targetCity.Id;
+                    RemoveCapturedOfficerFromFaction(world, officer);
                     officer.CityId = 0;
                     officer.CaptiveFactionId = campaign.AttackerFactionId;
                     officer.JailedCityId = targetCity.Id;
@@ -1103,12 +1104,13 @@ public static class BattleCampaignService
             return Array.Empty<CityData>();
         }
 
+        var retreatFactionId = GetRetreatFactionId(world, team);
         var destinations = new List<CityData>();
         var origin = world.GetCity(GetRetreatOriginCityId(campaign, team));
         var defenderAlreadyInOriginCity = team.Side == CampaignBattleSide.Defender &&
                                            origin?.Id == anchorCityId;
         if (origin != null &&
-            origin.OwnerFactionId == team.FactionId &&
+            origin.OwnerFactionId == retreatFactionId &&
             !defenderAlreadyInOriginCity)
         {
             destinations.Add(origin);
@@ -1118,9 +1120,9 @@ public static class BattleCampaignService
             .Distinct()
             .Select(world.GetCity)
             .Where(city => city != null &&
-                           (city.OwnerFactionId == team.FactionId || city.OwnerFactionId == 0))
+                           (city.OwnerFactionId == retreatFactionId || city.OwnerFactionId == 0))
             .Select(city => city!)
-            .OrderBy(city => city.OwnerFactionId == team.FactionId ? 0 : 1)
+            .OrderBy(city => city.OwnerFactionId == retreatFactionId ? 0 : 1)
             .ThenBy(city => city.Id)
             .Where(city => destinations.All(existing => existing.Id != city.Id)));
 
@@ -1133,6 +1135,11 @@ public static class BattleCampaignService
     /// </summary>
     public static int GetRetreatOriginCityId(ActiveBattleCampaignData campaign, CampaignBattleTeamData team)
     {
+        if (IsAlliedEnvoyLoanTeam(team) && team.OfficerReturnCityId > 0)
+        {
+            return team.OfficerReturnCityId;
+        }
+
         if (team.OriginCityId > 0)
         {
             return team.OriginCityId;
@@ -1164,10 +1171,13 @@ public static class BattleCampaignService
 
         if (destination.OwnerFactionId == 0)
         {
-            destination.OwnerFactionId = team.FactionId;
+            destination.OwnerFactionId = GetRetreatFactionId(world, team);
         }
 
-        ReturnTeamToCity(world, destination, team);
+        var troopDestination = IsAlliedEnvoyLoanTeam(team)
+            ? world.GetCity(team.OriginCityId) ?? destination
+            : destination;
+        ReturnTeamToCity(world, troopDestination, team, destination);
         team.ActiveTroops = 0;
         team.WoundedTroops = 0;
         team.Location = CampaignTeamLocation.NeighborCity;
@@ -1193,7 +1203,11 @@ public static class BattleCampaignService
         return true;
     }
 
-    private static void ReturnTeamToCity(WorldState world, CityData destination, CampaignBattleTeamData team)
+    private static void ReturnTeamToCity(
+        WorldState world,
+        CityData destination,
+        CampaignBattleTeamData team,
+        CityData? officerDestination = null)
     {
         var returnedTroops = Math.Max(0, team.ActiveTroops + team.WoundedTroops);
         destination.AddTroops(team.TroopType, returnedTroops);
@@ -1205,17 +1219,33 @@ public static class BattleCampaignService
 
         if (team.OfficerId > 0)
         {
+            officerDestination ??= destination;
             RemoveOfficerFromAllCities(world, team.OfficerId);
-            if (!destination.OfficerIds.Contains(team.OfficerId))
+            if (!officerDestination.OfficerIds.Contains(team.OfficerId))
             {
-                destination.OfficerIds.Add(team.OfficerId);
+                officerDestination.OfficerIds.Add(team.OfficerId);
             }
 
             if (world.GetOfficer(team.OfficerId) is { } officer)
             {
-                officer.CityId = destination.Id;
+                officer.CityId = officerDestination.Id;
             }
         }
+    }
+
+    private static bool IsAlliedEnvoyLoanTeam(CampaignBattleTeamData team) =>
+        string.Equals(team.CooperationObjective, "allied-envoy-loan", StringComparison.Ordinal);
+
+    public static int GetRetreatFactionId(WorldState world, CampaignBattleTeamData team)
+    {
+        if (!IsAlliedEnvoyLoanTeam(team) || team.OfficerId <= 0)
+        {
+            return team.FactionId;
+        }
+
+        return world.Factions
+            .FirstOrDefault(faction => faction.OfficerIds.Contains(team.OfficerId) || faction.RulerOfficerId == team.OfficerId)
+            ?.Id ?? team.FactionId;
     }
 
     private static CityData? ResolveReturnCity(
@@ -1273,6 +1303,7 @@ public static class BattleCampaignService
             officer.HomeCityId = team.OfficerReturnCityId > 0
                 ? team.OfficerReturnCityId
                 : (team.OriginCityId > 0 ? team.OriginCityId : officer.CityId);
+            RemoveCapturedOfficerFromFaction(world, officer);
             RemoveOfficerFromAllCities(world, officer.Id);
             officer.CityId = 0;
             officer.CaptiveFactionId = winnerFactionId;
@@ -1283,6 +1314,58 @@ public static class BattleCampaignService
             team.Location = CampaignTeamLocation.Captured;
             capturedOfficerIds.Add(officer.Id);
         }
+    }
+
+    private static void RemoveCapturedOfficerFromFaction(WorldState world, OfficerData officer)
+    {
+        var faction = world.Factions.FirstOrDefault(candidate => candidate.OfficerIds.Contains(officer.Id) || candidate.RulerOfficerId == officer.Id);
+        if (faction == null)
+        {
+            return;
+        }
+
+        var wasRuler = faction.RulerOfficerId == officer.Id;
+        faction.OfficerIds.Remove(officer.Id);
+        OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
+        if (!wasRuler)
+        {
+            return;
+        }
+
+        officer.DisplacedRulerFactionId = faction.Id;
+        faction.RulerOfficerId = 0;
+        var candidates = faction.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(candidate => candidate != null && candidate.CaptiveFactionId <= 0 && (candidate.DeathYear <= 0 || world.Year <= candidate.DeathYear))
+            .OrderByDescending(candidate => candidate!.Leadership + candidate.Intelligence + candidate.Politics + candidate.Charm)
+            .ThenByDescending(candidate => candidate!.Loyalty)
+            .ToList();
+        if (faction.IsPlayer)
+        {
+            world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == faction.Id);
+            world.PendingSuccessionRecords.Add(new WorldState.PendingSuccessionData
+            {
+                FactionId = faction.Id,
+                PreviousRulerOfficerId = officer.Id,
+                TriggeredByCapture = true,
+                CandidateOfficerIds = candidates.Select(candidate => candidate!.Id).ToList()
+            });
+            return;
+        }
+
+        var successor = candidates.FirstOrDefault();
+        if (successor == null)
+        {
+            return;
+        }
+
+        faction.RulerOfficerId = successor.Id;
+        faction.ChancellorOfficerId = faction.ChancellorOfficerId == successor.Id ? 0 : faction.ChancellorOfficerId;
+        faction.ChiefStrategistOfficerId = faction.ChiefStrategistOfficerId == successor.Id ? 0 : faction.ChiefStrategistOfficerId;
+        OfficerAppointmentRules.AddAppointment(successor, OfficerAppointmentRules.Lord);
+        successor.Belongs = faction.Id.ToString();
+        faction.NameZhHant = string.IsNullOrWhiteSpace(successor.NameZhHant) ? faction.NameZhHant : successor.NameZhHant;
+        faction.NameEn = string.IsNullOrWhiteSpace(successor.Name) ? faction.NameEn : successor.Name;
     }
 
     private static void ReturnUndeployedReinforcements(WorldState world, ActiveBattleCampaignData campaign)

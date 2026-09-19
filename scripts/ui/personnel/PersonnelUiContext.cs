@@ -63,6 +63,7 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
     public void BringOverlayToFront(CanvasItem? item) => _owner.PersonnelBringOverlayToFront(item);
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.PersonnelAddLog(message, isPlayerRelated);
+    public void QueueFactionOutcome(string title, string message) => _owner.PersonnelQueueFactionOutcome(title, message);
 
     public void RefreshSelectedCity() => _owner.PersonnelRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.PersonnelRefreshMapVisuals();

@@ -32,6 +32,10 @@ public class AiController
     private const int SpyInciteLoyaltyThreshold = 78;
     private const int AiReinforcementMinimumTroops = 500;
     private const int AiReinforcementFoodDays = 2;
+    private const int AiRulerChangeMinimumAge = 65;
+    private const int AiRulerChangeMinimumCandidateLoyalty = 70;
+    private const int AiRulerChangeMinimumScoreMargin = 30;
+    private const int AiRulerChangeCooldownMonths = 6;
 
     private CommandResolver? _commandResolver;
     private TurnManager? _turnManager;
@@ -62,6 +66,12 @@ public class AiController
         if (faction == null)
         {
             return results;
+        }
+
+        var rulerChangeResult = TryResolveAiRulerChange(world, faction);
+        if (rulerChangeResult != null)
+        {
+            results.Add(rulerChangeResult);
         }
 
         var reservedOfficerIds = new HashSet<int>();
@@ -125,6 +135,104 @@ public class AiController
         }
 
         return results;
+    }
+
+    private CommandResult? TryResolveAiRulerChange(WorldState world, FactionData faction)
+    {
+        if (_commandResolver == null || faction.IsPlayer || faction.RulerOfficerId <= 0 ||
+            world.GetPendingSuccession(faction.Id) != null ||
+            HasActiveCampaign(world, faction.Id) ||
+            world.PendingCommands.Any(command =>
+                command.ActorFactionId == faction.Id && command.Type == CommandType.Diplomacy) ||
+            !HasRulerChangeCooldownElapsed(world, faction))
+        {
+            return null;
+        }
+
+        var ruler = world.GetOfficer(faction.RulerOfficerId);
+        if (ruler == null || ruler.CaptiveFactionId > 0 || BattleCampaignService.IsOfficerCommitted(world, ruler.Id))
+        {
+            return null;
+        }
+
+        var rulerAge = ruler.BirthYear > 0 ? world.Year - ruler.BirthYear : 0;
+        var isNearKnownDeath = ruler.DeathYear > 0 && ruler.DeathYear <= world.Year + 2;
+        if (rulerAge < AiRulerChangeMinimumAge && !isNearKnownDeath)
+        {
+            return null;
+        }
+
+        var candidate = faction.OfficerIds
+            .Where(officerId => officerId != ruler.Id)
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null &&
+                              officer.CityId > 0 &&
+                              officer.CaptiveFactionId <= 0 &&
+                              (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
+                              officer.Loyalty >= AiRulerChangeMinimumCandidateLoyalty &&
+                              !BattleCampaignService.IsOfficerCommitted(world, officer.Id))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => ScoreAiRulerCandidate(ruler, officer))
+            .ThenByDescending(officer => officer.Loyalty)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+        if (candidate == null)
+        {
+            return null;
+        }
+
+        var scoreMargin = ScoreAiRulerCandidate(ruler, candidate) - ScoreAiRulerCandidate(ruler, ruler);
+        var currentRulerIsWeak = ruler.Loyalty < 55;
+        if (!currentRulerIsWeak && scoreMargin < AiRulerChangeMinimumScoreMargin)
+        {
+            return null;
+        }
+
+        return _commandResolver.ResolveAiRulerChange(faction.Id, candidate.Id);
+    }
+
+    private static bool HasActiveCampaign(WorldState world, int factionId)
+    {
+        return world.ActiveBattleCampaigns.Any(campaign =>
+            campaign.Stage != CampaignStage.Resolved &&
+            (campaign.AttackerFactionId == factionId || campaign.DefenderFactionId == factionId));
+    }
+
+    private static bool HasRulerChangeCooldownElapsed(WorldState world, FactionData faction)
+    {
+        if (faction.LastRulerChangeYear <= 0 || faction.LastRulerChangeMonth <= 0)
+        {
+            return true;
+        }
+
+        var monthsSinceLastChange = (world.Year - faction.LastRulerChangeYear) * 12 +
+                                    world.Month - faction.LastRulerChangeMonth;
+        return monthsSinceLastChange >= AiRulerChangeCooldownMonths;
+    }
+
+    private static int ScoreAiRulerCandidate(OfficerData currentRuler, OfficerData candidate)
+    {
+        var relationshipBonus = HasFamilyRelationship(currentRuler, candidate) ? 35 : 0;
+        return candidate.Leadership * 3 + candidate.Intelligence * 2 + candidate.Politics * 2 +
+               candidate.Charm + candidate.Loyalty + candidate.Ambition / 2 + relationshipBonus;
+    }
+
+    private static bool HasFamilyRelationship(OfficerData first, OfficerData second)
+    {
+        return IsFamilyRelationship(first, second) || IsFamilyRelationship(second, first);
+    }
+
+    private static bool IsFamilyRelationship(OfficerData source, OfficerData target)
+    {
+        if (source.RelationshipType == null || source.RelationshipType.Count == 0)
+        {
+            return false;
+        }
+
+        return source.RelationshipType.Any(relationship =>
+            relationship.Value.Equals("family", System.StringComparison.OrdinalIgnoreCase) &&
+            (relationship.Key.Equals(target.Name, System.StringComparison.OrdinalIgnoreCase) ||
+             relationship.Key.Equals(target.NameZhHant, System.StringComparison.OrdinalIgnoreCase)));
     }
 
     public CommandResult RunSingleCityDecision(int factionId, int cityId)

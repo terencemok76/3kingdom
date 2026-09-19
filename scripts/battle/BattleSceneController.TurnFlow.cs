@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
@@ -517,6 +518,26 @@ public partial class BattleSceneController
     private string GetCurrentTurnSideName()
     {
         return BattleTeamIdentity.GetName(_currentTurnSide);
+    }
+
+    private string GetPlayerTeamName()
+    {
+        var world = CampaignRuntimeContext.World;
+        var playerFactionId = world?.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? -1;
+        if (_activeCampaign != null && playerFactionId > 0)
+        {
+            if (_activeCampaign.AttackerFactionId == playerFactionId)
+            {
+                return BattleTeamIdentity.AttackerName;
+            }
+
+            if (_activeCampaign.DefenderFactionId == playerFactionId)
+            {
+                return BattleTeamIdentity.DefenderName;
+            }
+        }
+
+        return GetCurrentTurnSideName();
     }
 
     private string FormatTeamName(string teamName)

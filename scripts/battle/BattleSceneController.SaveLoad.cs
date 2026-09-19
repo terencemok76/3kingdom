@@ -710,7 +710,7 @@ public partial class BattleSceneController
             GetSavedMarkerBorderColor(occupant),
             saveData.Category == CategorySiegeEngine ? 21.0f : 19.0f);
         marker.SetupNamePlate(FormatMarkerName(saveData.OfficerName, saveData.DisplayName, saveData.TroopType));
-        marker.SetupTeamArrow(GetTeamArrowColor(saveData.TeamName));
+        marker.SetupTeamArrow(GetTeamArrowColor(saveData.TeamName, saveData.CampaignTeamId));
         marker.SetupSpriteAnimationScene(GetIdleSceneForOccupant(occupant));
         UpdateMarkerStrengthBar(occupant);
         UpdateMarkerStatusIndicator(occupant);

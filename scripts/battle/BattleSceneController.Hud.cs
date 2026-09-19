@@ -56,9 +56,13 @@ public partial class BattleSceneController
 
     private string BuildTeamHudText(BattleHudTeamInfo info)
     {
+        var sideLabel = BattleTeamIdentity.IsAttacker(info.Name)
+            ? BattleText("ui.battle.log_attacker", "Attacker")
+            : BattleText("ui.battle.log_defender", "Defender");
         return BattleFormat(
             "ui.battle.team_hud",
-            "{0}   Troops: {1:N0} / {2:N0} wounded   Generals: {3:N0}   Workers: {4:N0}   Siege: {5:N0}   Gold: {6:N0}   Food: {7:N0}",
+            "{0}: {1}   Troops: {2:N0} / {3:N0} wounded   Generals: {4:N0}   Workers: {5:N0}   Siege: {6:N0}   Gold: {7:N0}   Food: {8:N0}",
+            sideLabel,
             FormatTeamName(info.Name),
             info.TotalTroops,
             info.WoundedTroops,

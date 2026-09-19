@@ -404,22 +404,31 @@ public class LocalizationService
             return T("ui.unknown");
         }
 
+        var ruler = world.GetOfficer(faction.RulerOfficerId);
+        if (ruler != null)
+        {
+            return GetOfficerName(ruler);
+        }
+
+        var pendingSuccession = world.GetPendingSuccession(factionId);
+        var previousRuler = pendingSuccession?.PreviousRulerOfficerId > 0
+            ? world.GetOfficer(pendingSuccession.PreviousRulerOfficerId)
+            : null;
+        if (previousRuler != null)
+        {
+            return GetOfficerName(previousRuler);
+        }
+
         if (IsTraditionalChinese)
         {
-            if (!string.IsNullOrWhiteSpace(faction.NameZhHant))
-            {
-                return faction.NameZhHant;
-            }
-
-            return faction.NameEn;
+            var name = !string.IsNullOrWhiteSpace(faction.NameZhHant) ? faction.NameZhHant : faction.NameEn;
+            return name.EndsWith("軍", StringComparison.Ordinal) ? name[..^1] : name;
         }
 
-        if (!string.IsNullOrWhiteSpace(faction.NameEn))
-        {
-            return faction.NameEn;
-        }
-
-        return faction.NameZhHant;
+        var fallbackName = !string.IsNullOrWhiteSpace(faction.NameEn) ? faction.NameEn : faction.NameZhHant;
+        return fallbackName.EndsWith(" Forces", StringComparison.OrdinalIgnoreCase)
+            ? fallbackName[..^7]
+            : fallbackName;
     }
 
     public string GetOfficerName(OfficerData officer)

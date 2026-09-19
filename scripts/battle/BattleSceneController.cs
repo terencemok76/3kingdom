@@ -51,6 +51,8 @@ public partial class BattleSceneController : Node2D
     private enum BattleOfficerSpeechEvent
     {
         Opening,
+        ReinforcementArrival,
+        EnemyRetreat,
         Attack,
         Charge,
         Union,
@@ -1665,7 +1667,12 @@ public partial class BattleSceneController : Node2D
         return BattleSupplySystem.CalculateScaledResourceNeed(activeTroops, per100Troops);
     }
 
-    private void ApplyTeamMoralePenalty(string teamName, int penalty, string reason, double popupDelaySeconds = 0.0)
+    private void ApplyTeamMoralePenalty(
+        string teamName,
+        int penalty,
+        string reason,
+        double popupDelaySeconds = 0.0,
+        ICollection<(BattleGridKey Grid, int MoraleDelta)>? deferredPopups = null)
     {
         if (penalty <= 0)
         {
@@ -1693,7 +1700,14 @@ public partial class BattleSceneController : Node2D
                     _selectedUnit = updatedUnit;
                 }
 
-                ShowMoralePopup(grid, actualDelta, popupDelaySeconds);
+                if (deferredPopups == null)
+                {
+                    ShowMoralePopup(grid, actualDelta, popupDelaySeconds);
+                }
+                else
+                {
+                    deferredPopups.Add((grid, actualDelta));
+                }
                 affectedUnits.Add(updatedUnit);
             }
         }
@@ -1704,7 +1718,12 @@ public partial class BattleSceneController : Node2D
         }
     }
 
-    private void ApplyTeamMoraleBonus(string teamName, int bonus, string reason, double popupDelaySeconds = 0.0)
+    private void ApplyTeamMoraleBonus(
+        string teamName,
+        int bonus,
+        string reason,
+        double popupDelaySeconds = 0.0,
+        ICollection<(BattleGridKey Grid, int MoraleDelta)>? deferredPopups = null)
     {
         if (bonus <= 0)
         {
@@ -1732,7 +1751,14 @@ public partial class BattleSceneController : Node2D
                     _selectedUnit = updatedUnit;
                 }
 
-                ShowMoralePopup(grid, actualDelta, popupDelaySeconds);
+                if (deferredPopups == null)
+                {
+                    ShowMoralePopup(grid, actualDelta, popupDelaySeconds);
+                }
+                else
+                {
+                    deferredPopups.Add((grid, actualDelta));
+                }
                 affectedUnits.Add(updatedUnit);
             }
         }
@@ -2067,7 +2093,7 @@ public partial class BattleSceneController : Node2D
             ApplyRetreatTroopLoss(retreatingUnit);
         }
 
-        ShowRetreatNotice(retreatingUnit);
+        ShowRetreatNotice(retreatingUnit, retreatingGrid);
         AppendBattleLog(retreatingUnit, "Retreat", $"{FormatLogUnit(retreatingUnit)} retreats from {retreatingGrid}");
         RemoveOccupant(retreatingGrid, retreatingUnit);
 
@@ -2540,7 +2566,7 @@ public partial class BattleSceneController : Node2D
             GetSavedMarkerBorderColor(occupant),
             occupant.Marker.Radius);
         occupant.Marker.SetupNamePlate(FormatMarkerName(occupant.OfficerName, occupant.DisplayName, occupant.TroopType));
-        occupant.Marker.SetupTeamArrow(GetTeamArrowColor(occupant.TeamName));
+        occupant.Marker.SetupTeamArrow(GetTeamArrowColor(occupant.TeamName, occupant.CampaignTeamId));
         UpdateMarkerStrengthBar(occupant);
     }
 

@@ -280,6 +280,14 @@ internal sealed class DiplomacyProposalDialogController : FloatingOverlayControl
             return _context.Localization.TForLanguage(language, "ui.unknown");
         }
 
+        var ruler = world.GetOfficer(faction.RulerOfficerId);
+        if (ruler != null)
+        {
+            return language == GameLanguage.TraditionalChinese
+                ? (!string.IsNullOrWhiteSpace(ruler.NameZhHant) ? ruler.NameZhHant : ruler.Name)
+                : (!string.IsNullOrWhiteSpace(ruler.Name) ? ruler.Name : ruler.NameZhHant);
+        }
+
         return language == GameLanguage.TraditionalChinese
             ? (!string.IsNullOrWhiteSpace(faction.NameZhHant) ? faction.NameZhHant : faction.NameEn)
             : (!string.IsNullOrWhiteSpace(faction.NameEn) ? faction.NameEn : faction.NameZhHant);

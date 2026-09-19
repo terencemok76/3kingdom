@@ -33,6 +33,7 @@ public sealed class PersonnelUiController
             _context,
             _bonusDialogController.Show,
             _assignRoleDialogController.Show,
+            _successionDialogController.ShowRulerChange,
             _prefectAuthorizationDialogController.Show,
             _fireOfficerDialogController.Show,
             _requestItemDialogController.Show,

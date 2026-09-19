@@ -8,6 +8,8 @@ public class WorldState
     public class PendingSuccessionData
     {
         public int FactionId { get; set; }
+        public int PreviousRulerOfficerId { get; set; }
+        public bool TriggeredByCapture { get; set; }
         public List<int> CandidateOfficerIds { get; set; } = new();
     }
 

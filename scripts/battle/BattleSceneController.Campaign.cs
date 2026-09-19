@@ -82,10 +82,13 @@ public partial class BattleSceneController
         var factionId = side == CampaignBattleSide.Attacker
             ? _activeCampaign.AttackerFactionId
             : _activeCampaign.DefenderFactionId;
-        return BattleFormat(
-            "ui.battle.faction_army",
-            "{0} Army",
-            _localization.GetFactionName(CampaignRuntimeContext.World, factionId));
+        var ruler = CampaignRuntimeContext.World.GetFaction(factionId) is { } faction
+            ? CampaignRuntimeContext.World.GetOfficer(faction.RulerOfficerId)
+            : null;
+        var displayName = ruler == null
+            ? _localization.GetFactionName(CampaignRuntimeContext.World, factionId)
+            : _localization.GetOfficerName(ruler);
+        return displayName;
     }
 
     private bool TryPopulateCampaignMarkers()
@@ -284,14 +287,22 @@ public partial class BattleSceneController
                 : _mapData.ScenarioDefinition.DefenderReinforcementEntranceGrids;
             foreach (var grid in configuredGrids)
             {
-                // Scenario overrides remain constrained to this side's external
-                // start zone: reinforcements cannot appear inside a city or beside
-                // the enemy merely because a scenario entry was misconfigured.
-                if (IsCampaignReinforcementEntranceGrid(grid, deploymentZone) &&
+                if (IsCampaignReinforcementEntranceGrid(grid, team.Side) &&
                     IsCampaignSpawnGridAvailable(grid, occupied))
                 {
                     yield return grid;
                 }
+            }
+
+            if (_activeCampaign?.Stage == CampaignStage.CityBattle &&
+                team.Side == CampaignBattleSide.Defender)
+            {
+                foreach (var grid in GetCityBattleDefenderReinforcementEdgeGrids(occupied)
+                             .Where(grid => !configuredGrids.Contains(grid)))
+                {
+                    yield return grid;
+                }
+                yield break;
             }
 
             foreach (var grid in GetCampaignDeploymentZoneGrids(deploymentZone, occupied)
@@ -330,12 +341,108 @@ public partial class BattleSceneController
         }
     }
 
-    private bool IsCampaignReinforcementEntranceGrid(Vector2I grid, BattleDeploymentZone deploymentZone)
+    private IEnumerable<Vector2I> GetCityBattleDefenderReinforcementEdgeGrids(HashSet<Vector2I> occupied)
     {
-        return _mapData != null &&
-               grid.X >= 0 && grid.X < BattleMapData.Width &&
-               grid.Y >= 0 && grid.Y < BattleMapData.Height &&
-               _mapData.GetCell(grid.X, grid.Y).DeploymentZone == deploymentZone;
+        if (_mapData == null)
+        {
+            yield break;
+        }
+
+        for (var y = 0; y < BattleMapData.Height; y += 1)
+        {
+            for (var x = 0; x < BattleMapData.Width; x += 1)
+            {
+                var gate = _mapData.GetCell(x, y);
+                if (gate.Structure != BattleStructureType.Gate)
+                {
+                    continue;
+                }
+
+                if (gate.StructureFacing == BattleStructureFacing.NorthWest)
+                {
+                    for (var edgeY = 0; edgeY < BattleMapData.Height; edgeY += 1)
+                    {
+                        var grid = new Vector2I(BattleMapData.Width - 1, edgeY);
+                        if (IsCampaignReinforcementEntranceGrid(grid, CampaignBattleSide.Defender) &&
+                            IsCampaignSpawnGridAvailable(grid, occupied))
+                        {
+                            yield return grid;
+                        }
+                    }
+                    continue;
+                }
+
+                for (var edgeY = gate.Grid.Y + 1; edgeY < BattleMapData.Height; edgeY += 1)
+                {
+                    foreach (var edgeX in new[] { 0, BattleMapData.Width - 1 })
+                    {
+                        var grid = new Vector2I(edgeX, edgeY);
+                        if (IsCampaignReinforcementEntranceGrid(grid, CampaignBattleSide.Defender) &&
+                            IsCampaignSpawnGridAvailable(grid, occupied))
+                        {
+                            yield return grid;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private bool IsCampaignReinforcementEntranceGrid(Vector2I grid, CampaignBattleSide side)
+    {
+        if (_mapData == null ||
+            grid.X < 0 || grid.X >= BattleMapData.Width ||
+            grid.Y < 0 || grid.Y >= BattleMapData.Height)
+        {
+            return false;
+        }
+
+        var cell = _mapData.GetCell(grid.X, grid.Y);
+        if (side == CampaignBattleSide.Attacker)
+        {
+            return cell.DeploymentZone == BattleDeploymentZone.Attacker;
+        }
+
+        if (_activeCampaign?.Stage == CampaignStage.CityBattle)
+        {
+            // The defender's authored deployment zone is the inner courtyard.
+            // Relief forces must be outside the wall, even when a scenario
+            // supplies custom entrance coordinates.
+            return cell.DeploymentZone == BattleDeploymentZone.None &&
+                   !cell.HideGroundOccupantWithForeground &&
+                   IsOutsideCityWall(grid);
+        }
+
+        return cell.DeploymentZone == BattleDeploymentZone.Defender;
+    }
+
+    private bool IsOutsideCityWall(Vector2I grid)
+    {
+        if (_mapData == null)
+        {
+            return false;
+        }
+
+        for (var y = 0; y < BattleMapData.Height; y += 1)
+        {
+            for (var x = 0; x < BattleMapData.Width; x += 1)
+            {
+                var gate = _mapData.GetCell(x, y);
+                if (gate.Structure != BattleStructureType.Gate)
+                {
+                    continue;
+                }
+
+                if (gate.StructureFacing == BattleStructureFacing.NorthWest
+                    ? grid.X > gate.Grid.X
+                    : grid.Y > gate.Grid.Y)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private bool IsCampaignSpawnGridAvailable(Vector2I grid, ISet<Vector2I> occupied)
@@ -516,6 +623,21 @@ public partial class BattleSceneController
             .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Defender)
             .Sum(order => order.Food);
 
+        var deferredMoralePopups = new List<(BattleGridKey Grid, int MoraleDelta)>();
+        var deployedReinforcementOrderIds = arrivals
+            .Where(order => order.Status == ReinforcementStatus.Deployed)
+            .Select(order => order.Id)
+            .ToHashSet();
+        var deployedReinforcementTeamIds = _activeCampaign.Teams
+            .Where(team => deployedReinforcementOrderIds.Contains(team.ReinforcementOrderId))
+            .Select(team => team.Id)
+            .ToHashSet();
+        var arrivingOfficerSpeakers = _occupantsByGrid.Values
+            .SelectMany(occupants => occupants)
+            .Where(occupant => occupant.Category == CategoryUnit &&
+                               !string.IsNullOrWhiteSpace(occupant.OfficerName) &&
+                               deployedReinforcementTeamIds.Contains(occupant.CampaignTeamId))
+            .ToList();
         foreach (var order in arrivals)
         {
             var sideName = GetCampaignReinforcementSideName(order);
@@ -557,15 +679,20 @@ public partial class BattleSceneController
                 ApplyTeamMoraleBonus(
                     order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
                     ReinforcementArrivalFriendlyMoraleBonus,
-                    BattleText("log.campaign.reinforcement_morale_friendly", "reinforcements arrived"));
+                    BattleText("log.campaign.reinforcement_morale_friendly", "reinforcements arrived"),
+                    deferredPopups: deferredMoralePopups);
                 ApplyTeamMoralePenalty(
                     order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.DefenderName : BattleTeamIdentity.AttackerName,
                     ReinforcementArrivalOpponentMoralePenalty,
-                    BattleText("log.campaign.reinforcement_morale_opponent", "enemy reinforcements arrived"));
+                    BattleText("log.campaign.reinforcement_morale_opponent", "enemy reinforcements arrived"),
+                    deferredPopups: deferredMoralePopups);
             }
         }
 
-        ShowCampaignReinforcementArrivalNotice(FormatCampaignReinforcementArrivalNotice(arrivals));
+        ShowCampaignReinforcementArrivalNotice(
+            FormatCampaignReinforcementArrivalNotice(arrivals),
+            deferredMoralePopups,
+            arrivingOfficerSpeakers);
     }
 
     private string FormatCampaignReinforcementArrivalNotice(IReadOnlyCollection<ReinforcementOrderData> arrivals)
@@ -997,6 +1124,9 @@ public partial class BattleSceneController
             titleLabel.Text = BattleText("ui.battle.retreat_destination_title", "Choose retreat destination");
         }
         var retreatOriginCityId = BattleCampaignService.GetRetreatOriginCityId(_activeCampaign!, team);
+        var retreatFactionId = CampaignRuntimeContext.World == null
+            ? team.FactionId
+            : BattleCampaignService.GetRetreatFactionId(CampaignRuntimeContext.World, team);
         var defenderAlreadyInOriginCity = team.Side == CampaignBattleSide.Defender &&
                                            retreatOriginCityId == _activeCampaign!.TargetCityId;
         promptLabel.Text = BattleText(
@@ -1028,7 +1158,7 @@ public partial class BattleSceneController
                 CustomMinimumSize = new Vector2(0.0f, 42.0f),
                 Text = destination.Id == retreatOriginCityId
                     ? $"{BattleText("ui.battle.retreat_return_origin", "Return to origin")}：{destination.NameZhHant}"
-                    : destination.OwnerFactionId == team.FactionId
+                    : destination.OwnerFactionId == retreatFactionId
                     ? $"{BattleText("ui.battle.retreat", "Retreat")}：{destination.NameZhHant}"
                     : $"{BattleText("ui.battle.retreat", "Retreat")}：{destination.NameZhHant}（{BattleText("ui.battle.retreat_neutral", "Neutral")}）"
             };

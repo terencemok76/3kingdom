@@ -5,6 +5,16 @@
     { "event": "opening", "persona": "steadfast", "priority": 10, "keys": ["ui.battle.speech.steadfast.opening.01", "ui.battle.speech.steadfast.opening.02"] },
     { "event": "opening", "persona": "ambitious", "priority": 10, "keys": ["ui.battle.speech.ambitious.opening.01", "ui.battle.speech.ambitious.opening.02"] },
 
+    { "event": "reinforcement_arrival", "persona": "vanguard", "priority": 25, "keys": ["ui.battle.speech.vanguard.reinforcement_arrival.01", "ui.battle.speech.vanguard.reinforcement_arrival.02"] },
+    { "event": "reinforcement_arrival", "persona": "tactician", "priority": 25, "keys": ["ui.battle.speech.tactician.reinforcement_arrival.01", "ui.battle.speech.tactician.reinforcement_arrival.02"] },
+    { "event": "reinforcement_arrival", "persona": "steadfast", "priority": 25, "keys": ["ui.battle.speech.steadfast.reinforcement_arrival.01", "ui.battle.speech.steadfast.reinforcement_arrival.02"] },
+    { "event": "reinforcement_arrival", "persona": "ambitious", "priority": 25, "keys": ["ui.battle.speech.ambitious.reinforcement_arrival.01", "ui.battle.speech.ambitious.reinforcement_arrival.02"] },
+
+    { "event": "enemy_retreat", "persona": "vanguard", "priority": 30, "keys": ["ui.battle.speech.vanguard.enemy_retreat.01", "ui.battle.speech.vanguard.enemy_retreat.02"] },
+    { "event": "enemy_retreat", "persona": "tactician", "priority": 30, "keys": ["ui.battle.speech.tactician.enemy_retreat.01", "ui.battle.speech.tactician.enemy_retreat.02"] },
+    { "event": "enemy_retreat", "persona": "steadfast", "priority": 30, "keys": ["ui.battle.speech.steadfast.enemy_retreat.01", "ui.battle.speech.steadfast.enemy_retreat.02"] },
+    { "event": "enemy_retreat", "persona": "ambitious", "priority": 30, "keys": ["ui.battle.speech.ambitious.enemy_retreat.01", "ui.battle.speech.ambitious.enemy_retreat.02"] },
+
     { "event": "terrain_forest", "persona": "tactician", "priority": 20, "keys": ["ui.battle.speech.tactician.forest.01", "ui.battle.speech.tactician.forest.02"] },
     { "event": "terrain_forest", "persona": "vanguard", "priority": 20, "keys": ["ui.battle.speech.vanguard.forest.01"] },
     { "event": "terrain_hill", "persona": "tactician", "priority": 20, "keys": ["ui.battle.speech.tactician.hill.01"] },

@@ -3,6 +3,10 @@
         "zhHant": "外交提案",
         "en": "Diplomacy Proposal"
     },
+    "ui.diplomacy_alliance_result_title": {
+        "zhHant": "結盟結果",
+        "en": "Alliance Result"
+    },
     "ui.accept": {
         "zhHant": "接受",
         "en": "Accept"

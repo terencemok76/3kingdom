@@ -196,8 +196,13 @@ public partial class HudController
         GameAudioController.Instance?.PlayBattleOutcomeBgm(playerWon);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/WinnerLabel").Text =
             localization.Format("ui.campaign.battle_report_winner", winnerName);
+        var attackerRulerName = localization.GetFactionName(world, report.AttackerFactionId);
+        var defenderRulerName = localization.GetFactionName(world, report.DefenderFactionId);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content/SideLabel").Text =
-            localization.T("ui.campaign.battle_report_attacker");
+            localization.Format(
+                "ui.campaign.battle_report_side_ruler",
+                localization.T("ui.campaign.battle_report_attacker"),
+                attackerRulerName);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content/ForceLabel").Text =
             localization.Format(
                 "ui.campaign.battle_report_force",
@@ -207,7 +212,10 @@ public partial class HudController
                 report.AttackerReturnedTroops,
                 report.AttackerActiveTroops);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/SideLabel").Text =
-            localization.T("ui.campaign.battle_report_defender");
+            localization.Format(
+                "ui.campaign.battle_report_side_ruler",
+                localization.T("ui.campaign.battle_report_defender"),
+                defenderRulerName);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/ForceLabel").Text =
             localization.Format(
                 "ui.campaign.battle_report_force",
@@ -257,6 +265,11 @@ public partial class HudController
         GameAudioController.Instance?.StopBattleOutcomeBgm();
         GameAudioController.Instance?.PlayGameplayBgm();
         ShowNextFactionOutcomeIfPossible();
+        if (_personnelUiController?.HasPendingPlayerSuccession() == true)
+        {
+            _personnelUiController.ShowSuccessionDialog();
+            return;
+        }
         if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
         {
             _militaryUiController.ShowCapturedOfficerDialog();

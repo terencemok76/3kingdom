@@ -81,10 +81,15 @@ internal sealed class CapturedOfficerDialogController : FloatingOverlayControlle
 
         if (_summaryLabel != null)
         {
-            _summaryLabel.Text = localization.Format(
-                "ui.captured_officer_summary",
-                localization.GetOfficerName(officer),
-                localization.GetCityName(city));
+            _summaryLabel.Text = officer.DisplacedRulerFactionId > 0
+                ? localization.Format(
+                    "ui.captured_ruler_summary",
+                    localization.GetOfficerName(officer),
+                    localization.GetCityName(city))
+                : localization.Format(
+                    "ui.captured_officer_summary",
+                    localization.GetOfficerName(officer),
+                    localization.GetCityName(city));
         }
 
         if (_detailLabel != null)

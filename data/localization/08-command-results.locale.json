@@ -475,6 +475,50 @@
                                            "zhHant":  "勢力「{0}」已由「{1}」繼位。",
                                            "en":  "Faction \"{0}\" is now led by \"{1}\"."
                                        },
+    "cmd.ruler_change.invalid_faction":  {
+                                                "zhHant":  "目前勢力沒有可改立的現任君主。",
+                                                "en":  "This faction has no current ruler to replace."
+                                            },
+    "cmd.ruler_change.pending_succession":  {
+                                                    "zhHant":  "請先完成待處理的君主繼承。",
+                                                    "en":  "Resolve the pending succession first."
+                                                },
+    "cmd.ruler_change.already_ruler":  {
+                                               "zhHant":  "所選武將已是君主。",
+                                               "en":  "The selected officer is already the ruler."
+                                           },
+    "cmd.ruler_change.invalid_successor":  {
+                                                   "zhHant":  "所選武將不符合改立條件；必須是本勢力未被俘、未死亡且未參戰的現役武將。",
+                                                   "en":  "The selected officer is ineligible: they must be an active, uncaptured, living faction officer not committed to battle."
+                                               },
+    "cmd.ruler_change.resolved":  {
+                                          "zhHant":  "君主已由「{0}」改立為「{1}」。",
+                                          "en":  "The ruler has changed from \"{0}\" to \"{1}\"."
+                                      },
+    "cmd.ai_ruler_change.invalid":  {
+                                          "zhHant":  "AI 君主改立條件不成立。",
+                                          "en":  "The AI ruler-change conditions are not met."
+                                      },
+    "cmd.ai_ruler_change.resolved":  {
+                                            "zhHant":  "AI 改立「{1}」為君主；原君主「{0}」轉為一般武將。",
+                                            "en":  "AI appointed \"{1}\" as ruler; former ruler \"{0}\" is now a regular officer."
+                                        },
+    "cmd.ai_ruler_change.high_ambition_suffix":  {
+                                                       "zhHant":  "新君主野心過高，其餘部將忠誠 -{0}。",
+                                                       "en":  "The new ruler's high ambition reduces other officers' loyalty by {0}."
+                                                   },
+    "cmd.attack.ruler_captured_pending_succession_suffix":  {
+                                                               "zhHant":  "君主「{0}」被俘，該勢力待選繼承人。",
+                                                               "en":  "Ruler \"{0}\" was captured; that faction must choose a successor."
+                                                           },
+    "cmd.attack.ruler_captured_succeeded_suffix":  {
+                                                       "zhHant":  "君主「{0}」被俘，「{1}」繼位。",
+                                                       "en":  "Ruler \"{0}\" was captured; \"{1}\" succeeds them."
+                                                   },
+    "cmd.attack.ruler_captured_faction_destroyed_suffix":  {
+                                                               "zhHant":  "君主「{0}」被俘，勢力瓦解。",
+                                                               "en":  "Ruler \"{0}\" was captured; the faction collapsed."
+                                                           },
     "cmd.hire_officer.free_refused":  {
                                           "zhHant":  "「{0}」尚未願意出仕。",
                                           "en":  "\"{0}\" is not yet willing to serve."

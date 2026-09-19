@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 
 namespace ThreeKingdom.UI;
 
@@ -14,6 +15,8 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private int _pendingFactionId = -1;
+    private bool _isVoluntaryRulerChange;
+    private List<int> _rulerChangeCandidateOfficerIds = new();
     private bool _signalsConnected;
     protected override Vector2 MinimumOverlaySize => new(760.0f, 240.0f);
 
@@ -35,6 +38,66 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
     }
 
     public void Hide() => HideOverlay();
+
+    public void ShowRulerChange()
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        var factionId = _context.TurnManager?.GetPlayerFactionId() ?? 0;
+        var faction = world?.GetFaction(factionId);
+        if (world == null || localization == null || faction == null || !faction.IsPlayer || faction.RulerOfficerId <= 0 || !EnsureOverlayReady())
+        {
+            return;
+        }
+
+        _rulerChangeCandidateOfficerIds = faction.OfficerIds
+            .Where(officerId => officerId != faction.RulerOfficerId)
+            .Where(officerId =>
+            {
+                var officer = world.GetOfficer(officerId);
+                return officer != null &&
+                       officer.CityId > 0 &&
+                       officer.CaptiveFactionId <= 0 &&
+                       (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
+                       !BattleCampaignService.IsOfficerCommitted(world, officer.Id);
+            })
+            .ToList();
+        if (_rulerChangeCandidateOfficerIds.Count == 0)
+        {
+            _context.AddLog(localization.T("cmd.ruler_change.invalid_successor"), isPlayerRelated: true);
+            return;
+        }
+
+        _isVoluntaryRulerChange = true;
+        _pendingFactionId = factionId;
+        SetOverlayTitleText(localization.T("ui.change_ruler"));
+        if (_confirmButton != null)
+        {
+            _confirmButton.Text = localization.T("ui.confirm_change_ruler");
+        }
+        if (_summaryLabel != null)
+        {
+            var currentRuler = world.GetOfficer(faction.RulerOfficerId);
+            _summaryLabel.Text = localization.Format(
+                "ui.change_ruler_summary",
+                currentRuler == null ? localization.T("ui.unknown") : localization.GetOfficerName(currentRuler));
+        }
+        if (_warningLabel != null)
+        {
+            _warningLabel.Text = string.Empty;
+        }
+        if (_selectOfficerButton != null)
+        {
+            _selectOfficerButton.Text = localization.T("ui.select_officer");
+        }
+
+        if (!_rulerChangeCandidateOfficerIds.Contains(_selectedOfficerId))
+        {
+            _selectedOfficerId = _rulerChangeCandidateOfficerIds[0];
+        }
+        UpdateSelectedOfficerSummary();
+        ShowOverlay();
+    }
 
     public bool HasPendingPlayerSuccession()
     {
@@ -65,6 +128,8 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
             return;
         }
 
+        _isVoluntaryRulerChange = false;
+        _rulerChangeCandidateOfficerIds.Clear();
         _pendingFactionId = factionId;
         SetOverlayTitleText(localization.T("ui.succession"));
         if (_confirmButton != null)
@@ -73,7 +138,17 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         }
         if (_summaryLabel != null)
         {
-            _summaryLabel.Text = localization.Format("ui.succession_summary", localization.GetFactionName(world, factionId));
+            var previousRuler = pendingSuccession.PreviousRulerOfficerId > 0
+                ? world.GetOfficer(pendingSuccession.PreviousRulerOfficerId)
+                : null;
+            _summaryLabel.Text = previousRuler == null
+                ? localization.Format("ui.succession_summary", localization.GetFactionName(world, factionId))
+                : localization.Format(
+                    pendingSuccession.TriggeredByCapture
+                        ? "ui.succession_ruler_captured_summary"
+                        : "ui.succession_ruler_died_summary",
+                    localization.GetOfficerName(previousRuler),
+                    localization.GetFactionName(world, factionId));
         }
         if (_warningLabel != null)
         {
@@ -145,7 +220,14 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         }
 
         var factionId = _pendingFactionId;
-        var result = commandResolver.ResolvePlayerSuccession(factionId, _selectedOfficerId);
+        var currentWorld = _context.TurnManager?.World;
+        var currentFaction = currentWorld?.GetFaction(factionId);
+            var previousRuler = currentFaction == null || currentWorld == null
+                ? null
+                : currentWorld.GetOfficer(currentFaction.RulerOfficerId);
+            var result = _isVoluntaryRulerChange
+            ? commandResolver.ResolvePlayerRulerChange(factionId, _selectedOfficerId)
+            : commandResolver.ResolvePlayerSuccession(factionId, _selectedOfficerId);
         if (!result.Success)
         {
             if (_warningLabel != null)
@@ -159,8 +241,19 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         var successor = _context.TurnManager?.World?.GetOfficer(_selectedOfficerId);
         var cityId = successor?.CityId ?? _context.SelectedCity?.Id ?? 0;
         _pendingFactionId = -1;
+        _isVoluntaryRulerChange = false;
+        _rulerChangeCandidateOfficerIds.Clear();
         HideOverlay();
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
+        var previousRulerName = previousRuler == null
+            ? localization.T("ui.unknown")
+            : localization.GetOfficerName(previousRuler);
+        var successorName = successor == null
+            ? localization.T("ui.unknown")
+            : localization.GetOfficerName(successor);
+        _context.QueueFactionOutcome(
+            localization.T("ui.ruler_changed_title"),
+            localization.Format("ui.ruler_changed_message", previousRulerName, successorName));
         _context.UiEventHub.PublishFactionLeadershipChanged(factionId, cityId);
         if (cityId > 0)
         {
@@ -171,12 +264,15 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
 
     protected override void OnOverlayCloseRequested()
     {
-        if (_pendingFactionId > 0)
+        if (!_isVoluntaryRulerChange && _pendingFactionId > 0)
         {
             Show();
             return;
         }
 
+        _pendingFactionId = -1;
+        _isVoluntaryRulerChange = false;
+        _rulerChangeCandidateOfficerIds.Clear();
         HideOverlay();
     }
 
@@ -190,7 +286,9 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         }
 
         var pendingSuccession = world.GetPendingSuccession(_pendingFactionId);
-        var candidateOfficerIds = pendingSuccession?.CandidateOfficerIds.ToList() ?? new List<int>();
+        var candidateOfficerIds = _isVoluntaryRulerChange
+            ? _rulerChangeCandidateOfficerIds.ToList()
+            : pendingSuccession?.CandidateOfficerIds.ToList() ?? new List<int>();
         if (candidateOfficerIds.Count == 0)
         {
             if (_warningLabel != null)

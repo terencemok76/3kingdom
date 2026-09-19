@@ -552,7 +552,7 @@ public partial class CommandResolver
         return null;
     }
 
-    private void ResolveRulerDeath(WorldState world, int factionId)
+    private void ResolveRulerDeath(WorldState world, int factionId, int previousRulerOfficerId = 0, bool triggeredByCapture = false)
     {
         var faction = world.GetFaction(factionId);
         if (faction == null)
@@ -580,6 +580,8 @@ public partial class CommandResolver
             world.PendingSuccessionRecords.Add(new WorldState.PendingSuccessionData
             {
                 FactionId = factionId,
+                PreviousRulerOfficerId = previousRulerOfficerId,
+                TriggeredByCapture = triggeredByCapture,
                 CandidateOfficerIds = candidateIds
             });
             return;
@@ -624,12 +626,8 @@ public partial class CommandResolver
         successor.Belongs = faction.Id.ToString();
         var successorNameZh = !string.IsNullOrWhiteSpace(successor.NameZhHant) ? successor.NameZhHant : successor.Name;
         var successorNameEn = !string.IsNullOrWhiteSpace(successor.Name) ? successor.Name : successor.NameZhHant;
-        faction.NameZhHant = string.IsNullOrWhiteSpace(successorNameZh)
-            ? faction.NameZhHant
-            : _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, "fmt.faction_name_ruler", successorNameZh) ?? $"{successorNameZh}軍";
-        faction.NameEn = string.IsNullOrWhiteSpace(successorNameEn)
-            ? faction.NameEn
-            : _localization?.FormatForLanguage(GameLanguage.English, "fmt.faction_name_ruler", successorNameEn) ?? $"{successorNameEn} Forces";
+        faction.NameZhHant = string.IsNullOrWhiteSpace(successorNameZh) ? faction.NameZhHant : successorNameZh;
+        faction.NameEn = string.IsNullOrWhiteSpace(successorNameEn) ? faction.NameEn : successorNameEn;
 
         if (!faction.OfficerIds.Contains(successor.Id))
         {
@@ -674,7 +672,7 @@ public partial class CommandResolver
         var rulerNameEn = GetOfficerDisplayName(officer, GameLanguage.English);
 
         _ = EliminateOfficer(world, officer);
-        ResolveRulerDeath(world, factionId);
+        ResolveRulerDeath(world, factionId, officer.Id);
 
         var updatedFaction = world.GetFaction(factionId);
         if (updatedFaction == null || !IsFactionAlive(world, factionId))

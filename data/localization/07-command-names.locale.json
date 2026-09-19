@@ -67,6 +67,10 @@
                                            "zhHant":  "指派職位",
                                            "en":  "Assign Appointment"
                                        },
+    "command.personnel.change_ruler":  {
+                                           "zhHant":  "改立君主",
+                                           "en":  "Change Ruler"
+                                       },
     "command.personnel.prefect_authorization":  {
                                                     "zhHant":  "太守授權",
                                                     "en":  "Prefect Authorization"

@@ -11,6 +11,10 @@ public class FactionData
     public int RulerOfficerId { get; set; }
     public int ChancellorOfficerId { get; set; }
     public int ChiefStrategistOfficerId { get; set; }
+    // AI voluntary ruler changes are intentionally rate-limited to prevent
+    // leadership churn as officer scores fluctuate between monthly decisions.
+    public int LastRulerChangeYear { get; set; }
+    public int LastRulerChangeMonth { get; set; }
     public List<int> OfficerIds { get; set; } = new();
     public bool IsPlayer { get; set; }
 }

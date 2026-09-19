@@ -9,7 +9,10 @@ namespace ThreeKingdom.UI;
 public partial class HudController
 {
     private readonly Queue<string> _allianceReinforcementResponseQueue = new();
+    private readonly Queue<string> _playerAllianceResultQueue = new();
     private int _campaignWaitingForAllianceResponse;
+    private Control? _allianceReinforcementResponseDialog;
+    private Control? _playerAllianceResultDialog;
     private void ResolveEndTurnPendingCommands()
     {
         if (_turnManager == null || _commandResolver == null || _localization == null)
@@ -64,6 +67,10 @@ public partial class HudController
             _turnManager.World.PendingCommands.Remove(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
             CheckFactionEliminations();
+            if (QueuePlayerAllianceResultNotification(pendingCommand, result, playerFactionId))
+            {
+                return;
+            }
             if (_personnelUiController?.HasPendingPlayerSuccession() == true)
             {
                 _personnelUiController.ShowSuccessionDialog();
@@ -87,6 +94,62 @@ public partial class HudController
                pendingCommand.ActorFactionId != _turnManager.GetPlayerFactionId() &&
                pendingCommand.TargetFactionId == _turnManager.GetPlayerFactionId() &&
                pendingCommand.DiplomacyActionType is DiplomacyActionType.Alliance or DiplomacyActionType.Truce or DiplomacyActionType.Gift or DiplomacyActionType.Demand or DiplomacyActionType.BreakPact;
+    }
+
+    private bool QueuePlayerAllianceResultNotification(
+        PendingCommandData pendingCommand,
+        CommandResult result,
+        int playerFactionId)
+    {
+        if (_localization == null ||
+            pendingCommand.Type != CommandType.Diplomacy ||
+            pendingCommand.DiplomacyActionType != DiplomacyActionType.Alliance ||
+            pendingCommand.ActorFactionId != playerFactionId)
+        {
+            return false;
+        }
+
+        _playerAllianceResultQueue.Enqueue(GetLocalizedResultMessage(result));
+        ShowNextPlayerAllianceResult();
+        return true;
+    }
+
+    private void ShowNextPlayerAllianceResult()
+    {
+        if (_playerAllianceResultDialog != null || _playerAllianceResultQueue.Count == 0)
+        {
+            return;
+        }
+
+        _playerAllianceResultDialog = GD.Load<PackedScene>(FactionOutcomeDialogScenePath).Instantiate<Control>();
+        var overlayRoot = GetNodeOrNull<Control>("Root") as Node ?? this;
+        overlayRoot.AddChild(_playerAllianceResultDialog);
+        _playerAllianceResultDialog.GetNode<Label>("Center/OutcomePanel/Root/Header/TitleLabel").Text =
+            _localization?.T("ui.diplomacy_alliance_result_title") ?? "Alliance Result";
+        _playerAllianceResultDialog.GetNode<Label>("Center/OutcomePanel/Root/Body/Content/MessageLabel").Text =
+            _playerAllianceResultQueue.Dequeue();
+        var acknowledgeButton = _playerAllianceResultDialog.GetNode<Button>("Center/OutcomePanel/Root/Body/Content/ButtonRow/AcknowledgeButton");
+        acknowledgeButton.Text = _localization?.T("ui.acknowledge") ?? "Acknowledge";
+        acknowledgeButton.Pressed += ClosePlayerAllianceResult;
+        _playerAllianceResultDialog.Visible = true;
+    }
+
+    private void ClosePlayerAllianceResult()
+    {
+        if (_playerAllianceResultDialog == null)
+        {
+            return;
+        }
+
+        _playerAllianceResultDialog.QueueFree();
+        _playerAllianceResultDialog = null;
+        if (_playerAllianceResultQueue.Count > 0)
+        {
+            Callable.From(ShowNextPlayerAllianceResult).CallDeferred();
+            return;
+        }
+
+        Callable.From(ContinuePendingNonAttackResolution).CallDeferred();
     }
 
     private void ContinuePendingAttackResolution()
@@ -183,6 +246,11 @@ public partial class HudController
 
     private void ShowNextAllianceReinforcementResponse()
     {
+        if (_allianceReinforcementResponseDialog != null)
+        {
+            return;
+        }
+
         if (_allianceReinforcementResponseQueue.Count == 0)
         {
             var campaignId = _campaignWaitingForAllianceResponse;
@@ -190,19 +258,30 @@ public partial class HudController
             LaunchCampaignBattle(campaignId);
             return;
         }
-        var dialog = new AcceptDialog
+
+        _allianceReinforcementResponseDialog = GD.Load<PackedScene>(FactionOutcomeDialogScenePath).Instantiate<Control>();
+        var overlayRoot = GetNodeOrNull<Control>("Root") as Node ?? this;
+        overlayRoot.AddChild(_allianceReinforcementResponseDialog);
+        _allianceReinforcementResponseDialog.GetNode<Label>("Center/OutcomePanel/Root/Header/TitleLabel").Text =
+            _localization?.T("ui.alliance_reinforcement_response_title") ?? "Alliance Response";
+        _allianceReinforcementResponseDialog.GetNode<Label>("Center/OutcomePanel/Root/Body/Content/MessageLabel").Text =
+            _allianceReinforcementResponseQueue.Dequeue();
+        var acknowledgeButton = _allianceReinforcementResponseDialog.GetNode<Button>("Center/OutcomePanel/Root/Body/Content/ButtonRow/AcknowledgeButton");
+        acknowledgeButton.Text = _localization?.T("ui.acknowledge") ?? "Acknowledge";
+        acknowledgeButton.Pressed += CloseAllianceReinforcementResponse;
+        _allianceReinforcementResponseDialog.Visible = true;
+    }
+
+    private void CloseAllianceReinforcementResponse()
+    {
+        if (_allianceReinforcementResponseDialog == null)
         {
-            Title = _localization?.T("ui.alliance_reinforcement_response_title") ?? "Alliance Response",
-            DialogText = _allianceReinforcementResponseQueue.Dequeue(),
-            Exclusive = true
-        };
-        AddChild(dialog);
-        dialog.Confirmed += () =>
-        {
-            dialog.QueueFree();
-            ShowNextAllianceReinforcementResponse();
-        };
-        dialog.PopupCentered(new Vector2I(520, 180));
+            return;
+        }
+
+        _allianceReinforcementResponseDialog.QueueFree();
+        _allianceReinforcementResponseDialog = null;
+        Callable.From(ShowNextAllianceReinforcementResponse).CallDeferred();
     }
 
     private bool ShouldPromptForPlayerDefense(CityData targetCity, PendingCommandData pendingCommand)

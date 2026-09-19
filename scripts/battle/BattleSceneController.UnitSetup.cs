@@ -70,7 +70,7 @@ public partial class BattleSceneController
         marker.Position = GetMarkerPosition(gridKey);
         marker.Setup(label, fillColor, borderColor, radius);
         marker.SetupNamePlate(FormatMarkerName(officerName, displayName, troopType));
-        marker.SetupTeamArrow(GetTeamArrowColor(teamName));
+        marker.SetupTeamArrow(GetTeamArrowColor(teamName, campaignTeamId));
         if (category == CategoryUnit)
         {
             marker.SetupTroopSegmentBar(troopCount, 0, troopCount);
@@ -123,8 +123,24 @@ public partial class BattleSceneController
         RegisterBattleDepthEntry(marker, gridKey, category == CategorySiegeEngine ? BattleDepthRenderKind.SiegeEngine : BattleDepthRenderKind.Unit);
     }
 
-    private static Color GetTeamArrowColor(string teamName)
+    private Color GetTeamArrowColor(string teamName, int campaignTeamId = 0)
     {
+        var campaignTeam = campaignTeamId > 0
+            ? _activeCampaign?.Teams.Find(team => team.Id == campaignTeamId)
+            : null;
+        if (campaignTeam?.ReinforcementOrderId > 0)
+        {
+            if (campaignTeam.Side == CampaignBattleSide.Attacker)
+            {
+                return new Color(1.0f, 0.67f, 0.14f, 0.96f);
+            }
+
+            if (campaignTeam.ControllerType != CampaignControllerType.Player)
+            {
+                return new Color(0.16f, 0.86f, 0.70f, 0.96f);
+            }
+        }
+
         return BattleTeamIdentity.IsAttacker(teamName)
             ? new Color(1.0f, 0.18f, 0.12f, 0.96f)
             : new Color(0.18f, 0.58f, 1.0f, 0.96f);
