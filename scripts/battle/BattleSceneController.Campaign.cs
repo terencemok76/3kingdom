@@ -1235,13 +1235,14 @@ public partial class BattleSceneController
         var retreatFactionId = CampaignRuntimeContext.World == null
             ? team.FactionId
             : BattleCampaignService.GetRetreatFactionId(CampaignRuntimeContext.World, team);
-        var defenderAlreadyInOriginCity = team.Side == CampaignBattleSide.Defender &&
-                                           retreatOriginCityId == _activeCampaign!.TargetCityId;
+        var defendedCityId = _activeCampaign!.TargetCityId;
+        var canFallBackToDefendedCity = team.Side == CampaignBattleSide.Defender &&
+                                        _activeCampaign.Stage == CampaignStage.FieldBattle;
         promptLabel.Text = BattleText(
-            defenderAlreadyInOriginCity
+            canFallBackToDefendedCity
                 ? "ui.battle.retreat_destination_prompt_defender"
                 : "ui.battle.retreat_destination_prompt",
-            "Choose an adjacent friendly or neutral city.");
+            "Fall back into the defended city, or choose an adjacent friendly or neutral city.");
         noDestinationLabel.Visible = destinations.Count == 0;
         noDestinationLabel.Text = BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat.");
         cancelButton.Text = BattleText("ui.battle.retreat_cancel", "Cancel");
@@ -1264,7 +1265,9 @@ public partial class BattleSceneController
             var button = new Button
             {
                 CustomMinimumSize = new Vector2(0.0f, 42.0f),
-                Text = destination.Id == retreatOriginCityId
+                Text = canFallBackToDefendedCity && destination.Id == defendedCityId
+                    ? $"{BattleText("ui.battle.retreat_defend_city", "Fall back to defend city")}：{destination.NameZhHant}"
+                    : destination.Id == retreatOriginCityId
                     ? $"{BattleText("ui.battle.retreat_return_origin", "Return to origin")}：{destination.NameZhHant}"
                     : destination.OwnerFactionId == retreatFactionId
                     ? $"{BattleText("ui.battle.retreat", "Retreat")}：{destination.NameZhHant}"

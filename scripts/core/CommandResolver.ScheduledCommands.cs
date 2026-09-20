@@ -934,8 +934,17 @@ public partial class CommandResolver
         var defenderLossAllocation = CreateTroopAllocationFromCityProportion(targetCity, defenderLoss);
         targetCity.RemoveTroopAllocation(defenderLossAllocation);
         var battleDeathSummaries = new List<(string ZhHant, string En)>();
+        var battleDeathOfficerIds = new HashSet<int>();
+        var deferredRulerSuccessions = new Dictionary<int, int>();
+        var deferredBattleRulerDeaths = new List<BattleRulerDeathData>();
         var attackerRulerDeath = pendingCommand.OfficerIds
-            .Select(officerId => TryResolveBattleRulerDeath(world, officerId, attackingTroops > 0 ? effectiveAttackerLoss / (float)attackingTroops : 0.0f))
+            .Select(officerId => TryResolveBattleRulerDeath(
+                world,
+                officerId,
+                attackingTroops > 0 ? effectiveAttackerLoss / (float)attackingTroops : 0.0f,
+                deferredRulerSuccessions,
+                deferredBattleRulerDeaths,
+                battleDeathOfficerIds))
             .FirstOrDefault(summary => summary.HasValue);
         if (attackerRulerDeath.HasValue)
         {
@@ -946,7 +955,13 @@ public partial class CommandResolver
             ? selectedDefendingOfficerIds
             : defendingOfficerIds;
         var defenderRulerDeath = defendingBattleOfficerIds
-            .Select(officerId => TryResolveBattleRulerDeath(world, officerId, defendingTroopsBeforeBattle > 0 ? defenderLoss / (float)defendingTroopsBeforeBattle : 0.0f))
+            .Select(officerId => TryResolveBattleRulerDeath(
+                world,
+                officerId,
+                defendingTroopsBeforeBattle > 0 ? defenderLoss / (float)defendingTroopsBeforeBattle : 0.0f,
+                deferredRulerSuccessions,
+                deferredBattleRulerDeaths,
+                battleDeathOfficerIds))
             .FirstOrDefault(summary => summary.HasValue);
         if (defenderRulerDeath.HasValue)
         {
@@ -964,7 +979,11 @@ public partial class CommandResolver
                 pendingCommand.AttackOfficerDeployments,
                 attackerLossAllocation,
                 attackingTroops,
-                effectiveAttackerLoss);
+                effectiveAttackerLoss,
+                battleDeathOfficerIds,
+                deferredRulerSuccessions);
+            ResolveDeferredRulerSuccessions(world, deferredRulerSuccessions);
+            battleDeathSummaries.AddRange(BuildDeferredBattleRulerDeathSummaries(world, deferredBattleRulerDeaths));
             QueueCapturedOfficersForWinner(world, defendingFactionId, targetCity.Id, capturedAttackerOfficerIds);
             if (defendingFactionId != _turnManager?.GetPlayerFactionId())
             {
@@ -1035,7 +1054,11 @@ public partial class CommandResolver
             pendingCommand.DefenderOfficerDeployments,
             defenderLossAllocation,
             defendingTroopsBeforeBattle,
-            defenderLoss);
+            defenderLoss,
+            battleDeathOfficerIds,
+            deferredRulerSuccessions);
+        ResolveDeferredRulerSuccessions(world, deferredRulerSuccessions);
+        battleDeathSummaries.AddRange(BuildDeferredBattleRulerDeathSummaries(world, deferredBattleRulerDeaths));
         QueueCapturedOfficersForWinner(world, sourceCity.OwnerFactionId, targetCity.Id, capturedDefenderOfficerIds);
         if (sourceCity.OwnerFactionId != _turnManager?.GetPlayerFactionId())
         {

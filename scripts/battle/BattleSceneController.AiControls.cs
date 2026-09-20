@@ -13,6 +13,7 @@ public partial class BattleSceneController
         var debugAvailable = IsBattleDebugAvailable;
         var isAiSide = IsCurrentTurnAiControlled();
         var allActed = HaveAllActingBattlePiecesActed();
+        var turnActionsLocked = IsTurnBannerInputLocked();
 
         if (_battleDebugButton != null)
         {
@@ -28,28 +29,28 @@ public partial class BattleSceneController
         if (_enableAiButton != null)
         {
             _enableAiButton.Visible = debugAvailable;
-            _enableAiButton.Disabled = !debugAvailable || _isBattleFinished || isAiSide;
+            _enableAiButton.Disabled = !debugAvailable || _isBattleFinished || turnActionsLocked || isAiSide;
             _enableAiButton.Text = BattleText("ui.battle.enable_ai", "Enable AI");
         }
 
         if (_disableAiButton != null)
         {
             _disableAiButton.Visible = debugAvailable;
-            _disableAiButton.Disabled = !debugAvailable || _isBattleFinished || !isAiSide;
+            _disableAiButton.Disabled = !debugAvailable || _isBattleFinished || turnActionsLocked || !isAiSide;
             _disableAiButton.Text = BattleText("ui.battle.disable_ai", "Disable AI");
         }
 
         if (_startRoundButton != null)
         {
             _startRoundButton.Visible = debugAvailable;
-            _startRoundButton.Disabled = !debugAvailable || _isBattleFinished || _isFieldAiRoundStarted;
+            _startRoundButton.Disabled = !debugAvailable || _isBattleFinished || turnActionsLocked || _isFieldAiRoundStarted;
             _startRoundButton.Text = BattleText("ui.battle.start_round", "Start Round");
         }
 
         if (_nextAiButton != null)
         {
             _nextAiButton.Visible = debugAvailable;
-            _nextAiButton.Disabled = !debugAvailable || !_isFieldAiRoundStarted || !isAiSide || allActed || _isBattleFinished;
+            _nextAiButton.Disabled = !debugAvailable || !_isFieldAiRoundStarted || !isAiSide || allActed || _isBattleFinished || turnActionsLocked;
             _nextAiButton.Text = BattleText("ui.battle.next_ai", "Next");
             _nextAiButton.TooltipText = !_isFieldAiRoundStarted
                 ? BattleText("ui.battle.next_ai_start_round_hint", "Start the round first.")
@@ -86,7 +87,7 @@ public partial class BattleSceneController
 
         if (_endTurnButton != null && (IsStandaloneBattleAiTest || IsDebugAiStepMode))
         {
-            _endTurnButton.Disabled = !_isFieldAiRoundStarted || _isBattleFinished;
+            _endTurnButton.Disabled = !_isFieldAiRoundStarted || _isBattleFinished || turnActionsLocked;
         }
 
         if (_aiRoundStatusLabel == null)
@@ -215,7 +216,7 @@ public partial class BattleSceneController
 
     private void OnEnableAiButtonPressed()
     {
-        if (!IsBattleDebugAvailable || _isBattleFinished)
+        if (!IsBattleDebugAvailable || _isBattleFinished || IsTurnBannerInputLocked())
         {
             return;
         }
@@ -228,7 +229,7 @@ public partial class BattleSceneController
 
     private void OnDisableAiButtonPressed()
     {
-        if (!IsBattleDebugAvailable || _isBattleFinished)
+        if (!IsBattleDebugAvailable || _isBattleFinished || IsTurnBannerInputLocked())
         {
             return;
         }
@@ -241,7 +242,7 @@ public partial class BattleSceneController
 
     private void OnStartRoundButtonPressed()
     {
-        if (!IsBattleDebugAvailable || _isFieldAiRoundStarted || _isBattleFinished)
+        if (!IsBattleDebugAvailable || _isFieldAiRoundStarted || _isBattleFinished || IsTurnBannerInputLocked())
         {
             return;
         }
@@ -271,7 +272,7 @@ public partial class BattleSceneController
 
     private void OnNextAiButtonPressed()
     {
-        if (!IsBattleDebugAvailable || !_isFieldAiRoundStarted || !IsCurrentTurnAiControlled() || _isBattleFinished)
+        if (!IsBattleDebugAvailable || !_isFieldAiRoundStarted || !IsCurrentTurnAiControlled() || _isBattleFinished || IsTurnBannerInputLocked())
         {
             return;
         }

@@ -1058,11 +1058,11 @@ public class TurnManager
         if (wasRuler)
         {
             faction.RulerOfficerId = 0;
-            ResolveRulerDeath(world, factionId);
+            ResolveRulerDeath(world, factionId, officer);
         }
     }
 
-    private static void ResolveRulerDeath(WorldState world, int factionId)
+    private static void ResolveRulerDeath(WorldState world, int factionId, OfficerData? previousRuler = null)
     {
         var faction = world.GetFaction(factionId);
         if (faction == null)
@@ -1072,8 +1072,12 @@ public class TurnManager
 
         var candidateIds = faction.OfficerIds
             .Select(world.GetOfficer)
-            .Where(officer => officer != null && IsOfficerAlive(world, officer))
-            .OrderByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
+            .Where(officer => officer != null &&
+                              IsOfficerAlive(world, officer) &&
+                              officer.CaptiveFactionId <= 0 &&
+                              !BattleCampaignService.IsOfficerCommitted(world, officer.Id))
+            .OrderByDescending(officer => OfficerRelationshipRules.GetSuccessionRelationshipPriority(previousRuler, officer))
+            .ThenByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
             .ThenByDescending(officer => officer!.Loyalty)
             .Select(officer => officer!.Id)
             .ToList();

@@ -208,6 +208,9 @@ public partial class BattleSceneController : Node2D
     private int _retreatNoticeSerial;
     private int _officerCaptureNoticeSerial;
     private int _turnBannerSerial;
+    // This is intentionally separate from the visual blocker: AI actions and
+    // signal callbacks must observe the same turn-opening gate as pointer input.
+    private bool _isTurnBannerActionLocked;
     private int _officerSpeechSerial;
     private int _activeOfficerSpeechPriority;
     private readonly List<BattleOfficerSpeechEntry> _officerSpeechEntries = new();

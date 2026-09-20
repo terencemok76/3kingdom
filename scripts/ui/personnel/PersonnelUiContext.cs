@@ -95,6 +95,9 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         Func<HudController.OfficerSelectorDisplayConfig?>? displayConfigFactory = null) =>
         _owner.PersonnelShowAssignRoleOfficerSelectorDialog(title, candidateOfficerIds, confirmedAction, scopeOptions, initialScopeKey, titleFactory, scopeOptionsFactory, displayConfigFactory);
 
+    public HudController.OfficerSelectorDisplayConfig BuildPersonnelOfficerSelectorDisplayConfig() =>
+        _owner.PersonnelBuildAssignRoleOfficerSelectorDisplayConfig();
+
     public void ContinuePendingNonAttackResolution() => _owner.PersonnelContinuePendingNonAttackResolution();
 
     public string GetLocalizedResultMessage(CommandResult result) => _owner.PersonnelGetLocalizedResultMessage(result);

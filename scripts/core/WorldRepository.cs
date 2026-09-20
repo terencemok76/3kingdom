@@ -93,6 +93,7 @@ public class WorldRepository
         if (document?.World != null)
         {
             NormalizeLoadedWorld(document.World);
+            RefreshOfficerRelationshipData(document.World);
             return document;
         }
 
@@ -412,6 +413,37 @@ public class WorldRepository
         foreach (var officer in world.Officers)
         {
             OfficerAppointmentRules.NormalizeOfficer(officer);
+        }
+    }
+
+    // Officer relationships are development-authored reference data. Save
+    // files keep campaign state, but refresh this field for every load so data
+    // edits apply to existing development saves too.
+    private static void RefreshOfficerRelationshipData(WorldState world)
+    {
+        var officerDataPath = ResolveOfficerDataPath(world, string.Empty);
+        if (string.IsNullOrWhiteSpace(officerDataPath) || !FileAccess.FileExists(officerDataPath))
+        {
+            return;
+        }
+
+        using var file = FileAccess.Open(officerDataPath, FileAccess.ModeFlags.Read);
+        var document = JsonSerializer.Deserialize<OfficerDatasetDocument>(file.GetAsText(), JsonOptions);
+        if (document?.Characters == null || document.Characters.Count == 0)
+        {
+            GD.PushWarning($"Officer relationship data could not be parsed: {officerDataPath}");
+            return;
+        }
+
+        var relationshipTypesByOfficerId = document.Characters
+            .GroupBy(officer => officer.Id)
+            .ToDictionary(group => group.Key, group => group.Last().RelationshipType);
+        foreach (var officer in world.Officers)
+        {
+            if (relationshipTypesByOfficerId.TryGetValue(officer.Id, out var relationshipTypes))
+            {
+                officer.RelationshipType = new Dictionary<string, string>(relationshipTypes);
+            }
         }
     }
 

@@ -70,18 +70,25 @@ public partial class CommandResolver
         List<AttackOfficerDeploymentData> deployments,
         TroopAllocationData lossAllocation,
         int totalTroopsBeforeBattle,
-        int totalLoss)
+        int totalLoss,
+        ISet<int>? excludedOfficerIds = null,
+        IDictionary<int, int>? deferredRulerSuccessions = null)
     {
         var capturedOfficerIds = new HashSet<int>();
         foreach (var officerId in GetBattleCaptureOfficerIds(candidateOfficerIds, deployments, lossAllocation, totalTroopsBeforeBattle, totalLoss))
         {
+            if (excludedOfficerIds?.Contains(officerId) == true)
+            {
+                continue;
+            }
+
             var officer = world.GetOfficer(officerId);
             if (officer == null || officer.DeathYear > 0 && world.Year > officer.DeathYear)
             {
                 continue;
             }
 
-            CaptureOfficer(world, officer, winnerFactionId, winnerCityId);
+            CaptureOfficer(world, officer, winnerFactionId, winnerCityId, deferredRulerSuccessions);
             capturedOfficerIds.Add(officerId);
         }
 
@@ -244,7 +251,12 @@ public partial class CommandResolver
         }
     }
 
-    private void CaptureOfficer(WorldState world, OfficerData officer, int captorFactionId, int jailedCityId)
+    private void CaptureOfficer(
+        WorldState world,
+        OfficerData officer,
+        int captorFactionId,
+        int jailedCityId,
+        IDictionary<int, int>? deferredRulerSuccessions = null)
     {
         var removalOutcome = RemoveOfficerFromCurrentService(world, officer, clearDeathYear: false);
         if (removalOutcome.RemovedCityId > 0)
@@ -261,7 +273,14 @@ public partial class CommandResolver
 
         if (removalOutcome.RemovedFactionId > 0 && removalOutcome.WasRuler)
         {
-            ResolveRulerDeath(world, removalOutcome.RemovedFactionId, officer.Id, triggeredByCapture: true);
+            if (deferredRulerSuccessions != null)
+            {
+                deferredRulerSuccessions.TryAdd(removalOutcome.RemovedFactionId, officer.Id);
+            }
+            else
+            {
+                ResolveRulerDeath(world, removalOutcome.RemovedFactionId, officer.Id, triggeredByCapture: true);
+            }
         }
     }
 
@@ -274,7 +293,7 @@ public partial class CommandResolver
         _ = EliminateOfficer(world, officer);
         if (rulerFactionId > 0)
         {
-            ResolveRulerDeath(world, rulerFactionId);
+            ResolveRulerDeath(world, rulerFactionId, officer.Id);
         }
 
         return LocalizedResult(

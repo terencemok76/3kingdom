@@ -239,7 +239,8 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
             },
-            titleFactory: () => _context.Localization?.T("ui.personnel_bonus_officer") ?? localization.T("ui.personnel_bonus_officer"));
+            titleFactory: () => _context.Localization?.T("ui.personnel_bonus_officer") ?? localization.T("ui.personnel_bonus_officer"),
+            displayConfig: _context.BuildPersonnelOfficerSelectorDisplayConfig());
     }
 
     private void UpdateSelectedOfficerSummary()

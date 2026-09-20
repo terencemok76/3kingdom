@@ -136,8 +136,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
                      faction.Id != city.OwnerFactionId &&
                      world.Cities.Any(mapCity => mapCity.OwnerFactionId == faction.Id)))
         {
-            _targetFactionOption.AddItem(localization.GetFactionName(world, faction.Id));
-            _targetFactionOption.SetItemMetadata(_targetFactionOption.ItemCount - 1, faction.Id);
+            AddTargetFactionOption(world, city, faction);
         }
 
         _durationSpinBox.Value = 3;
@@ -235,11 +234,30 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
                      faction.Id != city.OwnerFactionId &&
                      world.Cities.Any(mapCity => mapCity.OwnerFactionId == faction.Id)))
         {
-            _targetFactionOption.AddItem(localization.GetFactionName(world, faction.Id));
-            _targetFactionOption.SetItemMetadata(_targetFactionOption.ItemCount - 1, faction.Id);
+            AddTargetFactionOption(world, city, faction);
         }
 
         SelectTargetFactionOption(selectedFactionId);
+    }
+
+    private void AddTargetFactionOption(WorldState world, CityData city, FactionData faction)
+    {
+        if (_targetFactionOption == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var relation = world.GetDiplomacyRelation(city.OwnerFactionId, faction.Id);
+        var score = relation?.RelationScore ?? 0;
+        var signedScore = score > 0 ? $"+{score}" : score.ToString();
+        var status = relation?.Status ?? DiplomacyStatusType.Neutral;
+        var optionText = _context.Localization.Format(
+            "fmt.diplomacy_target_faction_relation",
+            _context.Localization.GetFactionName(world, faction.Id),
+            signedScore,
+            _context.GetStatusText(status));
+        _targetFactionOption.AddItem(optionText);
+        _targetFactionOption.SetItemMetadata(_targetFactionOption.ItemCount - 1, faction.Id);
     }
 
     private DiplomacyActionType GetSelectedActionType()
@@ -543,7 +561,49 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
                 UpdateConfirmButtonState();
                 SetWarning(string.Empty);
             },
-            () => _context.Localization?.T("ui.diplomacy_officer") ?? localization.T("ui.diplomacy_officer"));
+            () => _context.Localization?.T("ui.diplomacy_officer") ?? localization.T("ui.diplomacy_officer"),
+            BuildDiplomacyOfficerSelectorDisplayConfig());
+    }
+
+    private HudController.OfficerSelectorDisplayConfig BuildDiplomacyOfficerSelectorDisplayConfig()
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (world == null || localization == null)
+        {
+            throw new InvalidOperationException("Diplomacy officer selector requires world and localization.");
+        }
+
+        return new HudController.OfficerSelectorDisplayConfig
+        {
+            Columns =
+            [
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.officers"), MinWidth = 120 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.role"), MinWidth = 80 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.city"), MinWidth = 95 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.status"), MinWidth = 78 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.loyalty"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.charm"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.intelligence"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.politics"), MinWidth = 58 }
+            ],
+            BuildRowTexts = officer =>
+            {
+                var city = world.GetCity(officer.CityId);
+                return
+                [
+                    localization.GetOfficerName(officer),
+                    localization.GetOfficerRole(officer),
+                    city != null ? localization.GetCityName(city) : "--",
+                    localization.GetOfficerStatus(world, officer),
+                    officer.Loyalty.ToString(),
+                    officer.Charm.ToString(),
+                    officer.Intelligence.ToString(),
+                    officer.Politics.ToString()
+                ];
+            },
+            PanelSize = new Vector2(760.0f, 360.0f)
+        };
     }
 
     private void UpdateSelectedOfficerSummary()

@@ -56,13 +56,13 @@ public sealed class MilitaryUiController
 
     public void ShowMilitaryDialog() => _commandDialogController.Show();
 
-    public void OpenMoveFlow()
+    public bool OpenMoveFlow()
     {
         var city = _context.SelectedCity;
         var world = _context.TurnManager?.World;
         if (city == null || world == null)
         {
-            return;
+            return false;
         }
 
         var candidateIds = new List<int>();
@@ -80,19 +80,20 @@ public sealed class MilitaryUiController
         if (candidateIds.Count == 0)
         {
             _context.AddLog(_context.Localization?.T("ui.no_connected_friendly_city") ?? "No connected friendly city to move troops, resources, or officers.");
-            return;
+            return false;
         }
 
         _moveDialogController.Show(candidateIds);
+        return true;
     }
 
-    public void OpenAttackFlow()
+    public bool OpenAttackFlow()
     {
         var city = _context.SelectedCity;
         var world = _context.TurnManager?.World;
         if (city == null || world == null)
         {
-            return;
+            return false;
         }
 
         var candidateIds = new List<int>();
@@ -110,10 +111,11 @@ public sealed class MilitaryUiController
         if (candidateIds.Count == 0)
         {
             _context.AddLog(_context.Localization?.T("ui.no_connected_enemy_city") ?? "No connected enemy city to attack.");
-            return;
+            return false;
         }
 
         _attackDialogController.ShowAttack(candidateIds);
+        return true;
     }
 
     public void ShowDefenseAttackDialog(PendingCommandData pendingCommand, CityData defendingCity, CityData attackingCity) =>

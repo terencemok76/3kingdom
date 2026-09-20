@@ -12,6 +12,11 @@ public partial class BattleSceneController
 {
     private void ExecuteOneAiAction()
     {
+        if (IsTurnBannerInputLocked())
+        {
+            return;
+        }
+
         var candidates = GetActingBattlePieces()
             .Where(entry => !HasUnitActed(entry.Occupant))
             .OrderBy(entry => entry.Occupant.TroopType)

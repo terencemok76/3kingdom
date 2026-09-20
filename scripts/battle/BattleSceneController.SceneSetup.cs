@@ -206,7 +206,7 @@ public partial class BattleSceneController
         HandleBattleLogPanelInput(@event);
     }
 
-    private bool IsTurnBannerInputLocked() => _turnInputBlocker?.Visible == true;
+    private bool IsTurnBannerInputLocked() => _isTurnBannerActionLocked;
 
     public override void _Process(double delta)
     {

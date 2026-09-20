@@ -89,16 +89,16 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(340, 145)
+custom_minimum_size = Vector2(340, 170)
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 340.0
-offset_bottom = 145.0
+offset_bottom = 170.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(320, 120)
+custom_minimum_size = Vector2(320, 145)
 layout_mode = 2
 theme_override_constants/separation = 8
 
@@ -144,6 +144,11 @@ text = "Command"
 [node name="CommandOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="WarningLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.9, 0.68, 0.38, 1)
 
 [node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

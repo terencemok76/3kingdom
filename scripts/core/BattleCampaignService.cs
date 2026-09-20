@@ -592,7 +592,10 @@ public static class BattleCampaignService
         var winnerFactionId = winner == CampaignBattleSide.Attacker
             ? campaign.AttackerFactionId
             : campaign.DefenderFactionId;
-        var capturedOfficerIds = new List<int>();
+        // A city defender can be represented both by its city roster and its
+        // campaign team.  Capture resolution visits both sources, so retain
+        // one authoritative capture per officer.
+        var capturedOfficerIds = new HashSet<int>();
         var attackerTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).ToList();
         var defenderTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender).ToList();
         var attackerCommittedTroops = attackerTeams.Sum(team => Math.Max(0, team.MaximumTroops));
@@ -637,6 +640,7 @@ public static class BattleCampaignService
         };
 
         ReturnUndeployedReinforcements(world, campaign);
+        var deferredRulerSuccessions = new Dictionary<int, int>();
 
         if (attackerWonCity)
         {
@@ -646,7 +650,7 @@ public static class BattleCampaignService
                 if (world.GetOfficer(officerId) is { } officer)
                 {
                     officer.HomeCityId = targetCity.Id;
-                    RemoveCapturedOfficerFromFaction(world, officer);
+                    RemoveCapturedOfficerFromFaction(world, officer, deferredRulerSuccessions);
                     officer.CityId = 0;
                     officer.CaptiveFactionId = campaign.AttackerFactionId;
                     officer.JailedCityId = targetCity.Id;
@@ -656,7 +660,8 @@ public static class BattleCampaignService
             targetCity.OfficerIds.Clear();
         }
 
-        CaptureDefeatedCampaignTeams(world, campaign, winner, targetCity.Id, capturedOfficerIds);
+        CaptureDefeatedCampaignTeams(world, campaign, winner, targetCity.Id, capturedOfficerIds, deferredRulerSuccessions);
+        ResolveDeferredCapturedRulerSuccessions(world, deferredRulerSuccessions);
 
         foreach (var team in campaign.Teams.Where(team =>
                      team.Location is not (CampaignTeamLocation.Eliminated or CampaignTeamLocation.Captured) &&
@@ -710,7 +715,7 @@ public static class BattleCampaignService
         campaign.Stage = CampaignStage.Resolved;
         campaign.IsAwaitingPlayerDecision = false;
         campaign.BattleSnapshotJson = string.Empty;
-        report.CapturedOfficerIds = capturedOfficerIds;
+        report.CapturedOfficerIds = capturedOfficerIds.ToList();
         world.BattleReports.Add(report);
 
         foreach (var officerId in capturedOfficerIds)
@@ -1088,9 +1093,9 @@ public static class BattleCampaignService
 
     /// <summary>
     /// Returns direct, strategic destinations for an officer who has reached its
-    /// own battle exit. A team's valid origin city is listed first, except when a
-    /// defender is already inside that same target city; adjacent friendly and
-    /// neutral cities around the campaign anchor follow.
+    /// own battle exit. In a Field Battle, a defender may first fall back into
+    /// the defended target city for a subsequent city battle. A team's valid
+    /// origin city and adjacent friendly or neutral cities follow.
     /// </summary>
     public static IReadOnlyList<CityData> GetRetreatDestinations(
         WorldState world,
@@ -1109,11 +1114,18 @@ public static class BattleCampaignService
         var retreatFactionId = GetRetreatFactionId(world, team);
         var destinations = new List<CityData>();
         var origin = world.GetCity(GetRetreatOriginCityId(campaign, team));
-        var defenderAlreadyInOriginCity = team.Side == CampaignBattleSide.Defender &&
-                                           origin?.Id == anchorCityId;
+        var canFallBackToDefendedCity = team.Side == CampaignBattleSide.Defender &&
+                                        campaign.Stage == CampaignStage.FieldBattle &&
+                                        anchor.OwnerFactionId == retreatFactionId;
+        if (canFallBackToDefendedCity)
+        {
+            destinations.Add(anchor);
+        }
+
         if (origin != null &&
             origin.OwnerFactionId == retreatFactionId &&
-            !defenderAlreadyInOriginCity)
+            !(team.Side == CampaignBattleSide.Defender && origin.Id == anchorCityId) &&
+            destinations.All(existing => existing.Id != origin.Id))
         {
             destinations.Add(origin);
         }
@@ -1174,6 +1186,15 @@ public static class BattleCampaignService
         if (destination.OwnerFactionId == 0)
         {
             destination.OwnerFactionId = GetRetreatFactionId(world, team);
+        }
+
+        if (team.Side == CampaignBattleSide.Defender &&
+            campaign.Stage == CampaignStage.FieldBattle &&
+            destination.Id == campaign.TargetCityId)
+        {
+            team.Location = CampaignTeamLocation.InnerCity;
+            team.RetreatDestinationCityId = destination.Id;
+            return true;
         }
 
         var troopDestination = IsAlliedEnvoyLoanTeam(team)
@@ -1286,7 +1307,8 @@ public static class BattleCampaignService
         ActiveBattleCampaignData campaign,
         CampaignBattleSide winner,
         int jailCityId,
-        ICollection<int> capturedOfficerIds)
+        ICollection<int> capturedOfficerIds,
+        IDictionary<int, int>? deferredRulerSuccessions = null)
     {
         var winnerFactionId = winner == CampaignBattleSide.Attacker
             ? campaign.AttackerFactionId
@@ -1305,7 +1327,7 @@ public static class BattleCampaignService
             officer.HomeCityId = team.OfficerReturnCityId > 0
                 ? team.OfficerReturnCityId
                 : (team.OriginCityId > 0 ? team.OriginCityId : officer.CityId);
-            RemoveCapturedOfficerFromFaction(world, officer);
+            RemoveCapturedOfficerFromFaction(world, officer, deferredRulerSuccessions);
             RemoveOfficerFromAllCities(world, officer.Id);
             officer.CityId = 0;
             officer.CaptiveFactionId = winnerFactionId;
@@ -1318,7 +1340,10 @@ public static class BattleCampaignService
         }
     }
 
-    private static void RemoveCapturedOfficerFromFaction(WorldState world, OfficerData officer)
+    private static void RemoveCapturedOfficerFromFaction(
+        WorldState world,
+        OfficerData officer,
+        IDictionary<int, int>? deferredRulerSuccessions = null)
     {
         var faction = world.Factions.FirstOrDefault(candidate => candidate.OfficerIds.Contains(officer.Id) || candidate.RulerOfficerId == officer.Id);
         if (faction == null)
@@ -1336,10 +1361,40 @@ public static class BattleCampaignService
 
         officer.DisplacedRulerFactionId = faction.Id;
         faction.RulerOfficerId = 0;
+        if (deferredRulerSuccessions != null)
+        {
+            deferredRulerSuccessions.TryAdd(faction.Id, officer.Id);
+            return;
+        }
+
+        ResolveCapturedRulerSuccession(world, faction, officer);
+    }
+
+    private static void ResolveDeferredCapturedRulerSuccessions(WorldState world, IReadOnlyDictionary<int, int> deferredRulerSuccessions)
+    {
+        foreach (var (factionId, previousRulerOfficerId) in deferredRulerSuccessions)
+        {
+            var faction = world.GetFaction(factionId);
+            var previousRuler = world.GetOfficer(previousRulerOfficerId);
+            if (faction != null && previousRuler != null)
+            {
+                ResolveCapturedRulerSuccession(world, faction, previousRuler);
+            }
+        }
+    }
+
+    private static void ResolveCapturedRulerSuccession(WorldState world, FactionData faction, OfficerData previousRuler)
+    {
         var candidates = faction.OfficerIds
             .Select(world.GetOfficer)
-            .Where(candidate => candidate != null && candidate.CaptiveFactionId <= 0 && (candidate.DeathYear <= 0 || world.Year <= candidate.DeathYear))
-            .OrderByDescending(candidate => candidate!.Leadership + candidate.Intelligence + candidate.Politics + candidate.Charm)
+            .Where(candidate => candidate != null &&
+                                candidate.CaptiveFactionId <= 0 &&
+                                (candidate.DeathYear <= 0 || world.Year <= candidate.DeathYear) &&
+                                !IsOfficerCommitted(world, candidate.Id))
+            // Succession follows the ruling house whenever a qualified blood
+            // relative remains; ability breaks ties within that group.
+            .OrderByDescending(candidate => OfficerRelationshipRules.GetSuccessionRelationshipPriority(previousRuler, candidate))
+            .ThenByDescending(candidate => candidate!.Leadership + candidate.Intelligence + candidate.Politics + candidate.Charm)
             .ThenByDescending(candidate => candidate!.Loyalty)
             .ToList();
         if (faction.IsPlayer)
@@ -1348,7 +1403,7 @@ public static class BattleCampaignService
             world.PendingSuccessionRecords.Add(new WorldState.PendingSuccessionData
             {
                 FactionId = faction.Id,
-                PreviousRulerOfficerId = officer.Id,
+                PreviousRulerOfficerId = previousRuler.Id,
                 TriggeredByCapture = true,
                 CandidateOfficerIds = candidates.Select(candidate => candidate!.Id).ToList()
             });

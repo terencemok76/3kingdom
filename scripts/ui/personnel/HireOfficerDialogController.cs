@@ -209,7 +209,84 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
                 UpdateSelectedOfficerSummary();
                 UpdateSummary();
             },
-            titleFactory: () => _context.Localization?.T("command.personnel.hire_officer") ?? localization.T("command.personnel.hire_officer"));
+            titleFactory: () => _context.Localization?.T("command.personnel.hire_officer") ?? localization.T("command.personnel.hire_officer"),
+            displayConfig: BuildHireOfficerSelectorDisplayConfig(candidateIds));
+    }
+
+    private HudController.OfficerSelectorDisplayConfig BuildHireOfficerSelectorDisplayConfig(IReadOnlyCollection<int> candidateOfficerIds)
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (world == null || localization == null)
+        {
+            throw new InvalidOperationException("Hire officer selector requires world and localization.");
+        }
+
+        var showCityColumn = candidateOfficerIds
+            .Select(world.GetOfficer)
+            .Any(officer => officer?.CityId > 0);
+        var columns = new List<HudController.OfficerSelectorColumnDefinition>
+        {
+            new() { Title = localization.T("ui.officers"), MinWidth = 110 },
+            new() { Title = localization.T("ui.role"), MinWidth = 75 },
+            new() { Title = localization.T("ui.faction"), MinWidth = 100 }
+        };
+        if (showCityColumn)
+        {
+            columns.Add(new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.city"), MinWidth = 95 });
+        }
+
+        columns.AddRange(
+        [
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.status"), MinWidth = 78 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.age"), MinWidth = 50 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.loyalty"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.ambition"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.leadership"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.strength"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.intelligence"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.politics"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.charm"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.combat"), MinWidth = 55 }
+        ]);
+
+        return new HudController.OfficerSelectorDisplayConfig
+        {
+            Columns = columns,
+            BuildRowTexts = officer =>
+            {
+                var city = world.GetCity(officer.CityId);
+                var faction = world.Factions.FirstOrDefault(candidate =>
+                    candidate.RulerOfficerId == officer.Id || candidate.OfficerIds.Contains(officer.Id));
+                var age = officer.BirthYear > 0 ? Math.Max(0, world.Year - officer.BirthYear) : 0;
+                var rowTexts = new List<string>
+                {
+                    localization.GetOfficerName(officer),
+                    localization.GetOfficerRole(officer),
+                    faction != null ? localization.GetFactionName(world, faction.Id) : localization.T("ui.free_officer")
+                };
+                if (showCityColumn)
+                {
+                    rowTexts.Add(city != null ? localization.GetCityName(city) : "--");
+                }
+
+                rowTexts.AddRange(
+                [
+                    localization.GetOfficerStatus(world, officer),
+                    age.ToString(),
+                    faction != null ? officer.Loyalty.ToString() : "--",
+                    officer.Ambition.ToString(),
+                    officer.Leadership.ToString(),
+                    officer.Strength.ToString(),
+                    officer.Intelligence.ToString(),
+                    officer.Politics.ToString(),
+                    officer.Charm.ToString(),
+                    officer.Combat.ToString()
+                ]);
+                return rowTexts;
+            },
+            PanelSize = new Vector2(1380.0f, 390.0f)
+        };
     }
 
     private void UpdateSelectedOfficerSummary()
@@ -282,7 +359,9 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
     private List<OfficerData> GetOrderedCandidates(WorldState world, int playerFactionId)
     {
         return world.Officers
-            .Where(officer => IsCandidate(_context, world, playerFactionId, officer))
+            // Officers without a city are not yet placed on the campaign map,
+            // so they cannot be selected as a city-based hire target.
+            .Where(officer => officer.CityId > 0 && IsCandidate(_context, world, playerFactionId, officer))
             .OrderByDescending(officer => FreeOfficerMovement.IsVisibleFreeOfficer(world, officer))
             .ThenByDescending(officer => officer.Charm)
             .ThenByDescending(officer => officer.Intelligence)

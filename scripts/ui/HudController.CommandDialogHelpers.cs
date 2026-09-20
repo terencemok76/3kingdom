@@ -375,11 +375,7 @@ public partial class HudController : CanvasLayer
         List<SelectOfficerDialog.RowData> BuildRows(IEnumerable<int> ids)
         {
             return BuildCandidates(ids)
-                .Select(officer => new SelectOfficerDialog.RowData
-                {
-                    OfficerId = officer.Id,
-                    ColumnTexts = GetOfficerSelectorColumnTexts(officer, primaryStat, displayConfig)
-                })
+                .Select(officer => BuildOfficerSelectorRow(officer, primaryStat, displayConfig))
                 .ToList();
         }
 
@@ -403,11 +399,7 @@ public partial class HudController : CanvasLayer
 
         var effectiveDisplayConfig = _genericOfficerSelectorDisplayConfig;
         var rows = candidates
-            .Select(officer => new SelectOfficerDialog.RowData
-            {
-                OfficerId = officer.Id,
-                ColumnTexts = GetOfficerSelectorColumnTexts(officer, primaryStat, effectiveDisplayConfig)
-            })
+            .Select(officer => BuildOfficerSelectorRow(officer, primaryStat, effectiveDisplayConfig))
             .ToList();
         var scopeRows = scopeOptions?
             .Select(option => new SelectOfficerDialog.ScopeOption
@@ -437,7 +429,9 @@ public partial class HudController : CanvasLayer
             },
             scopeRows,
             initialScopeKey,
-            effectiveDisplayConfig?.PanelSize);
+            effectiveDisplayConfig?.PanelSize,
+            locationFilterLabel: _localization.T("ui.location_filter"),
+            allLocationsLabel: _localization.T("ui.all_locations"));
     }
 
     private void RefreshSelectOfficerDialogText()
@@ -471,11 +465,7 @@ public partial class HudController : CanvasLayer
         List<SelectOfficerDialog.RowData> BuildRows(IEnumerable<int> ids)
         {
             return BuildCandidates(ids)
-                .Select(officer => new SelectOfficerDialog.RowData
-                {
-                    OfficerId = officer.Id,
-                    ColumnTexts = GetOfficerSelectorColumnTexts(officer, _genericOfficerSelectorPrimaryStat, displayConfig)
-                })
+                .Select(officer => BuildOfficerSelectorRow(officer, _genericOfficerSelectorPrimaryStat, displayConfig))
                 .ToList();
         }
 
@@ -509,7 +499,9 @@ public partial class HudController : CanvasLayer
             scopeRows,
             _genericOfficerSelectorInitialScopeKey,
             displayConfig?.PanelSize,
-            selectedOfficerId);
+            selectedOfficerId,
+            _localization.T("ui.location_filter"),
+            _localization.T("ui.all_locations"));
     }
 
     private IReadOnlyList<SelectOfficerDialog.ColumnDefinition> BuildOfficerSelectorColumns(
@@ -555,6 +547,23 @@ public partial class HudController : CanvasLayer
                 : string.Empty,
             GetOfficerSelectorPrimaryStatValue(officer, primaryStat).ToString()
         ];
+    }
+
+    private SelectOfficerDialog.RowData BuildOfficerSelectorRow(
+        OfficerData officer,
+        OfficerSelectorPrimaryStat primaryStat,
+        OfficerSelectorDisplayConfig? displayConfig)
+    {
+        var city = _turnManager?.World?.GetCity(officer.CityId);
+        return new SelectOfficerDialog.RowData
+        {
+            OfficerId = officer.Id,
+            ColumnTexts = GetOfficerSelectorColumnTexts(officer, primaryStat, displayConfig),
+            LocationKey = city?.Id.ToString() ?? "unassigned",
+            LocationLabel = city != null
+                ? _localization?.GetCityName(city) ?? city.Name
+                : _localization?.T("ui.unassigned") ?? "Unassigned"
+        };
     }
 
     private string GetOfficerSelectorPrimaryStatTitle(OfficerSelectorPrimaryStat primaryStat)

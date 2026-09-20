@@ -142,9 +142,33 @@
 							  "en":  "Ruler Succession"
 						  },
 		"ui.confirm_succession":  {
-									 "zhHant":  "確認繼位",
-									 "en":  "Confirm Successor"
-								 },
+										 "zhHant":  "確認繼位",
+										 "en":  "Confirm Successor"
+									 },
+		"ui.succession_successor":  {
+											"zhHant":  "繼位人選",
+											"en":  "Successor"
+										},
+		"ui.succession_previous_ruler_relation":  {
+											"zhHant":  "與前任關係",
+											"en":  "Prior Ruler Relation"
+										},
+		"ui.succession_relation_family":  {
+											"zhHant":  "親族",
+											"en":  "Family"
+										},
+		"ui.succession_relation_blood":  {
+											"zhHant":  "血親",
+											"en":  "Blood Relative"
+										},
+		"ui.succession_relation_non_blood":  {
+											"zhHant":  "非血親",
+											"en":  "Non-blood Family"
+										},
+		"ui.succession_relation_none":  {
+											"zhHant":  "無",
+											"en":  "None"
+										},
 		"ui.succession_summary":  {
 									 "zhHant":  "君主已死亡，請為勢力「{0}」選擇新的君主。",
 									 "en":  "The ruler has died. Choose a new ruler for faction \"{0}\"."

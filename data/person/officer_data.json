@@ -16,9 +16,9 @@
 	  "ambition": 78,
 	  "combat": 78,
 	  "relationship_type": {
-		"關羽": "family",
-		"張飛": "family",
-		"劉禪": "family"
+		"關羽": "family,non-blood",
+		"張飛": "family,non-blood",
+		"劉禪": "family,blood"
 	  },
 	  "birth_year": 161
 	},
@@ -36,11 +36,11 @@
 	  "ambition": 58,
 	  "combat": 97,
 	  "relationship_type": {
-		"劉備": "family",
-		"張飛": "family",
-		"關平": "family",
-		"關興": "family",
-		"關索": "family"
+		"劉備": "family,non-blood",
+		"張飛": "family,non-blood",
+		"關平": "family,blood",
+		"關興": "family,blood",
+		"關索": "family,blood"
 	  },
 	  "birth_year": 162
 	},
@@ -58,9 +58,9 @@
 	  "ambition": 68,
 	  "combat": 96,
 	  "relationship_type": {
-		"劉備": "family",
-		"關羽": "family",
-		"張苞": "family"
+		"劉備": "family,non-blood",
+		"關羽": "family,non-blood",
+		"張苞": "family,blood"
 	  },
 	  "birth_year": 166
 	},
@@ -78,8 +78,8 @@
 	  "ambition": 72,
 	  "combat": 55,
 	  "relationship_type": {
-		  "諸葛瞻":"family",
-		  "諸葛尚":"family"
+		  "諸葛瞻":"family,blood",
+		  "諸葛尚":"family,blood"
 	  },
 	  "birth_year": 181
 	},
@@ -113,7 +113,7 @@
 	  "ambition": 82,
 	  "combat": 95,
 	  "relationship_type": {
-		  "馬騰":"family"
+		  "馬騰":"family,blood"
 	  },
 	  "birth_year": 176
 	},
@@ -243,9 +243,9 @@
 	  "ambition": 54,
 	  "combat": 84,
 	  "relationship_type": {
-		  "關羽":"family",
-		  "關興":"family",
-		  "關索":"family"
+		  "關羽":"family,blood",
+		  "關興":"family,blood",
+		  "關索":"family,blood"
 	  },
 	  "birth_year": 182
 	},
@@ -263,9 +263,9 @@
 	  "ambition": 55,
 	  "combat": 83,
 	  "relationship_type": {
-		  "關羽":"family",
-		  "關平":"family",
-		  "關索":"family"
+		  "關羽":"family,blood",
+		  "關平":"family,blood",
+		  "關索":"family,blood"
 	  },
 	  "birth_year": 193
 	},
@@ -283,7 +283,7 @@
 	  "ambition": 58,
 	  "combat": 85,
 	  "relationship_type": {
-		  "張飛":"family"
+		  "張飛":"family,blood"
 	  },
 	  "birth_year": 192
 	},
@@ -333,7 +333,7 @@
 	  "ambition": 28,
 	  "combat": 22,
 	  "relationship_type": {
-		  "劉備":"family"
+		  "劉備":"family,blood"
 	  },
 	  "birth_year": 207
 	},
@@ -367,9 +367,9 @@
 	  "ambition": 98,
 	  "combat": 80,
 	  "relationship_type": {
-		  "曹丕":"family",
-		  "曹叡":"family",
-		  "曹彰":"family"
+		  "曹丕":"family,blood",
+		  "曹叡":"family,blood",
+		  "曹彰":"family,blood"
 		  
 	  },
 	  "birth_year": 155
@@ -388,9 +388,9 @@
 	  "ambition": 84,
 	  "combat": 58,
 	  "relationship_type": {
-		  "曹操":"family",
-		  "曹叡":"family",
-		  "曹彰":"family"
+		  "曹操":"family,blood",
+		  "曹叡":"family,blood",
+		  "曹彰":"family,blood"
 	  },
 	  "birth_year": 187
 	},
@@ -408,9 +408,9 @@
 	  "ambition": 75,
 	  "combat": 52,
 	  "relationship_type": {
-		  "曹操":"family",
-		  "曹丕":"family",
-		  "曹彰":"family"
+		  "曹操":"family,blood",
+		  "曹丕":"family,blood",
+		  "曹彰":"family,blood"
 	  },
 	  "birth_year": 204
 	},
@@ -573,8 +573,8 @@
 	  "ambition": 97,
 	  "combat": 58,
 	  "relationship_type": {
-		  "司馬昭":"family",
-		  "司馬師":"family"
+		  "司馬昭":"family,blood",
+		  "司馬師":"family,blood"
 	  },
 	  "birth_year": 179
 	},
@@ -592,8 +592,8 @@
 	  "ambition": 93,
 	  "combat": 60,
 	  "relationship_type": {
-			"司馬懿":"family",
-			"司馬師":"family"
+			"司馬懿":"family,blood",
+			"司馬師":"family,blood"
 	  },
 	  "birth_year": 211
 	},
@@ -611,8 +611,8 @@
 	  "ambition": 91,
 	  "combat": 58,
 	  "relationship_type": {
-		"司馬懿":"family",
-		"司馬昭":"family"
+		"司馬懿":"family,blood",
+		"司馬昭":"family,blood"
 	  },
 	  "birth_year": 208
 	},
@@ -710,9 +710,9 @@
 	  "ambition": 84,
 	  "combat": 62,
 	  "relationship_type": {
-		  "孫策":"family",
-		  "孫堅":"family",
-		  "孫尚香":"family"
+		  "孫策":"family,blood",
+		  "孫堅":"family,blood",
+		  "孫尚香":"family,blood"
 	  },
 	  "birth_year": 182
 	},
@@ -730,10 +730,10 @@
 	  "ambition": 93,
 	  "combat": 91,
 	  "relationship_type": {
-		  "孫權":"family",
-		  "孫堅":"family",
-		  "孫尚香":"family",
-		  "大喬":"family"
+		  "孫權":"family,blood",
+		  "孫堅":"family,blood",
+		  "孫尚香":"family,blood",
+		  "大喬":"family,non-blood"
 	  },
 	  "birth_year": 175
 	},
@@ -751,9 +751,9 @@
 	  "ambition": 80,
 	  "combat": 87,
 	  "relationship_type": {
-		  "孫策":"family",
-		  "孫權":"family",
-		  "孫尚香":"family"
+		  "孫策":"family,blood",
+		  "孫權":"family,blood",
+		  "孫尚香":"family,blood"
 	  },
 	  "birth_year": 155
 	},
@@ -771,7 +771,7 @@
 	  "ambition": 70,
 	  "combat": 78,
 	  "relationship_type": {
-		  "小喬":"family"
+		  "小喬":"family,non-blood"
 	  },
 	  "birth_year": 175
 	},
@@ -980,7 +980,9 @@
 	  "loyalty": 89,
 	  "ambition": 40,
 	  "combat": 27,
-	  "relationship_type": {},
+	  "relationship_type": {
+		  "諸葛亮":"family,blood"
+	  },
 	  "birth_year": 174
 	},
 	{
@@ -997,9 +999,9 @@
 	  "ambition": 61,
 	  "combat": 74,
 	  "relationship_type": {
-		  "孫權":"family",
-		  "孫策":"family",
-		  "孫堅":"family"
+		  "孫權":"family,blood",
+		  "孫策":"family,blood",
+		  "孫堅":"family,blood"
 	  },
 	  "birth_year": 182
 	},
@@ -1133,8 +1135,8 @@
 	  "ambition": 88,
 	  "combat": 42,
 	  "relationship_type": {
-		"張寶": "family",
-		"張梁": "family"
+		"張寶": "family,blood",
+		"張梁": "family,blood"
 	  },
 	  "birth_year": 140
 	},
@@ -1152,8 +1154,8 @@
 	  "ambition": 70,
 	  "combat": 70,
 	  "relationship_type": {
-		"張角": "family",
-		"張梁": "family"
+		"張角": "family,blood",
+		"張梁": "family,blood"
 	  },
 	  "birth_year": 148
 	},
@@ -1171,8 +1173,8 @@
 	  "ambition": 72,
 	  "combat": 76,
 	  "relationship_type": {
-		"張角": "family",
-		"張寶": "family"
+		"張角": "family,blood",
+		"張寶": "family,blood"
 	  },
 	  "birth_year": 153
 	},
@@ -1624,9 +1626,9 @@
 	  "ambition": 52,
 	  "combat": 82,
 	  "relationship_type": {
-		  "關羽":"family",
-		  "關平":"family",
-		  "關興":"family"
+		  "關羽":"family,blood",
+		  "關平":"family,blood",
+		  "關興":"family,blood"
 	  },
 	  "birth_year": 194
 	},
@@ -1644,8 +1646,8 @@
 	  "ambition": 44,
 	  "combat": 42,
 	  "relationship_type": {
-		  "諸葛亮":"family",
-		  "諸葛尚":"family"
+		  "諸葛亮":"family,blood",
+		  "諸葛尚":"family,blood"
 	  },
 	  "birth_year": 227
 	},
@@ -1663,8 +1665,8 @@
 	  "ambition": 38,
 	  "combat": 73,
 	  "relationship_type": {
-		  "諸葛亮":"family",
-		  "諸葛瞻":"family"
+		  "諸葛亮":"family,blood",
+		  "諸葛瞻":"family,blood"
 	  },
 	  "birth_year": 244
 	},
@@ -2616,9 +2618,9 @@
 		"ambition":74,
 		"combat":93,
 		"relationship_type": {
-		  "曹操":"family",
-		  "曹叡":"family",
-		  "曹丕":"family"
+		  "曹操":"family,blood",
+		  "曹叡":"family,blood",
+		  "曹丕":"family,blood"
 		},
 		"birth_year": 190
 	},
@@ -3230,7 +3232,9 @@
 		"loyalty":78,
 		"ambition":44,
 		"combat":38,
-		"relationship_type": {},
+		"relationship_type": {
+			"橋玄":"family,blood"
+		},
 		"birth_year": 150
 	},
 	{
@@ -3374,7 +3378,9 @@
 		"loyalty":96,
 		"ambition":18,
 		"combat":10,
-		"relationship_type": {},
+		"relationship_type": {
+			"橋瑁":"family,blood"
+		},
 		"birth_year": 110
 	},
 	{

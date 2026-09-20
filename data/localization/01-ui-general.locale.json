@@ -303,6 +303,14 @@
 						   "zhHant":  "本地",
 						   "en":  "Local"
 					   },
+	"ui.location_filter":  {
+						   "zhHant":  "所在地",
+						   "en":  "Location"
+					   },
+	"ui.all_locations":  {
+						   "zhHant":  "全部所在地",
+						   "en":  "All Locations"
+					   },
 	"ui.city_intel":  {
 						  "zhHant":  "情報",
 						  "en":  "Intel"
@@ -449,6 +457,10 @@
 							 "zhHant":  "君主",
 							 "en":  "Owner"
 						 },
+	"ui.faction":  {
+						 "zhHant":  "勢力",
+						 "en":  "Faction"
+					 },
 	"ui.farm":  {
 					"zhHant":  "農業",
 					"en":  "Farm"

@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -9,6 +11,7 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
 {
     private readonly PersonnelUiContext _context;
     private Label? _summaryLabel;
+    private Label? _officerListLabel;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private Label? _warningLabel;
@@ -86,6 +89,10 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         {
             _warningLabel.Text = string.Empty;
         }
+        if (_officerListLabel != null)
+        {
+            _officerListLabel.Text = localization.T("ui.succession_successor");
+        }
         if (_selectOfficerButton != null)
         {
             _selectOfficerButton.Text = localization.T("ui.select_officer");
@@ -154,6 +161,10 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         {
             _warningLabel.Text = string.Empty;
         }
+        if (_officerListLabel != null)
+        {
+            _officerListLabel.Text = localization.T("ui.succession_successor");
+        }
         if (_selectOfficerButton != null)
         {
             _selectOfficerButton.Text = localization.T("ui.select_officer");
@@ -174,6 +185,7 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
+        _officerListLabel = root.GetNodeOrNull<Label>("OfficerListLabel");
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
@@ -301,6 +313,12 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         var candidateOfficerIds = _isVoluntaryRulerChange
             ? _rulerChangeCandidateOfficerIds.ToList()
             : pendingSuccession?.CandidateOfficerIds.ToList() ?? new List<int>();
+        var previousRulerOfficerId = _isVoluntaryRulerChange
+            ? world.GetFaction(_pendingFactionId)?.RulerOfficerId ?? 0
+            : pendingSuccession?.PreviousRulerOfficerId ?? 0;
+        var previousRuler = previousRulerOfficerId > 0
+            ? world.GetOfficer(previousRulerOfficerId)
+            : null;
         if (candidateOfficerIds.Count == 0)
         {
             if (_warningLabel != null)
@@ -323,7 +341,85 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
                     _warningLabel.Text = string.Empty;
                 }
             },
-            titleFactory: () => _context.Localization?.T("ui.succession") ?? localization.T("ui.succession"));
+            titleFactory: () => _context.Localization?.T("ui.succession") ?? localization.T("ui.succession"),
+            displayConfigFactory: () => BuildSuccessionOfficerSelectorDisplayConfig(previousRuler));
+    }
+
+    private HudController.OfficerSelectorDisplayConfig BuildSuccessionOfficerSelectorDisplayConfig(OfficerData? previousRuler)
+    {
+        var localization = _context.Localization;
+        if (localization == null)
+        {
+            throw new InvalidOperationException("Succession officer selector requires localization.");
+        }
+
+        return new HudController.OfficerSelectorDisplayConfig
+        {
+            Columns =
+            [
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.officers"), MinWidth = 118 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.succession_previous_ruler_relation"), MinWidth = 112 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.age"), MinWidth = 52 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.leadership"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.strength"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.intelligence"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.politics"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.charm"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.loyalty_short"), MinWidth = 58 }
+            ],
+            BuildRowTexts = officer =>
+            [
+                localization.GetOfficerName(officer),
+                GetPreviousRulerRelationshipText(officer, previousRuler, localization),
+                FormatOfficerAge(officer),
+                officer.Leadership.ToString(),
+                officer.Strength.ToString(),
+                officer.Intelligence.ToString(),
+                officer.Politics.ToString(),
+                officer.Charm.ToString(),
+                officer.Loyalty.ToString()
+            ],
+            PanelSize = new Vector2(940.0f, 360.0f)
+        };
+    }
+
+    private string FormatOfficerAge(OfficerData officer)
+    {
+        var currentYear = _context.TurnManager?.World?.Year ?? 0;
+        return officer.BirthYear > 0 && currentYear > 0
+            ? Math.Max(0, currentYear - officer.BirthYear).ToString()
+            : "-";
+    }
+
+    private static string GetPreviousRulerRelationshipText(
+        OfficerData candidate,
+        OfficerData? previousRuler,
+        LocalizationService localization)
+    {
+        if (previousRuler == null)
+        {
+            return localization.T("ui.succession_relation_none");
+        }
+
+        var relationshipType = FindRelationshipType(candidate, previousRuler) ??
+                               FindRelationshipType(previousRuler, candidate);
+        return relationshipType?.Trim().ToLowerInvariant() switch
+        {
+            "family,blood" => localization.T("ui.succession_relation_blood"),
+            "family,non-blood" => localization.T("ui.succession_relation_non_blood"),
+            "family" => localization.T("ui.succession_relation_family"),
+            null or "" => localization.T("ui.succession_relation_none"),
+            _ => relationshipType
+        };
+    }
+
+    private static string? FindRelationshipType(OfficerData source, OfficerData target)
+    {
+        return source.RelationshipType
+            .FirstOrDefault(relationship =>
+                relationship.Key.Equals(target.Name, StringComparison.OrdinalIgnoreCase) ||
+                relationship.Key.Equals(target.NameZhHant, StringComparison.OrdinalIgnoreCase))
+            .Value;
     }
 
     private void UpdateSelectedOfficerSummary()

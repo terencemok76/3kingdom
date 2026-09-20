@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -178,7 +180,64 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
                 _selectedOfficerId = officerId;
                 UpdateSelectedOfficerSummary();
             },
-            titleFactory: () => _context.Localization?.T("command.personnel.fire_officer") ?? localization.T("command.personnel.fire_officer"));
+            titleFactory: () => _context.Localization?.T("command.personnel.fire_officer") ?? localization.T("command.personnel.fire_officer"),
+            displayConfigFactory: BuildFireOfficerSelectorDisplayConfig);
+    }
+
+    private HudController.OfficerSelectorDisplayConfig BuildFireOfficerSelectorDisplayConfig()
+    {
+        var localization = _context.Localization;
+        if (localization == null)
+        {
+            throw new InvalidOperationException("Dismiss officer selector requires localization.");
+        }
+
+        return new HudController.OfficerSelectorDisplayConfig
+        {
+            Columns =
+            [
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.officers"), MinWidth = 118 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.role"), MinWidth = 72 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.status"), MinWidth = 82 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.age"), MinWidth = 52 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.loyalty_short"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.leadership"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.strength"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.intelligence"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.politics"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.charm"), MinWidth = 58 },
+                new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.combat"), MinWidth = 58 }
+            ],
+            BuildRowTexts = BuildFireOfficerSelectorRowTexts,
+            PanelSize = new Vector2(1050.0f, 360.0f)
+        };
+    }
+
+    private IReadOnlyList<string> BuildFireOfficerSelectorRowTexts(OfficerData officer)
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        var age = officer.BirthYear > 0 && world?.Year > 0
+            ? Math.Max(0, world.Year - officer.BirthYear).ToString()
+            : "-";
+        var status = world != null && localization != null
+            ? localization.GetOfficerStatus(world, officer)
+            : string.Empty;
+
+        return
+        [
+            localization?.GetOfficerName(officer) ?? officer.Name,
+            localization?.GetOfficerRole(officer) ?? officer.Role,
+            status,
+            age,
+            officer.Loyalty.ToString(),
+            officer.Leadership.ToString(),
+            officer.Strength.ToString(),
+            officer.Intelligence.ToString(),
+            officer.Politics.ToString(),
+            officer.Charm.ToString(),
+            officer.Combat.ToString()
+        ];
     }
 
     private void UpdateSelectedOfficerSummary()

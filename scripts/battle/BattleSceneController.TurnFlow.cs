@@ -326,7 +326,7 @@ public partial class BattleSceneController
 
     private void OnEndTurnButtonPressed()
     {
-        if (_isBattleFinished)
+        if (_isBattleFinished || IsTurnBannerInputLocked())
         {
             return;
         }

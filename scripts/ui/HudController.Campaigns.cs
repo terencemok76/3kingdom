@@ -172,6 +172,7 @@ public partial class HudController
         var sourceName = sourceCity == null ? "?" : localization.GetCityName(sourceCity);
         var targetName = targetCity == null ? "?" : localization.GetCityName(targetCity);
         var capturedNames = report.CapturedOfficerIds
+            .Distinct()
             .Select(world.GetOfficer)
             .Where(officer => officer != null)
             .Select(officer => localization.GetOfficerName(officer!))

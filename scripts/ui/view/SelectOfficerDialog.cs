@@ -24,10 +24,15 @@ public sealed partial class SelectOfficerDialog : Control
     {
         public required int OfficerId { get; init; }
         public required IReadOnlyList<string> ColumnTexts { get; init; }
+        public string LocationKey { get; init; } = string.Empty;
+        public string LocationLabel { get; init; } = string.Empty;
     }
 
     private Tree? _officerTable;
     private HBoxContainer? _scopeRow;
+    private HBoxContainer? _locationFilterRow;
+    private Label? _locationFilterLabel;
+    private OptionButton? _locationFilterOption;
     private Button? _primaryScopeButton;
     private Button? _secondaryScopeButton;
     private Button? _confirmButton;
@@ -36,7 +41,10 @@ public sealed partial class SelectOfficerDialog : Control
     private Label? _titleLabel;
     private Action<int>? _confirmedAction;
     private readonly List<ScopeOption> _scopeOptions = new();
+    private readonly List<RowData> _activeRows = new();
     private string _activeScopeKey = string.Empty;
+    private int _sortColumn = -1;
+    private bool _sortAscending = true;
     private bool _dragging;
     private Vector2 _dragOffset = Vector2.Zero;
 
@@ -47,6 +55,9 @@ public sealed partial class SelectOfficerDialog : Control
         _titleLabel = GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/TitleLabel");
         _officerTable = GetNodeOrNull<Tree>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentSection/OfficerTable");
         _scopeRow = GetNodeOrNull<HBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow");
+        _locationFilterRow = GetNodeOrNull<HBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow");
+        _locationFilterLabel = GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow/LocationFilterLabel");
+        _locationFilterOption = GetNodeOrNull<OptionButton>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow/LocationFilterOption");
         _primaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/PrimaryScopeButton");
         _secondaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/SecondaryScopeButton");
         _confirmButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/ConfirmRow/ConfirmButton");
@@ -57,6 +68,7 @@ public sealed partial class SelectOfficerDialog : Control
         if (_officerTable != null)
         {
             _officerTable.ItemSelected += OnOfficerTableSelected;
+            _officerTable.ColumnTitleClicked += OnColumnTitleClicked;
         }
 
         if (_primaryScopeButton != null)
@@ -67,6 +79,11 @@ public sealed partial class SelectOfficerDialog : Control
         if (_secondaryScopeButton != null)
         {
             _secondaryScopeButton.Pressed += () => ActivateScope(1);
+        }
+
+        if (_locationFilterOption != null)
+        {
+            _locationFilterOption.ItemSelected += _ => RenderActiveRows();
         }
 
         if (_confirmButton != null)
@@ -97,7 +114,9 @@ public sealed partial class SelectOfficerDialog : Control
         IReadOnlyList<ScopeOption>? scopeOptions = null,
         string? initialScopeKey = null,
         Vector2? panelSize = null,
-        int preferredOfficerId = -1)
+        int preferredOfficerId = -1,
+        string locationFilterLabel = "Location",
+        string allLocationsLabel = "All Locations")
     {
         if (_officerTable == null || _confirmButton == null)
         {
@@ -110,6 +129,8 @@ public sealed partial class SelectOfficerDialog : Control
         }
         _confirmButton.Text = confirmText;
         _confirmedAction = onConfirmed;
+        _sortColumn = -1;
+        _sortAscending = true;
         ConfigureColumns(columns);
 
         _scopeOptions.Clear();
@@ -139,13 +160,15 @@ public sealed partial class SelectOfficerDialog : Control
                               _scopeOptions.Any(option => option.Key == initialScopeKey)
                 ? initialScopeKey
                 : _scopeOptions[0].Key;
-            RenderRows(GetActiveScopeRows());
+            ConfigureLocationFilter(GetActiveScopeRows(), null, locationFilterLabel, allLocationsLabel);
+            SetActiveRows(GetActiveScopeRows());
             UpdateScopeButtonStates();
         }
         else
         {
             _activeScopeKey = string.Empty;
-            RenderRows(rows);
+            ConfigureLocationFilter(rows, null, locationFilterLabel, allLocationsLabel);
+            SetActiveRows(rows);
             UpdateScopeButtonStates();
         }
 
@@ -217,7 +240,8 @@ public sealed partial class SelectOfficerDialog : Control
         }
 
         _activeScopeKey = _scopeOptions[index].Key;
-        RenderRows(_scopeOptions[index].Rows);
+        ConfigureLocationFilter(_scopeOptions[index].Rows, null, _locationFilterLabel?.Text ?? "Location", _locationFilterOption?.GetItemText(0) ?? "All Locations");
+        SetActiveRows(_scopeOptions[index].Rows);
         UpdateScopeButtonStates();
     }
 
@@ -225,6 +249,118 @@ public sealed partial class SelectOfficerDialog : Control
     {
         var activeScope = _scopeOptions.FirstOrDefault(option => option.Key == _activeScopeKey);
         return activeScope?.Rows ?? _scopeOptions[0].Rows;
+    }
+
+    private void ConfigureLocationFilter(
+        IReadOnlyList<RowData> rows,
+        IReadOnlyList<ScopeOption>? scopeOptions,
+        string label,
+        string allLocationsLabel)
+    {
+        if (_locationFilterRow == null || _locationFilterLabel == null || _locationFilterOption == null)
+        {
+            return;
+        }
+
+        var filterRows = scopeOptions is { Count: >= 2 }
+            ? scopeOptions.FirstOrDefault(option => option.Key == _activeScopeKey)?.Rows ?? scopeOptions[0].Rows
+            : rows;
+        var locations = filterRows
+            .Where(row => !string.IsNullOrWhiteSpace(row.LocationKey))
+            .GroupBy(row => row.LocationKey)
+            .Select(group => (Key: group.Key, Label: group.First().LocationLabel))
+            .OrderBy(location => location.Label, StringComparer.CurrentCulture)
+            .ToList();
+        _locationFilterOption.Clear();
+        _locationFilterOption.AddItem(allLocationsLabel);
+        _locationFilterOption.SetItemMetadata(0, string.Empty);
+        for (var index = 0; index < locations.Count; index += 1)
+        {
+            _locationFilterOption.AddItem(locations[index].Label);
+            _locationFilterOption.SetItemMetadata(index + 1, locations[index].Key);
+        }
+
+        _locationFilterLabel.Text = label;
+        _locationFilterRow.Visible = locations.Count > 1;
+    }
+
+    private void SetActiveRows(IReadOnlyList<RowData> rows)
+    {
+        _activeRows.Clear();
+        _activeRows.AddRange(rows);
+        RenderActiveRows();
+    }
+
+    private void RenderActiveRows()
+    {
+        var locationKey = GetSelectedLocationKey();
+        var rows = _activeRows
+            .Where(row => string.IsNullOrEmpty(locationKey) || row.LocationKey == locationKey);
+        var orderedRows = _sortColumn >= 0
+            ? rows.OrderBy(row => row, Comparer<RowData>.Create(CompareRows)).ToList()
+            : rows.ToList();
+        RenderRows(orderedRows);
+    }
+
+    private string GetSelectedLocationKey()
+    {
+        if (_locationFilterOption == null || _locationFilterOption.Selected < 0)
+        {
+            return string.Empty;
+        }
+
+        var metadata = _locationFilterOption.GetItemMetadata(_locationFilterOption.Selected);
+        return metadata.VariantType == Variant.Type.String ? metadata.AsString() : string.Empty;
+    }
+
+    private int CompareRows(RowData left, RowData right)
+    {
+        var leftValue = _sortColumn >= 0 && _sortColumn < left.ColumnTexts.Count ? left.ColumnTexts[_sortColumn] : string.Empty;
+        var rightValue = _sortColumn >= 0 && _sortColumn < right.ColumnTexts.Count ? right.ColumnTexts[_sortColumn] : string.Empty;
+        var comparison = TryGetSortableNumber(leftValue, out var leftNumber) && TryGetSortableNumber(rightValue, out var rightNumber)
+            ? leftNumber.CompareTo(rightNumber)
+            : string.Compare(leftValue, rightValue, StringComparison.CurrentCulture);
+        if (comparison == 0)
+        {
+            comparison = left.OfficerId.CompareTo(right.OfficerId);
+        }
+
+        return _sortAscending ? comparison : -comparison;
+    }
+
+    private void OnColumnTitleClicked(long column, long mouseButtonIndex)
+    {
+        if (mouseButtonIndex != (long)MouseButton.Left || column < 0 || _officerTable == null || column >= _officerTable.Columns)
+        {
+            return;
+        }
+
+        var selectedOfficerId = GetSelectedOfficerId();
+        if (_sortColumn == column)
+        {
+            _sortAscending = !_sortAscending;
+        }
+        else
+        {
+            _sortColumn = (int)column;
+            var valuesAreNumeric = _activeRows.Count > 0 && _activeRows.All(row =>
+                _sortColumn < row.ColumnTexts.Count && TryGetSortableNumber(row.ColumnTexts[_sortColumn], out _));
+            _sortAscending = !valuesAreNumeric;
+        }
+
+        RenderActiveRows();
+        SelectOfficer(selectedOfficerId);
+    }
+
+    private static bool TryGetSortableNumber(string value, out int number)
+    {
+        if (value == "--")
+        {
+            number = int.MinValue;
+            return true;
+        }
+
+        return int.TryParse(value, out number);
     }
 
     private void UpdateScopeButtonStates()

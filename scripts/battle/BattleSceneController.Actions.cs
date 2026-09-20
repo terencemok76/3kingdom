@@ -137,6 +137,11 @@ public partial class BattleSceneController
 
     private bool TryExecuteBattleActionIntent(BattleActionIntent intent, BattleOccupantInfo unit, Action? onMoveAnimationComplete = null)
     {
+        if (IsTurnBannerInputLocked())
+        {
+            return false;
+        }
+
         if (!BattleActionValidator.IsStructurallyValid(intent))
         {
             return false;

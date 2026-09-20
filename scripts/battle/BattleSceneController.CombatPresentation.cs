@@ -456,9 +456,18 @@ public partial class BattleSceneController
 
     private async void ShowOpeningOfficerSpeechAfterDelay()
     {
+        // The opening presentation is part of turn zero. Do not leave a gap
+        // before the banner where either a player click or an AI callback can
+        // command a team.
+        SetTurnBannerActionLocked(true);
         await ToSignal(GetTree().CreateTimer(0.45), SceneTreeTimer.SignalName.Timeout);
         if (!GodotObject.IsInstanceValid(this) || _isBattleFinished)
         {
+            if (GodotObject.IsInstanceValid(this))
+            {
+                SetTurnBannerActionLocked(false);
+            }
+
             return;
         }
 
@@ -795,10 +804,12 @@ public partial class BattleSceneController
 
         if (_turnBanner == null || _turnBannerLabel == null)
         {
+            SetTurnBannerActionLocked(false);
             return;
         }
 
         var bannerSerial = ++_turnBannerSerial;
+        SetTurnBannerActionLocked(true);
         _turnBannerLabel.Text = BattleFormat(
             "ui.battle.turn_banner",
             "{0} Turn",
@@ -815,10 +826,26 @@ public partial class BattleSceneController
         if (GodotObject.IsInstanceValid(this) && bannerSerial == _turnBannerSerial)
         {
             _turnBanner.Visible = false;
-            if (_turnInputBlocker != null)
-            {
-                _turnInputBlocker.Visible = false;
-            }
+            SetTurnBannerActionLocked(false);
+            // Re-enable the same command controls that were gated while the
+            // banner was visible. This also makes the next AI step available
+            // only after the new turn has been presented.
+            ConfigureHud();
+        }
+    }
+
+    private void SetTurnBannerActionLocked(bool locked)
+    {
+        _isTurnBannerActionLocked = locked;
+        if (_turnInputBlocker == null)
+        {
+            return;
+        }
+
+        _turnInputBlocker.Visible = locked;
+        if (locked)
+        {
+            _turnInputBlocker.MoveToFront();
         }
     }
 

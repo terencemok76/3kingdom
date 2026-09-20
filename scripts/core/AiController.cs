@@ -212,27 +212,14 @@ public class AiController
 
     private static int ScoreAiRulerCandidate(OfficerData currentRuler, OfficerData candidate)
     {
-        var relationshipBonus = HasFamilyRelationship(currentRuler, candidate) ? 35 : 0;
+        var relationshipBonus = OfficerRelationshipRules.GetSuccessionRelationshipPriority(currentRuler, candidate) switch
+        {
+            2 => 35,
+            1 => 15,
+            _ => 0
+        };
         return candidate.Leadership * 3 + candidate.Intelligence * 2 + candidate.Politics * 2 +
                candidate.Charm + candidate.Loyalty + candidate.Ambition / 2 + relationshipBonus;
-    }
-
-    private static bool HasFamilyRelationship(OfficerData first, OfficerData second)
-    {
-        return IsFamilyRelationship(first, second) || IsFamilyRelationship(second, first);
-    }
-
-    private static bool IsFamilyRelationship(OfficerData source, OfficerData target)
-    {
-        if (source.RelationshipType == null || source.RelationshipType.Count == 0)
-        {
-            return false;
-        }
-
-        return source.RelationshipType.Any(relationship =>
-            relationship.Value.Equals("family", System.StringComparison.OrdinalIgnoreCase) &&
-            (relationship.Key.Equals(target.Name, System.StringComparison.OrdinalIgnoreCase) ||
-             relationship.Key.Equals(target.NameZhHant, System.StringComparison.OrdinalIgnoreCase)));
     }
 
     public CommandResult RunSingleCityDecision(int factionId, int cityId)

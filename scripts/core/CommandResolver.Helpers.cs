@@ -560,10 +560,17 @@ public partial class CommandResolver
             return;
         }
 
+        var previousRuler = previousRulerOfficerId > 0 ? world.GetOfficer(previousRulerOfficerId) : null;
         var candidateIds = faction.OfficerIds
             .Select(world.GetOfficer)
-            .Where(officer => officer != null && IsOfficerAlive(world, officer))
-            .OrderByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
+            .Where(officer => officer != null &&
+                              IsOfficerAlive(world, officer) &&
+                              officer.CaptiveFactionId <= 0 &&
+                              !BattleCampaignService.IsOfficerCommitted(world, officer.Id))
+            // Every eligible officer in the faction can inherit. Blood
+            // relatives of the former ruler take precedence over ability.
+            .OrderByDescending(officer => OfficerRelationshipRules.GetSuccessionRelationshipPriority(previousRuler, officer))
+            .ThenByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
             .ThenByDescending(officer => officer!.Loyalty)
             .Select(officer => officer!.Id)
             .ToList();
@@ -646,7 +653,15 @@ public partial class CommandResolver
         }
     }
 
-    private (string ZhHant, string En)? TryResolveBattleRulerDeath(WorldState world, int officerId, float casualtyRatio)
+    private sealed record BattleRulerDeathData(int FactionId, int RulerOfficerId, string FactionNameZh, string FactionNameEn, string RulerNameZh, string RulerNameEn);
+
+    private (string ZhHant, string En)? TryResolveBattleRulerDeath(
+        WorldState world,
+        int officerId,
+        float casualtyRatio,
+        IDictionary<int, int>? deferredRulerSuccessions = null,
+        ICollection<BattleRulerDeathData>? deferredBattleRulerDeaths = null,
+        ISet<int>? battleDeathOfficerIds = null)
     {
         if (casualtyRatio < 0.999f)
         {
@@ -672,7 +687,55 @@ public partial class CommandResolver
         var rulerNameEn = GetOfficerDisplayName(officer, GameLanguage.English);
 
         _ = EliminateOfficer(world, officer);
+        battleDeathOfficerIds?.Add(officer.Id);
+        if (deferredRulerSuccessions != null && deferredBattleRulerDeaths != null)
+        {
+            deferredRulerSuccessions.TryAdd(factionId, officer.Id);
+            deferredBattleRulerDeaths.Add(new BattleRulerDeathData(
+                factionId,
+                officer.Id,
+                factionNameZh,
+                factionNameEn,
+                rulerNameZh,
+                rulerNameEn));
+            return null;
+        }
+
         ResolveRulerDeath(world, factionId, officer.Id);
+
+        return BuildBattleRulerDeathSummary(world, new BattleRulerDeathData(
+            factionId,
+            officer.Id,
+            factionNameZh,
+            factionNameEn,
+            rulerNameZh,
+            rulerNameEn));
+    }
+
+    private void ResolveDeferredRulerSuccessions(WorldState world, IReadOnlyDictionary<int, int> deferredRulerSuccessions)
+    {
+        foreach (var (factionId, previousRulerOfficerId) in deferredRulerSuccessions)
+        {
+            ResolveRulerDeath(world, factionId, previousRulerOfficerId, triggeredByCapture: true);
+        }
+    }
+
+    private List<(string ZhHant, string En)> BuildDeferredBattleRulerDeathSummaries(WorldState world, IEnumerable<BattleRulerDeathData> deaths)
+    {
+        return deaths
+            .Select(death => BuildBattleRulerDeathSummary(world, death))
+            .Where(summary => summary.HasValue)
+            .Select(summary => summary!.Value)
+            .ToList();
+    }
+
+    private (string ZhHant, string En)? BuildBattleRulerDeathSummary(WorldState world, BattleRulerDeathData death)
+    {
+        var factionId = death.FactionId;
+        var factionNameZh = death.FactionNameZh;
+        var factionNameEn = death.FactionNameEn;
+        var rulerNameZh = death.RulerNameZh;
+        var rulerNameEn = death.RulerNameEn;
 
         var updatedFaction = world.GetFaction(factionId);
         if (updatedFaction == null || !IsFactionAlive(world, factionId))

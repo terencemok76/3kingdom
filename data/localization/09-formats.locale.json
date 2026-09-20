@@ -47,6 +47,10 @@
                                          "zhHant":  "預覽：{0} -> {1}，條約 {2} 月",
                                          "en":  "Preview: {0} -> {1}, Treaty {2} months"
                                      },
+    "fmt.diplomacy_target_faction_relation":  {
+                                                    "zhHant":  "{0}｜關係 {1}｜{2}",
+                                                    "en":  "{0} | Relation {1} | {2}"
+                                                },
     "fmt.spy_summary":  {
                             "zhHant":  "預覽：{0} -> {1}，將於月底結算",
                             "en":  "Preview: {0} -> {1}, resolves at month end"

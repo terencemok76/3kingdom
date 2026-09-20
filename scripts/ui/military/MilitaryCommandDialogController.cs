@@ -7,15 +7,16 @@ namespace ThreeKingdom.UI;
 internal sealed class MilitaryCommandDialogController : FloatingOverlayController
 {
     private readonly MilitaryUiContext _context;
-    private readonly System.Action _openMoveFlow;
-    private readonly System.Action _openAttackFlow;
+    private readonly System.Func<bool> _openMoveFlow;
+    private readonly System.Func<bool> _openAttackFlow;
     private readonly System.Action _showRecruitTroopDialog;
     private OptionButton? _commandOption;
     private Button? _confirmButton;
+    private Label? _warningLabel;
     private bool _signalsConnected;
-    protected override Vector2 MinimumOverlaySize => new(340.0f, 145.0f);
+    protected override Vector2 MinimumOverlaySize => new(340.0f, 170.0f);
 
-    public MilitaryCommandDialogController(MilitaryUiContext context, System.Action openMoveFlow, System.Action openAttackFlow, System.Action showRecruitTroopDialog)
+    public MilitaryCommandDialogController(MilitaryUiContext context, System.Func<bool> openMoveFlow, System.Func<bool> openAttackFlow, System.Action showRecruitTroopDialog)
         : base(context, "res://scenes/ui/military/MilitaryDialog.tscn")
     {
         _context = context;
@@ -61,6 +62,10 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_military");
         }
+        if (_warningLabel != null)
+        {
+            _warningLabel.Text = string.Empty;
+        }
 
         RefreshCommandOptionTexts();
     }
@@ -68,6 +73,7 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _commandOption = root.GetNodeOrNull<OptionButton>("CommandOption");
+        _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_confirmButton != null)
         {
@@ -148,14 +154,28 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
         switch (selectedCommand)
         {
             case CommandType.Attack:
-                _openAttackFlow();
+                if (!_openAttackFlow())
+                {
+                    ShowWarning("ui.no_connected_enemy_city");
+                }
                 return;
             case CommandType.Move:
-                _openMoveFlow();
+                if (!_openMoveFlow())
+                {
+                    ShowWarning("ui.no_connected_friendly_city");
+                }
                 return;
             default:
                 _showRecruitTroopDialog();
                 return;
+        }
+    }
+
+    private void ShowWarning(string localeKey)
+    {
+        if (_warningLabel != null && _context.Localization != null)
+        {
+            _warningLabel.Text = _context.Localization.T(localeKey);
         }
     }
 

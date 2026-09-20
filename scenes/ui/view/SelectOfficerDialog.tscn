@@ -163,6 +163,22 @@ focus_mode = 0
 size_flags_horizontal = 3
 text = "Faction"
 
+[node name="LocationFilterRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+visible = false
+
+[node name="LocationFilterLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow"]
+custom_minimum_size = Vector2(68, 0)
+layout_mode = 2
+text = "Location"
+
+[node name="LocationFilterOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+
 [node name="OfficerTable" type="Tree" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentSection"]
 custom_minimum_size = Vector2(560, 180)
 layout_mode = 2
