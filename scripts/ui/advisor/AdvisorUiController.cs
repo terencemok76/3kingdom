@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -46,6 +47,11 @@ public sealed class AdvisorUiController
     public void ShowAdvisorDialog()
     {
         _dialogController.Show();
+    }
+
+    public void ShowContextualAdvice(OfficerData? advisor, string speakerRole, string advice)
+    {
+        _dialogController.ShowContextualAdvice(advisor, speakerRole, advice);
     }
 
     private void OnWorldStateChanged(UiEventHub.CityStateChangedEvent _)

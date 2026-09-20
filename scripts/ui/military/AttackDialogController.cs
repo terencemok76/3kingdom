@@ -19,6 +19,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private readonly Dictionary<int, AttackOfficerDeploymentData> _deployments = new();
     private readonly List<int> _deploymentOfficerOrder = new();
     private OptionButton? _targetCityOption;
+    private Button? _attackAdviceButton;
     private HBoxContainer? _defenderPlanRow;
     private Label? _defenderPlanLabel;
     private OptionButton? _defenderPlanOption;
@@ -42,6 +43,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private bool _officerListGuiInputConnected;
     private bool _confirmButtonSignalsConnected;
     private bool _targetCitySignalsConnected;
+    private bool _attackAdviceSignalsConnected;
     private string _lastSelectionSignature = string.Empty;
     private int _warningAcknowledgedTargetCityId = -1;
     private DialogMode _dialogMode = DialogMode.Attack;
@@ -102,6 +104,11 @@ internal sealed class AttackDialogController : FloatingOverlayController
             : _context.Localization.T("ui.attack_deployments"));
         SetFieldRowVisible("GoldRow", !isDefenseMode);
         SetFieldRowVisible("FoodRow", !isDefenseMode);
+        if (_attackAdviceButton != null)
+        {
+            _attackAdviceButton.Visible = !isDefenseMode && !isReinforcement;
+            _attackAdviceButton.Text = _context.Localization.T("ui.attack_advice_button") ?? "Ask Strategist";
+        }
         if (_defenseSupportRow != null)
         {
             _defenseSupportRow.Visible = isDefenseMode;
@@ -256,6 +263,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
+        _attackAdviceButton = root.GetNodeOrNull<Button>("ConfirmRow/AttackAdviceButton");
         _defenderPlanRow = root.GetNodeOrNull<HBoxContainer>("DefenderPlanRow");
         _defenderPlanLabel = root.GetNodeOrNull<Label>("DefenderPlanRow/DefenderPlanLabel");
         _defenderPlanOption = root.GetNodeOrNull<OptionButton>("DefenderPlanRow/DefenderPlanOption");
@@ -279,6 +287,11 @@ internal sealed class AttackDialogController : FloatingOverlayController
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+
+        if (_attackAdviceButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_attackAdviceButton);
         }
 
         if (_officerList != null)
@@ -327,6 +340,11 @@ internal sealed class AttackDialogController : FloatingOverlayController
         {
             _targetCityOption.ItemSelected += OnTargetCitySelected;
             _targetCitySignalsConnected = true;
+        }
+        if (!_attackAdviceSignalsConnected && _attackAdviceButton != null)
+        {
+            _attackAdviceButton.Pressed += OnAttackAdvicePressed;
+            _attackAdviceSignalsConnected = true;
         }
     }
 
@@ -813,6 +831,113 @@ internal sealed class AttackDialogController : FloatingOverlayController
     }
 
     private CityData? GetDialogCityContext() => _dialogContextCity ?? _context.SelectedCity;
+
+    private void OnAttackAdvicePressed()
+    {
+        var world = _context.TurnManager?.World;
+        var sourceCity = GetDialogCityContext();
+        var targetCity = GetSelectedTargetCity();
+        var localization = _context.Localization;
+        if (_dialogMode != DialogMode.Attack || world == null || sourceCity == null || targetCity == null || localization == null)
+        {
+            return;
+        }
+
+        var advisor = GetAttackAdvisor(world, sourceCity);
+        if (advisor == null)
+        {
+            _context.ShowAdvisorMessage(
+                null,
+                localization.T("ui.local_place") ?? "Local",
+                localization.T("ui.attack_advice_no_advisor") ?? "No strategist or local officer is available to advise.");
+            return;
+        }
+
+        var advisorRole = world.GetFaction(sourceCity.OwnerFactionId)?.ChiefStrategistOfficerId == advisor.Id
+            ? localization.T("ui.chief_strategist") ?? "Chief Strategist"
+            : localization.T("ui.local_place") ?? "Local";
+        _context.ShowAdvisorMessage(advisor, advisorRole, BuildAttackAdvice(world, sourceCity, targetCity, localization));
+    }
+
+    private OfficerData? GetAttackAdvisor(WorldState world, CityData sourceCity)
+    {
+        var faction = world.GetFaction(sourceCity.OwnerFactionId);
+        var chiefStrategist = faction != null ? world.GetOfficer(faction.ChiefStrategistOfficerId) : null;
+        if (IsOfficerAvailableForAdvice(chiefStrategist, world))
+        {
+            return chiefStrategist;
+        }
+
+        return sourceCity.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsOfficerAvailableForAdvice(officer, world))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => officer.Intelligence)
+            .ThenByDescending(officer => officer.Leadership)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+    }
+
+    private static bool IsOfficerAvailableForAdvice(OfficerData? officer, WorldState world)
+    {
+        return officer != null &&
+               officer.CaptiveFactionId <= 0 &&
+               (officer.DeathYear <= 0 || world.Year <= officer.DeathYear);
+    }
+
+    private string BuildAttackAdvice(WorldState world, CityData sourceCity, CityData targetCity, LocalizationService localization)
+    {
+        var deployedTroops = _deployments.Values.Sum(deployment => deployment.TroopCount);
+        if (deployedTroops <= 0)
+        {
+            return localization.T("ui.attack_advice_prepare") ?? "Choose officers and assign troops before deciding whether to attack.";
+        }
+
+        if (ShouldWarnBreakPact(targetCity.Id))
+        {
+            var relation = world.GetDiplomacyRelation(sourceCity.OwnerFactionId, targetCity.OwnerFactionId);
+            var relationName = relation?.Status == DiplomacyStatusType.Alliance
+                ? localization.T("ui.diplomacy_alliance") ?? "Alliance"
+                : localization.T("ui.diplomacy_truce") ?? "Truce";
+            return localization.Format("fmt.attack_advice_break_pact", relationName);
+        }
+
+        var foodToCarry = _foodSpinBox != null ? (int)_foodSpinBox.Value : 0;
+        if (foodToCarry <= 0)
+        {
+            return localization.T("ui.attack_advice_low_food") ?? "The expedition has no food. Carry supplies before marching.";
+        }
+
+        if (!world.CanFactionViewCity(sourceCity.OwnerFactionId, targetCity.Id))
+        {
+            return localization.T("ui.attack_advice_no_intel") ?? "Enemy strength and defenses are unknown. Scout before committing to an attack.";
+        }
+
+        if (deployedTroops < targetCity.Troops)
+        {
+            return localization.Format("fmt.attack_advice_unfavorable", deployedTroops, targetCity.Troops, targetCity.Defense);
+        }
+
+        if (deployedTroops < targetCity.Troops + targetCity.Defense * 5)
+        {
+            return localization.Format("fmt.attack_advice_cautious", deployedTroops, targetCity.Troops, targetCity.Defense);
+        }
+
+        return localization.Format("fmt.attack_advice_favorable", deployedTroops, targetCity.Troops, targetCity.Defense);
+    }
+
+    private CityData? GetSelectedTargetCity()
+    {
+        if (_targetCityOption == null || _targetCityOption.Selected < 0 || _context.TurnManager?.World == null)
+        {
+            return null;
+        }
+
+        var metadata = _targetCityOption.GetItemMetadata(_targetCityOption.Selected);
+        return metadata.VariantType == Variant.Type.Int
+            ? _context.TurnManager.World.GetCity(metadata.AsInt32())
+            : null;
+    }
 
     private void RefreshDefenseSupportControls()
     {

@@ -1811,16 +1811,36 @@ public partial class CommandResolver
         }
     }
 
-    private static bool DoesFreeOfficerAcceptHire(CityData city, OfficerData officer, int rulerCharm, int goldOffer, int foodOffer, ItemData? giftedItem)
+    internal static int GetHireAcceptanceScore(WorldState world, CityData city, OfficerData officer, int actorFactionId, int goldOffer, int foodOffer, ItemData? giftedItem)
     {
-        var offerBonus = goldOffer / 50 + foodOffer / 250;
-        return city.Loyalty + officer.Charm + rulerCharm / 2 + offerBonus + GetItemGiftAcceptanceBonus(giftedItem) - officer.Ambition >= 80;
+        var rulerCharm = GetRulerCharm(world, actorFactionId);
+        var relationshipBonus = GetHireRelationshipBonus(world, officer, actorFactionId);
+        if (FreeOfficerMovement.IsFreeOfficer(world, officer))
+        {
+            var offerBonus = goldOffer / 50 + foodOffer / 250;
+            return city.Loyalty + officer.Charm + rulerCharm / 2 + offerBonus + GetItemGiftAcceptanceBonus(giftedItem) + relationshipBonus - officer.Ambition;
+        }
+
+        var employedOfferBonus = goldOffer / 40 + foodOffer / 200;
+        return rulerCharm + officer.Charm + employedOfferBonus + GetItemGiftAcceptanceBonus(giftedItem) + relationshipBonus - officer.Loyalty - officer.Ambition / 2;
     }
 
-    private static bool DoesEmployedOfficerAcceptHire(OfficerData officer, int rulerCharm, int goldOffer, int foodOffer, ItemData? giftedItem)
+    internal static int GetHireAcceptanceThreshold(WorldState world, OfficerData officer) =>
+        FreeOfficerMovement.IsFreeOfficer(world, officer) ? 80 : 40;
+
+    internal static int GetHireRelationshipBonus(WorldState world, OfficerData officer, int actorFactionId) =>
+        GetHireRelationshipType(world, officer, actorFactionId) switch
+        {
+            "family,blood" => 20,
+            "family,non-blood" => 10,
+            "family" => 8,
+            _ => 0
+        };
+
+    internal static string? GetHireRelationshipType(WorldState world, OfficerData officer, int actorFactionId)
     {
-        var offerBonus = goldOffer / 40 + foodOffer / 200;
-        return rulerCharm + officer.Charm + offerBonus + GetItemGiftAcceptanceBonus(giftedItem) - officer.Loyalty - officer.Ambition / 2 >= 40;
+        var ruler = world.GetOfficer(world.GetFaction(actorFactionId)?.RulerOfficerId ?? 0);
+        return OfficerRelationshipRules.GetRelationshipType(officer, ruler);
     }
 
     private static int GetRulerCharm(WorldState world, int factionId)

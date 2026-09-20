@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
@@ -14,6 +15,7 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
     private OptionButton? _planJobOption;
     private SpinBox? _planDurationSpinBox;
     private Label? _summaryLabel;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private bool _signalsConnected;
     protected override Vector2 MinimumOverlaySize => new(500.0f, 320.0f);
@@ -69,6 +71,7 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_plan");
         }
+        if (_advisorButton != null) _advisorButton.Text = _context.Localization.T("ui.personnel_advice_authorization");
 
         RefreshAuthorizationOptionTexts();
         RefreshPlanJobOptionTexts();
@@ -83,11 +86,13 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         _planJobOption = root.GetNodeOrNull<OptionButton>("PlanJobRow/PlanJobOption");
         _planDurationSpinBox = root.GetNodeOrNull<SpinBox>("PlanDurationRow/PlanDurationSpinBox");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
         }
+        if (_advisorButton != null) _context.ApplyCommandButtonTheme(_advisorButton);
 
         if (!_signalsConnected)
         {
@@ -109,6 +114,7 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             {
                 _confirmButton.Pressed += OnConfirmPressed;
             }
+            if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
 
             _signalsConnected = true;
         }
@@ -215,6 +221,82 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             label.Text = text;
         }
     }
+
+    private void OnAdvisorPressed()
+    {
+        var world = _context.TurnManager?.World;
+        var city = _context.SelectedCity;
+        var localization = _context.Localization;
+        if (world == null || city == null || localization == null) return;
+        var advisor = _context.FindPersonnelAdvisor();
+        var role = advisor?.Id == world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId ? localization.T("ui.chancellor") : localization.T("ui.local_place");
+        var prefect = GetCityPrefect(world, city);
+        var message = prefect == null
+            ? localization.T("ui.personnel_advice_prefect_missing")
+            : GetSelectedAuthorizationType() == PrefectAuthorizationType.Half
+                ? BuildHalfAuthorizationAdvice(world, city, prefect, localization)
+                : localization.Format("fmt.personnel_advice_authorization", localization.GetOfficerName(prefect), GetAuthorizationDisplayName(GetSelectedAuthorizationType()), GetJobDisplayName(GetSelectedPlanJobType()), GetSelectedPlanDuration());
+        _context.ShowAdvisorMessage(advisor, role, message);
+    }
+
+    private string BuildHalfAuthorizationAdvice(WorldState world, CityData city, OfficerData prefect, LocalizationService localization)
+    {
+        var recommendedJob = ChooseRecommendedHalfAuthorizationJob(world, city, prefect);
+        var recommendedMonths = ChooseRecommendedHalfAuthorizationMonths(city, recommendedJob, prefect);
+        var selectedJob = GetSelectedPlanJobType();
+        var selectedMonths = GetSelectedPlanDuration();
+        var matchesRecommendation = selectedJob == recommendedJob && selectedMonths == recommendedMonths;
+        return localization.Format(
+            "fmt.personnel_advice_half_authorization",
+            localization.GetOfficerName(prefect),
+            GetJobDisplayName(recommendedJob),
+            recommendedMonths,
+            BuildHalfAuthorizationReason(city, recommendedJob, localization),
+            GetJobDisplayName(selectedJob),
+            selectedMonths,
+            matchesRecommendation ? localization.T("ui.personnel_advice_good_choice") : localization.T("ui.personnel_advice_half_adjust"));
+    }
+
+    private static InternalAffairsJobType ChooseRecommendedHalfAuthorizationJob(WorldState world, CityData city, OfficerData prefect)
+    {
+        var activeJobs = new System.Collections.Generic.HashSet<InternalAffairsJobType>(
+            world.InternalAffairsSchedules
+                .Where(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.CityId == city.Id)
+                .Select(schedule => schedule.JobType));
+        var balancedCivil = (prefect.Politics + prefect.Intelligence) / 2;
+        var defensiveBias = (prefect.Leadership + prefect.Intelligence + Math.Max(0, 100 - prefect.Ambition / 2)) / 3;
+        var growthBias = (prefect.Politics + Math.Max(0, prefect.Ambition) + prefect.Loyalty / 2) / 3;
+        var candidates = new (InternalAffairsJobType Job, int Score)[]
+        {
+            (InternalAffairsJobType.Farm, city.Farm - balancedCivil / 6 - (city.Population < 42000 ? 10 : 0) - (city.Food < 1800 ? 14 : 0)),
+            (InternalAffairsJobType.Commercial, city.Commercial - growthBias / 6 - (city.Gold < 700 ? 18 : 0)),
+            (InternalAffairsJobType.Defend, city.Defense - defensiveBias / 6 - (city.Defense < 55 ? 14 : 0) - (city.Troops < 1800 ? 6 : 0)),
+            (InternalAffairsJobType.WaterControl, city.DisasterPrevention - prefect.Intelligence / 6 - (city.DisasterPrevention < 45 ? 12 : 0)),
+            (InternalAffairsJobType.Construction, (city.Commercial + city.Defense) / 2 - (prefect.Leadership + prefect.Politics + prefect.Intelligence) / 21)
+        };
+        return candidates.Where(candidate => !activeJobs.Contains(candidate.Job)).OrderBy(candidate => candidate.Score).ThenBy(candidate => (int)candidate.Job).First().Job;
+    }
+
+    private static int ChooseRecommendedHalfAuthorizationMonths(CityData city, InternalAffairsJobType job, OfficerData prefect) => job switch
+    {
+        InternalAffairsJobType.Farm when city.Farm < 45 => 4,
+        InternalAffairsJobType.Commercial when city.Commercial < 45 => 4,
+        InternalAffairsJobType.Defend when city.Defense < 50 => 4,
+        InternalAffairsJobType.WaterControl when city.DisasterPrevention < 35 => 4,
+        InternalAffairsJobType.Defend when prefect.Leadership >= 75 => 3,
+        InternalAffairsJobType.Commercial when prefect.Politics >= 75 && prefect.Ambition >= 60 => 3,
+        InternalAffairsJobType.Farm when prefect.Intelligence >= 70 => 3,
+        _ => 2
+    };
+
+    private static string BuildHalfAuthorizationReason(CityData city, InternalAffairsJobType job, LocalizationService localization) => job switch
+    {
+        InternalAffairsJobType.Farm => localization.Format("ui.personnel_advice_half_farm_reason", city.Farm, city.Food),
+        InternalAffairsJobType.Commercial => localization.Format("ui.personnel_advice_half_commercial_reason", city.Commercial, city.Gold),
+        InternalAffairsJobType.Defend => localization.Format("ui.personnel_advice_half_defend_reason", city.Defense, city.Troops),
+        InternalAffairsJobType.WaterControl => localization.Format("ui.personnel_advice_half_water_reason", city.DisasterPrevention),
+        _ => localization.T("ui.personnel_advice_half_construction_reason")
+    };
 
     private void OnConfirmPressed()
     {

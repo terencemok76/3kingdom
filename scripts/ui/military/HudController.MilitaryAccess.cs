@@ -22,6 +22,9 @@ public partial class HudController
 
     internal void MilitaryAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
 
+    internal void MilitaryShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) =>
+        _advisorUiController?.ShowContextualAdvice(advisor, speakerRole, advice);
+
     internal void MilitaryShowOfficerSelectorDialog(
         string title,
         List<int> candidateOfficerIds,

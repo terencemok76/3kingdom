@@ -281,7 +281,7 @@ layout_mode = 2
 text = "Troop Deployment"
 
 [node name="DeploymentScroll" type="ScrollContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-custom_minimum_size = Vector2(0, 160)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 size_flags_horizontal = 3
 
@@ -303,10 +303,18 @@ layout_mode = 2
 text = "Deployment Summary"
 autowrap_mode = 3
 
-[node name="ConfirmRow" type="CenterContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 size_flags_horizontal = 3
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="AttackAdviceButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
+custom_minimum_size = Vector2(110, 30)
+layout_mode = 2
+focus_mode = 0
+text = "Ask Strategist"
 
 [node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
 custom_minimum_size = Vector2(110, 30)

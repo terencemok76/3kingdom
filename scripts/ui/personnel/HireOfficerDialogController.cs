@@ -12,14 +12,17 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
     private readonly PersonnelUiContext _context;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
+    private Button? _clearOfficerButton;
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private OptionButton? _itemOption;
     private Label? _summaryLabel;
+    private Label? _warningLabel;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
-    protected override Vector2 MinimumOverlaySize => new(460.0f, 270.0f);
+    protected override Vector2 MinimumOverlaySize => new(460.0f, 320.0f);
 
     public HireOfficerDialogController(PersonnelUiContext context)
         : base(context, "res://scenes/ui/personnel/HireOfficerDialog.tscn")
@@ -66,6 +69,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_hire_officer");
         }
+        if (_clearOfficerButton != null) _clearOfficerButton.Text = _context.Localization.T("ui.clear_selection");
+        if (_advisorButton != null) _advisorButton.Text = _context.Localization.T("ui.personnel_advice_hire");
         UpdateSelectedOfficerSummary();
         RefreshItemOptionTexts();
         UpdateSummary();
@@ -75,10 +80,13 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
     {
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _clearOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/ClearOfficerButton");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
         _itemOption = root.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
+        _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_selectOfficerButton != null)
         {
@@ -88,6 +96,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
         }
+        if (_clearOfficerButton != null) _context.ApplyCommandButtonTheme(_clearOfficerButton);
+        if (_advisorButton != null) _context.ApplyCommandButtonTheme(_advisorButton);
         if (_signalsConnected)
         {
             return;
@@ -97,6 +107,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         {
             _selectOfficerButton.Pressed += OnSelectOfficerPressed;
         }
+        if (_clearOfficerButton != null) _clearOfficerButton.Pressed += OnClearOfficerPressed;
         if (_goldSpinBox != null)
         {
             _goldSpinBox.ValueChanged += _ => UpdateSummary();
@@ -113,6 +124,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         {
             _confirmButton.Pressed += OnConfirmPressed;
         }
+        if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
         _signalsConnected = true;
     }
 
@@ -140,10 +152,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         }
 
         _context.PopulateFactionInventoryOption(_itemOption);
-        if (!candidates.Any(officer => officer.Id == _selectedOfficerId))
-        {
-            _selectedOfficerId = candidates.FirstOrDefault()?.Id ?? -1;
-        }
+        if (!candidates.Any(officer => officer.Id == _selectedOfficerId)) _selectedOfficerId = -1;
 
         UpdateSelectedOfficerSummary();
         UpdateSummary();
@@ -151,6 +160,95 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         {
             _confirmButton.Disabled = candidates.Count == 0;
         }
+    }
+
+    private void OnClearOfficerPressed()
+    {
+        _selectedOfficerId = -1;
+        if (_warningLabel != null) _warningLabel.Text = string.Empty;
+        UpdateSelectedOfficerSummary();
+        UpdateSummary();
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (city == null || world == null || localization == null) return;
+
+        var playerFactionId = _context.TurnManager!.GetPlayerFactionId();
+        var candidates = GetOrderedCandidates(world, playerFactionId);
+        var selected = candidates.FirstOrDefault(candidate => candidate.Id == _selectedOfficerId);
+        var recommended = candidates.OrderByDescending(GetHireFit).FirstOrDefault();
+        var goldOffer = (int)(_goldSpinBox?.Value ?? 0);
+        var foodOffer = (int)(_foodSpinBox?.Value ?? 0);
+        var giftedItem = _context.GetSelectedItemFromOption(_itemOption);
+        var advisor = _context.FindPersonnelAdvisor();
+        var role = advisor?.Id == world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId
+            ? localization.T("ui.chancellor")
+            : localization.T("ui.local_place");
+        var message = recommended == null
+            ? localization.T("ui.personnel_advice_hire_no_candidate")
+            : selected == null
+                ? localization.Format(
+                    "fmt.personnel_advice_hire_recommend",
+                    localization.GetOfficerName(recommended),
+                    GetHireFit(recommended),
+                    BuildHireOfficerStats(recommended, world, localization),
+                    BuildHireAcceptanceAdvice(world, city, recommended, playerFactionId, goldOffer, foodOffer, giftedItem, localization))
+                : localization.Format(
+                    "fmt.personnel_advice_hire_compare",
+                    localization.GetOfficerName(selected),
+                    GetHireFit(selected),
+                    BuildHireOfficerStats(selected, world, localization),
+                    HudController.HireOfficerGoldCost,
+                    goldOffer,
+                    foodOffer,
+                    giftedItem != null ? localization.GetItemName(giftedItem) : localization.T("ui.no_item"),
+                    selected.Id == recommended.Id
+                        ? localization.T("ui.personnel_advice_good_choice")
+                        : localization.Format("ui.personnel_advice_hire_better_candidate", localization.GetOfficerName(recommended), GetHireFit(recommended)),
+                    BuildHireAcceptanceAdvice(world, city, selected, playerFactionId, goldOffer, foodOffer, giftedItem, localization));
+        _context.ShowAdvisorMessage(advisor, role, message);
+    }
+
+    private static int GetHireFit(OfficerData officer) =>
+        officer.Leadership + officer.Strength + officer.Intelligence + officer.Politics + officer.Charm * 2 + officer.Combat;
+
+    private static string BuildHireAcceptanceAdvice(WorldState world, CityData city, OfficerData officer, int playerFactionId, int goldOffer, int foodOffer, ItemData? giftedItem, LocalizationService localization)
+    {
+        var score = CommandResolver.GetHireAcceptanceScore(world, city, officer, playerFactionId, goldOffer, foodOffer, giftedItem);
+        var threshold = CommandResolver.GetHireAcceptanceThreshold(world, officer);
+        var result = score >= threshold
+            ? localization.Format("fmt.personnel_advice_hire_accept", score, threshold, score - threshold)
+            : localization.Format("fmt.personnel_advice_hire_refuse", score, threshold, threshold - score);
+        var relationshipType = CommandResolver.GetHireRelationshipType(world, officer, playerFactionId);
+        var relationshipName = relationshipType switch
+        {
+            "family,blood" => localization.T("ui.personnel_advice_hire_relation_blood"),
+            "family,non-blood" => localization.T("ui.personnel_advice_hire_relation_non_blood"),
+            "family" => localization.T("ui.personnel_advice_hire_relation_family"),
+            _ => localization.T("ui.personnel_advice_hire_relation_none")
+        };
+        var relationshipBonus = CommandResolver.GetHireRelationshipBonus(world, officer, playerFactionId);
+        return $"{result}\n{localization.Format("fmt.personnel_advice_hire_relationship", relationshipName, relationshipBonus)}";
+    }
+
+    private static string BuildHireOfficerStats(OfficerData officer, WorldState world, LocalizationService localization)
+    {
+        var faction = world.Factions.FirstOrDefault(candidate =>
+            candidate.RulerOfficerId == officer.Id || candidate.OfficerIds.Contains(officer.Id));
+        var factionName = faction == null ? localization.T("ui.free_officer") : localization.GetFactionName(world, faction.Id);
+        return localization.Format(
+            "fmt.personnel_advice_hire_stats",
+            officer.Leadership,
+            officer.Strength,
+            officer.Intelligence,
+            officer.Politics,
+            officer.Charm,
+            officer.Combat,
+            factionName);
     }
 
     private void UpdateSummary()
@@ -206,6 +304,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             officerId =>
             {
                 _selectedOfficerId = officerId;
+                if (_warningLabel != null) _warningLabel.Text = string.Empty;
                 UpdateSelectedOfficerSummary();
                 UpdateSummary();
             },
@@ -335,6 +434,10 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         if (_selectedOfficerId <= 0)
         {
             _context.AddLog(_context.Localization?.T("ui.select_officer_warning") ?? string.Empty);
+            if (_warningLabel != null)
+            {
+                _warningLabel.Text = _context.Localization?.T("ui.select_officer_warning") ?? string.Empty;
+            }
             ShowOverlay();
             return;
         }

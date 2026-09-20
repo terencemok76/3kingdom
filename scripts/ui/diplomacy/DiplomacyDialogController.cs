@@ -20,6 +20,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
     private Label? _relationInfoLabel;
     private Label? _summaryLabel;
     private Label? _warningLabel;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
@@ -74,6 +75,10 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_diplomacy");
         }
+        if (_advisorButton != null)
+        {
+            _advisorButton.Text = _context.Localization.T("ui.diplomacy_advice_button") ?? "Diplomacy Advice";
+        }
 
         RefreshActionOptionTexts();
         RefreshTargetFactionOptionTexts();
@@ -97,6 +102,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         _relationInfoLabel = root.GetNodeOrNull<Label>("MiddleSection/RelationInfoLabel");
         _summaryLabel = root.GetNodeOrNull<Label>("FooterSection/SummaryLabel");
         _warningLabel = root.GetNodeOrNull<Label>("FooterSection/WarningLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("FooterSection/FooterRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("FooterSection/FooterRow/ConfirmButton");
         ApplyButtonThemes();
         if (!_signalsConnected)
@@ -108,6 +114,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
             if (_foodSpinBox != null) _foodSpinBox.ValueChanged += _ => OnResourceChanged();
             if (_horseSpinBox != null) _horseSpinBox.ValueChanged += _ => OnResourceChanged();
             if (_selectOfficerButton != null) _selectOfficerButton.Pressed += OnSelectOfficerPressed;
+            if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
             if (_confirmButton != null) _confirmButton.Pressed += OnConfirmPressed;
             _signalsConnected = true;
         }
@@ -187,6 +194,11 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+
+        if (_advisorButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_advisorButton);
         }
     }
 
@@ -468,6 +480,118 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         {
             _warningLabel.Text = text;
         }
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        var targetFactionId = GetSelectedTargetFactionId();
+        if (city == null || world == null || localization == null || targetFactionId <= 0)
+        {
+            return;
+        }
+
+        var advisor = FindDiplomacyAdvisor(world, city);
+        var role = world.GetFaction(city.OwnerFactionId)?.ChiefStrategistOfficerId == advisor?.Id
+            ? localization.T("ui.chief_strategist") ?? "Chief Strategist"
+            : localization.T("ui.local_place") ?? "Local";
+        _context.ShowAdvisorMessage(advisor, role, BuildDiplomacyAdvice(world, city, targetFactionId, localization));
+    }
+
+    private OfficerData? FindDiplomacyAdvisor(WorldState world, CityData city)
+    {
+        var faction = world.GetFaction(city.OwnerFactionId);
+        var chiefStrategist = faction != null ? world.GetOfficer(faction.ChiefStrategistOfficerId) : null;
+        if (IsOfficerAvailableForAdvice(chiefStrategist, world))
+        {
+            return chiefStrategist;
+        }
+
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsOfficerAvailableForAdvice(officer, world))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => officer.Charm)
+            .ThenByDescending(officer => officer.Intelligence)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+    }
+
+    private static bool IsOfficerAvailableForAdvice(OfficerData? officer, WorldState world)
+    {
+        return officer != null &&
+               officer.CaptiveFactionId <= 0 &&
+               (officer.DeathYear <= 0 || world.Year <= officer.DeathYear);
+    }
+
+    private string BuildDiplomacyAdvice(WorldState world, CityData city, int targetFactionId, LocalizationService localization)
+    {
+        var targetFaction = world.GetFaction(targetFactionId);
+        if (targetFaction == null)
+        {
+            return localization.T("ui.diplomacy_advice_no_target") ?? "Choose a target faction before asking for advice.";
+        }
+
+        var actionType = GetSelectedActionType();
+        var actionName = localization.T(DiplomacyUiHelpers.GetActionLocaleKey(actionType));
+        var targetName = localization.GetFactionName(world, targetFactionId);
+        var relation = world.GetDiplomacyRelation(city.OwnerFactionId, targetFactionId);
+        var relationScore = relation?.RelationScore ?? 0;
+        var duration = Math.Max(1, (int)Math.Round(_durationSpinBox?.Value ?? 1));
+        var gold = Math.Max(0, (int)Math.Round(_goldSpinBox?.Value ?? 0));
+        var food = Math.Max(0, (int)Math.Round(_foodSpinBox?.Value ?? 0));
+        var horses = Math.Max(0, (int)Math.Round(_horseSpinBox?.Value ?? 0));
+
+        return actionType switch
+        {
+            DiplomacyActionType.Gift => localization.Format("fmt.diplomacy_advice_gift", actionName, targetName, gold, food, horses),
+            DiplomacyActionType.BreakPact => localization.Format("fmt.diplomacy_advice_break_pact", actionName, targetName),
+            _ => BuildDiplomacyChanceAdvice(world, city, targetFaction, relationScore, actionType, actionName, targetName, duration, localization)
+        };
+    }
+
+    private string BuildDiplomacyChanceAdvice(
+        WorldState world,
+        CityData city,
+        FactionData targetFaction,
+        int relationScore,
+        DiplomacyActionType actionType,
+        string actionName,
+        string targetName,
+        int duration,
+        LocalizationService localization)
+    {
+        var envoy = _selectedOfficerId > 0 ? world.GetOfficer(_selectedOfficerId) : null;
+        var targetRuler = world.GetOfficer(targetFaction.RulerOfficerId);
+        var envoyScore = envoy == null ? 50 : (envoy.Charm + envoy.Politics + envoy.Intelligence) / 3;
+        var rulerScore = targetRuler == null ? 50 : (targetRuler.Charm + targetRuler.Politics) / 2;
+        var baseChance = actionType switch
+        {
+            DiplomacyActionType.Alliance => 42,
+            DiplomacyActionType.Truce => 58,
+            DiplomacyActionType.Demand => 34,
+            _ => 50
+        };
+        var pressureBonus = actionType == DiplomacyActionType.Demand
+            ? (GetFactionTroopTotal(world, city.OwnerFactionId) - GetFactionTroopTotal(world, targetFaction.Id)) / 120
+            : 0;
+        var chance = Math.Clamp(
+            baseChance + (envoyScore - rulerScore) / 4 + relationScore / 4 + Math.Max(0, city.Loyalty - 70) / 10 + pressureBonus,
+            10,
+            90);
+        var assessment = chance >= 65
+            ? localization.T("ui.diplomacy_advice_favorable")
+            : chance >= 45
+                ? localization.T("ui.diplomacy_advice_cautious")
+                : localization.T("ui.diplomacy_advice_unfavorable");
+        return localization.Format("fmt.diplomacy_advice_chance", actionName, targetName, duration, relationScore, chance, assessment);
+    }
+
+    private static int GetFactionTroopTotal(WorldState world, int factionId)
+    {
+        return world.Cities.Where(candidate => candidate.OwnerFactionId == factionId).Sum(candidate => candidate.Troops);
     }
 
     private void OnConfirmPressed()

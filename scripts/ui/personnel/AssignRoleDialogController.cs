@@ -16,6 +16,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
     private OptionButton? _assignRoleOption;
     private OptionButton? _removeRoleOption;
     private Label? _summaryLabel;
+    private Button? _advisorButton;
     private Button? _assignButton;
     private Button? _removeButton;
     private string _lastResultMessage = string.Empty;
@@ -77,6 +78,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         {
             _removeButton.Text = _context.Localization.T("ui.confirm_clear_appointment");
         }
+        if (_advisorButton != null) _advisorButton.Text = _context.Localization.T("ui.personnel_advice_appointment");
         RefreshRoleOptionTexts();
         UpdateSelectedOfficerSummary();
     }
@@ -90,6 +92,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         _assignRoleOption = root.GetNodeOrNull<OptionButton>("AssignRoleOption");
         _removeRoleOption = root.GetNodeOrNull<OptionButton>("RemoveRoleOption");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _assignButton = root.GetNodeOrNull<Button>("ConfirmRow/AssignButton");
         _removeButton = root.GetNodeOrNull<Button>("ConfirmRow/RemoveButton");
         if (_selectOfficerButton != null)
@@ -108,6 +111,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         {
             _context.ApplyCommandButtonTheme(_removeButton);
         }
+        if (_advisorButton != null) _context.ApplyCommandButtonTheme(_advisorButton);
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
@@ -134,6 +138,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             {
                 _removeButton.Pressed += OnRemovePressed;
             }
+            if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
             _signalsConnected = true;
         }
     }
@@ -258,6 +263,57 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             _ => role
         };
     }
+
+    private void OnAdvisorPressed()
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        var officer = world?.GetOfficer(_selectedOfficerId);
+        if (world == null || localization == null) return;
+        var advisor = _context.FindPersonnelAdvisor();
+        var role = advisor?.Id == world.GetFaction(_context.SelectedCity?.OwnerFactionId ?? 0)?.ChancellorOfficerId ? localization.T("ui.chancellor") : localization.T("ui.local_place");
+        var appointmentKey = GetSelectedAppointmentKey();
+        var appointment = GetRoleDisplayName(appointmentKey);
+        var candidates = _context.GetNonRulerFactionOfficerIds()
+            .Select(world.GetOfficer)
+            .Where(candidate => candidate != null && GetAssignableAppointments(candidate).Contains(appointmentKey))
+            .Cast<OfficerData>()
+            .OrderByDescending(candidate => GetAppointmentFit(candidate, appointmentKey))
+            .ThenByDescending(candidate => candidate.Loyalty)
+            .ToList();
+        var recommended = candidates.FirstOrDefault();
+        var message = recommended == null
+            ? localization.T("ui.personnel_advice_no_appointment_candidate")
+            : officer == null
+                ? localization.Format("fmt.personnel_advice_appointment_recommend", appointment, localization.GetOfficerName(recommended), GetAppointmentFit(recommended, appointmentKey), BuildAppointmentReason(appointmentKey, localization))
+                : localization.Format("fmt.personnel_advice_appointment_compare", appointment, localization.GetOfficerName(officer), GetAppointmentFit(officer, appointmentKey), localization.GetOfficerName(recommended), GetAppointmentFit(recommended, appointmentKey), officer.Id == recommended.Id ? localization.T("ui.personnel_advice_good_choice") : localization.T("ui.personnel_advice_weaker_choice"), BuildAppointmentReason(appointmentKey, localization));
+        _context.ShowAdvisorMessage(advisor, role, message);
+    }
+
+    private string GetSelectedAppointmentKey()
+    {
+        if (_assignRoleOption == null || _assignRoleOption.Selected < 0) return OfficerAppointmentRules.Governor;
+        var metadata = _assignRoleOption.GetItemMetadata(_assignRoleOption.Selected);
+        return metadata.VariantType == Variant.Type.String ? metadata.AsString() : OfficerAppointmentRules.Governor;
+    }
+
+    private static int GetAppointmentFit(OfficerData officer, string appointment) => appointment switch
+    {
+        OfficerAppointmentRules.Governor => officer.Politics * 3 + officer.Intelligence + officer.Charm,
+        OfficerAppointmentRules.Strategist => officer.Intelligence * 3 + officer.Politics + officer.Charm,
+        OfficerAppointmentRules.Chancellor => officer.Politics * 3 + officer.Intelligence * 2 + officer.Charm,
+        OfficerAppointmentRules.ChiefStrategist => officer.Intelligence * 3 + officer.Leadership + officer.Combat,
+        _ => officer.Politics + officer.Intelligence
+    };
+
+    private static string BuildAppointmentReason(string appointment, LocalizationService localization) => appointment switch
+    {
+        OfficerAppointmentRules.Governor => localization.T("ui.personnel_advice_governor_reason"),
+        OfficerAppointmentRules.Strategist => localization.T("ui.personnel_advice_strategist_reason"),
+        OfficerAppointmentRules.Chancellor => localization.T("ui.personnel_advice_chancellor_reason"),
+        OfficerAppointmentRules.ChiefStrategist => localization.T("ui.personnel_advice_chief_strategist_reason"),
+        _ => string.Empty
+    };
 
     private void OnAssignPressed()
     {

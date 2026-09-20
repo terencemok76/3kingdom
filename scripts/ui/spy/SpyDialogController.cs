@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
@@ -14,6 +16,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
     private Button? _selectOfficerButton;
     private Label? _summaryLabel;
     private Label? _warningLabel;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
@@ -66,6 +69,11 @@ internal sealed class SpyDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_spy");
         }
 
+        if (_advisorButton != null)
+        {
+            _advisorButton.Text = _context.Localization.T("ui.spy_advice_button");
+        }
+
         var selectedTargetOfficerId = GetSelectedTargetOfficerId();
         RefreshActionOptionTexts();
         RefreshTargetCityOptionTexts();
@@ -84,6 +92,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("FooterRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("FooterRow/ConfirmButton");
         ApplyButtonThemes();
         ConnectSignals();
@@ -145,6 +154,11 @@ internal sealed class SpyDialogController : FloatingOverlayController
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+
+        if (_advisorButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_advisorButton);
         }
     }
 
@@ -397,6 +411,11 @@ internal sealed class SpyDialogController : FloatingOverlayController
             _confirmButton.Pressed += OnConfirmPressed;
         }
 
+        if (_advisorButton != null)
+        {
+            _advisorButton.Pressed += OnAdvisorPressed;
+        }
+
         _signalsConnected = true;
     }
 
@@ -481,6 +500,179 @@ internal sealed class SpyDialogController : FloatingOverlayController
                 SetWarning(string.Empty);
             },
             () => _context.Localization?.T("ui.spy_officer") ?? localization.T("ui.spy_officer"));
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (city == null || world == null || localization == null)
+        {
+            return;
+        }
+
+        var advisor = FindSpyAdvisor(world, city);
+        var role = world.GetFaction(city.OwnerFactionId)?.ChiefStrategistOfficerId == advisor?.Id
+            ? localization.T("ui.chief_strategist")
+            : localization.T("ui.local_place");
+        _context.ShowAdvisorMessage(advisor, role, BuildSpyAdvice(world, city, localization));
+    }
+
+    private OfficerData? FindSpyAdvisor(WorldState world, CityData city)
+    {
+        var faction = world.GetFaction(city.OwnerFactionId);
+        var chiefStrategist = faction != null ? world.GetOfficer(faction.ChiefStrategistOfficerId) : null;
+        if (IsOfficerAvailableForAdvice(chiefStrategist, world))
+        {
+            return chiefStrategist;
+        }
+
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsOfficerAvailableForAdvice(officer, world))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => officer.Intelligence)
+            .ThenByDescending(officer => officer.Charm)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+    }
+
+    private static bool IsOfficerAvailableForAdvice(OfficerData? officer, WorldState world)
+    {
+        return officer != null &&
+               officer.CaptiveFactionId <= 0 &&
+               (officer.DeathYear <= 0 || world.Year <= officer.DeathYear);
+    }
+
+    private string BuildSpyAdvice(WorldState world, CityData city, LocalizationService localization)
+    {
+        var targetCity = world.GetCity(GetSelectedTargetCityId());
+        if (targetCity == null)
+        {
+            return localization.T("ui.spy_advice_no_target");
+        }
+
+        var operative = world.GetOfficer(_selectedOfficerId);
+        if (operative == null)
+        {
+            return localization.T("ui.spy_advice_no_officer");
+        }
+
+        var actionType = GetSelectedActionType();
+        var actionName = localization.T(GetActionLocaleKey(actionType));
+        var targetName = localization.GetCityName(targetCity);
+        var successChance = EstimateSpySuccessChance(world, city, targetCity, operative, actionType);
+        var exposureChance = EstimateSpyExposureChance(world, city, targetCity, operative, actionType);
+        var assessment = successChance >= 65
+            ? localization.T("ui.spy_advice_favorable")
+            : successChance >= 45
+                ? localization.T("ui.spy_advice_cautious")
+                : localization.T("ui.spy_advice_unfavorable");
+        var expectedEffect = BuildExpectedEffect(localization, actionType, targetCity);
+        return localization.Format(
+            "fmt.spy_advice",
+            actionName,
+            targetName,
+            successChance,
+            exposureChance,
+            expectedEffect,
+            assessment);
+    }
+
+    private string BuildExpectedEffect(LocalizationService localization, SpyActionType actionType, CityData targetCity)
+    {
+        return actionType switch
+        {
+            SpyActionType.Reconnaissance => localization.T("ui.spy_advice_recon_effect"),
+            SpyActionType.Sabotage => localization.T("ui.spy_advice_sabotage_effect"),
+            SpyActionType.Incite => localization.T("ui.spy_advice_incite_effect"),
+            SpyActionType.Assassination => localization.Format(
+                "fmt.spy_advice_assassination_effect",
+                GetSelectedTargetOfficerName(),
+                targetCity.Defense),
+            _ => localization.T("ui.spy_advice_recon_effect")
+        };
+    }
+
+    private static string GetActionLocaleKey(SpyActionType actionType)
+    {
+        return actionType switch
+        {
+            SpyActionType.Reconnaissance => "command.spy.reconnaissance",
+            SpyActionType.Sabotage => "command.spy.sabotage",
+            SpyActionType.Incite => "command.spy.incite",
+            SpyActionType.Assassination => "command.spy.assassination",
+            _ => "command.spy.reconnaissance"
+        };
+    }
+
+    private static int EstimateSpySuccessChance(
+        WorldState world,
+        CityData sourceCity,
+        CityData targetCity,
+        OfficerData operative,
+        SpyActionType actionType)
+    {
+        var actingScore = (operative.Intelligence * 2 + operative.Charm) / 3;
+        var targetOfficers = targetCity.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .ToList();
+        var targetIntelligence = targetOfficers.Count > 0
+            ? (int)targetOfficers.Average(officer => officer.Intelligence)
+            : 50;
+        var targetCharm = targetOfficers.Count > 0
+            ? (int)targetOfficers.Average(officer => officer.Charm)
+            : 50;
+        var defenseScore = (targetIntelligence * 2 + targetCharm) / 3;
+        var baseChance = actionType switch
+        {
+            SpyActionType.Reconnaissance => 62,
+            SpyActionType.Sabotage => 48,
+            SpyActionType.Incite => 44,
+            SpyActionType.Assassination => 28,
+            _ => 50
+        };
+        var sourceLoyaltyBonus = Math.Max(0, sourceCity.Loyalty - 60) / 8;
+        var targetDefensePenalty = Math.Max(0, targetCity.Defense - 50) / 10;
+        return Math.Clamp(
+            baseChance + (actingScore - defenseScore) / 4 + sourceLoyaltyBonus +
+            OfficerProgressionRules.GetSpySuccessBonus(operative) - targetDefensePenalty,
+            10,
+            92);
+    }
+
+    private static int EstimateSpyExposureChance(
+        WorldState world,
+        CityData sourceCity,
+        CityData targetCity,
+        OfficerData operative,
+        SpyActionType actionType)
+    {
+        var targetOfficers = targetCity.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .ToList();
+        var targetIntelligence = targetOfficers.Count > 0
+            ? (int)targetOfficers.Average(officer => officer.Intelligence)
+            : 50;
+        var baseChance = actionType switch
+        {
+            SpyActionType.Reconnaissance => 18,
+            SpyActionType.Sabotage => 32,
+            SpyActionType.Incite => 28,
+            SpyActionType.Assassination => 42,
+            _ => 25
+        };
+        var defensePenalty = Math.Max(0, targetCity.Defense - 40) / 8;
+        var sourceBonus = Math.Max(0, sourceCity.Defense - 40) / 20;
+        return Math.Clamp(
+            baseChance + (targetIntelligence - operative.Intelligence) / 5 + defensePenalty - sourceBonus,
+            5,
+            75);
     }
 
     private void OnConfirmPressed()

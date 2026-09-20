@@ -14,7 +14,9 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
     private Label? _officerListLabel;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
+    private Button? _clearOfficerButton;
     private Label? _warningLabel;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private int _pendingFactionId = -1;
@@ -97,6 +99,7 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         {
             _selectOfficerButton.Text = localization.T("ui.select_officer");
         }
+        RefreshActionButtonText(localization);
 
         if (!_rulerChangeCandidateOfficerIds.Contains(_selectedOfficerId))
         {
@@ -169,6 +172,7 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         {
             _selectOfficerButton.Text = localization.T("ui.select_officer");
         }
+        RefreshActionButtonText(localization);
 
         var candidateOfficer = pendingSuccession.CandidateOfficerIds.Contains(_selectedOfficerId)
             ? world.GetOfficer(_selectedOfficerId)
@@ -188,29 +192,101 @@ internal sealed class SuccessionDialogController : FloatingOverlayController
         _officerListLabel = root.GetNodeOrNull<Label>("OfficerListLabel");
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _clearOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/ClearOfficerButton");
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_selectOfficerButton != null)
         {
             _context.ApplyCommandButtonTheme(_selectOfficerButton);
         }
+        if (_clearOfficerButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_clearOfficerButton);
+        }
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
         }
+        if (_advisorButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_advisorButton);
+        }
+        if (_context.Localization != null) RefreshActionButtonText(_context.Localization);
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
             {
                 _selectOfficerButton.Pressed += OnSelectOfficerPressed;
             }
+            if (_clearOfficerButton != null) _clearOfficerButton.Pressed += OnClearOfficerPressed;
             if (_confirmButton != null)
             {
                 _confirmButton.Pressed += OnConfirmPressed;
             }
+            if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
             _signalsConnected = true;
         }
     }
+
+    private void OnAdvisorPressed()
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (world == null || localization == null) return;
+        var advisor = _context.FindPersonnelAdvisor();
+        var role = advisor?.Id == world.GetFaction(_pendingFactionId)?.ChancellorOfficerId ? localization.T("ui.chancellor") : localization.T("ui.local_place");
+        var candidateIds = _isVoluntaryRulerChange
+            ? _rulerChangeCandidateOfficerIds
+            : world.GetPendingSuccession(_pendingFactionId)?.CandidateOfficerIds ?? new List<int>();
+        var candidates = candidateIds.Select(world.GetOfficer).Where(candidate => candidate != null).Cast<OfficerData>().ToList();
+        var candidate = world.GetOfficer(_selectedOfficerId);
+        var currentRuler = world.GetOfficer(world.GetFaction(_pendingFactionId)?.RulerOfficerId ?? 0);
+        var currentYear = world.Year;
+        var recommended = candidates.OrderByDescending(candidate => GetRulerFit(candidate, currentRuler, currentYear)).FirstOrDefault();
+        var message = recommended == null
+            ? localization.T("ui.personnel_advice_select_officer")
+            : candidate == null
+                ? localization.Format("fmt.personnel_advice_succession_recommend", localization.GetOfficerName(recommended), GetRulerFit(recommended, currentRuler, currentYear), BuildRulerStats(recommended, currentRuler, currentYear, localization))
+                : localization.Format("fmt.personnel_advice_succession_compare", localization.GetOfficerName(candidate), GetRulerFit(candidate, currentRuler, currentYear), BuildRulerStats(candidate, currentRuler, currentYear, localization), currentRuler == null ? localization.T("ui.unknown") : localization.GetOfficerName(currentRuler), currentRuler == null ? 0 : GetRulerFit(currentRuler, null, currentYear), candidate.Id == recommended.Id ? localization.T("ui.personnel_advice_good_choice") : localization.Format("ui.personnel_advice_ruler_better_candidate", localization.GetOfficerName(recommended), GetRulerFit(recommended, currentRuler, currentYear)));
+        _context.ShowAdvisorMessage(advisor, role, message);
+    }
+
+    private void OnClearOfficerPressed()
+    {
+        _selectedOfficerId = -1;
+        if (_warningLabel != null) _warningLabel.Text = string.Empty;
+        UpdateSelectedOfficerSummary();
+    }
+
+    private void RefreshActionButtonText(LocalizationService localization)
+    {
+        if (_clearOfficerButton != null) _clearOfficerButton.Text = localization.T("ui.clear_selection");
+        if (_advisorButton != null) _advisorButton.Text = localization.T("ui.personnel_advice_succession");
+    }
+
+    private static int GetRulerFit(OfficerData officer, OfficerData? currentRuler, int currentYear) =>
+        officer.Leadership + officer.Strength + officer.Intelligence + officer.Politics + officer.Charm + officer.Combat - officer.Ambition / 2 +
+        GetAgeBonus(officer, currentYear) + GetRelationshipBonus(officer, currentRuler);
+
+    private static string BuildRulerStats(OfficerData officer, OfficerData? currentRuler, int currentYear, LocalizationService localization) =>
+        localization.Format("fmt.personnel_advice_ruler_stats", officer.Leadership, officer.Strength, officer.Intelligence, officer.Politics, officer.Charm, officer.Combat, officer.Ambition, FormatAdviceAge(officer, currentYear), GetPreviousRulerRelationshipText(officer, currentRuler, localization));
+
+    private static int GetAgeBonus(OfficerData officer, int currentYear)
+    {
+        var age = officer.BirthYear > 0 && currentYear > 0 ? Math.Max(0, currentYear - officer.BirthYear) : 45;
+        return age switch { >= 30 and <= 60 => 12, >= 20 and <= 70 => 5, >= 71 and <= 79 => -8, _ => -15 };
+    }
+
+    private static int GetRelationshipBonus(OfficerData officer, OfficerData? currentRuler)
+    {
+        if (currentRuler == null) return 0;
+        var relationship = FindRelationshipType(officer, currentRuler) ?? FindRelationshipType(currentRuler, officer);
+        return relationship?.Trim().ToLowerInvariant() switch { "family,blood" => 28, "family,non-blood" => 14, "family" => 12, _ => 0 };
+    }
+
+    private static string FormatAdviceAge(OfficerData officer, int currentYear) =>
+        officer.BirthYear > 0 && currentYear > 0 ? Math.Max(0, currentYear - officer.BirthYear).ToString() : "-";
 
     private void OnConfirmPressed()
     {

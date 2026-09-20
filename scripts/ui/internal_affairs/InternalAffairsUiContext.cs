@@ -52,6 +52,7 @@ internal sealed class InternalAffairsUiContext
     public void BringOverlayToFront(CanvasItem? item) => _owner.InternalAffairsBringOverlayToFront(item);
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.InternalAffairsAddLog(message, isPlayerRelated);
+    public void ShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) => _owner.InternalAffairsShowAdvisorMessage(advisor, speakerRole, advice);
     public UiEventHub UiEventHub => _owner.UiEventHub;
     public void RefreshSelectedCity() => _owner.InternalAffairsRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.InternalAffairsRefreshMapVisuals();

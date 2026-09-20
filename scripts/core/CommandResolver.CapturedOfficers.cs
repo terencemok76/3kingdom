@@ -363,6 +363,17 @@ public partial class CommandResolver
 
     private bool DoesCapturedOfficerAcceptRecruit(WorldState world, CityData city, FactionData faction, OfficerData officer, CapturedOfficerRecruitOfferData recruitOffer, ItemData? offeredItem)
     {
+        return _random.NextDouble() < CalculateCapturedOfficerRecruitChance(world, city, faction.Id, officer, recruitOffer, offeredItem);
+    }
+
+    internal static double CalculateCapturedOfficerRecruitChance(WorldState world, CityData city, int actorFactionId, OfficerData officer, CapturedOfficerRecruitOfferData recruitOffer, ItemData? offeredItem)
+    {
+        var faction = world.GetFaction(actorFactionId);
+        if (faction == null)
+        {
+            return 0.0;
+        }
+
         var chance = CapturedOfficerRecruitBaseChance;
         chance += GetCapturedOfficerRecruitRelationshipBonus(world, faction, officer);
         chance += GetRulerCharm(world, faction.Id) * CapturedOfficerRecruitRulerCharmFactor;
@@ -378,7 +389,7 @@ public partial class CommandResolver
         }
 
         chance = Math.Clamp(chance, CapturedOfficerRecruitMinimumChance, CapturedOfficerRecruitMaximumChance);
-        return _random.NextDouble() < chance;
+        return chance;
     }
 
     private bool ValidateCapturedOfficerRecruitOffer(

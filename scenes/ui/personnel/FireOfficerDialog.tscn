@@ -159,6 +159,11 @@ text = "Select Officer"
 layout_mode = 2
 alignment = 1
 
+[node name="AdvisorButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Personnel Advice"
+
 [node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
 layout_mode = 2
 focus_mode = 0

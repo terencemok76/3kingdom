@@ -21,7 +21,7 @@ internal static class OfficerRelationshipRules
         return GetSuccessionRelationshipPriority(first, second) > 0;
     }
 
-    private static string? GetRelationshipType(OfficerData? first, OfficerData? second)
+    internal static string? GetRelationshipType(OfficerData? first, OfficerData? second)
     {
         return FindRelationshipType(first, second) ?? FindRelationshipType(second, first);
     }

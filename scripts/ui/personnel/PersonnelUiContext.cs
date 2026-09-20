@@ -64,6 +64,17 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.PersonnelAddLog(message, isPlayerRelated);
     public void QueueFactionOutcome(string title, string message) => _owner.PersonnelQueueFactionOutcome(title, message);
+    public void ShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) => _owner.PersonnelShowAdvisorMessage(advisor, speakerRole, advice);
+
+    public OfficerData? FindPersonnelAdvisor()
+    {
+        var city = SelectedCity;
+        var world = TurnManager?.World;
+        if (city == null || world == null) return null;
+        var chancellor = world.GetOfficer(world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId ?? 0);
+        if (chancellor != null && chancellor.CaptiveFactionId <= 0 && (chancellor.DeathYear <= 0 || world.Year <= chancellor.DeathYear)) return chancellor;
+        return city.OfficerIds.Select(world.GetOfficer).Where(officer => officer != null && officer.CaptiveFactionId <= 0 && (officer.DeathYear <= 0 || world.Year <= officer.DeathYear)).Cast<OfficerData>().OrderByDescending(officer => officer.Politics).ThenByDescending(officer => officer.Intelligence).FirstOrDefault();
+    }
 
     public void RefreshSelectedCity() => _owner.PersonnelRefreshSelectedCity();
     public void RefreshMapVisuals() => _owner.PersonnelRefreshMapVisuals();

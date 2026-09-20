@@ -24,6 +24,9 @@ public partial class HudController
     internal void PersonnelAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
     internal void PersonnelQueueFactionOutcome(string title, string message) => QueueFactionOutcome(title, message);
 
+    internal void PersonnelShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) =>
+        _advisorUiController?.ShowContextualAdvice(advisor, speakerRole, advice);
+
     internal void PersonnelRefreshSelectedCity() => RefreshSelectedCity();
     internal void PersonnelRefreshMapVisuals() => _mapController?.RefreshVisuals();
     internal UiEventHub PersonnelUiEventHub => _uiEventHub;

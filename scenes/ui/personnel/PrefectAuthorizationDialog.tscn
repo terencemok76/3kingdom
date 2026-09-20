@@ -177,6 +177,11 @@ autowrap_mode = 3
 layout_mode = 2
 alignment = 1
 
+[node name="AdvisorButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Authorization Advice"
+
 [node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
 layout_mode = 2
 focus_mode = 0

@@ -19,6 +19,9 @@ public partial class HudController
 
     internal void SpyAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
 
+    internal void SpyShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) =>
+        _advisorUiController?.ShowContextualAdvice(advisor, speakerRole, advice);
+
     internal void SpyRefreshSelectedCity() => RefreshSelectedCity();
 
     internal void SpyShowOfficerSelectorDialog(

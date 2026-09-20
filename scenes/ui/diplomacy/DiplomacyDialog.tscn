@@ -285,6 +285,13 @@ autowrap_mode = 3
 [node name="FooterRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
 layout_mode = 2
 alignment = 1
+theme_override_constants/separation = 10
+
+[node name="AdvisorButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/FooterRow"]
+custom_minimum_size = Vector2(110, 30)
+layout_mode = 2
+focus_mode = 0
+text = "Diplomacy Advice"
 
 [node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/FooterRow"]
 layout_mode = 2

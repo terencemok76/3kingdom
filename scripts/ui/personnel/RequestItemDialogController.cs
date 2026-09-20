@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -10,6 +13,7 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private OptionButton? _itemOption;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
@@ -58,6 +62,7 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_request_item");
         }
+        if (_advisorButton != null) _advisorButton.Text = _context.Localization.T("ui.personnel_advice_item");
         UpdateSelectedOfficerSummary();
         RefreshItemOptionTexts();
     }
@@ -67,6 +72,7 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _itemOption = root.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_selectOfficerButton != null)
         {
@@ -76,6 +82,7 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
         }
+        if (_advisorButton != null) _context.ApplyCommandButtonTheme(_advisorButton);
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
@@ -86,6 +93,7 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
             {
                 _confirmButton.Pressed += OnConfirmPressed;
             }
+            if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
             _signalsConnected = true;
         }
     }
@@ -158,6 +166,165 @@ internal sealed class RequestItemDialogController : FloatingOverlayController
         PopulateItemOption();
         SelectItemOption(selectedItemId);
     }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        var officer = world?.GetOfficer(_selectedOfficerId);
+        var item = _context.GetSelectedItemFromOption(_itemOption);
+        if (city == null || world == null || localization == null) return;
+        var advisor = _context.FindPersonnelAdvisor();
+        var role = advisor?.Id == world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId ? localization.T("ui.chancellor") : localization.T("ui.local_place");
+        var message = BuildRecallAdvice(world, city, officer, item, localization);
+        _context.ShowAdvisorMessage(advisor, role, message);
+    }
+
+    private string BuildRecallAdvice(WorldState world, CityData city, OfficerData? officer, ItemData? item, LocalizationService localization)
+    {
+        if (officer == null)
+        {
+            var suggestion = FindSuggestedRecall(world, city);
+            return suggestion.Officer == null || suggestion.Item == null
+                ? localization.T("ui.personnel_advice_item_no_holder")
+                : localization.Format(
+                    "fmt.personnel_advice_item_choose_holder",
+                    localization.GetOfficerName(suggestion.Officer),
+                    localization.GetItemName(suggestion.Item),
+                    localization.GetItemType(suggestion.Item));
+        }
+
+        var equippedItems = world.Items
+            .Where(equippedItem => equippedItem.EquippedOfficerId == officer.Id)
+            .ToList();
+        if (item == null)
+        {
+            var leastRiskItem = equippedItems
+                .OrderBy(equippedItem => GetRecallImpact(equippedItem, GetOfficerAppointments(world, city, officer)))
+                .ThenBy(localization.GetItemName)
+                .FirstOrDefault();
+            return leastRiskItem == null
+                ? localization.Format("fmt.personnel_advice_item_no_equipment", localization.GetOfficerName(officer))
+                : localization.Format(
+                    "fmt.personnel_advice_item_choose_item",
+                    localization.GetOfficerName(officer),
+                    equippedItems.Count,
+                    localization.GetItemName(leastRiskItem),
+                    localization.GetItemType(leastRiskItem));
+        }
+
+        var appointments = GetOfficerAppointments(world, city, officer);
+        var appointmentText = appointments.Count > 0
+            ? string.Join("、", appointments.Select(localization.GetAppointmentName))
+            : localization.T("ui.none");
+        var impact = GetRecallImpact(item, appointments);
+        var officerName = localization.GetOfficerName(officer);
+        var itemName = localization.GetItemName(item);
+        var alternateItem = equippedItems
+            .Where(equippedItem => equippedItem.Id != item.Id)
+            .OrderBy(equippedItem => GetRecallImpact(equippedItem, appointments))
+            .FirstOrDefault();
+        var recipient = FindSuggestedRecipient(world, city, officer, item);
+
+        var conclusion = appointments.Count == 0 && impact <= 35
+            ? localization.T("ui.personnel_advice_item_conclusion_safe")
+            : appointments.Count > 0 && impact >= 50
+                ? localization.T("ui.personnel_advice_item_conclusion_hold")
+                : localization.T("ui.personnel_advice_item_conclusion_caution");
+        var expected = localization.Format(
+            "fmt.personnel_advice_item_expected",
+            officerName,
+            itemName,
+            item.StrengthBonus,
+            item.IntelligenceBonus,
+            item.LeadershipBonus,
+            item.PoliticsBonus,
+            item.CombatBonus,
+            item.CharmBonus,
+            Math.Max(1, item.LoyaltyBonus));
+        var risk = appointments.Count == 0
+            ? localization.Format("fmt.personnel_advice_item_risk_general", impact)
+            : localization.Format("fmt.personnel_advice_item_risk_appointment", appointmentText, impact);
+        var alternative = alternateItem != null
+            ? localization.Format("fmt.personnel_advice_item_alternative_item", localization.GetItemName(alternateItem))
+            : recipient != null
+                ? localization.Format("fmt.personnel_advice_item_alternative_recipient", localization.GetOfficerName(recipient), recipient.Politics, recipient.Intelligence, recipient.Leadership)
+                : localization.T("ui.personnel_advice_item_alternative_reserve");
+
+        return localization.Format("fmt.personnel_advice_item_actionable", conclusion, expected, risk, alternative);
+    }
+
+    private (OfficerData? Officer, ItemData? Item) FindSuggestedRecall(WorldState world, CityData city)
+    {
+        var candidate = city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Select(officer => new
+            {
+                Officer = officer!,
+                Item = world.Items
+                    .Where(item => item.EquippedOfficerId == officer!.Id)
+                    .OrderByDescending(GetItemValue)
+                    .FirstOrDefault()
+            })
+            .Where(entry => entry.Item != null)
+            .OrderByDescending(entry => GetItemValue(entry.Item!))
+            .FirstOrDefault();
+        return candidate == null ? (null, null) : (candidate.Officer, candidate.Item);
+    }
+
+    private OfficerData? FindSuggestedRecipient(WorldState world, CityData city, OfficerData holder, ItemData item)
+    {
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(candidate => candidate != null && candidate.Id != holder.Id && !_context.IsFactionRuler(world, candidate))
+            .OrderByDescending(candidate => GetRecipientFit(candidate!, item))
+            .FirstOrDefault();
+    }
+
+    private static List<string> GetOfficerAppointments(WorldState world, CityData city, OfficerData officer)
+    {
+        var appointments = officer.Appointments
+            .Where(appointment => !appointment.Equals(OfficerAppointmentRules.Lord, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction?.ChancellorOfficerId == officer.Id) appointments.Add(OfficerAppointmentRules.Chancellor);
+        if (faction?.ChiefStrategistOfficerId == officer.Id) appointments.Add(OfficerAppointmentRules.ChiefStrategist);
+        return appointments.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static int GetRecallImpact(ItemData item, IReadOnlyCollection<string> appointments)
+    {
+        var impact = item.StrengthBonus + item.IntelligenceBonus + item.LeadershipBonus + item.PoliticsBonus + item.CombatBonus + item.CharmBonus + Math.Max(1, item.LoyaltyBonus);
+        foreach (var appointment in appointments)
+        {
+            if (appointment.Equals(OfficerAppointmentRules.Governor, StringComparison.OrdinalIgnoreCase) ||
+                appointment.Equals(OfficerAppointmentRules.Chancellor, StringComparison.OrdinalIgnoreCase))
+            {
+                impact += item.PoliticsBonus * 2 + item.IntelligenceBonus;
+            }
+            else if (appointment.Equals(OfficerAppointmentRules.Strategist, StringComparison.OrdinalIgnoreCase) ||
+                     appointment.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase))
+            {
+                impact += item.IntelligenceBonus * 2 + item.LeadershipBonus + item.CombatBonus;
+            }
+        }
+
+        return impact;
+    }
+
+    private static int GetItemValue(ItemData item) =>
+        item.StrengthBonus + item.IntelligenceBonus + item.LeadershipBonus + item.PoliticsBonus + item.CombatBonus + item.CharmBonus + Math.Max(1, item.LoyaltyBonus);
+
+    private static int GetRecipientFit(OfficerData officer, ItemData item) => item.ItemType switch
+    {
+        ItemType.Weapon => officer.Strength * 3 + officer.Combat * 2 + officer.Leadership,
+        ItemType.Horse => officer.Leadership * 3 + officer.Combat * 2 + officer.Strength,
+        ItemType.Book => officer.Intelligence * 3 + officer.Politics * 2,
+        ItemType.Treasure => officer.Charm * 3 + officer.Politics * 2 + officer.Intelligence,
+        _ => officer.Politics + officer.Intelligence
+    };
 
     private void OnConfirmPressed()
     {

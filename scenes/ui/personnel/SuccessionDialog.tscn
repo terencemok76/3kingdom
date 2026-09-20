@@ -161,6 +161,11 @@ layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
 
+[node name="ClearOfficerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerSelectorRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Clear Selection"
+
 [node name="WarningLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 autowrap_mode = 3
@@ -168,6 +173,11 @@ autowrap_mode = 3
 [node name="ConfirmRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1
+
+[node name="AdvisorButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Succession Advice"
 
 [node name="ConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ConfirmRow"]
 layout_mode = 2

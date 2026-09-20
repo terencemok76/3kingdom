@@ -25,6 +25,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
     private SpinBox? _troopCountSpinBox;
     private Label? _maxTroopsLabel;
     private Label? _costSummaryLabel;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
@@ -76,6 +77,10 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_officer_selection");
         }
+        if (_advisorButton != null)
+        {
+            _advisorButton.Text = _context.Localization.T("ui.recruit_advice_button") ?? "Recruit Advice";
+        }
 
         RefreshTroopTypeOptionTexts();
         UpdateSelectedOfficerSummary();
@@ -90,6 +95,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         _troopCountSpinBox = root.GetNodeOrNull<SpinBox>("TroopCountSpinBox");
         _maxTroopsLabel = root.GetNodeOrNull<Label>("MaxTroopsLabel");
         _costSummaryLabel = root.GetNodeOrNull<Label>("CostSummaryLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_selectOfficerButton != null)
         {
@@ -98,6 +104,10 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+        if (_advisorButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_advisorButton);
         }
         if (!_signalsConnected)
         {
@@ -109,6 +119,10 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             if (_confirmButton != null)
             {
                 _confirmButton.Pressed += OnConfirmPressed;
+            }
+            if (_advisorButton != null)
+            {
+                _advisorButton.Pressed += OnAdvisorPressed;
             }
 
             if (_troopTypeOption != null)
@@ -193,6 +207,78 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
                 UpdateSelectedOfficerSummary();
             },
             () => _context.Localization?.T("ui.military_recruit") ?? localization.T("ui.military_recruit"));
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (city == null || world == null || localization == null)
+        {
+            return;
+        }
+
+        CommitTroopCountEdit();
+        var advisor = FindRecruitAdvisor(world, city);
+        var role = world.GetFaction(city.OwnerFactionId)?.ChiefStrategistOfficerId == advisor?.Id
+            ? localization.T("ui.chief_strategist") ?? "Chief Strategist"
+            : localization.T("ui.local_place") ?? "Local";
+        _context.ShowAdvisorMessage(
+            advisor,
+            role,
+            BuildRecruitAdvice(city, GetSelectedRecruitTroopType(), GetSelectedRecruitCount(), localization));
+    }
+
+    private static OfficerData? FindRecruitAdvisor(WorldState world, CityData city)
+    {
+        var faction = world.GetFaction(city.OwnerFactionId);
+        var chiefStrategist = faction != null ? world.GetOfficer(faction.ChiefStrategistOfficerId) : null;
+        if (IsOfficerAvailableForAdvice(chiefStrategist, world))
+        {
+            return chiefStrategist;
+        }
+
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsOfficerAvailableForAdvice(officer, world))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => officer.Intelligence)
+            .ThenByDescending(officer => officer.Leadership)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+    }
+
+    private static bool IsOfficerAvailableForAdvice(OfficerData? officer, WorldState world)
+    {
+        return officer != null &&
+               officer.CaptiveFactionId <= 0 &&
+               (officer.DeathYear <= 0 || world.Year <= officer.DeathYear);
+    }
+
+    private string BuildRecruitAdvice(CityData city, TroopType troopType, int requestedCount, LocalizationService localization)
+    {
+        var maximumCount = RecruitRules.GetMaxRecruitableCount(city, troopType);
+        var recruitCount = Math.Clamp(requestedCount, 0, maximumCount);
+        if (recruitCount <= 0)
+        {
+            return localization.T("ui.recruit_advice_choose_count") ?? "Choose a troop count before recruiting.";
+        }
+
+        var troopName = _context.GetTroopTypeDisplayName(troopType);
+        var goldCost = RecruitRules.GetRecruitGoldCost(troopType, recruitCount);
+        var foodCost = RecruitRules.GetRecruitFoodCost(troopType, recruitCount);
+        var plan = localization.Format("fmt.recruit_advice_plan", troopName, recruitCount, maximumCount, goldCost, foodCost);
+        var guidance = recruitCount * 100 >= maximumCount * 80
+            ? localization.T("ui.recruit_advice_near_limit")
+            : troopType switch
+            {
+                TroopType.Cavalry => localization.T("ui.recruit_advice_cavalry"),
+                TroopType.Siege => localization.T("ui.recruit_advice_siege"),
+                TroopType.Archer or TroopType.Crossbow => localization.T("ui.recruit_advice_ranged"),
+                _ => localization.T("ui.recruit_advice_standard")
+            };
+        return $"{plan}{guidance}";
     }
 
     private void OnConfirmPressed()

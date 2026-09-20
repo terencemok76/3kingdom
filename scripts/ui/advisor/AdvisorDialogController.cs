@@ -57,6 +57,21 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         ShowOverlay();
     }
 
+    public void ShowContextualAdvice(OfficerData? advisor, string speakerRole, string advice)
+    {
+        if (_context.SelectedCity == null || _context.TurnManager?.World == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        RefreshText();
+        ShowOverlay();
+        var speakerName = advisor != null
+            ? _context.Localization.GetOfficerName(advisor)
+            : _context.Localization.T("ui.local_place");
+        AddAdviceEntry(speakerName, speakerRole, advice, advisor?.Id ?? 0);
+    }
+
     public void RefreshText()
     {
         if (_context.Localization == null || !EnsureOverlayReady())

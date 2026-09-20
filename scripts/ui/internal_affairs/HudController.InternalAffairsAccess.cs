@@ -21,6 +21,9 @@ public partial class HudController
 
     internal void InternalAffairsAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
 
+    internal void InternalAffairsShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) =>
+        _advisorUiController?.ShowContextualAdvice(advisor, speakerRole, advice);
+
     internal void InternalAffairsRefreshSelectedCity() => RefreshSelectedCity();
 
     internal void InternalAffairsRefreshMapVisuals() => _mapController?.RefreshVisuals();

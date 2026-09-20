@@ -16,6 +16,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
     private OptionButton? _constructionProjectOption;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private ItemList? _scheduleList;
     private Button? _pauseButton;
@@ -93,6 +94,10 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_internal_affairs");
         }
+        if (_advisorButton != null)
+        {
+            _advisorButton.Text = _context.Localization.T("ui.internal_affairs_advice_button") ?? "Domestic Advice";
+        }
 
         RefreshJobOptionText();
         RefreshConstructionProjectOptionText();
@@ -121,6 +126,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         _constructionProjectOption = root.GetNodeOrNull<OptionButton>("ConstructionProjectRow/ConstructionProjectOption");
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         _scheduleList = root.GetNodeOrNull<ItemList>("ScheduleList");
         _pauseButton = root.GetNodeOrNull<Button>("ScheduleActionsRow/PauseButton");
@@ -172,6 +178,10 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             {
                 _confirmButton.Pressed += OnConfirmPressed;
             }
+            if (_advisorButton != null)
+            {
+                _advisorButton.Pressed += OnAdvisorPressed;
+            }
 
             _signalsConnected = true;
         }
@@ -207,6 +217,11 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+
+        if (_advisorButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_advisorButton);
         }
     }
 
@@ -410,6 +425,80 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         {
             label.Text = text;
         }
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (city == null || world == null || localization == null)
+        {
+            return;
+        }
+
+        var advisor = FindPoliticsAdvisor(world, city);
+        var role = world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId == advisor?.Id
+            ? localization.T("ui.chancellor") ?? "Chancellor"
+            : localization.T("ui.local_place") ?? "Local";
+        var advice = BuildInternalAffairsAdvice(city, GetSelectedJobType(),
+            Math.Max(0, (int)(_goldSpinBox?.Value ?? 0)),
+            Math.Max(1, (int)(_durationSpinBox?.Value ?? 1)), localization);
+        _context.ShowAdvisorMessage(advisor, role, advice);
+    }
+
+    private OfficerData? FindPoliticsAdvisor(WorldState world, CityData city)
+    {
+        var faction = world.GetFaction(city.OwnerFactionId);
+        var chancellor = faction != null ? world.GetOfficer(faction.ChancellorOfficerId) : null;
+        if (IsOfficerAvailableForAdvice(chancellor, world))
+        {
+            return chancellor;
+        }
+
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsOfficerAvailableForAdvice(officer, world))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => officer.Politics)
+            .ThenByDescending(officer => officer.Intelligence)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+    }
+
+    private static bool IsOfficerAvailableForAdvice(OfficerData? officer, WorldState world)
+    {
+        return officer != null &&
+               officer.CaptiveFactionId <= 0 &&
+               (officer.DeathYear <= 0 || world.Year <= officer.DeathYear);
+    }
+
+    private string BuildInternalAffairsAdvice(
+        CityData city,
+        InternalAffairsJobType jobType,
+        int monthlyGold,
+        int months,
+        LocalizationService localization)
+    {
+        var plan = localization.Format("fmt.internal_affairs_advice_plan", GetJobName(jobType), monthlyGold, months);
+        var focus = jobType switch
+        {
+            InternalAffairsJobType.Farm => city.Farm < 60 || city.Food < 900
+                ? localization.T("ui.internal_affairs_advice_farm_priority")
+                : localization.T("ui.internal_affairs_advice_farm_steady"),
+            InternalAffairsJobType.Commercial => city.Commercial < 60 || city.Gold < 600
+                ? localization.T("ui.internal_affairs_advice_commercial_priority")
+                : localization.T("ui.internal_affairs_advice_commercial_steady"),
+            InternalAffairsJobType.Defend => city.Defense < 60
+                ? localization.T("ui.internal_affairs_advice_defense_priority")
+                : localization.T("ui.internal_affairs_advice_defense_steady"),
+            InternalAffairsJobType.WaterControl => city.DisasterPrevention < 55
+                ? localization.T("ui.internal_affairs_advice_water_priority")
+                : localization.T("ui.internal_affairs_advice_water_steady"),
+            InternalAffairsJobType.Construction => localization.T("ui.internal_affairs_advice_construction"),
+            _ => localization.T("ui.no_advice")
+        };
+        return $"{plan}{focus}";
     }
 
     private void OnConfirmPressed()

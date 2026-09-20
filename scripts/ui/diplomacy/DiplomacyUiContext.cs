@@ -59,6 +59,7 @@ internal sealed class DiplomacyUiContext : IFloatingOverlayContext
     }
     public void BringOverlayToFront(CanvasItem? item) => _owner.DiplomacyBringOverlayToFront(item);
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.DiplomacyAddLog(message, isPlayerRelated);
+    public void ShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) => _owner.DiplomacyShowAdvisorMessage(advisor, speakerRole, advice);
     public void RefreshSelectedCity() => _owner.DiplomacyRefreshSelectedCity();
     public void ShowOfficerSelectorDialog(
         string title,

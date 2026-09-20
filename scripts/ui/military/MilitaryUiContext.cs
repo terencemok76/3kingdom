@@ -64,6 +64,7 @@ internal sealed class MilitaryUiContext : IFloatingOverlayContext
     }
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.MilitaryAddLog(message, isPlayerRelated);
+    public void ShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) => _owner.MilitaryShowAdvisorMessage(advisor, speakerRole, advice);
     public void ShowOfficerSelectorDialog(string title, List<int> ids, HudController.OfficerSelectorPrimaryStat stat, Action<int> confirmedAction, Func<string>? titleFactory = null) => _owner.MilitaryShowOfficerSelectorDialog(title, ids, stat, confirmedAction, titleFactory);
     public List<int> GetAvailableOfficerIdsForOrder() => _owner.MilitaryGetAvailableOfficerIdsForOrder();
     public CommandResult ExecutePlayerCommand(CommandType commandType, int? targetCityId = null, int troopsToSend = 0, List<int>? officerIds = null, TroopType recruitTroopType = TroopType.Infantry) => _owner.MilitaryExecutePlayerCommand(commandType, targetCityId, troopsToSend, officerIds, recruitTroopType);

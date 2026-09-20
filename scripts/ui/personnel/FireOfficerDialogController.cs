@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
@@ -11,6 +12,7 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
     private readonly PersonnelUiContext _context;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
@@ -68,6 +70,7 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_personnel");
         }
+        if (_advisorButton != null) _advisorButton.Text = _context.Localization.T("ui.personnel_advice_dismiss");
         UpdateSelectedOfficerSummary();
     }
 
@@ -75,6 +78,7 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
     {
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_selectOfficerButton != null)
         {
@@ -84,6 +88,7 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
         }
+        if (_advisorButton != null) _context.ApplyCommandButtonTheme(_advisorButton);
         if (!_signalsConnected)
         {
             if (_selectOfficerButton != null)
@@ -94,6 +99,7 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
             {
                 _confirmButton.Pressed += OnConfirmPressed;
             }
+            if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
             _signalsConnected = true;
         }
     }
@@ -126,6 +132,117 @@ internal sealed class FireOfficerDialogController : FloatingOverlayController
                 return officer != null && !_context.IsFactionRuler(world, officer);
             })
             .ToList();
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        var officer = world?.GetOfficer(_selectedOfficerId);
+        if (city == null || world == null || localization == null) return;
+        var advisor = _context.FindPersonnelAdvisor();
+        var role = advisor?.Id == world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId ? localization.T("ui.chancellor") : localization.T("ui.local_place");
+        var message = officer == null
+            ? localization.T("ui.personnel_advice_select_officer")
+            : BuildDismissalAdvice(world, city, officer, localization);
+        _context.ShowAdvisorMessage(advisor, role, message);
+    }
+
+    private string BuildDismissalAdvice(WorldState world, CityData city, OfficerData officer, LocalizationService localization)
+    {
+        var appointments = GetDismissalAppointmentNames(world, city, officer);
+        var replacement = FindDismissalReplacement(world, city, officer, appointments);
+        var itemCount = world.Items.Count(item => item.EquippedOfficerId == officer.Id);
+        var officerName = localization.GetOfficerName(officer);
+        var appointmentText = appointments.Count > 0
+            ? string.Join("、", appointments.Select(localization.GetAppointmentName))
+            : localization.T("ui.none");
+        var replacementName = replacement != null
+            ? localization.GetOfficerName(replacement)
+            : localization.T("ui.personnel_advice_no_appointment_candidate");
+
+        var conclusion = appointments.Count == 0
+            ? localization.T("ui.personnel_advice_dismiss_conclusion_safe")
+            : replacement == null
+                ? localization.T("ui.personnel_advice_dismiss_conclusion_hold")
+                : localization.Format("fmt.personnel_advice_dismiss_conclusion_replace", replacementName);
+        var expectedResult = localization.Format(
+            "fmt.personnel_advice_dismiss_expected",
+            officerName,
+            appointmentText,
+            itemCount);
+        var risk = appointments.Count == 0
+            ? localization.Format("fmt.personnel_advice_dismiss_risk_low", officer.Leadership, officer.Intelligence, officer.Politics)
+            : replacement == null
+                ? localization.Format("fmt.personnel_advice_dismiss_risk_high", appointmentText, officer.Leadership, officer.Intelligence, officer.Politics)
+                : localization.Format("fmt.personnel_advice_dismiss_risk_replace", appointmentText, replacementName);
+        var alternative = replacement == null
+            ? localization.T("ui.personnel_advice_dismiss_alternative_none")
+            : localization.Format(
+                "fmt.personnel_advice_dismiss_alternative_replace",
+                replacementName,
+                replacement.Politics,
+                replacement.Intelligence,
+                replacement.Leadership);
+
+        return localization.Format("fmt.personnel_advice_dismiss_actionable", conclusion, expectedResult, risk, alternative);
+    }
+
+    private List<string> GetDismissalAppointmentNames(WorldState world, CityData city, OfficerData officer)
+    {
+        var appointments = officer.Appointments
+            .Where(appointment => !appointment.Equals(OfficerAppointmentRules.Lord, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction?.ChancellorOfficerId == officer.Id)
+        {
+            appointments.Add(OfficerAppointmentRules.Chancellor);
+        }
+        if (faction?.ChiefStrategistOfficerId == officer.Id)
+        {
+            appointments.Add(OfficerAppointmentRules.ChiefStrategist);
+        }
+
+        return appointments
+            .Where(appointment => !string.IsNullOrWhiteSpace(appointment))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private OfficerData? FindDismissalReplacement(WorldState world, CityData city, OfficerData dismissedOfficer, IReadOnlyCollection<string> appointments)
+    {
+        var availableOfficerIds = _context.GetAvailableOfficerIdsForOrder();
+        return city.OfficerIds
+            .Where(availableOfficerIds.Contains)
+            .Select(world.GetOfficer)
+            .Where(candidate => candidate != null && candidate.Id != dismissedOfficer.Id && !_context.IsFactionRuler(world, candidate))
+            .OrderByDescending(candidate => GetDismissalReplacementScore(candidate!, appointments))
+            .ThenByDescending(candidate => candidate!.Politics)
+            .FirstOrDefault();
+    }
+
+    private static int GetDismissalReplacementScore(OfficerData officer, IReadOnlyCollection<string> appointments)
+    {
+        var score = officer.Politics * 2 + officer.Intelligence + officer.Leadership + officer.Charm;
+        foreach (var appointment in appointments)
+        {
+            if (appointment.Equals(OfficerAppointmentRules.Governor, StringComparison.OrdinalIgnoreCase))
+            {
+                score = Math.Max(score, officer.Politics * 3 + officer.Intelligence * 2 + officer.Charm);
+            }
+            else if (appointment.Equals(OfficerAppointmentRules.Strategist, StringComparison.OrdinalIgnoreCase) ||
+                     appointment.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase))
+            {
+                score = Math.Max(score, officer.Intelligence * 3 + officer.Politics + officer.Leadership + officer.Combat);
+            }
+            else if (appointment.Equals(OfficerAppointmentRules.Chancellor, StringComparison.OrdinalIgnoreCase))
+            {
+                score = Math.Max(score, officer.Politics * 3 + officer.Intelligence * 2 + officer.Charm);
+            }
+        }
+
+        return score;
     }
 
     private void OnConfirmPressed()

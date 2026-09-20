@@ -24,6 +24,7 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
     private OptionButton? _appointmentOption;
     private Label? _offerSummaryLabel;
     private RichTextLabel? _warningLabel;
+    private Button? _advisorButton;
     private Button? _recruitButton;
     private Button? _freeButton;
     private Button? _executeButton;
@@ -96,6 +97,12 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
             _recruitButton.Disabled = prisoners.Count == 0;
         }
 
+        if (_advisorButton != null)
+        {
+            _advisorButton.Text = localization.T("ui.personnel_advice_prisoner");
+            _advisorButton.Disabled = prisoners.Count == 0;
+        }
+
         if (_freeButton != null)
         {
             _freeButton.Text = localization.T("ui.captured_officer.free");
@@ -142,11 +149,12 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
         _appointmentOption = root.GetNodeOrNull<OptionButton>("AppointmentRow/AppointmentOption");
         _offerSummaryLabel = root.GetNodeOrNull<Label>("OfferSummaryLabel");
         _warningLabel = root.GetNodeOrNull<RichTextLabel>("WarningLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("ActionRow/AdvisorButton");
         _recruitButton = root.GetNodeOrNull<Button>("ActionRow/RecruitButton");
         _freeButton = root.GetNodeOrNull<Button>("ActionRow/FreeButton");
         _executeButton = root.GetNodeOrNull<Button>("ActionRow/ExecuteButton");
 
-        foreach (var button in new[] { _selectOfficerButton, _recruitButton, _freeButton, _executeButton })
+        foreach (var button in new[] { _selectOfficerButton, _advisorButton, _recruitButton, _freeButton, _executeButton })
         {
             if (button != null)
             {
@@ -184,6 +192,11 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
             _recruitButton.Pressed += () => ResolveDisposition(CapturedOfficerDisposition.Recruit);
         }
 
+        if (_advisorButton != null)
+        {
+            _advisorButton.Pressed += OnAdvisorPressed;
+        }
+
         if (_freeButton != null)
         {
             _freeButton.Pressed += () => ResolveDisposition(CapturedOfficerDisposition.Free);
@@ -196,6 +209,64 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
 
         _signalsConnected = true;
         PopulateOfferInputs();
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var world = _context.TurnManager?.World;
+        var city = _context.SelectedCity;
+        var localization = _context.Localization;
+        if (world == null || city == null || localization == null) return;
+
+        var prisoners = GetPrisonersInSelectedCity(world, city);
+        var recruitOffer = BuildRecruitOffer();
+        var offeredItem = recruitOffer.ItemId > 0 ? world.GetItem(recruitOffer.ItemId) : null;
+        var selected = prisoners.FirstOrDefault(prisoner => prisoner.Id == _selectedOfficerId);
+        var recommended = prisoners
+            .OrderByDescending(prisoner => CommandResolver.CalculateCapturedOfficerRecruitChance(world, city, city.OwnerFactionId, prisoner, recruitOffer, offeredItem))
+            .ThenByDescending(GetPrisonerFit)
+            .FirstOrDefault();
+        var advisor = _context.FindPersonnelAdvisor();
+        var role = advisor?.Id == world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId
+            ? localization.T("ui.chancellor")
+            : localization.T("ui.local_place");
+        var message = recommended == null
+            ? localization.T("ui.personnel_advice_prisoner_none")
+            : selected == null
+                ? localization.Format(
+                    "fmt.personnel_advice_prisoner_recommend",
+                    localization.GetOfficerName(recommended),
+                    FormatRecruitChance(world, city, recommended, recruitOffer, offeredItem),
+                    BuildPrisonerStats(recommended, localization))
+                : localization.Format(
+                    "fmt.personnel_advice_prisoner_selected",
+                    localization.GetOfficerName(selected),
+                    FormatRecruitChance(world, city, selected, recruitOffer, offeredItem),
+                    BuildPrisonerStats(selected, localization),
+                    (int)(_goldSpinBox?.Value ?? 0),
+                    offeredItem != null ? localization.GetItemName(offeredItem) : localization.T("ui.none"),
+                    string.IsNullOrWhiteSpace(recruitOffer.Appointment) ? localization.T("ui.none") : _context.GetAppointmentDisplayName(recruitOffer.Appointment),
+                    BuildPrisonerRecommendation(world, city, selected, recruitOffer, offeredItem, localization));
+        _context.ShowAdvisorMessage(advisor, role, message);
+    }
+
+    private static int GetPrisonerFit(OfficerData officer) =>
+        officer.Leadership + officer.Strength + officer.Intelligence + officer.Politics + officer.Charm + officer.Combat;
+
+    private static string BuildPrisonerStats(OfficerData officer, LocalizationService localization) =>
+        localization.Format("fmt.personnel_advice_prisoner_stats", officer.Leadership, officer.Strength, officer.Intelligence, officer.Politics, officer.Charm, officer.Combat, officer.Loyalty, officer.Ambition);
+
+    private static string FormatRecruitChance(WorldState world, CityData city, OfficerData officer, CapturedOfficerRecruitOfferData offer, ItemData? item) =>
+        Math.Round(CommandResolver.CalculateCapturedOfficerRecruitChance(world, city, city.OwnerFactionId, officer, offer, item) * 100).ToString() + "%";
+
+    private static string BuildPrisonerRecommendation(WorldState world, CityData city, OfficerData officer, CapturedOfficerRecruitOfferData offer, ItemData? item, LocalizationService localization)
+    {
+        var chance = CommandResolver.CalculateCapturedOfficerRecruitChance(world, city, city.OwnerFactionId, officer, offer, item);
+        return chance >= 0.65
+            ? localization.T("ui.personnel_advice_prisoner_recruit")
+            : chance < 0.30
+                ? localization.T("ui.personnel_advice_prisoner_improve_offer")
+                : localization.T("ui.personnel_advice_prisoner_caution");
     }
 
     private void OnSelectOfficerPressed()

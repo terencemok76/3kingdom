@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -13,6 +15,7 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
     private SpinBox? _foodSpinBox;
     private OptionButton? _itemOption;
     private Label? _summaryLabel;
+    private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
@@ -63,6 +66,10 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_personnel_bonus");
         }
+        if (_advisorButton != null)
+        {
+            _advisorButton.Text = _context.Localization.T("ui.personnel_bonus_advice_button");
+        }
         RefreshItemOptionTexts();
         UpdateSelectedOfficerSummary();
         UpdateSummary();
@@ -76,6 +83,7 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
         _itemOption = root.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
+        _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_selectOfficerButton != null)
         {
@@ -84,6 +92,10 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
+        }
+        if (_advisorButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_advisorButton);
         }
         if (!_signalsConnected)
         {
@@ -106,6 +118,10 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
             if (_confirmButton != null)
             {
                 _confirmButton.Pressed += OnConfirmPressed;
+            }
+            if (_advisorButton != null)
+            {
+                _advisorButton.Pressed += OnAdvisorPressed;
             }
             _signalsConnected = true;
         }
@@ -179,6 +195,112 @@ internal sealed class PersonnelBonusDialogController : FloatingOverlayController
         var selectedItemId = _context.GetSelectedItemFromOption(_itemOption)?.Id ?? 0;
         _context.PopulateFactionInventoryOption(_itemOption);
         SelectItemOption(selectedItemId);
+    }
+
+    private void OnAdvisorPressed()
+    {
+        var city = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (city == null || world == null || localization == null)
+        {
+            return;
+        }
+
+        var advisor = FindPersonnelAdvisor(world, city);
+        var role = world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId == advisor?.Id
+            ? localization.T("ui.chancellor")
+            : localization.T("ui.local_place");
+        _context.ShowAdvisorMessage(advisor, role, BuildBonusAdvice(world, city, localization));
+    }
+
+    private OfficerData? FindPersonnelAdvisor(WorldState world, CityData city)
+    {
+        var faction = world.GetFaction(city.OwnerFactionId);
+        var chancellor = faction != null ? world.GetOfficer(faction.ChancellorOfficerId) : null;
+        if (IsOfficerAvailableForAdvice(chancellor, world))
+        {
+            return chancellor;
+        }
+
+        return city.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsOfficerAvailableForAdvice(officer, world))
+            .Cast<OfficerData>()
+            .OrderByDescending(officer => officer.Politics)
+            .ThenByDescending(officer => officer.Intelligence)
+            .ThenBy(officer => officer.Id)
+            .FirstOrDefault();
+    }
+
+    private static bool IsOfficerAvailableForAdvice(OfficerData? officer, WorldState world)
+    {
+        return officer != null &&
+               officer.CaptiveFactionId <= 0 &&
+               (officer.DeathYear <= 0 || world.Year <= officer.DeathYear);
+    }
+
+    private string BuildBonusAdvice(WorldState world, CityData city, LocalizationService localization)
+    {
+        var candidates = _context.GetNonRulerCityOfficerIds()
+            .Select(world.GetOfficer)
+            .Where(officer => officer != null)
+            .Cast<OfficerData>()
+            .ToList();
+        if (candidates.Count == 0)
+        {
+            return localization.T("ui.personnel_bonus_advice_no_candidate");
+        }
+
+        var item = _context.GetSelectedItemFromOption(_itemOption);
+        var recommended = candidates
+            .OrderByDescending(officer => GetRewardPriority(officer, item))
+            .ThenBy(officer => officer.Id)
+            .First();
+        var selected = world.GetOfficer(_selectedOfficerId) ?? recommended;
+        var gold = Math.Max(0, (int)(_goldSpinBox?.Value ?? 0));
+        var food = Math.Max(0, (int)(_foodSpinBox?.Value ?? 0));
+        var loyaltyGain = gold / 100 + food / 500 + (item != null ? Math.Max(1, item.LoyaltyBonus) : 0);
+        var expectedLoyalty = Math.Min(100, selected.Loyalty + loyaltyGain);
+        var itemEffect = item == null
+            ? localization.T("ui.personnel_bonus_advice_no_item")
+            : localization.Format(
+                "fmt.personnel_bonus_advice_item",
+                localization.GetItemName(item),
+                Math.Max(1, item.LoyaltyBonus));
+        var comparison = selected.Id == recommended.Id
+            ? localization.T("ui.personnel_bonus_advice_selected_best")
+            : localization.T("ui.personnel_bonus_advice_change_target");
+        return localization.Format(
+            "fmt.personnel_bonus_advice",
+            localization.GetOfficerName(recommended),
+            recommended.Loyalty,
+            recommended.Ambition,
+            localization.GetOfficerName(selected),
+            loyaltyGain,
+            selected.Loyalty,
+            expectedLoyalty,
+            itemEffect,
+            comparison);
+    }
+
+    private static int GetRewardPriority(OfficerData officer, ItemData? item)
+    {
+        var urgency = (100 - officer.Loyalty) * 4 + officer.Ambition;
+        if (item == null)
+        {
+            return urgency;
+        }
+
+        var itemFit = item.ItemType switch
+        {
+            ItemType.Weapon => officer.Combat + officer.Strength,
+            ItemType.Horse => officer.Leadership + officer.Combat,
+            ItemType.Book => officer.Intelligence + officer.Politics,
+            ItemType.Treasure => officer.Charm + officer.Politics,
+            _ => 0
+        };
+        return urgency + itemFit / 5;
     }
 
     private void OnConfirmPressed()

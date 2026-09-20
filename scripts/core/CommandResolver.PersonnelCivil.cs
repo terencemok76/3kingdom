@@ -620,8 +620,9 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.hire_officer.not_enough_offer_resources", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
-        var rulerCharm = GetRulerCharm(world, actorFactionId);
-        if (isFreeOfficer && !DoesFreeOfficerAcceptHire(city, officer, rulerCharm, goldOffer, foodOffer, giftedItem))
+        var hireAcceptanceScore = GetHireAcceptanceScore(world, city, officer, actorFactionId, goldOffer, foodOffer, giftedItem);
+        var hireAcceptanceThreshold = GetHireAcceptanceThreshold(world, officer);
+        if (isFreeOfficer && hireAcceptanceScore < hireAcceptanceThreshold)
         {
             return LocalizedResult(
                 false,
@@ -630,7 +631,7 @@ public partial class CommandResolver
                 new object[] { GetOfficerDisplayName(officer, GameLanguage.English) });
         }
 
-        if (sourceFactionId > 0 && !DoesEmployedOfficerAcceptHire(officer, rulerCharm, goldOffer, foodOffer, giftedItem))
+        if (sourceFactionId > 0 && hireAcceptanceScore < hireAcceptanceThreshold)
         {
             return LocalizedResult(
                 false,
