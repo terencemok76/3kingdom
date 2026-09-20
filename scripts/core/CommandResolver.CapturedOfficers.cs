@@ -161,12 +161,12 @@ public partial class CommandResolver
     private static CapturedOfficerDisposition ChooseAiCapturedOfficerDisposition(OfficerData officer)
     {
         var totalCoreStats = officer.Strength + officer.Intelligence + officer.Charm + officer.Leadership + officer.Politics + officer.Combat;
-        if (officer.Loyalty <= 60 || totalCoreStats >= 430)
+        if (totalCoreStats >= 430)
         {
             return CapturedOfficerDisposition.Recruit;
         }
 
-        if (totalCoreStats <= 220 && officer.Loyalty <= 35)
+        if (totalCoreStats <= 220)
         {
             return CapturedOfficerDisposition.Kill;
         }
@@ -331,7 +331,9 @@ public partial class CommandResolver
         officer.JailedCityId = 0;
         officer.CityId = city.Id;
         officer.FreeOfficerStayMonths = 0;
-        officer.Loyalty = Math.Max(officer.Loyalty, HireOfficerDefaultLoyalty);
+        // A recruited prisoner starts with loyalty to the new faction. Their
+        // former-faction loyalty must not carry over into the new service.
+        officer.Loyalty = HireOfficerDefaultLoyalty;
         city.Gold -= recruitOffer.GoldAmount;
         if (!city.OfficerIds.Contains(officer.Id))
         {
@@ -377,7 +379,6 @@ public partial class CommandResolver
         var chance = CapturedOfficerRecruitBaseChance;
         chance += GetCapturedOfficerRecruitRelationshipBonus(world, faction, officer);
         chance += GetRulerCharm(world, faction.Id) * CapturedOfficerRecruitRulerCharmFactor;
-        chance -= officer.Loyalty * CapturedOfficerRecruitLoyaltyPenaltyFactor;
         chance -= officer.Ambition * CapturedOfficerRecruitAmbitionPenaltyFactor;
         chance += recruitOffer.GoldAmount / 2000.0;
         chance += GetCapturedOfficerRecruitAppointmentBonus(recruitOffer.Appointment);

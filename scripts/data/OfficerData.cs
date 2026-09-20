@@ -23,6 +23,11 @@ public class OfficerData
     public int Politics { get; set; }
     public int Loyalty { get; set; }
     public int Ambition { get; set; }
+    // A data-authored advisory lens.  Empty values are deterministically derived
+    // from the officer's existing attributes so newly added development officers
+    // can immediately give differentiated advice.
+    [JsonPropertyName("advice_profile")]
+    public string AdviceProfile { get; set; } = string.Empty;
     public int Combat { get; set; }
     public int FarmExperience { get; set; }
     public int FarmRank { get; set; }

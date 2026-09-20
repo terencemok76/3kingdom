@@ -64,7 +64,7 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
 
     public void AddLog(string message, bool isPlayerRelated = false) => _owner.PersonnelAddLog(message, isPlayerRelated);
     public void QueueFactionOutcome(string title, string message) => _owner.PersonnelQueueFactionOutcome(title, message);
-    public void ShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) => _owner.PersonnelShowAdvisorMessage(advisor, speakerRole, advice);
+    public void ShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice, string adviceTopic = "general") => _owner.PersonnelShowAdvisorMessage(advisor, speakerRole, advice, adviceTopic);
 
     public OfficerData? FindPersonnelAdvisor()
     {
@@ -118,6 +118,7 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
     public bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => _owner.PersonnelIsOfficerOldEnoughToJoin(world, officer);
     public Texture2D? BuildOfficerPortraitTexture(int officerId) => _owner.PersonnelBuildOfficerPortraitTexture(officerId);
     public string BuildOfficerDetailText(OfficerData officer) => _owner.PersonnelBuildOfficerDetailText(officer);
+    public string BuildPrisonerOfficerDetailText(OfficerData officer) => _owner.PersonnelBuildPrisonerOfficerDetailText(officer);
     public string GetPortraitLabel() => _owner.PersonnelGetPortraitLabel();
     public void ApplyCommandButtonTheme(Button button) => _owner.PersonnelApplyCommandButtonTheme(button);
 

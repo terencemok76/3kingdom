@@ -21,7 +21,6 @@ public partial class CommandResolver
     private const double CapturedOfficerRecruitRulerFamilyBonus = 0.35;
     private const double CapturedOfficerRecruitFactionFamilyBonus = 0.18;
     private const double CapturedOfficerRecruitRulerCharmFactor = 0.0015;
-    private const double CapturedOfficerRecruitLoyaltyPenaltyFactor = 0.0035;
     private const double CapturedOfficerRecruitAmbitionPenaltyFactor = 0.0025;
     private const double CapturedOfficerRecruitMinimumChance = 0.05;
     private const double CapturedOfficerRecruitMaximumChance = 0.95;

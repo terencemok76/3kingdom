@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
@@ -30,6 +31,8 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
     private Label? _portraitPlaceholder;
     private RichTextLabel? _speechLabel;
     private ItemList? _adviceHistoryList;
+    private string _activeContextualAdvice = string.Empty;
+    private string _activeAdviceTopic = "general";
     private bool _signalsConnected;
 
     public AdvisorDialogController(AdvisorUiContext context)
@@ -53,23 +56,27 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
             return;
         }
 
+        _activeContextualAdvice = string.Empty;
+        _activeAdviceTopic = "general";
         RefreshText();
         ShowOverlay();
     }
 
-    public void ShowContextualAdvice(OfficerData? advisor, string speakerRole, string advice)
+    public void ShowContextualAdvice(OfficerData? advisor, string speakerRole, string advice, string adviceTopic = "general")
     {
         if (_context.SelectedCity == null || _context.TurnManager?.World == null || _context.Localization == null)
         {
             return;
         }
 
+        _activeContextualAdvice = advice;
+        _activeAdviceTopic = adviceTopic;
         RefreshText();
         ShowOverlay();
         var speakerName = advisor != null
             ? _context.Localization.GetOfficerName(advisor)
             : _context.Localization.T("ui.local_place");
-        AddAdviceEntry(speakerName, speakerRole, advice, advisor?.Id ?? 0);
+        AddAdviceEntry(speakerName, speakerRole, AdvisorPerspective.Apply(advisor, _context.Localization, advice, adviceTopic), advisor?.Id ?? 0);
     }
 
     public void RefreshText()
@@ -189,7 +196,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         var city = _context.SelectedCity;
         var faction = world != null && city != null ? world.GetFaction(city.OwnerFactionId) : null;
         var hasChancellor = faction != null && faction.ChancellorOfficerId > 0;
-        var hasChiefStrategist = faction != null && faction.ChiefStrategistOfficerId > 0;
+        var hasChiefStrategist = faction != null && FindStrategistAdvisor(faction) != null;
 
         if (_askChancellorButton != null)
         {
@@ -308,7 +315,10 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         var faction = world.GetFaction(city.OwnerFactionId);
         var chancellor = faction != null ? world.GetOfficer(faction.ChancellorOfficerId) : null;
         var speaker = chancellor != null ? localization.GetOfficerName(chancellor) : localization.T("ui.chancellor");
-        AddAdviceEntry(speaker, localization.T("ui.chancellor"), BuildChancellorComment(city.OwnerFactionId), chancellor?.Id ?? 0);
+        var advice = HasActiveContextualAdvice
+            ? _activeContextualAdvice
+            : BuildChancellorComment(city.OwnerFactionId);
+        AddAdviceEntry(speaker, localization.T("ui.chancellor"), AdvisorPerspective.Apply(chancellor, localization, advice, _activeAdviceTopic), chancellor?.Id ?? 0);
     }
 
     private void OnAskChiefStrategistPressed()
@@ -322,9 +332,25 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         }
 
         var faction = world.GetFaction(city.OwnerFactionId);
-        var chiefStrategist = faction != null ? world.GetOfficer(faction.ChiefStrategistOfficerId) : null;
-        var speaker = chiefStrategist != null ? localization.GetOfficerName(chiefStrategist) : localization.T("ui.chief_strategist");
-        AddAdviceEntry(speaker, localization.T("ui.chief_strategist"), BuildChiefStrategistComment(city.OwnerFactionId), chiefStrategist?.Id ?? 0);
+        var strategist = faction != null ? FindStrategistAdvisor(faction) : null;
+        if (strategist == null)
+        {
+            return;
+        }
+
+        var isChiefStrategist = faction?.ChiefStrategistOfficerId == strategist.Id;
+        var speakerRole = isChiefStrategist
+            ? localization.T("ui.chief_strategist")
+            : localization.GetAppointmentName(OfficerAppointmentRules.Strategist);
+        AddAdviceEntry(
+            localization.GetOfficerName(strategist),
+            speakerRole,
+            AdvisorPerspective.Apply(
+                strategist,
+                localization,
+                HasActiveContextualAdvice ? _activeContextualAdvice : BuildChiefStrategistComment(city.OwnerFactionId, strategist),
+                _activeAdviceTopic),
+            strategist.Id);
     }
 
     private void OnAskLocalOfficerPressed()
@@ -343,7 +369,10 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
             return;
         }
 
-        AddAdviceEntry(localization.GetOfficerName(officer), localization.GetOfficerRole(officer), BuildLocalOfficerComment(city, officer), officer.Id);
+        var advice = HasActiveContextualAdvice
+            ? _activeContextualAdvice
+            : BuildLocalOfficerComment(city, officer);
+        AddAdviceEntry(localization.GetOfficerName(officer), localization.GetOfficerRole(officer), AdvisorPerspective.Apply(officer, localization, advice, _activeAdviceTopic), officer.Id);
     }
 
     private OfficerData? FindBestLocalAdvisor(CityData city)
@@ -376,6 +405,37 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
 
         return bestOfficer;
     }
+
+    private OfficerData? FindStrategistAdvisor(FactionData faction)
+    {
+        var world = _context.TurnManager?.World;
+        if (world == null)
+        {
+            return null;
+        }
+
+        var chiefStrategist = world.GetOfficer(faction.ChiefStrategistOfficerId);
+        if (IsAvailableAdvisor(chiefStrategist, world))
+        {
+            return chiefStrategist;
+        }
+
+        return faction.OfficerIds
+            .Select(world.GetOfficer)
+            .Where(officer => IsAvailableAdvisor(officer, world))
+            .Cast<OfficerData>()
+            .Where(officer => OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Strategist))
+            .OrderByDescending(officer => officer.Intelligence)
+            .ThenByDescending(officer => officer.Leadership)
+            .FirstOrDefault();
+    }
+
+    private static bool IsAvailableAdvisor(OfficerData? officer, WorldState world) =>
+        officer != null &&
+        officer.CaptiveFactionId <= 0 &&
+        (officer.DeathYear <= 0 || world.Year <= officer.DeathYear);
+
+    private bool HasActiveContextualAdvice => !string.IsNullOrWhiteSpace(_activeContextualAdvice);
 
     private static int GetLocalAdvisorScore(CityData city, OfficerData officer)
     {
@@ -443,7 +503,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         return localization.T("ui.advisor_comment_chancellor_balanced");
     }
 
-    private string BuildChiefStrategistComment(int factionId)
+    private string BuildChiefStrategistComment(int factionId, OfficerData strategist)
     {
         var localization = _context.Localization;
         var world = _context.TurnManager?.World;
@@ -453,7 +513,7 @@ internal sealed class AdvisorDialogController : FloatingOverlayController
         }
 
         var faction = world.GetFaction(factionId);
-        if (faction == null || faction.ChiefStrategistOfficerId <= 0)
+        if (faction == null)
         {
             return localization.T("ui.advisor_comment_no_chief_strategist");
         }

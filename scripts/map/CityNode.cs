@@ -24,7 +24,7 @@ public partial class CityNode : Node2D
     private const float CircleRadius = 12.0f;
     private const float EventRingRadius = 22.0f;
     private const float BattleIconSize = 52.0f;
-    private const float LabelStartY = 40.0f;
+    private const float LabelStartY = 30.0f;
     private const float LabelLineHeight = 16.0f;
 
     private CityData? _city;

@@ -554,7 +554,7 @@
 	"fmt.personnel_advice_hire_relationship": { "zhHant": "君主關係：{0}（接受分數 +{1}）", "en": "Ruler relationship: {0} (acceptance score +{1})" },
 	"fmt.personnel_advice_prisoner_recommend": { "zhHant": "尚未選擇俘虜。依目前贈禮，建議優先評估「{0}」：招降成功率約 {1}；{2}", "en": "No prisoner is selected. With the current offer, assess {0} first: recruitment chance about {1}; {2}" },
 	"fmt.personnel_advice_prisoner_selected": { "zhHant": "「{0}」的招降成功率約 {1}。能力：{2}。目前贈金 {3}、道具 {4}、任命職位 {5}。{6}", "en": "Recruitment chance for {0} is about {1}. Attributes: {2}. Current offer: gold {3}, item {4}, appointment {5}. {6}" },
-	"fmt.personnel_advice_prisoner_stats": { "zhHant": "統率 {0}、武力 {1}、智力 {2}、政治 {3}、魅力 {4}、戰鬥 {5}、忠誠 {6}、野心 {7}", "en": "Leadership {0}, strength {1}, intelligence {2}, politics {3}, charm {4}, combat {5}, loyalty {6}, ambition {7}" },
+	"fmt.personnel_advice_prisoner_stats": { "zhHant": "統率 {0}、武力 {1}、智力 {2}、政治 {3}、魅力 {4}、戰鬥 {5}、野心 {6}", "en": "Leadership {0}, strength {1}, intelligence {2}, politics {3}, charm {4}, combat {5}, ambition {6}" },
 	"ui.confirm_request_item":  {
 									"zhHant":  "確認索回",
 									"en":  "Confirm Recall"
@@ -1295,7 +1295,31 @@
 								  "zhHant":  "已複製",
 								  "en":  "Copied"
 							  },
-		"ui.gameplay_log_clear":  {
+	"ui.advice_profile.long_view_planner": { "zhHant": "長策遠見", "en": "Long View" },
+	"ui.advice_profile.opportunistic_tactician": { "zhHant": "權變奇策", "en": "Opportunistic Tactics" },
+	"ui.advice_profile.pragmatic_steward": { "zhHant": "務實經略", "en": "Pragmatic Stewardship" },
+	"ui.advice_profile.diplomatic_bridge": { "zhHant": "合縱交涉", "en": "Diplomatic Bridge" },
+	"ui.advice_profile.decisive_commander": { "zhHant": "果決用兵", "en": "Decisive Command" },
+	"ui.advice_profile.cautious_analyst": { "zhHant": "審慎分析", "en": "Cautious Analysis" },
+	"ui.advice_profile.adaptive": { "zhHant": "因勢建言", "en": "Adaptive View" },
+	"ui.advice_profile_comment.long_view_planner": { "zhHant": "先看數月後的糧餉、城防與人事連鎖；短期有利，也不宜以根基交換。", "en": "Weigh supplies, defenses, and personnel consequences months ahead; do not trade the foundation for a short-term gain." },
+	"ui.advice_profile_comment.opportunistic_tactician": { "zhHant": "局勢有破綻便應把握，但要保留轉圜與撤回的餘地，莫把奇策當成常法。", "en": "Exploit openings, but preserve room to turn and withdraw; a clever move must not become a habit." },
+	"ui.advice_profile_comment.pragmatic_steward": { "zhHant": "先算府庫、兵糧與可持續收益；能穩定完成的方案，勝過一次華麗卻難以維持的行動。", "en": "Count treasury, supplies, and sustainable returns first; a steady plan is better than a brilliant action that cannot last." },
+	"ui.advice_profile_comment.diplomatic_bridge": { "zhHant": "除眼前得失外，亦須衡量人心與後續關係；留下可談的餘地，往往比逼迫對方更有利。", "en": "Beyond immediate gains, weigh sentiment and future relations; leaving room to negotiate often beats forcing the other side." },
+	"ui.advice_profile_comment.decisive_commander": { "zhHant": "兵勢與士氣一旦形成優勢便不宜遲疑；但出手前應先確保主城仍留有可守之兵。", "en": "When force and morale create an advantage, do not hesitate; first ensure the home city retains enough defenders." },
+	"ui.advice_profile_comment.cautious_analyst": { "zhHant": "應先驗證敵情與最壞結果；條件未明時宜準備而不躁進，待勝算可見再施行。", "en": "Verify enemy intelligence and the worst outcome first; prepare without rushing until the odds are visible." },
+	"ui.advice_profile_comment.adaptive": { "zhHant": "應將眼前收益與後續風險一併衡量。", "en": "Weigh immediate gains together with later risks." },
+	"ui.advice_profile_comment.prisoner_recruit.long_view_planner": { "zhHant": "此人若招降，宜同時安排未來職位與編制；評估的不只是這次成功率，而是他能否長期補足勢力缺口。", "en": "If recruited, plan this officer's future appointment and formation as well; judge not only this chance, but the long-term gap they can fill." },
+	"ui.advice_profile_comment.prisoner_recruit.opportunistic_tactician": { "zhHant": "眼前既有俘虜與招降窗口，可用適當贈禮把握；若成本過高，便保留資源給下一個更有利的機會。", "en": "A captive creates a recruitment window worth exploiting with a suitable offer; if the cost grows too high, preserve resources for a better opening." },
+	"ui.advice_profile_comment.prisoner_recruit.pragmatic_steward": { "zhHant": "應比較贈金、道具與官職承諾的成本，和此人入隊後能補足的能力；不要為普通人選付出過高代價。", "en": "Compare the cost of gold, an item, and an appointment against the capability this officer adds; do not overpay for an ordinary recruit." },
+	"ui.advice_profile_comment.prisoner_recruit.diplomatic_bridge": { "zhHant": "招降重在關係與禮遇；若我方有人與其相識，或能給予合適職位，通常比單純加金更有效。", "en": "Recruitment turns on relationships and respectful treatment; a known connection or fitting post is often more effective than gold alone." },
+	"ui.advice_profile_comment.prisoner_recruit.decisive_commander": { "zhHant": "若此人能立即補強前線或指揮空缺，成功率達可接受程度便應果斷招降；否則不必拖累眼前軍需。", "en": "If this officer immediately fills a frontline or command gap, recruit decisively once the chance is acceptable; otherwise do not burden current supplies." },
+	"ui.advice_profile_comment.prisoner_recruit.cautious_analyst": { "zhHant": "先以目前成功率核算風險，再決定是否加碼；關係不足時，應優先增加能改變條件的職位或道具。", "en": "Use the current chance to measure risk before raising the offer; when relations are weak, prefer an appointment or item that changes the terms." },
+	"ui.advice_profile_comment.prisoner_recruit.adaptive": { "zhHant": "應以目前成功率、贈禮成本與此人的能力回報一併判斷是否招降。", "en": "Decide on recruitment from the current chance, offer cost, and this officer's capability return together." },
+	"fmt.advice_profile_view": { "zhHant": "【顧問「{0}」的建言視角：{1}】\n{2}", "en": "[Advisor {0}'s perspective: {1}]\n{2}" },
+	"fmt.advice_profile_attributes": { "zhHant": "智{0}／政{1}／統{2}／魅{3}", "en": "INT {0} / POL {1} / LDR {2} / CHA {3}" },
+	"fmt.advice_profile_comment": { "zhHant": "顧問能力：{0}。{1}", "en": "Advisor attributes: {0}. {1}" },
+	"ui.gameplay_log_clear":  {
 								  "zhHant":  "清除日誌",
 								  "en":  "Clear Log"
 							  }

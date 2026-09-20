@@ -194,7 +194,7 @@ public partial class HudController : CanvasLayer
         _viewUiController?.RefreshOfficerListContent();
     }
 
-    private string BuildOfficerDetailText(OfficerData officer)
+    private string BuildOfficerDetailText(OfficerData officer, bool includeLoyalty = true)
     {
         var canViewOfficer = CanViewOfficerFullInformation(officer);
         var officerName = canViewOfficer ? (_localization?.GetOfficerName(officer) ?? officer.Name) : UnknownInfoText;
@@ -222,7 +222,6 @@ public partial class HudController : CanvasLayer
             (_localization?.T("ui.appointed_titles") ?? "Appointments", appointmentName),
             (_localization?.T("ui.status") ?? "Status", statusValue),
             (_localization?.T("ui.age") ?? "Age", MaskedNumberText(canViewOfficer, officerAge)),
-            (_localization?.T("ui.loyalty_short") ?? "LOY", MaskedNumberText(canViewOfficer, officer.Loyalty)),
             (_localization?.T("ui.strength") ?? "STR", MaskedNumberText(canViewOfficer, officer.Strength)),
             (_localization?.T("ui.intelligence") ?? "INT", MaskedNumberText(canViewOfficer, officer.Intelligence)),
             (_localization?.T("ui.charm") ?? "CHA", MaskedNumberText(canViewOfficer, officer.Charm)),
@@ -230,6 +229,11 @@ public partial class HudController : CanvasLayer
             (_localization?.T("ui.politics") ?? "POL", MaskedNumberText(canViewOfficer, officer.Politics)),
             (_localization?.T("ui.combat") ?? "COM", MaskedNumberText(canViewOfficer, officer.Combat))
         };
+
+        if (includeLoyalty)
+        {
+            entries.Insert(4, (_localization?.T("ui.loyalty_short") ?? "LOY", MaskedNumberText(canViewOfficer, officer.Loyalty)));
+        }
 
         if (canViewOfficer && HasBattleProgression(officer))
         {

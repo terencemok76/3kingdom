@@ -24,8 +24,8 @@ public partial class HudController
     internal void PersonnelAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
     internal void PersonnelQueueFactionOutcome(string title, string message) => QueueFactionOutcome(title, message);
 
-    internal void PersonnelShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) =>
-        _advisorUiController?.ShowContextualAdvice(advisor, speakerRole, advice);
+    internal void PersonnelShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice, string adviceTopic = "general") =>
+        _advisorUiController?.ShowContextualAdvice(advisor, speakerRole, advice, adviceTopic);
 
     internal void PersonnelRefreshSelectedCity() => RefreshSelectedCity();
     internal void PersonnelRefreshMapVisuals() => _mapController?.RefreshVisuals();
@@ -78,6 +78,7 @@ public partial class HudController
     internal bool PersonnelIsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => IsOfficerOldEnoughToJoin(world, officer);
     internal Texture2D? PersonnelBuildOfficerPortraitTexture(int officerId) => BuildOfficerPortraitTexture(officerId);
     internal string PersonnelBuildOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer);
+    internal string PersonnelBuildPrisonerOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer, includeLoyalty: false);
     internal string PersonnelGetPortraitLabel() => _localization?.T("ui.portrait") ?? "Portrait";
 
     internal void PersonnelApplyCommandButtonTheme(Button button)
@@ -158,7 +159,6 @@ public partial class HudController
                 new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.role") ?? "Role", MinWidth = 90 },
                 new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.status") ?? "Status", MinWidth = 90 },
                 new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.age") ?? "Age", MinWidth = 60 },
-                new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.loyalty") ?? "Loyalty", MinWidth = 70 },
                 new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.ambition") ?? "Ambition", MinWidth = 70 },
                 new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.strength") ?? "Strength", MinWidth = 70 },
                 new OfficerSelectorColumnDefinition { Title = _localization?.T("ui.intelligence") ?? "Intelligence", MinWidth = 70 },
@@ -178,17 +178,12 @@ public partial class HudController
         var statusName = _turnManager?.World != null && _localization != null
             ? BuildMaskedOfficerStatus(_turnManager.World, officer)
             : string.Empty;
-        var loyaltyText = _turnManager?.World != null
-            ? BuildOfficerLoyaltyTableText(_turnManager.World, officer)
-            : officer.Loyalty.ToString();
-
         return
         [
             _localization?.GetOfficerName(officer) ?? officer.Name,
             GetDisplayedOfficerRole(officer),
             statusName,
             age.ToString(),
-            loyaltyText,
             officer.Ambition.ToString(),
             officer.Strength.ToString(),
             officer.Intelligence.ToString(),

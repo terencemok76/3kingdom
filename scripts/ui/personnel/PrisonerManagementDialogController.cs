@@ -247,14 +247,14 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
                     offeredItem != null ? localization.GetItemName(offeredItem) : localization.T("ui.none"),
                     string.IsNullOrWhiteSpace(recruitOffer.Appointment) ? localization.T("ui.none") : _context.GetAppointmentDisplayName(recruitOffer.Appointment),
                     BuildPrisonerRecommendation(world, city, selected, recruitOffer, offeredItem, localization));
-        _context.ShowAdvisorMessage(advisor, role, message);
+        _context.ShowAdvisorMessage(advisor, role, message, "prisoner_recruit");
     }
 
     private static int GetPrisonerFit(OfficerData officer) =>
         officer.Leadership + officer.Strength + officer.Intelligence + officer.Politics + officer.Charm + officer.Combat;
 
     private static string BuildPrisonerStats(OfficerData officer, LocalizationService localization) =>
-        localization.Format("fmt.personnel_advice_prisoner_stats", officer.Leadership, officer.Strength, officer.Intelligence, officer.Politics, officer.Charm, officer.Combat, officer.Loyalty, officer.Ambition);
+        localization.Format("fmt.personnel_advice_prisoner_stats", officer.Leadership, officer.Strength, officer.Intelligence, officer.Politics, officer.Charm, officer.Combat, officer.Ambition);
 
     private static string FormatRecruitChance(WorldState world, CityData city, OfficerData officer, CapturedOfficerRecruitOfferData offer, ItemData? item) =>
         Math.Round(CommandResolver.CalculateCapturedOfficerRecruitChance(world, city, city.OwnerFactionId, officer, offer, item) * 100).ToString() + "%";
@@ -400,7 +400,7 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
 
         if (_detailLabel != null)
         {
-            _detailLabel.Text = officer != null ? _context.BuildOfficerDetailText(officer) : string.Empty;
+            _detailLabel.Text = officer != null ? _context.BuildPrisonerOfficerDetailText(officer) : string.Empty;
         }
 
         if (_speechLabel != null)
@@ -577,19 +577,15 @@ internal sealed class PrisonerManagementDialogController : FloatingOverlayContro
 
         var relationshipBonus = GetCaptorRelationshipBonus(world, officer, captorFactionId);
         var speechKey = "ui.captured_officer.speech_wait_and_see";
-        if (relationshipBonus >= 0.18 || officer.Loyalty <= 55)
+        if (relationshipBonus >= 0.18)
         {
             speechKey = "ui.captured_officer.speech_accept";
         }
-        else if (officer.Loyalty >= 92 && officer.Ambition <= 55)
-        {
-            speechKey = "ui.captured_officer.speech_kill_me";
-        }
-        else if (officer.Loyalty >= 85)
+        else if (officer.Ambition >= 70)
         {
             speechKey = "ui.captured_officer.speech_defiant";
         }
-        else if (officer.Ambition >= 82)
+        else if (officer.Ambition >= 55)
         {
             speechKey = "ui.captured_officer.speech_offer_more";
         }

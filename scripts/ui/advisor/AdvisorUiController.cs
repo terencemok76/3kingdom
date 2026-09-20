@@ -49,9 +49,9 @@ public sealed class AdvisorUiController
         _dialogController.Show();
     }
 
-    public void ShowContextualAdvice(OfficerData? advisor, string speakerRole, string advice)
+    public void ShowContextualAdvice(OfficerData? advisor, string speakerRole, string advice, string adviceTopic = "general")
     {
-        _dialogController.ShowContextualAdvice(advisor, speakerRole, advice);
+        _dialogController.ShowContextualAdvice(advisor, speakerRole, advice, adviceTopic);
     }
 
     private void OnWorldStateChanged(UiEventHub.CityStateChangedEvent _)
