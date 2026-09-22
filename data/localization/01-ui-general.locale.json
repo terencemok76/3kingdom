@@ -646,9 +646,11 @@
 									   "en":  "Gift Item"
 								   },
 	"ui.hire_officer_target":  {
-								   "zhHant":  "登用對象",
-								   "en":  "Officer To Hire"
-							   },
+							   "zhHant":  "登用對象",
+							   "en":  "Officer To Hire"
+						   },
+	"ui.hire_officer_envoy": { "zhHant": "登用使者", "en": "Hiring Envoy" },
+	"ui.hire_officer_envoy_required": { "zhHant": "請選擇一名我方武將擔任登用使者。", "en": "Select one of your officers as the hiring envoy." },
 	"ui.horse":  {
 					 "zhHant":  "馬",
 					 "en":  "Horse"
@@ -914,7 +916,7 @@
 									 "en":  "Cavalry is mobile but consumes horses and resources; recruit it when mobility is needed."
 								 },
 	"ui.recruit_advice_siege":  {
-									 "zhHant":  "攻城兵適合有明確攻城目標時補充；平時不宜大量佔用軍資。",
+									 "zhHant":  "工兵用於操作戰役裝備；確定需要補給車或攻城器械時再補充。",
 									 "en":  "Siege troops suit a clear siege objective; avoid tying up too many resources in peacetime."
 								 },
 	"ui.recruit_advice_ranged":  {
@@ -1319,6 +1321,11 @@
 	"fmt.advice_profile_view": { "zhHant": "【顧問「{0}」的建言視角：{1}】\n{2}", "en": "[Advisor {0}'s perspective: {1}]\n{2}" },
 	"fmt.advice_profile_attributes": { "zhHant": "智{0}／政{1}／統{2}／魅{3}", "en": "INT {0} / POL {1} / LDR {2} / CHA {3}" },
 	"fmt.advice_profile_comment": { "zhHant": "顧問能力：{0}。{1}", "en": "Advisor attributes: {0}. {1}" },
+	"ui.battle_support": { "zhHant": "戰役支援（不需武將統率）", "en": "Battle Support (No Officer Required)" },
+	"ui.supply_cart": { "zhHant": "補給車", "en": "Supply Cart" },
+	"ui.ram": { "zhHant": "衝車", "en": "Ram" },
+	"ui.ladder": { "zhHant": "雲梯", "en": "Ladder" },
+	"ui.catapult": { "zhHant": "投石車", "en": "Catapult" },
 	"ui.gameplay_log_clear":  {
 								  "zhHant":  "清除日誌",
 								  "en":  "Clear Log"

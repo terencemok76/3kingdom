@@ -508,6 +508,8 @@ public class WorldRepository
             city.CatapultProgress = cityStart.CatapultProgress;
             city.LadderCount = cityStart.LadderCount;
             city.LadderProgress = cityStart.LadderProgress;
+            city.SupplyCartCount = cityStart.SupplyCartCount;
+            city.SupplyCartProgress = cityStart.SupplyCartProgress;
             city.HasBowWorkshop = cityStart.HasBowWorkshop;
             city.HasSiegeWorkshop = cityStart.HasSiegeWorkshop;
             city.EnsureTroopTypesInitialized();

@@ -38,7 +38,7 @@ internal static class RecruitRules
         {
             TroopType.Cavalry => city.Horses > 0,
             TroopType.Crossbow => city.BowWorkshopLevel >= 1,
-            TroopType.Siege => city.SiegeWorkshopLevel >= 1,
+            TroopType.Engineer => city.SiegeWorkshopLevel >= 1,
             _ => true
         };
     }
@@ -59,7 +59,7 @@ internal static class RecruitRules
             TroopType.Archer => 0.04f,
             TroopType.Crossbow => -0.04f,
             TroopType.Cavalry => -0.08f,
-            TroopType.Siege => -0.12f,
+            TroopType.Engineer => -0.12f,
             _ => 0.0f
         };
         var randomModifier = (float)(random.NextDouble() * 0.18 - 0.09);
@@ -78,7 +78,7 @@ internal static class RecruitRules
         {
             TroopType.Cavalry => 8,
             TroopType.Crossbow => 7,
-            TroopType.Siege => 10,
+            TroopType.Engineer => 10,
             _ => 6
         };
     }
@@ -88,7 +88,7 @@ internal static class RecruitRules
         return troopType switch
         {
             TroopType.Cavalry => 6,
-            TroopType.Siege => 7,
+            TroopType.Engineer => 7,
             _ => 4
         };
     }

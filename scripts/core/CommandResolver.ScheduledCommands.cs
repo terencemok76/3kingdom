@@ -519,7 +519,19 @@ public partial class CommandResolver
         var troopAllocation = validDeployments.Count > 0
             ? CreateTroopAllocationFromAttackDeployments(validDeployments)
             : CreateTroopAllocationFromTotal(sourceCity, request.TroopsToSend);
-        var siegeEngineAllocation = CreateSiegeEngineAllocationFromAttackDeployments(validDeployments);
+        var battleSupport = request.BattleSupport?.Clone() ?? new BattleSupportDeploymentData();
+        if (battleSupport.TotalEngineerCount > sourceCity.EngineerTroops)
+        {
+            return LocalizedResult(false, "cmd.attack.engineer_insufficient", new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), battleSupport.TotalEngineerCount, sourceCity.EngineerTroops }, new object[] { GetCityName(sourceCity, GameLanguage.English), battleSupport.TotalEngineerCount, sourceCity.EngineerTroops });
+        }
+
+        troopAllocation.Siege += Math.Max(0, battleSupport.TotalEngineerCount);
+        var siegeEngineAllocation = new SiegeEngineAllocationData
+        {
+            Ram = battleSupport.Ram ? 1 : 0,
+            Catapult = battleSupport.Catapult ? 1 : 0,
+            Ladder = battleSupport.Ladder ? 1 : 0
+        };
         var attackingTroops = troopAllocation.Total;
         if (selectedOfficerIds.Count == 0)
         {
@@ -549,6 +561,10 @@ public partial class CommandResolver
         if (siegeEngineAllocation.Ram > sourceCity.RamCount ||
             siegeEngineAllocation.Catapult > sourceCity.CatapultCount ||
             siegeEngineAllocation.Ladder > sourceCity.LadderCount)
+        {
+            return LocalizedResult(false, "cmd.attack.too_many_siege_engines", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
+        }
+        if (battleSupport.SupplyCart && sourceCity.SupplyCartCount <= 0)
         {
             return LocalizedResult(false, "cmd.attack.too_many_siege_engines", GetCityArgs(sourceCity, GameLanguage.TraditionalChinese), GetCityArgs(sourceCity, GameLanguage.English));
         }
@@ -600,6 +616,10 @@ public partial class CommandResolver
         // Reserve attack resources immediately so same-month orders see the reduced stock.
         sourceCity.RemoveTroopAllocation(troopAllocation);
         sourceCity.RemoveSiegeEngineAllocation(siegeEngineAllocation);
+        if (battleSupport.SupplyCart)
+        {
+            sourceCity.SupplyCartCount -= 1;
+        }
         sourceCity.Gold -= carriedGold;
         sourceCity.Food -= carriedFood;
 
@@ -612,6 +632,7 @@ public partial class CommandResolver
             TroopsToSend = attackingTroops,
             TroopAllocation = troopAllocation,
             SiegeEngineAllocation = siegeEngineAllocation,
+            BattleSupport = battleSupport,
             GoldToSend = carriedGold,
             FoodToSend = carriedFood,
             AttackOfficerDeployments = validDeployments,
@@ -807,6 +828,7 @@ public partial class CommandResolver
             // If the target becomes invalid before month end, return all reserved troops and supplies.
             sourceCity.AddTroopAllocation(pendingCommand.TroopAllocation);
             sourceCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
+            AddBattleSupportEquipment(sourceCity, pendingCommand.BattleSupport);
             sourceCity.Gold += pendingCommand.GoldToSend;
             sourceCity.Food += pendingCommand.FoodToSend;
 
@@ -838,6 +860,7 @@ public partial class CommandResolver
         {
             sourceCity.AddTroopAllocation(pendingCommand.TroopAllocation);
             sourceCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
+            AddBattleSupportEquipment(sourceCity, pendingCommand.BattleSupport);
             sourceCity.Gold += pendingCommand.GoldToSend;
             sourceCity.Food += pendingCommand.FoodToSend;
             return LocalizedResult(false, "cmd.attack.campaign_conflict");
@@ -1003,6 +1026,7 @@ public partial class CommandResolver
             }
 
             sourceCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
+            AddBattleSupportEquipment(sourceCity, pendingCommand.BattleSupport);
             sourceCity.Gold += returnedGold;
             sourceCity.Food += returnedFood;
 
@@ -1077,6 +1101,7 @@ public partial class CommandResolver
         targetCity.AddTroopAllocation(garrisonAllocation);
         targetCity.ClearSiegeEngines();
         targetCity.AddSiegeEngineAllocation(pendingCommand.SiegeEngineAllocation);
+        AddBattleSupportEquipment(targetCity, pendingCommand.BattleSupport);
         targetCity.Gold += pendingCommand.GoldToSend;
         targetCity.Food += pendingCommand.FoodToSend;
         TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var attackingPrefectOutcome);
@@ -1119,6 +1144,14 @@ public partial class CommandResolver
         AppendPrefectAutoAppointmentOutcome(successResult, defendingPrefectOutcome);
         AppendPrefectAutoAppointmentOutcome(successResult, attackingPrefectOutcome);
         return successResult;
+    }
+
+    private static void AddBattleSupportEquipment(CityData city, BattleSupportDeploymentData support)
+    {
+        if (support.SupplyCart)
+        {
+            city.SupplyCartCount += 1;
+        }
     }
 
 

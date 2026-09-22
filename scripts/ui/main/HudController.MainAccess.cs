@@ -65,6 +65,8 @@ public partial class HudController
     internal void MainHudOpenAttack() => OnAttackPressed();
     internal void MainHudOpenView() => OnViewPressed();
     internal void MainHudOpenTestCapture() => OnTestCapturePressed();
+    internal void MainHudAddTestBattleEquipment() => OnTestBattleEquipmentPressed();
+    internal void MainHudAddTestEngineers() => OnTestEngineersPressed();
     internal void MainHudPopupDialog(Control? dialog) => ShowOverlay(dialog);
     internal void MainHudPlayUiClickSfx() => PlayUiClickSfx();
 }

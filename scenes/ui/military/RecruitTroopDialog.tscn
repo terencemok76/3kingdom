@@ -147,12 +147,22 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "Troop Count"
 
-[node name="TroopCountSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="TroopCountInputRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TroopCountSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TroopCountInputRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 1.0
 max_value = 9999.0
 step = 1.0
+
+[node name="MaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TroopCountInputRow"]
+custom_minimum_size = Vector2(58, 0)
+layout_mode = 2
+focus_mode = 0
+text = "Max"
 
 [node name="MaxTroopsLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

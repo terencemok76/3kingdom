@@ -652,6 +652,18 @@ public partial class BattleSceneController
 
     private static (string TroopType, string Category, string Label, int Move, int Range, int HitPoints) GetCampaignBattleProfile(CampaignBattleTeamData team)
     {
+        if (team.EquipmentType != BattleEquipmentType.None)
+        {
+            return team.EquipmentType switch
+            {
+                BattleEquipmentType.SupplyCart => (TroopSupplyCart, CategorySiegeEngine, "糧", 3, 0, SupplyCartMaxHitPoints),
+                BattleEquipmentType.Ram => (TroopRam, CategorySiegeEngine, "R", 3, 1, RamMaxHitPoints),
+                BattleEquipmentType.Ladder => (TroopLadder, CategorySiegeEngine, "L", 3, 1, LadderMaxHitPoints),
+                BattleEquipmentType.Catapult => (TroopCatapult, CategorySiegeEngine, "T", 2, 4, CatapultMaxHitPoints),
+                _ => (TroopInfantry, CategoryUnit, "I", 4, 1, team.ActiveTroops)
+            };
+        }
+
         if (team.TroopType == TroopType.Siege)
         {
             return team.SiegeEngineType switch
@@ -668,6 +680,7 @@ public partial class BattleSceneController
             TroopType.Cavalry => (TroopCavalry, CategoryUnit, "C", 6, 1, team.ActiveTroops),
             TroopType.Archer => (TroopArcher, CategoryUnit, "A", 4, 3, team.ActiveTroops),
             TroopType.Crossbow => (TroopCrossbow, CategoryUnit, "X", 4, 3, team.ActiveTroops),
+            TroopType.Engineer => (TroopInfantry, CategoryUnit, "工", 4, 1, team.ActiveTroops),
             _ => (TroopInfantry, CategoryUnit, "I", 4, 1, team.ActiveTroops)
         };
     }

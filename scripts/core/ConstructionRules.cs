@@ -40,7 +40,7 @@ internal static class ConstructionRules
 
     internal static bool IsSiegeEngineProject(ConstructionProjectType projectType)
     {
-        return projectType is ConstructionProjectType.Ram or ConstructionProjectType.Catapult or ConstructionProjectType.Ladder;
+        return projectType is ConstructionProjectType.Ram or ConstructionProjectType.Catapult or ConstructionProjectType.Ladder or ConstructionProjectType.SupplyCart;
     }
 
     internal static SiegeEngineType GetSiegeEngineType(ConstructionProjectType projectType)
@@ -112,7 +112,9 @@ internal static class ConstructionRules
             return GetLevel(city, projectType);
         }
 
-        return city.GetSiegeEngineCount(GetSiegeEngineType(projectType));
+        return projectType == ConstructionProjectType.SupplyCart
+            ? city.SupplyCartCount
+            : city.GetSiegeEngineCount(GetSiegeEngineType(projectType));
     }
 
     private static int GetProjectProgress(CityData city, ConstructionProjectType projectType)
@@ -122,7 +124,9 @@ internal static class ConstructionRules
             return GetProgress(city, projectType);
         }
 
-        return city.GetSiegeEngineProgress(GetSiegeEngineType(projectType));
+        return projectType == ConstructionProjectType.SupplyCart
+            ? city.SupplyCartProgress
+            : city.GetSiegeEngineProgress(GetSiegeEngineType(projectType));
     }
 
     private static void SetProjectValue(CityData city, ConstructionProjectType projectType, int value)
@@ -146,6 +150,9 @@ internal static class ConstructionRules
                 break;
             case ConstructionProjectType.Ladder:
                 city.LadderCount = value;
+                break;
+            case ConstructionProjectType.SupplyCart:
+                city.SupplyCartCount = value;
                 break;
         }
     }
@@ -171,6 +178,9 @@ internal static class ConstructionRules
                 break;
             case ConstructionProjectType.Ladder:
                 city.LadderProgress = value;
+                break;
+            case ConstructionProjectType.SupplyCart:
+                city.SupplyCartProgress = value;
                 break;
         }
     }

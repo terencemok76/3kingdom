@@ -225,6 +225,7 @@ public class LocalizationService
             $"{T("siege_engine.ram")}: {city.RamCount}\n" +
             $"{T("siege_engine.catapult")}: {city.CatapultCount}\n" +
             $"{T("siege_engine.ladder")}: {city.LadderCount}\n" +
+            $"{T("battle_equipment.supply_cart")}: {city.SupplyCartCount}\n" +
             $"{T("ui.defense")}: {city.Defense}\n" +
             $"{T("ui.loyalty")}: {city.Loyalty}";
     }
@@ -254,6 +255,7 @@ public class LocalizationService
             $"{T("siege_engine.ram")}: 0\n" +
             $"{T("siege_engine.catapult")}: 0\n" +
             $"{T("siege_engine.ladder")}: 0\n" +
+            $"{T("battle_equipment.supply_cart")}: 0\n" +
             $"{T("ui.defense")}: 0\n" +
             $"{T("ui.loyalty")}: 0";
     }

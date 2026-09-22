@@ -1501,6 +1501,7 @@ public partial class CommandResolver
             ConstructionProjectType.Ram => "construction_project.ram",
             ConstructionProjectType.Catapult => "construction_project.catapult",
             ConstructionProjectType.Ladder => "construction_project.ladder",
+            ConstructionProjectType.SupplyCart => "construction_project.supply_cart",
             _ => string.Empty
         };
 
@@ -1513,10 +1514,10 @@ public partial class CommandResolver
     {
         var projectValue = ConstructionRules.IsFacilityProject(projectType)
             ? ConstructionRules.GetLevel(city, projectType)
-            : city.GetSiegeEngineCount(ConstructionRules.GetSiegeEngineType(projectType));
+            : projectType == ConstructionProjectType.SupplyCart ? city.SupplyCartCount : city.GetSiegeEngineCount(ConstructionRules.GetSiegeEngineType(projectType));
         var projectProgress = ConstructionRules.IsFacilityProject(projectType)
             ? ConstructionRules.GetProgress(city, projectType)
-            : city.GetSiegeEngineProgress(ConstructionRules.GetSiegeEngineType(projectType));
+            : projectType == ConstructionProjectType.SupplyCart ? city.SupplyCartProgress : city.GetSiegeEngineProgress(ConstructionRules.GetSiegeEngineType(projectType));
         var required = ConstructionRules.GetRequiredPointsForNextValue(projectType, projectValue);
 
         return _localization?.FormatForLanguage(language, "fmt.facility_level_progress", projectValue, projectProgress, required)

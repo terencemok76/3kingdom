@@ -13,6 +13,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private Button? _clearOfficerButton;
+    private Label? _selectedEnvoyLabel;
+    private Button? _selectEnvoyButton;
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private OptionButton? _itemOption;
@@ -21,6 +23,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
     private Button? _advisorButton;
     private Button? _confirmButton;
     private int _selectedOfficerId = -1;
+    private int _selectedEnvoyOfficerId = -1;
     private bool _signalsConnected;
     protected override Vector2 MinimumOverlaySize => new(460.0f, 320.0f);
 
@@ -58,6 +61,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
 
         SetOverlayTitleText(_context.Localization.T("command.personnel.hire_officer"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.hire_officer_target"));
+        SetLabelText("EnvoyLabel", _context.Localization.T("ui.hire_officer_envoy"));
         SetLabelText("GoldLabel", _context.Localization.T("ui.hire_officer_gold_offer"));
         SetLabelText("FoodLabel", _context.Localization.T("ui.hire_officer_food_offer"));
         SetLabelText("ItemLabel", _context.Localization.T("ui.hire_officer_item_offer"));
@@ -70,8 +74,10 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_hire_officer");
         }
         if (_clearOfficerButton != null) _clearOfficerButton.Text = _context.Localization.T("ui.clear_selection");
+        if (_selectEnvoyButton != null) _selectEnvoyButton.Text = _context.Localization.T("ui.select_officer");
         if (_advisorButton != null) _advisorButton.Text = _context.Localization.T("ui.personnel_advice_hire");
         UpdateSelectedOfficerSummary();
+        UpdateSelectedEnvoySummary();
         RefreshItemOptionTexts();
         UpdateSummary();
     }
@@ -81,6 +87,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _clearOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/ClearOfficerButton");
+        _selectedEnvoyLabel = root.GetNodeOrNull<Label>("EnvoySelectorRow/SelectedEnvoyLabel");
+        _selectEnvoyButton = root.GetNodeOrNull<Button>("EnvoySelectorRow/SelectEnvoyButton");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
         _itemOption = root.GetNodeOrNull<OptionButton>("ItemRow/ItemOption");
@@ -98,6 +106,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         }
         if (_clearOfficerButton != null) _context.ApplyCommandButtonTheme(_clearOfficerButton);
         if (_advisorButton != null) _context.ApplyCommandButtonTheme(_advisorButton);
+        if (_selectEnvoyButton != null) _context.ApplyCommandButtonTheme(_selectEnvoyButton);
         if (_signalsConnected)
         {
             return;
@@ -108,13 +117,16 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             _selectOfficerButton.Pressed += OnSelectOfficerPressed;
         }
         if (_clearOfficerButton != null) _clearOfficerButton.Pressed += OnClearOfficerPressed;
+        if (_selectEnvoyButton != null) _selectEnvoyButton.Pressed += OnSelectEnvoyPressed;
         if (_goldSpinBox != null)
         {
             _goldSpinBox.ValueChanged += _ => UpdateSummary();
+            _goldSpinBox.GetLineEdit().TextChanged += _ => UpdateSummary();
         }
         if (_foodSpinBox != null)
         {
             _foodSpinBox.ValueChanged += _ => UpdateSummary();
+            _foodSpinBox.GetLineEdit().TextChanged += _ => UpdateSummary();
         }
         if (_itemOption != null)
         {
@@ -153,8 +165,10 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
 
         _context.PopulateFactionInventoryOption(_itemOption);
         if (!candidates.Any(officer => officer.Id == _selectedOfficerId)) _selectedOfficerId = -1;
+        if (!city.OfficerIds.Contains(_selectedEnvoyOfficerId)) _selectedEnvoyOfficerId = -1;
 
         UpdateSelectedOfficerSummary();
+        UpdateSelectedEnvoySummary();
         UpdateSummary();
         if (_confirmButton != null)
         {
@@ -181,8 +195,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         var candidates = GetOrderedCandidates(world, playerFactionId);
         var selected = candidates.FirstOrDefault(candidate => candidate.Id == _selectedOfficerId);
         var recommended = candidates.OrderByDescending(GetHireFit).FirstOrDefault();
-        var goldOffer = (int)(_goldSpinBox?.Value ?? 0);
-        var foodOffer = (int)(_foodSpinBox?.Value ?? 0);
+        var goldOffer = GetEnteredWholeNumber(_goldSpinBox);
+        var foodOffer = GetEnteredWholeNumber(_foodSpinBox);
         var giftedItem = _context.GetSelectedItemFromOption(_itemOption);
         var advisor = _context.FindPersonnelAdvisor();
         var role = advisor?.Id == world.GetFaction(city.OwnerFactionId)?.ChancellorOfficerId
@@ -258,8 +272,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             return;
         }
 
-        var goldOffer = (int)(_goldSpinBox?.Value ?? 0);
-        var foodOffer = (int)(_foodSpinBox?.Value ?? 0);
+        var goldOffer = GetEnteredWholeNumber(_goldSpinBox);
+        var foodOffer = GetEnteredWholeNumber(_foodSpinBox);
         var item = _context.GetSelectedItemFromOption(_itemOption);
         var summary = item == null
             ? _context.Localization.Format("fmt.hire_officer_preview", HudController.HireOfficerGoldCost, goldOffer, foodOffer)
@@ -310,6 +324,20 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             },
             titleFactory: () => _context.Localization?.T("command.personnel.hire_officer") ?? localization.T("command.personnel.hire_officer"),
             displayConfig: BuildHireOfficerSelectorDisplayConfig(candidateIds));
+    }
+
+    private void OnSelectEnvoyPressed()
+    {
+        var world = _context.TurnManager?.World;
+        var city = _context.SelectedCity;
+        var localization = _context.Localization;
+        if (world == null || city == null || localization == null) return;
+        var ids = city.OfficerIds.Where(id => id != _selectedOfficerId).ToList();
+        _context.ShowOfficerSelectorDialog(localization.T("ui.hire_officer_envoy"), ids, HudController.OfficerSelectorPrimaryStat.Charm, id =>
+        {
+            _selectedEnvoyOfficerId = id;
+            UpdateSelectedEnvoySummary();
+        });
     }
 
     private HudController.OfficerSelectorDisplayConfig BuildHireOfficerSelectorDisplayConfig(IReadOnlyCollection<int> candidateOfficerIds)
@@ -400,6 +428,13 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         _selectedOfficerLabel.Text = $"{_context.Localization.T("ui.hire_officer_target")}: {officerName}";
     }
 
+    private void UpdateSelectedEnvoySummary()
+    {
+        if (_selectedEnvoyLabel == null || _context.Localization == null) return;
+        var officer = _selectedEnvoyOfficerId > 0 ? _context.TurnManager?.World?.GetOfficer(_selectedEnvoyOfficerId) : null;
+        _selectedEnvoyLabel.Text = $"{_context.Localization.T("ui.hire_officer_envoy")}: {(officer == null ? _context.Localization.T("ui.unassigned") : _context.Localization.GetOfficerName(officer))}";
+    }
+
     private static bool IsCandidate(PersonnelUiContext context, WorldState world, int playerFactionId, OfficerData officer)
     {
         if (context.IsFactionRuler(world, officer))
@@ -442,12 +477,20 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             return;
         }
 
-        var result = commandResolver.ExecuteHireOfficer(
+        if (_selectedEnvoyOfficerId <= 0)
+        {
+            if (_warningLabel != null) _warningLabel.Text = _context.Localization?.T("ui.hire_officer_envoy_required") ?? string.Empty;
+            ShowOverlay();
+            return;
+        }
+
+        var result = commandResolver.ScheduleHireOfficer(
             turnManager.GetPlayerFactionId(),
             city.Id,
             _selectedOfficerId,
-            (int)(_goldSpinBox?.Value ?? 0),
-            (int)(_foodSpinBox?.Value ?? 0),
+            _selectedEnvoyOfficerId,
+            GetEnteredWholeNumber(_goldSpinBox),
+            GetEnteredWholeNumber(_foodSpinBox),
             _context.GetSelectedItemFromOption(_itemOption)?.Id ?? 0);
         _context.AddLog(_context.GetLocalizedResultMessage(result), isPlayerRelated: true);
         HideOverlay();
@@ -471,6 +514,20 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             .ThenBy(officer => _context.Localization?.GetOfficerName(officer) ?? officer.Name)
             .ThenBy(officer => officer.Id)
             .ToList();
+    }
+
+    private static int GetEnteredWholeNumber(SpinBox? spinBox)
+    {
+        if (spinBox == null)
+        {
+            return 0;
+        }
+
+        var text = spinBox.GetLineEdit().Text;
+        return double.TryParse(text, System.Globalization.NumberStyles.Number,
+            System.Globalization.CultureInfo.CurrentCulture, out var enteredValue)
+            ? Math.Clamp((int)Math.Round(enteredValue), (int)spinBox.MinValue, (int)spinBox.MaxValue)
+            : (int)spinBox.Value;
     }
 
     private T? GetNodeFromOverlay<T>(string path) where T : class

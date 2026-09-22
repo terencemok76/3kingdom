@@ -150,3 +150,13 @@ alignment = 1
 layout_mode = 2
 focus_mode = 0
 text = "測試俘虜"
+
+[node name="BattleEquipmentButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "戰役裝備"
+
+[node name="EngineerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "工兵 +300"

@@ -34,6 +34,8 @@ public class CityData
     public int CatapultProgress { get; set; }
     public int LadderCount { get; set; }
     public int LadderProgress { get; set; }
+    public int SupplyCartCount { get; set; }
+    public int SupplyCartProgress { get; set; }
     public bool HasBowWorkshop
     {
         get => BowWorkshopLevel > 0;
@@ -70,7 +72,16 @@ public class CityData
     public int CavalryTroops { get; set; }
     public int ArcherTroops { get; set; }
     public int CrossbowTroops { get; set; }
-    public int SiegeTroops { get; set; }
+    // Serialized name is retained for existing scenarios and saves; its game
+    // meaning is now engineering personnel rather than a combat troop type.
+    [System.Text.Json.Serialization.JsonPropertyName("siegeTroops")]
+    public int EngineerTroops { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int SiegeTroops
+    {
+        get => EngineerTroops;
+        set => EngineerTroops = value;
+    }
     public int Troops
     {
         get
@@ -142,7 +153,7 @@ public class CityData
             TroopType.Cavalry => CavalryTroops,
             TroopType.Archer => ArcherTroops,
             TroopType.Crossbow => CrossbowTroops,
-            TroopType.Siege => SiegeTroops,
+            TroopType.Engineer => EngineerTroops,
             _ => 0
         };
     }
@@ -171,8 +182,8 @@ public class CityData
             case TroopType.Crossbow:
                 CrossbowTroops += amount;
                 break;
-            case TroopType.Siege:
-                SiegeTroops += amount;
+            case TroopType.Engineer:
+                EngineerTroops += amount;
                 break;
         }
 
@@ -203,8 +214,8 @@ public class CityData
             case TroopType.Crossbow:
                 CrossbowTroops = System.Math.Max(0, CrossbowTroops - amount);
                 break;
-            case TroopType.Siege:
-                SiegeTroops = System.Math.Max(0, SiegeTroops - amount);
+            case TroopType.Engineer:
+                EngineerTroops = System.Math.Max(0, EngineerTroops - amount);
                 break;
         }
 
@@ -335,6 +346,8 @@ public class CityData
         CatapultProgress = 0;
         LadderCount = 0;
         LadderProgress = 0;
+        SupplyCartCount = 0;
+        SupplyCartProgress = 0;
     }
 }
 

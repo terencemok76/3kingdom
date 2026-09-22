@@ -14,6 +14,7 @@ public enum CommandType
     Diplomacy,
     Spy,
     Attack,
+    HireOfficer,
     Pass
 }
 
@@ -41,15 +42,85 @@ public enum TroopType
     Cavalry,
     Archer,
     Crossbow,
+    Engineer,
+    // Transitional legacy value. New UI and commands never create this type.
     Siege
 }
 
+public enum BattleEquipmentType
+{
+    None = 0,
+    SupplyCart = 1,
+    Ram = 2,
+    Ladder = 3,
+    Catapult = 4
+}
+
+// Compatibility surface for existing saves and battle snapshots. It remains
+// readable while campaign support assets are migrated to BattleEquipmentType.
 public enum SiegeEngineType
 {
     None = 0,
     Ram = 1,
     Catapult = 2,
     Ladder = 3
+}
+
+public class BattleSupportDeploymentData
+{
+    // Independent engineer unit selected by the player. Equipment crews are
+    // calculated separately and draw from the same city pool.
+    public int EngineerTeamCount { get; set; }
+    public bool SupplyCart { get; set; }
+    public bool Ram { get; set; }
+    public bool Ladder { get; set; }
+    public bool Catapult { get; set; }
+
+    public int EquipmentCount => (SupplyCart ? 1 : 0) + (Ram ? 1 : 0) + (Ladder ? 1 : 0) + (Catapult ? 1 : 0);
+    public int TotalEngineerCount => EngineerTeamCount + BattleSupportRules.GetRequiredEngineerCount(this);
+
+    public BattleSupportDeploymentData Clone() => new()
+    {
+        EngineerTeamCount = EngineerTeamCount,
+        SupplyCart = SupplyCart,
+        Ram = Ram,
+        Ladder = Ladder,
+        Catapult = Catapult
+    };
+}
+
+public static class BattleSupportRules
+{
+    public const int SupplyCartEngineerRequirement = 20;
+    public const int LadderEngineerRequirement = 50;
+    public const int RamEngineerRequirement = 30;
+    public const int CatapultEngineerRequirement = 50;
+
+    public static int GetRequiredEngineerCount(BattleEquipmentType equipmentType) => equipmentType switch
+    {
+        BattleEquipmentType.SupplyCart => SupplyCartEngineerRequirement,
+        BattleEquipmentType.Ladder => LadderEngineerRequirement,
+        BattleEquipmentType.Ram => RamEngineerRequirement,
+        BattleEquipmentType.Catapult => CatapultEngineerRequirement,
+        _ => 0
+    };
+
+    public static int GetRequiredEngineerCount(BattleSupportDeploymentData support) =>
+        (support.SupplyCart ? SupplyCartEngineerRequirement : 0) +
+        (support.Ladder ? LadderEngineerRequirement : 0) +
+        (support.Ram ? RamEngineerRequirement : 0) +
+        (support.Catapult ? CatapultEngineerRequirement : 0);
+
+    public static void SetEquipmentSelected(BattleSupportDeploymentData support, BattleEquipmentType equipmentType, bool selected)
+    {
+        switch (equipmentType)
+        {
+            case BattleEquipmentType.SupplyCart: support.SupplyCart = selected; break;
+            case BattleEquipmentType.Ram: support.Ram = selected; break;
+            case BattleEquipmentType.Ladder: support.Ladder = selected; break;
+            case BattleEquipmentType.Catapult: support.Catapult = selected; break;
+        }
+    }
 }
 
 public enum MerchantTradeMode
@@ -103,6 +174,7 @@ public class CommandRequest
     public int SourceCityId { get; set; }
     public int? TargetCityId { get; set; }
     public int? TargetOfficerId { get; set; }
+    public int ItemId { get; set; }
     public int TroopsToSend { get; set; }
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }
@@ -114,6 +186,7 @@ public class CommandRequest
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public SiegeEngineAllocationData SiegeEngineAllocation { get; set; } = new();
+    public BattleSupportDeploymentData BattleSupport { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public DefenderBattlePlan? DefenderBattlePlanOverride { get; set; }
     public int? TargetFactionId { get; set; }
@@ -129,6 +202,7 @@ public class PendingCommandData
     public int SourceCityId { get; set; }
     public int TargetCityId { get; set; }
     public int TargetOfficerId { get; set; }
+    public int ItemId { get; set; }
     public int TroopsToSend { get; set; }
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }
@@ -138,6 +212,8 @@ public class PendingCommandData
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;
     public TroopAllocationData TroopAllocation { get; set; } = new();
     public SiegeEngineAllocationData SiegeEngineAllocation { get; set; } = new();
+    public BattleSupportDeploymentData BattleSupport { get; set; } = new();
+    public BattleSupportDeploymentData DefenderBattleSupport { get; set; } = new();
     public List<AttackOfficerDeploymentData> AttackOfficerDeployments { get; set; } = new();
     public List<AttackOfficerDeploymentData> DefenderOfficerDeployments { get; set; } = new();
     // Chosen while the player configures a defense.  These are dispatched only

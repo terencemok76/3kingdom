@@ -18,6 +18,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private readonly MilitaryUiContext _context;
     private readonly Dictionary<int, AttackOfficerDeploymentData> _deployments = new();
     private readonly List<int> _deploymentOfficerOrder = new();
+    // Engineers and equipment are battle-side support, never an officer's troop assignment.
+    private BattleSupportDeploymentData _battleSupport = new();
     private OptionButton? _targetCityOption;
     private Button? _attackAdviceButton;
     private HBoxContainer? _defenderPlanRow;
@@ -449,6 +451,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
             _deploymentList.AddChild(CreateDeploymentRow(officer));
         }
 
+        _deploymentList.AddChild(CreateBattleSupportRow());
+
         if (selectedOfficerIds.Count == 0)
         {
             _deploymentList.AddChild(new Label
@@ -622,27 +626,94 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _context.ApplyCommandButtonTheme(maxTroopCountButton);
         row.AddChild(maxTroopCountButton);
 
-        var siegeEngineOption = new OptionButton
-        {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(120.0f, 0.0f)
-        };
-        PopulateSiegeEngineOption(siegeEngineOption, deployment.SiegeEngineType);
-        siegeEngineOption.Disabled = deployment.TroopType != TroopType.Siege;
-        siegeEngineOption.Visible = deployment.TroopType == TroopType.Siege;
-        siegeEngineOption.ItemSelected += _ =>
-        {
-            deployment.SiegeEngineType = deployment.TroopType == TroopType.Siege
-                ? GetSelectedSiegeEngineType(siegeEngineOption)
-                : SiegeEngineType.None;
-            _deployments[officer.Id] = deployment;
-            UpdateDeploymentSummary();
-        };
-        ApplyInputThemeToSubtree(siegeEngineOption);
-        row.AddChild(siegeEngineOption);
-
         return row;
     }
+
+    private Control CreateBattleSupportRow()
+    {
+        var city = GetDialogCityContext();
+        var container = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        container.AddThemeConstantOverride("separation", 4);
+        container.AddChild(new Label { Text = _context.Localization?.T("ui.battle_support") ?? "戰役支援（不需武將統率）" });
+
+        var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddThemeConstantOverride("separation", 6);
+        row.AddChild(new Label { Text = "工兵隊", VerticalAlignment = VerticalAlignment.Center });
+        var engineers = new SpinBox { MinValue = 0, Step = 1, Rounded = true, CustomMinimumSize = new Vector2(90, 0) };
+        ConfigureSpinBox(engineers, GetMaxEngineerTeamCount(city), _battleSupport.EngineerTeamCount);
+        engineers.ValueChanged += value =>
+        {
+            _battleSupport.EngineerTeamCount = Mathf.Clamp((int)value, 0, GetMaxEngineerTeamCount(city));
+            RefreshDeploymentEditor();
+        };
+        ApplyInputThemeToSubtree(engineers);
+        row.AddChild(engineers);
+        var maxButton = new Button { Text = _context.Localization?.T("ui.max") ?? "Max" };
+        maxButton.Pressed += () => { _battleSupport.EngineerTeamCount = GetMaxEngineerTeamCount(city); RefreshDeploymentEditor(); };
+        _context.ApplyCommandButtonTheme(maxButton);
+        row.AddChild(maxButton);
+        container.AddChild(row);
+
+        if ((city?.SupplyCartCount ?? 0) > 0)
+        {
+            container.AddChild(CreateBattleEquipmentRow(_context.Localization?.T("ui.supply_cart") ?? "補給車", BattleEquipmentType.SupplyCart, _battleSupport.SupplyCart));
+        }
+        if ((city?.RamCount ?? 0) > 0)
+        {
+            container.AddChild(CreateBattleEquipmentRow(_context.Localization?.T("ui.ram") ?? "衝車", BattleEquipmentType.Ram, _battleSupport.Ram));
+        }
+        if ((city?.LadderCount ?? 0) > 0)
+        {
+            container.AddChild(CreateBattleEquipmentRow(_context.Localization?.T("ui.ladder") ?? "雲梯", BattleEquipmentType.Ladder, _battleSupport.Ladder));
+        }
+        if ((city?.CatapultCount ?? 0) > 0)
+        {
+            container.AddChild(CreateBattleEquipmentRow(_context.Localization?.T("ui.catapult") ?? "投石車", BattleEquipmentType.Catapult, _battleSupport.Catapult));
+        }
+        return container;
+    }
+
+    private Control CreateBattleEquipmentRow(string text, BattleEquipmentType equipmentType, bool selected)
+    {
+        var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var required = BattleSupportRules.GetRequiredEngineerCount(equipmentType);
+        var checkBox = new CheckBox
+        {
+            Text = $"{text}（需工兵 {required}）",
+            ButtonPressed = selected,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        checkBox.Toggled += value =>
+        {
+            if (!value)
+            {
+                BattleSupportRules.SetEquipmentSelected(_battleSupport, equipmentType, false);
+                RefreshDeploymentEditor();
+                return;
+            }
+
+            var proposed = _battleSupport.Clone();
+            BattleSupportRules.SetEquipmentSelected(proposed, equipmentType, true);
+            var totalRequired = BattleSupportRules.GetRequiredEngineerCount(proposed);
+            var cityEngineerCount = GetDialogCityContext()?.EngineerTroops ?? 0;
+            if (totalRequired > cityEngineerCount)
+            {
+                checkBox.SetPressedNoSignal(false);
+                SetWarning($"工兵不足：{text}需要 {totalRequired}，本城只有 {cityEngineerCount}。");
+                ShowOverlay();
+                return;
+            }
+
+            BattleSupportRules.SetEquipmentSelected(_battleSupport, equipmentType, true);
+            _battleSupport.EngineerTeamCount = Math.Min(_battleSupport.EngineerTeamCount, GetMaxEngineerTeamCount(GetDialogCityContext()));
+            SetWarning(string.Empty);
+            RefreshDeploymentEditor();
+        };
+        row.AddChild(checkBox);
+        return row;
+    }
+
+    private int GetMaxEngineerTeamCount(CityData? city) => Math.Max(0, (city?.EngineerTroops ?? 0) - BattleSupportRules.GetRequiredEngineerCount(_battleSupport));
 
     private void UpdateDeploymentSummary()
     {
@@ -654,7 +725,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
         var activeDeployments = _deployments.Values.Where(item => item.TroopCount > 0).ToList();
         var allocation = BuildTroopAllocation(activeDeployments);
-        var siegeEngineAllocation = BuildSiegeEngineAllocation(activeDeployments);
+        var siegeEngineAllocation = BuildSiegeEngineAllocation(_battleSupport);
         var summary = string.Join(" | ", new[]
         {
             FormatSummaryPart(TroopType.Infantry, allocation.Infantry, dialogCity.InfantryTroops),
@@ -662,7 +733,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
             FormatSummaryPart(TroopType.Cavalry, allocation.Cavalry, dialogCity.CavalryTroops),
             FormatSummaryPart(TroopType.Archer, allocation.Archer, dialogCity.ArcherTroops),
             FormatSummaryPart(TroopType.Crossbow, allocation.Crossbow, dialogCity.CrossbowTroops),
-            FormatSummaryPart(TroopType.Siege, allocation.Siege, dialogCity.SiegeTroops)
+            $"工兵隊 {_battleSupport.EngineerTeamCount}/{GetMaxEngineerTeamCount(dialogCity)}"
         });
         var siegeEngineSummary = string.Join(" | ", new[]
         {
@@ -670,10 +741,15 @@ internal sealed class AttackDialogController : FloatingOverlayController
             FormatSiegeEngineSummaryPart(SiegeEngineType.Catapult, siegeEngineAllocation.Catapult, dialogCity.CatapultCount),
             FormatSiegeEngineSummaryPart(SiegeEngineType.Ladder, siegeEngineAllocation.Ladder, dialogCity.LadderCount)
         });
-        _deploymentSummaryLabel.Text = _context.Localization.Format("fmt.attack_deployment_summary", summary, allocation.Total);
-        if (siegeEngineAllocation.Total > 0 || dialogCity.RamCount > 0 || dialogCity.CatapultCount > 0 || dialogCity.LadderCount > 0)
+        _deploymentSummaryLabel.Text = _context.Localization.Format("fmt.attack_deployment_summary", summary, allocation.Total + _battleSupport.TotalEngineerCount);
+        var requiredEngineers = BattleSupportRules.GetRequiredEngineerCount(_battleSupport);
+        if (requiredEngineers > 0)
         {
-            _deploymentSummaryLabel.Text += $"\n{siegeEngineSummary}";
+            _deploymentSummaryLabel.Text += $"\n工兵總數：工兵隊 {_battleSupport.EngineerTeamCount} + 裝備操作 {requiredEngineers} = {_battleSupport.TotalEngineerCount}/{dialogCity.EngineerTroops}";
+        }
+        if (_battleSupport.EquipmentCount > 0 || dialogCity.RamCount > 0 || dialogCity.CatapultCount > 0 || dialogCity.LadderCount > 0)
+        {
+            _deploymentSummaryLabel.Text += $"\n{siegeEngineSummary}" + (_battleSupport.SupplyCart ? $" | 補給車 1/{dialogCity.SupplyCartCount}" : string.Empty);
         }
     }
 
@@ -704,7 +780,8 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
 
         var allocation = BuildTroopAllocation(attackDeployments);
-        var siegeEngineAllocation = BuildSiegeEngineAllocation(attackDeployments);
+        var battleSupport = _battleSupport.Clone();
+        var siegeEngineAllocation = BuildSiegeEngineAllocation(battleSupport);
         if (allocation.Total <= 0)
         {
             SetWarning(_context.Localization?.T("ui.attack_troops_required_warning") ?? "Enter the number of troops to deploy.");
@@ -716,10 +793,16 @@ internal sealed class AttackDialogController : FloatingOverlayController
             allocation.Spearman > dialogCity.SpearmanTroops ||
             allocation.Cavalry > dialogCity.CavalryTroops ||
             allocation.Archer > dialogCity.ArcherTroops ||
-            allocation.Crossbow > dialogCity.CrossbowTroops ||
-            allocation.Siege > dialogCity.SiegeTroops)
+            allocation.Crossbow > dialogCity.CrossbowTroops)
         {
             SetWarning(_context.Localization?.T("ui.attack_deployment_exceed_warning") ?? "Troop deployment exceeds the city's available troop types.");
+            ShowOverlay();
+            return;
+        }
+
+        if (battleSupport.TotalEngineerCount > dialogCity.EngineerTroops)
+        {
+            SetWarning($"工兵不足：工兵隊與裝備操作共需 {battleSupport.TotalEngineerCount}，本城只有 {dialogCity.EngineerTroops}。");
             ShowOverlay();
             return;
         }
@@ -729,6 +812,13 @@ internal sealed class AttackDialogController : FloatingOverlayController
             siegeEngineAllocation.Ladder > dialogCity.LadderCount)
         {
             SetWarning(_context.Localization?.T("ui.attack_siege_engine_exceed_warning") ?? "Assigned siege engines exceed the city's available stock.");
+            ShowOverlay();
+            return;
+        }
+
+        if (battleSupport.SupplyCart && dialogCity.SupplyCartCount <= 0)
+        {
+            SetWarning(_context.Localization?.T("ui.attack_siege_engine_exceed_warning") ?? "Assigned battle equipment exceeds the city's available stock.");
             ShowOverlay();
             return;
         }
@@ -747,6 +837,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
             }
 
             _pendingDefenseCommand.DefenderOfficerDeployments = attackDeployments;
+            _pendingDefenseCommand.DefenderBattleSupport = battleSupport;
             _pendingDefenseCommand.DefenderBattlePlan = GetSelectedDefenderBattlePlan();
             SetWarning(string.Empty);
             HideOverlay();
@@ -781,6 +872,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
             _goldSpinBox != null ? (int)_goldSpinBox.Value : 0,
             _foodSpinBox != null ? (int)_foodSpinBox.Value : 0,
             attackDeployments,
+            battleSupport,
             attackDeployments.Select(item => item.OfficerId).Distinct().ToList(),
             _context.IsGodModeEnabled() ? GetSelectedDefenderBattlePlanOverride() : null);
 
@@ -1149,6 +1241,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
         _deployments.Clear();
         _deploymentOfficerOrder.Clear();
+        _battleSupport = new BattleSupportDeploymentData();
         _dialogContextCity = source;
         _editingDomesticReinforcement = true;
         _domesticReinforcementSourceCityId = source.Id;
@@ -1255,7 +1348,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private List<TroopType> GetAvailableTroopTypes()
     {
         var result = new List<TroopType>();
-        foreach (var troopType in Enum.GetValues<TroopType>())
+        foreach (var troopType in new[] { TroopType.Infantry, TroopType.Spearman, TroopType.Cavalry, TroopType.Archer, TroopType.Crossbow })
         {
             if (GetAvailableTroopCount(troopType) > 0)
             {
@@ -1289,7 +1382,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
             TroopType.Cavalry => "troop_type.cavalry",
             TroopType.Archer => "troop_type.archer",
             TroopType.Crossbow => "troop_type.crossbow",
-            TroopType.Siege => "troop_type.siege",
+            TroopType.Engineer => "troop_type.siege",
             _ => "troop_type.infantry"
         }) ?? troopType.ToString();
     }
@@ -1463,31 +1556,14 @@ internal sealed class AttackDialogController : FloatingOverlayController
         return allocation;
     }
 
-    private static SiegeEngineAllocationData BuildSiegeEngineAllocation(IEnumerable<AttackOfficerDeploymentData> deployments)
+    private static SiegeEngineAllocationData BuildSiegeEngineAllocation(BattleSupportDeploymentData support)
     {
-        var allocation = new SiegeEngineAllocationData();
-        foreach (var deployment in deployments)
+        return new SiegeEngineAllocationData
         {
-            if (deployment.TroopType != TroopType.Siege || deployment.TroopCount <= 0)
-            {
-                continue;
-            }
-
-            switch (deployment.SiegeEngineType)
-            {
-                case SiegeEngineType.Ram:
-                    allocation.Ram += 1;
-                    break;
-                case SiegeEngineType.Catapult:
-                    allocation.Catapult += 1;
-                    break;
-                case SiegeEngineType.Ladder:
-                    allocation.Ladder += 1;
-                    break;
-            }
-        }
-
-        return allocation;
+            Ram = support.Ram ? 1 : 0,
+            Catapult = support.Catapult ? 1 : 0,
+            Ladder = support.Ladder ? 1 : 0
+        };
     }
 
     private void RefreshOfficerTableText()

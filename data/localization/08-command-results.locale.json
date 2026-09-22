@@ -555,6 +555,9 @@
                                               "zhHant":  "請選擇要登用的武將。",
                                               "en":  "Select an officer to hire."
                                           },
+    "cmd.hire_officer.envoy_required": { "zhHant": "請選擇本城可用武將擔任登用使者。", "en": "Select an available officer in this city as the hiring envoy." },
+    "cmd.hire_officer.already_assigned": { "zhHant": "本城本月已安排一項登用。", "en": "This city already has a hiring mission this month." },
+    "cmd.hire_officer.scheduled": { "zhHant": "已派遣使者登用，將於本月結束時取得結果。", "en": "The envoy has been dispatched; the hiring result will arrive at month end." },
     "cmd.hire_officer.refused":  {
                                      "zhHant":  "「{0}」忠誠 {1}，拒絕登用。",
                                      "en":  "\"{0}\" has Loyalty {1} and refused recruitment."
@@ -906,6 +909,14 @@
     "cmd.attack.campaign_conflict":  {
                                           "zhHant":  "來源或目標城市已參與尚未結束的戰役，出征資源已全數退回。",
                                           "en":  "The source or target city is already committed to an active campaign. Reserved forces and supplies were returned."
+                                      },
+    "cmd.attack.engineer_insufficient":  {
+                                          "zhHant":  "「{0}」出征的工兵隊與裝備操作員共需 {1} 工兵，本城只有 {2}。",
+                                          "en":  "{0} needs {1} engineers for its engineer team and equipment crews, but the city has only {2}."
+                                      },
+    "cmd.attack.engineer_required":  {
+                                          "zhHant":  "戰役裝備需要至少一隊工兵支援。",
+                                          "en":  "Battle equipment requires at least one engineer detachment."
                                       },
     "cmd.world_not_initialized":  {
                                       "zhHant":  "世界狀態尚未初始化。",

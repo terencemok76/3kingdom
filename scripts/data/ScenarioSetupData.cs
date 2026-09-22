@@ -35,6 +35,8 @@ public class CityStartData
     public int CatapultProgress { get; set; }
     public int LadderCount { get; set; }
     public int LadderProgress { get; set; }
+    public int SupplyCartCount { get; set; }
+    public int SupplyCartProgress { get; set; }
     public bool HasBowWorkshop { get; set; }
     public bool HasSiegeWorkshop { get; set; }
     public List<int> OfficerIds { get; set; } = new();

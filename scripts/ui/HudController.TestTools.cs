@@ -11,6 +11,59 @@ public partial class HudController
     private const string TestCaptiveOfficerNameEn = "Temp Captive";
     private const string TestCaptiveOfficerNameZhHant = "測試俘虜";
 
+    private void OnTestBattleEquipmentPressed()
+    {
+        if (_turnManager?.World == null || _selectedCity == null)
+        {
+            return;
+        }
+
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        if (_selectedCity.OwnerFactionId != playerFactionId)
+        {
+            AddLog(_localization?.IsTraditionalChinese == true
+                ? "只有玩家城市可取得測試戰役裝備。"
+                : "Test battle equipment can only be added to a player-owned city.");
+            return;
+        }
+
+        _selectedCity.RamCount += 1;
+        _selectedCity.LadderCount += 1;
+        _selectedCity.CatapultCount += 1;
+        _selectedCity.SupplyCartCount += 1;
+        AddLog(_localization?.IsTraditionalChinese == true
+            ? $"「{_selectedCity.NameZhHant}」獲得戰役裝備：補給車、衝車、雲梯、投石車各 1。"
+            : $"{_selectedCity.Name} received one supply cart, ram, ladder, and catapult.",
+            isPlayerRelated: true);
+        _uiEventHub.PublishCityStateChanged(_selectedCity.Id, playerFactionId);
+        RefreshSelectedCity();
+    }
+
+    private void OnTestEngineersPressed()
+    {
+        if (_turnManager?.World == null || _selectedCity == null)
+        {
+            return;
+        }
+
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        if (_selectedCity.OwnerFactionId != playerFactionId)
+        {
+            AddLog(_localization?.IsTraditionalChinese == true
+                ? "只有玩家城市可取得測試工兵。"
+                : "Test engineers can only be added to a player-owned city.");
+            return;
+        }
+
+        _selectedCity.EngineerTroops += 300;
+        AddLog(_localization?.IsTraditionalChinese == true
+            ? $"「{_selectedCity.NameZhHant}」獲得工兵 +300。"
+            : $"{_selectedCity.Name} received 300 engineers.",
+            isPlayerRelated: true);
+        _uiEventHub.PublishCityStateChanged(_selectedCity.Id, playerFactionId);
+        RefreshSelectedCity();
+    }
+
     private void OnTestCapturePressed()
     {
         if (_turnManager?.World == null || _selectedCity == null)

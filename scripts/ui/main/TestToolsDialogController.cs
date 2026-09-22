@@ -1,4 +1,5 @@
 using Godot;
+using System.Linq;
 
 namespace ThreeKingdom.UI;
 
@@ -7,9 +8,11 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private readonly MainHudUiContext _context;
     private Label? _summaryLabel;
     private Button? _testCaptiveButton;
+    private Button? _battleEquipmentButton;
+    private Button? _engineerButton;
     private bool _signalsConnected;
 
-    protected override Vector2 MinimumOverlaySize => new(420.0f, 180.0f);
+    protected override Vector2 MinimumOverlaySize => new(420.0f, 210.0f);
 
     public TestToolsDialogController(MainHudUiContext context)
         : base(context, "res://scenes/ui/main/TestToolsDialog.tscn")
@@ -48,22 +51,40 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
                 ? "測試俘虜"
                 : "Test Captive";
         }
+        if (_battleEquipmentButton != null)
+        {
+            _battleEquipmentButton.Text = _context.Localization?.IsTraditionalChinese == true
+                ? "戰役裝備 +1"
+                : "Battle Equipment +1";
+        }
+        if (_engineerButton != null)
+        {
+            _engineerButton.Text = _context.Localization?.IsTraditionalChinese == true
+                ? "工兵 +300"
+                : "Engineers +300";
+        }
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _testCaptiveButton = root.GetNodeOrNull<Button>("ActionRow/TestCaptiveButton");
+        _battleEquipmentButton = root.GetNodeOrNull<Button>("ActionRow/BattleEquipmentButton");
+        _engineerButton = root.GetNodeOrNull<Button>("ActionRow/EngineerButton");
 
-        if (_context.ViewButton != null && _testCaptiveButton != null)
+        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton }.Where(button => button != null))
         {
-            _testCaptiveButton.CustomMinimumSize = _context.ViewButton.CustomMinimumSize;
+            if (_context.ViewButton == null)
+            {
+                continue;
+            }
+            button!.CustomMinimumSize = _context.ViewButton.CustomMinimumSize;
             foreach (var name in new[] { "normal", "hover", "pressed", "disabled", "focus" })
             {
                 var style = _context.ViewButton.GetThemeStylebox(name);
                 if (style != null)
                 {
-                    _testCaptiveButton.AddThemeStyleboxOverride(name, style);
+                    button.AddThemeStyleboxOverride(name, style);
                 }
             }
 
@@ -71,7 +92,7 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
             {
                 if (_context.ViewButton.HasThemeColorOverride(name))
                 {
-                    _testCaptiveButton.AddThemeColorOverride(name, _context.ViewButton.GetThemeColor(name));
+                    button.AddThemeColorOverride(name, _context.ViewButton.GetThemeColor(name));
                 }
             }
         }
@@ -85,6 +106,14 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _testCaptiveButton.Pressed += OnTestCaptivePressed;
         }
+        if (_battleEquipmentButton != null)
+        {
+            _battleEquipmentButton.Pressed += OnBattleEquipmentPressed;
+        }
+        if (_engineerButton != null)
+        {
+            _engineerButton.Pressed += OnEngineersPressed;
+        }
 
         _signalsConnected = true;
     }
@@ -93,5 +122,15 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     {
         _context.OpenTestCapture();
         HideOverlay();
+    }
+
+    private void OnBattleEquipmentPressed()
+    {
+        _context.AddTestBattleEquipment();
+    }
+
+    private void OnEngineersPressed()
+    {
+        _context.AddTestEngineers();
     }
 }

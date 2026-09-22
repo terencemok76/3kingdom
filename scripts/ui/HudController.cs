@@ -160,6 +160,7 @@ public partial class HudController : CanvasLayer
         Ram,
         Catapult,
         Ladder,
+        SupplyCart,
         Loyalty
     }
 

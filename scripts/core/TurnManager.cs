@@ -160,6 +160,7 @@ public class TurnManager
             CommandType.Diplomacy,
             CommandType.Spy,
             CommandType.Move
+            ,CommandType.HireOfficer
         };
 
         var results = new List<PendingCommandData>();

@@ -555,7 +555,7 @@ public partial class CommandResolver
         return result;
     }
 
-    public CommandResult ExecuteHireOfficer(int actorFactionId, int cityId, int officerId, int goldOffer = 0, int foodOffer = 0, int itemId = 0)
+    public CommandResult ExecuteHireOfficer(int actorFactionId, int cityId, int officerId, int goldOffer = 0, int foodOffer = 0, int itemId = 0, int envoyOfficerId = 0)
     {
         if (_turnManager?.World == null)
         {
@@ -688,6 +688,51 @@ public partial class CommandResolver
                 : new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetCityName(city, GameLanguage.English), HireOfficerGoldCost + goldOffer, foodOffer, GetItemDisplayName(giftedItem, GameLanguage.English) });
         AppendPrefectAutoAppointmentOutcome(result, prefectOutcome);
         return result;
+    }
+
+    public CommandResult ScheduleHireOfficer(int actorFactionId, int cityId, int officerId, int envoyOfficerId, int goldOffer = 0, int foodOffer = 0, int itemId = 0)
+    {
+        if (_turnManager?.World == null)
+        {
+            return LocalizedResult(false, "cmd.world_not_initialized");
+        }
+
+        var world = _turnManager.World;
+        var city = world.GetCity(cityId);
+        if (city == null)
+        {
+            return LocalizedResult(false, "cmd.source_city_not_found");
+        }
+
+        if (city.OwnerFactionId != actorFactionId)
+        {
+            return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
+        var envoy = GetSingleAvailableOfficer(world, city, new List<int> { envoyOfficerId });
+        if (envoy == null || envoy.Id == officerId)
+        {
+            return LocalizedResult(false, "cmd.hire_officer.envoy_required", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        if (world.PendingCommands.Any(command => command.Type == CommandType.HireOfficer && command.SourceCityId == city.Id))
+        {
+            return LocalizedResult(false, "cmd.hire_officer.already_assigned", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
+        MarkOfficerAssigned(world, envoy, CommandType.HireOfficer);
+        UpsertPendingCommand(world, new PendingCommandData
+        {
+            Type = CommandType.HireOfficer,
+            ActorFactionId = actorFactionId,
+            SourceCityId = city.Id,
+            TargetOfficerId = officerId,
+            GoldToSend = goldOffer,
+            FoodToSend = foodOffer,
+            ItemId = itemId,
+            OfficerIds = new List<int> { envoy.Id }
+        });
+        return LocalizedResult(true, "cmd.hire_officer.scheduled", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
     }
 
     public CommandResult ExecuteRecallOfficerItem(int actorFactionId, int cityId, int officerId, int itemId)

@@ -88,6 +88,7 @@ public class CampaignBattleTeamData
     public CampaignControllerType ControllerType { get; set; }
     public int OfficerId { get; set; }
     public TroopType TroopType { get; set; } = TroopType.Infantry;
+    public BattleEquipmentType EquipmentType { get; set; } = BattleEquipmentType.None;
     public SiegeEngineType SiegeEngineType { get; set; } = SiegeEngineType.None;
     public int ActiveTroops { get; set; }
     public int WoundedTroops { get; set; }
@@ -201,6 +202,9 @@ public class ActiveBattleCampaignData
     public int DefenderFoodUpkeepRemainder { get; set; }
     public string BattleSnapshotJson { get; set; } = string.Empty;
     public List<CampaignBattleTeamData> Teams { get; set; } = new();
+    // One uncommanded engineering detachment and its shared equipment per side.
+    public BattleSupportDeploymentData AttackerBattleSupport { get; set; } = new();
+    public BattleSupportDeploymentData DefenderBattleSupport { get; set; } = new();
     public List<BattleParticipantData> Participants { get; set; } = new();
     public List<ReinforcementOrderData> Reinforcements { get; set; } = new();
     public List<BattleInvitationData> Invitations { get; set; } = new();

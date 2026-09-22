@@ -25,6 +25,7 @@ public partial class HudController : CanvasLayer
         int horsesToSend = 0,
         SiegeEngineAllocationData? siegeEngineAllocation = null,
         List<AttackOfficerDeploymentData>? attackOfficerDeployments = null,
+        BattleSupportDeploymentData? battleSupport = null,
         List<int>? officerIds = null,
         List<int>? captiveOfficerIds = null,
         bool sellFood = false,
@@ -58,6 +59,7 @@ public partial class HudController : CanvasLayer
             MerchantTradeMode = merchantTradeMode,
             RecruitTroopType = recruitTroopType,
             AttackOfficerDeployments = type == CommandType.Attack ? (attackOfficerDeployments ?? new List<AttackOfficerDeploymentData>()) : new List<AttackOfficerDeploymentData>(),
+            BattleSupport = type == CommandType.Attack ? (battleSupport?.Clone() ?? new BattleSupportDeploymentData()) : new BattleSupportDeploymentData(),
             DefenderBattlePlanOverride = type == CommandType.Attack ? defenderBattlePlanOverride : null,
             OfficerIds = type is CommandType.Merchant or CommandType.Pass ? new List<int>() : (officerIds ?? new List<int>()),
             CaptiveOfficerIds = type == CommandType.Move ? (captiveOfficerIds ?? new List<int>()) : new List<int>()

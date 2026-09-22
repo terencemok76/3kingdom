@@ -72,6 +72,7 @@ public partial class CommandResolver
             CommandType.Diplomacy => ScheduleDiplomacy(world, sourceCity, request),
             CommandType.Spy => ScheduleSpy(world, sourceCity, request),
             CommandType.Attack => ScheduleAttack(world, sourceCity, request),
+            CommandType.HireOfficer => ExecuteHireOfficer(request.ActorFactionId, sourceCity.Id, request.TargetOfficerId ?? 0, request.GoldToSend, request.FoodToSend, request.ItemId, request.OfficerIds.FirstOrDefault()),
             CommandType.Pass => LocalizedResult(true, "cmd.pass"),
             _ => LocalizedResult(false, "cmd.unknown_command")
         };
@@ -101,6 +102,7 @@ public partial class CommandResolver
             CommandType.Diplomacy => ResolveDiplomacy(world, sourceCity, pendingCommand),
             CommandType.Spy => ResolveSpy(world, sourceCity, pendingCommand),
             CommandType.Attack => ResolveAttack(world, sourceCity, pendingCommand),
+            CommandType.HireOfficer => ExecuteHireOfficer(pendingCommand.ActorFactionId, sourceCity.Id, pendingCommand.TargetOfficerId, pendingCommand.GoldToSend, pendingCommand.FoodToSend, pendingCommand.ItemId),
             _ => LocalizedResult(false, "cmd.unsupported_pending_command")
         };
     }

@@ -31,7 +31,7 @@ public static class BattleCampaignService
 {
     public const int MaximumBattleDaysPerMonth = 10;
     public const int MaximumActivePiecesPerSide = 12;
-    public const int MaximumSupplyCartsPerSide = 2;
+    public const int MaximumSupplyCartsPerSide = 1;
     public const int MaximumSiegeEnginesPerSide = 3;
     public const int MinimumCityGarrison = 1000;
     public const int DefenderCityWoundedRecoveryPercent = 100;
@@ -117,6 +117,8 @@ public static class BattleCampaignService
             DefenderGoldInvested = Math.Max(0, targetCity.Gold),
             DefenderFoodInvested = Math.Max(0, targetCity.Food)
         };
+        campaign.AttackerBattleSupport = attack.BattleSupport?.Clone() ?? new BattleSupportDeploymentData();
+        campaign.DefenderBattleSupport = attack.DefenderBattleSupport?.Clone() ?? new BattleSupportDeploymentData();
         targetCity.Gold = 0;
         targetCity.Food = 0;
 
@@ -130,6 +132,12 @@ public static class BattleCampaignService
                 CampaignBattleSide.Attacker,
                 playerFactionId,
                 originCityId: attackingSourceCity.Id));
+            campaign.Teams.AddRange(CreateBattleSupportTeams(
+                attackingOrder.BattleSupport,
+                campaign.AttackerFactionId,
+                CampaignBattleSide.Attacker,
+                playerFactionId,
+                attackingSourceCity.Id));
         }
 
         var defenderDeployments = attack.DefenderOfficerDeployments.Count > 0
@@ -139,7 +147,18 @@ public static class BattleCampaignService
                 defenderPlan == DefenderBattlePlan.FieldIntercept ? 70 : 100,
                 defenderPlan == DefenderBattlePlan.FieldIntercept);
         var defenderAllocation = BuildTroopAllocation(defenderDeployments);
+        defenderAllocation.Siege += Math.Max(0, attack.DefenderBattleSupport?.TotalEngineerCount ?? 0);
         targetCity.RemoveTroopAllocation(defenderAllocation);
+        targetCity.RemoveSiegeEngineAllocation(new SiegeEngineAllocationData
+        {
+            Ram = attack.DefenderBattleSupport?.Ram == true ? 1 : 0,
+            Catapult = attack.DefenderBattleSupport?.Catapult == true ? 1 : 0,
+            Ladder = attack.DefenderBattleSupport?.Ladder == true ? 1 : 0
+        });
+        if (attack.DefenderBattleSupport?.SupplyCart == true)
+        {
+            targetCity.SupplyCartCount = Math.Max(0, targetCity.SupplyCartCount - 1);
+        }
         campaign.Teams.AddRange(CreateTeams(
             defenderDeployments,
             campaign.DefenderFactionId,
@@ -149,6 +168,15 @@ public static class BattleCampaignService
                 ? CampaignTeamLocation.InnerCity
                 : CampaignTeamLocation.Field,
             originCityId: targetCity.Id));
+        campaign.Teams.AddRange(CreateBattleSupportTeams(
+            attack.DefenderBattleSupport,
+            campaign.DefenderFactionId,
+            CampaignBattleSide.Defender,
+            playerFactionId,
+            targetCity.Id,
+            defenderPlan == DefenderBattlePlan.CityDefense
+                ? CampaignTeamLocation.InnerCity
+                : CampaignTeamLocation.Field));
 
         if (defenderPlan == DefenderBattlePlan.FieldIntercept)
         {
@@ -673,30 +701,10 @@ public static class BattleCampaignService
                 continue;
             }
 
-            destination.AddTroops(team.TroopType, Math.Max(0, team.ActiveTroops + team.WoundedTroops));
-            if (team.TroopType == TroopType.Siege && team.SiegeEngineType != SiegeEngineType.None)
-            {
-                var engines = new SiegeEngineAllocationData();
-                switch (team.SiegeEngineType)
-                {
-                    case SiegeEngineType.Ram: engines.Ram = 1; break;
-                    case SiegeEngineType.Catapult: engines.Catapult = 1; break;
-                    case SiegeEngineType.Ladder: engines.Ladder = 1; break;
-                }
-                destination.AddSiegeEngineAllocation(engines);
-            }
             var officerDestination = team.OfficerReturnCityId > 0
                 ? world.GetCity(team.OfficerReturnCityId) ?? destination
                 : destination;
-            if (team.OfficerId > 0 && !officerDestination.OfficerIds.Contains(team.OfficerId))
-            {
-                RemoveOfficerFromAllCities(world, team.OfficerId);
-                officerDestination.OfficerIds.Add(team.OfficerId);
-                if (world.GetOfficer(team.OfficerId) is { } officer)
-                {
-                    officer.CityId = officerDestination.Id;
-                }
-            }
+            ReturnTeamToCity(world, destination, team, officerDestination);
         }
 
         if (attackerWonCity)
@@ -921,7 +929,7 @@ public static class BattleCampaignService
         foreach (var team in campaign.Teams.Where(team => team.Side == side && IsActiveBattleLocation(campaign, team)).OrderBy(team => team.Id))
         {
             var exceedsTotal = activeCount >= MaximumActivePiecesPerSide;
-            var exceedsSiege = team.TroopType == TroopType.Siege && siegeCount >= MaximumSiegeEnginesPerSide;
+            var exceedsSiege = team.EquipmentType != BattleEquipmentType.None && siegeCount >= MaximumSiegeEnginesPerSide;
             if (exceedsTotal || exceedsSiege)
             {
                 team.Location = CampaignTeamLocation.Reserve;
@@ -929,7 +937,7 @@ public static class BattleCampaignService
             }
 
             activeCount++;
-            if (team.TroopType == TroopType.Siege)
+            if (team.EquipmentType != BattleEquipmentType.None)
             {
                 siegeCount++;
             }
@@ -1033,6 +1041,49 @@ public static class BattleCampaignService
             });
         }
 
+        return teams;
+    }
+
+    private static List<CampaignBattleTeamData> CreateBattleSupportTeams(
+        BattleSupportDeploymentData? support,
+        int factionId,
+        CampaignBattleSide side,
+        int playerFactionId,
+        int originCityId,
+        CampaignTeamLocation location = CampaignTeamLocation.Field)
+    {
+        support ??= new BattleSupportDeploymentData();
+        var teams = new List<CampaignBattleTeamData>();
+        if (support.EngineerTeamCount > 0)
+        {
+            teams.Add(new CampaignBattleTeamData
+            {
+                FactionId = factionId, Side = side,
+                ControllerType = factionId == playerFactionId ? CampaignControllerType.Player : CampaignControllerType.Ai,
+                TroopType = TroopType.Engineer, ActiveTroops = support.EngineerTeamCount,
+                MaximumTroops = support.EngineerTeamCount, OriginCityId = originCityId, Location = location
+            });
+        }
+
+        foreach (var equipmentType in new[] { BattleEquipmentType.SupplyCart, BattleEquipmentType.Ram, BattleEquipmentType.Ladder, BattleEquipmentType.Catapult })
+        {
+            var selected = equipmentType switch
+            {
+                BattleEquipmentType.SupplyCart => support.SupplyCart,
+                BattleEquipmentType.Ram => support.Ram,
+                BattleEquipmentType.Ladder => support.Ladder,
+                BattleEquipmentType.Catapult => support.Catapult,
+                _ => false
+            };
+            if (!selected) continue;
+            teams.Add(new CampaignBattleTeamData
+            {
+                FactionId = factionId, Side = side,
+                ControllerType = factionId == playerFactionId ? CampaignControllerType.Player : CampaignControllerType.Ai,
+                TroopType = TroopType.Engineer, EquipmentType = equipmentType,
+                ActiveTroops = 1, MaximumTroops = 1, OriginCityId = originCityId, Location = location
+            });
+        }
         return teams;
     }
 
@@ -1233,8 +1284,23 @@ public static class BattleCampaignService
         CityData? officerDestination = null)
     {
         var returnedTroops = Math.Max(0, team.ActiveTroops + team.WoundedTroops);
-        destination.AddTroops(team.TroopType, returnedTroops);
-        team.ReturnedTroops += returnedTroops;
+        if (team.EquipmentType != BattleEquipmentType.None)
+        {
+            // Equipment teams are represented by one battle marker. Their crew
+            // was reserved separately, so return both only if the marker survives.
+            if (returnedTroops > 0)
+            {
+                var crewCount = BattleSupportRules.GetRequiredEngineerCount(team.EquipmentType);
+                destination.AddTroops(TroopType.Engineer, crewCount);
+                AddBattleEquipment(destination, team.EquipmentType);
+                team.ReturnedTroops += crewCount;
+            }
+        }
+        else
+        {
+            destination.AddTroops(team.TroopType, returnedTroops);
+            team.ReturnedTroops += returnedTroops;
+        }
         if (team.TroopType == TroopType.Siege && team.SiegeEngineType != SiegeEngineType.None)
         {
             destination.AddSiegeEngine(team.SiegeEngineType, 1);
@@ -1253,6 +1319,25 @@ public static class BattleCampaignService
             {
                 officer.CityId = officerDestination.Id;
             }
+        }
+    }
+
+    private static void AddBattleEquipment(CityData city, BattleEquipmentType equipmentType)
+    {
+        switch (equipmentType)
+        {
+            case BattleEquipmentType.SupplyCart:
+                city.SupplyCartCount += 1;
+                break;
+            case BattleEquipmentType.Ram:
+                city.RamCount += 1;
+                break;
+            case BattleEquipmentType.Ladder:
+                city.LadderCount += 1;
+                break;
+            case BattleEquipmentType.Catapult:
+                city.CatapultCount += 1;
+                break;
         }
     }
 
@@ -1437,18 +1522,7 @@ public static class BattleCampaignService
 
             foreach (var team in order.Teams.Where(team => !campaign.Teams.Contains(team)))
             {
-                sourceCity.AddTroops(team.TroopType, team.ActiveTroops + team.WoundedTroops);
-                if (team.TroopType == TroopType.Siege && team.SiegeEngineType != SiegeEngineType.None)
-                {
-                    var engines = new SiegeEngineAllocationData();
-                    switch (team.SiegeEngineType)
-                    {
-                        case SiegeEngineType.Ram: engines.Ram = 1; break;
-                        case SiegeEngineType.Catapult: engines.Catapult = 1; break;
-                        case SiegeEngineType.Ladder: engines.Ladder = 1; break;
-                    }
-                    sourceCity.AddSiegeEngineAllocation(engines);
-                }
+                ReturnTeamToCity(world, sourceCity, team);
             }
 
             sourceCity.Gold += order.Gold;
@@ -1603,6 +1677,7 @@ public static class BattleCampaignService
         ControllerType = team.ControllerType,
         OfficerId = team.OfficerId,
         TroopType = team.TroopType,
+        EquipmentType = team.EquipmentType,
         SiegeEngineType = team.SiegeEngineType,
         ActiveTroops = team.ActiveTroops,
         WoundedTroops = team.WoundedTroops,

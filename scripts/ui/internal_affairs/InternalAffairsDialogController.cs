@@ -317,6 +317,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             AddConstructionProjectOption(ConstructionProjectType.Ram);
             AddConstructionProjectOption(ConstructionProjectType.Catapult);
             AddConstructionProjectOption(ConstructionProjectType.Ladder);
+            AddConstructionProjectOption(ConstructionProjectType.SupplyCart);
         }
 
         if (_constructionProjectOption.ItemCount > 0)
@@ -857,6 +858,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             ConstructionProjectType.Ram => _context.Localization.T("construction_project.ram"),
             ConstructionProjectType.Catapult => _context.Localization.T("construction_project.catapult"),
             ConstructionProjectType.Ladder => _context.Localization.T("construction_project.ladder"),
+            ConstructionProjectType.SupplyCart => _context.Localization.T("construction_project.supply_cart"),
             _ => _context.Localization.T("ui.none")
         };
     }
@@ -885,9 +887,8 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             return localization.FormatFacilityProgress(city, projectType);
         }
 
-        var siegeEngineType = ConstructionRules.GetSiegeEngineType(projectType);
-        var count = city.GetSiegeEngineCount(siegeEngineType);
-        var progress = city.GetSiegeEngineProgress(siegeEngineType);
+        var count = projectType == ConstructionProjectType.SupplyCart ? city.SupplyCartCount : city.GetSiegeEngineCount(ConstructionRules.GetSiegeEngineType(projectType));
+        var progress = projectType == ConstructionProjectType.SupplyCart ? city.SupplyCartProgress : city.GetSiegeEngineProgress(ConstructionRules.GetSiegeEngineType(projectType));
         var required = ConstructionRules.GetRequiredPointsForNextValue(projectType, count);
         return localization.Format("fmt.facility_level_progress", count, progress, required);
     }

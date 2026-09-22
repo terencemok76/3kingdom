@@ -11,6 +11,10 @@
     "zhHant": "雲梯",
     "en": "Siege Ladder"
   },
+  "construction_project.supply_cart": {
+    "zhHant": "補給車",
+    "en": "Supply Cart"
+  },
   "siege_engine.ram": {
     "zhHant": "衝車",
     "en": "Battering Ram"
@@ -22,6 +26,10 @@
   "siege_engine.ladder": {
     "zhHant": "雲梯",
     "en": "Siege Ladder"
+  },
+  "battle_equipment.supply_cart": {
+    "zhHant": "補給車",
+    "en": "Supply Cart"
   },
   "ui.attack_siege_engine_exceed_warning": {
     "zhHant": "指派的攻城器數量超過城市現有庫存。",

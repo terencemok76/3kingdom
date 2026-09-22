@@ -88,6 +88,9 @@ public partial class HudController
             ViewTableSortField.Ladder => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.LadderCount * 100000 + city.LadderProgress : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.LadderCount * 100000 + city.LadderProgress : int.MinValue),
+            ViewTableSortField.SupplyCart => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.SupplyCartCount : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.SupplyCartCount : int.MinValue),
             ViewTableSortField.Loyalty => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Loyalty : int.MinValue),
@@ -108,7 +111,7 @@ public partial class HudController
 
         if (_officerListContentMode == OfficerListContentMode.Cities)
         {
-            _officerListTable.Columns = 17;
+            _officerListTable.Columns = 18;
             SetViewTableColumn(0, _localization.T("ui.city"), 130, ViewTableSortField.Name);
             SetViewTableColumn(1, _localization.T("ui.faction_owner"), 140, ViewTableSortField.Owner);
             SetViewTableColumn(2, _localization.T("ui.gold"), 90, ViewTableSortField.Gold);
@@ -125,8 +128,9 @@ public partial class HudController
             SetViewTableColumn(13, _localization.T("siege_engine.ram"), 120, ViewTableSortField.Ram);
             SetViewTableColumn(14, _localization.T("siege_engine.catapult"), 120, ViewTableSortField.Catapult);
             SetViewTableColumn(15, _localization.T("siege_engine.ladder"), 120, ViewTableSortField.Ladder);
-            SetViewTableColumn(16, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
-            StretchTrailingViewColumns(17, 10, 130 + 140 + 90 + 90 + 110 + 90 + 90 + 90 + 110 + 90);
+            SetViewTableColumn(16, _localization.T("battle_equipment.supply_cart"), 120, ViewTableSortField.SupplyCart);
+            SetViewTableColumn(17, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
+            StretchTrailingViewColumns(18, 10, 130 + 140 + 90 + 90 + 110 + 90 + 90 + 90 + 110 + 90);
             return;
         }
 
@@ -428,7 +432,8 @@ public partial class HudController
         row.SetText(13, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ram) : UnknownInfoText);
         row.SetText(14, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Catapult) : UnknownInfoText);
         row.SetText(15, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ladder) : UnknownInfoText);
-        row.SetText(16, MaskedNumberText(canViewCity, city.Loyalty));
+        row.SetText(16, MaskedNumberText(canViewCity, city.SupplyCartCount));
+        row.SetText(17, MaskedNumberText(canViewCity, city.Loyalty));
     }
 
     private void PopulateItemTableRow(TreeItem row, ItemData item)
@@ -487,7 +492,8 @@ public partial class HudController
                 13 => ViewTableSortField.Ram,
                 14 => ViewTableSortField.Catapult,
                 15 => ViewTableSortField.Ladder,
-                16 => ViewTableSortField.Loyalty,
+                16 => ViewTableSortField.SupplyCart,
+                17 => ViewTableSortField.Loyalty,
                 _ => ViewTableSortField.Name
             };
         }

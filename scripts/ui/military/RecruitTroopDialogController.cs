@@ -15,7 +15,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         TroopType.Cavalry,
         TroopType.Archer,
         TroopType.Crossbow,
-        TroopType.Siege
+        TroopType.Engineer
     };
 
     private readonly MilitaryUiContext _context;
@@ -23,6 +23,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
     private Button? _selectOfficerButton;
     private OptionButton? _troopTypeOption;
     private SpinBox? _troopCountSpinBox;
+    private Button? _maxButton;
     private Label? _maxTroopsLabel;
     private Label? _costSummaryLabel;
     private Button? _advisorButton;
@@ -72,6 +73,10 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         {
             _selectOfficerButton.Text = _context.Localization.T("ui.select_officer");
         }
+        if (_maxButton != null)
+        {
+            _maxButton.Text = _context.Localization.T("ui.max");
+        }
 
         if (_confirmButton != null)
         {
@@ -92,7 +97,8 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _troopTypeOption = root.GetNodeOrNull<OptionButton>("TroopTypeOption");
-        _troopCountSpinBox = root.GetNodeOrNull<SpinBox>("TroopCountSpinBox");
+        _troopCountSpinBox = root.GetNodeOrNull<SpinBox>("TroopCountInputRow/TroopCountSpinBox");
+        _maxButton = root.GetNodeOrNull<Button>("TroopCountInputRow/MaxButton");
         _maxTroopsLabel = root.GetNodeOrNull<Label>("MaxTroopsLabel");
         _costSummaryLabel = root.GetNodeOrNull<Label>("CostSummaryLabel");
         _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
@@ -108,6 +114,10 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
         if (_advisorButton != null)
         {
             _context.ApplyCommandButtonTheme(_advisorButton);
+        }
+        if (_maxButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_maxButton);
         }
         if (!_signalsConnected)
         {
@@ -133,6 +143,10 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             if (_troopCountSpinBox != null)
             {
                 _troopCountSpinBox.ValueChanged += _ => OnTroopCountChanged();
+            }
+            if (_maxButton != null)
+            {
+                _maxButton.Pressed += OnMaxTroopsPressed;
             }
 
             _signalsConnected = true;
@@ -274,7 +288,7 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             : troopType switch
             {
                 TroopType.Cavalry => localization.T("ui.recruit_advice_cavalry"),
-                TroopType.Siege => localization.T("ui.recruit_advice_siege"),
+                TroopType.Engineer => localization.T("ui.recruit_advice_siege"),
                 TroopType.Archer or TroopType.Crossbow => localization.T("ui.recruit_advice_ranged"),
                 _ => localization.T("ui.recruit_advice_standard")
             };
@@ -337,6 +351,21 @@ internal sealed class RecruitTroopDialogController : FloatingOverlayController
             return;
         }
 
+        UpdateRecruitSummary();
+    }
+
+    private void OnMaxTroopsPressed()
+    {
+        if (_troopCountSpinBox == null)
+        {
+            return;
+        }
+
+        var city = _context.SelectedCity;
+        var maximum = city == null ? 0 : RecruitRules.GetMaxRecruitableCount(city, GetSelectedRecruitTroopType());
+        _isUpdatingTroopCount = true;
+        _troopCountSpinBox.Value = maximum;
+        _isUpdatingTroopCount = false;
         UpdateRecruitSummary();
     }
 
