@@ -19,6 +19,10 @@
 							 "zhHant":  "工兵",
 							 "en":  "Siege"
 						 },
+	"troop_type.engineer":  {
+									"zhHant":  "工兵",
+									"en":  "Engineer"
+								},
 	"troop_type.spearman":  {
 								"zhHant":  "槍兵",
 								"en":  "Spearman"

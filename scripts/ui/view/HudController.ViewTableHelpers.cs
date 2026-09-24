@@ -432,7 +432,7 @@ public partial class HudController
         row.SetText(13, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ram) : UnknownInfoText);
         row.SetText(14, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Catapult) : UnknownInfoText);
         row.SetText(15, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ladder) : UnknownInfoText);
-        row.SetText(16, MaskedNumberText(canViewCity, city.SupplyCartCount));
+        row.SetText(16, canViewCity ? _localization.FormatSupplyCartProgress(city) : UnknownInfoText);
         row.SetText(17, MaskedNumberText(canViewCity, city.Loyalty));
     }
 

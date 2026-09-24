@@ -160,3 +160,17 @@ text = "戰役裝備"
 layout_mode = 2
 focus_mode = 0
 text = "工兵 +300"
+
+[node name="FacilityActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="BowWorkshopButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FacilityActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "弓坊升級"
+
+[node name="HorsePastureButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FacilityActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "馬場升級"

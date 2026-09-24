@@ -1329,5 +1329,13 @@
 	"ui.gameplay_log_clear":  {
 								  "zhHant":  "清除日誌",
 								  "en":  "Clear Log"
-							  }
+							  },
+	"ui.test_tools": { "zhHant": "測試工具", "en": "Test Tools" },
+	"ui.test_tools_open": { "zhHant": "開啟測試工具。", "en": "Open a test tool." },
+	"ui.test_captive": { "zhHant": "測試俘虜", "en": "Test Captive" },
+	"ui.test_battle_equipment": { "zhHant": "戰役裝備 +1", "en": "Battle Equipment +1" },
+	"ui.test_engineers": { "zhHant": "工兵 +300", "en": "Engineers +300" },
+	"ui.test_upgrade": { "zhHant": "升級", "en": "Upgrade" },
+	"log.test_player_city_only": { "zhHant": "只有玩家城市可升級測試設施。", "en": "Test facilities can only be upgraded in a player-owned city." },
+	"log.test_facility_upgraded": { "zhHant": "「{0}」{1}升至 Lv.{2}。", "en": "{0}'s {1} reached Lv.{2}." }
 }

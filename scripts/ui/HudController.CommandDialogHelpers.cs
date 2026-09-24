@@ -647,6 +647,7 @@ public partial class HudController : CanvasLayer
             TroopType.Cavalry => _localization.T("troop_type.cavalry"),
             TroopType.Archer => _localization.T("troop_type.archer"),
             TroopType.Crossbow => _localization.T("troop_type.crossbow"),
+            TroopType.Engineer => _localization.T("troop_type.engineer"),
             TroopType.Siege => _localization.T("troop_type.siege"),
             _ => troopType.ToString()
         };

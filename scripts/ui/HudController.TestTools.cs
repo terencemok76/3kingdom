@@ -64,6 +64,46 @@ public partial class HudController
         RefreshSelectedCity();
     }
 
+    private void OnTestBowWorkshopUpgradePressed() => UpgradeTestFacility(ConstructionProjectType.BowWorkshop);
+
+    private void OnTestHorsePastureUpgradePressed() => UpgradeTestFacility(ConstructionProjectType.HorsePasture);
+
+    private void UpgradeTestFacility(ConstructionProjectType projectType)
+    {
+        if (_turnManager?.World == null || _selectedCity == null)
+        {
+            return;
+        }
+
+        var playerFactionId = _turnManager.GetPlayerFactionId();
+        if (_selectedCity.OwnerFactionId != playerFactionId)
+        {
+            AddLog(_localization?.T("log.test_player_city_only") ?? "Test facilities can only be upgraded in a player-owned city.");
+            return;
+        }
+
+        var nextLevel = ConstructionRules.GetLevel(_selectedCity, projectType) + 1;
+        if (projectType == ConstructionProjectType.BowWorkshop)
+        {
+            _selectedCity.BowWorkshopLevel = nextLevel;
+            _selectedCity.BowWorkshopProgress = 0;
+        }
+        else
+        {
+            _selectedCity.HorsePastureLevel = nextLevel;
+            _selectedCity.HorsePastureProgress = 0;
+        }
+        var facilityName = _localization?.T(projectType == ConstructionProjectType.BowWorkshop
+            ? "ui.bow_workshop"
+            : "ui.horse_pasture") ?? (projectType == ConstructionProjectType.BowWorkshop ? "Bow Workshop" : "Horse Pasture");
+        var cityName = _localization?.GetCityName(_selectedCity) ?? _selectedCity.Name;
+        AddLog(_localization?.Format("log.test_facility_upgraded", cityName, facilityName, nextLevel)
+            ?? $"{cityName}'s {facilityName} reached Lv.{nextLevel}.",
+            isPlayerRelated: true);
+        _uiEventHub.PublishCityStateChanged(_selectedCity.Id, playerFactionId);
+        RefreshSelectedCity();
+    }
+
     private void OnTestCapturePressed()
     {
         if (_turnManager?.World == null || _selectedCity == null)

@@ -480,7 +480,7 @@ public partial class HudController : CanvasLayer
                 new CityStatRowDefinition(_localization.T("ui.troops"), "0", string.Empty, string.Empty),
                 new CityStatRowDefinition(_localization.T("troop_type.infantry"), "0", _localization.T("troop_type.spearman"), "0"),
                 new CityStatRowDefinition(_localization.T("troop_type.cavalry"), "0", _localization.T("troop_type.archer"), "0"),
-                new CityStatRowDefinition(_localization.T("troop_type.crossbow"), "0", _localization.T("troop_type.siege"), "0")
+                new CityStatRowDefinition(_localization.T("troop_type.crossbow"), "0", _localization.T("troop_type.engineer"), "0")
             };
         }
 
@@ -502,7 +502,7 @@ public partial class HudController : CanvasLayer
             new CityStatRowDefinition(_localization.T("ui.troops"), MaskedNumberText(canViewCity, city.Troops), string.Empty, string.Empty),
             new CityStatRowDefinition(_localization.T("troop_type.infantry"), MaskedNumberText(canViewCity, city.InfantryTroops), _localization.T("troop_type.spearman"), MaskedNumberText(canViewCity, city.SpearmanTroops)),
             new CityStatRowDefinition(_localization.T("troop_type.cavalry"), MaskedNumberText(canViewCity, city.CavalryTroops), _localization.T("troop_type.archer"), MaskedNumberText(canViewCity, city.ArcherTroops)),
-            new CityStatRowDefinition(_localization.T("troop_type.crossbow"), MaskedNumberText(canViewCity, city.CrossbowTroops), _localization.T("troop_type.siege"), MaskedNumberText(canViewCity, city.SiegeTroops))
+            new CityStatRowDefinition(_localization.T("troop_type.crossbow"), MaskedNumberText(canViewCity, city.CrossbowTroops), _localization.T("troop_type.engineer"), MaskedNumberText(canViewCity, city.EngineerTroops))
         ]);
         return rows;
     }

@@ -1382,7 +1382,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
             TroopType.Cavalry => "troop_type.cavalry",
             TroopType.Archer => "troop_type.archer",
             TroopType.Crossbow => "troop_type.crossbow",
-            TroopType.Engineer => "troop_type.siege",
+            TroopType.Engineer => "troop_type.engineer",
             _ => "troop_type.infantry"
         }) ?? troopType.ToString();
     }

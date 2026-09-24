@@ -213,7 +213,7 @@ public class LocalizationService
             $"{T("troop_type.cavalry")}: {city.CavalryTroops}\n" +
             $"{T("troop_type.archer")}: {city.ArcherTroops}\n" +
             $"{T("troop_type.crossbow")}: {city.CrossbowTroops}\n" +
-            $"{T("troop_type.siege")}: {city.SiegeTroops}\n" +
+            $"{T("troop_type.engineer")}: {city.EngineerTroops}\n" +
             $"{T("ui.officers")}: {city.OfficerIds.Count}\n" +
             $"{T("ui.free_officers")}: {freeOfficerCount}\n" +
             $"{T("ui.farm")}: {city.Farm}\n" +
@@ -243,7 +243,7 @@ public class LocalizationService
             $"{T("troop_type.cavalry")}: 0\n" +
             $"{T("troop_type.archer")}: 0\n" +
             $"{T("troop_type.crossbow")}: 0\n" +
-            $"{T("troop_type.siege")}: 0\n" +
+            $"{T("troop_type.engineer")}: 0\n" +
             $"{T("ui.officers")}: 0\n" +
             $"{T("ui.free_officers")}: 0\n" +
             $"{T("ui.farm")}: 0\n" +
@@ -282,6 +282,14 @@ public class LocalizationService
             },
             count);
         return Format("fmt.facility_level_progress", count, progress, required);
+    }
+
+    public string FormatSupplyCartProgress(CityData city)
+    {
+        var required = ConstructionRules.GetRequiredPointsForNextValue(
+            ConstructionProjectType.SupplyCart,
+            city.SupplyCartCount);
+        return Format("fmt.facility_level_progress", city.SupplyCartCount, city.SupplyCartProgress, required);
     }
 
     public string FormatOwnerLine(string ownerName)
