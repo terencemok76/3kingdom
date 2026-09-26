@@ -192,6 +192,24 @@ public partial class CommandResolver
         return allocation;
     }
 
+    private static TroopAllocationData ClampTroopAllocationToCity(CityData city, TroopAllocationData requested)
+    {
+        return new TroopAllocationData
+        {
+            Infantry = ClampRequestedTroopAmount(requested.Infantry, city.InfantryTroops),
+            Spearman = ClampRequestedTroopAmount(requested.Spearman, city.SpearmanTroops),
+            Cavalry = ClampRequestedTroopAmount(requested.Cavalry, city.CavalryTroops),
+            Archer = ClampRequestedTroopAmount(requested.Archer, city.ArcherTroops),
+            Crossbow = ClampRequestedTroopAmount(requested.Crossbow, city.CrossbowTroops),
+            Siege = ClampRequestedTroopAmount(requested.Siege, city.EngineerTroops)
+        };
+    }
+
+    private static int ClampRequestedTroopAmount(int requestedAmount, int availableAmount)
+    {
+        return System.Math.Clamp(requestedAmount, 0, System.Math.Max(0, availableAmount));
+    }
+
     private static TroopAllocationData CreateTroopAllocationFromAttackDeployments(IEnumerable<AttackOfficerDeploymentData> deployments)
     {
         var allocation = new TroopAllocationData();

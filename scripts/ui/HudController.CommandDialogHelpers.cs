@@ -350,7 +350,8 @@ public partial class HudController : CanvasLayer
         OfficerSelectorDisplayConfig? displayConfig = null,
         Func<string>? titleFactory = null,
         Func<IEnumerable<OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
-        Func<OfficerSelectorDisplayConfig?>? displayConfigFactory = null)
+        Func<OfficerSelectorDisplayConfig?>? displayConfigFactory = null,
+        bool enableLocationMapSelector = false)
     {
         if (_turnManager?.World == null || _selectOfficerDialog == null || _localization == null)
         {
@@ -395,6 +396,7 @@ public partial class HudController : CanvasLayer
         _genericOfficerSelectorInitialScopeKey = initialScopeKey;
         _genericOfficerSelectorDisplayConfigFactory = displayConfigFactory;
         _genericOfficerSelectorDisplayConfig = displayConfigFactory?.Invoke() ?? displayConfig;
+        _genericOfficerSelectorLocationMapEnabled = enableLocationMapSelector;
         _pendingOfficerCommand = CommandType.Pass;
 
         var effectiveDisplayConfig = _genericOfficerSelectorDisplayConfig;
@@ -425,13 +427,16 @@ public partial class HudController : CanvasLayer
                 _genericOfficerSelectorInitialScopeKey = null;
                 _genericOfficerSelectorDisplayConfig = null;
                 _genericOfficerSelectorDisplayConfigFactory = null;
+                _genericOfficerSelectorLocationMapEnabled = false;
                 _genericOfficerSelectorCandidateIds.Clear();
             },
             scopeRows,
             initialScopeKey,
             effectiveDisplayConfig?.PanelSize,
             locationFilterLabel: _localization.T("ui.location_filter"),
-            allLocationsLabel: _localization.T("ui.all_locations"));
+            allLocationsLabel: _localization.T("ui.all_locations"),
+            locationMapRequested: _genericOfficerSelectorLocationMapEnabled ? ShowOfficerLocationFilterMap : null,
+            locationMapButtonText: _localization.T("ui.strategic_map.open_selector"));
     }
 
     private void RefreshSelectOfficerDialogText()
@@ -494,6 +499,7 @@ public partial class HudController : CanvasLayer
                 _genericOfficerSelectorInitialScopeKey = null;
                 _genericOfficerSelectorDisplayConfig = null;
                 _genericOfficerSelectorDisplayConfigFactory = null;
+                _genericOfficerSelectorLocationMapEnabled = false;
                 _genericOfficerSelectorCandidateIds.Clear();
             },
             scopeRows,
@@ -501,7 +507,42 @@ public partial class HudController : CanvasLayer
             displayConfig?.PanelSize,
             selectedOfficerId,
             _localization.T("ui.location_filter"),
-            _localization.T("ui.all_locations"));
+            _localization.T("ui.all_locations"),
+            _genericOfficerSelectorLocationMapEnabled ? ShowOfficerLocationFilterMap : null,
+            _localization.T("ui.strategic_map.open_selector"));
+    }
+
+    private void ShowOfficerLocationFilterMap(IReadOnlyList<SelectOfficerDialog.RowData> rows, string selectedLocationKey)
+    {
+        if (_turnManager?.World == null)
+        {
+            return;
+        }
+
+        var selectableCityIds = rows
+            .Select(row => int.TryParse(row.LocationKey, out var cityId) ? cityId : 0)
+            .Where(cityId => cityId > 0 && _turnManager.World.GetCity(cityId) != null)
+            .Distinct()
+            .ToList();
+        if (selectableCityIds.Count == 0)
+        {
+            return;
+        }
+
+        _mainHudUiController?.ShowStrategicMapSelection(new StrategicMapSelectionRequest
+        {
+            TitleKey = "ui.strategic_map.select_hire_city_title",
+            PromptKey = "ui.strategic_map.select_hire_city_prompt",
+            Layer = StrategicMapLayer.Faction,
+            FactionFilter = StrategicMapFactionFilter.All,
+            SelectableCityIds = selectableCityIds,
+            InitialCityId = int.TryParse(selectedLocationKey, out var selectedCityId) ? selectedCityId : 0,
+            Confirmed = cityId =>
+            {
+                _selectOfficerDialog?.SelectLocationFilter(cityId.ToString());
+                _selectOfficerDialog?.MoveToFront();
+            }
+        });
     }
 
     private IReadOnlyList<SelectOfficerDialog.ColumnDefinition> BuildOfficerSelectorColumns(

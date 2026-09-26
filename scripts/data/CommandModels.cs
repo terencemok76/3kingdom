@@ -152,11 +152,12 @@ public class TroopAllocationData
 
 public class SiegeEngineAllocationData
 {
+    public int SupplyCart { get; set; }
     public int Ram { get; set; }
     public int Catapult { get; set; }
     public int Ladder { get; set; }
 
-    public int Total => Ram + Catapult + Ladder;
+    public int Total => SupplyCart + Ram + Catapult + Ladder;
 }
 
 public class AttackOfficerDeploymentData
@@ -176,6 +177,7 @@ public class CommandRequest
     public int? TargetOfficerId { get; set; }
     public int ItemId { get; set; }
     public int TroopsToSend { get; set; }
+    public bool HasTroopAllocation { get; set; }
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }
     public int HorsesToSend { get; set; }

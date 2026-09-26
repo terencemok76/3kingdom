@@ -19,6 +19,7 @@
   "fmt.strategic_map.selected_name": { "zhHant": "已選：{0}", "en": "Selected: {0}" },
   "fmt.strategic_map.summary": { "zhHant": "{0}\n{1}｜強調 {2}／{3} 座城市", "en": "{0}\n{1} | Highlighting {2} of {3} cities" },
   "fmt.strategic_map.selection_summary": { "zhHant": "{0}\n{1}：{2} → {3}：{4}", "en": "{0}\n{1}: {2} → {3}: {4}" },
+  "fmt.strategic_map.selection_only_summary": { "zhHant": "{0}\n{1}", "en": "{0}\n{1}" },
   "ui.strategic_map.source": { "zhHant": "來源", "en": "From" },
   "ui.strategic_map.target": { "zhHant": "目標", "en": "To" },
   "fmt.strategic_map.selected_detail": { "zhHant": "已選：{0}｜{1}｜相鄰 {2}", "en": "Selected: {0} | {1} | Links {2}" },
@@ -48,5 +49,11 @@
   "ui.strategic_map.cancel_selection": { "zhHant": "取消", "en": "Cancel" },
   "ui.strategic_map.open_selector": { "zhHant": "地圖", "en": "Map" },
   "ui.strategic_map.select_attack_title": { "zhHant": "選擇攻擊目標", "en": "Select Attack Target" },
-  "ui.strategic_map.select_attack_prompt": { "zhHant": "請選擇可攻擊的相鄰城市；其他城市僅供位置參考。", "en": "Select an adjacent city that can be attacked. Other cities remain visible for geographic context." }
+  "ui.strategic_map.select_attack_prompt": { "zhHant": "請選擇可攻擊的相鄰城市；其他城市僅供位置參考。", "en": "Select an adjacent city that can be attacked. Other cities remain visible for geographic context." },
+  "ui.strategic_map.select_spy_target_title": { "zhHant": "選擇密探目標城市", "en": "Select Spy Target City" },
+  "ui.strategic_map.select_spy_target_prompt": { "zhHant": "請選擇密探行動的目標城市。", "en": "Choose a city for the spy operation." }
+  ,"ui.strategic_map.select_hire_city_title": { "zhHant": "選擇登用武將所在地", "en": "Select Officer Location" }
+  ,"ui.strategic_map.select_hire_city_prompt": { "zhHant": "請選擇要篩選的武將所在地。", "en": "Choose an officer location to filter the list." }
+  ,"ui.strategic_map.select_move_target_title": { "zhHant": "選擇移動目標", "en": "Select Movement Destination" }
+  ,"ui.strategic_map.select_move_target_prompt": { "zhHant": "請選擇可移動的相鄰城市；其他城市僅供位置參考。", "en": "Select an adjacent city available for movement. Other cities remain visible for geographic context." }
 }

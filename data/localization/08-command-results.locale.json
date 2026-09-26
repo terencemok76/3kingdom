@@ -699,8 +699,8 @@
                                               "en":  "\"{0}\" has selected officers already assigned to another command this month."
                                           },
     "cmd.move.resolved":  {
-                              "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、衝車 +{5}、投石車 +{6}、雲梯 +{7}、武將 +{8} 已轉移至「{9}」。",
-                              "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Rams+{5}, Catapults+{6}, Ladders+{7}, Officers+{8} moved to \"{9}\"."
+                              "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、補給車 +{5}、衝車 +{6}、投石車 +{7}、雲梯 +{8}、武將 +{9} 已轉移至「{10}」。",
+                              "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Supply Carts+{5}, Rams+{6}, Catapults+{7}, Ladders+{8}, Officers+{9} moved to \"{10}\"."
                           },
     "cmd.move.captive_suffix":  {
                                     "zhHant":  " 另有俘虜 +{0} 一併轉移。",

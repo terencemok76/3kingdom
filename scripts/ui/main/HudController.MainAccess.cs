@@ -85,6 +85,8 @@ public partial class HudController
         _mapController.SelectCityById(cityId);
         return true;
     }
+    internal void MainHudShowStrategicMapSelection(StrategicMapSelectionRequest request) =>
+        _mainHudUiController?.ShowStrategicMapSelection(request);
     internal void MainHudOpenTestCapture() => OnTestCapturePressed();
     internal void MainHudAddTestBattleEquipment() => OnTestBattleEquipmentPressed();
     internal void MainHudAddTestEngineers() => OnTestEngineersPressed();

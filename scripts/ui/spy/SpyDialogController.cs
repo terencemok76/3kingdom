@@ -3,6 +3,7 @@ using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -11,6 +12,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
     private readonly SpyUiContext _context;
     private OptionButton? _actionOption;
     private OptionButton? _targetCityOption;
+    private Button? _targetCityMapButton;
     private OptionButton? _targetOfficerOption;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
@@ -57,6 +59,11 @@ internal sealed class SpyDialogController : FloatingOverlayController
         SetOverlayTitleText(_context.Localization.T("ui.spy"));
         SetLabelText("ActionRow/ActionLabel", _context.Localization.T("ui.spy_action"));
         SetLabelText("TargetCityRow/TargetCityLabel", _context.Localization.T("ui.spy_target_city"));
+        if (_targetCityMapButton != null)
+        {
+            _targetCityMapButton.Text = _context.Localization.T("ui.strategic_map.open_selector");
+            _targetCityMapButton.Disabled = _targetCityOption?.ItemCount == 0;
+        }
         SetLabelText("TargetOfficerRow/TargetOfficerLabel", _context.Localization.T("ui.spy_target_officer"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.spy_officer"));
         if (_selectOfficerButton != null)
@@ -87,6 +94,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
     {
         _actionOption = root.GetNodeOrNull<OptionButton>("ActionRow/ActionOption");
         _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
+        _targetCityMapButton = root.GetNodeOrNull<Button>("TargetCityRow/TargetCityMapButton");
         _targetOfficerOption = root.GetNodeOrNull<OptionButton>("TargetOfficerRow/TargetOfficerOption");
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
@@ -121,6 +129,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             _targetCityOption.AddItem($"{localization.GetCityName(targetCity)} | {ownerName}");
             _targetCityOption.SetItemMetadata(_targetCityOption.ItemCount - 1, targetCity.Id);
         }
+        if (_targetCityMapButton != null) _targetCityMapButton.Disabled = _targetCityOption.ItemCount == 0;
 
         var candidateOfficerIds = _context.GetAvailableSpyOfficerIds();
         if (!candidateOfficerIds.Contains(_selectedOfficerId))
@@ -149,6 +158,11 @@ internal sealed class SpyDialogController : FloatingOverlayController
         if (_selectOfficerButton != null)
         {
             _context.ApplyCommandButtonTheme(_selectOfficerButton);
+        }
+
+        if (_targetCityMapButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_targetCityMapButton);
         }
 
         if (_confirmButton != null)
@@ -392,6 +406,11 @@ internal sealed class SpyDialogController : FloatingOverlayController
             };
         }
 
+        if (_targetCityMapButton != null)
+        {
+            _targetCityMapButton.Pressed += OnTargetCityMapPressed;
+        }
+
         if (_targetOfficerOption != null)
         {
             _targetOfficerOption.ItemSelected += _ =>
@@ -417,6 +436,42 @@ internal sealed class SpyDialogController : FloatingOverlayController
         }
 
         _signalsConnected = true;
+    }
+
+    private void OnTargetCityMapPressed()
+    {
+        if (_targetCityOption == null)
+        {
+            return;
+        }
+
+        var candidateIds = Enumerable.Range(0, _targetCityOption.ItemCount)
+            .Select(index => _targetCityOption.GetItemMetadata(index))
+            .Where(metadata => metadata.VariantType == Variant.Type.Int)
+            .Select(metadata => metadata.AsInt32())
+            .ToList();
+        if (candidateIds.Count == 0)
+        {
+            return;
+        }
+
+        _context.ShowStrategicMapSelection(new StrategicMapSelectionRequest
+        {
+            TitleKey = "ui.strategic_map.select_spy_target_title",
+            PromptKey = "ui.strategic_map.select_spy_target_prompt",
+            Layer = StrategicMapLayer.Diplomacy,
+            FactionFilter = StrategicMapFactionFilter.Enemy,
+            SelectableCityIds = candidateIds,
+            InitialCityId = GetSelectedTargetCityId(),
+            Confirmed = cityId =>
+            {
+                SelectTargetCityOption(cityId);
+                PopulateTargetOfficerOptions();
+                UpdateSummary();
+                UpdateConfirmButtonState();
+                BringOverlayToFront();
+            }
+        });
     }
 
     private void PopulateTargetOfficerOptions(int preferredOfficerId = -1)

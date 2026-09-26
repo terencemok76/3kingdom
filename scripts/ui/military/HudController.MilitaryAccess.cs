@@ -51,8 +51,8 @@ public partial class HudController
     internal void MilitaryPopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeCheck) =>
         PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: includeCheck);
     internal List<int> MilitaryGetCheckedTreeMetadataIds(Tree? tree) => GetCheckedTreeMetadataIds(tree).ToList();
-    internal CommandResult MilitaryExecuteMoveCommand(int targetCityId, int troops, int gold, int food, int horses, SiegeEngineAllocationData siegeEngineAllocation, List<int> officerIds, List<int> captiveOfficerIds) =>
-        ExecutePlayerCommand(CommandType.Move, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, horsesToSend: horses, siegeEngineAllocation: siegeEngineAllocation, officerIds: officerIds, captiveOfficerIds: captiveOfficerIds);
+    internal CommandResult MilitaryExecuteMoveCommand(int targetCityId, TroopAllocationData troopAllocation, int gold, int food, int horses, SiegeEngineAllocationData siegeEngineAllocation, List<int> officerIds, List<int> captiveOfficerIds) =>
+        ExecutePlayerCommand(CommandType.Move, targetCityId: targetCityId, troopsToSend: troopAllocation.Total, troopAllocation: troopAllocation, goldToSend: gold, foodToSend: food, horsesToSend: horses, siegeEngineAllocation: siegeEngineAllocation, officerIds: officerIds, captiveOfficerIds: captiveOfficerIds);
     internal CommandResult MilitaryExecuteAttackCommand(int targetCityId, int troops, int gold, int food, List<AttackOfficerDeploymentData> deployments, BattleSupportDeploymentData battleSupport, List<int> officerIds, DefenderBattlePlan? defenderBattlePlanOverride = null) =>
         ExecutePlayerCommand(CommandType.Attack, targetCityId: targetCityId, troopsToSend: troops, goldToSend: gold, foodToSend: food, attackOfficerDeployments: deployments, battleSupport: battleSupport, officerIds: officerIds, defenderBattlePlanOverride: defenderBattlePlanOverride);
     internal string MilitaryGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);

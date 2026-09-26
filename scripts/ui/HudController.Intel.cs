@@ -213,6 +213,11 @@ public partial class HudController
 
     private string BuildMaskedOfficerLoyalty(WorldState world, OfficerData officer)
     {
+        if (officer.CaptiveFactionId > 0)
+        {
+            return "-";
+        }
+
         if (IsFactionRuler(world, officer) || FreeOfficerMovement.IsFreeOfficer(world, officer))
         {
             return "-";

@@ -326,6 +326,7 @@ public class CityData
 
     public void AddSiegeEngineAllocation(SiegeEngineAllocationData allocation)
     {
+        SupplyCartCount += allocation.SupplyCart;
         RamCount += allocation.Ram;
         CatapultCount += allocation.Catapult;
         LadderCount += allocation.Ladder;
@@ -333,6 +334,7 @@ public class CityData
 
     public void RemoveSiegeEngineAllocation(SiegeEngineAllocationData allocation)
     {
+        SupplyCartCount = System.Math.Max(0, SupplyCartCount - allocation.SupplyCart);
         RamCount = System.Math.Max(0, RamCount - allocation.Ram);
         CatapultCount = System.Math.Max(0, CatapultCount - allocation.Catapult);
         LadderCount = System.Math.Max(0, LadderCount - allocation.Ladder);

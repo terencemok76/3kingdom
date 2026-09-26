@@ -248,6 +248,7 @@ public partial class HudController : CanvasLayer
     private string? _genericOfficerSelectorInitialScopeKey;
     private OfficerSelectorDisplayConfig? _genericOfficerSelectorDisplayConfig;
     private Func<OfficerSelectorDisplayConfig?>? _genericOfficerSelectorDisplayConfigFactory;
+    private bool _genericOfficerSelectorLocationMapEnabled;
     private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
     private bool _isResolvingEndTurn;

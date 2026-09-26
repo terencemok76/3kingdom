@@ -43,8 +43,9 @@ public partial class HudController
         Func<string>? titleFactory = null,
         Func<IEnumerable<OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
         OfficerSelectorDisplayConfig? displayConfig = null,
-        Func<OfficerSelectorDisplayConfig?>? displayConfigFactory = null) =>
-        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, displayConfig, titleFactory, scopeOptionsFactory, displayConfigFactory);
+        Func<OfficerSelectorDisplayConfig?>? displayConfigFactory = null,
+        bool enableLocationMapSelector = false) =>
+        ShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, displayConfig, titleFactory, scopeOptionsFactory, displayConfigFactory, enableLocationMapSelector);
 
     internal void PersonnelShowAssignRoleOfficerSelectorDialog(
         string title,

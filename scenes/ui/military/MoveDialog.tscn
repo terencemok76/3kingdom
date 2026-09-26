@@ -89,9 +89,9 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(520, 860)
+custom_minimum_size = Vector2(520, 720)
 offset_right = 520.0
-offset_bottom = 860.0
+offset_bottom = 720.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
@@ -137,112 +137,332 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
 
-[node name="TargetCityLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Target City"
-
-[node name="TargetCityOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="TroopsLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Troops"
-
-[node name="TroopsSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.0
-step = 1.0
-rounded = true
-
-[node name="GoldLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Gold"
-
-[node name="GoldSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.0
-step = 1.0
-rounded = true
-
-[node name="FoodLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Food"
-
-[node name="FoodSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.0
-step = 1.0
-rounded = true
-
-[node name="HorseLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Horse"
-
-[node name="HorseSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.0
-step = 1.0
-rounded = true
-
-[node name="RamLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Battering Ram"
-
-[node name="RamSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.0
-step = 1.0
-rounded = true
-
-[node name="CatapultLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Catapult"
-
-[node name="CatapultSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.0
-step = 1.0
-rounded = true
-
-[node name="LadderLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Siege Ladder"
-
-[node name="LadderSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.0
-step = 1.0
-rounded = true
-
-[node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Officers"
-
-[node name="OfficerTable" type="Tree" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 1
-hide_root = true
-column_titles_visible = true
-select_mode = 1
-custom_minimum_size = Vector2(0, 150)
-
-[node name="PrisonerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
-layout_mode = 2
-text = "Prisoners"
-
-[node name="PrisonerTable" type="Tree" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="ContentScroll" type="ScrollContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Content" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TargetCityRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TargetCityLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/TargetCityRow"]
+layout_mode = 2
+text = "Target City"
+custom_minimum_size = Vector2(84, 0)
+vertical_alignment = 1
+
+[node name="TargetCityOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/TargetCityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TargetCityMapButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/TargetCityRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Map"
+
+[node name="InfantryRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="InfantryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/InfantryRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Infantry"
+vertical_alignment = 1
+
+[node name="InfantrySpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/InfantryRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="InfantryMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/InfantryRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="SpearmanRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SpearmanLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/SpearmanRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Spearman"
+vertical_alignment = 1
+
+[node name="SpearmanSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/SpearmanRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="SpearmanMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/SpearmanRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="CavalryRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CavalryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CavalryRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cavalry"
+vertical_alignment = 1
+
+[node name="CavalrySpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CavalryRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="CavalryMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CavalryRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="ArcherRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ArcherLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/ArcherRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Archer"
+vertical_alignment = 1
+
+[node name="ArcherSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/ArcherRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="ArcherMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/ArcherRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="CrossbowRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CrossbowLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CrossbowRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Crossbow"
+vertical_alignment = 1
+
+[node name="CrossbowSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CrossbowRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="CrossbowMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CrossbowRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="EngineerRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EngineerLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/EngineerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Engineer"
+vertical_alignment = 1
+
+[node name="EngineerSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/EngineerRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="EngineerMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/EngineerRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="GoldRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GoldLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/GoldRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Gold"
+vertical_alignment = 1
+
+[node name="GoldSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/GoldRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="GoldMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/GoldRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="FoodRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FoodLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/FoodRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Food"
+vertical_alignment = 1
+
+[node name="FoodSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/FoodRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="FoodMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/FoodRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="HorseRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HorseLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/HorseRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Horse"
+vertical_alignment = 1
+
+[node name="HorseSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/HorseRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="HorseMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/HorseRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="SupplyCartRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SupplyCartLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/SupplyCartRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Supply Cart"
+vertical_alignment = 1
+
+[node name="SupplyCartSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/SupplyCartRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="SupplyCartMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/SupplyCartRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="RamRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RamLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/RamRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Battering Ram"
+vertical_alignment = 1
+
+[node name="RamSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/RamRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="RamMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/RamRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="CatapultRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CatapultLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CatapultRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Catapult"
+vertical_alignment = 1
+
+[node name="CatapultSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CatapultRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="CatapultMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/CatapultRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="LadderRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LadderLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/LadderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Siege Ladder"
+vertical_alignment = 1
+
+[node name="LadderSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/LadderRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+
+[node name="LadderMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/LadderRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
+[node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+text = "Officers"
+
+[node name="OfficerTable" type="Tree" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
 hide_root = true
 column_titles_visible = true
 select_mode = 1

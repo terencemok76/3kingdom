@@ -92,8 +92,9 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
         Func<string>? titleFactory = null,
         Func<IEnumerable<HudController.OfficerSelectorScopeOption>?>? scopeOptionsFactory = null,
         HudController.OfficerSelectorDisplayConfig? displayConfig = null,
-        Func<HudController.OfficerSelectorDisplayConfig?>? displayConfigFactory = null) =>
-        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, titleFactory, scopeOptionsFactory, displayConfig, displayConfigFactory);
+        Func<HudController.OfficerSelectorDisplayConfig?>? displayConfigFactory = null,
+        bool enableLocationMapSelector = false) =>
+        _owner.PersonnelShowOfficerSelectorDialog(title, candidateOfficerIds, primaryStat, confirmedAction, scopeOptions, initialScopeKey, titleFactory, scopeOptionsFactory, displayConfig, displayConfigFactory, enableLocationMapSelector);
 
     public void ShowAssignRoleOfficerSelectorDialog(
         string title,

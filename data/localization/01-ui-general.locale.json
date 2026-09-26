@@ -787,6 +787,14 @@
 					"zhHant":  "移動",
 					"en":  "Move"
 				},
+	"fmt.move_equipment_city_available":  {
+					"zhHant":  "{0}（城內：{1}）",
+					"en":  "{0} (City: {1})"
+				},
+	"fmt.move_troop_city_available":  {
+					"zhHant":  "{0}（城內：{1}）",
+					"en":  "{0} (City: {1})"
+				},
 	"ui.neutral":  {
 					   "zhHant":  "中立",
 					   "en":  "Neutral"

@@ -33,6 +33,7 @@ public sealed partial class SelectOfficerDialog : Control
     private HBoxContainer? _locationFilterRow;
     private Label? _locationFilterLabel;
     private OptionButton? _locationFilterOption;
+    private Button? _locationMapButton;
     private Button? _primaryScopeButton;
     private Button? _secondaryScopeButton;
     private Button? _confirmButton;
@@ -40,6 +41,7 @@ public sealed partial class SelectOfficerDialog : Control
     private Control? _titleBar;
     private Label? _titleLabel;
     private Action<int>? _confirmedAction;
+    private Action<IReadOnlyList<RowData>, string>? _locationMapRequested;
     private readonly List<ScopeOption> _scopeOptions = new();
     private readonly List<RowData> _activeRows = new();
     private string _activeScopeKey = string.Empty;
@@ -58,6 +60,7 @@ public sealed partial class SelectOfficerDialog : Control
         _locationFilterRow = GetNodeOrNull<HBoxContainer>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow");
         _locationFilterLabel = GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow/LocationFilterLabel");
         _locationFilterOption = GetNodeOrNull<OptionButton>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow/LocationFilterOption");
+        _locationMapButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LocationFilterRow/LocationMapButton");
         _primaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/PrimaryScopeButton");
         _secondaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/SecondaryScopeButton");
         _confirmButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/ConfirmRow/ConfirmButton");
@@ -84,6 +87,11 @@ public sealed partial class SelectOfficerDialog : Control
         if (_locationFilterOption != null)
         {
             _locationFilterOption.ItemSelected += _ => RenderActiveRows();
+        }
+
+        if (_locationMapButton != null)
+        {
+            _locationMapButton.Pressed += () => _locationMapRequested?.Invoke(_activeRows, GetSelectedLocationKey());
         }
 
         if (_confirmButton != null)
@@ -116,7 +124,9 @@ public sealed partial class SelectOfficerDialog : Control
         Vector2? panelSize = null,
         int preferredOfficerId = -1,
         string locationFilterLabel = "Location",
-        string allLocationsLabel = "All Locations")
+        string allLocationsLabel = "All Locations",
+        Action<IReadOnlyList<RowData>, string>? locationMapRequested = null,
+        string locationMapButtonText = "Map")
     {
         if (_officerTable == null || _confirmButton == null)
         {
@@ -129,6 +139,11 @@ public sealed partial class SelectOfficerDialog : Control
         }
         _confirmButton.Text = confirmText;
         _confirmedAction = onConfirmed;
+        _locationMapRequested = locationMapRequested;
+        if (_locationMapButton != null)
+        {
+            _locationMapButton.Text = locationMapButtonText;
+        }
         _sortColumn = -1;
         _sortAscending = true;
         ConfigureColumns(columns);
@@ -188,6 +203,25 @@ public sealed partial class SelectOfficerDialog : Control
 
         var metadata = selectedItem.GetMetadata(0);
         return metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : -1;
+    }
+
+    public void SelectLocationFilter(string locationKey)
+    {
+        if (_locationFilterOption == null)
+        {
+            return;
+        }
+
+        for (var index = 1; index < _locationFilterOption.ItemCount; index += 1)
+        {
+            var metadata = _locationFilterOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.String && metadata.AsString() == locationKey)
+            {
+                _locationFilterOption.Select(index);
+                RenderActiveRows();
+                return;
+            }
+        }
     }
 
     private void ConfigureColumns(IReadOnlyList<ColumnDefinition> columns)
@@ -282,6 +316,11 @@ public sealed partial class SelectOfficerDialog : Control
 
         _locationFilterLabel.Text = label;
         _locationFilterRow.Visible = locations.Count > 1;
+        if (_locationMapButton != null)
+        {
+            _locationMapButton.Visible = locations.Count > 1 && _locationMapRequested != null;
+            _locationMapButton.Disabled = locations.Count <= 1;
+        }
     }
 
     private void SetActiveRows(IReadOnlyList<RowData> rows)
@@ -540,7 +579,7 @@ public sealed partial class SelectOfficerDialog : Control
             return;
         }
 
-        foreach (var button in new[] { _primaryScopeButton, _secondaryScopeButton, _confirmButton })
+        foreach (var button in new[] { _primaryScopeButton, _secondaryScopeButton, _locationMapButton, _confirmButton })
         {
             if (button == null)
             {

@@ -32,6 +32,13 @@ internal static class Program
             return;
         }
 
+        if (args.Contains("--move-allocation-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunMoveTroopAllocationTest();
+            PrintSummary();
+            return;
+        }
+
         // Keep test order stable so regression diffs stay easy to compare across runs.
         RunBattlePeriodSupplyTest();
         RunBattleEnvironmentForecastTest();
@@ -45,6 +52,7 @@ internal static class Program
         RunAttackFailureFlowTest();
         RunAttackCancellationFlowTest();
         RunMoveSchedulingTest();
+        RunMoveTroopAllocationTest();
         RunCoreActionsTest();
         RunAiDefensiveDiplomacyTruceTest();
         RunAiSpyReconPriorityTest();
@@ -405,6 +413,67 @@ internal static class Program
 
         var pending = world.PendingCommands.Where(x => x.Type == CommandType.Move && x.SourceCityId == 2 && x.TargetCityId == 3).ToList();
         Assert(pending.Count == 1, "AI move scheduling", $"pending={pending.Count}");
+    }
+
+    private static void RunMoveTroopAllocationTest()
+    {
+        var world = TestHelpers.World();
+        var source = TestHelpers.City(1, "Source", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 2 });
+        source.InfantryTroops = 400;
+        source.SpearmanTroops = 300;
+        source.ArcherTroops = 50;
+        source.EngineerTroops = 40;
+        source.SyncLegacyTroops();
+        var target = TestHelpers.City(2, "Target", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 1 });
+        world.Cities.Add(source);
+        world.Cities.Add(target);
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        var services = CreateServices(world);
+        var requested = new TroopAllocationData
+        {
+            Infantry = 120,
+            Archer = 30,
+            Siege = 10
+        };
+
+        var schedule = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 1,
+            SourceCityId = source.Id,
+            TargetCityId = target.Id,
+            TroopsToSend = requested.Total,
+            HasTroopAllocation = true,
+            TroopAllocation = requested
+        });
+        var pending = world.PendingCommands.SingleOrDefault(command => command.Type == CommandType.Move);
+        Assert(
+            schedule.Success && pending?.TroopAllocation.Infantry == 120 && pending.TroopAllocation.Archer == 30 && pending.TroopAllocation.Siege == 10 && pending.TroopAllocation.Spearman == 0,
+            "Move keeps requested troop types while scheduling",
+            $"success={schedule.Success}, infantry={pending?.TroopAllocation.Infantry}, archer={pending?.TroopAllocation.Archer}, engineer={pending?.TroopAllocation.Siege}, spearman={pending?.TroopAllocation.Spearman}");
+
+        _ = services.Turn.ResolvePendingCommands(services.Resolver);
+        Assert(
+            source.InfantryTroops == 280 && source.SpearmanTroops == 300 && source.ArcherTroops == 20 && source.EngineerTroops == 30 &&
+            target.InfantryTroops == 120 && target.SpearmanTroops == 0 && target.ArcherTroops == 30 && target.EngineerTroops == 10,
+            "Move resolves exact troop-type allocation",
+            $"source={source.InfantryTroops}/{source.SpearmanTroops}/{source.ArcherTroops}/{source.EngineerTroops}, target={target.InfantryTroops}/{target.SpearmanTroops}/{target.ArcherTroops}/{target.EngineerTroops}");
+
+        var resourceOnly = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 1,
+            SourceCityId = source.Id,
+            TargetCityId = target.Id,
+            GoldToSend = 100,
+            HasTroopAllocation = true,
+            TroopAllocation = new TroopAllocationData()
+        });
+        var resourceOnlyPending = world.PendingCommands.SingleOrDefault(command => command.Type == CommandType.Move);
+        Assert(
+            resourceOnly.Success && resourceOnlyPending?.TroopAllocation.Total == 0,
+            "Move accepts an explicit zero troop allocation",
+            $"success={resourceOnly.Success}, troops={resourceOnlyPending?.TroopAllocation.Total}");
     }
 
     private static void RunAttackAutoBreakPactTest()

@@ -79,6 +79,8 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public void OpenView() => _owner.MainHudOpenView();
     public void OpenStrategicMap() => _owner.MainHudOpenStrategicMap();
     public bool SelectCityById(int cityId) => _owner.MainHudSelectCityById(cityId);
+    public void ShowStrategicMapSelection(StrategicMapSelectionRequest request) =>
+        _owner.MainHudShowStrategicMapSelection(request);
     public void OpenTestCapture() => _owner.MainHudOpenTestCapture();
     public void AddTestBattleEquipment() => _owner.MainHudAddTestBattleEquipment();
     public void AddTestEngineers() => _owner.MainHudAddTestEngineers();

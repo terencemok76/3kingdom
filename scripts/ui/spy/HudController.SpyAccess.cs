@@ -36,6 +36,9 @@ public partial class HudController
 
     internal string SpyGetLocalizedResultMessage(CommandResult result) => GetLocalizedResultMessage(result);
 
+    internal void SpyShowStrategicMapSelection(StrategicMapSelectionRequest request) =>
+        _mainHudUiController?.ShowStrategicMapSelection(request);
+
     internal void SpyApplyCommandButtonTheme(Button button)
     {
         if (MainHudViewButton != null)

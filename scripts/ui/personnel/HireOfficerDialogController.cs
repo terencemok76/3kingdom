@@ -323,7 +323,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
                 UpdateSummary();
             },
             titleFactory: () => _context.Localization?.T("command.personnel.hire_officer") ?? localization.T("command.personnel.hire_officer"),
-            displayConfig: BuildHireOfficerSelectorDisplayConfig(candidateIds));
+            displayConfig: BuildHireOfficerSelectorDisplayConfig(candidateIds),
+            enableLocationMapSelector: true);
     }
 
     private void OnSelectEnvoyPressed()

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -9,22 +10,41 @@ internal sealed class MoveDialogController : FloatingOverlayController
 {
     private readonly MilitaryUiContext _context;
     private OptionButton? _targetCityOption;
+    private Button? _targetCityMapButton;
     private Button? _confirmButton;
-    private SpinBox? _troopsSpinBox;
+    private ScrollContainer? _contentScroll;
+    private VBoxContainer? _content;
+    private SpinBox? _infantrySpinBox;
+    private SpinBox? _spearmanSpinBox;
+    private SpinBox? _cavalrySpinBox;
+    private SpinBox? _archerSpinBox;
+    private SpinBox? _crossbowSpinBox;
+    private SpinBox? _engineerSpinBox;
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private SpinBox? _horseSpinBox;
+    private SpinBox? _supplyCartSpinBox;
     private SpinBox? _ramSpinBox;
     private SpinBox? _catapultSpinBox;
     private SpinBox? _ladderSpinBox;
+    private Button? _supplyCartMaxButton;
+    private Button? _ramMaxButton;
+    private Button? _catapultMaxButton;
+    private Button? _ladderMaxButton;
+    private Button? _infantryMaxButton;
+    private Button? _spearmanMaxButton;
+    private Button? _cavalryMaxButton;
+    private Button? _archerMaxButton;
+    private Button? _crossbowMaxButton;
+    private Button? _engineerMaxButton;
+    private Button? _goldMaxButton;
+    private Button? _foodMaxButton;
+    private Button? _horseMaxButton;
     private Tree? _officerList;
-    private Tree? _prisonerList;
     private bool _signalsConnected;
     private bool _officerListSignalsConnected;
     private bool _officerListGuiInputConnected;
-    private bool _prisonerListSignalsConnected;
-    private bool _prisonerListGuiInputConnected;
-    protected override Vector2 MinimumOverlaySize => new(520.0f, 860.0f);
+    protected override Vector2 MinimumOverlaySize => new(520.0f, 720.0f);
 
     public MoveDialogController(MilitaryUiContext context)
         : base(context, "res://scenes/ui/military/MoveDialog.tscn")
@@ -66,19 +86,22 @@ internal sealed class MoveDialogController : FloatingOverlayController
         {
             _targetCityOption.Select(0);
         }
+        if (_targetCityMapButton != null) _targetCityMapButton.Disabled = _targetCityOption.ItemCount == 0;
 
-        ConfigureSpinBox(_troopsSpinBox, _context.SelectedCity.Troops, _context.SelectedCity.Troops / 2);
-        ConfigureSpinBox(_goldSpinBox, _context.SelectedCity.Gold, _context.SelectedCity.Gold / 2);
-        ConfigureSpinBox(_foodSpinBox, _context.SelectedCity.Food, _context.SelectedCity.Food / 2);
-        ConfigureSpinBox(_horseSpinBox, _context.SelectedCity.Horses, _context.SelectedCity.Horses / 2);
+        ConfigureTroopRows(_context.SelectedCity);
+        ConfigureSpinBox(_goldSpinBox, _context.SelectedCity.Gold, 0);
+        ConfigureSpinBox(_foodSpinBox, _context.SelectedCity.Food, 0);
+        ConfigureSpinBox(_horseSpinBox, _context.SelectedCity.Horses, 0);
+        ConfigureSpinBox(_supplyCartSpinBox, _context.SelectedCity.SupplyCartCount, 0);
         ConfigureSpinBox(_ramSpinBox, _context.SelectedCity.RamCount, 0);
         ConfigureSpinBox(_catapultSpinBox, _context.SelectedCity.CatapultCount, 0);
         ConfigureSpinBox(_ladderSpinBox, _context.SelectedCity.LadderCount, 0);
+        ConfigureEquipmentRows(_context.SelectedCity);
 
         PopulateOfficerList();
-        PopulatePrisonerList();
 
         ShowOverlay();
+        ResetContentScrollPosition();
     }
 
     public void RefreshText()
@@ -95,37 +118,74 @@ internal sealed class MoveDialogController : FloatingOverlayController
         }
 
         SetLabelText("TargetCityLabel", _context.Localization.T("ui.target_city"));
-        SetLabelText("TroopsLabel", _context.Localization.T("ui.transfer_troops"));
+        if (_targetCityMapButton != null)
+        {
+            _targetCityMapButton.Text = _context.Localization.T("ui.strategic_map.open_selector");
+            _targetCityMapButton.Disabled = _targetCityOption?.ItemCount == 0;
+        }
         SetLabelText("GoldLabel", _context.Localization.T("ui.transfer_gold"));
         SetLabelText("FoodLabel", _context.Localization.T("ui.transfer_food"));
         SetLabelText("HorseLabel", _context.Localization.T("ui.transfer_horse"));
-        SetLabelText("RamLabel", _context.Localization.T("siege_engine.ram"));
-        SetLabelText("CatapultLabel", _context.Localization.T("siege_engine.catapult"));
-        SetLabelText("LadderLabel", _context.Localization.T("siege_engine.ladder"));
+        SetMaxButtonText(_goldMaxButton);
+        SetMaxButtonText(_foodMaxButton);
+        SetMaxButtonText(_horseMaxButton);
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.transfer_officers"));
-        SetLabelText("PrisonerListLabel", _context.Localization.T("ui.transfer_prisoners"));
         RefreshTargetCityOptionTexts();
         RefreshOfficerTableText();
-        RefreshPrisonerTableText();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
-        _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityOption");
-        _troopsSpinBox = root.GetNodeOrNull<SpinBox>("TroopsSpinBox");
-        _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldSpinBox");
-        _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodSpinBox");
-        _horseSpinBox = root.GetNodeOrNull<SpinBox>("HorseSpinBox");
-        _ramSpinBox = root.GetNodeOrNull<SpinBox>("RamSpinBox");
-        _catapultSpinBox = root.GetNodeOrNull<SpinBox>("CatapultSpinBox");
-        _ladderSpinBox = root.GetNodeOrNull<SpinBox>("LadderSpinBox");
-        _officerList = root.GetNodeOrNull<Tree>("OfficerTable");
-        _prisonerList = root.GetNodeOrNull<Tree>("PrisonerTable");
+        _contentScroll = root.GetNodeOrNull<ScrollContainer>("ContentScroll");
+        _content = root.GetNodeOrNull<VBoxContainer>("ContentScroll/Content");
+        _targetCityOption = root.GetNodeOrNull<OptionButton>("ContentScroll/Content/TargetCityRow/TargetCityOption");
+        _targetCityMapButton = root.GetNodeOrNull<Button>("ContentScroll/Content/TargetCityRow/TargetCityMapButton");
+        _infantrySpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/InfantryRow/InfantrySpinBox");
+        _spearmanSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/SpearmanRow/SpearmanSpinBox");
+        _cavalrySpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/CavalryRow/CavalrySpinBox");
+        _archerSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/ArcherRow/ArcherSpinBox");
+        _crossbowSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/CrossbowRow/CrossbowSpinBox");
+        _engineerSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/EngineerRow/EngineerSpinBox");
+        _goldSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/GoldRow/GoldSpinBox");
+        _foodSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/FoodRow/FoodSpinBox");
+        _horseSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/HorseRow/HorseSpinBox");
+        _supplyCartSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/SupplyCartRow/SupplyCartSpinBox");
+        _ramSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/RamRow/RamSpinBox");
+        _catapultSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/CatapultRow/CatapultSpinBox");
+        _ladderSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/LadderRow/LadderSpinBox");
+        _supplyCartMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/SupplyCartRow/SupplyCartMaxButton");
+        _ramMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/RamRow/RamMaxButton");
+        _catapultMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/CatapultRow/CatapultMaxButton");
+        _ladderMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/LadderRow/LadderMaxButton");
+        _infantryMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/InfantryRow/InfantryMaxButton");
+        _spearmanMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/SpearmanRow/SpearmanMaxButton");
+        _cavalryMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/CavalryRow/CavalryMaxButton");
+        _archerMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/ArcherRow/ArcherMaxButton");
+        _crossbowMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/CrossbowRow/CrossbowMaxButton");
+        _engineerMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/EngineerRow/EngineerMaxButton");
+        _goldMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/GoldRow/GoldMaxButton");
+        _foodMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/FoodRow/FoodMaxButton");
+        _horseMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/HorseRow/HorseMaxButton");
+        _officerList = root.GetNodeOrNull<Tree>("ContentScroll/Content/OfficerTable");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_confirmButton != null)
         {
             _context.ApplyCommandButtonTheme(_confirmButton);
         }
+        if (_targetCityMapButton != null) _context.ApplyCommandButtonTheme(_targetCityMapButton);
+        ApplyMaxButtonTheme(_supplyCartMaxButton);
+        ApplyMaxButtonTheme(_ramMaxButton);
+        ApplyMaxButtonTheme(_catapultMaxButton);
+        ApplyMaxButtonTheme(_ladderMaxButton);
+        ApplyMaxButtonTheme(_infantryMaxButton);
+        ApplyMaxButtonTheme(_spearmanMaxButton);
+        ApplyMaxButtonTheme(_cavalryMaxButton);
+        ApplyMaxButtonTheme(_archerMaxButton);
+        ApplyMaxButtonTheme(_crossbowMaxButton);
+        ApplyMaxButtonTheme(_engineerMaxButton);
+        ApplyMaxButtonTheme(_goldMaxButton);
+        ApplyMaxButtonTheme(_foodMaxButton);
+        ApplyMaxButtonTheme(_horseMaxButton);
 
         if (!_officerListSignalsConnected && _officerList != null)
         {
@@ -139,25 +199,90 @@ internal sealed class MoveDialogController : FloatingOverlayController
             _officerListGuiInputConnected = true;
         }
 
-        if (!_prisonerListSignalsConnected && _prisonerList != null)
-        {
-            _prisonerList.ItemSelected += UpdatePrisonerCheckHighlights;
-            _prisonerListSignalsConnected = true;
-        }
-
-        if (!_prisonerListGuiInputConnected && _prisonerList != null)
-        {
-            _prisonerList.GuiInput += OnPrisonerListGuiInput;
-            _prisonerListGuiInputConnected = true;
-        }
-
         if (_signalsConnected || _confirmButton == null)
         {
             return;
         }
 
         _confirmButton.Pressed += OnConfirmPressed;
+        if (_targetCityMapButton != null) _targetCityMapButton.Pressed += OnTargetCityMapPressed;
+        ConnectMaxButton(_supplyCartMaxButton, _supplyCartSpinBox);
+        ConnectMaxButton(_ramMaxButton, _ramSpinBox);
+        ConnectMaxButton(_catapultMaxButton, _catapultSpinBox);
+        ConnectMaxButton(_ladderMaxButton, _ladderSpinBox);
+        ConnectMaxButton(_infantryMaxButton, _infantrySpinBox);
+        ConnectMaxButton(_spearmanMaxButton, _spearmanSpinBox);
+        ConnectMaxButton(_cavalryMaxButton, _cavalrySpinBox);
+        ConnectMaxButton(_archerMaxButton, _archerSpinBox);
+        ConnectMaxButton(_crossbowMaxButton, _crossbowSpinBox);
+        ConnectMaxButton(_engineerMaxButton, _engineerSpinBox);
+        ConnectMaxButton(_goldMaxButton, _goldSpinBox);
+        ConnectMaxButton(_foodMaxButton, _foodSpinBox);
+        ConnectMaxButton(_horseMaxButton, _horseSpinBox);
         _signalsConnected = true;
+    }
+
+    private void OnTargetCityMapPressed()
+    {
+        if (_targetCityOption == null)
+        {
+            return;
+        }
+
+        var candidateIds = Enumerable.Range(0, _targetCityOption.ItemCount)
+            .Select(index => _targetCityOption.GetItemMetadata(index))
+            .Where(metadata => metadata.VariantType == Variant.Type.Int)
+            .Select(metadata => metadata.AsInt32())
+            .ToList();
+        if (candidateIds.Count == 0)
+        {
+            return;
+        }
+
+        _context.ShowStrategicMapSelection(new StrategicMapSelectionRequest
+        {
+            TitleKey = "ui.strategic_map.select_move_target_title",
+            PromptKey = "ui.strategic_map.select_move_target_prompt",
+            Layer = StrategicMapLayer.Faction,
+            FactionFilter = StrategicMapFactionFilter.Self,
+            SelectableCityIds = candidateIds,
+            SourceCityId = _context.SelectedCity?.Id ?? 0,
+            InitialCityId = GetSelectedTargetCityId(),
+            Confirmed = cityId =>
+            {
+                SelectTargetCityOption(cityId);
+                BringOverlayToFront();
+            }
+        });
+    }
+
+    private int GetSelectedTargetCityId()
+    {
+        if (_targetCityOption == null || _targetCityOption.Selected < 0)
+        {
+            return 0;
+        }
+
+        var metadata = _targetCityOption.GetItemMetadata(_targetCityOption.Selected);
+        return metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : 0;
+    }
+
+    private void SelectTargetCityOption(int cityId)
+    {
+        if (_targetCityOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _targetCityOption.ItemCount; index += 1)
+        {
+            var metadata = _targetCityOption.GetItemMetadata(index);
+            if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == cityId)
+            {
+                _targetCityOption.Select(index);
+                return;
+            }
+        }
     }
 
     private void OnConfirmPressed()
@@ -181,17 +306,21 @@ internal sealed class MoveDialogController : FloatingOverlayController
         }
 
         var targetCityId = targetMetadata.AsInt32();
-        var movedOfficerIds = _context.GetCheckedTreeMetadataIds(_officerList);
-        var movedCaptiveOfficerIds = _context.GetCheckedTreeMetadataIds(_prisonerList);
+        var troopAllocation = BuildTroopAllocation();
+        var selectedOfficerIds = _context.GetCheckedTreeMetadataIds(_officerList);
+        var movedCaptiveOfficerIds = GetSelectedCaptiveOfficerIds(selectedOfficerIds);
+        var movedCaptiveOfficerSet = movedCaptiveOfficerIds.ToHashSet();
+        var movedOfficerIds = selectedOfficerIds.Where(id => !movedCaptiveOfficerSet.Contains(id)).ToList();
         var siegeEngineAllocation = new SiegeEngineAllocationData
         {
+            SupplyCart = _supplyCartSpinBox != null ? (int)_supplyCartSpinBox.Value : 0,
             Ram = _ramSpinBox != null ? (int)_ramSpinBox.Value : 0,
             Catapult = _catapultSpinBox != null ? (int)_catapultSpinBox.Value : 0,
             Ladder = _ladderSpinBox != null ? (int)_ladderSpinBox.Value : 0
         };
         var result = _context.ExecuteMoveCommand(
             targetCityId,
-            _troopsSpinBox != null ? (int)_troopsSpinBox.Value : 0,
+            troopAllocation,
             _goldSpinBox != null ? (int)_goldSpinBox.Value : 0,
             _foodSpinBox != null ? (int)_foodSpinBox.Value : 0,
             _horseSpinBox != null ? (int)_horseSpinBox.Value : 0,
@@ -222,6 +351,128 @@ internal sealed class MoveDialogController : FloatingOverlayController
         spinBox.Value = maxValue <= 0 ? 0 : Mathf.Clamp(defaultValue, 0, maxValue);
     }
 
+    private void ConfigureTroopRows(CityData city)
+    {
+        var rows = new (string RowName, string LabelName, TroopType TroopType, SpinBox? Input, Button? MaxButton)[]
+        {
+            ("InfantryRow", "InfantryLabel", TroopType.Infantry, _infantrySpinBox, _infantryMaxButton),
+            ("SpearmanRow", "SpearmanLabel", TroopType.Spearman, _spearmanSpinBox, _spearmanMaxButton),
+            ("CavalryRow", "CavalryLabel", TroopType.Cavalry, _cavalrySpinBox, _cavalryMaxButton),
+            ("ArcherRow", "ArcherLabel", TroopType.Archer, _archerSpinBox, _archerMaxButton),
+            ("CrossbowRow", "CrossbowLabel", TroopType.Crossbow, _crossbowSpinBox, _crossbowMaxButton),
+            ("EngineerRow", "EngineerLabel", TroopType.Engineer, _engineerSpinBox, _engineerMaxButton)
+        };
+
+        foreach (var row in rows)
+        {
+            var available = city.GetTroops(row.TroopType);
+            var rowControl = GetOverlayContentNode<Control>($"ContentScroll/Content/{row.RowName}");
+            var label = GetOverlayContentNode<Label>($"ContentScroll/Content/{row.RowName}/{row.LabelName}");
+            var visible = available > 0 && rowControl != null && label != null && row.Input != null && row.MaxButton != null;
+            if (rowControl != null)
+            {
+                rowControl.Visible = visible;
+            }
+            if (label != null && _context.Localization != null)
+            {
+                label.Text = _context.Localization.Format("fmt.move_troop_city_available", _context.GetTroopTypeDisplayName(row.TroopType), available);
+            }
+            if (row.MaxButton != null && _context.Localization != null)
+            {
+                row.MaxButton.Text = _context.Localization.T("ui.max");
+            }
+            ConfigureSpinBox(row.Input, available, 0);
+        }
+    }
+
+    private TroopAllocationData BuildTroopAllocation()
+    {
+        return new TroopAllocationData
+        {
+            Infantry = _infantrySpinBox != null ? (int)_infantrySpinBox.Value : 0,
+            Spearman = _spearmanSpinBox != null ? (int)_spearmanSpinBox.Value : 0,
+            Cavalry = _cavalrySpinBox != null ? (int)_cavalrySpinBox.Value : 0,
+            Archer = _archerSpinBox != null ? (int)_archerSpinBox.Value : 0,
+            Crossbow = _crossbowSpinBox != null ? (int)_crossbowSpinBox.Value : 0,
+            Siege = _engineerSpinBox != null ? (int)_engineerSpinBox.Value : 0
+        };
+    }
+
+    private void ConfigureEquipmentRows(CityData city)
+    {
+        if (_content == null)
+        {
+            return;
+        }
+
+        var rows = new (string RowName, string LabelName, string LabelKey, SpinBox? Input, Button? MaxButton, int Count)[]
+        {
+            ("SupplyCartRow", "SupplyCartLabel", "ui.supply_cart", _supplyCartSpinBox, _supplyCartMaxButton, city.SupplyCartCount),
+            ("RamRow", "RamLabel", "siege_engine.ram", _ramSpinBox, _ramMaxButton, city.RamCount),
+            ("LadderRow", "LadderLabel", "siege_engine.ladder", _ladderSpinBox, _ladderMaxButton, city.LadderCount),
+            ("CatapultRow", "CatapultLabel", "siege_engine.catapult", _catapultSpinBox, _catapultMaxButton, city.CatapultCount)
+        };
+        var insertionIndex = 1;
+        foreach (var row in rows)
+        {
+            var rowControl = GetOverlayContentNode<Control>($"ContentScroll/Content/{row.RowName}");
+            var label = GetOverlayContentNode<Label>($"ContentScroll/Content/{row.RowName}/{row.LabelName}");
+            var visible = row.Count > 0 && rowControl != null && label != null && row.Input != null && row.MaxButton != null;
+            if (rowControl != null)
+            {
+                rowControl.Visible = visible;
+            }
+            if (label != null && _context.Localization != null)
+            {
+                label.Text = _context.Localization.Format("fmt.move_equipment_city_available", _context.Localization.T(row.LabelKey), row.Count);
+            }
+            if (row.MaxButton != null && _context.Localization != null)
+            {
+                row.MaxButton.Text = _context.Localization.T("ui.max");
+            }
+            if (!visible || rowControl == null)
+            {
+                continue;
+            }
+
+            _content.MoveChild(rowControl, insertionIndex++);
+        }
+    }
+
+    private static void ConnectMaxButton(Button? button, SpinBox? spinBox)
+    {
+        if (button == null || spinBox == null)
+        {
+            return;
+        }
+
+        button.Pressed += () => spinBox.Value = spinBox.MaxValue;
+    }
+
+    private void ApplyMaxButtonTheme(Button? button)
+    {
+        if (button != null)
+        {
+            _context.ApplyCommandButtonTheme(button);
+        }
+    }
+
+    private void SetMaxButtonText(Button? button)
+    {
+        if (button != null && _context.Localization != null)
+        {
+            button.Text = _context.Localization.T("ui.max");
+        }
+    }
+
+    private void ResetContentScrollPosition()
+    {
+        if (_contentScroll != null)
+        {
+            _contentScroll.GetVScrollBar().Value = 0;
+        }
+    }
+
     private void PopulateOfficerList()
     {
         if (_officerList == null || _context.SelectedCity == null || _context.TurnManager?.World == null)
@@ -248,35 +499,33 @@ internal sealed class MoveDialogController : FloatingOverlayController
             }
 
             var row = _officerList.CreateItem(tableRoot);
-            _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+            PopulateMoveOfficerTableRow(row, officer, rowIndex, isCaptive: false);
+            rowIndex += 1;
+        }
+        foreach (var officer in _context.TurnManager.World.Officers
+                     .Where(officer => officer.CaptiveFactionId == _context.SelectedCity.OwnerFactionId && officer.JailedCityId == _context.SelectedCity.Id)
+                     .OrderBy(officer => officer.NameZhHant)
+                     .ThenBy(officer => officer.Name))
+        {
+            var row = _officerList.CreateItem(tableRoot);
+            PopulateMoveOfficerTableRow(row, officer, rowIndex, isCaptive: true);
             rowIndex += 1;
         }
 
         UpdateOfficerCheckHighlights();
     }
 
-    private void PopulatePrisonerList()
+    private void PopulateMoveOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool isCaptive)
     {
-        if (_prisonerList == null || _context.SelectedCity == null || _context.TurnManager?.World == null)
+        _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+        if (!isCaptive)
         {
             return;
         }
 
-        _prisonerList.Clear();
-        _context.ConfigureCompactOfficerTableColumns(_prisonerList, includeCheck: true);
-        var tableRoot = _prisonerList.CreateItem();
-        var rowIndex = 0;
-        foreach (var officer in _context.TurnManager.World.Officers
-                     .Where(officer => officer.CaptiveFactionId == _context.SelectedCity.OwnerFactionId && officer.JailedCityId == _context.SelectedCity.Id)
-                     .OrderBy(officer => officer.NameZhHant)
-                     .ThenBy(officer => officer.Name))
-        {
-            var row = _prisonerList.CreateItem(tableRoot);
-            _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
-            rowIndex += 1;
-        }
-
-        UpdatePrisonerCheckHighlights();
+        var localization = _context.Localization;
+        row.SetText(2, localization?.T("role.captive") ?? "Captive");
+        row.SetText(3, localization?.T("ui.captured_officer.jail") ?? "Jail");
     }
 
     private void RefreshOfficerTableText()
@@ -306,33 +555,6 @@ internal sealed class MoveDialogController : FloatingOverlayController
         UpdateOfficerCheckHighlights();
     }
 
-    private void RefreshPrisonerTableText()
-    {
-        if (_prisonerList == null || _context.SelectedCity == null)
-        {
-            return;
-        }
-
-        var checkedOfficerIds = _context.GetCheckedTreeMetadataIds(_prisonerList);
-        var checkedOfficerSet = new HashSet<int>(checkedOfficerIds);
-        PopulatePrisonerList();
-
-        var root = _prisonerList.GetRoot();
-        var row = root?.GetFirstChild();
-        while (row != null)
-        {
-            var metadata = row.GetMetadata(1);
-            if (metadata.VariantType == Variant.Type.Int && checkedOfficerSet.Contains(metadata.AsInt32()))
-            {
-                row.SetMetadata(0, true);
-            }
-
-            row = row.GetNext();
-        }
-
-        UpdatePrisonerCheckHighlights();
-    }
-
     private void UpdateOfficerCheckHighlights()
     {
         if (_officerList == null)
@@ -346,24 +568,6 @@ internal sealed class MoveDialogController : FloatingOverlayController
         while (row != null)
         {
             ApplyOfficerRowVisualState(row, rowIndex, _officerList.Columns, IsOfficerRowChecked(row));
-            row = row.GetNext();
-            rowIndex += 1;
-        }
-    }
-
-    private void UpdatePrisonerCheckHighlights()
-    {
-        if (_prisonerList == null)
-        {
-            return;
-        }
-
-        var root = _prisonerList.GetRoot();
-        var row = root?.GetFirstChild();
-        var rowIndex = 0;
-        while (row != null)
-        {
-            ApplyOfficerRowVisualState(row, rowIndex, _prisonerList.Columns, IsOfficerRowChecked(row));
             row = row.GetNext();
             rowIndex += 1;
         }
@@ -407,11 +611,6 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ToggleTreeRowFromMouseInput(_officerList, @event, UpdateOfficerCheckHighlights);
     }
 
-    private void OnPrisonerListGuiInput(InputEvent @event)
-    {
-        ToggleTreeRowFromMouseInput(_prisonerList, @event, UpdatePrisonerCheckHighlights);
-    }
-
     private static void ToggleTreeRowFromMouseInput(Tree? tree, InputEvent @event, System.Action refreshAction)
     {
         if (@event is not InputEventMouseButton mouseButton ||
@@ -433,9 +632,29 @@ internal sealed class MoveDialogController : FloatingOverlayController
         tree.AcceptEvent();
     }
 
+    private List<int> GetSelectedCaptiveOfficerIds(IEnumerable<int> selectedOfficerIds)
+    {
+        var selectedCity = _context.SelectedCity;
+        var world = _context.TurnManager?.World;
+        if (selectedCity == null || world == null)
+        {
+            return new List<int>();
+        }
+
+        return selectedOfficerIds
+            .Where(id => world.GetOfficer(id) is { } officer &&
+                         officer.CaptiveFactionId == selectedCity.OwnerFactionId &&
+                         officer.JailedCityId == selectedCity.Id)
+            .ToList();
+    }
+
     private void SetLabelText(string nodeName, string text)
     {
-        var label = GetOverlayContentNode<Label>(nodeName);
+        var label = GetOverlayContentNode<Label>($"ContentScroll/Content/{nodeName}") ??
+                    GetOverlayContentNode<Label>($"ContentScroll/Content/TargetCityRow/{nodeName}") ??
+                    GetOverlayContentNode<Label>($"ContentScroll/Content/GoldRow/{nodeName}") ??
+                    GetOverlayContentNode<Label>($"ContentScroll/Content/FoodRow/{nodeName}") ??
+                    GetOverlayContentNode<Label>($"ContentScroll/Content/HorseRow/{nodeName}");
         if (label != null)
         {
             label.Text = text;

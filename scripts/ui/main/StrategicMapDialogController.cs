@@ -66,8 +66,10 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
         _pendingSelectedCityId = request.SelectableCityIds.Contains(request.InitialCityId)
             ? request.InitialCityId
             : request.SelectableCityIds.First();
-        _layerOption?.Select((int)request.Layer);
-        _factionFilterOption?.Select((int)request.FactionFilter);
+        // The scene owns empty OptionButtons; populate them before selecting a request preset.
+        ConfigureOptions();
+        SelectOption(_layerOption, (int)request.Layer);
+        SelectOption(_factionFilterOption, (int)request.FactionFilter);
         RefreshContent();
         ShowOverlay();
     }
@@ -242,6 +244,16 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
         option.Select(selected);
     }
 
+    private static void SelectOption(OptionButton? option, int index)
+    {
+        if (option == null || option.ItemCount == 0)
+        {
+            return;
+        }
+
+        option.Select(Mathf.Clamp(index, 0, option.ItemCount - 1));
+    }
+
     private string BuildSummary(WorldState world, StrategicMapLayer layer, StrategicMapFactionFilter factionFilter)
     {
         var emphasizedCount = world.Cities.Count(city =>
@@ -275,6 +287,10 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
                 sourceName,
                 T("ui.strategic_map.target"),
                 selectedText);
+        }
+        if (_selectionRequest != null)
+        {
+            return Format("fmt.strategic_map.selection_only_summary", layerText, selectedText);
         }
         return Format("fmt.strategic_map.summary", layerText, selectedText, emphasizedCount, world.Cities.Count);
     }

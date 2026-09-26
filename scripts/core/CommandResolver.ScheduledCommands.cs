@@ -202,13 +202,16 @@ public partial class CommandResolver
 
         var selectedOfficerIds = GetMovableOfficerIds(sourceCity, request.OfficerIds);
         var selectedCaptiveOfficerIds = GetMovableCaptiveOfficerIds(world, sourceCity, request.CaptiveOfficerIds);
-        var troopAllocation = CreateTroopAllocationFromTotal(sourceCity, request.TroopsToSend);
+        var troopAllocation = request.HasTroopAllocation
+            ? ClampTroopAllocationToCity(sourceCity, request.TroopAllocation)
+            : CreateTroopAllocationFromTotal(sourceCity, request.TroopsToSend);
         var movableTroops = troopAllocation.Total;
         var movableGold = GetTransferAmount(request.GoldToSend, sourceCity.Gold);
         var movableFood = GetTransferAmount(request.FoodToSend, sourceCity.Food);
         var movableHorses = GetTransferAmount(request.HorsesToSend, sourceCity.Horses);
         var movableSiegeEngines = new SiegeEngineAllocationData
         {
+            SupplyCart = GetTransferAmount(request.SiegeEngineAllocation.SupplyCart, sourceCity.SupplyCartCount),
             Ram = GetTransferAmount(request.SiegeEngineAllocation.Ram, sourceCity.RamCount),
             Catapult = GetTransferAmount(request.SiegeEngineAllocation.Catapult, sourceCity.CatapultCount),
             Ladder = GetTransferAmount(request.SiegeEngineAllocation.Ladder, sourceCity.LadderCount)
@@ -698,16 +701,18 @@ public partial class CommandResolver
                 new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
         }
 
-        var movableTroops = GetTransferAmount(pendingCommand.TroopsToSend, sourceCity.Troops);
+        var movableTroopAllocation = ClampTroopAllocationToCity(sourceCity, pendingCommand.TroopAllocation);
+        var movableTroops = movableTroopAllocation.Total;
         var movableGold = GetTransferAmount(pendingCommand.GoldToSend, sourceCity.Gold);
         var movableFood = GetTransferAmount(pendingCommand.FoodToSend, sourceCity.Food);
         var movableHorses = GetTransferAmount(pendingCommand.HorsesToSend, sourceCity.Horses);
+        var movableSupplyCart = GetTransferAmount(pendingCommand.SiegeEngineAllocation.SupplyCart, sourceCity.SupplyCartCount);
         var movableRam = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Ram, sourceCity.RamCount);
         var movableCatapult = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Catapult, sourceCity.CatapultCount);
         var movableLadder = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Ladder, sourceCity.LadderCount);
-        var movableTroopAllocation = ScaleTroopAllocationToTotal(pendingCommand.TroopAllocation, movableTroops);
         var movableSiegeEngines = new SiegeEngineAllocationData
         {
+            SupplyCart = movableSupplyCart,
             Ram = movableRam,
             Catapult = movableCatapult,
             Ladder = movableLadder
@@ -739,8 +744,8 @@ public partial class CommandResolver
         var result = LocalizedResult(
             true,
             "cmd.move.resolved",
-            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
-            new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
+            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
+            new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
         AppendMoveCaptiveSummary(result, movedCaptiveCount);
         AppendPrefectAutoAppointmentOutcome(result, sourcePrefectOutcome);
         return result;

@@ -395,6 +395,11 @@ public partial class HudController
 
     private static string BuildOfficerLoyaltyTableText(WorldState world, OfficerData officer)
     {
+        if (officer.CaptiveFactionId > 0)
+        {
+            return "-";
+        }
+
         return IsFactionRuler(world, officer) || FreeOfficerMovement.IsFreeOfficer(world, officer) ? "-" : officer.Loyalty.ToString();
     }
 
