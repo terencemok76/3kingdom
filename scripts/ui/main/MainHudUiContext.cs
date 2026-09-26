@@ -2,6 +2,7 @@ using System;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -20,6 +21,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public CityData? SelectedCity => _owner.MainHudSelectedCity;
     public int PlayerFactionId => _owner.MainHudPlayerFactionId;
     public UiEventHub UiEventHub => _owner.UiEventHub;
+    public MapController? MapController => _owner.MainHudMapController;
 
     public Label? MonthLabel => _owner.MainHudMonthLabel;
     public Label? PlayerFactionLabel => _owner.MainHudPlayerFactionLabel;
@@ -44,6 +46,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public Button? CivilButton => _owner.MainHudCivilButton;
     public Button? AttackButton => _owner.MainHudAttackButton;
     public Button? ViewButton => _owner.MainHudViewButton;
+    public Button? StrategicMapButton => _owner.MainHudStrategicMapButton;
     public Button? TestCaptureButton => _owner.MainHudTestCaptureButton;
 
     public RichTextLabel? LogText => _owner.MainHudLogText;
@@ -55,6 +58,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public string BuildCityHeaderText(CityData? city) => _owner.MainHudBuildCityHeaderText(city);
     public void PopulateCityStats(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount) => _owner.MainHudPopulateCityStats(panel, ownerName, city, freeOfficerCount);
     public void UpdateGameplayButtonStates() => _owner.MainHudUpdateGameplayButtonStates();
+    public void ApplyCommandButtonTheme(Button button) => _owner.MainHudApplyCommandButtonTheme(button);
     public void RequestFloatingPanelLayoutRefresh() => _owner.MainHudRequestFloatingPanelLayoutRefresh();
     public void MoveToFront(CanvasItem? item) => _owner.MainHudMoveToFront(item);
     public void ToggleLanguage() => _owner.MainHudToggleLanguage();
@@ -73,6 +77,8 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public void OpenCivil() => _owner.MainHudOpenCivil();
     public void OpenAttack() => _owner.MainHudOpenAttack();
     public void OpenView() => _owner.MainHudOpenView();
+    public void OpenStrategicMap() => _owner.MainHudOpenStrategicMap();
+    public bool SelectCityById(int cityId) => _owner.MainHudSelectCityById(cityId);
     public void OpenTestCapture() => _owner.MainHudOpenTestCapture();
     public void AddTestBattleEquipment() => _owner.MainHudAddTestBattleEquipment();
     public void AddTestEngineers() => _owner.MainHudAddTestEngineers();

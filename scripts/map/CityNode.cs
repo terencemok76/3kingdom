@@ -36,6 +36,7 @@ public partial class CityNode : Node2D
     private string _eventTag = string.Empty;
     private Color _eventOverlayColor = Colors.Transparent;
     private bool _hasCampaignOverlay;
+    private string _strategicDetailLabel = string.Empty;
     private double _eventOverlayStartTime;
     private double _eventOverlayEndTime;
 
@@ -133,6 +134,14 @@ public partial class CityNode : Node2D
         QueueRedraw();
     }
 
+    public void SetStrategicMapPresentation(bool isEmphasized, string detailLabel)
+    {
+        Modulate = isEmphasized ? Colors.White : new Color(1.0f, 1.0f, 1.0f, 0.24f);
+        _strategicDetailLabel = detailLabel ?? string.Empty;
+        RefreshLabelOverlay();
+        QueueRedraw();
+    }
+
     public override void _Draw()
     {
         if (CityTexture != null)
@@ -224,19 +233,21 @@ public partial class CityNode : Node2D
         var label = !string.IsNullOrWhiteSpace(_displayLabel)
             ? _displayLabel
             : _city?.Name ?? string.Empty;
-        _labelOverlay.SetLabel(label, _eventTag, _eventOverlayColor);
+        _labelOverlay.SetLabel(label, _eventTag, _strategicDetailLabel, _eventOverlayColor);
     }
 
     private sealed partial class CityLabelOverlay : Node2D
     {
         private string _label = string.Empty;
         private string _eventLabel = string.Empty;
+        private string _strategicDetailLabel = string.Empty;
         private Color _eventLabelColor = Colors.Transparent;
 
-        public void SetLabel(string label, string eventLabel, Color eventColor)
+        public void SetLabel(string label, string eventLabel, string strategicDetailLabel, Color eventColor)
         {
             _label = label ?? string.Empty;
             _eventLabel = eventLabel ?? string.Empty;
+            _strategicDetailLabel = strategicDetailLabel ?? string.Empty;
             _eventLabelColor = eventColor;
             QueueRedraw();
         }
@@ -268,6 +279,15 @@ public partial class CityNode : Node2D
                 var eventPosition = new Vector2(-eventWidth * 0.5f, y);
                 DrawString(font, eventPosition + new Vector2(1.0f, 1.0f), _eventLabel, modulate: new Color(0.05f, 0.05f, 0.05f, 0.85f));
                 DrawString(font, eventPosition, _eventLabel, modulate: _eventLabelColor);
+                y += LabelLineHeight;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_strategicDetailLabel))
+            {
+                var detailWidth = font.GetStringSize(_strategicDetailLabel).X;
+                var detailPosition = new Vector2(-detailWidth * 0.5f, y);
+                DrawString(font, detailPosition + new Vector2(1.0f, 1.0f), _strategicDetailLabel, modulate: new Color(0.04f, 0.04f, 0.04f, 0.8f));
+                DrawString(font, detailPosition, _strategicDetailLabel, modulate: new Color("f5dfaa"));
             }
         }
     }

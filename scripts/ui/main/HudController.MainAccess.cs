@@ -1,6 +1,7 @@
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -11,6 +12,7 @@ public partial class HudController
     internal WorldState? MainHudWorld => _turnManager?.World;
     internal int MainHudPlayerFactionId => _turnManager?.GetPlayerFactionId() ?? -1;
     internal CityData? MainHudSelectedCity => _selectedCity;
+    internal MapController? MainHudMapController => _mapController;
 
     internal Label? MainHudMonthLabel => GetNodeOrNull<Label>("Root/TopBar/MonthLabel");
     internal Label? MainHudPlayerFactionLabel => GetNodeOrNull<Label>("Root/TopBar/PlayerFactionLabel");
@@ -36,6 +38,7 @@ public partial class HudController
     internal Button? MainHudCivilButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/CivilButton");
     internal Button? MainHudAttackButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/AttackButton");
     internal Button? MainHudViewButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton");
+    internal Button? MainHudStrategicMapButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/StrategicMapButton");
     internal Button? MainHudTestCaptureButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/TestCaptureButton");
     internal RichTextLabel? MainHudLogText => GetNodeOrNull<RichTextLabel>("Root/LogText");
     internal Label? MainHudCityPanelHeaderLabel => _leftPanelHeaderLabel;
@@ -64,6 +67,24 @@ public partial class HudController
     internal void MainHudOpenCivil() => OnCivilPressed();
     internal void MainHudOpenAttack() => OnAttackPressed();
     internal void MainHudOpenView() => OnViewPressed();
+    internal void MainHudOpenStrategicMap() => OnStrategicMapPressed();
+    internal void MainHudApplyCommandButtonTheme(Button button)
+    {
+        if (MainHudViewButton != null)
+        {
+            CopyButtonTheme(MainHudViewButton, button);
+        }
+    }
+    internal bool MainHudSelectCityById(int cityId)
+    {
+        if (_turnManager?.World?.GetCity(cityId) == null || _mapController == null)
+        {
+            return false;
+        }
+
+        _mapController.SelectCityById(cityId);
+        return true;
+    }
     internal void MainHudOpenTestCapture() => OnTestCapturePressed();
     internal void MainHudAddTestBattleEquipment() => OnTestBattleEquipmentPressed();
     internal void MainHudAddTestEngineers() => OnTestEngineersPressed();

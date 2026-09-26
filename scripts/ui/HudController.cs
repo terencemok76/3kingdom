@@ -612,6 +612,11 @@ public partial class HudController : CanvasLayer
         _viewUiController?.ShowViewDialog();
     }
 
+    private void OnStrategicMapPressed()
+    {
+        _mainHudUiController?.ShowStrategicMapDialog();
+    }
+
     private void CloseOfficerListDialog()
     {
         _officerListDialog?.Hide();

@@ -82,6 +82,8 @@ internal sealed class MilitaryUiContext : IFloatingOverlayContext
     public Texture2D? BuildOfficerPortraitTexture(int officerId) => _owner.MilitaryBuildOfficerPortraitTexture(officerId);
     public string BuildOfficerDetailText(OfficerData officer) => _owner.MilitaryBuildOfficerDetailText(officer);
     public string GetPortraitLabel() => _owner.MilitaryGetPortraitLabel();
+    public void ShowStrategicMapSelection(StrategicMapSelectionRequest request) =>
+        _owner.MilitaryShowStrategicMapSelection(request);
     public void ApplyCommandButtonTheme(Button button) => _owner.MilitaryApplyCommandButtonTheme(button);
     public UiEventHub UiEventHub => _owner.UiEventHub;
 

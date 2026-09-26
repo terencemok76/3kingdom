@@ -11,6 +11,7 @@ internal sealed class MainHudUiController
     private readonly CityInfoPanelController _cityInfoPanelController;
     private readonly LogPanelController _logPanelController;
     private readonly TestToolsDialogController _testToolsDialogController;
+    private readonly StrategicMapDialogController _strategicMapDialogController;
 
     public MainHudUiController(HudController owner)
     {
@@ -20,6 +21,7 @@ internal sealed class MainHudUiController
         _cityInfoPanelController = new CityInfoPanelController(_context);
         _logPanelController = new LogPanelController(_context);
         _testToolsDialogController = new TestToolsDialogController(_context);
+        _strategicMapDialogController = new StrategicMapDialogController(_context);
     }
 
     public void Initialize()
@@ -28,6 +30,7 @@ internal sealed class MainHudUiController
         _cityInfoPanelController.Initialize();
         _logPanelController.Initialize();
         _testToolsDialogController.Initialize();
+        _strategicMapDialogController.Initialize();
         _uiEventHub.CityStateChanged += OnWorldStateChanged;
         _uiEventHub.OfficerStateChanged += OnWorldStateChanged;
         _uiEventHub.OfficerAppointmentsChanged += OnWorldStateChanged;
@@ -51,13 +54,18 @@ internal sealed class MainHudUiController
         _cityInfoPanelController.RefreshText();
         _logPanelController.RefreshText();
         _testToolsDialogController.RefreshText();
+        _strategicMapDialogController.RefreshText();
     }
 
     public void ShowTestToolsDialog() => _testToolsDialogController.Show();
+    public void ShowStrategicMapDialog() => _strategicMapDialogController.Show();
+    public void ShowStrategicMapSelection(StrategicMapSelectionRequest request) =>
+        _strategicMapDialogController.ShowSelection(request);
 
     public void RefreshSelectedCity()
     {
         _cityInfoPanelController.RefreshSelectedCity();
+        _strategicMapDialogController.RefreshSelectedCity();
     }
 
     public void RefreshMonth()

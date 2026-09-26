@@ -44,6 +44,7 @@ internal sealed class CityInfoPanelController
     private bool _civilButtonConnected;
     private bool _attackButtonConnected;
     private bool _viewButtonConnected;
+    private bool _strategicMapButtonConnected;
     private bool _testCaptureButtonConnected;
 
     public CityInfoPanelController(MainHudUiContext context)
@@ -116,6 +117,7 @@ internal sealed class CityInfoPanelController
         SetButtonText(_context.CivilButton, localization.T("ui.civil"));
         SetButtonText(_context.AttackButton, localization.T("ui.attack"));
         SetButtonText(_context.ViewButton, localization.T("ui.view"));
+        SetButtonText(_context.StrategicMapButton, localization.T("ui.strategic_map.title"));
         SetButtonText(_context.TestCaptureButton, localization.IsTraditionalChinese ? "測試俘虜" : "Test Capture");
 
         if (_context.MoveButton != null)
@@ -397,6 +399,7 @@ internal sealed class CityInfoPanelController
                      _context.CivilButton,
                      _context.AttackButton,
                      _context.ViewButton,
+                     _context.StrategicMapButton,
                      _context.TestCaptureButton
                  })
         {
@@ -487,6 +490,7 @@ internal sealed class CityInfoPanelController
         ConnectButton(_context.CivilButton, ref _civilButtonConnected, OnCivilButtonPressed);
         ConnectButton(_context.AttackButton, ref _attackButtonConnected, OnAttackButtonPressed);
         ConnectButton(_context.ViewButton, ref _viewButtonConnected, OnViewButtonPressed);
+        ConnectButton(_context.StrategicMapButton, ref _strategicMapButtonConnected, OnStrategicMapButtonPressed);
         ConnectButton(_context.TestCaptureButton, ref _testCaptureButtonConnected, OnTestCaptureButtonPressed);
     }
 
@@ -504,6 +508,7 @@ internal sealed class CityInfoPanelController
         DisconnectButton(_context.CivilButton, ref _civilButtonConnected, OnCivilButtonPressed);
         DisconnectButton(_context.AttackButton, ref _attackButtonConnected, OnAttackButtonPressed);
         DisconnectButton(_context.ViewButton, ref _viewButtonConnected, OnViewButtonPressed);
+        DisconnectButton(_context.StrategicMapButton, ref _strategicMapButtonConnected, OnStrategicMapButtonPressed);
         DisconnectButton(_context.TestCaptureButton, ref _testCaptureButtonConnected, OnTestCaptureButtonPressed);
     }
 
@@ -541,5 +546,6 @@ internal sealed class CityInfoPanelController
     private void OnCivilButtonPressed() => _context.OpenCivil();
     private void OnAttackButtonPressed() => _context.OpenAttack();
     private void OnViewButtonPressed() => _context.OpenView();
+    private void OnStrategicMapButtonPressed() => _context.OpenStrategicMap();
     private void OnTestCaptureButtonPressed() => _context.OpenTestCapture();
 }

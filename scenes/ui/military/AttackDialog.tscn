@@ -152,6 +152,12 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="TargetCityMapButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TargetCityRow"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+focus_mode = 0
+text = "地圖"
+
 [node name="DefenderPlanRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 visible = false
 layout_mode = 2

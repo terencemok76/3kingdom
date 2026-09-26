@@ -7,6 +7,23 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.Map;
 
+public enum StrategicMapLayer
+{
+    Faction,
+    Diplomacy,
+    Military,
+    Development
+}
+
+public enum StrategicMapFactionFilter
+{
+    All,
+    Self,
+    Friendly,
+    Enemy,
+    Neutral
+}
+
 public partial class MapController : Node2D
 {
     private const float FrameOuterInset = 10.0f;
@@ -144,6 +161,9 @@ public partial class MapController : Node2D
     private LocalizationService? _localization;
     private WorldState? _world;
     private int _selectedCityId = -1;
+    private StrategicMapLayer _strategicMapLayer = StrategicMapLayer.Faction;
+    private StrategicMapFactionFilter _strategicMapFactionFilter = StrategicMapFactionFilter.All;
+    private bool _isStrategicMapPresentationActive;
 
     private bool _isDragging;
     private Vector2 _lastMousePosition;
@@ -319,6 +339,14 @@ public partial class MapController : Node2D
         SelectCity(cityId);
     }
 
+    public void SetStrategicMapPresentation(StrategicMapLayer layer, StrategicMapFactionFilter factionFilter, bool active)
+    {
+        _strategicMapLayer = layer;
+        _strategicMapFactionFilter = factionFilter;
+        _isStrategicMapPresentationActive = active;
+        RefreshStrategicMapPresentation();
+    }
+
     private void HandleMouseButton(InputEventMouseButton mouseButton)
     {
         if (mouseButton.ButtonIndex == MouseButton.Right)
@@ -392,6 +420,7 @@ public partial class MapController : Node2D
 
         if (selected != null)
         {
+            RefreshStrategicMapPresentation();
             CitySelected?.Invoke(selected);
         }
     }
@@ -452,6 +481,62 @@ public partial class MapController : Node2D
 
         var cityName = _localization.GetCityName(city);
         return $"{cityName}({city.Id})";
+    }
+
+    private void RefreshStrategicMapPresentation()
+    {
+        var playerFactionId = _world?.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? -1;
+        foreach (var entry in _cityNodes)
+        {
+            var isEmphasized = !_isStrategicMapPresentationActive || MatchesStrategicFactionFilter(entry.City, playerFactionId);
+            entry.Node.SetStrategicMapPresentation(isEmphasized, _isStrategicMapPresentationActive
+                ? BuildStrategicDetailLabel(entry.City)
+                : string.Empty);
+        }
+
+        _routesLayer?.GetNodeOrNull<RouteRenderer>("RouteRenderer")?.SetHighlightedCity(
+            _isStrategicMapPresentationActive ? _selectedCityId : -1);
+    }
+
+    private bool MatchesStrategicFactionFilter(CityData city, int playerFactionId)
+    {
+        return _strategicMapFactionFilter switch
+        {
+            StrategicMapFactionFilter.Self => city.OwnerFactionId == playerFactionId,
+            StrategicMapFactionFilter.Friendly => IsFriendlyFaction(city.OwnerFactionId, playerFactionId),
+            StrategicMapFactionFilter.Enemy => city.OwnerFactionId > 0 && city.OwnerFactionId != playerFactionId,
+            StrategicMapFactionFilter.Neutral => city.OwnerFactionId <= 0,
+            _ => true
+        };
+    }
+
+    private bool IsFriendlyFaction(int factionId, int playerFactionId)
+    {
+        if (_world == null || factionId <= 0 || factionId == playerFactionId)
+        {
+            return false;
+        }
+
+        var relation = _world.GetDiplomacyRelation(playerFactionId, factionId);
+        return relation?.Status == DiplomacyStatusType.Alliance ||
+               (relation?.Status != DiplomacyStatusType.Truce && (relation?.RelationScore ?? 0) > 0);
+    }
+
+    private string BuildStrategicDetailLabel(CityData city)
+    {
+        return _strategicMapLayer switch
+        {
+            StrategicMapLayer.Military => _localization?.Format(
+                "fmt.strategic_map.detail.military",
+                city.Troops,
+                city.Defense) ?? string.Empty,
+            StrategicMapLayer.Development => _localization?.Format(
+                "fmt.strategic_map.detail.development",
+                city.Farm,
+                city.Commercial,
+                city.Population) ?? string.Empty,
+            _ => string.Empty
+        };
     }
 
     private bool HasActiveCampaign(CityData city)

@@ -1,0 +1,165 @@
+[gd_scene format=3]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog_panel"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+bg_color = Color(0.08, 0.08, 0.1, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.72, 0.61, 0.4, 0.9)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_bar"]
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+bg_color = Color(0.15, 0.13, 0.11, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.48, 0.39, 0.24, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map_frame"]
+content_margin_left = 5.0
+content_margin_top = 5.0
+content_margin_right = 5.0
+content_margin_bottom = 5.0
+bg_color = Color(0.07, 0.07, 0.065, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.48, 0.39, 0.24, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="StrategicMapDialogOverlay" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(980, 720)
+offset_right = 980.0
+offset_bottom = 720.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
+
+[node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_title_bar")
+
+[node name="TitleBar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel"]
+layout_mode = 2
+mouse_filter = 0
+
+[node name="TitleSpacerLeft" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+text = "策略地圖"
+horizontal_alignment = 1
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
+
+[node name="TitleSpacerRight" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="CloseButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+layout_mode = 2
+custom_minimum_size = Vector2(28, 22)
+focus_mode = 0
+text = "X"
+
+[node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+autowrap_mode = 3
+text = "策略地圖"
+
+[node name="FiltersRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LayerOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FiltersRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="FactionFilterOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FiltersRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SimpleMapFrame" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+custom_minimum_size = Vector2(940, 540)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_map_frame")
+
+[node name="MapViewport" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/SimpleMapFrame"]
+layout_mode = 2
+mouse_filter = 1
+
+[node name="BottomRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SelectedDetailLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/BottomRow"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "點選地圖上的城市查看資料。"
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
+
+[node name="CancelSelectionButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/BottomRow"]
+visible = false
+custom_minimum_size = Vector2(92, 28)
+layout_mode = 2
+focus_mode = 0
+text = "取消"
+
+[node name="ConfirmSelectionButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/BottomRow"]
+visible = false
+custom_minimum_size = Vector2(92, 28)
+layout_mode = 2
+focus_mode = 0
+text = "確認"

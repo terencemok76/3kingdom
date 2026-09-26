@@ -61,6 +61,8 @@ public partial class HudController
     internal Texture2D? MilitaryBuildOfficerPortraitTexture(int officerId) => BuildOfficerPortraitTexture(officerId);
     internal string MilitaryBuildOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer);
     internal string MilitaryGetPortraitLabel() => _localization?.T("ui.portrait") ?? "Portrait";
+    internal void MilitaryShowStrategicMapSelection(StrategicMapSelectionRequest request) =>
+        _mainHudUiController?.ShowStrategicMapSelection(request);
 
     internal void MilitaryApplyCommandButtonTheme(Button button)
     {

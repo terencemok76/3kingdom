@@ -14,7 +14,14 @@ public partial class RouteRenderer : Node2D
 
     private readonly List<RouteVisual> _routes = new();
 
-    private readonly record struct RouteVisual(Vector2[] Points, bool IsSeaRoute);
+    private readonly record struct RouteVisual(int FromCityId, int ToCityId, Vector2[] Points, bool IsSeaRoute);
+    private int _highlightedCityId = -1;
+
+    public void SetHighlightedCity(int cityId)
+    {
+        _highlightedCityId = cityId;
+        QueueRedraw();
+    }
 
     public void Bind(WorldState world)
     {
@@ -39,7 +46,7 @@ public partial class RouteRenderer : Node2D
                 }
 
                 var isSeaRoute = IsSeaRoute(city.Id, target.Id);
-                _routes.Add(new RouteVisual(points, isSeaRoute));
+                _routes.Add(new RouteVisual(city.Id, target.Id, points, isSeaRoute));
             }
         }
 
@@ -50,16 +57,20 @@ public partial class RouteRenderer : Node2D
     {
         foreach (var route in _routes)
         {
+            var isHighlighted = _highlightedCityId > 0 &&
+                (route.FromCityId == _highlightedCityId || route.ToCityId == _highlightedCityId);
+            var isDimmed = _highlightedCityId > 0 && !isHighlighted;
             if (route.IsSeaRoute)
             {
-                DrawSeaRoute(route);
+                DrawSeaRoute(route, isHighlighted, isDimmed);
                 continue;
             }
 
-            var shadowColor = new Color("2a2016", 0.36f);
-            var baseColor = new Color("725638", 0.94f);
-            var topColor = new Color("d7b57d", 0.98f);
-            var highlightColor = new Color("f7e5ba", 0.78f);
+            var alpha = isDimmed ? 0.18f : 1.0f;
+            var shadowColor = new Color("2a2016", 0.36f * alpha);
+            var baseColor = new Color("725638", 0.94f * alpha);
+            var topColor = new Color(isHighlighted ? "f0ad45" : "d7b57d", isHighlighted ? 1.0f : 0.98f * alpha);
+            var highlightColor = new Color(isHighlighted ? "fff0b5" : "f7e5ba", isHighlighted ? 1.0f : 0.78f * alpha);
             const float shadowWidth = 6.6f;
             const float baseWidth = 4.9f;
             const float topWidth = 2.8f;
@@ -178,11 +189,12 @@ public partial class RouteRenderer : Node2D
         return (fromCityId == a && toCityId == b) || (fromCityId == b && toCityId == a);
     }
 
-    private void DrawSeaRoute(RouteVisual route)
+    private void DrawSeaRoute(RouteVisual route, bool isHighlighted, bool isDimmed)
     {
-        var shadowColor = new Color("233245", 0.26f);
-        var wakeColor = new Color("7f8f9b", 0.80f);
-        var foamColor = new Color("e8e1cb", 0.92f);
+        var alpha = isDimmed ? 0.18f : 1.0f;
+        var shadowColor = new Color("233245", 0.26f * alpha);
+        var wakeColor = new Color(isHighlighted ? "e1a94e" : "7f8f9b", isHighlighted ? 1.0f : 0.80f * alpha);
+        var foamColor = new Color("e8e1cb", isHighlighted ? 1.0f : 0.92f * alpha);
         DrawDashedPolyline(route.Points, shadowColor, 5.8f, 13.0f, 8.0f);
         DrawDashedPolyline(route.Points, wakeColor, 3.8f, 13.0f, 8.0f);
         DrawDashedPolyline(route.Points, foamColor, 1.8f, 13.0f, 8.0f);

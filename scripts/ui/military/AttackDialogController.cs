@@ -4,6 +4,7 @@ using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -21,6 +22,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     // Engineers and equipment are battle-side support, never an officer's troop assignment.
     private BattleSupportDeploymentData _battleSupport = new();
     private OptionButton? _targetCityOption;
+    private Button? _targetCityMapButton;
     private Button? _attackAdviceButton;
     private HBoxContainer? _defenderPlanRow;
     private Label? _defenderPlanLabel;
@@ -45,6 +47,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private bool _officerListGuiInputConnected;
     private bool _confirmButtonSignalsConnected;
     private bool _targetCitySignalsConnected;
+    private bool _targetCityMapSignalsConnected;
     private bool _attackAdviceSignalsConnected;
     private string _lastSelectionSignature = string.Empty;
     private int _warningAcknowledgedTargetCityId = -1;
@@ -95,6 +98,12 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
 
         SetLabelText("TargetCityLabel", isDefenseMode ? _context.Localization.T("ui.attack") : _context.Localization.T("ui.target_city"));
+        if (_targetCityMapButton != null)
+        {
+            _targetCityMapButton.Text = _context.Localization.T("ui.strategic_map.open_selector");
+            _targetCityMapButton.Visible = !isDefenseMode;
+            _targetCityMapButton.Disabled = isDefenseMode || _targetCityOption?.ItemCount == 0;
+        }
         SetLabelText("TroopsLabel", _context.Localization.T("ui.attack_troops"));
         SetLabelText("GoldLabel", _context.Localization.T("ui.attack_gold"));
         SetLabelText("FoodLabel", _context.Localization.T("ui.attack_food"));
@@ -265,6 +274,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _targetCityOption = root.GetNodeOrNull<OptionButton>("TargetCityRow/TargetCityOption");
+        _targetCityMapButton = root.GetNodeOrNull<Button>("TargetCityRow/TargetCityMapButton");
         _attackAdviceButton = root.GetNodeOrNull<Button>("ConfirmRow/AttackAdviceButton");
         _defenderPlanRow = root.GetNodeOrNull<HBoxContainer>("DefenderPlanRow");
         _defenderPlanLabel = root.GetNodeOrNull<Label>("DefenderPlanRow/DefenderPlanLabel");
@@ -294,6 +304,11 @@ internal sealed class AttackDialogController : FloatingOverlayController
         if (_attackAdviceButton != null)
         {
             _context.ApplyCommandButtonTheme(_attackAdviceButton);
+        }
+
+        if (_targetCityMapButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_targetCityMapButton);
         }
 
         if (_officerList != null)
@@ -342,6 +357,11 @@ internal sealed class AttackDialogController : FloatingOverlayController
         {
             _targetCityOption.ItemSelected += OnTargetCitySelected;
             _targetCitySignalsConnected = true;
+        }
+        if (!_targetCityMapSignalsConnected && _targetCityMapButton != null)
+        {
+            _targetCityMapButton.Pressed += OnTargetCityMapPressed;
+            _targetCityMapSignalsConnected = true;
         }
         if (!_attackAdviceSignalsConnected && _attackAdviceButton != null)
         {
@@ -1636,6 +1656,60 @@ internal sealed class AttackDialogController : FloatingOverlayController
         if (_dialogMode == DialogMode.Attack)
         {
             RefreshText();
+        }
+    }
+
+    private void OnTargetCityMapPressed()
+    {
+        if (_dialogMode != DialogMode.Attack || _targetCityOption == null)
+        {
+            return;
+        }
+
+        var candidateIds = Enumerable.Range(0, _targetCityOption.ItemCount)
+            .Select(index => _targetCityOption.GetItemMetadata(index))
+            .Where(metadata => metadata.VariantType == Variant.Type.Int)
+            .Select(metadata => metadata.AsInt32())
+            .ToList();
+        if (candidateIds.Count == 0)
+        {
+            return;
+        }
+
+        _context.ShowStrategicMapSelection(new StrategicMapSelectionRequest
+        {
+            TitleKey = "ui.strategic_map.select_attack_title",
+            PromptKey = "ui.strategic_map.select_attack_prompt",
+            Layer = StrategicMapLayer.Military,
+            FactionFilter = StrategicMapFactionFilter.Enemy,
+            SelectableCityIds = candidateIds,
+            SourceCityId = _dialogContextCity?.Id ?? _context.SelectedCity?.Id ?? 0,
+            InitialCityId = GetSelectedTargetCity()?.Id ?? candidateIds[0],
+            UseAttackTooltip = true,
+            Confirmed = SelectTargetCityFromMap
+        });
+    }
+
+    private void SelectTargetCityFromMap(int cityId)
+    {
+        if (_targetCityOption == null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _targetCityOption.ItemCount; index += 1)
+        {
+            var metadata = _targetCityOption.GetItemMetadata(index);
+            if (metadata.VariantType != Variant.Type.Int || metadata.AsInt32() != cityId)
+            {
+                continue;
+            }
+
+            _targetCityOption.Select(index);
+            OnTargetCitySelected(index);
+            RefreshText();
+            BringOverlayToFront();
+            return;
         }
     }
 
