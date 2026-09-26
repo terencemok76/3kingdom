@@ -121,16 +121,16 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(350, 190)
+custom_minimum_size = Vector2(620, 350)
 offset_left = 0.0
 offset_top = 0.0
-offset_right = 350.0
-offset_bottom = 190.0
+offset_right = 620.0
+offset_bottom = 350.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(320, 150)
+custom_minimum_size = Vector2(590, 310)
 layout_mode = 2
 theme_override_constants/separation = 10
 
@@ -168,6 +168,15 @@ theme_override_colors/font_color = Color(0.12, 0.09, 0.05, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
+
+[node name="MarketTable" type="Tree" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+custom_minimum_size = Vector2(0, 115)
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 6
+hide_root = true
+column_titles_visible = true
+select_mode = 1
 
 [node name="TradeModeRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
@@ -209,6 +218,11 @@ step = 100.0
 rounded = true
 theme_override_styles/normal = SubResource("StyleBoxFlat_input_normal")
 theme_override_styles/focus = SubResource("StyleBoxFlat_input_focus")
+
+[node name="AmountMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FoodRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
 
 [node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

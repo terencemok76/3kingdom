@@ -123,6 +123,18 @@
                                       "zhHant":  "預覽：糧 -{0}，金 +{1}",
                                       "en":  "Preview: Food -{0}, Gold +{1}"
                                   },
+    "fmt.merchant_trade_preview":  {
+                                        "zhHant":  "{0} {1}｜單價 {2}／批｜城市 {3}/{4}｜商人庫存 {5}｜本次 {6}，金 {7}",
+                                        "en":  "{0} {1} | Unit {2}/lot | City {3}/{4} | Merchant Stock {5} | This Trade {6}, Gold {7}"
+                                    },
+    "fmt.merchant_buy_total_preview":  {
+                                            "zhHant":  "城市庫存 {0}/{1}｜商人庫存 {2}｜交易數量 {3}｜總成本 {4}",
+                                            "en":  "City Stock {0}/{1} | Merchant Stock {2} | Quantity {3} | Total Cost {4}"
+                                        },
+    "fmt.merchant_sell_total_preview":  {
+                                             "zhHant":  "城市庫存 {0}/{1}｜商人庫存 {2}｜交易數量 {3}｜總回報 {4}",
+                                             "en":  "City Stock {0}/{1} | Merchant Stock {2} | Quantity {3} | Total Payback {4}"
+                                         },
     "fmt.month_advanced":  {
                                "zhHant":  "新月份：{0}年 {1}月",
                                "en":  "New month: Year {0} Month {1}"

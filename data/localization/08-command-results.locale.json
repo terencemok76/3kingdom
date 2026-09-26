@@ -678,6 +678,22 @@
                                       "zhHant":  "「{0}」賣糧成功。糧 -{1}，金 +{2}。",
                                       "en":  "\"{0}\" sold food. Food-{1}, Gold+{2}."
                                   },
+    "cmd.merchant.buy_product_success":  {
+                                              "zhHant":  "「{0}」買入{2}成功。金 -{1}，{2} +{3}。",
+                                              "en":  "\"{0}\" bought {2}. Gold-{1}, {2}+{3}."
+                                          },
+    "cmd.merchant.sell_product_success":  {
+                                               "zhHant":  "「{0}」賣出{1}成功。{1} -{2}，金 +{3}。",
+                                               "en":  "\"{0}\" sold {1}. {1}-{2}, Gold+{3}."
+                                           },
+    "cmd.merchant.not_enough_product":  {
+                                             "zhHant":  "「{0}」沒有足夠商品可賣。",
+                                             "en":  "\"{0}\" does not have enough product to sell."
+                                         },
+    "cmd.merchant.stock_or_capacity_full":  {
+                                                 "zhHant":  "商人庫存不足，或城市倉儲空間不足。",
+                                                 "en":  "The merchant lacks stock, or the city lacks storage capacity."
+                                             },
     "cmd.move.cancelled":  {
                                "zhHant":  "「{0}」的移動命令已取消，目標「{1}」已不符合條件。",
                                "en":  "\"{0}\" move order to \"{1}\" was cancelled."

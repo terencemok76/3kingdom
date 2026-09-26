@@ -194,6 +194,7 @@ public class TurnManager
 
         foreach (var city in World.Cities)
         {
+            MarketRules.RefreshMonthlyMarket(city);
             var loyaltyFactor = 0.8f + city.Loyalty / 200.0f;
             var goldIncome = (int)((30 + city.Commercial * 2.0f) * loyaltyFactor);
             var foodIncome = (int)((40 + city.Farm * 3.0f) * loyaltyFactor);

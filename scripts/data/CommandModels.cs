@@ -127,7 +127,10 @@ public enum MerchantTradeMode
 {
     BuyFood,
     SellFood,
-    BuyHorse
+    BuyHorse,
+    SellHorse,
+    BuyMetal,
+    SellMetal
 }
 
 public enum CapturedOfficerDisposition

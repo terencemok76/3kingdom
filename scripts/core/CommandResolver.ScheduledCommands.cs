@@ -417,49 +417,38 @@ public partial class CommandResolver
     private CommandResult ExecuteMerchant(WorldState world, CityData city, CommandRequest request)
     {
         var amount = request.FoodToSend;
-        if (request.MerchantTradeMode == MerchantTradeMode.BuyHorse)
+        var (product, isSelling) = request.MerchantTradeMode switch
         {
-            if (amount <= 0 || amount % MerchantHorsePerTrade != 0)
-            {
-                return LocalizedResult(false, "cmd.merchant.invalid_amount", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
-            }
-
-            var goldCost = amount / MerchantHorsePerTrade * MerchantGoldPerHorseTrade;
-            if (city.Gold < goldCost)
-            {
-                return LocalizedResult(false, "cmd.merchant.not_enough_gold", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
-            }
-
-            city.Gold -= goldCost;
-            city.Horses += amount;
-            return LocalizedResult(
-                true,
-                "cmd.merchant.buy_horse_success",
-                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), goldCost, amount },
-                new object[] { GetCityName(city, GameLanguage.English), goldCost, amount });
-        }
-
-        var foodAmount = amount;
-        if (foodAmount <= 0 || foodAmount % MerchantFoodPerTrade != 0)
+            MerchantTradeMode.SellFood => (MarketProductType.Food, true),
+            MerchantTradeMode.BuyHorse => (MarketProductType.Horse, false),
+            MerchantTradeMode.SellHorse => (MarketProductType.Horse, true),
+            MerchantTradeMode.BuyMetal => (MarketProductType.Metal, false),
+            MerchantTradeMode.SellMetal => (MarketProductType.Metal, true),
+            _ => (MarketProductType.Food, false)
+        };
+        var lotSize = MarketRules.GetTradeLotSize(product);
+        if (amount <= 0 || amount % lotSize != 0)
         {
             return LocalizedResult(false, "cmd.merchant.invalid_amount", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
-        var goldAmount = foodAmount / MerchantFoodPerTrade * MerchantGoldPerTrade;
-        if (request.SellFood)
+        MarketRules.EnsureMarketInitialized(city);
+        var goldAmount = amount * (isSelling ? MarketRules.GetSellUnitPrice(city, product) : MarketRules.GetBuyUnitPrice(city, product));
+        if (isSelling)
         {
-            if (city.Food < foodAmount)
+            if (MarketRules.GetAmount(city, product) < amount)
             {
-                return LocalizedResult(false, "cmd.merchant.not_enough_food", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+                return LocalizedResult(false, "cmd.merchant.not_enough_product", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
             }
 
-            city.Food -= foodAmount;
+            MarketRules.SetAmount(city, product, MarketRules.GetAmount(city, product) - amount);
+            MarketRules.SetMerchantStock(city, product, MarketRules.GetMerchantStock(city, product) + amount);
             city.Gold += goldAmount;
             return LocalizedResult(
                 true,
-                "cmd.merchant.sell_success",
-                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), foodAmount, goldAmount },
-                new object[] { GetCityName(city, GameLanguage.English), foodAmount, goldAmount });
+                "cmd.merchant.sell_product_success",
+                new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetMarketProductName(product, GameLanguage.TraditionalChinese), amount, goldAmount },
+                new object[] { GetCityName(city, GameLanguage.English), GetMarketProductName(product, GameLanguage.English), amount, goldAmount });
         }
 
         if (city.Gold < goldAmount)
@@ -467,14 +456,30 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.merchant.not_enough_gold", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }
 
+        if (MarketRules.GetMerchantStock(city, product) < amount || MarketRules.GetAvailableCapacity(city, product) < amount)
+        {
+            return LocalizedResult(false, "cmd.merchant.stock_or_capacity_full", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
         city.Gold -= goldAmount;
-        city.Food += foodAmount;
+        MarketRules.SetMerchantStock(city, product, MarketRules.GetMerchantStock(city, product) - amount);
+        MarketRules.SetAmount(city, product, MarketRules.GetAmount(city, product) + amount);
         return LocalizedResult(
             true,
-            "cmd.merchant.buy_success",
-            new object[] { GetCityName(city, GameLanguage.TraditionalChinese), goldAmount, foodAmount },
-            new object[] { GetCityName(city, GameLanguage.English), goldAmount, foodAmount });
+            "cmd.merchant.buy_product_success",
+            new object[] { GetCityName(city, GameLanguage.TraditionalChinese), goldAmount, GetMarketProductName(product, GameLanguage.TraditionalChinese), amount },
+            new object[] { GetCityName(city, GameLanguage.English), goldAmount, GetMarketProductName(product, GameLanguage.English), amount });
     }
+
+    private static string GetMarketProductName(MarketProductType product, GameLanguage language) => (product, language) switch
+    {
+        (MarketProductType.Food, GameLanguage.TraditionalChinese) => "糧食",
+        (MarketProductType.Horse, GameLanguage.TraditionalChinese) => "馬匹",
+        (MarketProductType.Metal, GameLanguage.TraditionalChinese) => "金屬",
+        (MarketProductType.Food, _) => "Food",
+        (MarketProductType.Horse, _) => "Horses",
+        _ => "Metal"
+    };
 
     private CommandResult ScheduleAttack(WorldState world, CityData sourceCity, CommandRequest request)
     {

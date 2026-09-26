@@ -7,6 +7,47 @@
 						 "zhHant":  "買馬",
 						 "en":  "Buy Horse"
 					 },
+	"ui.sell_horse":  {
+						  "zhHant":  "賣馬",
+						  "en":  "Sell Horse"
+					  },
+	"ui.buy_metal":  {
+						 "zhHant":  "買金屬",
+						 "en":  "Buy Metal"
+					 },
+	"ui.sell_metal":  {
+						  "zhHant":  "賣金屬",
+						  "en":  "Sell Metal"
+					  },
+	"ui.market_product": { "zhHant": "商品", "en": "Product" },
+	"ui.market_buy": { "zhHant": "買入價", "en": "Buy" },
+	"ui.market_sell": { "zhHant": "賣出價", "en": "Sell" },
+	"ui.market_previous": { "zhHant": "上月", "en": "Last Month" },
+	"ui.market_change": { "zhHant": "變動", "en": "Change" },
+	"ui.market_status": { "zhHant": "市場狀態", "en": "Market Status" },
+	"ui.market_status.surplus": { "zhHant": "充足", "en": "Surplus" },
+	"ui.market_status.normal": { "zhHant": "一般", "en": "Normal" },
+	"ui.market_status.shortage": { "zhHant": "短缺", "en": "Shortage" },
+	"ui.buy":  {
+					 "zhHant":  "買入",
+					 "en":  "Buy"
+				 },
+	"ui.sell":  {
+					  "zhHant":  "賣出",
+					  "en":  "Sell"
+				  },
+	"product.food":  {
+						 "zhHant":  "糧食",
+						 "en":  "Food"
+					 },
+	"product.horse":  {
+						  "zhHant":  "馬匹",
+						  "en":  "Horses"
+					  },
+	"product.metal":  {
+						  "zhHant":  "金屬",
+						  "en":  "Metal"
+					  },
 	"ui.civil_command":  {
 							 "zhHant":  "民事指令",
 							 "en":  "Civil Command"

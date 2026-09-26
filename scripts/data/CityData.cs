@@ -21,6 +21,20 @@ public class CityData
     public int Gold { get; set; }
     public int Food { get; set; }
     public int Horses { get; set; }
+    public int Metal { get; set; }
+    public int FoodStorageCapacity { get; set; }
+    public int HorseStorageCapacity { get; set; }
+    public int MetalStorageCapacity { get; set; }
+    public int MerchantFoodStock { get; set; }
+    public int MerchantHorseStock { get; set; }
+    public int MerchantMetalStock { get; set; }
+    public bool MarketInitialized { get; set; }
+    public int PreviousFoodBuyPrice { get; set; }
+    public int PreviousHorseBuyPrice { get; set; }
+    public int PreviousMetalBuyPrice { get; set; }
+    public int LastFoodBuyPrice { get; set; }
+    public int LastHorseBuyPrice { get; set; }
+    public int LastMetalBuyPrice { get; set; }
     public int Population { get; set; }
     public int BowWorkshopLevel { get; set; }
     public int BowWorkshopProgress { get; set; }

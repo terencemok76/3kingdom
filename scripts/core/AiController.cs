@@ -349,6 +349,11 @@ public class AiController
         }
 
         var coreResults = new System.Collections.Generic.List<CommandResult>();
+        var merchantResult = TryIssueMarketTrade(city, factionId);
+        if (merchantResult != null)
+        {
+            coreResults.Add(merchantResult);
+        }
         var recruitOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Charm + officer.Leadership);
         var internalAffairsOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Politics + officer.Charm);
         var searchOfficerId = GetBestOfficerId(world, city, availableOfficerIds, officer => officer.Intelligence + officer.Charm);
@@ -489,6 +494,48 @@ public class AiController
             MessageZhHant = messagesZh.Count > 0 ? string.Join(" | ", messagesZh) : (_localization?.TForLanguage(GameLanguage.TraditionalChinese, "cmd.pass") ?? "Pass"),
             MessageEn = messagesEn.Count > 0 ? string.Join(" | ", messagesEn) : (_localization?.TForLanguage(GameLanguage.English, "cmd.pass") ?? "Pass")
         };
+    }
+
+    private CommandResult? TryIssueMarketTrade(CityData city, int factionId)
+    {
+        if (_commandResolver == null)
+        {
+            return null;
+        }
+
+        MarketRules.EnsureMarketInitialized(city);
+        var product = MarketProductType.Food;
+        var lotSize = MarketRules.GetTradeLotSize(product);
+        var amount = MarketRules.GetAmount(city, product);
+        var capacity = MarketRules.GetCapacity(city, product);
+        if (amount < capacity / 4 &&
+            MarketRules.GetMerchantStock(city, product) >= lotSize &&
+            MarketRules.GetAvailableCapacity(city, product) >= lotSize &&
+            city.Gold >= MarketRules.GetBuyUnitPrice(city, product) * lotSize)
+        {
+            return _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Merchant,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                FoodToSend = lotSize,
+                MerchantTradeMode = MerchantTradeMode.BuyFood
+            });
+        }
+
+        if (amount > capacity * 3 / 4)
+        {
+            return _commandResolver.Execute(new CommandRequest
+            {
+                Type = CommandType.Merchant,
+                ActorFactionId = factionId,
+                SourceCityId = city.Id,
+                FoodToSend = lotSize,
+                MerchantTradeMode = MerchantTradeMode.SellFood
+            });
+        }
+
+        return null;
     }
 
     private CommandResult CombineResults(System.Collections.Generic.List<CommandResult> results)
