@@ -30,13 +30,7 @@ public partial class HudController
             return true;
         }
 
-        var playerFactionId = _turnManager.GetPlayerFactionId();
-        if (city.OwnerFactionId == playerFactionId)
-        {
-            return true;
-        }
-
-        return _turnManager.World.HasActiveCityIntel(playerFactionId, city.Id);
+        return _turnManager.World.CanFactionViewCity(_turnManager.GetPlayerFactionId(), city.Id);
     }
 
     private bool CanViewOfficerFullInformation(OfficerData? officer)

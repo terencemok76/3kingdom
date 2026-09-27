@@ -28,6 +28,16 @@ public sealed class MerchantUiController
         _dialogController.RefreshText();
     }
 
+    public void RefreshSelectedCity()
+    {
+        _dialogController.RefreshSelectedCity();
+    }
+
+    public void RefreshIfOpen()
+    {
+        _dialogController.RefreshIfOpen();
+    }
+
     public void ShowMerchantDialog()
     {
         _dialogController.Show();

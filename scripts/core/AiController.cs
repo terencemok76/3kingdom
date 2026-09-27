@@ -498,7 +498,9 @@ public class AiController
 
     private CommandResult? TryIssueMarketTrade(CityData city, int factionId)
     {
-        if (_commandResolver == null)
+        var world = _turnManager?.World;
+        if (_commandResolver == null || world == null ||
+            !MarketRules.CanFactionViewMerchantInfo(world, factionId, city))
         {
             return null;
         }

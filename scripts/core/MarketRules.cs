@@ -14,6 +14,10 @@ public enum MarketProductType
 // different price, capacity, or merchant-stock exception.
 public static class MarketRules
 {
+    // Shared non-debug visibility for player and AI: own city or an active spy report.
+    public static bool CanFactionViewMerchantInfo(WorldState world, int viewerFactionId, CityData city) =>
+        world.CanFactionViewCity(viewerFactionId, city.Id);
+
     public static int GetTradeLotSize(MarketProductType product) => product == MarketProductType.Food ? 100 : 10;
 
     public static int GetAmount(CityData city, MarketProductType product) => product switch
@@ -129,7 +133,17 @@ public static class MarketRules
         return Math.Max(1, basePrice * (100 + shortagePercent) / 100);
     }
 
+    public static int GetDisplayBuyUnitPrice(CityData city, MarketProductType product)
+    {
+        var basePrice = product switch { MarketProductType.Food => 10, MarketProductType.Horse => 20, MarketProductType.Metal => 30, _ => 10 };
+        var stock = GetDisplayMerchantStock(city, product);
+        var target = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4);
+        var shortagePercent = Math.Clamp((target - stock) * 60 / target, -25, 75);
+        return Math.Max(1, basePrice * (100 + shortagePercent) / 100);
+    }
+
     public static int GetSellUnitPrice(CityData city, MarketProductType product) => Math.Max(1, GetBuyUnitPrice(city, product) * 80 / 100);
+    public static int GetDisplaySellUnitPrice(CityData city, MarketProductType product) => Math.Max(1, GetDisplayBuyUnitPrice(city, product) * 80 / 100);
     public static int GetAvailableCapacity(CityData city, MarketProductType product) => Math.Max(0, GetCapacity(city, product) - GetAmount(city, product));
     public static int GetPreviousBuyPrice(CityData city, MarketProductType product) => product switch
     {
@@ -141,6 +155,13 @@ public static class MarketRules
     public static string GetStatusKey(CityData city, MarketProductType product)
     {
         var stock = GetMerchantStock(city, product);
+        var target = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4);
+        return stock < target / 2 ? "ui.market_status.shortage" : stock > target * 3 / 2 ? "ui.market_status.surplus" : "ui.market_status.normal";
+    }
+
+    public static string GetDisplayStatusKey(CityData city, MarketProductType product)
+    {
+        var stock = GetDisplayMerchantStock(city, product);
         var target = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4);
         return stock < target / 2 ? "ui.market_status.shortage" : stock > target * 3 / 2 ? "ui.market_status.surplus" : "ui.market_status.normal";
     }

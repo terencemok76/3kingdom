@@ -127,6 +127,14 @@
                                         "zhHant":  "{0} {1}｜單價 {2}／批｜城市 {3}/{4}｜商人庫存 {5}｜本次 {6}，金 {7}",
                                         "en":  "{0} {1} | Unit {2}/lot | City {3}/{4} | Merchant Stock {5} | This Trade {6}, Gold {7}"
                                     },
+    "fmt.merchant.title.available": {
+                                        "zhHant": "商人｜{0}",
+                                        "en": "Merchant | {0}"
+                                    },
+    "fmt.merchant.title.unavailable": {
+                                        "zhHant": "無商人駐留｜{0}",
+                                        "en": "No Merchant Present | {0}"
+                                    },
     "fmt.merchant_buy_total_preview":  {
                                             "zhHant":  "城市庫存 {0}/{1}｜商人庫存 {2}｜總成本 {3}",
                                             "en":  "City Stock {0}/{1} | Merchant Stock {2} | Total Cost {3}"

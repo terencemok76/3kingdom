@@ -340,8 +340,10 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
             StrategicMapLayer.Diplomacy => Format("fmt.strategic_map.detail.diplomacy", factionName, GetDiplomacyLabel(world, city)),
             StrategicMapLayer.Military when CanViewMilitaryIntel(world, city) => Format("fmt.strategic_map.detail.military", city.Troops, city.Defense),
             StrategicMapLayer.Military => T("ui.strategic_map.detail.military_unknown"),
-            StrategicMapLayer.Development => Format("fmt.strategic_map.detail.development", city.Farm, city.Commercial, city.Population),
+            StrategicMapLayer.Development when CanViewCityInformation(world, city) => Format("fmt.strategic_map.detail.development", city.Farm, city.Commercial, city.Population),
+            StrategicMapLayer.Development => T("ui.strategic_map.detail.development_unknown"),
             StrategicMapLayer.Event => BuildEventDetail(world, city),
+            StrategicMapLayer.Merchant when !CanViewMerchantInfo(city) => T("ui.strategic_map.merchant.unknown"),
             StrategicMapLayer.Merchant => city.HasMerchant
                 ? Format(
                     "fmt.strategic_map.detail.merchant",
@@ -351,12 +353,36 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
                 : T("ui.strategic_map.merchant.none"),
             _ => Format("fmt.strategic_map.detail.faction", factionName)
         };
+        detail = AppendIntelStatus(world, city, detail);
         var name = _context.Localization?.GetCityName(city) ?? city.Name;
         return Format("fmt.strategic_map.selected_detail", name, detail, city.ConnectedCityIds.Count);
     }
 
-    private bool CanViewMilitaryIntel(WorldState world, CityData city) =>
+    private string AppendIntelStatus(WorldState world, CityData city, string detail)
+    {
+        if (world.ViewAllInformationEnabled || city.OwnerFactionId == _context.PlayerFactionId)
+        {
+            return detail;
+        }
+
+        var intel = world.GetCityIntel(_context.PlayerFactionId, city.Id);
+        if (intel == null)
+        {
+            return detail;
+        }
+
+        return $"{detail}｜{Format("fmt.city_intel_duration", T("ui.city_intel"), intel.RemainingMonths)}";
+    }
+
+    private bool CanViewCityInformation(WorldState world, CityData city) =>
         world.ViewAllInformationEnabled || world.CanFactionViewCity(_context.PlayerFactionId, city.Id);
+
+    private bool CanViewMilitaryIntel(WorldState world, CityData city) => CanViewCityInformation(world, city);
+
+    private bool CanViewMerchantInfo(CityData city) =>
+        _context.World != null &&
+        (_context.World.ViewAllInformationEnabled ||
+         MarketRules.CanFactionViewMerchantInfo(_context.World, _context.PlayerFactionId, city));
 
     private string BuildEventDetail(WorldState world, CityData city) =>
         HasCurrentMonthlyEvent(world, city)

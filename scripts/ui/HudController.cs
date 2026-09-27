@@ -471,6 +471,7 @@ public partial class HudController : CanvasLayer
     public void RefreshMonth()
     {
         _mainHudUiController?.RefreshMonth();
+        _merchantUiController?.RefreshIfOpen();
     }
 
     public void AddLog(string message, bool isPlayerRelated = false)

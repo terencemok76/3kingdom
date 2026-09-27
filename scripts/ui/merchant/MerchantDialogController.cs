@@ -49,7 +49,13 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             return;
         }
 
-        SetOverlayTitleText(_context.Localization.T("ui.merchant"));
+        var city = _context.SelectedCity;
+        var cityName = city == null ? string.Empty : _context.Localization.GetCityName(city);
+        var canTrade = CanTradeAt(city);
+        var canViewMerchantInfo = CanViewMerchantInfo(city);
+        SetOverlayTitleText(!canViewMerchantInfo || city?.HasMerchant == true
+            ? _context.Localization.Format("fmt.merchant.title.available", cityName)
+            : _context.Localization.Format("fmt.merchant.title.unavailable", cityName));
         SetLabelText("TradeModeRow/TradeModeLabel", _context.Localization.T("ui.trade_mode"));
         SetLabelText("FoodRow/FoodLabel", _context.Localization.T("ui.trade_amount"));
         if (_amountMaxButton != null)
@@ -61,9 +67,32 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             _confirmButton.Text = _context.Localization.T("ui.confirm_merchant");
         }
 
+        if (city == null || !canViewMerchantInfo)
+        {
+            ShowMerchantUnavailable("ui.merchant.foreign_city");
+            return;
+        }
+
+        if (!city.HasMerchant)
+        {
+            ShowMerchantUnavailable("ui.merchant.unavailable");
+            return;
+        }
+
+        SetMerchantControlsEnabled(canTrade);
         RefreshTradeModeOptionTexts();
         PopulateMarketTable();
         UpdateSummary();
+    }
+
+    public void RefreshSelectedCity()
+    {
+        RefreshIfOpen();
+    }
+
+    public void RefreshIfOpen()
+    {
+        if (IsOverlayVisible) RefreshText();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -152,6 +181,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             return;
         }
 
+        SetMerchantControlsEnabled(true);
+
         _tradeModeOption.Clear();
         AddTradeOption("ui.buy", MerchantTradeMode.BuyFood);
         AddTradeOption("ui.sell", MerchantTradeMode.SellFood);
@@ -161,6 +192,65 @@ internal sealed class MerchantDialogController : FloatingOverlayController
 
         UpdateAmountRange();
         UpdateSummary();
+    }
+
+    private void ShowMerchantUnavailable(string messageKey)
+    {
+        if (_context.Localization == null)
+        {
+            return;
+        }
+
+        SetMerchantControlsEnabled(false);
+        if (_amountSpinBox != null)
+        {
+            _amountSpinBox.Value = 0;
+        }
+        if (_confirmButton != null)
+        {
+            _confirmButton.Disabled = true;
+        }
+        if (_summaryLabel != null)
+        {
+            _summaryLabel.Text = _context.Localization.T(messageKey);
+        }
+        if (_marketTable != null)
+        {
+            _marketTable.Clear();
+            _marketTable.Columns = 1;
+            _marketTable.SetColumnTitle(0, _context.Localization.T("ui.market_product"));
+            _marketTable.CreateItem().SetText(0, _context.Localization.T(messageKey));
+        }
+    }
+
+    private void SetMerchantControlsEnabled(bool enabled)
+    {
+        if (_tradeModeOption != null)
+        {
+            _tradeModeOption.Disabled = !enabled;
+        }
+        if (_amountSpinBox != null)
+        {
+            _amountSpinBox.Editable = enabled;
+        }
+        if (_amountMaxButton != null)
+        {
+            _amountMaxButton.Disabled = !enabled;
+        }
+    }
+
+    private bool CanTradeAt(CityData? city) => city?.HasMerchant == true && CanControlCity(city);
+
+    private bool CanControlCity(CityData? city) =>
+        city != null && city.OwnerFactionId == _context.TurnManager?.GetPlayerFactionId();
+
+    private bool CanViewMerchantInfo(CityData? city)
+    {
+        var world = _context.TurnManager?.World;
+        var playerFactionId = _context.TurnManager?.GetPlayerFactionId() ?? -1;
+        return city != null && world != null &&
+               (world.ViewAllInformationEnabled ||
+                MarketRules.CanFactionViewMerchantInfo(world, playerFactionId, city));
     }
 
     private void AddTradeOption(string localeKey, MerchantTradeMode tradeMode)
@@ -233,7 +323,10 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         }
 
         var city = _context.SelectedCity;
-        MarketRules.EnsureMarketInitialized(city);
+        if (CanTradeAt(city))
+        {
+            MarketRules.EnsureMarketInitialized(city);
+        }
         _marketTable.Clear();
         _marketTable.Columns = 6;
         var headers = new[] { "ui.market_product", "ui.market_buy", "ui.market_sell", "ui.market_previous", "ui.market_change", "ui.market_status" };
@@ -258,15 +351,15 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         foreach (var product in Enum.GetValues<MarketProductType>())
         {
             var row = _marketTable.CreateItem(root);
-            var current = MarketRules.GetBuyUnitPrice(city, product);
+            var current = MarketRules.GetDisplayBuyUnitPrice(city, product);
             var previous = MarketRules.GetPreviousBuyPrice(city, product);
             row.SetMetadata(0, (int)product);
             row.SetText(0, GetProductNameKey(product));
             row.SetText(1, current.ToString());
-            row.SetText(2, MarketRules.GetSellUnitPrice(city, product).ToString());
+            row.SetText(2, MarketRules.GetDisplaySellUnitPrice(city, product).ToString());
             row.SetText(3, previous > 0 ? previous.ToString() : "-");
             row.SetText(4, previous <= 0 ? "-" : current == previous ? "0" : current > previous ? $"↑{current - previous}" : $"↓{previous - current}");
-            row.SetText(5, _context.Localization.T(MarketRules.GetStatusKey(city, product)));
+            row.SetText(5, _context.Localization.T(MarketRules.GetDisplayStatusKey(city, product)));
             row.SetTextAlignment(0, HorizontalAlignment.Left);
             row.SetTextAlignment(1, HorizontalAlignment.Right);
             row.SetTextAlignment(2, HorizontalAlignment.Right);
@@ -314,6 +407,15 @@ internal sealed class MerchantDialogController : FloatingOverlayController
 
         var tradeMode = GetSelectedTradeMode();
         var city = _context.SelectedCity;
+        if (!CanTradeAt(city))
+        {
+            _amountSpinBox.MinValue = 0;
+            _amountSpinBox.MaxValue = 0;
+            _amountSpinBox.Value = 0;
+            UpdateConfirmAvailability();
+            return;
+        }
+
         MarketRules.EnsureMarketInitialized(city);
         var product = GetProduct(tradeMode);
         var isSelling = IsSelling(tradeMode);
@@ -346,12 +448,12 @@ internal sealed class MerchantDialogController : FloatingOverlayController
 
         var product = GetProduct(tradeMode);
         var isSelling = IsSelling(tradeMode);
-        var goldAmount = amount * (isSelling ? MarketRules.GetSellUnitPrice(city, product) : MarketRules.GetBuyUnitPrice(city, product));
+        var goldAmount = amount * (isSelling ? MarketRules.GetDisplaySellUnitPrice(city, product) : MarketRules.GetDisplayBuyUnitPrice(city, product));
         _summaryLabel.Text = _context.Localization.Format(
             isSelling ? "fmt.merchant_sell_total_preview" : "fmt.merchant_buy_total_preview",
             MarketRules.GetAmount(city, product),
             MarketRules.GetCapacity(city, product),
-            MarketRules.GetMerchantStock(city, product),
+            MarketRules.GetDisplayMerchantStock(city, product),
             goldAmount);
         UpdateConfirmAvailability();
     }
@@ -364,6 +466,12 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         }
 
         var city = _context.SelectedCity;
+        if (!CanTradeAt(city))
+        {
+            _confirmButton.Disabled = true;
+            return;
+        }
+
         var tradeMode = GetSelectedTradeMode();
         var product = GetProduct(tradeMode);
         var amount = (int)_amountSpinBox.Value;

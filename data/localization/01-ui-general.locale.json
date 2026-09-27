@@ -360,8 +360,8 @@
 						   "en":  "All Locations"
 					   },
 	"ui.city_intel":  {
-						  "zhHant":  "情報",
-						  "en":  "Intel"
+						  "zhHant":  "間諜情報",
+						  "en":  "Spy intel"
 					  },
 	"ui.chancellor":  {
 						   "zhHant":  "丞相",
@@ -763,6 +763,14 @@
 						"zhHant":  "商人",
 						"en":  "Merchant"
 					},
+	"ui.merchant.unavailable": {
+		"zhHant": "本月無商人駐留，無法交易。",
+		"en": "No merchant is present this month. Trading is unavailable."
+	},
+	"ui.merchant.foreign_city": {
+		"zhHant": "非我方城市，無法交易。",
+		"en": "This is not a player city. Trading is unavailable."
+	},
 	"ui.military":  {
 						"zhHant":  "軍事",
 						"en":  "Military"

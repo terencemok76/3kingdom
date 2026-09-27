@@ -333,6 +333,11 @@ internal partial class StrategicMapCanvas : Control
 
         if (_layer == StrategicMapLayer.Merchant)
         {
+            if (!CanViewMerchantInfo(city))
+            {
+                return new Color("4b5563");
+            }
+
             if (!city.HasMerchant)
             {
                 return new Color("4b5563");
@@ -343,6 +348,11 @@ internal partial class StrategicMapCanvas : Control
                         MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal);
             var availability = Mathf.Clamp(stock / 1500.0f, 0.0f, 1.0f);
             return new Color(0.30f + availability * 0.36f, 0.22f + availability * 0.30f, 0.08f, 1.0f);
+        }
+
+        if (!CanViewCityInformation(city))
+        {
+            return new Color("5b5c58");
         }
 
         var development = Mathf.Clamp((city.Farm + city.Commercial) / 200.0f, 0.0f, 1.0f);
@@ -392,25 +402,29 @@ internal partial class StrategicMapCanvas : Control
     {
         if (_useAttackTooltip)
         {
-            return CanViewMilitaryIntel(city)
+            var attackTooltip = CanViewMilitaryIntel(city)
                 ? Format("fmt.strategic_map.tooltip.known_troops", GetCityName(city), GetRulerName(city), city.Troops)
                 : Format("fmt.strategic_map.tooltip.unknown_troops", GetCityName(city), GetRulerName(city));
+            return AppendIntelStatus(city, attackTooltip, "\n");
         }
 
         var factionName = _world == null
             ? "-"
             : _localization?.GetFactionName(_world, city.OwnerFactionId) ?? "-";
         var header = Format("fmt.strategic_map.tooltip.header", GetCityName(city), factionName);
-        return _layer switch
+        var tooltip = _layer switch
         {
             StrategicMapLayer.Military when CanViewMilitaryIntel(city) =>
                 Format("fmt.strategic_map.tooltip.military", header, city.Troops, city.Defense),
             StrategicMapLayer.Military => Format("fmt.strategic_map.tooltip.military_unknown", header),
             StrategicMapLayer.Diplomacy =>
                 Format("fmt.strategic_map.tooltip.diplomacy", header, GetDiplomacyLabel(city)),
-            StrategicMapLayer.Development =>
+            StrategicMapLayer.Development when CanViewCityInformation(city) =>
                 Format("fmt.strategic_map.tooltip.development", header, city.Farm, city.Commercial),
+            StrategicMapLayer.Development => Format("fmt.strategic_map.tooltip.development_unknown", header),
             StrategicMapLayer.Event => Format("fmt.strategic_map.tooltip.event", header, GetEventDetail(city)),
+            StrategicMapLayer.Merchant when !CanViewMerchantInfo(city) =>
+                Format("fmt.strategic_map.tooltip.merchant_unknown", header),
             StrategicMapLayer.Merchant => city.HasMerchant
                 ? Format(
                     "fmt.strategic_map.tooltip.merchant",
@@ -421,6 +435,23 @@ internal partial class StrategicMapCanvas : Control
                 : Format("fmt.strategic_map.tooltip.merchant_none", header),
             _ => header
         };
+        return AppendIntelStatus(city, tooltip, "\n");
+    }
+
+    private string AppendIntelStatus(CityData city, string text, string separator)
+    {
+        if (_world == null || _world.ViewAllInformationEnabled || city.OwnerFactionId == _playerFactionId)
+        {
+            return text;
+        }
+
+        var intel = _world.GetCityIntel(_playerFactionId, city.Id);
+        if (intel == null)
+        {
+            return text;
+        }
+
+        return $"{text}{separator}{Format("fmt.city_intel_duration", T("ui.city_intel"), intel.RemainingMonths)}";
     }
 
     private bool HasCurrentMonthlyEvent(CityData city) =>
@@ -452,9 +483,16 @@ internal partial class StrategicMapCanvas : Control
         _ => "ui.strategic_map.event.none"
     };
 
-    private bool CanViewMilitaryIntel(CityData city) =>
+    private bool CanViewCityInformation(CityData city) =>
         _world != null &&
         (_world.ViewAllInformationEnabled || _world.CanFactionViewCity(_playerFactionId, city.Id));
+
+    private bool CanViewMilitaryIntel(CityData city) => CanViewCityInformation(city);
+
+    private bool CanViewMerchantInfo(CityData city) =>
+        _world != null &&
+        (_world.ViewAllInformationEnabled ||
+         MarketRules.CanFactionViewMerchantInfo(_world, _playerFactionId, city));
 
     private string GetRulerName(CityData city)
     {
