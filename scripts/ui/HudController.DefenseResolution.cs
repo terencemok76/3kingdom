@@ -398,8 +398,22 @@ public partial class HudController
                 FormatSignedNumber(report.FoodDelta), report.FoodAmount, report.FoodCapacity,
                 FormatSignedNumber(report.HorseDelta), report.HorseAmount, report.HorseCapacity,
                 FormatSignedNumber(report.MetalDelta), report.MetalAmount, report.MetalCapacity,
-                report.MetalProduced),
+                report.MetalProduced,
+                FormatSignedNumber(report.WoodDelta), report.WoodAmount, report.WoodCapacity,
+                FormatSignedNumber(report.StoneDelta), report.StoneAmount, report.StoneCapacity),
                 isPlayerRelated: true);
+            if (report.StorageLoss.HasLoss)
+            {
+                AddLog(_localization.Format(
+                    "log.phase5_monthly_storage_loss",
+                    _localization.GetCityName(city),
+                    report.StorageLoss.Food,
+                    report.StorageLoss.Horse,
+                    report.StorageLoss.Metal,
+                    report.StorageLoss.Wood,
+                    report.StorageLoss.Stone),
+                    isPlayerRelated: true);
+            }
         }
         if (economyMonth == 1)
         {
@@ -482,6 +496,11 @@ public partial class HudController
         }
 
         QueueMonthlyCityEventPresentations(economyResult.AllCityEvents);
+        if (_pendingEventPresentations.Count == 0)
+        {
+            CompleteEndTurnTransitionUi();
+        }
+        QueueMonthlyEconomyReport(economyResult);
 
         AddLog(_localization.FormatMonthAdvanced(world.Year, world.Month), isPlayerRelated: true);
         RefreshMonth();

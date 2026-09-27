@@ -506,6 +506,12 @@ public class WorldRepository
             city.SiegeWorkshopProgress = cityStart.SiegeWorkshopProgress;
             city.HorsePastureLevel = cityStart.HorsePastureLevel;
             city.HorsePastureProgress = cityStart.HorsePastureProgress;
+            city.ResourceDepotLevel = cityStart.ResourceDepotLevel;
+            city.ResourceDepotProgress = cityStart.ResourceDepotProgress;
+            city.GranaryLevel = cityStart.GranaryLevel;
+            city.GranaryProgress = cityStart.GranaryProgress;
+            city.HorseStableLevel = cityStart.HorseStableLevel;
+            city.HorseStableProgress = cityStart.HorseStableProgress;
             city.RamCount = cityStart.RamCount;
             city.RamProgress = cityStart.RamProgress;
             city.CatapultCount = cityStart.CatapultCount;

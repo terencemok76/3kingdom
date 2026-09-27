@@ -621,6 +621,13 @@
 					"zhHant":  "糧",
 					"en":  "Food"
 				},
+	"ui.monthly_report_title": { "zhHant": "月度經濟報告", "en": "Monthly Economy Report" },
+	"ui.monthly_report_close": { "zhHant": "確認", "en": "Acknowledge" },
+	"ui.monthly_report_dont_show_again": { "zhHant": "日後不再顯示月度報告", "en": "Do not show monthly reports again" },
+	"ui.monthly_report_no_cities": { "zhHant": "目前沒有我方城市。", "en": "No player-owned cities." },
+	"ui.storage_normal": { "zhHant": "正常", "en": "Normal" },
+	"ui.storage_near_full": { "zhHant": "接近滿倉", "en": "Near Full" },
+	"ui.storage_full": { "zhHant": "已滿倉", "en": "Full" },
 	"ui.free_officer":  {
 							"zhHant":  "在野",
 							"en":  "Free Officer"
@@ -910,6 +917,7 @@
 					  "zhHant":  "玩家",
 					  "en":  "Player"
 				  },
+	"ui.ai": { "zhHant": "AI", "en": "AI" },
 	"ui.recruit":  {
 					   "zhHant":  "徵兵",
 					   "en":  "Recruit"
@@ -1284,6 +1292,8 @@
 								   "zhHant":  "AI 決策偵錯",
 								   "en":  "AI Decision Debug"
 								},
+		"ui.option_monthly_report": { "zhHant": "月度報告", "en": "Monthly Report" },
+		"fmt.option_monthly_report": { "zhHant": "{0}：{1}", "en": "{0}: {1}" },
 		"ui.log_panel_title":  {
 								   "zhHant":  "??",
 								   "en":  "Log"

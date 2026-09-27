@@ -89,14 +89,14 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(540, 340)
+custom_minimum_size = Vector2(540, 380)
 offset_right = 540.0
-offset_bottom = 340.0
+offset_bottom = 380.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(420, 320)
+custom_minimum_size = Vector2(420, 360)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -164,6 +164,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
 text = "AI Decision Debug"
+
+[node name="MonthlyEconomyReportButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text = "Monthly Report: On"
 
 [node name="BgmAudioRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

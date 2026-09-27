@@ -47,6 +47,7 @@ internal sealed class LogPanelController
     private Vector2 _defaultContentSize;
     private Vector2 _contentSize;
     private bool _minimized;
+    private bool _temporarilyHidden;
     private bool _isResizing;
     private LogFilterMode _filterMode = LogFilterMode.SelfFaction;
     private Vector2 _resizeStartMousePosition;
@@ -200,6 +201,16 @@ internal sealed class LogPanelController
 
     public bool IsResizing() => _isResizing;
 
+    public void SetTemporarilyHidden(bool hidden)
+    {
+        _temporarilyHidden = hidden;
+        if (hidden)
+        {
+            _isResizing = false;
+        }
+        ApplyLayout();
+    }
+
     public void ApplyLayout()
     {
         var logText = _context.LogText;
@@ -213,15 +224,16 @@ internal sealed class LogPanelController
         _header.Position = _headerPosition;
         _header.Size = new Vector2(headerWidth, FloatingPanelHeaderHeight);
         _minimizeButton.Text = _minimized ? "+" : "-";
+        _header.Visible = !_temporarilyHidden;
 
-        _background.Visible = !_minimized;
-        logText.Visible = !_minimized;
+        _background.Visible = !_temporarilyHidden && !_minimized;
+        logText.Visible = !_temporarilyHidden && !_minimized;
         if (_resizeHandle != null)
         {
-            _resizeHandle.Visible = !_minimized;
+            _resizeHandle.Visible = !_temporarilyHidden && !_minimized;
         }
 
-        if (_minimized)
+        if (_temporarilyHidden || _minimized)
         {
             return;
         }

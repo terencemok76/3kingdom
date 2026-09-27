@@ -1446,6 +1446,15 @@ public partial class CommandResolver
             _ => (0, 0, 0, 0, 0, 0, default, default)
         };
 
+        if (jobType == InternalAffairsJobType.Defend)
+        {
+            gains.Defense = ConstructionRules.ApplyDefenseRepair(city, gains.Defense);
+        }
+        else if (jobType == InternalAffairsJobType.WaterControl)
+        {
+            gains.DisasterPrevention = ConstructionRules.ApplyDisasterPrevention(city, gains.DisasterPrevention);
+        }
+
         city.Farm = ClampStat(city.Farm + gains.Farm);
         city.Commercial = ClampStat(city.Commercial + gains.Commercial);
         city.Defense = ClampStat(city.Defense + gains.Defense);
@@ -1524,6 +1533,9 @@ public partial class CommandResolver
             ConstructionProjectType.BowWorkshop => "construction_project.bow_workshop",
             ConstructionProjectType.SiegeWorkshop => "construction_project.siege_workshop",
             ConstructionProjectType.HorsePasture => "construction_project.horse_pasture",
+            ConstructionProjectType.ResourceDepot => "construction_project.resource_depot",
+            ConstructionProjectType.Granary => "construction_project.granary",
+            ConstructionProjectType.HorseStable => "construction_project.horse_stable",
             ConstructionProjectType.Ram => "construction_project.ram",
             ConstructionProjectType.Catapult => "construction_project.catapult",
             ConstructionProjectType.Ladder => "construction_project.ladder",
@@ -1554,17 +1566,28 @@ public partial class CommandResolver
         CityData city,
         ConstructionProjectType projectType,
         int constructionPoints,
-        int valuesGained,
+        ConstructionRules.ConstructionProgressResult progressResult,
         GameLanguage language)
     {
-        return _localization?.FormatForLanguage(
+        var progressText = _localization?.FormatForLanguage(
                    language,
                    "fmt.internal_affairs_construction_progress",
                    GetConstructionProjectName(projectType, language),
                    constructionPoints,
                    FormatConstructionProjectProgress(city, projectType, language),
-                   valuesGained)
+                   progressResult.ValuesGained)
                ?? string.Empty;
+        if (progressResult.WaitingForMaterials)
+        {
+            return $"{progressText} {_localization?.FormatForLanguage(language, "fmt.internal_affairs_construction_waiting_materials")}".Trim();
+        }
+
+        if (progressResult.MaterialsSpent.IsEmpty)
+        {
+            return progressText;
+        }
+
+        return $"{progressText} {_localization?.FormatForLanguage(language, "fmt.internal_affairs_materials_spent", progressResult.MaterialsSpent.Wood, progressResult.MaterialsSpent.Metal, progressResult.MaterialsSpent.Stone)}".Trim();
     }
 
     private static void MarkOfficerAssigned(WorldState world, OfficerData officer, CommandType commandType)

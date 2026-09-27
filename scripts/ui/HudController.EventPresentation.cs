@@ -49,25 +49,16 @@ public partial class HudController
 
         if (_eventPresentationPanel != null)
         {
-            var panelStyle = new StyleBoxFlat
-            {
-                BgColor = new Color(0.06f, 0.06f, 0.08f, 0.94f),
-                BorderWidthLeft = 2,
-                BorderWidthTop = 2,
-                BorderWidthRight = 2,
-                BorderWidthBottom = 2,
-                BorderColor = new Color(0.67f, 0.55f, 0.32f, 0.92f),
-                CornerRadiusTopLeft = 10,
-                CornerRadiusTopRight = 10,
-                CornerRadiusBottomRight = 10,
-                CornerRadiusBottomLeft = 10
-            };
-            _eventPresentationPanel.AddThemeStyleboxOverride("panel", panelStyle);
+            _eventPresentationPanel.AddThemeStyleboxOverride("panel", new StyleBoxEmpty());
         }
 
         if (_eventCaptionLabel != null)
         {
             _eventCaptionLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            _eventCaptionLabel.AddThemeColorOverride("font_color", new Color(1.0f, 0.94f, 0.8f));
+            _eventCaptionLabel.AddThemeColorOverride("font_shadow_color", new Color(0.0f, 0.0f, 0.0f, 0.95f));
+            _eventCaptionLabel.AddThemeConstantOverride("shadow_offset_x", 2);
+            _eventCaptionLabel.AddThemeConstantOverride("shadow_offset_y", 2);
         }
     }
 
@@ -232,6 +223,7 @@ public partial class HudController
         if (_pendingEventPresentations.Count == 0)
         {
             RestoreSuppressedUiAfterEventPresentation();
+            TryShowQueuedMonthlyEconomyReport();
         }
     }
 
@@ -327,6 +319,8 @@ public partial class HudController
         _temporarilyHiddenUiOverlays.Clear();
         CollectVisibleEventSuppressibleUiOverlays(_temporarilyHiddenUiOverlays);
         _mainHudUiController?.SetCityInfoTemporarilyHidden(true);
+        _mainHudUiController?.SetLogTemporarilyHidden(true);
+        _mainHudUiController?.SetTopBarTemporarilyHidden(true);
 
         foreach (var overlay in _temporarilyHiddenUiOverlays)
         {
@@ -356,7 +350,10 @@ public partial class HudController
 
         _temporarilyHiddenUiOverlays.Clear();
         _mainHudUiController?.SetCityInfoTemporarilyHidden(false);
+        _mainHudUiController?.SetLogTemporarilyHidden(false);
+        _mainHudUiController?.SetTopBarTemporarilyHidden(false);
         _eventPresentationUiSuppressed = false;
+        CompleteEndTurnTransitionUi();
     }
 
     private void CollectVisibleEventSuppressibleUiOverlays(List<Control> overlays)

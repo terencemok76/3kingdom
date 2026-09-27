@@ -64,6 +64,7 @@ public partial class HudController
         _bgmVolume = Mathf.Clamp(settings.BgmVolume, 0.0f, 1.0f);
         _sfxVolume = Mathf.Clamp(settings.SfxVolume, 0.0f, 1.0f);
         _aiDecisionDebugEnabled = settings.AiDecisionDebugEnabled;
+        _monthlyEconomyReportEnabled = settings.MonthlyEconomyReportEnabled;
         _localization?.SetLanguage(settings.Language);
         ApplyLoadedFloatingPanelSettings(
             settings.LeftPanelMinimized,
@@ -89,7 +90,8 @@ public partial class HudController
             SfxEnabled = _sfxEnabled,
             BgmVolume = _bgmVolume,
             SfxVolume = _sfxVolume,
-            AiDecisionDebugEnabled = _aiDecisionDebugEnabled
+            AiDecisionDebugEnabled = _aiDecisionDebugEnabled,
+            MonthlyEconomyReportEnabled = _monthlyEconomyReportEnabled
         };
 
         PopulateFloatingPanelSettings(settings);
@@ -200,6 +202,10 @@ public partial class HudController
         "fmt.option_ai_decision_debug", "{0}: {1}",
         Localize("ui.option_ai_decision_debug", "AI Decision Debug"),
         _aiDecisionDebugEnabled ? Localize("ui.on", "On") : Localize("ui.off", "Off"));
+    private string GetOptionMonthlyEconomyReportButtonText() => LocalizeFormat(
+        "fmt.option_monthly_report", "{0}: {1}",
+        Localize("ui.option_monthly_report", "Monthly Report"),
+        _monthlyEconomyReportEnabled ? Localize("ui.on", "On") : Localize("ui.off", "Off"));
 
     private string Localize(string key, string fallback)
     {

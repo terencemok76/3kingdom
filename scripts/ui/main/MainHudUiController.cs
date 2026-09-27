@@ -96,6 +96,8 @@ internal sealed class MainHudUiController
     public Vector2 GetTopBarSize() => _topBarController.GetSize();
     public void SetTopBarDraggedPosition(Vector2 targetPosition) => _topBarController.SetDraggedPosition(targetPosition);
     public void ApplyTopBarLayout() => _topBarController.ApplyLayout();
+    public void SetTopBarTemporarilyHidden(bool hidden) => _topBarController.SetTemporarilyHidden(hidden);
+    public void SetTopBarTurnState(int factionId, bool isAiTurn, bool buttonsEnabled) => _topBarController.SetTurnState(factionId, isAiTurn, buttonsEnabled);
     public void BringTopBarToFront() => _topBarController.BringToFront();
     public void ApplyTopBarLoadedSettings(float x, float y) => _topBarController.ApplyLoadedSettings(x, y);
     public void PopulateTopBarSettings(OptionSettingsData settings) => _topBarController.PopulateSettings(settings);
@@ -119,6 +121,7 @@ internal sealed class MainHudUiController
     public float GetLogTotalHeight() => _logPanelController.GetTotalHeight();
     public void SetLogDraggedPosition(Vector2 targetPosition) => _logPanelController.SetDraggedPosition(targetPosition);
     public void ToggleLogMinimized() => _logPanelController.ToggleMinimized();
+    public void SetLogTemporarilyHidden(bool hidden) => _logPanelController.SetTemporarilyHidden(hidden);
     public void ApplyLogLayout() => _logPanelController.ApplyLayout();
     public void BringLogToFront() => _logPanelController.BringToFront();
     public void ApplyLogLoadedSettings(bool minimized, float x, float y, float width, float height) => _logPanelController.ApplyLoadedSettings(minimized, x, y, width, height);

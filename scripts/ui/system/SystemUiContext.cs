@@ -48,6 +48,12 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
         set => _owner.SystemAiDecisionDebugEnabled = value;
     }
 
+    public bool MonthlyEconomyReportEnabled
+    {
+        get => _owner.SystemMonthlyEconomyReportEnabled;
+        set => _owner.SystemMonthlyEconomyReportEnabled = value;
+    }
+
     public Control CreateOverlay(string scenePath, System.Action closeAction)
     {
         var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
@@ -81,6 +87,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     public void ToggleLanguage() => _owner.SystemToggleLanguage();
     public void ToggleGodMode() => _owner.SystemToggleGodMode();
     public void ToggleAiDecisionDebug() => _owner.SystemToggleAiDecisionDebug();
+    public void ToggleMonthlyEconomyReport() => _owner.SystemToggleMonthlyEconomyReport();
     public void ApplyAudioSettings() => _owner.SystemApplyAudioSettings();
     public void SaveOptionSettings() => _owner.SystemSaveOptionSettings();
     public void RestoreDefaultLayout() => _owner.SystemRestoreDefaultLayout();
@@ -94,6 +101,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     public string GetOptionLanguageButtonText() => _owner.SystemGetOptionLanguageButtonText();
     public string GetOptionGodModeButtonText() => _owner.SystemGetOptionGodModeButtonText();
     public string GetOptionAiDecisionDebugButtonText() => _owner.SystemGetOptionAiDecisionDebugButtonText();
+    public string GetOptionMonthlyEconomyReportButtonText() => _owner.SystemGetOptionMonthlyEconomyReportButtonText();
     public string GetAudioToggleButtonText(bool isBgm, bool enabled) => _owner.SystemGetAudioToggleButtonText(isBgm, enabled);
     public string GetSaveSettingsButtonText() => _owner.SystemGetSaveSettingsButtonText();
     public string GetRestoreLayoutButtonText() => _owner.SystemGetRestoreLayoutButtonText();

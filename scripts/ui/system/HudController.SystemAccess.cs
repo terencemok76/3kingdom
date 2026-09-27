@@ -43,6 +43,11 @@ public partial class HudController
         get => _aiDecisionDebugEnabled;
         set => _aiDecisionDebugEnabled = value;
     }
+    internal bool SystemMonthlyEconomyReportEnabled
+    {
+        get => _monthlyEconomyReportEnabled;
+        set => _monthlyEconomyReportEnabled = value;
+    }
 
     internal void SystemPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
     internal void SystemPlayUiClickSfx() => PlayUiClickSfx();
@@ -50,6 +55,7 @@ public partial class HudController
     internal void SystemToggleLanguage() => OnLanguageButtonPressed();
     internal void SystemToggleGodMode() => OnGodModePressed();
     internal void SystemToggleAiDecisionDebug() => _aiDecisionDebugEnabled = !_aiDecisionDebugEnabled;
+    internal void SystemToggleMonthlyEconomyReport() => _monthlyEconomyReportEnabled = !_monthlyEconomyReportEnabled;
     internal void SystemApplyAudioSettings() => ApplyAudioSettings();
     internal void SystemSaveOptionSettings() => SaveOptionSettings();
     internal void SystemRestoreDefaultLayout() => RestoreDefaultFloatingPanelLayout();
@@ -81,6 +87,7 @@ public partial class HudController
     internal string SystemGetOptionLanguageButtonText() => GetOptionLanguageButtonText();
     internal string SystemGetOptionGodModeButtonText() => GetOptionGodModeButtonText();
     internal string SystemGetOptionAiDecisionDebugButtonText() => GetOptionAiDecisionDebugButtonText();
+    internal string SystemGetOptionMonthlyEconomyReportButtonText() => GetOptionMonthlyEconomyReportButtonText();
     internal string SystemGetAudioToggleButtonText(bool isBgm, bool enabled) => GetAudioToggleButtonText(isBgm, enabled);
     internal string SystemGetSaveSettingsButtonText() => GetSaveSettingsButtonText();
     internal string SystemGetRestoreLayoutButtonText() => GetRestoreLayoutButtonText();

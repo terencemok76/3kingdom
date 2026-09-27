@@ -7,6 +7,21 @@ internal static class AiConstructionRules
 {
     internal static ConstructionProjectType ChooseConstructionProjectType(WorldState world, CityData city)
     {
+        if (ShouldExpandGranary(city))
+        {
+            return ConstructionProjectType.Granary;
+        }
+
+        if (ShouldExpandHorseStable(city))
+        {
+            return ConstructionProjectType.HorseStable;
+        }
+
+        if (ShouldExpandResourceDepot(city))
+        {
+            return ConstructionProjectType.ResourceDepot;
+        }
+
         if (city.BowWorkshopLevel <= 0)
         {
             return ConstructionProjectType.BowWorkshop;
@@ -57,6 +72,33 @@ internal static class AiConstructionRules
         }
 
         return ConstructionProjectType.Ladder;
+    }
+
+    private static bool ShouldExpandResourceDepot(CityData city)
+    {
+        if (city.ResourceDepotLevel >= 2 ||
+            !ConstructionRules.CanAffordResourceCost(city, ConstructionRules.GetResourceCost(ConstructionProjectType.ResourceDepot)))
+        {
+            return false;
+        }
+
+        return MarketRules.GetAmount(city, MarketProductType.Wood) * 4 >= MarketRules.GetCapacity(city, MarketProductType.Wood) * 3 ||
+               MarketRules.GetAmount(city, MarketProductType.Metal) * 4 >= MarketRules.GetCapacity(city, MarketProductType.Metal) * 3 ||
+               MarketRules.GetAmount(city, MarketProductType.Stone) * 4 >= MarketRules.GetCapacity(city, MarketProductType.Stone) * 3;
+    }
+
+    private static bool ShouldExpandGranary(CityData city)
+    {
+        return city.GranaryLevel < 2 &&
+               ConstructionRules.CanAffordResourceCost(city, ConstructionRules.GetResourceCost(ConstructionProjectType.Granary)) &&
+               MarketRules.GetAmount(city, MarketProductType.Food) * 4 >= MarketRules.GetCapacity(city, MarketProductType.Food) * 3;
+    }
+
+    private static bool ShouldExpandHorseStable(CityData city)
+    {
+        return city.HorseStableLevel < 2 &&
+               ConstructionRules.CanAffordResourceCost(city, ConstructionRules.GetResourceCost(ConstructionProjectType.HorseStable)) &&
+               MarketRules.GetAmount(city, MarketProductType.Horse) * 4 >= MarketRules.GetCapacity(city, MarketProductType.Horse) * 3;
     }
 
     internal static bool IsFrontlineCity(WorldState world, CityData city)

@@ -3,6 +3,18 @@
     "zhHant": "馬場",
     "en": "Stable"
   },
+  "ui.granary": {
+    "zhHant": "糧倉",
+    "en": "Granary"
+  },
+  "ui.resource_depot": {
+    "zhHant": "資源倉庫",
+    "en": "Resource Depot"
+  },
+  "ui.horse_stable": {
+    "zhHant": "馬廄",
+    "en": "Horse Stable"
+  },
   "ui.internal_affairs_construction_project": {
     "zhHant": "建設項目",
     "en": "Construction Project"
@@ -18,5 +30,17 @@
   "construction_project.horse_pasture": {
     "zhHant": "馬場",
     "en": "Stable"
+  },
+  "construction_project.resource_depot": {
+    "zhHant": "資源倉庫",
+    "en": "Resource Depot"
+  },
+  "construction_project.granary": {
+    "zhHant": "糧倉",
+    "en": "Granary"
+  },
+  "construction_project.horse_stable": {
+    "zhHant": "馬廄",
+    "en": "Horse Stable"
   }
 }

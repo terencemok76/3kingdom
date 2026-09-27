@@ -204,8 +204,8 @@ public class LocalizationService
     {
         return
             $"{T("ui.gold")}: {city.Gold}\n" +
-            $"{T("ui.food")}: {city.Food}\n" +
-            $"{T("ui.horse")}: {city.Horses}\n" +
+            $"{T("ui.food")}: {FormatStorageAmount(city, MarketProductType.Food)}\n" +
+            $"{T("ui.horse")}: {FormatStorageAmount(city, MarketProductType.Horse)}\n" +
             $"{T("ui.population")}: {city.Population}\n" +
             $"{T("ui.troops")}: {city.Troops}\n" +
             $"{T("troop_type.infantry")}: {city.InfantryTroops}\n" +
@@ -222,6 +222,9 @@ public class LocalizationService
             $"{T("ui.bow_workshop")}: {FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop)}\n" +
             $"{T("ui.siege_workshop")}: {FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop)}\n" +
             $"{T("ui.horse_pasture")}: {FormatFacilityProgress(city, ConstructionProjectType.HorsePasture)}\n" +
+            $"{T("ui.horse_stable")}: {FormatFacilityProgress(city, ConstructionProjectType.HorseStable)}\n" +
+            $"{T("ui.granary")}: {FormatFacilityProgress(city, ConstructionProjectType.Granary)}\n" +
+            $"{T("ui.resource_depot")}: {FormatFacilityProgress(city, ConstructionProjectType.ResourceDepot)}\n" +
             $"{T("siege_engine.ram")}: {city.RamCount}\n" +
             $"{T("siege_engine.catapult")}: {city.CatapultCount}\n" +
             $"{T("siege_engine.ladder")}: {city.LadderCount}\n" +
@@ -252,6 +255,9 @@ public class LocalizationService
             $"{T("ui.bow_workshop")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
             $"{T("ui.siege_workshop")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
             $"{T("ui.horse_pasture")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
+            $"{T("ui.horse_stable")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
+            $"{T("ui.granary")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
+            $"{T("ui.resource_depot")}: {Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))}\n" +
             $"{T("siege_engine.ram")}: 0\n" +
             $"{T("siege_engine.catapult")}: 0\n" +
             $"{T("siege_engine.ladder")}: 0\n" +
@@ -267,6 +273,9 @@ public class LocalizationService
         var required = ConstructionRules.GetRequiredPointsForNextLevel(level);
         return Format("fmt.facility_level_progress", level, progress, required);
     }
+
+    public string FormatStorageAmount(CityData city, MarketProductType product) =>
+        Format("fmt.storage_amount", MarketRules.GetAmount(city, product), MarketRules.GetCapacity(city, product));
 
     public string FormatSiegeEngineProgress(CityData city, SiegeEngineType siegeEngineType)
     {

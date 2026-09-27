@@ -12,10 +12,21 @@ public enum MarketProductType
     Stone
 }
 
+public readonly record struct MarketStorageLoss(int Food, int Horse, int Metal, int Wood, int Stone)
+{
+    public bool HasLoss => Food > 0 || Horse > 0 || Metal > 0 || Wood > 0 || Stone > 0;
+}
+
 // Shared rule surface for player UI and AI decisions. No caller gets a
 // different price, capacity, or merchant-stock exception.
 public static class MarketRules
 {
+    private const int BaseFoodStorageCapacity = 5000;
+    private const int GranaryCapacityPerLevel = 5000;
+    private const int BaseHorseStorageCapacity = 200;
+    private const int HorseStableCapacityPerLevel = 200;
+    private const int BaseRawResourceStorageCapacity = 500;
+    private const int ResourceDepotCapacityPerLevel = 500;
     // Shared non-debug visibility for player and AI: own city or an active spy report.
     public static bool CanFactionViewMerchantInfo(WorldState world, int viewerFactionId, CityData city) =>
         world.CanFactionViewCity(viewerFactionId, city.Id);
@@ -47,11 +58,11 @@ public static class MarketRules
 
     public static int GetCapacity(CityData city, MarketProductType product) => product switch
     {
-        MarketProductType.Food => city.FoodStorageCapacity > 0 ? city.FoodStorageCapacity : Math.Max(1000, city.Population * 4 + city.Farm * 50),
-        MarketProductType.Horse => city.HorseStorageCapacity > 0 ? city.HorseStorageCapacity : 200 + city.HorsePastureLevel * 200,
-        MarketProductType.Metal => city.MetalStorageCapacity > 0 ? city.MetalStorageCapacity : 300 + city.SiegeWorkshopLevel * 150,
-        MarketProductType.Wood => city.WoodStorageCapacity > 0 ? city.WoodStorageCapacity : 400 + city.Commercial * 10,
-        MarketProductType.Stone => city.StoneStorageCapacity > 0 ? city.StoneStorageCapacity : 400 + city.Defense * 10,
+        MarketProductType.Food => (city.FoodStorageCapacity > 0 ? city.FoodStorageCapacity : BaseFoodStorageCapacity) + city.GranaryLevel * GranaryCapacityPerLevel,
+        MarketProductType.Horse => (city.HorseStorageCapacity > 0 ? city.HorseStorageCapacity : BaseHorseStorageCapacity) + city.HorseStableLevel * HorseStableCapacityPerLevel,
+        MarketProductType.Metal => (city.MetalStorageCapacity > 0 ? city.MetalStorageCapacity : BaseRawResourceStorageCapacity) + city.ResourceDepotLevel * ResourceDepotCapacityPerLevel,
+        MarketProductType.Wood => (city.WoodStorageCapacity > 0 ? city.WoodStorageCapacity : BaseRawResourceStorageCapacity) + city.ResourceDepotLevel * ResourceDepotCapacityPerLevel,
+        MarketProductType.Stone => (city.StoneStorageCapacity > 0 ? city.StoneStorageCapacity : BaseRawResourceStorageCapacity) + city.ResourceDepotLevel * ResourceDepotCapacityPerLevel,
         _ => 0
     };
 
@@ -155,6 +166,30 @@ public static class MarketRules
     public static int GetSellUnitPrice(CityData city, MarketProductType product) => Math.Max(1, GetBuyUnitPrice(city, product) * 80 / 100);
     public static int GetDisplaySellUnitPrice(CityData city, MarketProductType product) => Math.Max(1, GetDisplayBuyUnitPrice(city, product) * 80 / 100);
     public static int GetAvailableCapacity(CityData city, MarketProductType product) => Math.Max(0, GetCapacity(city, product) - GetAmount(city, product));
+
+    // Capacity applies after monthly production, upkeep, and city events. This
+    // keeps player and AI inventories on the same loss rule.
+    public static MarketStorageLoss ApplyMonthlyStorageLoss(CityData city)
+    {
+        var food = TrimToCapacity(city, MarketProductType.Food);
+        var horse = TrimToCapacity(city, MarketProductType.Horse);
+        var metal = TrimToCapacity(city, MarketProductType.Metal);
+        var wood = TrimToCapacity(city, MarketProductType.Wood);
+        var stone = TrimToCapacity(city, MarketProductType.Stone);
+        return new MarketStorageLoss(food, horse, metal, wood, stone);
+    }
+
+    private static int TrimToCapacity(CityData city, MarketProductType product)
+    {
+        var amount = GetAmount(city, product);
+        var loss = Math.Max(0, amount - GetCapacity(city, product));
+        if (loss > 0)
+        {
+            SetAmount(city, product, amount - loss);
+        }
+
+        return loss;
+    }
     public static int GetPreviousBuyPrice(CityData city, MarketProductType product) => product switch
     {
         MarketProductType.Food => city.PreviousFoodBuyPrice,

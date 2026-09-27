@@ -26,7 +26,10 @@ public enum ConstructionProjectType
     Ram = 4,
     Catapult = 5,
     Ladder = 6,
-    SupplyCart = 7
+    SupplyCart = 7,
+    ResourceDepot = 8,
+    Granary = 9,
+    HorseStable = 10
 }
 
 public enum InternalAffairsScheduleState

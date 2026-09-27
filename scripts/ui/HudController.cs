@@ -254,7 +254,9 @@ public partial class HudController : CanvasLayer
     private bool _genericOfficerSelectorLocationMapEnabled;
     private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
+    private readonly Queue<int> _pendingAiFactionTurns = new();
     private bool _isResolvingEndTurn;
+    private bool _isEndTurnTransitionUiActive;
     private bool _bgmEnabled = true;
     private bool _sfxEnabled = true;
     private float _bgmVolume = 1.0f;

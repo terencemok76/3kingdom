@@ -72,8 +72,12 @@
         "en": "Monthly economy report (player cities):"
     },
     "log.phase5_monthly_report_line": {
-        "zhHant": "「{0}」｜糧 {1}（{2:N0}/{3:N0}）｜馬 {4}（{5:N0}/{6:N0}）｜鐵 {7}（{8:N0}/{9:N0}，產出 +{10:N0}）",
-        "en": "{0} | Food {1} ({2:N0}/{3:N0}) | Horse {4} ({5:N0}/{6:N0}) | Metal {7} ({8:N0}/{9:N0}, produced +{10:N0})"
+        "zhHant": "「{0}」｜糧 {1}（{2:N0}/{3:N0}）｜馬 {4}（{5:N0}/{6:N0}）｜鐵 {7}（{8:N0}/{9:N0}，產出 +{10:N0}）｜木 {11}（{12:N0}/{13:N0}）｜石 {14}（{15:N0}/{16:N0}）",
+        "en": "{0} | Food {1} ({2:N0}/{3:N0}) | Horse {4} ({5:N0}/{6:N0}) | Metal {7} ({8:N0}/{9:N0}, produced +{10:N0}) | Wood {11} ({12:N0}/{13:N0}) | Stone {14} ({15:N0}/{16:N0})"
+    },
+    "log.phase5_monthly_storage_loss": {
+        "zhHant": "「{0}」倉儲超出容量，損耗：糧 {1:N0}、馬 {2:N0}、鐵 {3:N0}、木材 {4:N0}、石材 {5:N0}。",
+        "en": "{0} exceeded storage capacity; lost Food {1:N0}, Horse {2:N0}, Metal {3:N0}, Wood {4:N0}, Stone {5:N0}."
     },
     "log.personnel_command_selected":  {
                                            "zhHant":  "已選擇人事指令：{0}。",

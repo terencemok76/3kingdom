@@ -314,6 +314,9 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         AddConstructionProjectOption(ConstructionProjectType.BowWorkshop);
         AddConstructionProjectOption(ConstructionProjectType.SiegeWorkshop);
         AddConstructionProjectOption(ConstructionProjectType.HorsePasture);
+        AddConstructionProjectOption(ConstructionProjectType.ResourceDepot);
+        AddConstructionProjectOption(ConstructionProjectType.Granary);
+        AddConstructionProjectOption(ConstructionProjectType.HorseStable);
         if (city?.SiegeWorkshopLevel > 0)
         {
             AddConstructionProjectOption(ConstructionProjectType.Ram);
@@ -347,7 +350,12 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             return;
         }
 
-        _constructionProjectOption.AddItem(GetConstructionProjectName(projectType));
+        var projectName = GetConstructionProjectName(projectType);
+        var resourceCost = ConstructionRules.GetResourceCost(projectType);
+        var optionText = resourceCost.IsEmpty || _context.Localization == null
+            ? projectName
+            : _context.Localization.Format("fmt.construction_project_material_cost", projectName, resourceCost.Wood, resourceCost.Metal, resourceCost.Stone);
+        _constructionProjectOption.AddItem(optionText);
         _constructionProjectOption.SetItemMetadata(_constructionProjectOption.ItemCount - 1, (int)projectType);
     }
 
@@ -861,6 +869,9 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             ConstructionProjectType.BowWorkshop => _context.Localization.T("construction_project.bow_workshop"),
             ConstructionProjectType.SiegeWorkshop => _context.Localization.T("construction_project.siege_workshop"),
             ConstructionProjectType.HorsePasture => _context.Localization.T("construction_project.horse_pasture"),
+            ConstructionProjectType.ResourceDepot => _context.Localization.T("construction_project.resource_depot"),
+            ConstructionProjectType.Granary => _context.Localization.T("construction_project.granary"),
+            ConstructionProjectType.HorseStable => _context.Localization.T("construction_project.horse_stable"),
             ConstructionProjectType.Ram => _context.Localization.T("construction_project.ram"),
             ConstructionProjectType.Catapult => _context.Localization.T("construction_project.catapult"),
             ConstructionProjectType.Ladder => _context.Localization.T("construction_project.ladder"),

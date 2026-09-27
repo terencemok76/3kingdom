@@ -10,6 +10,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private Button? _languageButton;
     private Button? _godModeButton;
     private Button? _aiDecisionDebugButton;
+    private Button? _monthlyEconomyReportButton;
     private Button? _bgmToggleButton;
     private Button? _sfxToggleButton;
     private HSlider? _bgmVolumeSlider;
@@ -19,7 +20,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private Button? _saveSettingsButton;
     private Button? _restoreLayoutButton;
     private bool _signalsConnected;
-    protected override Vector2 MinimumOverlaySize => new(540.0f, 340.0f);
+    protected override Vector2 MinimumOverlaySize => new(540.0f, 380.0f);
 
     public OptionDialogController(SystemUiContext context, System.Action showSaveLoadDialog)
         : base(context, "res://scenes/ui/system/OptionDialog.tscn")
@@ -67,6 +68,10 @@ internal sealed class OptionDialogController : FloatingOverlayController
         if (_aiDecisionDebugButton != null)
         {
             _aiDecisionDebugButton.Text = _context.GetOptionAiDecisionDebugButtonText();
+        }
+        if (_monthlyEconomyReportButton != null)
+        {
+            _monthlyEconomyReportButton.Text = _context.GetOptionMonthlyEconomyReportButtonText();
         }
 
         if (_bgmToggleButton != null)
@@ -120,6 +125,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
         _languageButton = root.GetNodeOrNull<Button>("LanguageButton");
         _godModeButton = root.GetNodeOrNull<Button>("GodModeButton");
         _aiDecisionDebugButton = root.GetNodeOrNull<Button>("AiDecisionDebugButton");
+        _monthlyEconomyReportButton = root.GetNodeOrNull<Button>("MonthlyEconomyReportButton");
         _bgmToggleButton = root.GetNodeOrNull<Button>("BgmAudioRow/BgmToggleButton");
         _sfxToggleButton = root.GetNodeOrNull<Button>("SfxAudioRow/SfxToggleButton");
         _bgmVolumeSlider = root.GetNodeOrNull<HSlider>("BgmAudioRow/BgmVolumeSlider");
@@ -141,6 +147,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
                      _languageButton,
                      _godModeButton,
                      _aiDecisionDebugButton,
+                     _monthlyEconomyReportButton,
                      _bgmToggleButton,
                      _sfxToggleButton,
                      _saveSettingsButton,
@@ -176,6 +183,10 @@ internal sealed class OptionDialogController : FloatingOverlayController
         if (_aiDecisionDebugButton != null)
         {
             _aiDecisionDebugButton.Pressed += OnAiDecisionDebugPressed;
+        }
+        if (_monthlyEconomyReportButton != null)
+        {
+            _monthlyEconomyReportButton.Pressed += OnMonthlyEconomyReportPressed;
         }
         if (_bgmToggleButton != null)
         {
@@ -221,6 +232,13 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private void OnAiDecisionDebugPressed()
     {
         _context.ToggleAiDecisionDebug();
+        RefreshText();
+    }
+
+    private void OnMonthlyEconomyReportPressed()
+    {
+        _context.ToggleMonthlyEconomyReport();
+        _context.SaveOptionSettings();
         RefreshText();
     }
 

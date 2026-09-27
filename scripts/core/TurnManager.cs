@@ -24,13 +24,20 @@ public class MonthlyCityEconomyReport
     public int FoodDelta { get; set; }
     public int HorseDelta { get; set; }
     public int MetalDelta { get; set; }
+    public int WoodDelta { get; set; }
+    public int StoneDelta { get; set; }
     public int MetalProduced { get; set; }
     public int FoodAmount { get; set; }
     public int HorseAmount { get; set; }
     public int MetalAmount { get; set; }
+    public int WoodAmount { get; set; }
+    public int StoneAmount { get; set; }
     public int FoodCapacity { get; set; }
     public int HorseCapacity { get; set; }
     public int MetalCapacity { get; set; }
+    public int WoodCapacity { get; set; }
+    public int StoneCapacity { get; set; }
+    public MarketStorageLoss StorageLoss { get; set; }
 }
 
 public enum MonthlyCityEventType
@@ -210,9 +217,10 @@ public class TurnManager
         var playerFactionId = GetPlayerFactionId();
         var openingStocks = World.Cities.ToDictionary(
             city => city.Id,
-            city => (Food: city.Food, Horses: city.Horses, Metal: city.Metal));
+            city => (Food: city.Food, Horses: city.Horses, Metal: city.Metal, Wood: city.Wood, Stone: city.Stone));
 
         var monthlyMetalProduction = new Dictionary<int, int>();
+        var monthlyStorageLosses = new Dictionary<int, MarketStorageLoss>();
         foreach (var city in World.Cities)
         {
             city.CurrentMonthlyEventType = string.Empty;
@@ -282,6 +290,7 @@ public class TurnManager
 
             ApplyMonthlyCityEvent(city, playerFactionId, result);
             ResourceRules.RefreshMonthlyDeposits(city);
+            monthlyStorageLosses[city.Id] = MarketRules.ApplyMonthlyStorageLoss(city);
             monthlyMetalProduction[city.Id] = 0;
         }
 
@@ -302,13 +311,20 @@ public class TurnManager
                 FoodDelta = city.Food - opening.Food,
                 HorseDelta = city.Horses - opening.Horses,
                 MetalDelta = city.Metal - opening.Metal,
+                WoodDelta = city.Wood - opening.Wood,
+                StoneDelta = city.Stone - opening.Stone,
                 MetalProduced = monthlyMetalProduction.GetValueOrDefault(city.Id),
                 FoodAmount = city.Food,
                 HorseAmount = city.Horses,
                 MetalAmount = city.Metal,
+                WoodAmount = city.Wood,
+                StoneAmount = city.Stone,
                 FoodCapacity = MarketRules.GetCapacity(city, MarketProductType.Food),
                 HorseCapacity = MarketRules.GetCapacity(city, MarketProductType.Horse),
-                MetalCapacity = MarketRules.GetCapacity(city, MarketProductType.Metal)
+                MetalCapacity = MarketRules.GetCapacity(city, MarketProductType.Metal),
+                WoodCapacity = MarketRules.GetCapacity(city, MarketProductType.Wood),
+                StoneCapacity = MarketRules.GetCapacity(city, MarketProductType.Stone),
+                StorageLoss = monthlyStorageLosses.GetValueOrDefault(city.Id)
             });
         }
 
@@ -1035,7 +1051,10 @@ public class TurnManager
 
         var birthRate = GetHorseBirthRate(city);
         var births = (int)System.Math.Floor(city.Horses * birthRate);
-        return births <= 0 ? 1 : births;
+        var potentialBirths = births <= 0 ? 1 : births;
+        // New horses cannot exceed stable capacity. Do not create stock that
+        // would immediately be discarded by the monthly storage-loss pass.
+        return System.Math.Min(potentialBirths, MarketRules.GetAvailableCapacity(city, MarketProductType.Horse));
     }
 
     private static double GetHorseBirthRate(CityData city)

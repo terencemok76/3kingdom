@@ -18,6 +18,9 @@ internal sealed class TopBarController
     private Vector2 _size;
     private readonly Vector2 _contentOffset = new(12.0f, 6.0f);
     private Vector2 _contentSize;
+    private int _displayedFactionId = -1;
+    private bool _displayingAiTurn;
+    private bool _temporarilyHidden;
     private bool _languageButtonConnected;
     private bool _godModeButtonConnected;
     private bool _testButtonConnected;
@@ -79,8 +82,10 @@ internal sealed class TopBarController
 
         if (_context.PlayerFactionLabel != null)
         {
-            var factionName = localization.GetFactionName(world, _context.PlayerFactionId);
-            _context.PlayerFactionLabel.Text = localization.FormatPlayerFaction(factionName);
+            var factionId = _displayedFactionId > 0 ? _displayedFactionId : _context.PlayerFactionId;
+            var factionName = localization.GetFactionName(world, factionId);
+            var turnOwnerLabel = _displayingAiTurn ? localization.T("ui.ai") : localization.T("ui.player");
+            _context.PlayerFactionLabel.Text = localization.Format("fmt.label_value", turnOwnerLabel, factionName);
         }
 
         if (_context.StoryLabel != null)
@@ -148,6 +153,45 @@ internal sealed class TopBarController
         _background.Size = _size;
         _content.Position = _position + _contentOffset;
         _content.Size = _contentSize;
+        _background.Visible = !_temporarilyHidden;
+        _content.Visible = !_temporarilyHidden;
+    }
+
+    public void SetTemporarilyHidden(bool hidden)
+    {
+        _temporarilyHidden = hidden;
+        ApplyLayout();
+    }
+
+    public void SetTurnState(int factionId, bool isAiTurn, bool buttonsEnabled)
+    {
+        _displayedFactionId = factionId;
+        _displayingAiTurn = isAiTurn;
+        SetTurnButtonsEnabled(buttonsEnabled);
+        RefreshText();
+    }
+
+    private void SetTurnButtonsEnabled(bool enabled)
+    {
+        if (_context.EndTurnButton != null)
+        {
+            _context.EndTurnButton.Disabled = !enabled;
+        }
+
+        if (_context.LanguageButton != null)
+        {
+            _context.LanguageButton.Disabled = !enabled;
+        }
+
+        if (_context.GodModeButton != null)
+        {
+            _context.GodModeButton.Disabled = !enabled;
+        }
+
+        if (_context.TestButton != null)
+        {
+            _context.TestButton.Disabled = !enabled;
+        }
     }
 
     public void BringToFront()

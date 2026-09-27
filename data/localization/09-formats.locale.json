@@ -67,6 +67,18 @@
                                         "zhHant":  "{0} ({1}/{2})",
                                         "en":  "{0} ({1}/{2})"
                                     },
+    "fmt.storage_amount": {
+        "zhHant": "{0:N0}/{1:N0}",
+        "en": "{0:N0}/{1:N0}"
+    },
+    "fmt.monthly_report_stock_line": {
+        "zhHant": "糧 {0}（{1:N0}/{2:N0}）｜馬 {3}（{4:N0}/{5:N0}）｜木 {6}（{7:N0}/{8:N0}）｜鐵 {9}（{10:N0}/{11:N0}）｜石 {12}（{13:N0}/{14:N0}）",
+        "en": "Food {0} ({1:N0}/{2:N0}) | Horse {3} ({4:N0}/{5:N0}) | Wood {6} ({7:N0}/{8:N0}) | Metal {9} ({10:N0}/{11:N0}) | Stone {12} ({13:N0}/{14:N0})"
+    },
+    "fmt.monthly_report_facilities": {
+        "zhHant": "糧倉 Lv.{0}｜馬廄 Lv.{1}｜資源倉庫 Lv.{2}",
+        "en": "Granary Lv.{0} | Horse Stable Lv.{1} | Resource Depot Lv.{2}"
+    },
     "fmt.faction_name_ruler":  {
                                    "zhHant":  "{0}軍",
                                    "en":  "{0} Forces"
@@ -99,6 +111,34 @@
                                                        "zhHant":  "建設「{0}」建設點 +{1}，目前 {2}，本月完成 +{3}。",
                                                        "en":  "Construction \"{0}\" gained +{1} points, now {2}, completed +{3} this month."
                                                    },
+    "fmt.construction_project_material_cost": {
+        "zhHant": "{0}｜木材 {1}、金屬 {2}、石材 {3}",
+        "en": "{0} | Wood {1}, Metal {2}, Stone {3}"
+    },
+    "fmt.internal_affairs_materials_spent": {
+        "zhHant": "消耗木材 {0}、金屬 {1}、石材 {2}。",
+        "en": "Spent Wood {0}, Metal {1}, Stone {2}."
+    },
+    "fmt.internal_affairs_construction_waiting_materials": {
+        "zhHant": "原料不足，進度等待補給。",
+        "en": "Insufficient materials; progress is waiting for supplies."
+    },
+    "fmt.internal_affairs_defense_stone_spent": {
+        "zhHant": "修繕城防消耗石材 {0}。",
+        "en": "Spent Stone {0} repairing city defenses."
+    },
+    "fmt.internal_affairs_defense_waiting_stone": {
+        "zhHant": "石材不足，無法修繕城防。",
+        "en": "Insufficient Stone to repair city defenses."
+    },
+    "fmt.internal_affairs_disaster_prevention_materials_spent": {
+        "zhHant": "治水防災消耗木材 {0}、石材 {1}。",
+        "en": "Spent Wood {0} and Stone {1} on flood-control and disaster prevention."
+    },
+    "fmt.internal_affairs_disaster_prevention_waiting_materials": {
+        "zhHant": "木材或石材不足，無法進行治水防災。",
+        "en": "Insufficient Wood or Stone for flood-control and disaster prevention."
+    },
     "fmt.item_bonus_compact":  {
                                    "zhHant":  "武{0} 智{1} 魅{2} 統{3} 政{4} 戰{5} 忠{6}",
                                    "en":  "STR{0} INT{1} CHA{2} LEA{3} POL{4} COM{5} LOY{6}"

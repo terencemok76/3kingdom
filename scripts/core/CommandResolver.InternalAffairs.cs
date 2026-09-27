@@ -499,13 +499,13 @@ public partial class CommandResolver
                         city,
                         schedule.ConstructionProjectType,
                         gains.ConstructionPoints,
-                        gains.ConstructionResult.ValuesGained,
+                        gains.ConstructionResult,
                         GameLanguage.TraditionalChinese),
                     BuildConstructionProgressSuffix(
                         city,
                         schedule.ConstructionProjectType,
                         gains.ConstructionPoints,
-                        gains.ConstructionResult.ValuesGained,
+                        gains.ConstructionResult,
                         GameLanguage.English));
             }
             else if (schedule.JobType == InternalAffairsJobType.Extraction && gains.ResourceOutput.HasOutput)
@@ -514,6 +514,25 @@ public partial class CommandResolver
                     resolveResult,
                     $" 採得{GetResourceName(gains.ResourceOutput.Type, GameLanguage.TraditionalChinese)} +{gains.ResourceOutput.Amount}（剩餘 {GetRemainingResourceReserve(city, gains.ResourceOutput.Type)}）。",
                     $" Extracted {GetResourceName(gains.ResourceOutput.Type, GameLanguage.English)} +{gains.ResourceOutput.Amount} ({GetRemainingResourceReserve(city, gains.ResourceOutput.Type)} remaining).");
+            }
+            else if (schedule.JobType == InternalAffairsJobType.Defend)
+            {
+                var stoneSpent = ConstructionRules.GetDefenseStoneCost(gains.Defense);
+                AppendLocalizedText(
+                    resolveResult,
+                    _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, stoneSpent > 0 ? "fmt.internal_affairs_defense_stone_spent" : "fmt.internal_affairs_defense_waiting_stone", stoneSpent) ?? string.Empty,
+                    _localization?.FormatForLanguage(GameLanguage.English, stoneSpent > 0 ? "fmt.internal_affairs_defense_stone_spent" : "fmt.internal_affairs_defense_waiting_stone", stoneSpent) ?? string.Empty);
+            }
+            else if (schedule.JobType == InternalAffairsJobType.WaterControl)
+            {
+                var materialsSpent = ConstructionRules.GetDisasterPreventionResourceCost(gains.DisasterPrevention);
+                var resultKey = materialsSpent.IsEmpty
+                    ? "fmt.internal_affairs_disaster_prevention_waiting_materials"
+                    : "fmt.internal_affairs_disaster_prevention_materials_spent";
+                AppendLocalizedText(
+                    resolveResult,
+                    _localization?.FormatForLanguage(GameLanguage.TraditionalChinese, resultKey, materialsSpent.Wood, materialsSpent.Stone) ?? string.Empty,
+                    _localization?.FormatForLanguage(GameLanguage.English, resultKey, materialsSpent.Wood, materialsSpent.Stone) ?? string.Empty);
             }
             resolveResult.IsPlayerRelated = isPlayerRelated;
             results.Add(resolveResult);

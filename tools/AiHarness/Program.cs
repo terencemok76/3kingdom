@@ -39,6 +39,13 @@ internal static class Program
             return;
         }
 
+        if (args.Contains("--resource-depot-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunResourceDepotStorageTest();
+            PrintSummary();
+            return;
+        }
+
         // Keep test order stable so regression diffs stay easy to compare across runs.
         RunBattlePeriodSupplyTest();
         RunBattleEnvironmentForecastTest();
@@ -73,6 +80,7 @@ internal static class Program
         RunSaveLoadRoundTripTest();
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
+        RunResourceDepotStorageTest();
         RunMonthlyCityEventsTest();
         RunMonthlyCityEventSeasonRulesTest();
         RunMonthlyCityEventConditionRulesTest();
@@ -1533,6 +1541,52 @@ internal static class Program
 
         Assert(result.AnnualFoodCollected == 2736, "AI seasonal food total", $"annualFood={result.AnnualFoodCollected}");
         Assert(city.Food == 3686, "AI seasonal food applied with upkeep", $"food={city.Food}");
+    }
+
+    private static void RunResourceDepotStorageTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        var playerCity = TestHelpers.City(1, "PlayerCity", 1, 1000, 12000, 0, Array.Empty<int>(), Array.Empty<int>());
+        var aiCity = TestHelpers.City(2, "AiCity", 2, 1000, 1000, 0, Array.Empty<int>(), Array.Empty<int>());
+        playerCity.GranaryLevel = 1;
+        playerCity.HorseStableLevel = 1;
+        playerCity.Horses = 600;
+        playerCity.Metal = 1200;
+        playerCity.Wood = 1200;
+        playerCity.Stone = 1200;
+        aiCity.Metal = 1200;
+        aiCity.Wood = 1200;
+        aiCity.Stone = 1200;
+        aiCity.ResourceDepotLevel = 1;
+        world.Cities.Add(playerCity);
+        world.Cities.Add(aiCity);
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 0, Array.Empty<int>()));
+        world.RandomSeed = FindSeedForWorldWithoutMonthlyEvents(world);
+
+        var result = CreateServices(world).Turn.ApplyMonthlyEconomy();
+        var playerReport = result.PlayerCityEconomyReports.SingleOrDefault(report => report.CityId == playerCity.Id);
+        var aiDepotChosen = AiConstructionRules.ChooseConstructionProjectType(world, aiCity) == ConstructionProjectType.ResourceDepot;
+
+        var horseWorld = TestHelpers.World(month: 1);
+        var horseCity = TestHelpers.City(3, "HorseCity", 1, 1000, 1000, 0, Array.Empty<int>(), Array.Empty<int>());
+        horseCity.Horses = 399;
+        horseCity.HorseStableLevel = 1;
+        horseWorld.Cities.Add(horseCity);
+        horseWorld.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        horseWorld.RandomSeed = FindSeedForWorldWithoutMonthlyEvents(horseWorld);
+        var horseResult = CreateServices(horseWorld).Turn.ApplyMonthlyEconomy();
+        var constrainedBirths = horseResult.PlayerCityHorseBirths.SingleOrDefault(entry => entry.CityId == horseCity.Id).Amount;
+
+        Assert(
+            playerCity.Food == 10000 && playerCity.Horses == 400 && playerCity.Metal == 500 && playerCity.Wood == 500 && playerCity.Stone == 500 &&
+            aiCity.Metal == 1000 && aiCity.Wood == 1000 && aiCity.Stone == 1000 &&
+            playerReport != null &&
+            playerReport.FoodCapacity == 10000 && playerReport.HorseCapacity == 400 && playerReport.MetalCapacity == 500 && playerReport.WoodCapacity == 500 && playerReport.StoneCapacity == 500 &&
+            playerReport.StorageLoss.Food == 2000 && playerReport.StorageLoss.Horse == 200 && playerReport.StorageLoss.Metal == 700 && playerReport.StorageLoss.Wood == 700 && playerReport.StorageLoss.Stone == 700 &&
+            aiDepotChosen && horseCity.Horses == 400 && constrainedBirths == 1,
+            "Fixed storage capacity, shared overflow loss, and stable-limited horse births",
+            $"player food/horse={playerCity.Food}/{playerCity.Horses}, raw={playerCity.Metal}/{playerCity.Wood}/{playerCity.Stone}, ai={aiCity.Metal}/{aiCity.Wood}/{aiCity.Stone}, births={constrainedBirths}, loss={playerReport?.StorageLoss}");
     }
 
     private static void RunMonthlyCityEventsTest()

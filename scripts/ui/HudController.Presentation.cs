@@ -493,14 +493,16 @@ public partial class HudController : CanvasLayer
 
         rows.AddRange(
         [
-            new CityStatRowDefinition(_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
-            new CityStatRowDefinition(_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
-            new CityStatRowDefinition(_localization.T("ui.wood"), MaskedNumberText(canViewCity, city.Wood), _localization.T("ui.metal"), MaskedNumberText(canViewCity, city.Metal)),
-            new CityStatRowDefinition(_localization.T("ui.stone"), MaskedNumberText(canViewCity, city.Stone), _localization.T("ui.resource_deposits"), canViewCity ? BuildResourceDepositSummary(city) : UnknownInfoText),
+            new CityStatRowDefinition(_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Food) : UnknownInfoText),
+            new CityStatRowDefinition(_localization.T("ui.horse"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Horse) : UnknownInfoText, _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
+            new CityStatRowDefinition(_localization.T("ui.wood"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Wood) : UnknownInfoText, _localization.T("ui.metal"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Metal) : UnknownInfoText),
+            new CityStatRowDefinition(_localization.T("ui.stone"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Stone) : UnknownInfoText, _localization.T("ui.resource_deposits"), canViewCity ? BuildResourceDepositSummary(city) : UnknownInfoText),
             new CityStatRowDefinition(_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
             new CityStatRowDefinition(_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
             new CityStatRowDefinition(_localization.T("ui.bow_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText, _localization.T("ui.siege_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText),
-            new CityStatRowDefinition(_localization.T("ui.horse_pasture"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText, string.Empty, string.Empty),
+            new CityStatRowDefinition(_localization.T("ui.horse_pasture"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText, _localization.T("ui.horse_stable"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorseStable) : UnknownInfoText),
+            new CityStatRowDefinition(_localization.T("ui.granary"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.Granary) : UnknownInfoText, string.Empty, string.Empty),
+            new CityStatRowDefinition(_localization.T("ui.resource_depot"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.ResourceDepot) : UnknownInfoText, string.Empty, string.Empty),
             new CityStatRowDefinition(_localization.T("ui.loyalty"), MaskedNumberText(canViewCity, city.Loyalty), string.Empty, string.Empty),
             new CityStatRowDefinition(_localization.T("ui.officers"), MaskedNumberText(canViewCity, city.OfficerIds.Count), _localization.T("ui.free_officers"), MaskedNumberText(canViewCity, freeOfficerCount)),
             new CityStatRowDefinition(_localization.T("ui.troops"), MaskedNumberText(canViewCity, city.Troops), string.Empty, string.Empty),

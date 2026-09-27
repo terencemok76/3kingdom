@@ -11,6 +11,7 @@ namespace ThreeKingdom.UI;
 
 public partial class HudController : CanvasLayer
 {
+    private const double AiTurnDisplaySeconds = 0.35;
     private const string FactionOutcomeDialogScenePath = "res://scenes/ui/main/FactionOutcomeDialog.tscn";
     private readonly Queue<(string Title, string Message, bool ReturnToMainMenu)> _factionOutcomeQueue = new();
     private Control? _factionOutcomeDialog;
@@ -111,6 +112,7 @@ public partial class HudController : CanvasLayer
         }
 
         var world = _turnManager.World;
+        BeginEndTurnTransitionUi();
         AddLog(_localization.T("log.player_end_turn"), isPlayerRelated: true);
         if (world.IsBattleResolutionPhase)
         {
@@ -122,82 +124,104 @@ public partial class HudController : CanvasLayer
             return;
         }
 
-        foreach (var faction in world.Factions)
+        _pendingAiFactionTurns.Clear();
+        foreach (var faction in world.Factions.Where(faction => !faction.IsPlayer))
         {
-            if (faction.IsPlayer)
+            _pendingAiFactionTurns.Enqueue(faction.Id);
+        }
+
+        ContinueAiFactionTurn();
+    }
+
+    private void ContinueAiFactionTurn()
+    {
+        if (_turnManager?.World == null || _localization == null || _aiController == null)
+        {
+            return;
+        }
+
+        if (_pendingAiFactionTurns.Count == 0)
+        {
+            ResolveEndTurnPendingCommands();
+            return;
+        }
+
+        var factionId = _pendingAiFactionTurns.Dequeue();
+        var world = _turnManager.World;
+        _mainHudUiController?.SetTopBarTurnState(factionId, isAiTurn: true, buttonsEnabled: false);
+
+        foreach (var appointmentResult in _aiController.RunFactionAppointmentDecisions(factionId).Where(result => result.Success))
+        {
+            var factionName = _localization.GetFactionName(world, factionId);
+            var appointmentMessage = GetLocalizedResultMessage(appointmentResult);
+            AddLog(_localization.FormatAiCityAction(factionName, "-", appointmentMessage), appointmentResult.IsRulerChange);
+            if (appointmentResult.IsRulerChange)
+            {
+                QueueFactionOutcome(_localization.T("ui.ruler_changed_title"), $"{_localization.T("ui.ruler_changed_manual_reason_ai")}\n\n{appointmentMessage}");
+            }
+        }
+
+        var cityIds = world.Cities.Where(city => city.OwnerFactionId == factionId).Select(city => city.Id).ToList();
+        foreach (var cityId in cityIds)
+        {
+            var city = world.GetCity(cityId);
+            if (city == null)
             {
                 continue;
             }
 
-            foreach (var appointmentResult in _aiController.RunFactionAppointmentDecisions(faction.Id))
+            if (_aiDecisionDebugEnabled)
             {
-                if (!appointmentResult.Success)
-                {
-                    continue;
-                }
-
-                var factionName = _localization.GetFactionName(world, faction.Id);
-                var appointmentMessage = GetLocalizedResultMessage(appointmentResult);
-                AddLog(
-                    _localization.FormatAiCityAction(factionName, "-", appointmentMessage),
-                    isPlayerRelated: appointmentResult.IsRulerChange);
-                if (appointmentResult.IsRulerChange)
-                {
-                    QueueFactionOutcome(
-                        _localization.T("ui.ruler_changed_title"),
-                        $"{_localization.T("ui.ruler_changed_manual_reason_ai")}\n\n{appointmentMessage}");
-                }
+                AddLog(_localization.Format("fmt.ai_debug_evaluation_start", _localization.GetCityName(city), city.Troops, city.Gold, city.Food), isPlayerRelated: false);
             }
-
-            var cityIds = new List<int>();
-            foreach (var city in world.Cities)
+            var result = _aiController.RunSingleCityDecision(factionId, cityId);
+            var cityName = _localization.GetCityName(city);
+            var factionName = _localization.GetFactionName(world, factionId);
+            if (_aiDecisionDebugEnabled && !string.IsNullOrWhiteSpace(_aiController.LastAttackDecisionDetail))
             {
-                if (city.OwnerFactionId == faction.Id)
-                {
-                    cityIds.Add(city.Id);
-                }
+                AddLog(_localization.Format("fmt.ai_debug_detail", _aiController.LastAttackDecisionDetail), _aiController.LastAttackDecisionTargetFactionId == _turnManager.GetPlayerFactionId());
             }
-
-            foreach (var cityId in cityIds)
+            if (_aiDecisionDebugEnabled && !string.IsNullOrWhiteSpace(_aiController.LastDecisionDebugDetail))
             {
-                var city = world.GetCity(cityId);
-                if (city == null)
-                {
-                    continue;
-                }
-
-                if (_aiDecisionDebugEnabled)
-                {
-                    AddLog(_localization.Format("fmt.ai_debug_evaluation_start", _localization.GetCityName(city), city.Troops, city.Gold, city.Food), isPlayerRelated: false);
-                }
-                var result = _aiController.RunSingleCityDecision(faction.Id, cityId);
-                var cityName = _localization.GetCityName(city);
-                var factionName = _localization.GetFactionName(world, faction.Id);
-                if (_aiDecisionDebugEnabled && !string.IsNullOrWhiteSpace(_aiController.LastAttackDecisionDetail))
-                {
-                    AddLog(
-                        _localization.Format("fmt.ai_debug_detail", _aiController.LastAttackDecisionDetail),
-                        isPlayerRelated: _aiController.LastAttackDecisionTargetFactionId == _turnManager.GetPlayerFactionId());
-                }
-                if (_aiDecisionDebugEnabled && !string.IsNullOrWhiteSpace(_aiController.LastDecisionDebugDetail))
-                {
-                    AddLog(
-                        _localization.Format("fmt.ai_debug_detail", _aiController.LastDecisionDebugDetail),
-                        isPlayerRelated: _aiController.LastDiplomacyDecisionTargetFactionId == _turnManager.GetPlayerFactionId());
-                }
-                AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(result)));
-                if (_aiDecisionDebugEnabled)
-                {
-                    AddLog(_localization.Format(
-                        result.Success ? "fmt.ai_debug_final_success" : "fmt.ai_debug_final_failure",
-                        cityName,
-                        GetLocalizedResultMessage(result)), isPlayerRelated: false);
-                }
-                CheckFactionEliminations();
+                AddLog(_localization.Format("fmt.ai_debug_detail", _aiController.LastDecisionDebugDetail), _aiController.LastDiplomacyDecisionTargetFactionId == _turnManager.GetPlayerFactionId());
             }
+            AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(result)));
+            if (_aiDecisionDebugEnabled)
+            {
+                AddLog(_localization.Format(result.Success ? "fmt.ai_debug_final_success" : "fmt.ai_debug_final_failure", cityName, GetLocalizedResultMessage(result)), isPlayerRelated: false);
+            }
+            CheckFactionEliminations();
         }
 
-        ResolveEndTurnPendingCommands();
+        GetTree().CreateTimer(AiTurnDisplaySeconds).Timeout += ContinueAiFactionTurn;
+    }
+
+    private void BeginEndTurnTransitionUi()
+    {
+        if (_isEndTurnTransitionUiActive)
+        {
+            return;
+        }
+
+        _isEndTurnTransitionUiActive = true;
+        _mainHudUiController?.SetCityInfoTemporarilyHidden(true);
+        _mainHudUiController?.SetLogTemporarilyHidden(true);
+        _mainHudUiController?.SetTopBarTurnState(_turnManager?.GetPlayerFactionId() ?? -1, isAiTurn: false, buttonsEnabled: false);
+        SetGameplayButtonsEnabled(false);
+    }
+
+    private void CompleteEndTurnTransitionUi()
+    {
+        if (!_isEndTurnTransitionUiActive)
+        {
+            return;
+        }
+
+        _isEndTurnTransitionUiActive = false;
+        _mainHudUiController?.SetCityInfoTemporarilyHidden(false);
+        _mainHudUiController?.SetLogTemporarilyHidden(false);
+        _mainHudUiController?.SetTopBarTurnState(_turnManager?.GetPlayerFactionId() ?? -1, isAiTurn: false, buttonsEnabled: true);
+        UpdateGameplayButtonStates();
     }
 
     private void AutoSelectPlayerCityForNewRound()
@@ -540,7 +564,7 @@ public partial class HudController : CanvasLayer
 
     private void UpdateGameplayButtonStates()
     {
-        var baseEnabled = !_gameEnded;
+        var baseEnabled = !_gameEnded && !_isEndTurnTransitionUiActive;
         var world = _turnManager?.World;
         var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
         var hasSelectedCity = _selectedCity != null;

@@ -29,6 +29,12 @@ public class CityStartData
     public int SiegeWorkshopProgress { get; set; }
     public int HorsePastureLevel { get; set; }
     public int HorsePastureProgress { get; set; }
+    public int ResourceDepotLevel { get; set; }
+    public int ResourceDepotProgress { get; set; }
+    public int GranaryLevel { get; set; }
+    public int GranaryProgress { get; set; }
+    public int HorseStableLevel { get; set; }
+    public int HorseStableProgress { get; set; }
     public int RamCount { get; set; }
     public int RamProgress { get; set; }
     public int CatapultCount { get; set; }
