@@ -606,6 +606,10 @@
                                           "zhHant":  "「{0}」內政進度：「{1}」執行「{2}」。農業 +{3}，商業 +{4}，防衛 +{5}，防災 +{6}，忠誠 +{7}，剩餘 {8} 月，本月金 -{9}。",
                                           "en":  "\"{0}\" internal affairs: \"{1}\" worked on \"{2}\". Farm +{3}, Commercial +{4}, Defense +{5}, Disaster Prevention +{6}, Loyalty +{7}, {8} months left, Monthly Gold -{9}."
                                       },
+    "cmd.internal_affairs.no_resource_deposit":  {
+                                          "zhHant":  "「{0}」沒有可採集的資源點。",
+                                          "en":  "\"{0}\" has no extractable resource deposit."
+                                      },
     "cmd.internal_affairs.pause_not_available":  {
                                                      "zhHant":  "目前只有進行中的內政計畫可以暫停。",
                                                      "en":  "Only a running internal affairs plan can be paused."
@@ -711,25 +715,33 @@
                                "en":  "\"{0}\" move order to \"{1}\" had no effect."
                            },
     "cmd.move.nothing_to_move":  {
-                                     "zhHant":  "沒有可移動的兵力、金、糧、馬或武將。",
-                                     "en":  "No troops, gold, food, horses, or officers available to move."
+                                     "zhHant":  "沒有可移動的項目。",
+                                     "en":  "There is nothing to move."
                                  },
     "cmd.move.officer_already_assigned":  {
                                               "zhHant":  "「{0}」所選武將本月已被指派至其他命令。",
                                               "en":  "\"{0}\" has selected officers already assigned to another command this month."
                                           },
     "cmd.move.resolved":  {
-                              "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、補給車 +{5}、衝車 +{6}、投石車 +{7}、雲梯 +{8}、武將 +{9} 已轉移至「{10}」。",
-                              "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Supply Carts+{5}, Rams+{6}, Catapults+{7}, Ladders+{8}, Officers+{9} moved to \"{10}\"."
+                              "zhHant":  "「{0}」移動完成。兵力 +{1}、金 +{2}、糧 +{3}、馬 +{4}、木材 +{5}、金屬 +{6}、石材 +{7}、補給車 +{8}、衝車 +{9}、投石車 +{10}、雲梯 +{11}、武將 +{12} 已轉移至「{13}」。",
+                              "en":  "\"{0}\" completed Move. Troops+{1}, Gold+{2}, Food+{3}, Horses+{4}, Wood+{5}, Metal+{6}, Stone+{7}, Supply Carts+{8}, Rams+{9}, Catapults+{10}, Ladders+{11}, Officers+{12} moved to \"{13}\"."
                           },
     "cmd.move.captive_suffix":  {
                                     "zhHant":  " 另有俘虜 +{0} 一併轉移。",
                                     "en":  " Captives+{0} were also transferred."
                                 },
     "cmd.move.scheduled":  {
-                               "zhHant":  "「{0}」已排定移動命令，月末將轉移至「{1}」。",
-                               "en":  "\"{0}\" scheduled a Move to \"{1}\"."
+                               "zhHant":  "「{0}」已排定移動命令：{2}；月末將轉移至「{1}」。",
+                               "en":  "\"{0}\" scheduled a Move to \"{1}\": {2}."
                            },
+    "cmd.move.transfer_separator": {
+        "zhHant": "、",
+        "en": ", "
+    },
+    "cmd.move.transfer_empty": {
+        "zhHant": "無物資",
+        "en": "No resources"
+    },
     "cmd.move.target_not_found_resolution":  {
                                                  "zhHant":  "移動結算時找不到目標城市。",
                                                  "en":  "Move target city not found at resolution."

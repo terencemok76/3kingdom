@@ -145,13 +145,12 @@ public partial class CommandResolver
 
     private static int GetTransferAmount(int requestedAmount, int availableAmount)
     {
-        var transferAmount = requestedAmount > 0 ? requestedAmount : availableAmount / 2;
-        if (transferAmount > availableAmount)
+        if (requestedAmount <= 0 || availableAmount <= 0)
         {
-            transferAmount = availableAmount;
+            return 0;
         }
 
-        return transferAmount < 0 ? 0 : transferAmount;
+        return Math.Min(requestedAmount, availableAmount);
     }
 
     private static TroopAllocationData CreateTroopAllocationFromTotal(CityData city, int requestedTroops)
@@ -1412,11 +1411,12 @@ public partial class CommandResolver
             InternalAffairsJobType.Defend => officer.Leadership * 2 + officer.Politics * 2 + officer.DefendRank * 25,
             InternalAffairsJobType.WaterControl => officer.Intelligence * 2 + officer.Politics * 2 + officer.DisasterPreventionRank * 25,
             InternalAffairsJobType.Construction => officer.Politics * 2 + officer.Leadership + officer.Intelligence + officer.ConstructionRank * 25,
+            InternalAffairsJobType.Extraction => officer.Politics * 2 + officer.Intelligence + officer.ConstructionRank * 25,
             _ => officer.Politics + officer.Intelligence + officer.Charm
         };
     }
 
-    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult) ApplyInternalAffairsJob(
+    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput) ApplyInternalAffairsJob(
         WorldState world,
         CityData city,
         OfficerData officer,
@@ -1435,14 +1435,15 @@ public partial class CommandResolver
         var goldBonus = 1 + Math.Min(4, Math.Max(0, (monthlyInvestment - 50) / 100));
         var primaryGain = 2 + officerBonus + progressionBonus + goldBonus;
         var secondaryGain = 1 + Math.Max(0, progressionBonus / 2);
-        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult) gains = jobType switch
+        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput) gains = jobType switch
         {
-            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0, default),
-            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0, default),
-            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0, default),
-            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0, default),
-            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus), default),
-            _ => (0, 0, 0, 0, 0, 0, default)
+            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0, default, default),
+            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0, default, default),
+            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0, default, default),
+            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0, default, default),
+            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus), default, default),
+            InternalAffairsJobType.Extraction => (0, 0, 0, 0, 0, 0, default, default),
+            _ => (0, 0, 0, 0, 0, 0, default, default)
         };
 
         city.Farm = ClampStat(city.Farm + gains.Farm);
@@ -1453,6 +1454,10 @@ public partial class CommandResolver
         if (jobType == InternalAffairsJobType.Construction)
         {
             gains.ConstructionResult = ConstructionRules.ApplyProgress(city, constructionProjectType, gains.ConstructionPoints);
+        }
+        else if (jobType == InternalAffairsJobType.Extraction)
+        {
+            gains.ResourceOutput = ResourceRules.ApplyExtraction(city, primaryGain);
         }
 
         OfficerProgressionRules.AwardInternalAffairsExperience(officer, jobType, 40);
@@ -1489,6 +1494,7 @@ public partial class CommandResolver
             InternalAffairsJobType.Defend => 80,
             InternalAffairsJobType.WaterControl => 70,
             InternalAffairsJobType.Construction => 100,
+            InternalAffairsJobType.Extraction => 75,
             _ => 60
         };
     }
@@ -1502,6 +1508,7 @@ public partial class CommandResolver
             InternalAffairsJobType.Defend => "command.internal_affairs.defend",
             InternalAffairsJobType.WaterControl => "command.internal_affairs.disaster_prevention",
             InternalAffairsJobType.Construction => "command.internal_affairs.construction",
+            InternalAffairsJobType.Extraction => "command.internal_affairs.extraction",
             _ => string.Empty
         };
 

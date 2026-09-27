@@ -345,9 +345,25 @@ internal partial class StrategicMapCanvas : Control
 
             var stock = MarketRules.GetDisplayMerchantStock(city, MarketProductType.Food) +
                         MarketRules.GetDisplayMerchantStock(city, MarketProductType.Horse) +
-                        MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal);
+                        MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal) +
+                        MarketRules.GetDisplayMerchantStock(city, MarketProductType.Wood) +
+                        MarketRules.GetDisplayMerchantStock(city, MarketProductType.Stone);
             var availability = Mathf.Clamp(stock / 1500.0f, 0.0f, 1.0f);
             return new Color(0.30f + availability * 0.36f, 0.22f + availability * 0.30f, 0.08f, 1.0f);
+        }
+
+        if (_layer == StrategicMapLayer.Resource)
+        {
+            if (!CanViewCityInformation(city)) return new Color("5b5c58");
+            var deposit = city.ResourceDeposits?.FirstOrDefault();
+            if (deposit == null || deposit.RemainingReserve <= 0) return new Color("4b5563");
+            return deposit.Type switch
+            {
+                StrategicResourceType.Wood => new Color("2f855a"),
+                StrategicResourceType.Metal => new Color("64748b"),
+                StrategicResourceType.Stone => new Color("a16207"),
+                _ => new Color("4b5563")
+            };
         }
 
         if (!CanViewCityInformation(city))
@@ -433,9 +449,28 @@ internal partial class StrategicMapCanvas : Control
                     MarketRules.GetDisplayMerchantStock(city, MarketProductType.Horse),
                     MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal))
                 : Format("fmt.strategic_map.tooltip.merchant_none", header),
+            StrategicMapLayer.Resource when CanViewCityInformation(city) => BuildResourceTooltip(header, city),
+            StrategicMapLayer.Resource => Format("fmt.strategic_map.tooltip.development_unknown", header),
             _ => header
         };
         return AppendIntelStatus(city, tooltip, "\n");
+    }
+
+    private string BuildResourceTooltip(string header, CityData city)
+    {
+        var deposit = city.ResourceDeposits?.FirstOrDefault();
+        if (deposit == null || deposit.RemainingReserve <= 0)
+        {
+            return Format("fmt.strategic_map.tooltip.resource_none", header);
+        }
+
+        var name = deposit.Type switch
+        {
+            StrategicResourceType.Wood => _localization?.T("ui.wood") ?? "Wood",
+            StrategicResourceType.Metal => _localization?.T("ui.metal") ?? "Metal",
+            _ => _localization?.T("ui.stone") ?? "Stone"
+        };
+        return Format("fmt.strategic_map.tooltip.resource_point", header, name, deposit.RemainingReserve, deposit.MonthlyYield);
     }
 
     private string AppendIntelStatus(CityData city, string text, string separator)

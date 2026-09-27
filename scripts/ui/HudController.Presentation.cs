@@ -191,6 +191,7 @@ public partial class HudController : CanvasLayer
     {
         _mainHudUiController?.RefreshSelectedCity();
         _merchantUiController?.RefreshSelectedCity();
+        _internalAffairsUiController?.RefreshSelectedCity();
         _viewUiController?.RefreshOfficerListChrome();
         _viewUiController?.RefreshOfficerListContent();
     }
@@ -494,6 +495,8 @@ public partial class HudController : CanvasLayer
         [
             new CityStatRowDefinition(_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), MaskedNumberText(canViewCity, city.Food)),
             new CityStatRowDefinition(_localization.T("ui.horse"), MaskedNumberText(canViewCity, city.Horses), _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
+            new CityStatRowDefinition(_localization.T("ui.wood"), MaskedNumberText(canViewCity, city.Wood), _localization.T("ui.metal"), MaskedNumberText(canViewCity, city.Metal)),
+            new CityStatRowDefinition(_localization.T("ui.stone"), MaskedNumberText(canViewCity, city.Stone), _localization.T("ui.resource_deposits"), canViewCity ? BuildResourceDepositSummary(city) : UnknownInfoText),
             new CityStatRowDefinition(_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
             new CityStatRowDefinition(_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
             new CityStatRowDefinition(_localization.T("ui.bow_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText, _localization.T("ui.siege_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText),
@@ -560,6 +563,26 @@ public partial class HudController : CanvasLayer
 
         return _localization.GetAppointmentName(OfficerAppointmentRules.Governor);
     }
+
+    private string BuildResourceDepositSummary(CityData city)
+    {
+        if (_localization == null || city.ResourceDeposits == null || city.ResourceDeposits.Count == 0)
+        {
+            return _localization?.T("ui.none") ?? "None";
+        }
+
+        return string.Join("/", city.ResourceDeposits
+            .Where(deposit => deposit.RemainingReserve > 0)
+            .Select(deposit => $"{GetResourceDisplayName(deposit.Type)} {deposit.RemainingReserve}"));
+    }
+
+    private string GetResourceDisplayName(StrategicResourceType type) => type switch
+    {
+        StrategicResourceType.Wood => _localization?.T("ui.wood") ?? "Wood",
+        StrategicResourceType.Metal => _localization?.T("ui.metal") ?? "Metal",
+        StrategicResourceType.Stone => _localization?.T("ui.stone") ?? "Stone",
+        _ => string.Empty
+    };
 
     private string BuildPrefectNameText(CityData city)
     {

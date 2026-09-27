@@ -48,6 +48,8 @@
 						  "zhHant":  "金屬",
 						  "en":  "Metal"
 					  },
+	"product.wood": { "zhHant": "木材", "en": "Wood" },
+	"product.stone": { "zhHant": "石材", "en": "Stone" },
 	"ui.civil_command":  {
 							 "zhHant":  "民事指令",
 							 "en":  "Civil Command"

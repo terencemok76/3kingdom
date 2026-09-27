@@ -524,7 +524,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         return isSelling ? GetSellMode(_selectedProduct) : GetBuyMode(_selectedProduct);
     }
 
-    private static bool IsSelling(MerchantTradeMode tradeMode) => tradeMode is MerchantTradeMode.SellFood or MerchantTradeMode.SellHorse or MerchantTradeMode.SellMetal;
+    private static bool IsSelling(MerchantTradeMode tradeMode) => tradeMode is MerchantTradeMode.SellFood or MerchantTradeMode.SellHorse or MerchantTradeMode.SellMetal or MerchantTradeMode.SellWood or MerchantTradeMode.SellStone;
 
     private MarketProductType GetProduct(MerchantTradeMode tradeMode) => _selectedProduct;
 
@@ -532,6 +532,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
     {
         MarketProductType.Horse => MerchantTradeMode.BuyHorse,
         MarketProductType.Metal => MerchantTradeMode.BuyMetal,
+        MarketProductType.Wood => MerchantTradeMode.BuyWood,
+        MarketProductType.Stone => MerchantTradeMode.BuyStone,
         _ => MerchantTradeMode.BuyFood
     };
 
@@ -539,6 +541,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
     {
         MarketProductType.Horse => MerchantTradeMode.SellHorse,
         MarketProductType.Metal => MerchantTradeMode.SellMetal,
+        MarketProductType.Wood => MerchantTradeMode.SellWood,
+        MarketProductType.Stone => MerchantTradeMode.SellStone,
         _ => MerchantTradeMode.SellFood
     };
 
@@ -546,7 +550,9 @@ internal sealed class MerchantDialogController : FloatingOverlayController
     {
         MarketProductType.Food => "product.food",
         MarketProductType.Horse => "product.horse",
-        _ => "product.metal"
+        MarketProductType.Metal => "product.metal",
+        MarketProductType.Wood => "product.wood",
+        _ => "product.stone"
     }) ?? product.ToString();
 
     private void SetLabelText(string nodeName, string text)

@@ -46,6 +46,7 @@ public class WorldRepository
 
         LoadOfficerData(world, path);
         ApplyMapLocations(world);
+        EnsureCityResourceDeposits(world);
         return world;
     }
 
@@ -348,8 +349,11 @@ public class WorldRepository
         {
             city.OfficerIds ??= new List<int>();
             city.ConnectedCityIds ??= new List<int>();
+            city.ResourceDeposits ??= new List<CityResourceDepositData>();
             city.EnsureTroopTypesInitialized();
         }
+
+        EnsureCityResourceDeposits(world);
 
         foreach (var officer in world.Officers)
         {
@@ -512,6 +516,10 @@ public class WorldRepository
             city.SupplyCartProgress = cityStart.SupplyCartProgress;
             city.HasBowWorkshop = cityStart.HasBowWorkshop;
             city.HasSiegeWorkshop = cityStart.HasSiegeWorkshop;
+            if (cityStart.ResourceDeposits?.Count > 0)
+            {
+                city.ResourceDeposits = cityStart.ResourceDeposits;
+            }
             city.EnsureTroopTypesInitialized();
 
             foreach (var officerId in cityStart.OfficerIds)
@@ -523,6 +531,14 @@ public class WorldRepository
 
                 AssignOfficerToCity(world, officerId, city.Id);
             }
+        }
+    }
+
+    private static void EnsureCityResourceDeposits(WorldState world)
+    {
+        foreach (var city in world.Cities)
+        {
+            ResourceRules.EnsureCityDeposits(city);
         }
     }
 

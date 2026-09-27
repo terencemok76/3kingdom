@@ -39,6 +39,7 @@ public class CityStartData
     public int SupplyCartProgress { get; set; }
     public bool HasBowWorkshop { get; set; }
     public bool HasSiegeWorkshop { get; set; }
+    public List<CityResourceDepositData> ResourceDeposits { get; set; } = new();
     public List<int> OfficerIds { get; set; } = new();
 }
 

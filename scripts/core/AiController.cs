@@ -790,11 +790,12 @@ public class AiController
             (InternalAffairsJobType.Commercial, city.Commercial),
             (InternalAffairsJobType.Defend, city.Defense),
             (InternalAffairsJobType.WaterControl, city.DisasterPrevention),
-            (InternalAffairsJobType.Construction, city.Commercial + city.Defense)
+            (InternalAffairsJobType.Construction, city.Commercial + city.Defense),
+            (InternalAffairsJobType.Extraction, ResourceRules.GetExtractionPriority(city))
         };
 
         return candidates
-            .Where(candidate => !activeJobs.Contains(candidate.JobType))
+            .Where(candidate => !activeJobs.Contains(candidate.JobType) && candidate.Score < int.MaxValue)
             .OrderBy(candidate => candidate.Score)
             .ThenBy(candidate => (int)candidate.JobType)
             .Select(candidate => (InternalAffairsJobType?)candidate.JobType)

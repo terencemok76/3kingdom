@@ -47,6 +47,10 @@ public sealed class InternalAffairsUiController
 
     public void RefreshIfOpen() => _dialogController.RefreshIfOpen();
 
+    // City selection is independent from world-state events. Refresh here so
+    // an open dialog never retains a schedule selected in the previous city.
+    public void RefreshSelectedCity() => _dialogController.RefreshIfOpen();
+
     private void OnWorldStateChanged(UiEventHub.CityStateChangedEvent _)
     {
         _dialogController.RefreshIfOpen();

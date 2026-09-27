@@ -6,7 +6,15 @@ public enum InternalAffairsJobType
     Commercial,
     Defend,
     WaterControl,
-    Construction
+    Construction,
+    Extraction
+}
+
+public enum StrategicResourceType
+{
+    Wood,
+    Metal,
+    Stone
 }
 
 public enum ConstructionProjectType

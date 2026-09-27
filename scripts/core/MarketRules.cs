@@ -7,7 +7,9 @@ public enum MarketProductType
 {
     Food,
     Horse,
-    Metal
+    Metal,
+    Wood,
+    Stone
 }
 
 // Shared rule surface for player UI and AI decisions. No caller gets a
@@ -25,6 +27,8 @@ public static class MarketRules
         MarketProductType.Food => city.Food,
         MarketProductType.Horse => city.Horses,
         MarketProductType.Metal => city.Metal,
+        MarketProductType.Wood => city.Wood,
+        MarketProductType.Stone => city.Stone,
         _ => 0
     };
 
@@ -36,6 +40,8 @@ public static class MarketRules
             case MarketProductType.Food: city.Food = value; break;
             case MarketProductType.Horse: city.Horses = value; break;
             case MarketProductType.Metal: city.Metal = value; break;
+            case MarketProductType.Wood: city.Wood = value; break;
+            case MarketProductType.Stone: city.Stone = value; break;
         }
     }
 
@@ -44,6 +50,8 @@ public static class MarketRules
         MarketProductType.Food => city.FoodStorageCapacity > 0 ? city.FoodStorageCapacity : Math.Max(1000, city.Population * 4 + city.Farm * 50),
         MarketProductType.Horse => city.HorseStorageCapacity > 0 ? city.HorseStorageCapacity : 200 + city.HorsePastureLevel * 200,
         MarketProductType.Metal => city.MetalStorageCapacity > 0 ? city.MetalStorageCapacity : 300 + city.SiegeWorkshopLevel * 150,
+        MarketProductType.Wood => city.WoodStorageCapacity > 0 ? city.WoodStorageCapacity : 400 + city.Commercial * 10,
+        MarketProductType.Stone => city.StoneStorageCapacity > 0 ? city.StoneStorageCapacity : 400 + city.Defense * 10,
         _ => 0
     };
 
@@ -52,6 +60,8 @@ public static class MarketRules
         MarketProductType.Food => city.MerchantFoodStock,
         MarketProductType.Horse => city.MerchantHorseStock,
         MarketProductType.Metal => city.MerchantMetalStock,
+        MarketProductType.Wood => city.MerchantWoodStock,
+        MarketProductType.Stone => city.MerchantStoneStock,
         _ => 0
     };
 
@@ -72,6 +82,8 @@ public static class MarketRules
             case MarketProductType.Food: city.MerchantFoodStock = value; break;
             case MarketProductType.Horse: city.MerchantHorseStock = value; break;
             case MarketProductType.Metal: city.MerchantMetalStock = value; break;
+            case MarketProductType.Wood: city.MerchantWoodStock = value; break;
+            case MarketProductType.Stone: city.MerchantStoneStock = value; break;
         }
     }
 
@@ -93,8 +105,6 @@ public static class MarketRules
             SetMerchantStock(city, product, Math.Max(GetMerchantStock(city, product), baseStock));
         }
 
-        var metalProduction = Math.Max(0, city.SiegeWorkshopLevel * 10 + city.Commercial / 10);
-        SetAmount(city, MarketProductType.Metal, Math.Min(GetCapacity(city, MarketProductType.Metal), city.Metal + metalProduction));
         foreach (var product in Enum.GetValues<MarketProductType>())
         {
             SetLastBuyPrice(city, product, GetBuyUnitPrice(city, product));
@@ -126,7 +136,7 @@ public static class MarketRules
 
     public static int GetBuyUnitPrice(CityData city, MarketProductType product)
     {
-        var basePrice = product switch { MarketProductType.Food => 10, MarketProductType.Horse => 20, MarketProductType.Metal => 30, _ => 10 };
+        var basePrice = product switch { MarketProductType.Food => 10, MarketProductType.Horse => 20, MarketProductType.Metal => 30, MarketProductType.Wood => 12, MarketProductType.Stone => 16, _ => 10 };
         var stock = GetMerchantStock(city, product);
         var target = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4);
         var shortagePercent = Math.Clamp((target - stock) * 60 / target, -25, 75);
@@ -135,7 +145,7 @@ public static class MarketRules
 
     public static int GetDisplayBuyUnitPrice(CityData city, MarketProductType product)
     {
-        var basePrice = product switch { MarketProductType.Food => 10, MarketProductType.Horse => 20, MarketProductType.Metal => 30, _ => 10 };
+        var basePrice = product switch { MarketProductType.Food => 10, MarketProductType.Horse => 20, MarketProductType.Metal => 30, MarketProductType.Wood => 12, MarketProductType.Stone => 16, _ => 10 };
         var stock = GetDisplayMerchantStock(city, product);
         var target = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4);
         var shortagePercent = Math.Clamp((target - stock) * 60 / target, -25, 75);
@@ -149,7 +159,9 @@ public static class MarketRules
     {
         MarketProductType.Food => city.PreviousFoodBuyPrice,
         MarketProductType.Horse => city.PreviousHorseBuyPrice,
-        _ => city.PreviousMetalBuyPrice
+        MarketProductType.Metal => city.PreviousMetalBuyPrice,
+        MarketProductType.Wood => city.PreviousWoodBuyPrice,
+        _ => city.PreviousStoneBuyPrice
     };
 
     public static string GetStatusKey(CityData city, MarketProductType product)
@@ -170,16 +182,18 @@ public static class MarketRules
     {
         MarketProductType.Food => city.LastFoodBuyPrice,
         MarketProductType.Horse => city.LastHorseBuyPrice,
-        _ => city.LastMetalBuyPrice
+        MarketProductType.Metal => city.LastMetalBuyPrice,
+        MarketProductType.Wood => city.LastWoodBuyPrice,
+        _ => city.LastStoneBuyPrice
     };
 
     private static void SetPreviousBuyPrice(CityData city, MarketProductType product, int value)
     {
-        switch (product) { case MarketProductType.Food: city.PreviousFoodBuyPrice = value; break; case MarketProductType.Horse: city.PreviousHorseBuyPrice = value; break; default: city.PreviousMetalBuyPrice = value; break; }
+        switch (product) { case MarketProductType.Food: city.PreviousFoodBuyPrice = value; break; case MarketProductType.Horse: city.PreviousHorseBuyPrice = value; break; case MarketProductType.Metal: city.PreviousMetalBuyPrice = value; break; case MarketProductType.Wood: city.PreviousWoodBuyPrice = value; break; default: city.PreviousStoneBuyPrice = value; break; }
     }
 
     private static void SetLastBuyPrice(CityData city, MarketProductType product, int value)
     {
-        switch (product) { case MarketProductType.Food: city.LastFoodBuyPrice = value; break; case MarketProductType.Horse: city.LastHorseBuyPrice = value; break; default: city.LastMetalBuyPrice = value; break; }
+        switch (product) { case MarketProductType.Food: city.LastFoodBuyPrice = value; break; case MarketProductType.Horse: city.LastHorseBuyPrice = value; break; case MarketProductType.Metal: city.LastMetalBuyPrice = value; break; case MarketProductType.Wood: city.LastWoodBuyPrice = value; break; default: city.LastStoneBuyPrice = value; break; }
     }
 }

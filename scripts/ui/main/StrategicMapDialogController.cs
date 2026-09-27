@@ -222,7 +222,8 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
             T("ui.strategic_map.layer.military"),
             T("ui.strategic_map.layer.development"),
             T("ui.strategic_map.layer.event"),
-            T("ui.strategic_map.layer.merchant")
+            T("ui.strategic_map.layer.merchant"),
+            T("ui.strategic_map.layer.resource")
         });
         PopulateOption(_factionFilterOption, new[]
         {
@@ -270,6 +271,7 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
             StrategicMapLayer.Development => T("ui.strategic_map.summary.development"),
             StrategicMapLayer.Event => T("ui.strategic_map.summary.event"),
             StrategicMapLayer.Merchant => T("ui.strategic_map.summary.merchant"),
+            StrategicMapLayer.Resource => T("ui.strategic_map.summary.resource"),
             _ => T("ui.strategic_map.summary.faction")
         };
         if (_selectionRequest != null)
@@ -349,13 +351,34 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
                     "fmt.strategic_map.detail.merchant",
                     MarketRules.GetDisplayMerchantStock(city, MarketProductType.Food),
                     MarketRules.GetDisplayMerchantStock(city, MarketProductType.Horse),
-                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal))
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal) +
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Wood) +
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Stone))
                 : T("ui.strategic_map.merchant.none"),
+            StrategicMapLayer.Resource when CanViewCityInformation(world, city) => BuildResourcePointDetail(city),
+            StrategicMapLayer.Resource => T("ui.strategic_map.detail.development_unknown"),
             _ => Format("fmt.strategic_map.detail.faction", factionName)
         };
         detail = AppendIntelStatus(world, city, detail);
         var name = _context.Localization?.GetCityName(city) ?? city.Name;
         return Format("fmt.strategic_map.selected_detail", name, detail, city.ConnectedCityIds.Count);
+    }
+
+    private string BuildResourcePointDetail(CityData city)
+    {
+        var deposit = city.ResourceDeposits?.FirstOrDefault();
+        if (deposit == null || deposit.RemainingReserve <= 0)
+        {
+            return T("ui.strategic_map.resource_point.none");
+        }
+
+        var name = deposit.Type switch
+        {
+            StrategicResourceType.Wood => T("ui.wood"),
+            StrategicResourceType.Metal => T("ui.metal"),
+            _ => T("ui.stone")
+        };
+        return Format("fmt.strategic_map.detail.resource_point", name, deposit.RemainingReserve, deposit.MonthlyYield);
     }
 
     private string AppendIntelStatus(WorldState world, CityData city, string detail)

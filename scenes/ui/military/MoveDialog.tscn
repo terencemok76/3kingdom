@@ -367,6 +367,61 @@ layout_mode = 2
 focus_mode = 0
 text = "Max"
 
+[node name="WoodRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="WoodLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/WoodRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "木材"
+vertical_alignment = 1
+[node name="WoodSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/WoodRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+[node name="WoodMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/WoodRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+[node name="MetalRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="MetalLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/MetalRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "金屬"
+vertical_alignment = 1
+[node name="MetalSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/MetalRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+[node name="MetalMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/MetalRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+[node name="StoneRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+[node name="StoneLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/StoneRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "石材"
+vertical_alignment = 1
+[node name="StoneSpinBox" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/StoneRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+min_value = 0.0
+step = 1.0
+rounded = true
+[node name="StoneMaxButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content/StoneRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Max"
+
 [node name="SupplyCartRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
 layout_mode = 2
 size_flags_horizontal = 3

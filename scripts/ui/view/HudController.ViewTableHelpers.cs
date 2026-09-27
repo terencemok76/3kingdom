@@ -52,6 +52,15 @@ public partial class HudController
             ViewTableSortField.Food => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Food : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Food : int.MinValue),
+            ViewTableSortField.Wood => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Wood : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Wood : int.MinValue),
+            ViewTableSortField.Metal => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Metal : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Metal : int.MinValue),
+            ViewTableSortField.Stone => _viewTableSortAscending
+                ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Stone : int.MinValue)
+                : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Stone : int.MinValue),
             ViewTableSortField.Population => _viewTableSortAscending
                 ? result.OrderBy(city => CanViewCityFullInformation(city) ? city.Population : int.MinValue)
                 : result.OrderByDescending(city => CanViewCityFullInformation(city) ? city.Population : int.MinValue),
@@ -111,26 +120,29 @@ public partial class HudController
 
         if (_officerListContentMode == OfficerListContentMode.Cities)
         {
-            _officerListTable.Columns = 18;
+            _officerListTable.Columns = 21;
             SetViewTableColumn(0, _localization.T("ui.city"), 130, ViewTableSortField.Name);
             SetViewTableColumn(1, _localization.T("ui.faction_owner"), 140, ViewTableSortField.Owner);
             SetViewTableColumn(2, _localization.T("ui.gold"), 90, ViewTableSortField.Gold);
             SetViewTableColumn(3, _localization.T("ui.food"), 90, ViewTableSortField.Food);
-            SetViewTableColumn(4, _localization.T("ui.population"), 110, ViewTableSortField.Population);
-            SetViewTableColumn(5, _localization.T("ui.troops"), 90, ViewTableSortField.Troops);
-            SetViewTableColumn(6, _localization.T("ui.officers"), 90, ViewTableSortField.OfficerCount);
-            SetViewTableColumn(7, _localization.T("ui.farm"), 90, ViewTableSortField.Farm);
-            SetViewTableColumn(8, _localization.T("ui.commercial"), 110, ViewTableSortField.Commercial);
-            SetViewTableColumn(9, _localization.T("ui.defense"), 90, ViewTableSortField.Defense);
-            SetViewTableColumn(10, _localization.T("ui.bow_workshop"), 140, ViewTableSortField.BowWorkshop);
-            SetViewTableColumn(11, _localization.T("ui.siege_workshop"), 140, ViewTableSortField.SiegeWorkshop);
-            SetViewTableColumn(12, _localization.T("ui.horse_pasture"), 140, ViewTableSortField.HorsePasture);
-            SetViewTableColumn(13, _localization.T("siege_engine.ram"), 120, ViewTableSortField.Ram);
-            SetViewTableColumn(14, _localization.T("siege_engine.catapult"), 120, ViewTableSortField.Catapult);
-            SetViewTableColumn(15, _localization.T("siege_engine.ladder"), 120, ViewTableSortField.Ladder);
-            SetViewTableColumn(16, _localization.T("battle_equipment.supply_cart"), 120, ViewTableSortField.SupplyCart);
-            SetViewTableColumn(17, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
-            StretchTrailingViewColumns(18, 10, 130 + 140 + 90 + 90 + 110 + 90 + 90 + 90 + 110 + 90);
+            SetViewTableColumn(4, _localization.T("ui.wood"), 90, ViewTableSortField.Wood);
+            SetViewTableColumn(5, _localization.T("ui.metal"), 90, ViewTableSortField.Metal);
+            SetViewTableColumn(6, _localization.T("ui.stone"), 90, ViewTableSortField.Stone);
+            SetViewTableColumn(7, _localization.T("ui.population"), 110, ViewTableSortField.Population);
+            SetViewTableColumn(8, _localization.T("ui.troops"), 90, ViewTableSortField.Troops);
+            SetViewTableColumn(9, _localization.T("ui.officers"), 90, ViewTableSortField.OfficerCount);
+            SetViewTableColumn(10, _localization.T("ui.farm"), 90, ViewTableSortField.Farm);
+            SetViewTableColumn(11, _localization.T("ui.commercial"), 110, ViewTableSortField.Commercial);
+            SetViewTableColumn(12, _localization.T("ui.defense"), 90, ViewTableSortField.Defense);
+            SetViewTableColumn(13, _localization.T("ui.bow_workshop"), 140, ViewTableSortField.BowWorkshop);
+            SetViewTableColumn(14, _localization.T("ui.siege_workshop"), 140, ViewTableSortField.SiegeWorkshop);
+            SetViewTableColumn(15, _localization.T("ui.horse_pasture"), 140, ViewTableSortField.HorsePasture);
+            SetViewTableColumn(16, _localization.T("siege_engine.ram"), 120, ViewTableSortField.Ram);
+            SetViewTableColumn(17, _localization.T("siege_engine.catapult"), 120, ViewTableSortField.Catapult);
+            SetViewTableColumn(18, _localization.T("siege_engine.ladder"), 120, ViewTableSortField.Ladder);
+            SetViewTableColumn(19, _localization.T("battle_equipment.supply_cart"), 120, ViewTableSortField.SupplyCart);
+            SetViewTableColumn(20, _localization.T("ui.loyalty"), 90, ViewTableSortField.Loyalty);
+            StretchTrailingViewColumns(21, 13, 130 + 140 + 90 + 90 + 90 + 90 + 90 + 110 + 90 + 90 + 90 + 110 + 90);
             return;
         }
 
@@ -425,20 +437,23 @@ public partial class HudController
             : $"{ownerName} | {intelDurationText}");
         row.SetText(2, MaskedNumberText(canViewCity, city.Gold));
         row.SetText(3, MaskedNumberText(canViewCity, city.Food));
-        row.SetText(4, MaskedNumberText(canViewCity, city.Population));
-        row.SetText(5, MaskedNumberText(canViewCity, city.Troops));
-        row.SetText(6, MaskedNumberText(canViewCity, city.OfficerIds.Count));
-        row.SetText(7, MaskedNumberText(canViewCity, city.Farm));
-        row.SetText(8, MaskedNumberText(canViewCity, city.Commercial));
-        row.SetText(9, MaskedNumberText(canViewCity, city.Defense));
-        row.SetText(10, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText);
-        row.SetText(11, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText);
-        row.SetText(12, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText);
-        row.SetText(13, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ram) : UnknownInfoText);
-        row.SetText(14, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Catapult) : UnknownInfoText);
-        row.SetText(15, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ladder) : UnknownInfoText);
-        row.SetText(16, canViewCity ? _localization.FormatSupplyCartProgress(city) : UnknownInfoText);
-        row.SetText(17, MaskedNumberText(canViewCity, city.Loyalty));
+        row.SetText(4, MaskedNumberText(canViewCity, city.Wood));
+        row.SetText(5, MaskedNumberText(canViewCity, city.Metal));
+        row.SetText(6, MaskedNumberText(canViewCity, city.Stone));
+        row.SetText(7, MaskedNumberText(canViewCity, city.Population));
+        row.SetText(8, MaskedNumberText(canViewCity, city.Troops));
+        row.SetText(9, MaskedNumberText(canViewCity, city.OfficerIds.Count));
+        row.SetText(10, MaskedNumberText(canViewCity, city.Farm));
+        row.SetText(11, MaskedNumberText(canViewCity, city.Commercial));
+        row.SetText(12, MaskedNumberText(canViewCity, city.Defense));
+        row.SetText(13, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText);
+        row.SetText(14, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText);
+        row.SetText(15, canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText);
+        row.SetText(16, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ram) : UnknownInfoText);
+        row.SetText(17, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Catapult) : UnknownInfoText);
+        row.SetText(18, canViewCity ? _localization.FormatSiegeEngineProgress(city, SiegeEngineType.Ladder) : UnknownInfoText);
+        row.SetText(19, canViewCity ? _localization.FormatSupplyCartProgress(city) : UnknownInfoText);
+        row.SetText(20, MaskedNumberText(canViewCity, city.Loyalty));
     }
 
     private void PopulateItemTableRow(TreeItem row, ItemData item)
@@ -485,20 +500,23 @@ public partial class HudController
                 1 => ViewTableSortField.Owner,
                 2 => ViewTableSortField.Gold,
                 3 => ViewTableSortField.Food,
-                4 => ViewTableSortField.Population,
-                5 => ViewTableSortField.Troops,
-                6 => ViewTableSortField.OfficerCount,
-                7 => ViewTableSortField.Farm,
-                8 => ViewTableSortField.Commercial,
-                9 => ViewTableSortField.Defense,
-                10 => ViewTableSortField.BowWorkshop,
-                11 => ViewTableSortField.SiegeWorkshop,
-                12 => ViewTableSortField.HorsePasture,
-                13 => ViewTableSortField.Ram,
-                14 => ViewTableSortField.Catapult,
-                15 => ViewTableSortField.Ladder,
-                16 => ViewTableSortField.SupplyCart,
-                17 => ViewTableSortField.Loyalty,
+                4 => ViewTableSortField.Wood,
+                5 => ViewTableSortField.Metal,
+                6 => ViewTableSortField.Stone,
+                7 => ViewTableSortField.Population,
+                8 => ViewTableSortField.Troops,
+                9 => ViewTableSortField.OfficerCount,
+                10 => ViewTableSortField.Farm,
+                11 => ViewTableSortField.Commercial,
+                12 => ViewTableSortField.Defense,
+                13 => ViewTableSortField.BowWorkshop,
+                14 => ViewTableSortField.SiegeWorkshop,
+                15 => ViewTableSortField.HorsePasture,
+                16 => ViewTableSortField.Ram,
+                17 => ViewTableSortField.Catapult,
+                18 => ViewTableSortField.Ladder,
+                19 => ViewTableSortField.SupplyCart,
+                20 => ViewTableSortField.Loyalty,
                 _ => ViewTableSortField.Name
             };
         }

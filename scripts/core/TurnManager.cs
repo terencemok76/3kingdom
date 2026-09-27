@@ -13,8 +13,24 @@ public class MonthlyEconomyResult
     public List<(int CityId, int Amount)> PlayerCityHorseBirths { get; } = new();
     public List<(int CityId, int Amount)> PlayerCityGoldIncome { get; } = new();
     public List<(int CityId, int Amount)> PlayerCityFoodIncome { get; } = new();
+    public List<MonthlyCityEconomyReport> PlayerCityEconomyReports { get; } = new();
     public List<MonthlyCityEvent> AllCityEvents { get; } = new();
     public List<MonthlyCityEvent> PlayerCityEvents { get; } = new();
+}
+
+public class MonthlyCityEconomyReport
+{
+    public int CityId { get; set; }
+    public int FoodDelta { get; set; }
+    public int HorseDelta { get; set; }
+    public int MetalDelta { get; set; }
+    public int MetalProduced { get; set; }
+    public int FoodAmount { get; set; }
+    public int HorseAmount { get; set; }
+    public int MetalAmount { get; set; }
+    public int FoodCapacity { get; set; }
+    public int HorseCapacity { get; set; }
+    public int MetalCapacity { get; set; }
 }
 
 public enum MonthlyCityEventType
@@ -192,7 +208,11 @@ public class TurnManager
         }
 
         var playerFactionId = GetPlayerFactionId();
+        var openingStocks = World.Cities.ToDictionary(
+            city => city.Id,
+            city => (Food: city.Food, Horses: city.Horses, Metal: city.Metal));
 
+        var monthlyMetalProduction = new Dictionary<int, int>();
         foreach (var city in World.Cities)
         {
             city.CurrentMonthlyEventType = string.Empty;
@@ -261,6 +281,35 @@ public class TurnManager
             }
 
             ApplyMonthlyCityEvent(city, playerFactionId, result);
+            ResourceRules.RefreshMonthlyDeposits(city);
+            monthlyMetalProduction[city.Id] = 0;
+        }
+
+        // Refresh market supply and prices after production, consumption, and city events.
+        // This keeps the displayed market state aligned with the completed monthly economy.
+        RefreshMerchantAvailability();
+        foreach (var city in World.Cities)
+        {
+            MarketRules.RefreshMonthlyMarket(city);
+            if (city.OwnerFactionId != playerFactionId || !openingStocks.TryGetValue(city.Id, out var opening))
+            {
+                continue;
+            }
+
+            result.PlayerCityEconomyReports.Add(new MonthlyCityEconomyReport
+            {
+                CityId = city.Id,
+                FoodDelta = city.Food - opening.Food,
+                HorseDelta = city.Horses - opening.Horses,
+                MetalDelta = city.Metal - opening.Metal,
+                MetalProduced = monthlyMetalProduction.GetValueOrDefault(city.Id),
+                FoodAmount = city.Food,
+                HorseAmount = city.Horses,
+                MetalAmount = city.Metal,
+                FoodCapacity = MarketRules.GetCapacity(city, MarketProductType.Food),
+                HorseCapacity = MarketRules.GetCapacity(city, MarketProductType.Horse),
+                MetalCapacity = MarketRules.GetCapacity(city, MarketProductType.Metal)
+            });
         }
 
         return result;
@@ -278,12 +327,6 @@ public class TurnManager
         {
             World.Month = 1;
             World.Year += 1;
-        }
-
-        RefreshMerchantAvailability();
-        foreach (var city in World.Cities)
-        {
-            MarketRules.RefreshMonthlyMarket(city);
         }
 
         foreach (var campaign in World.ActiveBattleCampaigns.Where(campaign => campaign.Stage != CampaignStage.Resolved))

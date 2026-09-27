@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -23,6 +24,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private SpinBox? _horseSpinBox;
+    private SpinBox? _woodSpinBox;
+    private SpinBox? _metalSpinBox;
+    private SpinBox? _stoneSpinBox;
     private SpinBox? _supplyCartSpinBox;
     private SpinBox? _ramSpinBox;
     private SpinBox? _catapultSpinBox;
@@ -40,6 +44,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
     private Button? _goldMaxButton;
     private Button? _foodMaxButton;
     private Button? _horseMaxButton;
+    private Button? _woodMaxButton;
+    private Button? _metalMaxButton;
+    private Button? _stoneMaxButton;
     private Tree? _officerList;
     private bool _signalsConnected;
     private bool _officerListSignalsConnected;
@@ -92,6 +99,13 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ConfigureSpinBox(_goldSpinBox, _context.SelectedCity.Gold, 0);
         ConfigureSpinBox(_foodSpinBox, _context.SelectedCity.Food, 0);
         ConfigureSpinBox(_horseSpinBox, _context.SelectedCity.Horses, 0);
+        ConfigureSpinBox(_woodSpinBox, _context.SelectedCity.Wood, 0);
+        ConfigureSpinBox(_metalSpinBox, _context.SelectedCity.Metal, 0);
+        ConfigureSpinBox(_stoneSpinBox, _context.SelectedCity.Stone, 0);
+        ResetTransferResourceInputs();
+        SetResourceRowVisible("WoodRow", _context.SelectedCity.Wood > 0);
+        SetResourceRowVisible("MetalRow", _context.SelectedCity.Metal > 0);
+        SetResourceRowVisible("StoneRow", _context.SelectedCity.Stone > 0);
         ConfigureSpinBox(_supplyCartSpinBox, _context.SelectedCity.SupplyCartCount, 0);
         ConfigureSpinBox(_ramSpinBox, _context.SelectedCity.RamCount, 0);
         ConfigureSpinBox(_catapultSpinBox, _context.SelectedCity.CatapultCount, 0);
@@ -111,7 +125,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
             return;
         }
 
-        SetOverlayTitleText(_context.Localization.T("ui.move"));
+        var cityName = _context.SelectedCity == null ? string.Empty : _context.Localization.GetCityName(_context.SelectedCity);
+        SetOverlayTitleText(_context.Localization.Format("fmt.command_city_title", _context.Localization.T("ui.move"), cityName));
         if (_confirmButton != null)
         {
             _confirmButton.Text = _context.Localization.T("ui.confirm_move");
@@ -126,9 +141,15 @@ internal sealed class MoveDialogController : FloatingOverlayController
         SetLabelText("GoldLabel", _context.Localization.T("ui.transfer_gold"));
         SetLabelText("FoodLabel", _context.Localization.T("ui.transfer_food"));
         SetLabelText("HorseLabel", _context.Localization.T("ui.transfer_horse"));
+        SetLabelText("WoodLabel", _context.Localization.T("ui.wood"));
+        SetLabelText("MetalLabel", _context.Localization.T("ui.metal"));
+        SetLabelText("StoneLabel", _context.Localization.T("ui.stone"));
         SetMaxButtonText(_goldMaxButton);
         SetMaxButtonText(_foodMaxButton);
         SetMaxButtonText(_horseMaxButton);
+        SetMaxButtonText(_woodMaxButton);
+        SetMaxButtonText(_metalMaxButton);
+        SetMaxButtonText(_stoneMaxButton);
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.transfer_officers"));
         RefreshTargetCityOptionTexts();
         RefreshOfficerTableText();
@@ -149,6 +170,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/GoldRow/GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/FoodRow/FoodSpinBox");
         _horseSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/HorseRow/HorseSpinBox");
+        _woodSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/WoodRow/WoodSpinBox");
+        _metalSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/MetalRow/MetalSpinBox");
+        _stoneSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/StoneRow/StoneSpinBox");
         _supplyCartSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/SupplyCartRow/SupplyCartSpinBox");
         _ramSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/RamRow/RamSpinBox");
         _catapultSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/CatapultRow/CatapultSpinBox");
@@ -166,6 +190,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
         _goldMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/GoldRow/GoldMaxButton");
         _foodMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/FoodRow/FoodMaxButton");
         _horseMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/HorseRow/HorseMaxButton");
+        _woodMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/WoodRow/WoodMaxButton");
+        _metalMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/MetalRow/MetalMaxButton");
+        _stoneMaxButton = root.GetNodeOrNull<Button>("ContentScroll/Content/StoneRow/StoneMaxButton");
         _officerList = root.GetNodeOrNull<Tree>("ContentScroll/Content/OfficerTable");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
         if (_confirmButton != null)
@@ -186,6 +213,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ApplyMaxButtonTheme(_goldMaxButton);
         ApplyMaxButtonTheme(_foodMaxButton);
         ApplyMaxButtonTheme(_horseMaxButton);
+        ApplyMaxButtonTheme(_woodMaxButton);
+        ApplyMaxButtonTheme(_metalMaxButton);
+        ApplyMaxButtonTheme(_stoneMaxButton);
 
         if (!_officerListSignalsConnected && _officerList != null)
         {
@@ -219,6 +249,9 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ConnectMaxButton(_goldMaxButton, _goldSpinBox);
         ConnectMaxButton(_foodMaxButton, _foodSpinBox);
         ConnectMaxButton(_horseMaxButton, _horseSpinBox);
+        ConnectMaxButton(_woodMaxButton, _woodSpinBox);
+        ConnectMaxButton(_metalMaxButton, _metalSpinBox);
+        ConnectMaxButton(_stoneMaxButton, _stoneSpinBox);
         _signalsConnected = true;
     }
 
@@ -293,6 +326,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
             return;
         }
 
+        CommitMoveInputEdits();
+
         var selectedIndex = _targetCityOption.Selected;
         if (selectedIndex < 0)
         {
@@ -321,9 +356,12 @@ internal sealed class MoveDialogController : FloatingOverlayController
         var result = _context.ExecuteMoveCommand(
             targetCityId,
             troopAllocation,
-            _goldSpinBox != null ? (int)_goldSpinBox.Value : 0,
-            _foodSpinBox != null ? (int)_foodSpinBox.Value : 0,
-            _horseSpinBox != null ? (int)_horseSpinBox.Value : 0,
+            GetTransferValue(_goldSpinBox),
+            GetTransferValue(_foodSpinBox),
+            GetTransferValue(_horseSpinBox),
+            GetTransferValue(_woodSpinBox),
+            GetTransferValue(_metalSpinBox),
+            GetTransferValue(_stoneSpinBox),
             siegeEngineAllocation,
             movedOfficerIds,
             movedCaptiveOfficerIds);
@@ -349,6 +387,55 @@ internal sealed class MoveDialogController : FloatingOverlayController
         spinBox.MinValue = 0;
         spinBox.MaxValue = maxValue;
         spinBox.Value = maxValue <= 0 ? 0 : Mathf.Clamp(defaultValue, 0, maxValue);
+    }
+
+    private void ResetTransferResourceInputs()
+    {
+        foreach (var input in new[] { _goldSpinBox, _foodSpinBox, _horseSpinBox, _woodSpinBox, _metalSpinBox, _stoneSpinBox })
+        {
+            if (input != null)
+            {
+                input.Value = 0;
+            }
+        }
+    }
+
+    private static int GetTransferValue(SpinBox? input) => input == null ? 0 : (int)input.Value;
+
+    private void CommitMoveInputEdits()
+    {
+        foreach (var input in new[]
+                 {
+                     _infantrySpinBox, _spearmanSpinBox, _cavalrySpinBox, _archerSpinBox, _crossbowSpinBox, _engineerSpinBox,
+                     _goldSpinBox, _foodSpinBox, _horseSpinBox, _woodSpinBox, _metalSpinBox, _stoneSpinBox,
+                     _supplyCartSpinBox, _ramSpinBox, _catapultSpinBox, _ladderSpinBox
+                 })
+        {
+            CommitSpinBoxEdit(input);
+        }
+    }
+
+    private static void CommitSpinBoxEdit(SpinBox? spinBox)
+    {
+        if (spinBox?.GetLineEdit() is not LineEdit lineEdit)
+        {
+            return;
+        }
+
+        var text = lineEdit.Text?.Trim();
+        if (double.TryParse(text, out var value))
+        {
+            spinBox.Value = Math.Clamp(value, spinBox.MinValue, spinBox.MaxValue);
+        }
+    }
+
+    private void SetResourceRowVisible(string rowName, bool visible)
+    {
+        var row = GetOverlayContentNode<Control>($"ContentScroll/Content/{rowName}");
+        if (row != null)
+        {
+            row.Visible = visible;
+        }
     }
 
     private void ConfigureTroopRows(CityData city)

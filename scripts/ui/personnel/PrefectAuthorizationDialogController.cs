@@ -272,9 +272,10 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             (InternalAffairsJobType.Commercial, city.Commercial - growthBias / 6 - (city.Gold < 700 ? 18 : 0)),
             (InternalAffairsJobType.Defend, city.Defense - defensiveBias / 6 - (city.Defense < 55 ? 14 : 0) - (city.Troops < 1800 ? 6 : 0)),
             (InternalAffairsJobType.WaterControl, city.DisasterPrevention - prefect.Intelligence / 6 - (city.DisasterPrevention < 45 ? 12 : 0)),
-            (InternalAffairsJobType.Construction, (city.Commercial + city.Defense) / 2 - (prefect.Leadership + prefect.Politics + prefect.Intelligence) / 21)
+            (InternalAffairsJobType.Construction, (city.Commercial + city.Defense) / 2 - (prefect.Leadership + prefect.Politics + prefect.Intelligence) / 21),
+            (InternalAffairsJobType.Extraction, ResourceRules.GetExtractionPriority(city))
         };
-        return candidates.Where(candidate => !activeJobs.Contains(candidate.Job)).OrderBy(candidate => candidate.Score).ThenBy(candidate => (int)candidate.Job).First().Job;
+        return candidates.Where(candidate => !activeJobs.Contains(candidate.Job) && candidate.Score < int.MaxValue).OrderBy(candidate => candidate.Score).ThenBy(candidate => (int)candidate.Job).First().Job;
     }
 
     private static int ChooseRecommendedHalfAuthorizationMonths(CityData city, InternalAffairsJobType job, OfficerData prefect) => job switch
@@ -295,6 +296,7 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         InternalAffairsJobType.Commercial => localization.Format("ui.personnel_advice_half_commercial_reason", city.Commercial, city.Gold),
         InternalAffairsJobType.Defend => localization.Format("ui.personnel_advice_half_defend_reason", city.Defense, city.Troops),
         InternalAffairsJobType.WaterControl => localization.Format("ui.personnel_advice_half_water_reason", city.DisasterPrevention),
+        InternalAffairsJobType.Extraction => localization.T("ui.personnel_advice_half_extraction_reason"),
         _ => localization.T("ui.personnel_advice_half_construction_reason")
     };
 
@@ -450,6 +452,7 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
         AddPlanJobOption(InternalAffairsJobType.Defend);
         AddPlanJobOption(InternalAffairsJobType.WaterControl);
         AddPlanJobOption(InternalAffairsJobType.Construction);
+        AddPlanJobOption(InternalAffairsJobType.Extraction);
         if (_planJobOption.ItemCount > 0)
         {
             _planJobOption.Select(0);
@@ -533,6 +536,7 @@ internal sealed class PrefectAuthorizationDialogController : FloatingOverlayCont
             InternalAffairsJobType.Defend => _context.Localization?.T("command.internal_affairs.defend") ?? jobType.ToString(),
             InternalAffairsJobType.WaterControl => _context.Localization?.T("command.internal_affairs.disaster_prevention") ?? jobType.ToString(),
             InternalAffairsJobType.Construction => _context.Localization?.T("command.internal_affairs.construction") ?? jobType.ToString(),
+            InternalAffairsJobType.Extraction => _context.Localization?.T("command.internal_affairs.extraction") ?? jobType.ToString(),
             _ => jobType.ToString()
         };
     }

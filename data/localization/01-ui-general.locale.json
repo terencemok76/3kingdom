@@ -655,14 +655,24 @@
 					 "zhHant":  "馬",
 					 "en":  "Horse"
 				 },
+	"ui.wood":  { "zhHant": "木材", "en": "Wood" },
+	"ui.metal":  { "zhHant": "金屬", "en": "Metal" },
+	"ui.stone":  { "zhHant": "石材", "en": "Stone" },
+	"ui.resource_deposits":  { "zhHant": "資源點", "en": "Deposits" },
+	"ui.transfer_wood": { "zhHant": "移送木材", "en": "Transfer Wood" },
+	"ui.transfer_metal": { "zhHant": "移送金屬", "en": "Transfer Metal" },
+	"ui.transfer_stone": { "zhHant": "移送石材", "en": "Transfer Stone" },
 	"ui.internal_affairs":  {
 								"zhHant":  "內政",
 								"en":  "Internal Affairs"
 							},
+	"fmt.command_city_title": { "zhHant": "{0} [{1}]", "en": "{0} [{1}]" },
 	"ui.internal_affairs_advice_button":  {
 										 "zhHant":  "丞相建言",
 										 "en":  "Domestic Advice"
 									 },
+	"ui.internal_affairs_advice_extraction": { "zhHant": "本城資源點將自動優先採集儲量較多的資源。", "en": "This city will automatically extract the deposit with the greatest remaining reserve." },
+	"ui.internal_affairs_advice_extraction_unavailable": { "zhHant": "本城沒有可採集的資源點。", "en": "This city has no extractable resource deposit." },
 	"fmt.internal_affairs_advice_plan":  {
 										 "zhHant":  "「{0}」計畫每月投入 {1} 金、執行 {2} 個月。",
 										 "en":  "The {0} plan invests {1} gold per month for {2} months. "
@@ -703,6 +713,7 @@
 										 "zhHant":  "建設應配合長期軍備與城市需求，避免府庫不足時同時展開過多工程。",
 										 "en":  "Align construction with long-term military and city needs; avoid too many projects when the treasury is tight."
 									 },
+	"ui.personnel_advice_half_extraction_reason": { "zhHant": "本城有可採集的資源點，宜先取得戰略原料。", "en": "This city has extractable deposits; secure strategic materials first." },
 	"ui.internal_affairs_active_schedules":  {
 												 "zhHant":  "進行中內政",
 												 "en":  "Active Internal Affairs"

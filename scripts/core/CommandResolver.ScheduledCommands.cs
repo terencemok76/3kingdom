@@ -209,6 +209,9 @@ public partial class CommandResolver
         var movableGold = GetTransferAmount(request.GoldToSend, sourceCity.Gold);
         var movableFood = GetTransferAmount(request.FoodToSend, sourceCity.Food);
         var movableHorses = GetTransferAmount(request.HorsesToSend, sourceCity.Horses);
+        var movableWood = GetTransferAmount(request.WoodToSend, sourceCity.Wood);
+        var movableMetal = GetTransferAmount(request.MetalToSend, sourceCity.Metal);
+        var movableStone = GetTransferAmount(request.StoneToSend, sourceCity.Stone);
         var movableSiegeEngines = new SiegeEngineAllocationData
         {
             SupplyCart = GetTransferAmount(request.SiegeEngineAllocation.SupplyCart, sourceCity.SupplyCartCount),
@@ -217,7 +220,7 @@ public partial class CommandResolver
             Ladder = GetTransferAmount(request.SiegeEngineAllocation.Ladder, sourceCity.LadderCount)
         };
 
-        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && selectedOfficerIds.Count == 0 && selectedCaptiveOfficerIds.Count == 0)
+        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableWood <= 0 && movableMetal <= 0 && movableStone <= 0 && movableSiegeEngines.Total <= 0 && selectedOfficerIds.Count == 0 && selectedCaptiveOfficerIds.Count == 0)
         {
             return LocalizedResult(false, "cmd.move.nothing_to_move");
         }
@@ -234,6 +237,9 @@ public partial class CommandResolver
             GoldToSend = movableGold,
             FoodToSend = movableFood,
             HorsesToSend = movableHorses,
+            WoodToSend = movableWood,
+            MetalToSend = movableMetal,
+            StoneToSend = movableStone,
             SiegeEngineAllocation = movableSiegeEngines,
             OfficerIds = selectedOfficerIds,
             CaptiveOfficerIds = selectedCaptiveOfficerIds
@@ -242,9 +248,32 @@ public partial class CommandResolver
         return LocalizedResult(
             true,
             "cmd.move.scheduled",
-            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese) },
-            new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
+            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, GameLanguage.TraditionalChinese) },
+            new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, GameLanguage.English) });
     }
+
+    private string BuildMoveTransferSummary(int troops, int gold, int food, int horses, int wood, int metal, int stone, GameLanguage language)
+    {
+        var parts = new List<string>();
+        void Add(string label, int amount)
+        {
+            if (amount > 0) parts.Add($"{label} {amount}");
+        }
+
+        Add(GetLocalizedText(language, "ui.troops"), troops);
+        Add(GetLocalizedText(language, "ui.gold"), gold);
+        Add(GetLocalizedText(language, "ui.food"), food);
+        Add(GetLocalizedText(language, "ui.horse"), horses);
+        Add(GetLocalizedText(language, "ui.wood"), wood);
+        Add(GetLocalizedText(language, "ui.metal"), metal);
+        Add(GetLocalizedText(language, "ui.stone"), stone);
+        return parts.Count > 0
+            ? string.Join(GetLocalizedText(language, "cmd.move.transfer_separator"), parts)
+            : GetLocalizedText(language, "cmd.move.transfer_empty");
+    }
+
+    private string GetLocalizedText(GameLanguage language, string key) =>
+        _localization?.TForLanguage(language, key) ?? key;
 
     private CommandResult ScheduleSearch(WorldState world, CityData city, CommandRequest request)
     {
@@ -429,6 +458,10 @@ public partial class CommandResolver
             MerchantTradeMode.SellHorse => (MarketProductType.Horse, true),
             MerchantTradeMode.BuyMetal => (MarketProductType.Metal, false),
             MerchantTradeMode.SellMetal => (MarketProductType.Metal, true),
+            MerchantTradeMode.BuyWood => (MarketProductType.Wood, false),
+            MerchantTradeMode.SellWood => (MarketProductType.Wood, true),
+            MerchantTradeMode.BuyStone => (MarketProductType.Stone, false),
+            MerchantTradeMode.SellStone => (MarketProductType.Stone, true),
             _ => (MarketProductType.Food, false)
         };
         if (amount <= 0)
@@ -480,9 +513,13 @@ public partial class CommandResolver
         (MarketProductType.Food, GameLanguage.TraditionalChinese) => "糧食",
         (MarketProductType.Horse, GameLanguage.TraditionalChinese) => "馬匹",
         (MarketProductType.Metal, GameLanguage.TraditionalChinese) => "金屬",
+        (MarketProductType.Wood, GameLanguage.TraditionalChinese) => "木材",
+        (MarketProductType.Stone, GameLanguage.TraditionalChinese) => "石材",
         (MarketProductType.Food, _) => "Food",
         (MarketProductType.Horse, _) => "Horses",
-        _ => "Metal"
+        (MarketProductType.Metal, _) => "Metal",
+        (MarketProductType.Wood, _) => "Wood",
+        _ => "Stone"
     };
 
     private CommandResult ScheduleAttack(WorldState world, CityData sourceCity, CommandRequest request)
@@ -715,6 +752,9 @@ public partial class CommandResolver
         var movableGold = GetTransferAmount(pendingCommand.GoldToSend, sourceCity.Gold);
         var movableFood = GetTransferAmount(pendingCommand.FoodToSend, sourceCity.Food);
         var movableHorses = GetTransferAmount(pendingCommand.HorsesToSend, sourceCity.Horses);
+        var movableWood = GetTransferAmount(pendingCommand.WoodToSend, sourceCity.Wood);
+        var movableMetal = GetTransferAmount(pendingCommand.MetalToSend, sourceCity.Metal);
+        var movableStone = GetTransferAmount(pendingCommand.StoneToSend, sourceCity.Stone);
         var movableSupplyCart = GetTransferAmount(pendingCommand.SiegeEngineAllocation.SupplyCart, sourceCity.SupplyCartCount);
         var movableRam = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Ram, sourceCity.RamCount);
         var movableCatapult = GetTransferAmount(pendingCommand.SiegeEngineAllocation.Catapult, sourceCity.CatapultCount);
@@ -729,7 +769,7 @@ public partial class CommandResolver
         var movedOfficerCount = TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var sourcePrefectOutcome);
         var movedCaptiveCount = TransferCaptiveOfficers(world, sourceCity, targetCity, pendingCommand.CaptiveOfficerIds);
 
-        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableSiegeEngines.Total <= 0 && movedOfficerCount == 0 && movedCaptiveCount == 0)
+        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableWood <= 0 && movableMetal <= 0 && movableStone <= 0 && movableSiegeEngines.Total <= 0 && movedOfficerCount == 0 && movedCaptiveCount == 0)
         {
             return LocalizedResult(
                 false,
@@ -742,19 +782,25 @@ public partial class CommandResolver
         sourceCity.Gold -= movableGold;
         sourceCity.Food -= movableFood;
         sourceCity.Horses -= movableHorses;
+        sourceCity.Wood -= movableWood;
+        sourceCity.Metal -= movableMetal;
+        sourceCity.Stone -= movableStone;
         sourceCity.RemoveSiegeEngineAllocation(movableSiegeEngines);
 
         targetCity.AddTroopAllocation(movableTroopAllocation);
         targetCity.Gold += movableGold;
         targetCity.Food += movableFood;
         targetCity.Horses += movableHorses;
+        targetCity.Wood += movableWood;
+        targetCity.Metal += movableMetal;
+        targetCity.Stone += movableStone;
         targetCity.AddSiegeEngineAllocation(movableSiegeEngines);
 
         var result = LocalizedResult(
             true,
             "cmd.move.resolved",
-            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
-            new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
+            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
+            new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
         AppendMoveCaptiveSummary(result, movedCaptiveCount);
         AppendPrefectAutoAppointmentOutcome(result, sourcePrefectOutcome);
         return result;

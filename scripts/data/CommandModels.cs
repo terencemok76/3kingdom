@@ -130,7 +130,11 @@ public enum MerchantTradeMode
     BuyHorse,
     SellHorse,
     BuyMetal,
-    SellMetal
+    SellMetal,
+    BuyWood,
+    SellWood,
+    BuyStone,
+    SellStone
 }
 
 public enum CapturedOfficerDisposition
@@ -184,6 +188,9 @@ public class CommandRequest
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }
     public int HorsesToSend { get; set; }
+    public int WoodToSend { get; set; }
+    public int MetalToSend { get; set; }
+    public int StoneToSend { get; set; }
     public bool SellFood { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public MerchantTradeMode MerchantTradeMode { get; set; } = MerchantTradeMode.BuyFood;
@@ -212,6 +219,9 @@ public class PendingCommandData
     public int GoldToSend { get; set; }
     public int FoodToSend { get; set; }
     public int HorsesToSend { get; set; }
+    public int WoodToSend { get; set; }
+    public int MetalToSend { get; set; }
+    public int StoneToSend { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;

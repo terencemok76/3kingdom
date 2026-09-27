@@ -67,6 +67,14 @@
                                 "zhHant":  "已完成每月城市經濟結算。",
                                 "en":  "Monthly city economy resolved."
                             },
+    "log.phase5_monthly_report_header": {
+        "zhHant": "月度經濟報告（我方城市）：",
+        "en": "Monthly economy report (player cities):"
+    },
+    "log.phase5_monthly_report_line": {
+        "zhHant": "「{0}」｜糧 {1}（{2:N0}/{3:N0}）｜馬 {4}（{5:N0}/{6:N0}）｜鐵 {7}（{8:N0}/{9:N0}，產出 +{10:N0}）",
+        "en": "{0} | Food {1} ({2:N0}/{3:N0}) | Horse {4} ({5:N0}/{6:N0}) | Metal {7} ({8:N0}/{9:N0}, produced +{10:N0})"
+    },
     "log.personnel_command_selected":  {
                                            "zhHant":  "已選擇人事指令：{0}。",
                                            "en":  "Personnel command selected: {0}."

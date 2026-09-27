@@ -63,7 +63,8 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             return;
         }
 
-        SetOverlayTitleText(_context.Localization.T("ui.internal_affairs"));
+        var cityName = _context.SelectedCity == null ? string.Empty : _context.Localization.GetCityName(_context.SelectedCity);
+        SetOverlayTitleText(_context.Localization.Format("fmt.command_city_title", _context.Localization.T("ui.internal_affairs"), cityName));
         SetLabelText("JobRow/JobLabel", _context.Localization.T("ui.internal_affairs_job"));
         SetLabelText("DurationRow/DurationLabel", _context.Localization.T("ui.internal_affairs_duration"));
         SetLabelText("GoldRow/GoldLabel", _context.Localization.T("ui.internal_affairs_gold"));
@@ -275,6 +276,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         AddJobOption(InternalAffairsJobType.Defend);
         AddJobOption(InternalAffairsJobType.WaterControl);
         AddJobOption(InternalAffairsJobType.Construction);
+        AddJobOption(InternalAffairsJobType.Extraction);
     }
 
     private void RefreshJobOptionText()
@@ -497,6 +499,9 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
                 ? localization.T("ui.internal_affairs_advice_water_priority")
                 : localization.T("ui.internal_affairs_advice_water_steady"),
             InternalAffairsJobType.Construction => localization.T("ui.internal_affairs_advice_construction"),
+            InternalAffairsJobType.Extraction => ResourceRules.HasExtractableResource(city)
+                ? localization.T("ui.internal_affairs_advice_extraction")
+                : localization.T("ui.internal_affairs_advice_extraction_unavailable"),
             _ => localization.T("ui.no_advice")
         };
         return $"{plan}{focus}";
@@ -839,6 +844,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             InternalAffairsJobType.Defend => _context.Localization.T("command.internal_affairs.defend"),
             InternalAffairsJobType.WaterControl => _context.Localization.T("command.internal_affairs.disaster_prevention"),
             InternalAffairsJobType.Construction => _context.Localization.T("command.internal_affairs.construction"),
+            InternalAffairsJobType.Extraction => _context.Localization.T("command.internal_affairs.extraction"),
             _ => jobType.ToString()
         };
     }

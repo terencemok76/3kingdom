@@ -14,7 +14,8 @@ public enum StrategicMapLayer
     Military,
     Development,
     Event,
-    Merchant
+    Merchant,
+    Resource
 }
 
 public enum StrategicMapFactionFilter

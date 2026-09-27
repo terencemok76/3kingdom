@@ -63,6 +63,10 @@
                                           "zhHant":  "農業",
                                           "en":  "Farm"
                                       },
+    "command.internal_affairs.extraction":  {
+                                          "zhHant":  "採集／開採",
+                                          "en":  "Extraction"
+                                      },
     "command.personnel.assign_title":  {
                                            "zhHant":  "指派職位",
                                            "en":  "Assign Appointment"

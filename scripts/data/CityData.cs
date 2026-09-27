@@ -9,6 +9,17 @@ public enum PrefectAuthorizationType
     Full = 2
 }
 
+public class CityResourceDepositData
+{
+    public StrategicResourceType Type { get; set; }
+    // Output before the assigned officer's monthly work bonus.
+    public int MonthlyYield { get; set; }
+    // Non-renewable reserves are reduced by extraction. Wood is regenerated
+    // monthly up to MaxReserve by ResourceRules.
+    public int RemainingReserve { get; set; }
+    public int MaxReserve { get; set; }
+}
+
 public class CityData
 {
     private int _troops;
@@ -22,12 +33,18 @@ public class CityData
     public int Food { get; set; }
     public int Horses { get; set; }
     public int Metal { get; set; }
+    public int Wood { get; set; }
+    public int Stone { get; set; }
     public int FoodStorageCapacity { get; set; }
     public int HorseStorageCapacity { get; set; }
     public int MetalStorageCapacity { get; set; }
+    public int WoodStorageCapacity { get; set; }
+    public int StoneStorageCapacity { get; set; }
     public int MerchantFoodStock { get; set; }
     public int MerchantHorseStock { get; set; }
     public int MerchantMetalStock { get; set; }
+    public int MerchantWoodStock { get; set; }
+    public int MerchantStoneStock { get; set; }
     public bool MarketInitialized { get; set; }
     public bool HasMerchant { get; set; }
     // A strategic-map snapshot of the city event resolved in the current month.
@@ -41,6 +58,10 @@ public class CityData
     public int LastFoodBuyPrice { get; set; }
     public int LastHorseBuyPrice { get; set; }
     public int LastMetalBuyPrice { get; set; }
+    public int PreviousWoodBuyPrice { get; set; }
+    public int PreviousStoneBuyPrice { get; set; }
+    public int LastWoodBuyPrice { get; set; }
+    public int LastStoneBuyPrice { get; set; }
     public int Population { get; set; }
     public int BowWorkshopLevel { get; set; }
     public int BowWorkshopProgress { get; set; }
@@ -136,6 +157,8 @@ public class CityData
     public int PrefectPlanTotalMonths { get; set; }
     public int PrefectPlanRemainingMonths { get; set; }
     public bool PrefectPlanIsPlayerDirected { get; set; }
+
+    public List<CityResourceDepositData> ResourceDeposits { get; set; } = new();
 
     public List<int> OfficerIds { get; set; } = new();
     public List<int> ConnectedCityIds { get; set; } = new();

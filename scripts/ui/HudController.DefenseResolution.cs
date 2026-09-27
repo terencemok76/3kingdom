@@ -13,6 +13,9 @@ public partial class HudController
     private int _campaignWaitingForAllianceResponse;
     private Control? _allianceReinforcementResponseDialog;
     private Control? _playerAllianceResultDialog;
+
+    private static string FormatSignedNumber(int value) => value > 0 ? $"+{value:N0}" : value.ToString("N0");
+
     private void ResolveEndTurnPendingCommands()
     {
         if (_turnManager == null || _commandResolver == null || _localization == null)
@@ -380,6 +383,24 @@ public partial class HudController
         var economyMonth = world.Month;
         var economyResult = _turnManager.ApplyMonthlyEconomy();
         AddLog(_localization.T("log.monthly_economy"), isPlayerRelated: true);
+        AddLog(_localization.T("log.phase5_monthly_report_header"), isPlayerRelated: true);
+        foreach (var report in economyResult.PlayerCityEconomyReports)
+        {
+            var city = world.GetCity(report.CityId);
+            if (city == null)
+            {
+                continue;
+            }
+
+            AddLog(_localization.Format(
+                "log.phase5_monthly_report_line",
+                _localization.GetCityName(city),
+                FormatSignedNumber(report.FoodDelta), report.FoodAmount, report.FoodCapacity,
+                FormatSignedNumber(report.HorseDelta), report.HorseAmount, report.HorseCapacity,
+                FormatSignedNumber(report.MetalDelta), report.MetalAmount, report.MetalCapacity,
+                report.MetalProduced),
+                isPlayerRelated: true);
+        }
         if (economyMonth == 1)
         {
             AddLog(_localization.T("log.player_city_horse_birth_header"), isPlayerRelated: true);

@@ -86,6 +86,14 @@ public partial class CommandResolver
                     new object[] { GetCityName(city, GameLanguage.English), GetConstructionProjectName(constructionProjectType, GameLanguage.English) });
             }
         }
+        else if (jobType == InternalAffairsJobType.Extraction && !ResourceRules.HasExtractableResource(city))
+        {
+            return LocalizedResult(
+                false,
+                "cmd.internal_affairs.no_resource_deposit",
+                GetCityArgs(city, GameLanguage.TraditionalChinese),
+                GetCityArgs(city, GameLanguage.English));
+        }
         else
         {
             constructionProjectType = ConstructionProjectType.None;
@@ -500,6 +508,13 @@ public partial class CommandResolver
                         gains.ConstructionResult.ValuesGained,
                         GameLanguage.English));
             }
+            else if (schedule.JobType == InternalAffairsJobType.Extraction && gains.ResourceOutput.HasOutput)
+            {
+                AppendLocalizedText(
+                    resolveResult,
+                    $" 採得{GetResourceName(gains.ResourceOutput.Type, GameLanguage.TraditionalChinese)} +{gains.ResourceOutput.Amount}（剩餘 {GetRemainingResourceReserve(city, gains.ResourceOutput.Type)}）。",
+                    $" Extracted {GetResourceName(gains.ResourceOutput.Type, GameLanguage.English)} +{gains.ResourceOutput.Amount} ({GetRemainingResourceReserve(city, gains.ResourceOutput.Type)} remaining).");
+            }
             resolveResult.IsPlayerRelated = isPlayerRelated;
             results.Add(resolveResult);
         }
@@ -510,6 +525,17 @@ public partial class CommandResolver
                 InternalAffairsScheduleState.Completed);
         return results;
     }
+
+    private static int GetRemainingResourceReserve(CityData city, StrategicResourceType type) =>
+        city.ResourceDeposits.Where(deposit => deposit.Type == type).Sum(deposit => deposit.RemainingReserve);
+
+    private static string GetResourceName(StrategicResourceType type, GameLanguage language) => type switch
+    {
+        StrategicResourceType.Wood => language == GameLanguage.TraditionalChinese ? "木材" : "Wood",
+        StrategicResourceType.Metal => language == GameLanguage.TraditionalChinese ? "金屬" : "Metal",
+        StrategicResourceType.Stone => language == GameLanguage.TraditionalChinese ? "石材" : "Stone",
+        _ => string.Empty
+    };
 
     private List<CommandResult> TryAutoResumeGoldPausedSchedules(WorldState world)
     {
