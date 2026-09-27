@@ -15,6 +15,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
     private Label? _summaryLabel;
     private Button? _confirmButton;
     private bool _signalsConnected;
+    private MarketProductType _selectedProduct = MarketProductType.Food;
 
     public MerchantDialogController(MerchantUiContext context)
         : base(context, "res://scenes/ui/merchant/MerchantDialog.tscn")
@@ -31,7 +32,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
 
     public void Show()
     {
-        if (_context.SelectedCity == null)
+        if (_context.SelectedCity == null || !_context.SelectedCity.HasMerchant)
         {
             return;
         }
@@ -70,6 +71,10 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         _tradeModeOption = root.GetNodeOrNull<OptionButton>("TradeModeRow/TradeModeOption");
         _marketTable = root.GetNodeOrNull<Tree>("MarketTable");
         _amountSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
+        if (_amountSpinBox != null)
+        {
+            _amountSpinBox.UpdateOnTextChanged = true;
+        }
         _amountMaxButton = root.GetNodeOrNull<Button>("FoodRow/AmountMaxButton");
         _summaryLabel = root.GetNodeOrNull<Label>("SummaryLabel");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
@@ -134,6 +139,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             return;
         }
 
+        lineEdit.Editable = true;
         lineEdit.AddThemeColorOverride("font_color", new Color(0.93f, 0.9f, 0.84f, 1.0f));
         lineEdit.AddThemeColorOverride("font_placeholder_color", new Color(0.72f, 0.68f, 0.62f, 0.9f));
         lineEdit.AddThemeColorOverride("caret_color", new Color(0.95f, 0.83f, 0.56f, 1.0f));
@@ -147,12 +153,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         }
 
         _tradeModeOption.Clear();
-        AddTradeOption("ui.buy_food", MerchantTradeMode.BuyFood);
-        AddTradeOption("ui.sell_food", MerchantTradeMode.SellFood);
-        AddTradeOption("ui.buy_horse", MerchantTradeMode.BuyHorse);
-        AddTradeOption("ui.sell_horse", MerchantTradeMode.SellHorse);
-        AddTradeOption("ui.buy_metal", MerchantTradeMode.BuyMetal);
-        AddTradeOption("ui.sell_metal", MerchantTradeMode.SellMetal);
+        AddTradeOption("ui.buy", MerchantTradeMode.BuyFood);
+        AddTradeOption("ui.sell", MerchantTradeMode.SellFood);
         _tradeModeOption.Select(0);
 
         PopulateMarketTable();
@@ -181,12 +183,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
 
         var selectedTradeMode = GetSelectedTradeMode();
         _tradeModeOption.Clear();
-        AddTradeOption("ui.buy_food", MerchantTradeMode.BuyFood);
-        AddTradeOption("ui.sell_food", MerchantTradeMode.SellFood);
-        AddTradeOption("ui.buy_horse", MerchantTradeMode.BuyHorse);
-        AddTradeOption("ui.sell_horse", MerchantTradeMode.SellHorse);
-        AddTradeOption("ui.buy_metal", MerchantTradeMode.BuyMetal);
-        AddTradeOption("ui.sell_metal", MerchantTradeMode.SellMetal);
+        AddTradeOption("ui.buy", MerchantTradeMode.BuyFood);
+        AddTradeOption("ui.sell", MerchantTradeMode.SellFood);
 
         for (var index = 0; index < _tradeModeOption.ItemCount; index += 1)
         {
@@ -267,7 +265,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             row.SetText(1, current.ToString());
             row.SetText(2, MarketRules.GetSellUnitPrice(city, product).ToString());
             row.SetText(3, previous > 0 ? previous.ToString() : "-");
-            row.SetText(4, previous <= 0 ? "-" : current == previous ? "=" : current > previous ? $"↑{current - previous}" : $"↓{previous - current}");
+            row.SetText(4, previous <= 0 ? "-" : current == previous ? "0" : current > previous ? $"↑{current - previous}" : $"↓{previous - current}");
             row.SetText(5, _context.Localization.T(MarketRules.GetStatusKey(city, product)));
             row.SetTextAlignment(0, HorizontalAlignment.Left);
             row.SetTextAlignment(1, HorizontalAlignment.Right);
@@ -292,8 +290,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             return;
         }
 
-        var product = (MarketProductType)metadata.AsInt32();
-        var mode = IsSelling(GetSelectedTradeMode()) ? GetSellMode(product) : GetBuyMode(product);
+        _selectedProduct = (MarketProductType)metadata.AsInt32();
+        var mode = IsSelling(GetSelectedTradeMode()) ? MerchantTradeMode.SellFood : MerchantTradeMode.BuyFood;
         for (var index = 0; index < _tradeModeOption.ItemCount; index += 1)
         {
             if (_tradeModeOption.GetItemMetadata(index).AsInt32() == (int)mode)
@@ -318,7 +316,6 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         var city = _context.SelectedCity;
         MarketRules.EnsureMarketInitialized(city);
         var product = GetProduct(tradeMode);
-        var lotSize = MarketRules.GetTradeLotSize(product);
         var isSelling = IsSelling(tradeMode);
         var maxAmount = isSelling
             ? MarketRules.GetAmount(city, product)
@@ -326,8 +323,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
 
         _amountSpinBox.MinValue = 0;
         _amountSpinBox.MaxValue = maxAmount;
-        _amountSpinBox.Step = lotSize;
-        _amountSpinBox.Value = maxAmount <= 0 ? 0 : lotSize;
+        _amountSpinBox.Step = 1;
+        _amountSpinBox.Value = maxAmount <= 0 ? 0 : 1;
         _amountSpinBox.Value = Mathf.Clamp(_amountSpinBox.Value, 0, maxAmount);
         UpdateConfirmAvailability();
     }
@@ -348,7 +345,6 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         }
 
         var product = GetProduct(tradeMode);
-        var lotSize = MarketRules.GetTradeLotSize(product);
         var isSelling = IsSelling(tradeMode);
         var goldAmount = amount * (isSelling ? MarketRules.GetSellUnitPrice(city, product) : MarketRules.GetBuyUnitPrice(city, product));
         _summaryLabel.Text = _context.Localization.Format(
@@ -356,7 +352,6 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             MarketRules.GetAmount(city, product),
             MarketRules.GetCapacity(city, product),
             MarketRules.GetMerchantStock(city, product),
-            amount,
             goldAmount);
         UpdateConfirmAvailability();
     }
@@ -372,9 +367,8 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         var tradeMode = GetSelectedTradeMode();
         var product = GetProduct(tradeMode);
         var amount = (int)_amountSpinBox.Value;
-        var lotSize = MarketRules.GetTradeLotSize(product);
         var isSelling = IsSelling(tradeMode);
-        var isValid = amount > 0 && amount % lotSize == 0;
+        var isValid = amount > 0;
         if (isSelling)
         {
             isValid &= amount <= MarketRules.GetAmount(city, product);
@@ -417,19 +411,14 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         }
 
         var metadata = _tradeModeOption.GetItemMetadata(_tradeModeOption.Selected);
-        return metadata.VariantType == Variant.Type.Int
-            ? (MerchantTradeMode)metadata.AsInt32()
-            : MerchantTradeMode.BuyFood;
+        var isSelling = metadata.VariantType == Variant.Type.Int &&
+                        (MerchantTradeMode)metadata.AsInt32() == MerchantTradeMode.SellFood;
+        return isSelling ? GetSellMode(_selectedProduct) : GetBuyMode(_selectedProduct);
     }
 
     private static bool IsSelling(MerchantTradeMode tradeMode) => tradeMode is MerchantTradeMode.SellFood or MerchantTradeMode.SellHorse or MerchantTradeMode.SellMetal;
 
-    private static MarketProductType GetProduct(MerchantTradeMode tradeMode) => tradeMode switch
-    {
-        MerchantTradeMode.BuyHorse or MerchantTradeMode.SellHorse => MarketProductType.Horse,
-        MerchantTradeMode.BuyMetal or MerchantTradeMode.SellMetal => MarketProductType.Metal,
-        _ => MarketProductType.Food
-    };
+    private MarketProductType GetProduct(MerchantTradeMode tradeMode) => _selectedProduct;
 
     private static MerchantTradeMode GetBuyMode(MarketProductType product) => product switch
     {

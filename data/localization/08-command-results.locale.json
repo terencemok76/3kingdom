@@ -666,6 +666,10 @@
                                         "zhHant":  "「{0}」的交易數量無效。",
                                         "en":  "\"{0}\" has an invalid trade amount."
                                     },
+    "cmd.merchant.unavailable":  {
+        "zhHant": "「{0}」本月沒有商人駐留。",
+        "en": "No merchant is present in {0} this month."
+    },
     "cmd.merchant.not_enough_food":  {
                                          "zhHant":  "「{0}」糧不足，無法賣糧。",
                                          "en":  "\"{0}\" does not have enough food to sell."

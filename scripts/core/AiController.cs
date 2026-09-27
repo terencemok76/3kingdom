@@ -503,6 +503,11 @@ public class AiController
             return null;
         }
 
+        if (!city.HasMerchant)
+        {
+            return null;
+        }
+
         MarketRules.EnsureMarketInitialized(city);
         var product = MarketProductType.Food;
         var lotSize = MarketRules.GetTradeLotSize(product);

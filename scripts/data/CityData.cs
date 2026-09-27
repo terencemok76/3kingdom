@@ -29,6 +29,12 @@ public class CityData
     public int MerchantHorseStock { get; set; }
     public int MerchantMetalStock { get; set; }
     public bool MarketInitialized { get; set; }
+    public bool HasMerchant { get; set; }
+    // A strategic-map snapshot of the city event resolved in the current month.
+    // Store the enum name to keep save data independent from the rule namespace.
+    public string CurrentMonthlyEventType { get; set; } = string.Empty;
+    public int CurrentMonthlyEventYear { get; set; }
+    public int CurrentMonthlyEventMonth { get; set; }
     public int PreviousFoodBuyPrice { get; set; }
     public int PreviousHorseBuyPrice { get; set; }
     public int PreviousMetalBuyPrice { get; set; }

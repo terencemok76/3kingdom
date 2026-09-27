@@ -51,6 +51,15 @@ public static class MarketRules
         _ => 0
     };
 
+    // The strategic map can preview a newly created city's market without
+    // mutating its lazy-initialized merchant state.
+    public static int GetDisplayMerchantStock(CityData city, MarketProductType product) =>
+        !city.HasMerchant
+            ? 0
+            : city.MarketInitialized
+            ? GetMerchantStock(city, product)
+            : GetBaseMerchantStock(city, product);
+
     public static void SetMerchantStock(CityData city, MarketProductType product, int value)
     {
         value = Math.Max(0, value);
@@ -64,6 +73,11 @@ public static class MarketRules
 
     public static void RefreshMonthlyMarket(CityData city)
     {
+        if (!city.HasMerchant)
+        {
+            return;
+        }
+
         EnsureMarketInitialized(city);
         foreach (var product in Enum.GetValues<MarketProductType>())
         {
@@ -71,7 +85,7 @@ public static class MarketRules
         }
         foreach (var product in Enum.GetValues<MarketProductType>())
         {
-            var baseStock = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4 + city.Commercial * GetTradeLotSize(product) / 2);
+            var baseStock = GetBaseMerchantStock(city, product);
             SetMerchantStock(city, product, Math.Max(GetMerchantStock(city, product), baseStock));
         }
 
@@ -85,14 +99,14 @@ public static class MarketRules
 
     public static void EnsureMarketInitialized(CityData city)
     {
-        if (city.MarketInitialized)
+        if (!city.HasMerchant || city.MarketInitialized)
         {
             return;
         }
 
         foreach (var product in Enum.GetValues<MarketProductType>())
         {
-            var baseStock = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4 + city.Commercial * GetTradeLotSize(product) / 2);
+            var baseStock = GetBaseMerchantStock(city, product);
             SetMerchantStock(city, product, baseStock);
         }
 
@@ -102,6 +116,9 @@ public static class MarketRules
             SetLastBuyPrice(city, product, GetBuyUnitPrice(city, product));
         }
     }
+
+    private static int GetBaseMerchantStock(CityData city, MarketProductType product) =>
+        Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4 + city.Commercial * GetTradeLotSize(product) / 2);
 
     public static int GetBuyUnitPrice(CityData city, MarketProductType product)
     {

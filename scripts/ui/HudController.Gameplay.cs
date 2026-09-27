@@ -575,7 +575,7 @@ public partial class HudController : CanvasLayer
 
         if (MainHudMerchantButton != null)
         {
-            MainHudMerchantButton.Disabled = !baseEnabled || !canControlSelectedCity;
+            MainHudMerchantButton.Disabled = !baseEnabled || !canControlSelectedCity || _selectedCity?.HasMerchant != true;
         }
 
         if (MainHudDiplomacyButton != null)

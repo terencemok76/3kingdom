@@ -71,6 +71,7 @@ public class TurnManager
     {
         World = world;
         ActiveFactionId = GetPlayerFactionId();
+        RefreshMerchantAvailability();
     }
 
     public int GetPlayerFactionId()
@@ -194,7 +195,10 @@ public class TurnManager
 
         foreach (var city in World.Cities)
         {
-            MarketRules.RefreshMonthlyMarket(city);
+            city.CurrentMonthlyEventType = string.Empty;
+            city.CurrentMonthlyEventYear = 0;
+            city.CurrentMonthlyEventMonth = 0;
+
             var loyaltyFactor = 0.8f + city.Loyalty / 200.0f;
             var goldIncome = (int)((30 + city.Commercial * 2.0f) * loyaltyFactor);
             var foodIncome = (int)((40 + city.Farm * 3.0f) * loyaltyFactor);
@@ -276,6 +280,12 @@ public class TurnManager
             World.Year += 1;
         }
 
+        RefreshMerchantAvailability();
+        foreach (var city in World.Cities)
+        {
+            MarketRules.RefreshMonthlyMarket(city);
+        }
+
         foreach (var campaign in World.ActiveBattleCampaigns.Where(campaign => campaign.Stage != CampaignStage.Resolved))
         {
             BattleCampaignService.BeginNextCampaignMonth(campaign, World.Year, World.Month);
@@ -293,6 +303,36 @@ public class TurnManager
         var events = _latestOfficerEscapeEvents.ToList();
         _latestOfficerEscapeEvents.Clear();
         return events;
+    }
+
+    private void RefreshMerchantAvailability()
+    {
+        if (World == null)
+        {
+            return;
+        }
+
+        foreach (var city in World.Cities)
+        {
+            var chance = System.Math.Clamp(25 + city.Commercial / 3, 25, 60);
+            var random = new System.Random(System.HashCode.Combine(
+                World.RandomSeed,
+                World.Year,
+                World.Month,
+                city.Id,
+                8191));
+            city.HasMerchant = random.Next(100) < chance;
+        }
+
+        var playerCities = World.Cities
+            .Where(city => city.OwnerFactionId == ActiveFactionId)
+            .OrderByDescending(city => city.Commercial)
+            .ThenBy(city => city.Id)
+            .ToList();
+        if (playerCities.Count > 0 && !playerCities.Any(city => city.HasMerchant))
+        {
+            playerCities[0].HasMerchant = true;
+        }
     }
 
     private void AdvanceDiplomacyRelations()
@@ -564,6 +604,10 @@ public class TurnManager
         city.Defense = ClampCityStat(city.Defense + cityEvent.DefenseDelta);
         city.Population = ClampCityStat(city.Population + cityEvent.PopulationDelta);
         ApplyCityTroopEventLoss(city, cityEvent.TroopDelta);
+
+        city.CurrentMonthlyEventType = cityEvent.EventType.ToString();
+        city.CurrentMonthlyEventYear = World.Year;
+        city.CurrentMonthlyEventMonth = World.Month;
 
         result.AllCityEvents.Add(cityEvent);
 

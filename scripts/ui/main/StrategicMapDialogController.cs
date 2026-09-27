@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 using ThreeKingdom.Map;
 
@@ -219,7 +220,9 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
             T("ui.strategic_map.layer.faction"),
             T("ui.strategic_map.layer.diplomacy"),
             T("ui.strategic_map.layer.military"),
-            T("ui.strategic_map.layer.development")
+            T("ui.strategic_map.layer.development"),
+            T("ui.strategic_map.layer.event"),
+            T("ui.strategic_map.layer.merchant")
         });
         PopulateOption(_factionFilterOption, new[]
         {
@@ -265,6 +268,8 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
             StrategicMapLayer.Diplomacy => T("ui.strategic_map.summary.diplomacy"),
             StrategicMapLayer.Military => T("ui.strategic_map.summary.military"),
             StrategicMapLayer.Development => T("ui.strategic_map.summary.development"),
+            StrategicMapLayer.Event => T("ui.strategic_map.summary.event"),
+            StrategicMapLayer.Merchant => T("ui.strategic_map.summary.merchant"),
             _ => T("ui.strategic_map.summary.faction")
         };
         if (_selectionRequest != null)
@@ -336,6 +341,14 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
             StrategicMapLayer.Military when CanViewMilitaryIntel(world, city) => Format("fmt.strategic_map.detail.military", city.Troops, city.Defense),
             StrategicMapLayer.Military => T("ui.strategic_map.detail.military_unknown"),
             StrategicMapLayer.Development => Format("fmt.strategic_map.detail.development", city.Farm, city.Commercial, city.Population),
+            StrategicMapLayer.Event => BuildEventDetail(world, city),
+            StrategicMapLayer.Merchant => city.HasMerchant
+                ? Format(
+                    "fmt.strategic_map.detail.merchant",
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Food),
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Horse),
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal))
+                : T("ui.strategic_map.merchant.none"),
             _ => Format("fmt.strategic_map.detail.faction", factionName)
         };
         var name = _context.Localization?.GetCityName(city) ?? city.Name;
@@ -344,6 +357,32 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
 
     private bool CanViewMilitaryIntel(WorldState world, CityData city) =>
         world.ViewAllInformationEnabled || world.CanFactionViewCity(_context.PlayerFactionId, city.Id);
+
+    private string BuildEventDetail(WorldState world, CityData city) =>
+        HasCurrentMonthlyEvent(world, city)
+            ? T(GetEventNameKey(city.CurrentMonthlyEventType))
+            : T("ui.strategic_map.event.none");
+
+    private static bool HasCurrentMonthlyEvent(WorldState world, CityData city) =>
+        !string.IsNullOrEmpty(city.CurrentMonthlyEventType) &&
+        city.CurrentMonthlyEventYear == world.Year &&
+        city.CurrentMonthlyEventMonth == world.Month;
+
+    private static string GetEventNameKey(string eventType) => eventType switch
+    {
+        nameof(MonthlyCityEventType.Flooding) => "event.name.flooding",
+        nameof(MonthlyCityEventType.Drought) => "event.name.drought",
+        nameof(MonthlyCityEventType.Earthquake) => "event.name.earthquake",
+        nameof(MonthlyCityEventType.InsectDisaster) => "event.name.insect_disaster",
+        nameof(MonthlyCityEventType.Plague) => "event.name.plague",
+        nameof(MonthlyCityEventType.Rebellion) => "event.name.rebellion",
+        nameof(MonthlyCityEventType.Bandit) => "event.name.bandit",
+        nameof(MonthlyCityEventType.Snow) => "event.name.snow",
+        nameof(MonthlyCityEventType.Typhoon) => "event.name.typhoon",
+        nameof(MonthlyCityEventType.BumperHarvest) => "event.name.bumper_harvest",
+        nameof(MonthlyCityEventType.Fire) => "event.name.fire",
+        _ => "ui.strategic_map.event.none"
+    };
 
     private string GetDiplomacyLabel(WorldState world, CityData city)
     {

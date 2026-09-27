@@ -128,12 +128,12 @@
                                         "en":  "{0} {1} | Unit {2}/lot | City {3}/{4} | Merchant Stock {5} | This Trade {6}, Gold {7}"
                                     },
     "fmt.merchant_buy_total_preview":  {
-                                            "zhHant":  "城市庫存 {0}/{1}｜商人庫存 {2}｜交易數量 {3}｜總成本 {4}",
-                                            "en":  "City Stock {0}/{1} | Merchant Stock {2} | Quantity {3} | Total Cost {4}"
+                                            "zhHant":  "城市庫存 {0}/{1}｜商人庫存 {2}｜總成本 {3}",
+                                            "en":  "City Stock {0}/{1} | Merchant Stock {2} | Total Cost {3}"
                                         },
     "fmt.merchant_sell_total_preview":  {
-                                             "zhHant":  "城市庫存 {0}/{1}｜商人庫存 {2}｜交易數量 {3}｜總回報 {4}",
-                                             "en":  "City Stock {0}/{1} | Merchant Stock {2} | Quantity {3} | Total Payback {4}"
+                                             "zhHant":  "城市庫存 {0}/{1}｜商人庫存 {2}｜總回報 {3}",
+                                             "en":  "City Stock {0}/{1} | Merchant Stock {2} | Total Payback {3}"
                                          },
     "fmt.month_advanced":  {
                                "zhHant":  "新月份：{0}年 {1}月",

@@ -416,6 +416,11 @@ public partial class CommandResolver
 
     private CommandResult ExecuteMerchant(WorldState world, CityData city, CommandRequest request)
     {
+        if (!city.HasMerchant)
+        {
+            return LocalizedResult(false, "cmd.merchant.unavailable", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
+        }
+
         var amount = request.FoodToSend;
         var (product, isSelling) = request.MerchantTradeMode switch
         {
@@ -426,8 +431,7 @@ public partial class CommandResolver
             MerchantTradeMode.SellMetal => (MarketProductType.Metal, true),
             _ => (MarketProductType.Food, false)
         };
-        var lotSize = MarketRules.GetTradeLotSize(product);
-        if (amount <= 0 || amount % lotSize != 0)
+        if (amount <= 0)
         {
             return LocalizedResult(false, "cmd.merchant.invalid_amount", GetCityArgs(city, GameLanguage.TraditionalChinese), GetCityArgs(city, GameLanguage.English));
         }

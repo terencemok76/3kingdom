@@ -324,6 +324,27 @@ internal partial class StrategicMapCanvas : Control
             return new Color(0.32f + strength * 0.42f, 0.18f + strength * 0.12f, 0.13f, 1.0f);
         }
 
+        if (_layer == StrategicMapLayer.Event)
+        {
+            return HasCurrentMonthlyEvent(city)
+                ? IsBumperHarvest(city) ? new Color("2f855a") : new Color("b91c1c")
+                : new Color("4b5563");
+        }
+
+        if (_layer == StrategicMapLayer.Merchant)
+        {
+            if (!city.HasMerchant)
+            {
+                return new Color("4b5563");
+            }
+
+            var stock = MarketRules.GetDisplayMerchantStock(city, MarketProductType.Food) +
+                        MarketRules.GetDisplayMerchantStock(city, MarketProductType.Horse) +
+                        MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal);
+            var availability = Mathf.Clamp(stock / 1500.0f, 0.0f, 1.0f);
+            return new Color(0.30f + availability * 0.36f, 0.22f + availability * 0.30f, 0.08f, 1.0f);
+        }
+
         var development = Mathf.Clamp((city.Farm + city.Commercial) / 200.0f, 0.0f, 1.0f);
         return new Color(0.18f + development * 0.22f, 0.3f + development * 0.36f, 0.16f, 1.0f);
     }
@@ -389,9 +410,47 @@ internal partial class StrategicMapCanvas : Control
                 Format("fmt.strategic_map.tooltip.diplomacy", header, GetDiplomacyLabel(city)),
             StrategicMapLayer.Development =>
                 Format("fmt.strategic_map.tooltip.development", header, city.Farm, city.Commercial),
+            StrategicMapLayer.Event => Format("fmt.strategic_map.tooltip.event", header, GetEventDetail(city)),
+            StrategicMapLayer.Merchant => city.HasMerchant
+                ? Format(
+                    "fmt.strategic_map.tooltip.merchant",
+                    header,
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Food),
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Horse),
+                    MarketRules.GetDisplayMerchantStock(city, MarketProductType.Metal))
+                : Format("fmt.strategic_map.tooltip.merchant_none", header),
             _ => header
         };
     }
+
+    private bool HasCurrentMonthlyEvent(CityData city) =>
+        _world != null &&
+        !string.IsNullOrEmpty(city.CurrentMonthlyEventType) &&
+        city.CurrentMonthlyEventYear == _world.Year &&
+        city.CurrentMonthlyEventMonth == _world.Month;
+
+    private static bool IsBumperHarvest(CityData city) =>
+        city.CurrentMonthlyEventType == nameof(MonthlyCityEventType.BumperHarvest);
+
+    private string GetEventDetail(CityData city) => HasCurrentMonthlyEvent(city)
+        ? T(GetEventNameKey(city.CurrentMonthlyEventType))
+        : T("ui.strategic_map.event.none");
+
+    private static string GetEventNameKey(string eventType) => eventType switch
+    {
+        nameof(MonthlyCityEventType.Flooding) => "event.name.flooding",
+        nameof(MonthlyCityEventType.Drought) => "event.name.drought",
+        nameof(MonthlyCityEventType.Earthquake) => "event.name.earthquake",
+        nameof(MonthlyCityEventType.InsectDisaster) => "event.name.insect_disaster",
+        nameof(MonthlyCityEventType.Plague) => "event.name.plague",
+        nameof(MonthlyCityEventType.Rebellion) => "event.name.rebellion",
+        nameof(MonthlyCityEventType.Bandit) => "event.name.bandit",
+        nameof(MonthlyCityEventType.Snow) => "event.name.snow",
+        nameof(MonthlyCityEventType.Typhoon) => "event.name.typhoon",
+        nameof(MonthlyCityEventType.BumperHarvest) => "event.name.bumper_harvest",
+        nameof(MonthlyCityEventType.Fire) => "event.name.fire",
+        _ => "ui.strategic_map.event.none"
+    };
 
     private bool CanViewMilitaryIntel(CityData city) =>
         _world != null &&

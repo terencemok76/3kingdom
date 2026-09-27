@@ -12,7 +12,9 @@ public enum StrategicMapLayer
     Faction,
     Diplomacy,
     Military,
-    Development
+    Development,
+    Event,
+    Merchant
 }
 
 public enum StrategicMapFactionFilter
