@@ -79,7 +79,7 @@ public partial class HudController
                 var city = world.GetCity(report.CityId);
                 if (city != null)
                 {
-                    cities.AddChild(CreateMonthlyReportCityCard(city, report));
+                    cities.AddChild(CreateMonthlyReportCityCard(city, report, result));
                 }
             }
         }
@@ -125,7 +125,7 @@ public partial class HudController
         ShowMonthlyEconomyReport(report);
     }
 
-    private Control CreateMonthlyReportCityCard(CityData city, MonthlyCityEconomyReport report)
+    private Control CreateMonthlyReportCityCard(CityData city, MonthlyCityEconomyReport report, MonthlyEconomyResult monthlyResult)
     {
         var card = new PanelContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         card.AddThemeStyleboxOverride("panel", CreateMonthlyReportCardStyle());
@@ -147,6 +147,13 @@ public partial class HudController
                 FormatSignedNumber(report.MetalDelta), report.MetalAmount, report.MetalCapacity,
                 FormatSignedNumber(report.StoneDelta), report.StoneAmount, report.StoneCapacity)
         });
+        var reasons = new Label
+        {
+            Text = BuildMonthlyReportReasons(report, monthlyResult),
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        reasons.AddThemeColorOverride("font_color", new Color(0.76f, 0.76f, 0.7f));
+        content.AddChild(reasons);
         content.AddChild(new Label
         {
             Text = _localization.Format(
@@ -168,6 +175,106 @@ public partial class HudController
         }
 
         return card;
+    }
+
+    private string BuildMonthlyReportReasons(MonthlyCityEconomyReport report, MonthlyEconomyResult monthlyResult)
+    {
+        var groups = new List<string>
+        {
+            BuildMonthlyResourceReason(
+                "ui.monthly_report_food",
+                report.FoodDelta,
+                BuildFoodMonthlyReasons(report, monthlyResult)),
+            BuildMonthlyResourceReason(
+                "ui.monthly_report_horse",
+                report.HorseDelta,
+                BuildHorseMonthlyReasons(report, monthlyResult)),
+            BuildMonthlyResourceReason(
+                "ui.monthly_report_wood",
+                report.WoodDelta,
+                BuildStorageLossReason(report.StorageLoss.Wood)),
+            BuildMonthlyResourceReason(
+                "ui.monthly_report_metal",
+                report.MetalDelta,
+                BuildStorageLossReason(report.StorageLoss.Metal)),
+            BuildMonthlyResourceReason(
+                "ui.monthly_report_stone",
+                report.StoneDelta,
+                BuildStorageLossReason(report.StorageLoss.Stone))
+        };
+
+        return _localization!.Format("fmt.monthly_report_reasons", string.Join("｜", groups));
+    }
+
+    private string BuildFoodMonthlyReasons(MonthlyCityEconomyReport report, MonthlyEconomyResult monthlyResult)
+    {
+        var reasons = new List<string>();
+        var harvest = monthlyResult.PlayerCityFoodIncome.Find(entry => entry.CityId == report.CityId).Amount;
+        if (harvest > 0)
+        {
+            reasons.Add(_localization!.Format("fmt.monthly_report_harvest", FormatSignedNumber(harvest)));
+        }
+
+        if (report.FoodUpkeep > 0)
+        {
+            reasons.Add(_localization!.Format("fmt.monthly_report_upkeep", FormatSignedNumber(-report.FoodUpkeep)));
+        }
+
+        AddMonthlyFoodEventReasons(reasons, report.CityId, monthlyResult);
+        AddStorageLossReason(reasons, report.StorageLoss.Food);
+        return string.Join("、", reasons);
+    }
+
+    private string BuildHorseMonthlyReasons(MonthlyCityEconomyReport report, MonthlyEconomyResult monthlyResult)
+    {
+        var reasons = new List<string>();
+        var births = monthlyResult.PlayerCityHorseBirths.Find(entry => entry.CityId == report.CityId).Amount;
+        if (births > 0)
+        {
+            reasons.Add(_localization!.Format("fmt.monthly_report_horse_birth", FormatSignedNumber(births)));
+        }
+
+        AddStorageLossReason(reasons, report.StorageLoss.Horse);
+        return string.Join("、", reasons);
+    }
+
+    private void AddMonthlyFoodEventReasons(List<string> reasons, int cityId, MonthlyEconomyResult monthlyResult)
+    {
+        foreach (var cityEvent in monthlyResult.PlayerCityEvents)
+        {
+            if (cityEvent.CityId == cityId && cityEvent.FoodDelta != 0)
+            {
+                reasons.Add(_localization!.Format(
+                    "fmt.monthly_report_event",
+                    GetEventDisplayName(cityEvent.EventType),
+                    FormatSignedNumber(cityEvent.FoodDelta)));
+            }
+        }
+    }
+
+    private string BuildStorageLossReason(int loss) => loss > 0
+        ? _localization!.Format("fmt.monthly_report_storage_loss", FormatSignedNumber(-loss))
+        : string.Empty;
+
+    private void AddStorageLossReason(List<string> reasons, int loss)
+    {
+        var reason = BuildStorageLossReason(loss);
+        if (!string.IsNullOrEmpty(reason))
+        {
+            reasons.Add(reason);
+        }
+    }
+
+    private string BuildMonthlyResourceReason(string resourceKey, int delta, string reasons)
+    {
+        if (string.IsNullOrEmpty(reasons))
+        {
+            reasons = delta == 0
+                ? _localization!.T("ui.monthly_report_no_change")
+                : _localization!.Format("fmt.monthly_report_net_change", FormatSignedNumber(delta));
+        }
+
+        return _localization!.Format("fmt.monthly_report_resource_reason", _localization.T(resourceKey), reasons);
     }
 
     private string BuildStorageStatus(CityData city)

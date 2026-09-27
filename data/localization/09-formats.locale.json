@@ -79,6 +79,38 @@
         "zhHant": "糧倉 Lv.{0}｜馬廄 Lv.{1}｜資源倉庫 Lv.{2}",
         "en": "Granary Lv.{0} | Horse Stable Lv.{1} | Resource Depot Lv.{2}"
     },
+    "fmt.monthly_report_reasons": {
+        "zhHant": "變動原因：{0}",
+        "en": "Change reasons: {0}"
+    },
+    "fmt.monthly_report_resource_reason": {
+        "zhHant": "{0}：{1}",
+        "en": "{0}: {1}"
+    },
+    "fmt.monthly_report_harvest": {
+        "zhHant": "農業收成 {0}",
+        "en": "Harvest {0}"
+    },
+    "fmt.monthly_report_upkeep": {
+        "zhHant": "駐軍消耗 {0}",
+        "en": "Garrison upkeep {0}"
+    },
+    "fmt.monthly_report_horse_birth": {
+        "zhHant": "馬匹繁殖 {0}",
+        "en": "Horse births {0}"
+    },
+    "fmt.monthly_report_event": {
+        "zhHant": "{0} {1}",
+        "en": "{0} {1}"
+    },
+    "fmt.monthly_report_storage_loss": {
+        "zhHant": "滿倉損耗 {0}",
+        "en": "Over-capacity loss {0}"
+    },
+    "fmt.monthly_report_net_change": {
+        "zhHant": "月結淨變化 {0}",
+        "en": "Monthly net change {0}"
+    },
     "fmt.faction_name_ruler":  {
                                    "zhHant":  "{0}軍",
                                    "en":  "{0} Forces"

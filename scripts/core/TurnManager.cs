@@ -26,6 +26,7 @@ public class MonthlyCityEconomyReport
     public int MetalDelta { get; set; }
     public int WoodDelta { get; set; }
     public int StoneDelta { get; set; }
+    public int FoodUpkeep { get; set; }
     public int MetalProduced { get; set; }
     public int FoodAmount { get; set; }
     public int HorseAmount { get; set; }
@@ -221,6 +222,7 @@ public class TurnManager
 
         var monthlyMetalProduction = new Dictionary<int, int>();
         var monthlyStorageLosses = new Dictionary<int, MarketStorageLoss>();
+        var monthlyFoodUpkeep = new Dictionary<int, int>();
         foreach (var city in World.Cities)
         {
             city.CurrentMonthlyEventType = string.Empty;
@@ -268,6 +270,7 @@ public class TurnManager
             }
 
             var upkeep = city.Troops / MonthlyUpkeepDivisor;
+            monthlyFoodUpkeep[city.Id] = upkeep;
             city.Food -= upkeep;
 
             if (city.Food < 0)
@@ -313,6 +316,7 @@ public class TurnManager
                 MetalDelta = city.Metal - opening.Metal,
                 WoodDelta = city.Wood - opening.Wood,
                 StoneDelta = city.Stone - opening.Stone,
+                FoodUpkeep = monthlyFoodUpkeep.GetValueOrDefault(city.Id),
                 MetalProduced = monthlyMetalProduction.GetValueOrDefault(city.Id),
                 FoodAmount = city.Food,
                 HorseAmount = city.Horses,
