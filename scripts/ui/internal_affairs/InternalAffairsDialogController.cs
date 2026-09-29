@@ -277,6 +277,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         AddJobOption(InternalAffairsJobType.WaterControl);
         AddJobOption(InternalAffairsJobType.Construction);
         AddJobOption(InternalAffairsJobType.Extraction);
+        AddJobOption(InternalAffairsJobType.Survey);
     }
 
     private void RefreshJobOptionText()
@@ -287,6 +288,13 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         }
 
         var selectedJobType = GetSelectedJobType();
+        if (selectedJobType == InternalAffairsJobType.Survey &&
+            _context.SelectedCity != null &&
+            _context.TurnManager?.World != null &&
+            !ResourceRules.HasSurveyableResource(_context.TurnManager.World, _context.SelectedCity))
+        {
+            selectedJobType = InternalAffairsJobType.Farm;
+        }
         PopulateJobOptions();
         SelectJobOption(selectedJobType);
     }
@@ -299,7 +307,19 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         }
 
         _jobOption.AddItem(GetJobName(jobType));
-        _jobOption.SetItemMetadata(_jobOption.ItemCount - 1, (int)jobType);
+        var index = _jobOption.ItemCount - 1;
+        _jobOption.SetItemMetadata(index, (int)jobType);
+        if (jobType == InternalAffairsJobType.Survey && _context.SelectedCity != null)
+        {
+            var world = _context.TurnManager?.World;
+            var availability = world != null
+                ? ResourceRules.GetSurveyAvailability(world, _context.SelectedCity)
+                : ResourceRules.GetSurveyAvailability(_context.SelectedCity);
+            _jobOption.SetItemDisabled(index, availability is not (
+                ResourceRules.SurveyAvailability.Available or
+                ResourceRules.SurveyAvailability.AvailableWithoutResourcePoint));
+            _jobOption.SetItemTooltip(index, GetSurveyAvailabilityText(availability));
+        }
     }
 
     private void PopulateConstructionProjectOptions()
@@ -510,6 +530,9 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             InternalAffairsJobType.Extraction => ResourceRules.HasExtractableResource(city)
                 ? localization.T("ui.internal_affairs_advice_extraction")
                 : localization.T("ui.internal_affairs_advice_extraction_unavailable"),
+            InternalAffairsJobType.Survey => _context.TurnManager?.World != null && ResourceRules.HasSurveyableResource(_context.TurnManager.World, city)
+                ? localization.T("ui.internal_affairs_advice_survey")
+                : localization.T("ui.internal_affairs_advice_survey_unavailable"),
             _ => localization.T("ui.no_advice")
         };
         return $"{plan}{focus}";
@@ -853,7 +876,27 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             InternalAffairsJobType.WaterControl => _context.Localization.T("command.internal_affairs.disaster_prevention"),
             InternalAffairsJobType.Construction => _context.Localization.T("command.internal_affairs.construction"),
             InternalAffairsJobType.Extraction => _context.Localization.T("command.internal_affairs.extraction"),
+            InternalAffairsJobType.Survey => _context.Localization.T("command.internal_affairs.survey"),
             _ => jobType.ToString()
+        };
+    }
+
+    private string GetSurveyAvailabilityText(ResourceRules.SurveyAvailability availability)
+    {
+        if (_context.Localization == null)
+        {
+            return string.Empty;
+        }
+
+        return availability switch
+        {
+            ResourceRules.SurveyAvailability.Available => _context.Localization.T("ui.internal_affairs_advice_survey"),
+            ResourceRules.SurveyAvailability.AvailableWithoutResourcePoint => _context.Localization.T("ui.internal_affairs_advice_survey_no_resource_point"),
+            ResourceRules.SurveyAvailability.ResourceStillAvailable => _context.Localization.T("ui.internal_affairs_survey_has_reserve"),
+            ResourceRules.SurveyAvailability.RenewableResource => _context.Localization.T("ui.internal_affairs_survey_wood_regrows"),
+            ResourceRules.SurveyAvailability.AttemptsExhausted => _context.Localization.T("ui.internal_affairs_survey_attempts_exhausted"),
+            ResourceRules.SurveyAvailability.DiscoveryPoolExhausted => _context.Localization.T("ui.internal_affairs_survey_discovery_pool_exhausted"),
+            _ => _context.Localization.T("ui.internal_affairs_advice_survey_unavailable")
         };
     }
 
@@ -1004,6 +1047,15 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         }
 
         _constructionProjectRow.Visible = GetSelectedJobType() == InternalAffairsJobType.Construction;
+        if (_durationSpinBox != null)
+        {
+            var isSurvey = GetSelectedJobType() == InternalAffairsJobType.Survey;
+            _durationSpinBox.Editable = !isSurvey;
+            if (isSurvey)
+            {
+                _durationSpinBox.Value = 1;
+            }
+        }
     }
 
     private void SetWarning(string text)

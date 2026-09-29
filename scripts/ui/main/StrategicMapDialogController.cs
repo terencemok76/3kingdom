@@ -367,7 +367,7 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
     private string BuildResourcePointDetail(CityData city)
     {
         var deposit = city.ResourceDeposits?.FirstOrDefault();
-        if (deposit == null || deposit.RemainingReserve <= 0)
+        if (deposit == null)
         {
             return T("ui.strategic_map.resource_point.none");
         }
@@ -378,7 +378,9 @@ internal sealed class StrategicMapDialogController : FloatingOverlayController
             StrategicResourceType.Metal => T("ui.metal"),
             _ => T("ui.stone")
         };
-        return Format("fmt.strategic_map.detail.resource_point", name, deposit.RemainingReserve, deposit.MonthlyYield);
+        return deposit.RemainingReserve <= 0
+            ? Format("fmt.strategic_map.detail.resource_point_depleted", name, deposit.SurveyAttempts)
+            : Format("fmt.strategic_map.detail.resource_point", name, deposit.RemainingReserve, deposit.MonthlyYield);
     }
 
     private string AppendIntelStatus(WorldState world, CityData city, string detail)

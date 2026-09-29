@@ -7,7 +7,8 @@ public enum InternalAffairsJobType
     Defend,
     WaterControl,
     Construction,
-    Extraction
+    Extraction,
+    Survey
 }
 
 public enum StrategicResourceType

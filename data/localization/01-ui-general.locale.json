@@ -672,6 +672,7 @@
 	"ui.metal":  { "zhHant": "金屬", "en": "Metal" },
 	"ui.stone":  { "zhHant": "石材", "en": "Stone" },
 	"ui.resource_deposits":  { "zhHant": "資源點", "en": "Deposits" },
+	"ui.resource_depleted":  { "zhHant": "枯竭", "en": "Depleted" },
 	"ui.transfer_wood": { "zhHant": "移送木材", "en": "Transfer Wood" },
 	"ui.transfer_metal": { "zhHant": "移送金屬", "en": "Transfer Metal" },
 	"ui.transfer_stone": { "zhHant": "移送石材", "en": "Transfer Stone" },
@@ -686,6 +687,13 @@
 									 },
 	"ui.internal_affairs_advice_extraction": { "zhHant": "本城資源點將自動優先採集儲量較多的資源。", "en": "This city will automatically extract the deposit with the greatest remaining reserve." },
 	"ui.internal_affairs_advice_extraction_unavailable": { "zhHant": "本城沒有可採集的資源點。", "en": "This city has no extractable resource deposit." },
+	"ui.internal_affairs_advice_survey": { "zhHant": "本城的礦脈已枯竭；勘探需一個月，成功後可發現較小的新礦脈。", "en": "This city's deposit is depleted. Survey takes one month and may find a smaller new vein." },
+	"ui.internal_affairs_advice_survey_no_resource_point": { "zhHant": "本城尚無資源點；可低機率勘探發現木材、石材或金屬資源點。", "en": "This city has no resource point. Survey may rarely discover a wood, stone, or metal deposit." },
+	"ui.internal_affairs_advice_survey_unavailable": { "zhHant": "本城沒有可勘探的枯竭金屬或石材礦脈。", "en": "This city has no depleted metal or stone deposit available for survey." },
+	"ui.internal_affairs_survey_has_reserve": { "zhHant": "資源點仍有儲量，請先採集／開採。", "en": "This resource point still has reserve; extract it first." },
+	"ui.internal_affairs_survey_wood_regrows": { "zhHant": "木材資源點會自然回復，不能勘探。", "en": "Wood deposits naturally regrow and cannot be surveyed." },
+	"ui.internal_affairs_survey_attempts_exhausted": { "zhHant": "附近礦脈已勘探完畢，不能再次勘探。", "en": "Nearby veins have been fully surveyed and cannot be surveyed again." },
+	"ui.internal_affairs_survey_discovery_pool_exhausted": { "zhHant": "地圖上可新發現的資源點名額已用盡，不能再於空城市勘探。", "en": "The map's new resource-point discovery slots are exhausted; empty cities cannot survey again." },
 	"fmt.internal_affairs_advice_plan":  {
 										 "zhHant":  "「{0}」計畫每月投入 {1} 金、執行 {2} 個月。",
 										 "en":  "The {0} plan invests {1} gold per month for {2} months. "

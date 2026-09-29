@@ -1412,11 +1412,12 @@ public partial class CommandResolver
             InternalAffairsJobType.WaterControl => officer.Intelligence * 2 + officer.Politics * 2 + officer.DisasterPreventionRank * 25,
             InternalAffairsJobType.Construction => officer.Politics * 2 + officer.Leadership + officer.Intelligence + officer.ConstructionRank * 25,
             InternalAffairsJobType.Extraction => officer.Politics * 2 + officer.Intelligence + officer.ConstructionRank * 25,
+            InternalAffairsJobType.Survey => officer.Intelligence * 3 + officer.Politics * 2 + officer.ConstructionRank * 25,
             _ => officer.Politics + officer.Intelligence + officer.Charm
         };
     }
 
-    private static (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput) ApplyInternalAffairsJob(
+    private (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput, ResourceRules.SurveyResult SurveyOutput) ApplyInternalAffairsJob(
         WorldState world,
         CityData city,
         OfficerData officer,
@@ -1435,15 +1436,16 @@ public partial class CommandResolver
         var goldBonus = 1 + Math.Min(4, Math.Max(0, (monthlyInvestment - 50) / 100));
         var primaryGain = 2 + officerBonus + progressionBonus + goldBonus;
         var secondaryGain = 1 + Math.Max(0, progressionBonus / 2);
-        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput) gains = jobType switch
+        (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput, ResourceRules.SurveyResult SurveyOutput) gains = jobType switch
         {
-            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0, default, default),
-            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0, default, default),
-            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0, default, default),
-            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0, default, default),
-            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus), default, default),
-            InternalAffairsJobType.Extraction => (0, 0, 0, 0, 0, 0, default, default),
-            _ => (0, 0, 0, 0, 0, 0, default, default)
+            InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0, default, default, default),
+            InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0, default, default, default),
+            InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0, default, default, default),
+            InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0, default, default, default),
+            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus), default, default, default),
+            InternalAffairsJobType.Extraction => (0, 0, 0, 0, 0, 0, default, default, default),
+            InternalAffairsJobType.Survey => (0, 0, 0, 0, 0, 0, default, default, default),
+            _ => (0, 0, 0, 0, 0, 0, default, default, default)
         };
 
         if (jobType == InternalAffairsJobType.Defend)
@@ -1467,6 +1469,10 @@ public partial class CommandResolver
         else if (jobType == InternalAffairsJobType.Extraction)
         {
             gains.ResourceOutput = ResourceRules.ApplyExtraction(city, primaryGain);
+        }
+        else if (jobType == InternalAffairsJobType.Survey)
+        {
+            gains.SurveyOutput = ResourceRules.ApplySurvey(world, city, primaryGain, _random);
         }
 
         OfficerProgressionRules.AwardInternalAffairsExperience(officer, jobType, 40);
@@ -1504,6 +1510,7 @@ public partial class CommandResolver
             InternalAffairsJobType.WaterControl => 70,
             InternalAffairsJobType.Construction => 100,
             InternalAffairsJobType.Extraction => 75,
+            InternalAffairsJobType.Survey => 120,
             _ => 60
         };
     }
@@ -1518,6 +1525,7 @@ public partial class CommandResolver
             InternalAffairsJobType.WaterControl => "command.internal_affairs.disaster_prevention",
             InternalAffairsJobType.Construction => "command.internal_affairs.construction",
             InternalAffairsJobType.Extraction => "command.internal_affairs.extraction",
+            InternalAffairsJobType.Survey => "command.internal_affairs.survey",
             _ => string.Empty
         };
 

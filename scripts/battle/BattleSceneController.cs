@@ -46,6 +46,7 @@ internal enum BattleAiControlledSides
 [Tool]
 public partial class BattleSceneController : Node2D
 {
+    private const string CampaignBattleLoadingOverlayName = "CampaignBattleLoadingOverlay";
     public sealed record LaunchOptions(BattleScenarioType ScenarioType, bool UseEditorAuthoredLayout, int CampaignId = 0);
 
     private enum BattleOfficerSpeechEvent
@@ -724,6 +725,7 @@ public partial class BattleSceneController : Node2D
         ApplyBattleLogPanelStyle();
         ApplyBattleOptionDialogStyle();
         RefreshBattleLogPanel();
+        DismissCampaignBattleLoadingOverlay();
 
         if (_mapRoot != null)
         {
@@ -731,6 +733,11 @@ public partial class BattleSceneController : Node2D
         }
 
         ShowOpeningOfficerSpeechAfterDelay();
+    }
+
+    private void DismissCampaignBattleLoadingOverlay()
+    {
+        GetTree().Root.GetNodeOrNull<CanvasLayer>(CampaignBattleLoadingOverlayName)?.QueueFree();
     }
 
     private bool CanUseEnvironmentDebugControls => EnableEnvironmentDebugControls || IsStandaloneBattleAiTest;

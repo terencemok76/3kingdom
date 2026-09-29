@@ -464,6 +464,11 @@ public partial class HudController : CanvasLayer
         ConfigureCampaignUi();
         Callable.From(ResumeAttackResolutionAfterCampaignIfNeeded).CallDeferred();
         Callable.From(ShowPendingBattleReportIfNeeded).CallDeferred();
+        // Covers a return path with no report (for example an old save that no
+        // longer has the report record), while the normal path removes the
+        // transition in ShowPendingBattleReportIfNeeded immediately before it
+        // shows the report.
+        Callable.From(DismissCampaignReturnLoadingOverlay).CallDeferred();
     }
 
     public void OnCitySelected(CityData city)

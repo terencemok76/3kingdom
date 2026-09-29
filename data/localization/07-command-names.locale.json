@@ -67,6 +67,10 @@
                                           "zhHant":  "採集／開採",
                                           "en":  "Extraction"
                                       },
+    "command.internal_affairs.survey":  {
+                                          "zhHant":  "資源勘探",
+                                          "en":  "Resource Survey"
+                                      },
     "command.personnel.assign_title":  {
                                            "zhHant":  "指派職位",
                                            "en":  "Assign Appointment"

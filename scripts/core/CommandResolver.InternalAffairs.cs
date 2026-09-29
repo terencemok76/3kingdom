@@ -38,6 +38,13 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.internal_affairs.invalid_duration");
         }
 
+        // Survey is one deliberate expedition. A completed result must be
+        // reviewed before an officer can spend another month on the same site.
+        if (jobType == InternalAffairsJobType.Survey)
+        {
+            months = 1;
+        }
+
         var officer = world.GetOfficer(officerId);
         if (officer == null || officer.CityId != city.Id || !city.OfficerIds.Contains(officerId))
         {
@@ -91,6 +98,14 @@ public partial class CommandResolver
             return LocalizedResult(
                 false,
                 "cmd.internal_affairs.no_resource_deposit",
+                GetCityArgs(city, GameLanguage.TraditionalChinese),
+                GetCityArgs(city, GameLanguage.English));
+        }
+        else if (jobType == InternalAffairsJobType.Survey && !ResourceRules.HasSurveyableResource(world, city))
+        {
+            return LocalizedResult(
+                false,
+                "cmd.internal_affairs.no_surveyable_resource",
                 GetCityArgs(city, GameLanguage.TraditionalChinese),
                 GetCityArgs(city, GameLanguage.English));
         }
@@ -514,6 +529,26 @@ public partial class CommandResolver
                     resolveResult,
                     $" 採得{GetResourceName(gains.ResourceOutput.Type, GameLanguage.TraditionalChinese)} +{gains.ResourceOutput.Amount}（剩餘 {GetRemainingResourceReserve(city, gains.ResourceOutput.Type)}）。",
                     $" Extracted {GetResourceName(gains.ResourceOutput.Type, GameLanguage.English)} +{gains.ResourceOutput.Amount} ({GetRemainingResourceReserve(city, gains.ResourceOutput.Type)} remaining).");
+            }
+            else if (schedule.JobType == InternalAffairsJobType.Survey && gains.SurveyOutput.WasAttempted)
+            {
+                var resultKey = gains.SurveyOutput.Success
+                    ? "fmt.internal_affairs_survey_success"
+                    : "fmt.internal_affairs_survey_failure";
+                AppendLocalizedText(
+                    resolveResult,
+                    _localization?.FormatForLanguage(
+                        GameLanguage.TraditionalChinese,
+                        resultKey,
+                        GetResourceName(gains.SurveyOutput.Type, GameLanguage.TraditionalChinese),
+                        gains.SurveyOutput.Reserve,
+                        gains.SurveyOutput.Attempt) ?? string.Empty,
+                    _localization?.FormatForLanguage(
+                        GameLanguage.English,
+                        resultKey,
+                        GetResourceName(gains.SurveyOutput.Type, GameLanguage.English),
+                        gains.SurveyOutput.Reserve,
+                        gains.SurveyOutput.Attempt) ?? string.Empty);
             }
             else if (schedule.JobType == InternalAffairsJobType.Defend)
             {

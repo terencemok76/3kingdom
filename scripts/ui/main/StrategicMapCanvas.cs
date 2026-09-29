@@ -459,7 +459,7 @@ internal partial class StrategicMapCanvas : Control
     private string BuildResourceTooltip(string header, CityData city)
     {
         var deposit = city.ResourceDeposits?.FirstOrDefault();
-        if (deposit == null || deposit.RemainingReserve <= 0)
+        if (deposit == null)
         {
             return Format("fmt.strategic_map.tooltip.resource_none", header);
         }
@@ -470,7 +470,9 @@ internal partial class StrategicMapCanvas : Control
             StrategicResourceType.Metal => _localization?.T("ui.metal") ?? "Metal",
             _ => _localization?.T("ui.stone") ?? "Stone"
         };
-        return Format("fmt.strategic_map.tooltip.resource_point", header, name, deposit.RemainingReserve, deposit.MonthlyYield);
+        return deposit.RemainingReserve <= 0
+            ? Format("fmt.strategic_map.tooltip.resource_point_depleted", header, name, deposit.SurveyAttempts)
+            : Format("fmt.strategic_map.tooltip.resource_point", header, name, deposit.RemainingReserve, deposit.MonthlyYield);
     }
 
     private string AppendIntelStatus(CityData city, string text, string separator)

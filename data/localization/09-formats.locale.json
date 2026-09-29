@@ -111,6 +111,14 @@
         "zhHant": "月結淨變化 {0}",
         "en": "Monthly net change {0}"
     },
+    "fmt.internal_affairs_survey_success": {
+        "zhHant": " 勘探成功：發現新的{0}礦脈，儲量 {1:N0}（第 {2} 次勘探）。",
+        "en": " Survey succeeded: discovered a new {0} vein with {1:N0} reserve (survey {2})."
+    },
+    "fmt.internal_affairs_survey_failure": {
+        "zhHant": " 勘探未發現新礦脈（第 {2} 次勘探）。",
+        "en": " Survey found no new vein (survey {2})."
+    },
     "fmt.faction_name_ruler":  {
                                    "zhHant":  "{0}軍",
                                    "en":  "{0} Forces"

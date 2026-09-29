@@ -11,8 +11,11 @@ public partial class HudController
 {
     private const string MainScenePath = "res://scenes/main/Main.tscn";
     private const string BattleReportDialogScenePath = "res://scenes/ui/main/BattleReportDialog.tscn";
+    private const string CampaignReturnLoadingOverlayName = "CampaignReturnLoadingOverlay";
+    private const string CampaignBattleLoadingOverlayName = "CampaignBattleLoadingOverlay";
     private Button? _continueCampaignButton;
     private Control? _battleReportDialog;
+    private bool _campaignBattleSceneLoading;
 
     private void ConfigureCampaignUi()
     {
@@ -101,7 +104,118 @@ public partial class HudController
         var scenePath = ResolveCampaignScenePath(targetCity, scenarioType);
         BattleSceneController.PendingLaunchOptions =
             new BattleSceneController.LaunchOptions(scenarioType, true, campaign.Id);
+        LoadCampaignBattleScene(scenePath);
+    }
+
+    private async void LoadCampaignBattleScene(string scenePath)
+    {
+        if (_campaignBattleSceneLoading)
+        {
+            return;
+        }
+
+        _campaignBattleSceneLoading = true;
+        ShowCampaignBattleLoadingOverlay();
+        // Give the persistent overlay one frame to draw before the map's battle
+        // scene and its large assets begin loading in the background.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        var requestError = ResourceLoader.LoadThreadedRequest(scenePath, "PackedScene");
+        if (requestError != Error.Ok)
+        {
+            GD.PushWarning($"Could not start threaded battle load: {requestError}.");
+            GetTree().ChangeSceneToFile(scenePath);
+            return;
+        }
+
+        while (IsInsideTree())
+        {
+            var status = ResourceLoader.LoadThreadedGetStatus(scenePath);
+            if (status == ResourceLoader.ThreadLoadStatus.Loaded)
+            {
+                var battleScene = ResourceLoader.LoadThreadedGet(scenePath) as PackedScene;
+                if (battleScene != null)
+                {
+                    GetTree().ChangeSceneToPacked(battleScene);
+                    return;
+                }
+
+                GD.PushWarning("Threaded battle load completed without a PackedScene.");
+                break;
+            }
+
+            if (status == ResourceLoader.ThreadLoadStatus.Failed ||
+                status == ResourceLoader.ThreadLoadStatus.InvalidResource)
+            {
+                GD.PushWarning($"Threaded battle load failed: {status}.");
+                break;
+            }
+
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
         GetTree().ChangeSceneToFile(scenePath);
+    }
+
+    private void ShowCampaignBattleLoadingOverlay()
+    {
+        var sceneRoot = GetTree().Root;
+        if (sceneRoot.GetNodeOrNull<CanvasLayer>(CampaignBattleLoadingOverlayName) != null)
+        {
+            return;
+        }
+
+        var layer = new CanvasLayer
+        {
+            Name = CampaignBattleLoadingOverlayName,
+            Layer = 100
+        };
+        sceneRoot.AddChild(layer);
+
+        var shade = new ColorRect
+        {
+            Color = new Color(0.02f, 0.025f, 0.04f, 0.88f),
+            MouseFilter = Control.MouseFilterEnum.Stop
+        };
+        shade.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        layer.AddChild(shade);
+
+        var center = new CenterContainer
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        layer.AddChild(center);
+
+        var panel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(420.0f, 92.0f),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.055f, 0.06f, 0.09f, 0.97f),
+            BorderColor = new Color(0.68f, 0.51f, 0.22f, 0.95f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6
+        });
+        center.AddChild(panel);
+
+        var message = new Label
+        {
+            Text = _localization?.T("ui.battle.entering_battle") ?? "Entering battle…",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        message.AddThemeFontSizeOverride("font_size", 22);
+        message.AddThemeColorOverride("font_color", new Color(0.94f, 0.86f, 0.68f, 1.0f));
+        panel.AddChild(message);
     }
 
     private static string ResolveCampaignScenePath(CityData city, BattleScenarioType scenarioType)
@@ -159,6 +273,7 @@ public partial class HudController
             (item.AttackerFactionId == playerFactionId || item.DefenderFactionId == playerFactionId));
         if (report == null)
         {
+            DismissCampaignReturnLoadingOverlay();
             if (_militaryUiController?.HasPendingPlayerCapturedOfficer() == true)
             {
                 _militaryUiController.ShowCapturedOfficerDialog();
@@ -253,7 +368,13 @@ public partial class HudController
         {
             closeButton.Pressed += () => CloseBattleReport(report);
         }
+        DismissCampaignReturnLoadingOverlay();
         _battleReportDialog.Visible = true;
+    }
+
+    private void DismissCampaignReturnLoadingOverlay()
+    {
+        GetTree().Root.GetNodeOrNull<CanvasLayer>(CampaignReturnLoadingOverlayName)?.QueueFree();
     }
 
     private void CloseBattleReport(WorldState.BattleReportData report)

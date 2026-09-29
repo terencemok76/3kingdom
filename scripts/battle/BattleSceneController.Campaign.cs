@@ -12,6 +12,7 @@ namespace ThreeKingdom.Battle;
 public partial class BattleSceneController
 {
     private const string GameplayScenePath = "res://scenes/main/Main.tscn";
+    private const string CampaignReturnLoadingOverlayName = "CampaignReturnLoadingOverlay";
     private ActiveBattleCampaignData? _activeCampaign;
     private bool _campaignResultHandled;
     private bool _campaignReturnQueued;
@@ -1335,6 +1336,7 @@ public partial class BattleSceneController
             CampaignRuntimeContext.World.ResumeAttackResolutionAfterCampaign = false;
             CampaignRuntimeContext.World.IsBattleResolutionPhase = true;
         }
+        BeginCampaignReturnTransition();
         CampaignRuntimeContext.ReturnToGameplay();
         CallDeferred(nameof(ReturnCampaignToGameplay));
     }
@@ -1347,6 +1349,7 @@ public partial class BattleSceneController
         }
 
         _campaignReturnQueued = true;
+        BeginCampaignReturnTransition();
         CampaignRuntimeContext.ReturnToGameplay();
         await ToSignal(GetTree().CreateTimer(2.5), SceneTreeTimer.SignalName.Timeout);
         if (IsInsideTree())
@@ -1355,8 +1358,117 @@ public partial class BattleSceneController
         }
     }
 
-    private void ReturnCampaignToGameplay()
+    private async void ReturnCampaignToGameplay()
     {
+        BeginCampaignReturnTransition();
+
+        // Render the transition before beginning the threaded scene load.  The
+        // overlay belongs to SceneTree.Root, so it remains visible while the
+        // battle scene is replaced by the strategic map.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        var requestError = ResourceLoader.LoadThreadedRequest(GameplayScenePath, "PackedScene");
+        if (requestError != Error.Ok)
+        {
+            GD.PushWarning($"Could not start threaded strategic-map load: {requestError}.");
+            GetTree().ChangeSceneToFile(GameplayScenePath);
+            return;
+        }
+
+        while (IsInsideTree())
+        {
+            var status = ResourceLoader.LoadThreadedGetStatus(GameplayScenePath);
+            if (status == ResourceLoader.ThreadLoadStatus.Loaded)
+            {
+                var gameplayScene = ResourceLoader.LoadThreadedGet(GameplayScenePath) as PackedScene;
+                if (gameplayScene != null)
+                {
+                    GetTree().ChangeSceneToPacked(gameplayScene);
+                    return;
+                }
+
+                GD.PushWarning("Threaded strategic-map load completed without a PackedScene.");
+                break;
+            }
+
+            if (status == ResourceLoader.ThreadLoadStatus.Failed ||
+                status == ResourceLoader.ThreadLoadStatus.InvalidResource)
+            {
+                GD.PushWarning($"Threaded strategic-map load failed: {status}.");
+                break;
+            }
+
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
         GetTree().ChangeSceneToFile(GameplayScenePath);
+    }
+
+    private void BeginCampaignReturnTransition()
+    {
+        ShowCampaignReturnLoadingOverlay();
+    }
+
+    private void ShowCampaignReturnLoadingOverlay()
+    {
+        var sceneRoot = GetTree().Root;
+        if (sceneRoot.GetNodeOrNull<CanvasLayer>(CampaignReturnLoadingOverlayName) != null)
+        {
+            return;
+        }
+
+        var layer = new CanvasLayer
+        {
+            Name = CampaignReturnLoadingOverlayName,
+            Layer = 100
+        };
+        sceneRoot.AddChild(layer);
+
+        var shade = new ColorRect
+        {
+            Color = new Color(0.02f, 0.025f, 0.04f, 0.88f),
+            MouseFilter = Control.MouseFilterEnum.Stop
+        };
+        shade.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        layer.AddChild(shade);
+
+        var center = new CenterContainer
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        layer.AddChild(center);
+
+        var panel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(420.0f, 118.0f),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        var panelStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.055f, 0.06f, 0.09f, 0.97f),
+            BorderColor = new Color(0.68f, 0.51f, 0.22f, 0.95f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6
+        };
+        panel.AddThemeStyleboxOverride("panel", panelStyle);
+        center.AddChild(panel);
+
+        var message = new Label
+        {
+            Text = $"{BattleText("ui.battle.returning_to_map", "Returning to strategic map")}\n{BattleText("ui.battle.preparing_battle_report", "Preparing battle report")}",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        message.AddThemeFontSizeOverride("font_size", 22);
+        message.AddThemeColorOverride("font_color", new Color(0.94f, 0.86f, 0.68f, 1.0f));
+        panel.AddChild(message);
     }
 }

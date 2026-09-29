@@ -358,6 +358,7 @@ public partial class HudController
 
     private void CollectVisibleEventSuppressibleUiOverlays(List<Control> overlays)
     {
+        _mainHudUiController?.CollectVisibleDialogOverlays(overlays);
         _merchantUiController?.CollectVisibleDialogOverlays(overlays);
         _militaryUiController?.CollectVisibleDialogOverlays(overlays);
         _civilUiController?.CollectVisibleDialogOverlays(overlays);

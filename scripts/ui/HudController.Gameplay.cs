@@ -204,10 +204,29 @@ public partial class HudController : CanvasLayer
         }
 
         _isEndTurnTransitionUiActive = true;
+        HideNonTopBarUiForEndTurn();
         _mainHudUiController?.SetCityInfoTemporarilyHidden(true);
         _mainHudUiController?.SetLogTemporarilyHidden(true);
         _mainHudUiController?.SetTopBarTurnState(_turnManager?.GetPlayerFactionId() ?? -1, isAiTurn: false, buttonsEnabled: false);
         SetGameplayButtonsEnabled(false);
+    }
+
+    private void HideNonTopBarUiForEndTurn()
+    {
+        var overlays = new List<Control>();
+        CollectVisibleEventSuppressibleUiOverlays(overlays);
+        foreach (var overlay in overlays)
+        {
+            if (GodotObject.IsInstanceValid(overlay))
+            {
+                overlay.Hide();
+            }
+        }
+
+        // The monthly report is non-modal and not owned by an overlay
+        // controller, so it must be dismissed separately before the turn UI
+        // is locked. A later month can then create a fresh report normally.
+        CloseMonthlyEconomyReport();
     }
 
     private void CompleteEndTurnTransitionUi()

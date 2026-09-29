@@ -449,5 +449,8 @@
 	"ui.battle.campaign_field_victory": { "zhHant": "野戰勝利：選擇下一步", "en": "Field victory: choose the next operation" },
 	"ui.battle.campaign_assault_now": { "zhHant": "立即攻城", "en": "Assault now" },
 	"ui.battle.campaign_prepare_next_month": { "zhHant": "下月攻城", "en": "Prepare next month" },
-	"ui.battle.campaign_withdraw": { "zhHant": "撤退", "en": "Withdraw" }
+	"ui.battle.campaign_withdraw": { "zhHant": "撤退", "en": "Withdraw" },
+	"ui.battle.returning_to_map": { "zhHant": "正在返回戰略地圖…", "en": "Returning to strategic map…" },
+	"ui.battle.preparing_battle_report": { "zhHant": "正在整理戰報", "en": "Preparing battle report" },
+	"ui.battle.entering_battle": { "zhHant": "正在進入戰場…", "en": "Entering battle…" }
 }

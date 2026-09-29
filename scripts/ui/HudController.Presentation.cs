@@ -574,8 +574,9 @@ public partial class HudController : CanvasLayer
         }
 
         return string.Join("/", city.ResourceDeposits
-            .Where(deposit => deposit.RemainingReserve > 0)
-            .Select(deposit => $"{GetResourceDisplayName(deposit.Type)} {deposit.RemainingReserve}"));
+            .Select(deposit => deposit.RemainingReserve > 0
+                ? $"{GetResourceDisplayName(deposit.Type)} {deposit.RemainingReserve}"
+                : $"{GetResourceDisplayName(deposit.Type)} {_localization.T("ui.resource_depleted")}"));
     }
 
     private string GetResourceDisplayName(StrategicResourceType type) => type switch

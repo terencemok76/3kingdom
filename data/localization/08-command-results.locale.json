@@ -610,6 +610,10 @@
                                           "zhHant":  "「{0}」沒有可採集的資源點。",
                                           "en":  "\"{0}\" has no extractable resource deposit."
                                       },
+    "cmd.internal_affairs.no_surveyable_resource":  {
+                                          "zhHant":  "「{0}」沒有可勘探的枯竭金屬或石材礦脈。",
+                                          "en":  "\"{0}\" has no depleted metal or stone deposit available for survey."
+                                      },
     "cmd.internal_affairs.pause_not_available":  {
                                                      "zhHant":  "目前只有進行中的內政計畫可以暫停。",
                                                      "en":  "Only a running internal affairs plan can be paused."

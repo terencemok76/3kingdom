@@ -18,6 +18,12 @@ public class CityResourceDepositData
     // monthly up to MaxReserve by ResourceRules.
     public int RemainingReserve { get; set; }
     public int MaxReserve { get; set; }
+    // Every completed survey reduces the chance and size of any later vein.
+    // This keeps a rich geological region valuable without becoming infinite.
+    public int SurveyAttempts { get; set; }
+    // True only for a resource point discovered through an empty-city survey;
+    // authored and fallback scenario deposits do not consume discovery slots.
+    public bool IsDiscoveredBySurvey { get; set; }
 }
 
 public class CityData
@@ -29,6 +35,9 @@ public class CityData
     public string NameEn { get; set; } = string.Empty;
     public string NameZhHant { get; set; } = string.Empty;
     public int OwnerFactionId { get; set; }
+    // Used only before a city discovers its first strategic resource point.
+    // It prevents repeated empty-ground surveys from becoming an infinite roll.
+    public int UndiscoveredResourceSurveyAttempts { get; set; }
     public int Gold { get; set; }
     public int Food { get; set; }
     public int Horses { get; set; }

@@ -62,6 +62,12 @@ internal sealed class MainHudUiController
     public void ShowStrategicMapSelection(StrategicMapSelectionRequest request) =>
         _strategicMapDialogController.ShowSelection(request);
 
+    public void CollectVisibleDialogOverlays(System.Collections.Generic.List<Control> overlays)
+    {
+        AddVisibleOverlay(overlays, _testToolsDialogController);
+        AddVisibleOverlay(overlays, _strategicMapDialogController);
+    }
+
     public void RefreshSelectedCity()
     {
         _cityInfoPanelController.RefreshSelectedCity();
@@ -131,6 +137,14 @@ internal sealed class MainHudUiController
     public bool UpdateLogResize(Vector2 mousePosition) => _logPanelController.UpdateResize(mousePosition);
     public bool EndLogResize() => _logPanelController.EndResize();
     public bool IsLogResizing() => _logPanelController.IsResizing();
+
+    private static void AddVisibleOverlay(System.Collections.Generic.List<Control> overlays, FloatingOverlayController controller)
+    {
+        if (controller.OverlayControl?.Visible == true)
+        {
+            overlays.Add(controller.OverlayControl);
+        }
+    }
 
     private void OnWorldStateChanged(UiEventHub.CityStateChangedEvent _)
     {

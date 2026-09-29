@@ -398,7 +398,7 @@ public class AiController
                 cityId,
                 internalAffairsOfficerId,
                 internalAffairsJob.Value,
-                3,
+                internalAffairsJob.Value == InternalAffairsJobType.Survey ? 1 : 3,
                 constructionProjectType));
             availableOfficerIds.Remove(internalAffairsOfficerId);
             if (searchOfficerId == internalAffairsOfficerId)
@@ -791,7 +791,8 @@ public class AiController
             (InternalAffairsJobType.Defend, city.Defense),
             (InternalAffairsJobType.WaterControl, city.DisasterPrevention),
             (InternalAffairsJobType.Construction, city.Commercial + city.Defense),
-            (InternalAffairsJobType.Extraction, ResourceRules.GetExtractionPriority(city))
+            (InternalAffairsJobType.Extraction, ResourceRules.GetExtractionPriority(city)),
+            (InternalAffairsJobType.Survey, ResourceRules.GetSurveyPriority(world, city))
         };
 
         return candidates
