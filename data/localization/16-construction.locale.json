@@ -27,6 +27,18 @@
     "zhHant": "建成後可製造軍事裝備，並可徵募工兵。",
     "en": "Build one to manufacture military equipment and recruit engineers."
   },
+  "ui.siege_workshop_max_level": {
+    "zhHant": "已滿級",
+    "en": "Max level reached"
+  },
+  "ui.facility_max_level": {
+    "zhHant": "已滿級",
+    "en": "Max level reached"
+  },
+  "cmd.internal_affairs.facility_max_level": {
+    "zhHant": "「{0}」的{1}已達最高 Lv.{2}。",
+    "en": "{1} in {0} has reached maximum Lv.{2}."
+  },
   "ui.bow_workshop_unbuilt_tooltip": {
     "zhHant": "建成後可徵募弩兵。",
     "en": "Build one to recruit crossbow troops."

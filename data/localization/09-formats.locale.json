@@ -180,12 +180,20 @@
         "en": "Current: annual horse breeding +{0}%\nNext level: +{1}%"
     },
     "fmt.facility_storage_effects": {
-        "zhHant": "目前 {0} 容量：{1}\n下一級：{2}",
-        "en": "Current {0} capacity: {1}\nNext level: {2}"
+        "zhHant": "Lv.{0}：{1} 容量 {2}\n下一級 Lv.{3}：{1} 容量 {4}",
+        "en": "Lv.{0}: {1} capacity {2}\nNext Lv.{3}: {1} capacity {4}"
+    },
+    "fmt.facility_storage_current_effect": {
+        "zhHant": "Lv.{0}：{1} 容量 {2}",
+        "en": "Lv.{0}: {1} capacity {2}"
     },
     "fmt.resource_depot_effects": {
-        "zhHant": "目前木材／金屬／石材容量：各 {0}\n下一級：各 {1}",
-        "en": "Current Wood/Metal/Stone capacity: {0} each\nNext level: {1} each"
+        "zhHant": "Lv.{0}：木材／金屬／石材容量各 {1}\n下一級 Lv.{2}：各 {3}",
+        "en": "Lv.{0}: Wood/Metal/Stone capacity {1} each\nNext Lv.{2}: {3} each"
+    },
+    "fmt.resource_depot_current_effect": {
+        "zhHant": "Lv.{0}：木材／金屬／石材容量各 {1}",
+        "en": "Lv.{0}: Wood/Metal/Stone capacity {1} each"
     },
     "fmt.internal_affairs_siege_workshop_effects": {
         "zhHant": "{0}｜完成後：{1}",

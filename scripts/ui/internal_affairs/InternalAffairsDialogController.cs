@@ -378,6 +378,13 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         var projectName = GetConstructionProjectName(projectType);
         var city = _context.SelectedCity;
         var jobType = GetSelectedJobType();
+        if (city != null &&
+            jobType == InternalAffairsJobType.Construction &&
+            ConstructionRules.IsAtMaximumLevel(city, projectType))
+        {
+            return;
+        }
+
         var resourceCost = ConstructionRules.GetResourceCost(projectType);
         var actionText = projectName;
         if (_context.Localization != null && city != null)

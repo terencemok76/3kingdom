@@ -276,7 +276,7 @@ public class LocalizationService
 
     public string FormatSiegeWorkshopEffects(int workshopLevel)
     {
-        var level = Math.Max(0, workshopLevel);
+        var level = Math.Clamp(workshopLevel, 0, ConstructionRules.MaximumSiegeWorkshopLevel);
         return Format(
             "fmt.siege_workshop_effects",
             level,
@@ -287,10 +287,15 @@ public class LocalizationService
 
     public string FormatSiegeWorkshopTooltip(CityData city)
     {
-        var level = Math.Max(0, city.SiegeWorkshopLevel);
+        var level = Math.Clamp(city.SiegeWorkshopLevel, 0, ConstructionRules.MaximumSiegeWorkshopLevel);
         if (level <= 0)
         {
             return T("ui.siege_workshop_unbuilt_tooltip");
+        }
+
+        if (ConstructionRules.IsAtMaximumLevel(city, ConstructionProjectType.SiegeWorkshop))
+        {
+            return $"{FormatSiegeWorkshopEffects(level)}\n{T("ui.siege_workshop_max_level")}";
         }
 
         return $"{FormatSiegeWorkshopEffects(level)}\n{Format("fmt.siege_workshop_next_effects", FormatSiegeWorkshopEffects(level + 1))}";
@@ -316,11 +321,29 @@ public class LocalizationService
         {
             ConstructionProjectType.BowWorkshop => T("ui.bow_workshop_built_tooltip"),
             ConstructionProjectType.HorsePasture => Format("fmt.horse_pasture_effects", level * 5, (level + 1) * 5),
-            ConstructionProjectType.HorseStable => Format("fmt.facility_storage_effects", T("ui.horse"), MarketRules.GetCapacity(city, MarketProductType.Horse), MarketRules.GetCapacity(city, MarketProductType.Horse) + 200),
-            ConstructionProjectType.Granary => Format("fmt.facility_storage_effects", T("ui.food"), MarketRules.GetCapacity(city, MarketProductType.Food), MarketRules.GetCapacity(city, MarketProductType.Food) + 5000),
-            ConstructionProjectType.ResourceDepot => Format("fmt.resource_depot_effects", MarketRules.GetCapacity(city, MarketProductType.Wood), MarketRules.GetCapacity(city, MarketProductType.Wood) + 500),
+            ConstructionProjectType.HorseStable => FormatStorageFacilityTooltip(city, projectType, T("ui.horse"), MarketProductType.Horse, 200),
+            ConstructionProjectType.Granary => FormatStorageFacilityTooltip(city, projectType, T("ui.food"), MarketProductType.Food, 5000),
+            ConstructionProjectType.ResourceDepot => FormatResourceDepotTooltip(city),
             _ => string.Empty
         };
+    }
+
+    private string FormatStorageFacilityTooltip(CityData city, ConstructionProjectType projectType, string productName, MarketProductType product, int capacityPerLevel)
+    {
+        var level = ConstructionRules.GetLevel(city, projectType);
+        var currentCapacity = MarketRules.GetCapacity(city, product);
+        return ConstructionRules.IsAtMaximumLevel(city, projectType)
+            ? $"{Format("fmt.facility_storage_current_effect", level, productName, currentCapacity)}\n{T("ui.facility_max_level")}"
+            : Format("fmt.facility_storage_effects", level, productName, currentCapacity, level + 1, currentCapacity + capacityPerLevel);
+    }
+
+    private string FormatResourceDepotTooltip(CityData city)
+    {
+        var level = ConstructionRules.GetLevel(city, ConstructionProjectType.ResourceDepot);
+        var currentCapacity = MarketRules.GetCapacity(city, MarketProductType.Wood);
+        return ConstructionRules.IsAtMaximumLevel(city, ConstructionProjectType.ResourceDepot)
+            ? $"{Format("fmt.resource_depot_current_effect", level, currentCapacity)}\n{T("ui.facility_max_level")}"
+            : Format("fmt.resource_depot_effects", level, currentCapacity, level + 1, currentCapacity + 500);
     }
 
     public string FormatStorageAmount(CityData city, MarketProductType product) =>

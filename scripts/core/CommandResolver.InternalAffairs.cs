@@ -84,6 +84,15 @@ public partial class CommandResolver
         if (IsConstructionProjectJob(jobType))
         {
             constructionProjectType = ResolveConstructionProjectType(world, city, constructionProjectType);
+            if (ConstructionRules.IsAtMaximumLevel(city, constructionProjectType))
+            {
+                return LocalizedResult(
+                    false,
+                    "cmd.internal_affairs.facility_max_level",
+                    new object[] { GetCityName(city, GameLanguage.TraditionalChinese), GetConstructionProjectName(constructionProjectType, GameLanguage.TraditionalChinese), ConstructionRules.GetMaximumLevel(constructionProjectType) },
+                    new object[] { GetCityName(city, GameLanguage.English), GetConstructionProjectName(constructionProjectType, GameLanguage.English), ConstructionRules.GetMaximumLevel(constructionProjectType) });
+            }
+
             if (ConstructionRules.IsSiegeEngineProject(constructionProjectType) && city.SiegeWorkshopLevel <= 0)
             {
                 return LocalizedResult(
@@ -456,7 +465,9 @@ public partial class CommandResolver
             city.Gold -= monthlyGoldCost;
 
             var gains = ApplyInternalAffairsJob(world, city, officer, schedule.JobType, schedule.ConstructionProjectType, schedule.InvestedGold, schedule.TotalMonths);
-            schedule.RemainingMonths -= 1;
+            var completedAtMaximumLevel = IsConstructionProjectJob(schedule.JobType) &&
+                                          ConstructionRules.IsAtMaximumLevel(city, schedule.ConstructionProjectType);
+            schedule.RemainingMonths = completedAtMaximumLevel ? 0 : schedule.RemainingMonths - 1;
             if (schedule.IsAuthorizedPlan)
             {
                 city.PrefectPlanJobType = schedule.JobType;

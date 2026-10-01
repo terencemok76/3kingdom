@@ -29,6 +29,8 @@ internal static class ConstructionRules
     private const int SiegeWorkshopManufacturingBonusPercentPerLevel = 15;
     private const int SiegeWorkshopDefenseRepairBonusPerLevel = 1;
     private const int SiegeWorkshopDisasterPreventionBonusPerLevel = 1;
+    internal const int MaximumSiegeWorkshopLevel = 3;
+    internal const int MaximumStorageFacilityLevel = 5;
 
     internal static int GetRequiredPointsForNextLevel(int currentLevel)
     {
@@ -41,6 +43,20 @@ internal static class ConstructionRules
             ? GetRequiredPointsForNextLevel(currentValue)
             : SiegeEnginePointsPerUnit;
     }
+
+    internal static int GetMaximumLevel(ConstructionProjectType projectType) =>
+        projectType switch
+        {
+            ConstructionProjectType.SiegeWorkshop => MaximumSiegeWorkshopLevel,
+            ConstructionProjectType.Granary or ConstructionProjectType.HorseStable or ConstructionProjectType.ResourceDepot => MaximumStorageFacilityLevel,
+            _ => int.MaxValue
+        };
+
+    internal static bool IsAtMaximumLevel(CityData city, ConstructionProjectType projectType) =>
+        IsAtMaximumLevel(projectType, GetLevel(city, projectType));
+
+    private static bool IsAtMaximumLevel(ConstructionProjectType projectType, int level) =>
+        level >= GetMaximumLevel(projectType);
 
     internal static StrategicResourceCost GetResourceCost(ConstructionProjectType projectType)
     {
@@ -113,7 +129,7 @@ internal static class ConstructionRules
     }
 
     internal static int GetSiegeWorkshopManufacturingBonusPercent(int workshopLevel) =>
-        Math.Max(0, workshopLevel) * SiegeWorkshopManufacturingBonusPercentPerLevel;
+        Math.Min(MaximumSiegeWorkshopLevel, Math.Max(0, workshopLevel)) * SiegeWorkshopManufacturingBonusPercentPerLevel;
 
     internal static int ApplySiegeWorkshopManufacturingBonus(CityData city, int basePoints)
     {
@@ -126,13 +142,13 @@ internal static class ConstructionRules
         GetSiegeWorkshopDefenseRepairBonus(city.SiegeWorkshopLevel);
 
     internal static int GetSiegeWorkshopDefenseRepairBonus(int workshopLevel) =>
-        Math.Max(0, workshopLevel) * SiegeWorkshopDefenseRepairBonusPerLevel;
+        Math.Min(MaximumSiegeWorkshopLevel, Math.Max(0, workshopLevel)) * SiegeWorkshopDefenseRepairBonusPerLevel;
 
     internal static int GetSiegeWorkshopDisasterPreventionBonus(CityData city) =>
         GetSiegeWorkshopDisasterPreventionBonus(city.SiegeWorkshopLevel);
 
     internal static int GetSiegeWorkshopDisasterPreventionBonus(int workshopLevel) =>
-        Math.Max(0, workshopLevel) * SiegeWorkshopDisasterPreventionBonusPerLevel;
+        Math.Min(MaximumSiegeWorkshopLevel, Math.Max(0, workshopLevel)) * SiegeWorkshopDisasterPreventionBonusPerLevel;
 
     internal static bool IsFacilityProject(ConstructionProjectType projectType)
     {
@@ -159,7 +175,7 @@ internal static class ConstructionRules
     {
         var currentValue = GetProjectValue(city, projectType);
         var currentProgress = GetProjectProgress(city, projectType);
-        if (progressPoints <= 0 || projectType == ConstructionProjectType.None)
+        if (progressPoints <= 0 || projectType == ConstructionProjectType.None || IsAtMaximumLevel(projectType, currentValue))
         {
             return new ConstructionProgressResult(0, currentValue, currentProgress, GetRequiredPointsForNextValue(projectType, currentValue), StrategicResourceCost.None, false);
         }
@@ -170,7 +186,7 @@ internal static class ConstructionRules
         var materialsSpent = StrategicResourceCost.None;
         var waitingForMaterials = false;
 
-        while (progress >= GetRequiredPointsForNextValue(projectType, value))
+        while (!IsAtMaximumLevel(projectType, value) && progress >= GetRequiredPointsForNextValue(projectType, value))
         {
             var resourceCost = GetResourceCost(projectType);
             if (!TrySpendResourceCost(city, resourceCost))
@@ -184,6 +200,11 @@ internal static class ConstructionRules
             value += 1;
             valuesGained += 1;
             materialsSpent = materialsSpent.Add(resourceCost);
+        }
+
+        if (IsAtMaximumLevel(projectType, value))
+        {
+            progress = 0;
         }
 
         SetProjectValue(city, projectType, value);

@@ -1675,6 +1675,12 @@ internal static class Program
         var repairGain = ConstructionRules.ApplyDefenseRepair(repairCity, 1);
         var preventionCity = new CityData { SiegeWorkshopLevel = 2, Wood = 3, Stone = 6 };
         var preventionGain = ConstructionRules.ApplyDisasterPrevention(preventionCity, 1);
+        var maximumWorkshopCity = new CityData { SiegeWorkshopLevel = 2, Wood = 200, Metal = 200, Stone = 200 };
+        var levelUpToMaximum = ConstructionRules.ApplyProgress(maximumWorkshopCity, ConstructionProjectType.SiegeWorkshop, 1000);
+        var levelUpPastMaximum = ConstructionRules.ApplyProgress(maximumWorkshopCity, ConstructionProjectType.SiegeWorkshop, 1000);
+        var maximumGranaryCity = new CityData { GranaryLevel = 4, Wood = 100, Stone = 100 };
+        var levelUpGranaryToMaximum = ConstructionRules.ApplyProgress(maximumGranaryCity, ConstructionProjectType.Granary, 1000);
+        var levelUpGranaryPastMaximum = ConstructionRules.ApplyProgress(maximumGranaryCity, ConstructionProjectType.Granary, 1000);
 
         Assert(
             build.Success && manufacture.Success && results.Count >= 2 &&
@@ -1682,9 +1688,13 @@ internal static class Program
             city.BowWorkshopProgress > 0 && city.RamProgress > city.BowWorkshopProgress &&
             repairGain == 3 && repairCity.Stone == 0 &&
             preventionGain == 3 && preventionCity.Wood == 0 && preventionCity.Stone == 0 &&
-            ConstructionRules.GetSiegeWorkshopDisasterPreventionBonus(4) == 4,
-            "Workshop level accelerates manufacturing and improves scheduled defense and disaster-prevention engineering",
-            $"build={build.Success}, manufacture={manufacture.Success}, scheduled={constructionScheduled}/{manufacturingScheduled}, bow/ramProgress={city.BowWorkshopProgress}/{city.RamProgress}, repair={repairGain}, prevention={preventionGain}, results={results.Count}");
+            ConstructionRules.GetSiegeWorkshopDisasterPreventionBonus(4) == ConstructionRules.MaximumSiegeWorkshopLevel &&
+            levelUpToMaximum.ValuesGained == 1 && levelUpToMaximum.CurrentValue == ConstructionRules.MaximumSiegeWorkshopLevel && levelUpToMaximum.CurrentProgress == 0 &&
+            levelUpPastMaximum.ValuesGained == 0 && ConstructionRules.IsAtMaximumLevel(maximumWorkshopCity, ConstructionProjectType.SiegeWorkshop) &&
+            levelUpGranaryToMaximum.ValuesGained == 1 && levelUpGranaryToMaximum.CurrentValue == ConstructionRules.MaximumStorageFacilityLevel && levelUpGranaryToMaximum.CurrentProgress == 0 &&
+            levelUpGranaryPastMaximum.ValuesGained == 0 && ConstructionRules.IsAtMaximumLevel(maximumGranaryCity, ConstructionProjectType.Granary),
+            "Workshop and storage facilities stop at their configured maximum levels",
+            $"build={build.Success}, manufacture={manufacture.Success}, scheduled={constructionScheduled}/{manufacturingScheduled}, bow/ramProgress={city.BowWorkshopProgress}/{city.RamProgress}, repair={repairGain}, prevention={preventionGain}, workshop={maximumWorkshopCity.SiegeWorkshopLevel}/{ConstructionRules.MaximumSiegeWorkshopLevel}, granary={maximumGranaryCity.GranaryLevel}/{ConstructionRules.MaximumStorageFacilityLevel}, results={results.Count}");
     }
 
     private static void RunMarketMonthlySnapshotAndTradeTest()
