@@ -248,11 +248,11 @@ public partial class CommandResolver
         return LocalizedResult(
             true,
             "cmd.move.scheduled",
-            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, GameLanguage.TraditionalChinese) },
-            new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, GameLanguage.English) });
+            new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSiegeEngines, GameLanguage.TraditionalChinese) },
+            new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSiegeEngines, GameLanguage.English) });
     }
 
-    private string BuildMoveTransferSummary(int troops, int gold, int food, int horses, int wood, int metal, int stone, GameLanguage language)
+    private string BuildMoveTransferSummary(int troops, int gold, int food, int horses, int wood, int metal, int stone, SiegeEngineAllocationData siegeEngines, GameLanguage language)
     {
         var parts = new List<string>();
         void Add(string label, int amount)
@@ -267,6 +267,10 @@ public partial class CommandResolver
         Add(GetLocalizedText(language, "ui.wood"), wood);
         Add(GetLocalizedText(language, "ui.metal"), metal);
         Add(GetLocalizedText(language, "ui.stone"), stone);
+        Add(GetLocalizedText(language, "ui.supply_cart"), siegeEngines.SupplyCart);
+        Add(GetLocalizedText(language, "ui.ram"), siegeEngines.Ram);
+        Add(GetLocalizedText(language, "ui.catapult"), siegeEngines.Catapult);
+        Add(GetLocalizedText(language, "ui.ladder"), siegeEngines.Ladder);
         return parts.Count > 0
             ? string.Join(GetLocalizedText(language, "cmd.move.transfer_separator"), parts)
             : GetLocalizedText(language, "cmd.move.transfer_empty");

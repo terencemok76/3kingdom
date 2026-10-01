@@ -31,6 +31,8 @@ internal static class ConstructionRules
     private const int SiegeWorkshopDisasterPreventionBonusPerLevel = 1;
     internal const int MaximumSiegeWorkshopLevel = 3;
     internal const int MaximumStorageFacilityLevel = 5;
+    internal const int MaximumBowWorkshopLevel = 1;
+    internal const int MaximumHorsePastureLevel = 5;
 
     internal static int GetRequiredPointsForNextLevel(int currentLevel)
     {
@@ -47,7 +49,9 @@ internal static class ConstructionRules
     internal static int GetMaximumLevel(ConstructionProjectType projectType) =>
         projectType switch
         {
+            ConstructionProjectType.BowWorkshop => MaximumBowWorkshopLevel,
             ConstructionProjectType.SiegeWorkshop => MaximumSiegeWorkshopLevel,
+            ConstructionProjectType.HorsePasture => MaximumHorsePastureLevel,
             ConstructionProjectType.Granary or ConstructionProjectType.HorseStable or ConstructionProjectType.ResourceDepot => MaximumStorageFacilityLevel,
             _ => int.MaxValue
         };

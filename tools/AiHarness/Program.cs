@@ -50,10 +50,20 @@ internal static class Program
             return;
         }
 
+        if (args.Contains("--resource-attack-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunAiKnownResourceAttackPriorityTest();
+            RunAiSiegeEquipmentAttackTest();
+            PrintSummary();
+            return;
+        }
+
         // Keep test order stable so regression diffs stay easy to compare across runs.
         RunBattlePeriodSupplyTest();
         RunBattleEnvironmentForecastTest();
         RunAttackSchedulingTest();
+        RunAiKnownResourceAttackPriorityTest();
+        RunAiSiegeEquipmentAttackTest();
         RunAiCampaignReinforcementTest();
         RunAttackAutoBreakPactTest();
         RunDefensePromptEligibilityTest();
@@ -446,6 +456,67 @@ internal static class Program
         var pending = world.PendingCommands.Where(x => x.Type == CommandType.Attack && x.SourceCityId == 2 && x.TargetCityId == 1).ToList();
         Assert(pending.Count == 1, "AI attack scheduling", $"pending={pending.Count}");
         Assert(world.GetCity(2)?.Troops == 1500, "AI attack troop reservation", $"troops={world.GetCity(2)?.Troops}");
+    }
+
+    private static void RunAiKnownResourceAttackPriorityTest()
+    {
+        var world = TestHelpers.World();
+        var poorTarget = TestHelpers.City(1, "PoorTarget", 1, 1000, 1000, 1200, Array.Empty<int>(), new[] { 2 });
+        var aiSource = TestHelpers.City(2, "AiSource", 2, 1000, 1000, 1400, new[] { 201 }, new[] { 1, 3 });
+        var richTarget = TestHelpers.City(3, "MetalTarget", 1, 1000, 1000, 1200, Array.Empty<int>(), new[] { 2 });
+        richTarget.ResourceDeposits.Add(new CityResourceDepositData
+        {
+            Type = StrategicResourceType.Metal,
+            MonthlyYield = 10,
+            RemainingReserve = 600
+        });
+        world.Cities.AddRange(new[] { poorTarget, aiSource, richTarget });
+        world.Officers.Add(TestHelpers.Officer(201, "A1", aiSource.Id));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+        world.UpsertCityIntel(2, poorTarget.Id, 4);
+        world.UpsertCityIntel(2, richTarget.Id, 4);
+
+        var services = CreateServices(world);
+        _ = services.Ai.RunSingleCityDecision(2, aiSource.Id);
+        var resourceAttack = world.PendingCommands.SingleOrDefault(command => command.Type == CommandType.Attack);
+
+        Assert(
+            resourceAttack?.TargetCityId == richTarget.Id && services.Ai.LastAttackDecisionDetail.Contains("資源價值"),
+            "AI prioritizes a known rich resource city without ignoring intelligence",
+            $"target={resourceAttack?.TargetCityId}, detail={services.Ai.LastAttackDecisionDetail}");
+    }
+
+    private static void RunAiSiegeEquipmentAttackTest()
+    {
+        var world = TestHelpers.World();
+        var target = TestHelpers.City(1, "FortifiedTarget", 1, 1000, 1000, 1300, new[] { 101 }, new[] { 2 });
+        target.Defense = 85;
+        var source = TestHelpers.City(2, "AiSiegeSource", 2, 1000, 1000, 1600, new[] { 201 }, new[] { 1 });
+        source.InfantryTroops = 1500;
+        source.SiegeTroops = 100;
+        source.RamCount = 1;
+        source.SupplyCartCount = 1;
+        source.SyncLegacyTroops();
+        world.Cities.AddRange(new[] { target, source });
+        var defender = TestHelpers.Officer(101, "D1", target.Id, combat: 90);
+        defender.Intelligence = 20;
+        world.Officers.Add(defender);
+        world.Officers.Add(TestHelpers.Officer(201, "A1", source.Id));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+        world.UpsertCityIntel(2, target.Id, 4);
+
+        var services = CreateServices(world);
+        _ = services.Ai.RunSingleCityDecision(2, source.Id);
+        var attack = world.PendingCommands.SingleOrDefault(command => command.Type == CommandType.Attack);
+        var ramDeployment = attack?.AttackOfficerDeployments.SingleOrDefault(deployment => deployment.SiegeEngineType == SiegeEngineType.Ram);
+
+        Assert(
+            attack?.TargetCityId == target.Id && ramDeployment?.TroopType == TroopType.Siege && ramDeployment.TroopCount > 0 &&
+            attack.BattleSupport.SupplyCart && attack.BattleSupport.EngineerTeamCount == 50 && source.SupplyCartCount == 0 && services.Ai.LastAttackDecisionDetail.Contains("攻城器"),
+            "AI carries one ready ram, one supply cart, and a river-field engineer team",
+            $"target={attack?.TargetCityId}, ram={ramDeployment?.TroopCount}, cart={attack?.BattleSupport.SupplyCart}, engineers={attack?.BattleSupport.EngineerTeamCount}, detail={services.Ai.LastAttackDecisionDetail}");
     }
 
     private static void RunMoveSchedulingTest()
@@ -1609,6 +1680,67 @@ internal static class Program
         var result = CreateServices(world).Turn.ApplyMonthlyEconomy();
         var playerReport = result.PlayerCityEconomyReports.SingleOrDefault(report => report.CityId == playerCity.Id);
         var aiDepotChosen = AiConstructionRules.ChooseConstructionProjectType(world, aiCity) == ConstructionProjectType.ResourceDepot;
+        var granaryCity = new CityData { GranaryLevel = 4, Food = 19000, Wood = 100, Stone = 100 };
+        var horseStableCity = new CityData { HorseStableLevel = 4, Horses = 750, Wood = 100, Stone = 100 };
+        var pastureCity = new CityData { BowWorkshopLevel = 1, SiegeWorkshopLevel = 3, HorsePastureLevel = 4, Wood = 100, Metal = 100, Stone = 100 };
+        var workshopCity = new CityData
+        {
+            Id = 4,
+            OwnerFactionId = 1,
+            BowWorkshopLevel = 1,
+            SiegeWorkshopLevel = 2,
+            HorsePastureLevel = 5,
+            GranaryLevel = 5,
+            HorseStableLevel = 5,
+            ResourceDepotLevel = 5,
+            Wood = 100,
+            Metal = 100,
+            Stone = 100,
+            ConnectedCityIds = new List<int> { 5 }
+        };
+        var enemyCity = new CityData { Id = 5, OwnerFactionId = 2 };
+        world.Cities.Add(workshopCity);
+        world.Cities.Add(enemyCity);
+        var aiGranaryChosen = AiConstructionRules.ChooseConstructionProjectType(world, granaryCity) == ConstructionProjectType.Granary;
+        var aiHorseStableChosen = AiConstructionRules.ChooseConstructionProjectType(world, horseStableCity) == ConstructionProjectType.HorseStable;
+        var aiPastureChosen = AiConstructionRules.ChooseConstructionProjectType(world, pastureCity) == ConstructionProjectType.HorsePasture;
+        var aiWorkshopChosen = AiConstructionRules.ChooseConstructionProjectType(world, workshopCity) == ConstructionProjectType.SiegeWorkshop;
+        var strategist = new OfficerData { Id = 901, CityId = playerCity.Id, Intelligence = 90 };
+        world.Officers.Add(strategist);
+        var playerFaction = world.GetFaction(1)!;
+        playerFaction.OfficerIds.Add(strategist.Id);
+        playerFaction.ChiefStrategistOfficerId = strategist.Id;
+        var plannedSupplyCity = new CityData { Food = 2500, Wood = 100, Stone = 100 };
+        var strategistPlan = AiConstructionRules.ChooseCityDevelopmentPlan(world, plannedSupplyCity, playerFaction);
+        var strategistProject = AiConstructionRules.ChooseConstructionProjectType(world, plannedSupplyCity, strategistPlan);
+        var basicPlan = AiConstructionRules.ChooseCityDevelopmentPlan(world, plannedSupplyCity, world.GetFaction(2));
+
+        var productionCity = TestHelpers.City(6, "WorkshopCity", 1, 1000, 1000, 3000, new[] { 902 }, new[] { 7 });
+        productionCity.SiegeWorkshopLevel = 1;
+        productionCity.Wood = 100;
+        productionCity.Metal = 100;
+        productionCity.Stone = 100;
+        var frontlineCity = TestHelpers.City(7, "FrontlineCity", 1, 1000, 1000, 500, Array.Empty<int>(), new[] { 6, 8 });
+        var enemyFrontierCity = TestHelpers.City(8, "EnemyFrontier", 2, 1000, 1000, 500, Array.Empty<int>(), new[] { 7 });
+        enemyFrontierCity.Defense = 85;
+        var workshopGovernor = new OfficerData { Id = 902, CityId = productionCity.Id, Intelligence = 60, Politics = 90, Appointments = new List<string> { OfficerAppointmentRules.Governor } };
+        var chancellor = new OfficerData { Id = 903, CityId = playerCity.Id, Intelligence = 70, Politics = 90 };
+        world.Cities.AddRange(new[] { productionCity, frontlineCity, enemyFrontierCity });
+        world.Officers.AddRange(new[] { workshopGovernor, chancellor });
+        playerFaction.OfficerIds.AddRange(new[] { workshopGovernor.Id, chancellor.Id });
+        playerFaction.ChancellorOfficerId = chancellor.Id;
+        var equipmentPlan = AiConstructionRules.ChooseSiegeEquipmentPlan(world, productionCity, playerFaction);
+        var logisticsServices = CreateServices(world);
+        var manufacturingResult = logisticsServices.Ai.RunSingleCityDecision(playerFaction.Id, productionCity.Id);
+        var manufacturingScheduled = world.InternalAffairsSchedules.Any(schedule =>
+            schedule.CityId == productionCity.Id &&
+            schedule.JobType == InternalAffairsJobType.Manufacturing &&
+            schedule.ConstructionProjectType == ConstructionProjectType.Ram);
+        productionCity.RamCount = 1;
+        var deliveryResult = logisticsServices.Ai.RunSingleCityDecision(playerFaction.Id, productionCity.Id);
+        var deliveryScheduled = world.PendingCommands.Any(command =>
+            command.Type == CommandType.Move && command.SourceCityId == productionCity.Id && command.TargetCityId == frontlineCity.Id &&
+            command.SiegeEngineAllocation.Ram == 1 && command.WoodToSend == 0 && command.MetalToSend == 0 && command.StoneToSend == 0);
 
         var horseWorld = TestHelpers.World(month: 1);
         var horseCity = TestHelpers.City(3, "HorseCity", 1, 1000, 1000, 0, Array.Empty<int>(), Array.Empty<int>());
@@ -1626,9 +1758,13 @@ internal static class Program
             playerReport != null &&
             playerReport.FoodCapacity == 10000 && playerReport.HorseCapacity == 400 && playerReport.MetalCapacity == 500 && playerReport.WoodCapacity == 500 && playerReport.StoneCapacity == 500 &&
             playerReport.StorageLoss.Food == 2000 && playerReport.StorageLoss.Horse == 200 && playerReport.StorageLoss.Metal == 700 && playerReport.StorageLoss.Wood == 700 && playerReport.StorageLoss.Stone == 700 &&
-            aiDepotChosen && horseCity.Horses == 400 && constrainedBirths == 1,
-            "Fixed storage capacity, shared overflow loss, and stable-limited horse births",
-            $"player food/horse={playerCity.Food}/{playerCity.Horses}, raw={playerCity.Metal}/{playerCity.Wood}/{playerCity.Stone}, ai={aiCity.Metal}/{aiCity.Wood}/{aiCity.Stone}, births={constrainedBirths}, loss={playerReport?.StorageLoss}");
+            aiDepotChosen && aiGranaryChosen && aiHorseStableChosen && aiPastureChosen && aiWorkshopChosen &&
+            strategistPlan == AiCityDevelopmentPlan.Supply && strategistProject == ConstructionProjectType.Granary && basicPlan == AiCityDevelopmentPlan.None &&
+            equipmentPlan.IsValid && equipmentPlan.TargetCityId == frontlineCity.Id && equipmentPlan.ProjectType == ConstructionProjectType.Ram &&
+            manufacturingResult.Success && manufacturingScheduled && deliveryResult.Success && deliveryScheduled &&
+            horseCity.Horses == 400 && constrainedBirths == 1,
+            "Fixed storage capacity, shared overflow loss, stable-limited horse births, AI facility upgrades, strategist plans, and siege-equipment logistics",
+            $"player food/horse={playerCity.Food}/{playerCity.Horses}, raw={playerCity.Metal}/{playerCity.Wood}/{playerCity.Stone}, ai={aiCity.Metal}/{aiCity.Wood}/{aiCity.Stone}, choices=depot:{aiDepotChosen}/granary:{aiGranaryChosen}/stable:{aiHorseStableChosen}/pasture:{aiPastureChosen}/workshop:{aiWorkshopChosen}, plans=strategist:{strategistPlan}/{strategistProject}, equipment:{equipmentPlan.ProjectType}->{equipmentPlan.TargetCityId}/manufacturing:{manufacturingScheduled}/delivery:{deliveryScheduled}, basic:{basicPlan}, births={constrainedBirths}, loss={playerReport?.StorageLoss}");
     }
 
     private static void RunResourceGatedConstructionTest()
@@ -1681,6 +1817,12 @@ internal static class Program
         var maximumGranaryCity = new CityData { GranaryLevel = 4, Wood = 100, Stone = 100 };
         var levelUpGranaryToMaximum = ConstructionRules.ApplyProgress(maximumGranaryCity, ConstructionProjectType.Granary, 1000);
         var levelUpGranaryPastMaximum = ConstructionRules.ApplyProgress(maximumGranaryCity, ConstructionProjectType.Granary, 1000);
+        var maximumBowWorkshopCity = new CityData { Wood = 100, Metal = 100 };
+        var levelUpBowWorkshopToMaximum = ConstructionRules.ApplyProgress(maximumBowWorkshopCity, ConstructionProjectType.BowWorkshop, 1000);
+        var levelUpBowWorkshopPastMaximum = ConstructionRules.ApplyProgress(maximumBowWorkshopCity, ConstructionProjectType.BowWorkshop, 1000);
+        var maximumHorsePastureCity = new CityData { HorsePastureLevel = 4, Wood = 100, Stone = 100 };
+        var levelUpHorsePastureToMaximum = ConstructionRules.ApplyProgress(maximumHorsePastureCity, ConstructionProjectType.HorsePasture, 1000);
+        var levelUpHorsePasturePastMaximum = ConstructionRules.ApplyProgress(maximumHorsePastureCity, ConstructionProjectType.HorsePasture, 1000);
 
         Assert(
             build.Success && manufacture.Success && results.Count >= 2 &&
@@ -1692,9 +1834,12 @@ internal static class Program
             levelUpToMaximum.ValuesGained == 1 && levelUpToMaximum.CurrentValue == ConstructionRules.MaximumSiegeWorkshopLevel && levelUpToMaximum.CurrentProgress == 0 &&
             levelUpPastMaximum.ValuesGained == 0 && ConstructionRules.IsAtMaximumLevel(maximumWorkshopCity, ConstructionProjectType.SiegeWorkshop) &&
             levelUpGranaryToMaximum.ValuesGained == 1 && levelUpGranaryToMaximum.CurrentValue == ConstructionRules.MaximumStorageFacilityLevel && levelUpGranaryToMaximum.CurrentProgress == 0 &&
-            levelUpGranaryPastMaximum.ValuesGained == 0 && ConstructionRules.IsAtMaximumLevel(maximumGranaryCity, ConstructionProjectType.Granary),
-            "Workshop and storage facilities stop at their configured maximum levels",
-            $"build={build.Success}, manufacture={manufacture.Success}, scheduled={constructionScheduled}/{manufacturingScheduled}, bow/ramProgress={city.BowWorkshopProgress}/{city.RamProgress}, repair={repairGain}, prevention={preventionGain}, workshop={maximumWorkshopCity.SiegeWorkshopLevel}/{ConstructionRules.MaximumSiegeWorkshopLevel}, granary={maximumGranaryCity.GranaryLevel}/{ConstructionRules.MaximumStorageFacilityLevel}, results={results.Count}");
+            levelUpGranaryPastMaximum.ValuesGained == 0 && ConstructionRules.IsAtMaximumLevel(maximumGranaryCity, ConstructionProjectType.Granary) &&
+            levelUpBowWorkshopToMaximum.ValuesGained == 1 && levelUpBowWorkshopToMaximum.CurrentValue == ConstructionRules.MaximumBowWorkshopLevel && levelUpBowWorkshopPastMaximum.ValuesGained == 0 &&
+            levelUpHorsePastureToMaximum.ValuesGained == 1 && levelUpHorsePastureToMaximum.CurrentValue == ConstructionRules.MaximumHorsePastureLevel && levelUpHorsePasturePastMaximum.ValuesGained == 0 &&
+            ConstructionRules.IsAtMaximumLevel(maximumBowWorkshopCity, ConstructionProjectType.BowWorkshop) && ConstructionRules.IsAtMaximumLevel(maximumHorsePastureCity, ConstructionProjectType.HorsePasture),
+            "Facilities stop at their configured maximum levels",
+            $"build={build.Success}, manufacture={manufacture.Success}, scheduled={constructionScheduled}/{manufacturingScheduled}, bow/ramProgress={city.BowWorkshopProgress}/{city.RamProgress}, repair={repairGain}, prevention={preventionGain}, workshop={maximumWorkshopCity.SiegeWorkshopLevel}/{ConstructionRules.MaximumSiegeWorkshopLevel}, granary={maximumGranaryCity.GranaryLevel}/{ConstructionRules.MaximumStorageFacilityLevel}, bow={maximumBowWorkshopCity.BowWorkshopLevel}/{ConstructionRules.MaximumBowWorkshopLevel}, pasture={maximumHorsePastureCity.HorsePastureLevel}/{ConstructionRules.MaximumHorsePastureLevel}, results={results.Count}");
     }
 
     private static void RunMarketMonthlySnapshotAndTradeTest()

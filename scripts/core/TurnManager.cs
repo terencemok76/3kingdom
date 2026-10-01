@@ -1063,7 +1063,7 @@ public class TurnManager
 
     private static double GetHorseBirthRate(CityData city)
     {
-        var facilityBonus = city.HorsePastureLevel * 0.05;
+        var facilityBonus = Math.Min(city.HorsePastureLevel, ConstructionRules.MaximumHorsePastureLevel) * 0.05;
         return BaseHorseBirthRate + facilityBonus;
     }
 

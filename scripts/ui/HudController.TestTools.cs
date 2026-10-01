@@ -82,6 +82,11 @@ public partial class HudController
             return;
         }
 
+        if (ConstructionRules.IsAtMaximumLevel(_selectedCity, projectType))
+        {
+            return;
+        }
+
         var nextLevel = ConstructionRules.GetLevel(_selectedCity, projectType) + 1;
         if (projectType == ConstructionProjectType.BowWorkshop)
         {

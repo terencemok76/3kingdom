@@ -176,8 +176,16 @@
         "en": "Next level: {0}"
     },
     "fmt.horse_pasture_effects": {
-        "zhHant": "目前：馬匹年繁殖率 +{0}%\n下一級：+{1}%",
-        "en": "Current: annual horse breeding +{0}%\nNext level: +{1}%"
+        "zhHant": "Lv.{0}：馬匹年繁殖率 +{1}%\n下一級 Lv.{2}：+{3}%",
+        "en": "Lv.{0}: annual horse breeding +{1}%\nNext Lv.{2}: +{3}%"
+    },
+    "fmt.horse_pasture_current_effect": {
+        "zhHant": "Lv.{0}：馬匹年繁殖率 +{1}%",
+        "en": "Lv.{0}: annual horse breeding +{1}%"
+    },
+    "fmt.bow_workshop_effects": {
+        "zhHant": "Lv.{0}：可徵募弩兵",
+        "en": "Lv.{0}: Can recruit crossbow troops"
     },
     "fmt.facility_storage_effects": {
         "zhHant": "Lv.{0}：{1} 容量 {2}\n下一級 Lv.{3}：{1} 容量 {4}",
@@ -342,6 +350,14 @@
     "fmt.ai_attack_reason_visible":  {
                                         "zhHant":  "已取得情報；目標守軍 {0:N0}，我方 {1:N0}，兵力差 {2:N0}。君主野心 {3:N0}，進攻門檻 +{4:N0}。",
                                         "en":  "Target intelligence is available: defender troops {0:N0}, our troops {1:N0}, difference {2:N0}. Ruler ambition {3:N0}; attack threshold +{4:N0}."
+                                    },
+    "fmt.ai_attack_reason_visible_resource":  {
+                                        "zhHant":  "已取得情報；目標守軍 {0:N0}，我方 {1:N0}，兵力差 {2:N0}。君主野心 {3:N0}，資源價值令進攻門檻降至 +{4:N0}（-{5:N0}）。",
+                                        "en":  "Target intelligence is available: defender troops {0:N0}, our troops {1:N0}, difference {2:N0}. Ruler ambition {3:N0}; known resources reduce the attack threshold to +{4:N0} (-{5:N0})."
+                                    },
+    "fmt.ai_attack_reason_visible_resource_equipment":  {
+                                        "zhHant":  "已取得情報；目標守軍 {0:N0}，我方 {1:N0}，兵力差 {2:N0}。君主野心 {3:N0}，資源 -{5:N0}、已備攻城器 -{6:N0}，進攻門檻降至 +{4:N0}。",
+                                        "en":  "Target intelligence is available: defender troops {0:N0}, our troops {1:N0}, difference {2:N0}. Ruler ambition {3:N0}; resources -{5:N0}, ready siege engines -{6:N0}, lower the attack threshold to +{4:N0}."
                                     },
     "fmt.ai_attack_reason_blind":  {
                                       "zhHant":  "尚未取得目標情報；君主野心 {1:N0}，本城兵力 {0:N0} 已達盲攻門檻 {2:N0}。",

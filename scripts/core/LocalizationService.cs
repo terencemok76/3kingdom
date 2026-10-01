@@ -319,8 +319,10 @@ public class LocalizationService
 
         return projectType switch
         {
-            ConstructionProjectType.BowWorkshop => T("ui.bow_workshop_built_tooltip"),
-            ConstructionProjectType.HorsePasture => Format("fmt.horse_pasture_effects", level * 5, (level + 1) * 5),
+            ConstructionProjectType.BowWorkshop => $"{Format("fmt.bow_workshop_effects", level)}\n{T("ui.facility_max_level")}",
+            ConstructionProjectType.HorsePasture => ConstructionRules.IsAtMaximumLevel(city, projectType)
+                ? $"{Format("fmt.horse_pasture_current_effect", level, level * 5)}\n{T("ui.facility_max_level")}"
+                : Format("fmt.horse_pasture_effects", level, level * 5, level + 1, (level + 1) * 5),
             ConstructionProjectType.HorseStable => FormatStorageFacilityTooltip(city, projectType, T("ui.horse"), MarketProductType.Horse, 200),
             ConstructionProjectType.Granary => FormatStorageFacilityTooltip(city, projectType, T("ui.food"), MarketProductType.Food, 5000),
             ConstructionProjectType.ResourceDepot => FormatResourceDepotTooltip(city),

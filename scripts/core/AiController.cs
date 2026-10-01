@@ -11,6 +11,9 @@ public class AiController
     private const int BaseAttackTroopAdvantageThreshold = 300;
     private const int MinimumAttackTroopAdvantageThreshold = 50;
     private const int MaximumAttackTroopAdvantageThreshold = 450;
+    private const int MaximumKnownResourceAttackBonus = 140;
+    private const int MaximumSiegeEquipmentAttackBonus = 70;
+    private const int AiFieldEngineerTeamCount = 50;
     private const int MinimumBlindAttackTroopThreshold = 2600;
     private const int MaximumBlindAttackTroopThreshold = 3400;
     private const int BlindSpyTroopThreshold = 1800;
@@ -245,7 +248,17 @@ public class AiController
 
         CommandResult? militaryResult = null;
         militaryResult = TryDispatchCampaignReinforcement(world, city, factionId, availableOfficerIds);
-        foreach (var targetId in city.ConnectedCityIds)
+        var enemyTargetIds = city.ConnectedCityIds
+            .Select(world.GetCity)
+            .Where(target => target != null && target.OwnerFactionId != factionId)
+            .Cast<CityData>()
+            .OrderByDescending(target => world.CanFactionViewCity(factionId, target.Id)
+                ? GetKnownResourceAttackBonus(world, factionId, target)
+                : 0)
+            .ThenByDescending(target => city.Troops - target.Troops)
+            .ThenBy(target => target.Id)
+            .Select(target => target.Id);
+        foreach (var targetId in enemyTargetIds)
         {
             if (militaryResult != null)
             {
@@ -268,18 +281,24 @@ public class AiController
             }
 
             var canInspectTarget = world.CanFactionViewCity(factionId, target.Id);
-            var attackTroopAdvantageThreshold = GetAttackTroopAdvantageThreshold(world, factionId);
+            var resourceAttackBonus = canInspectTarget ? GetKnownResourceAttackBonus(world, factionId, target) : 0;
+            var siegeEngines = ChooseAiSiegeEngines(city, target, canInspectTarget, availableOfficerIds.Count);
+            var siegeEquipmentAttackBonus = GetSiegeEquipmentAttackBonus(siegeEngines);
+            var attackTroopAdvantageThreshold = System.Math.Max(
+                MinimumAttackTroopAdvantageThreshold,
+                GetAttackTroopAdvantageThreshold(world, factionId) - resourceAttackBonus - siegeEquipmentAttackBonus);
             var blindAttackTroopThreshold = GetBlindAttackTroopThreshold(world, factionId);
             var shouldAttack = canInspectTarget
                 ? city.Troops > target.Troops + attackTroopAdvantageThreshold
                 : city.Troops >= blindAttackTroopThreshold;
             if (shouldAttack)
             {
-                var deployments = CreateAiAttackDeployments(world, city, availableOfficerIds, city.Troops / 2);
+                var deployments = CreateAiAttackDeployments(world, city, availableOfficerIds, city.Troops / 2, siegeEngines);
                 if (deployments.Count == 0)
                 {
                     continue;
                 }
+                var battleSupport = ChooseAiBattleSupport(world, city, target, canInspectTarget, deployments);
                 SetAttackDecisionDebug(
                     world,
                     city,
@@ -288,7 +307,9 @@ public class AiController
                     canInspectTarget,
                     deployments.Sum(item => item.TroopCount),
                     attackTroopAdvantageThreshold,
-                    blindAttackTroopThreshold);
+                    blindAttackTroopThreshold,
+                    resourceAttackBonus,
+                    siegeEquipmentAttackBonus);
                 militaryResult = _commandResolver.Execute(new CommandRequest
                 {
                     Type = CommandType.Attack,
@@ -297,13 +318,33 @@ public class AiController
                     TargetCityId = targetId,
                     TroopsToSend = deployments.Sum(item => item.TroopCount),
                     AttackOfficerDeployments = deployments,
+                    BattleSupport = battleSupport,
                     OfficerIds = deployments.Select(item => item.OfficerId).ToList()
                 });
                 break;
             }
         }
 
+        var siegeEquipmentPlan = default(AiSiegeEquipmentPlan);
         if (militaryResult == null)
+        {
+            siegeEquipmentPlan = AiConstructionRules.ChooseSiegeEquipmentPlan(world, city, world.GetFaction(factionId));
+            if (siegeEquipmentPlan.IsValid &&
+                AiConstructionRules.HasReadySiegeEquipment(city, siegeEquipmentPlan.ProjectType) &&
+                !world.PendingCommands.Any(command => command.Type == CommandType.Move && command.SourceCityId == city.Id))
+            {
+                militaryResult = _commandResolver.Execute(new CommandRequest
+                {
+                    Type = CommandType.Move,
+                    ActorFactionId = factionId,
+                    SourceCityId = cityId,
+                    TargetCityId = siegeEquipmentPlan.TargetCityId,
+                    SiegeEngineAllocation = CreateSiegeEquipmentAllocation(siegeEquipmentPlan.ProjectType)
+                });
+            }
+        }
+
+        if (militaryResult == null && !siegeEquipmentPlan.IsValid)
         {
             foreach (var targetId in city.ConnectedCityIds)
             {
@@ -332,18 +373,18 @@ public class AiController
         }
 
         CommandResult? diplomacyResult = null;
-        if (militaryResult == null)
+        if (militaryResult == null && !siegeEquipmentPlan.IsValid)
         {
             diplomacyResult = TryIssueDiplomacyCommand(world, city, factionId, availableOfficerIds, defensiveOnly: true);
         }
 
         CommandResult? spyResult = null;
-        if (militaryResult == null)
+        if (militaryResult == null && !siegeEquipmentPlan.IsValid)
         {
             spyResult = TryIssueSpyCommand(world, city, factionId, availableOfficerIds);
         }
 
-        if (militaryResult == null && spyResult == null)
+        if (militaryResult == null && spyResult == null && !siegeEquipmentPlan.IsValid)
         {
             diplomacyResult ??= TryIssueDiplomacyCommand(world, city, factionId, availableOfficerIds, defensiveOnly: false);
         }
@@ -387,12 +428,16 @@ public class AiController
             }
         }
 
-        var internalAffairsJob = ChooseInternalAffairsJob(world, city);
+        var cityDevelopmentPlan = AiConstructionRules.ChooseCityDevelopmentPlan(world, city, world.GetFaction(factionId));
+        var internalAffairsJob = ChooseInternalAffairsJob(world, city, cityDevelopmentPlan, siegeEquipmentPlan);
         if (internalAffairsJob.HasValue && internalAffairsOfficerId > 0)
         {
-            var constructionProjectType = internalAffairsJob.Value == InternalAffairsJobType.Construction
-                ? AiConstructionRules.ChooseConstructionProjectType(world, city)
-                : ConstructionProjectType.None;
+            var constructionProjectType = internalAffairsJob.Value switch
+            {
+                InternalAffairsJobType.Manufacturing when siegeEquipmentPlan.IsValid => siegeEquipmentPlan.ProjectType,
+                InternalAffairsJobType.Construction => AiConstructionRules.ChooseConstructionProjectType(world, city, cityDevelopmentPlan),
+                _ => ConstructionProjectType.None
+            };
             coreResults.Add(_commandResolver.ScheduleInternalAffairs(
                 factionId,
                 cityId,
@@ -713,7 +758,8 @@ public class AiController
         WorldState world,
         CityData city,
         IReadOnlyList<int> officerIds,
-        int troopBudget)
+        int troopBudget,
+        IReadOnlyList<SiegeEngineType>? siegeEngines = null)
     {
         var usableOfficers = officerIds
             .Where(id => city.OfficerIds.Contains(id) && !BattleCampaignService.IsOfficerCommitted(world, id))
@@ -727,8 +773,39 @@ public class AiController
         };
         var remaining = Math.Min(Math.Max(0, troopBudget), pools.Sum(pool => pool.Count));
         var result = new List<AttackOfficerDeploymentData>();
+        foreach (var siegeEngine in siegeEngines ?? Array.Empty<SiegeEngineType>())
+        {
+            if (usableOfficers.Count <= result.Count || remaining <= 0)
+            {
+                break;
+            }
+
+            var siegePoolIndex = pools.FindIndex(pool => pool.Type == TroopType.Siege && pool.Count > 0);
+            if (siegePoolIndex < 0)
+            {
+                break;
+            }
+
+            var remainingSlots = Math.Max(1, usableOfficers.Count - result.Count);
+            var count = Math.Min(
+                pools[siegePoolIndex].Count,
+                Math.Min(GetAiSiegeEngineCrewCount(siegeEngine), Math.Max(1, remaining / remainingSlots)));
+            result.Add(new AttackOfficerDeploymentData
+            {
+                OfficerId = usableOfficers[result.Count],
+                TroopType = TroopType.Siege,
+                TroopCount = count,
+                SiegeEngineType = siegeEngine
+            });
+            pools[siegePoolIndex] = (TroopType.Siege, pools[siegePoolIndex].Count - count);
+            remaining -= count;
+        }
         foreach (var officerId in usableOfficers)
         {
+            if (result.Any(deployment => deployment.OfficerId == officerId))
+            {
+                continue;
+            }
             var poolIndex = pools.FindIndex(pool => pool.Count > 0);
             if (poolIndex < 0 || remaining <= 0)
             {
@@ -777,7 +854,11 @@ public class AiController
         return result;
     }
 
-    private static InternalAffairsJobType? ChooseInternalAffairsJob(WorldState world, CityData city)
+    private static InternalAffairsJobType? ChooseInternalAffairsJob(
+        WorldState world,
+        CityData city,
+        AiCityDevelopmentPlan developmentPlan = AiCityDevelopmentPlan.None,
+        AiSiegeEquipmentPlan siegeEquipmentPlan = default)
     {
         var activeJobs = new System.Collections.Generic.HashSet<InternalAffairsJobType>(
             world.InternalAffairsSchedules
@@ -790,7 +871,8 @@ public class AiController
             (InternalAffairsJobType.Commercial, city.Commercial),
             (InternalAffairsJobType.Defend, city.Defense),
             (InternalAffairsJobType.WaterControl, city.DisasterPrevention),
-            (InternalAffairsJobType.Construction, city.Commercial + city.Defense),
+            (InternalAffairsJobType.Construction, city.Commercial + city.Defense - (developmentPlan == AiCityDevelopmentPlan.None ? 0 : 30)),
+            (InternalAffairsJobType.Manufacturing, siegeEquipmentPlan.IsValid && !AiConstructionRules.HasReadySiegeEquipment(city, siegeEquipmentPlan.ProjectType) ? -40 : int.MaxValue),
             (InternalAffairsJobType.Extraction, ResourceRules.GetExtractionPriority(city)),
             (InternalAffairsJobType.Survey, ResourceRules.GetSurveyPriority(world, city))
         };
@@ -801,6 +883,18 @@ public class AiController
             .ThenBy(candidate => (int)candidate.JobType)
             .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
             .FirstOrDefault();
+    }
+
+    private static SiegeEngineAllocationData CreateSiegeEquipmentAllocation(ConstructionProjectType projectType)
+    {
+        return projectType switch
+        {
+            ConstructionProjectType.Ram => new SiegeEngineAllocationData { Ram = 1 },
+            ConstructionProjectType.Catapult => new SiegeEngineAllocationData { Catapult = 1 },
+            ConstructionProjectType.Ladder => new SiegeEngineAllocationData { Ladder = 1 },
+            ConstructionProjectType.SupplyCart => new SiegeEngineAllocationData { SupplyCart = 1 },
+            _ => new SiegeEngineAllocationData()
+        };
     }
 
     private static int GetBestOfficerId(
@@ -1266,7 +1360,9 @@ public class AiController
         bool canInspectTarget,
         int deployedTroops,
         int attackTroopAdvantageThreshold,
-        int blindAttackTroopThreshold)
+        int blindAttackTroopThreshold,
+        int resourceAttackBonus,
+        int siegeEquipmentAttackBonus)
     {
         var useChinese = _localization?.IsTraditionalChinese != false;
         var language = useChinese ? GameLanguage.TraditionalChinese : GameLanguage.English;
@@ -1279,10 +1375,32 @@ public class AiController
         sourceCityName = string.IsNullOrWhiteSpace(sourceCityName) ? sourceCity.Name : sourceCityName;
         targetCityName = string.IsNullOrWhiteSpace(targetCityName) ? targetCity.Name : targetCityName;
         var reasonKey = canInspectTarget
-            ? "fmt.ai_attack_reason_visible"
+            ? siegeEquipmentAttackBonus > 0 ? "fmt.ai_attack_reason_visible_resource_equipment"
+                : resourceAttackBonus > 0 ? "fmt.ai_attack_reason_visible_resource" : "fmt.ai_attack_reason_visible"
             : "fmt.ai_attack_reason_blind";
         var reasonArguments = canInspectTarget
-            ? new object[]
+            ? siegeEquipmentAttackBonus > 0
+                ? new object[]
+                {
+                    targetCity.Troops,
+                    sourceCity.Troops,
+                    sourceCity.Troops - targetCity.Troops,
+                    GetRulerAmbition(world, actorFactionId),
+                    attackTroopAdvantageThreshold,
+                    resourceAttackBonus,
+                    siegeEquipmentAttackBonus
+                }
+                : resourceAttackBonus > 0
+                ? new object[]
+                {
+                    targetCity.Troops,
+                    sourceCity.Troops,
+                    sourceCity.Troops - targetCity.Troops,
+                    GetRulerAmbition(world, actorFactionId),
+                    attackTroopAdvantageThreshold,
+                    resourceAttackBonus
+                }
+                : new object[]
             {
                 targetCity.Troops,
                 sourceCity.Troops,
@@ -1323,6 +1441,174 @@ public class AiController
             BaseAttackTroopAdvantageThreshold + 250 - ambition * 5,
             MinimumAttackTroopAdvantageThreshold,
             MaximumAttackTroopAdvantageThreshold);
+    }
+
+    private static int GetKnownResourceAttackBonus(WorldState world, int factionId, CityData target)
+    {
+        if (!world.CanFactionViewCity(factionId, target.Id))
+        {
+            return 0;
+        }
+
+        var bonus = 0;
+        foreach (var deposit in target.ResourceDeposits ?? new List<CityResourceDepositData>())
+        {
+            if (deposit.MonthlyYield <= 0 || deposit.RemainingReserve <= 0)
+            {
+                continue;
+            }
+
+            var typeValue = deposit.Type switch
+            {
+                StrategicResourceType.Metal => 70,
+                StrategicResourceType.Stone => 45,
+                _ => 25
+            };
+            var yieldValue = System.Math.Min(30, deposit.MonthlyYield * 3);
+            var reserveValue = System.Math.Min(25, deposit.RemainingReserve / 30);
+            bonus += typeValue + yieldValue + reserveValue;
+            if (IsFactionShortOfResource(world, factionId, deposit.Type))
+            {
+                bonus += 15;
+            }
+        }
+
+        // A rich resource city can lower the required advantage, but cannot
+        // erase the normal minimum troop-safety requirement.
+        return System.Math.Clamp(bonus, 0, MaximumKnownResourceAttackBonus);
+    }
+
+    private static bool IsFactionShortOfResource(WorldState world, int factionId, StrategicResourceType type)
+    {
+        var stockTarget = type switch
+        {
+            StrategicResourceType.Wood => 80,
+            StrategicResourceType.Metal => 60,
+            _ => 50
+        };
+        return world.Cities
+            .Where(city => city.OwnerFactionId == factionId)
+            .All(city => type switch
+            {
+                StrategicResourceType.Wood => city.Wood < stockTarget,
+                StrategicResourceType.Metal => city.Metal < stockTarget,
+                _ => city.Stone < stockTarget
+            });
+    }
+
+    private static List<SiegeEngineType> ChooseAiSiegeEngines(
+        CityData city,
+        CityData target,
+        bool canInspectTarget,
+        int availableOfficerCount)
+    {
+        if (!canInspectTarget || city.SiegeTroops <= 0 || availableOfficerCount <= 0)
+        {
+            return new List<SiegeEngineType>();
+        }
+
+        var result = new List<SiegeEngineType>();
+        var reservedSiegeTroops = 0;
+        void AddIfAvailable(bool condition, int count, SiegeEngineType engine)
+        {
+            var crewCount = GetAiSiegeEngineCrewCount(engine);
+            if (condition && count > 0 && result.Count < availableOfficerCount && city.SiegeTroops >= reservedSiegeTroops + crewCount)
+            {
+                result.Add(engine);
+                reservedSiegeTroops += crewCount;
+            }
+        }
+
+        AddIfAvailable(target.Defense >= 65, city.RamCount, SiegeEngineType.Ram);
+        AddIfAvailable(target.Defense >= 55, city.CatapultCount, SiegeEngineType.Catapult);
+        AddIfAvailable(target.SiegeTroops >= 200, city.LadderCount, SiegeEngineType.Ladder);
+        return result;
+    }
+
+    private static BattleSupportDeploymentData ChooseAiBattleSupport(
+        WorldState world,
+        CityData city,
+        CityData target,
+        bool canInspectTarget,
+        IEnumerable<AttackOfficerDeploymentData> deployments)
+    {
+        var support = new BattleSupportDeploymentData();
+        var siegeTroopsCommitted = deployments
+            .Where(deployment => deployment.TroopType == TroopType.Siege)
+            .Sum(deployment => deployment.TroopCount);
+        if (city.SupplyCartCount > 0 &&
+            city.EngineerTroops >= BattleSupportRules.SupplyCartEngineerRequirement &&
+            city.SiegeTroops >= siegeTroopsCommitted + BattleSupportRules.SupplyCartEngineerRequirement)
+        {
+            support.SupplyCart = true;
+        }
+
+        // Field battles use the authored field layouts, where rivers and bridge
+        // chokepoints are meaningful.  The tactical AI already knows how to
+        // build or repair crossings; this strategic step only sends one worker
+        // team when reconnaissance makes a field interception predictable.
+        var predictedBattlePlan = canInspectTarget
+            ? BattleCampaignService.ChooseDefenderBattlePlan(
+                world,
+                target,
+                new PendingCommandData
+                {
+                    SourceCityId = city.Id,
+                    TargetCityId = target.Id,
+                    SiegeEngineAllocation = BuildSiegeEngineAllocation(deployments)
+                })
+            : DefenderBattlePlan.CityDefense;
+        var committedEngineers = siegeTroopsCommitted + support.TotalEngineerCount;
+        if (predictedBattlePlan == DefenderBattlePlan.FieldIntercept &&
+            city.EngineerTroops >= committedEngineers + AiFieldEngineerTeamCount &&
+            city.SiegeTroops >= committedEngineers + AiFieldEngineerTeamCount)
+        {
+            support.EngineerTeamCount = AiFieldEngineerTeamCount;
+        }
+
+        return support;
+    }
+
+    private static SiegeEngineAllocationData BuildSiegeEngineAllocation(IEnumerable<AttackOfficerDeploymentData> deployments)
+    {
+        var allocation = new SiegeEngineAllocationData();
+        foreach (var deployment in deployments.Where(deployment => deployment.TroopType == TroopType.Siege))
+        {
+            switch (deployment.SiegeEngineType)
+            {
+                case SiegeEngineType.Ram: allocation.Ram++; break;
+                case SiegeEngineType.Catapult: allocation.Catapult++; break;
+                case SiegeEngineType.Ladder: allocation.Ladder++; break;
+            }
+        }
+
+        return allocation;
+    }
+
+    private static int GetAiSiegeEngineCrewCount(SiegeEngineType engine) =>
+        engine switch
+        {
+            SiegeEngineType.Ram => BattleSupportRules.RamEngineerRequirement,
+            SiegeEngineType.Catapult => BattleSupportRules.CatapultEngineerRequirement,
+            SiegeEngineType.Ladder => BattleSupportRules.LadderEngineerRequirement,
+            _ => 0
+        };
+
+    private static int GetSiegeEquipmentAttackBonus(IEnumerable<SiegeEngineType> siegeEngines)
+    {
+        var bonus = 0;
+        foreach (var engine in siegeEngines)
+        {
+            bonus += engine switch
+            {
+                SiegeEngineType.Ram => 45,
+                SiegeEngineType.Catapult => 30,
+                SiegeEngineType.Ladder => 20,
+                _ => 0
+            };
+        }
+
+        return System.Math.Clamp(bonus, 0, MaximumSiegeEquipmentAttackBonus);
     }
 
     private static int GetBlindAttackTroopThreshold(WorldState world, int factionId)
