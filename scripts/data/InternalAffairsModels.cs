@@ -8,7 +8,9 @@ public enum InternalAffairsJobType
     WaterControl,
     Construction,
     Extraction,
-    Survey
+    Survey,
+    // Kept at the end so existing save-file enum values remain stable.
+    Manufacturing
 }
 
 public enum StrategicResourceType

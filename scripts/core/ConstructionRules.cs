@@ -26,6 +26,10 @@ internal static class ConstructionRules
     private const int DefenseStoneCostPerPoint = 2;
     private const int DisasterPreventionWoodCostPerPoint = 1;
     private const int DisasterPreventionStoneCostPerPoint = 2;
+    private const int SiegeWorkshopManufacturingBonusPercentPerLevel = 15;
+    private const int SiegeWorkshopDefenseRepairBonusPerLevel = 1;
+    private const int SiegeWorkshopPressureBonusPercentPerLevel = 2;
+    private const int MaximumSiegeWorkshopPressureBonusPercent = 6;
 
     internal static int GetRequiredPointsForNextLevel(int currentLevel)
     {
@@ -75,7 +79,8 @@ internal static class ConstructionRules
 
     internal static int ApplyDefenseRepair(CityData city, int requestedDefenseGain)
     {
-        var affordableDefenseGain = Math.Min(Math.Max(0, requestedDefenseGain), city.Stone / DefenseStoneCostPerPoint);
+        var requestedWithWorkshopBonus = Math.Max(0, requestedDefenseGain) + GetSiegeWorkshopDefenseRepairBonus(city);
+        var affordableDefenseGain = Math.Min(requestedWithWorkshopBonus, city.Stone / DefenseStoneCostPerPoint);
         city.Stone -= affordableDefenseGain * DefenseStoneCostPerPoint;
         return affordableDefenseGain;
     }
@@ -106,6 +111,25 @@ internal static class ConstructionRules
         var officerPoints = Math.Max(0, (politics * 2 + intelligence + leadership) / 60);
         return Math.Max(5, goldPoints + officerPoints + progressionBonus + 2);
     }
+
+    internal static int GetSiegeWorkshopManufacturingBonusPercent(int workshopLevel) =>
+        Math.Max(0, workshopLevel) * SiegeWorkshopManufacturingBonusPercentPerLevel;
+
+    internal static int ApplySiegeWorkshopManufacturingBonus(CityData city, int basePoints)
+    {
+        var points = Math.Max(0, basePoints);
+        var multiplierPercent = 100 + GetSiegeWorkshopManufacturingBonusPercent(city.SiegeWorkshopLevel);
+        return (points * multiplierPercent + 99) / 100;
+    }
+
+    internal static int GetSiegeWorkshopDefenseRepairBonus(CityData city) =>
+        GetSiegeWorkshopDefenseRepairBonus(city.SiegeWorkshopLevel);
+
+    internal static int GetSiegeWorkshopDefenseRepairBonus(int workshopLevel) =>
+        Math.Max(0, workshopLevel) * SiegeWorkshopDefenseRepairBonusPerLevel;
+
+    internal static int GetSiegeWorkshopPressureBonusPercent(int workshopLevel) =>
+        Math.Min(MaximumSiegeWorkshopPressureBonusPercent, Math.Max(0, workshopLevel) * SiegeWorkshopPressureBonusPercentPerLevel);
 
     internal static bool IsFacilityProject(ConstructionProjectType projectType)
     {

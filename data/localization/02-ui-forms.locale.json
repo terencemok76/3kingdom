@@ -28,6 +28,10 @@
 	"ui.market_status.surplus": { "zhHant": "充足", "en": "Surplus" },
 	"ui.market_status.normal": { "zhHant": "一般", "en": "Normal" },
 	"ui.market_status.shortage": { "zhHant": "短缺", "en": "Shortage" },
+	"ui.market_price_reason": { "zhHant": "價格原因", "en": "Price Reason" },
+	"ui.market_price_reason.low_supply": { "zhHant": "庫存不足", "en": "Low supply" },
+	"ui.market_price_reason.balanced_supply": { "zhHant": "供需平衡", "en": "Balanced" },
+	"ui.market_price_reason.high_supply": { "zhHant": "庫存充足", "en": "High supply" },
 	"ui.buy":  {
 					 "zhHant":  "買入",
 					 "en":  "Buy"

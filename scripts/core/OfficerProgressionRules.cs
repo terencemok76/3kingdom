@@ -62,9 +62,10 @@ public static class OfficerProgressionRules
                 officer.DisasterPreventionTitle = GetJobTitleKey(jobType, officer.DisasterPreventionRank);
                 break;
             case InternalAffairsJobType.Construction:
+            case InternalAffairsJobType.Manufacturing:
                 officer.ConstructionExperience += amount;
                 officer.ConstructionRank = CalculateRank(officer.ConstructionExperience);
-                officer.ConstructionTitle = GetJobTitleKey(jobType, officer.ConstructionRank);
+                officer.ConstructionTitle = GetJobTitleKey(InternalAffairsJobType.Construction, officer.ConstructionRank);
                 break;
             case InternalAffairsJobType.Extraction:
             case InternalAffairsJobType.Survey:
@@ -154,6 +155,7 @@ public static class OfficerProgressionRules
             InternalAffairsJobType.Defend => officer.DefendRank,
             InternalAffairsJobType.WaterControl => officer.DisasterPreventionRank,
             InternalAffairsJobType.Construction => officer.ConstructionRank,
+            InternalAffairsJobType.Manufacturing => officer.ConstructionRank,
             InternalAffairsJobType.Extraction => officer.ConstructionRank,
             InternalAffairsJobType.Survey => officer.ConstructionRank,
             _ => 0
@@ -169,6 +171,7 @@ public static class OfficerProgressionRules
             InternalAffairsJobType.Defend => officer.DefendTitle,
             InternalAffairsJobType.WaterControl => officer.DisasterPreventionTitle,
             InternalAffairsJobType.Construction => officer.ConstructionTitle,
+            InternalAffairsJobType.Manufacturing => officer.ConstructionTitle,
             InternalAffairsJobType.Extraction => officer.ConstructionTitle,
             InternalAffairsJobType.Survey => officer.ConstructionTitle,
             _ => string.Empty

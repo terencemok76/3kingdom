@@ -19,6 +19,14 @@
     "zhHant": "建設項目",
     "en": "Construction Project"
   },
+  "ui.internal_affairs_manufacturing_project": {
+    "zhHant": "製造項目",
+    "en": "Manufacturing Project"
+  },
+  "ui.siege_workshop_unbuilt_tooltip": {
+    "zhHant": "建成後可製造軍事裝備，並可徵募工兵。",
+    "en": "Build one to manufacture military equipment and recruit engineers."
+  },
   "construction_project.bow_workshop": {
     "zhHant": "弓坊",
     "en": "Bow Shop"

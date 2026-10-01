@@ -255,7 +255,7 @@ public class CombatResolver
         }
 
         var siegeShare = allocation.Siege / (float)allocation.Total;
-        return Math.Min(0.06f, attacker.SiegeWorkshopLevel * 0.02f * siegeShare);
+        return ConstructionRules.GetSiegeWorkshopPressureBonusPercent(attacker.SiegeWorkshopLevel) / 100.0f * siegeShare;
     }
 
     private static float GetSiegeEnginePressureBonus(SiegeEngineAllocationData allocation)

@@ -17,6 +17,7 @@ internal static class Program
         {
             RunBattleCampaignLifecycleTest();
             RunBattleCampaignReinforcementTest();
+            RunDefenseReinforcementRequestTest();
             RunAiCampaignReinforcementTest();
             RunBattleCampaignReorganizationTest();
             RunDefenderPlanOverrideTest();
@@ -42,6 +43,9 @@ internal static class Program
         if (args.Contains("--resource-depot-only", StringComparer.OrdinalIgnoreCase))
         {
             RunResourceDepotStorageTest();
+            RunResourceGatedConstructionTest();
+            RunConstructionAndManufacturingScheduleTest();
+            RunMarketMonthlySnapshotAndTradeTest();
             PrintSummary();
             return;
         }
@@ -81,6 +85,9 @@ internal static class Program
         RunSeasonalGoldTest();
         RunSeasonalFoodTest();
         RunResourceDepotStorageTest();
+        RunResourceGatedConstructionTest();
+        RunConstructionAndManufacturingScheduleTest();
+        RunMarketMonthlySnapshotAndTradeTest();
         RunMonthlyCityEventsTest();
         RunMonthlyCityEventSeasonRulesTest();
         RunMonthlyCityEventConditionRulesTest();
@@ -244,6 +251,41 @@ internal static class Program
             campaign.Teams.Any(team => team.ReinforcementOrderId == order.Id),
             "Battle campaign delayed reinforcement",
             $"eta={order.RouteLinks * 2}, status={order.Status}");
+    }
+
+    private static void RunDefenseReinforcementRequestTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var source = world.GetCity(3)!;
+        var defenderFaction = world.GetFaction(2)!;
+        world.GetFaction(1)!.OfficerIds.Remove(102);
+        defenderFaction.OfficerIds.Add(102);
+        source.OwnerFactionId = defenderFaction.Id;
+        var officer = world.GetOfficer(102)!;
+        officer.CityId = source.Id;
+
+        var attack = CreateBattleCampaignAttack();
+        attack.DefenseReinforcementRequests.Add(new DefenseReinforcementRequestData
+        {
+            SourceCityId = source.Id,
+            Deployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = officer.Id, TroopType = TroopType.Infantry, TroopCount = 1000 }
+            }
+        });
+        var troopsBefore = source.Troops;
+        var campaign = BattleCampaignService.CreateCampaign(world, attack, DefenderBattlePlan.CityDefense);
+        BattleCampaignService.DispatchDefenseReinforcementRequests(world, campaign, attack);
+        var order = campaign.Reinforcements.SingleOrDefault();
+
+        Assert(
+            order?.Status == ReinforcementStatus.Traveling &&
+            order.Side == CampaignBattleSide.Defender &&
+            order.RemainingBattleDays == order.RouteLinks * 2 &&
+            source.Troops == troopsBefore - 1000 &&
+            BattleCampaignService.IsOfficerCommitted(world, officer.Id),
+            "Defense request dispatches on campaign day one and locks its source",
+            $"status={order?.Status}, eta={order?.RemainingBattleDays}/{order?.RouteLinks * 2}, troops={troopsBefore}->{source.Troops}, committed={BattleCampaignService.IsOfficerCommitted(world, officer.Id)}");
     }
 
     private static void RunAiCampaignReinforcementTest()
@@ -1587,6 +1629,98 @@ internal static class Program
             aiDepotChosen && horseCity.Horses == 400 && constrainedBirths == 1,
             "Fixed storage capacity, shared overflow loss, and stable-limited horse births",
             $"player food/horse={playerCity.Food}/{playerCity.Horses}, raw={playerCity.Metal}/{playerCity.Wood}/{playerCity.Stone}, ai={aiCity.Metal}/{aiCity.Wood}/{aiCity.Stone}, births={constrainedBirths}, loss={playerReport?.StorageLoss}");
+    }
+
+    private static void RunResourceGatedConstructionTest()
+    {
+        var city = new CityData { Wood = 34, Metal = 15, Stone = 3 };
+        var blocked = ConstructionRules.ApplyProgress(city, ConstructionProjectType.BowWorkshop, 100);
+        var defenseGain = ConstructionRules.ApplyDefenseRepair(city, 4);
+        city.Wood = 1;
+        city.Stone = 3;
+        var preventionGain = ConstructionRules.ApplyDisasterPrevention(city, 4);
+
+        Assert(
+            blocked.ValuesGained == 0 && blocked.CurrentProgress == 100 && blocked.WaitingForMaterials &&
+            city.BowWorkshopLevel == 0 && defenseGain == 1 && preventionGain == 1 &&
+            city.Wood >= 0 && city.Metal >= 0 && city.Stone >= 0,
+            "Construction holds progress for materials and repairs never overspend",
+            $"level={city.BowWorkshopLevel}, progress={blocked.CurrentProgress}, waiting={blocked.WaitingForMaterials}, defenseGain={defenseGain}, preventionGain={preventionGain}, wood/metal/stone={city.Wood}/{city.Metal}/{city.Stone}");
+    }
+
+    private static void RunConstructionAndManufacturingScheduleTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        var city = TestHelpers.City(1, "WorkshopCity", 1, 1000, 1000, 1000, new[] { 101, 102 }, Array.Empty<int>());
+        city.SiegeWorkshopLevel = 1;
+        city.Wood = 100;
+        city.Metal = 100;
+        city.Stone = 100;
+        world.Cities.Add(city);
+        world.Officers.Add(TestHelpers.Officer(101, "Builder", 1, intelligence: 80, charm: 70));
+        world.Officers.Add(TestHelpers.Officer(102, "Maker", 1, intelligence: 75, charm: 65));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        var services = CreateServices(world);
+
+        var build = services.Resolver.ScheduleInternalAffairs(1, city.Id, 101, InternalAffairsJobType.Construction, 1, ConstructionProjectType.BowWorkshop);
+        var manufacture = services.Resolver.ScheduleInternalAffairs(1, city.Id, 102, InternalAffairsJobType.Manufacturing, 1, ConstructionProjectType.Ram);
+        var constructionScheduled = world.InternalAffairsSchedules.Any(schedule =>
+            schedule.JobType == InternalAffairsJobType.Construction &&
+            schedule.ConstructionProjectType == ConstructionProjectType.BowWorkshop);
+        var manufacturingScheduled = world.InternalAffairsSchedules.Any(schedule =>
+            schedule.JobType == InternalAffairsJobType.Manufacturing &&
+            schedule.ConstructionProjectType == ConstructionProjectType.Ram);
+        var results = services.Turn.ResolvePendingCommands(services.Resolver);
+        var repairCity = new CityData { SiegeWorkshopLevel = 2, Stone = 6 };
+        var repairGain = ConstructionRules.ApplyDefenseRepair(repairCity, 1);
+
+        Assert(
+            build.Success && manufacture.Success && results.Count >= 2 &&
+            constructionScheduled && manufacturingScheduled &&
+            city.BowWorkshopProgress > 0 && city.RamProgress > city.BowWorkshopProgress &&
+            repairGain == 3 && repairCity.Stone == 0 &&
+            ConstructionRules.GetSiegeWorkshopPressureBonusPercent(4) == 6,
+            "Workshop level accelerates manufacturing, repairs defenses, and caps siege pressure",
+            $"build={build.Success}, manufacture={manufacture.Success}, scheduled={constructionScheduled}/{manufacturingScheduled}, bow/ramProgress={city.BowWorkshopProgress}/{city.RamProgress}, repair={repairGain}, pressure={ConstructionRules.GetSiegeWorkshopPressureBonusPercent(4)}%, results={results.Count}");
+    }
+
+    private static void RunMarketMonthlySnapshotAndTradeTest()
+    {
+        var city = TestHelpers.City(1, "MarketCity", 1, 2000, 1000, 0, Array.Empty<int>(), Array.Empty<int>());
+        city.HasMerchant = true;
+        MarketRules.EnsureMarketInitialized(city);
+        MarketRules.SetMerchantStock(city, MarketProductType.Food, 100);
+        var expensivePrice = MarketRules.GetBuyUnitPrice(city, MarketProductType.Food);
+        city.LastFoodBuyPrice = expensivePrice;
+        MarketRules.RefreshMonthlyMarket(city);
+        var refreshedPrice = MarketRules.GetBuyUnitPrice(city, MarketProductType.Food);
+
+        var world = TestHelpers.World();
+        world.Cities.Add(city);
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        var resolver = CreateServices(world).Resolver;
+        var buy = resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Merchant,
+            ActorFactionId = 1,
+            SourceCityId = city.Id,
+            FoodToSend = 100,
+            MerchantTradeMode = MerchantTradeMode.BuyFood
+        });
+        var sell = resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Merchant,
+            ActorFactionId = 1,
+            SourceCityId = city.Id,
+            FoodToSend = 100,
+            MerchantTradeMode = MerchantTradeMode.SellFood
+        });
+
+        Assert(
+            city.PreviousFoodBuyPrice == expensivePrice && refreshedPrice < expensivePrice &&
+            buy.Success && sell.Success && city.Food == 1000 && city.Gold > 0,
+            "Monthly market snapshot and buy/sell use the shared market rules",
+            $"previous/current={city.PreviousFoodBuyPrice}/{refreshedPrice}, buy={buy.Success}, sell={sell.Success}, food={city.Food}, gold={city.Gold}");
     }
 
     private static void RunMonthlyCityEventsTest()

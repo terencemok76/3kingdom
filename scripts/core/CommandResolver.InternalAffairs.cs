@@ -81,7 +81,7 @@ public partial class CommandResolver
                 new object[] { GetCityName(city, GameLanguage.English), monthlyGold });
         }
 
-        if (jobType == InternalAffairsJobType.Construction)
+        if (IsConstructionProjectJob(jobType))
         {
             constructionProjectType = ResolveConstructionProjectType(world, city, constructionProjectType);
             if (ConstructionRules.IsSiegeEngineProject(constructionProjectType) && city.SiegeWorkshopLevel <= 0)
@@ -116,10 +116,10 @@ public partial class CommandResolver
 
         if (HasActiveInternalAffairsJob(world, city.Id, jobType, constructionProjectType))
         {
-            var jobNameZh = jobType == InternalAffairsJobType.Construction
+            var jobNameZh = IsConstructionProjectJob(jobType)
                 ? $"{GetInternalAffairsJobName(jobType, GameLanguage.TraditionalChinese)} ({GetConstructionProjectName(constructionProjectType, GameLanguage.TraditionalChinese)})"
                 : GetInternalAffairsJobName(jobType, GameLanguage.TraditionalChinese);
-            var jobNameEn = jobType == InternalAffairsJobType.Construction
+            var jobNameEn = IsConstructionProjectJob(jobType)
                 ? $"{GetInternalAffairsJobName(jobType, GameLanguage.English)} ({GetConstructionProjectName(constructionProjectType, GameLanguage.English)})"
                 : GetInternalAffairsJobName(jobType, GameLanguage.English);
             return LocalizedResult(
@@ -505,7 +505,7 @@ public partial class CommandResolver
                     Math.Max(schedule.RemainingMonths, 0),
                     monthlyGoldCost
                 });
-            if (schedule.JobType == InternalAffairsJobType.Construction &&
+            if (IsConstructionProjectJob(schedule.JobType) &&
                 schedule.ConstructionProjectType != ConstructionProjectType.None)
             {
                 AppendLocalizedText(
@@ -515,12 +515,14 @@ public partial class CommandResolver
                         schedule.ConstructionProjectType,
                         gains.ConstructionPoints,
                         gains.ConstructionResult,
+                        schedule.JobType == InternalAffairsJobType.Manufacturing,
                         GameLanguage.TraditionalChinese),
                     BuildConstructionProgressSuffix(
                         city,
                         schedule.ConstructionProjectType,
                         gains.ConstructionPoints,
                         gains.ConstructionResult,
+                        schedule.JobType == InternalAffairsJobType.Manufacturing,
                         GameLanguage.English));
             }
             else if (schedule.JobType == InternalAffairsJobType.Extraction && gains.ResourceOutput.HasOutput)
@@ -702,7 +704,7 @@ public partial class CommandResolver
                 }
 
                 city.PrefectPlanJobType = plannedJob.Value;
-                city.PrefectPlanConstructionProjectType = plannedJob.Value == InternalAffairsJobType.Construction
+                city.PrefectPlanConstructionProjectType = IsConstructionProjectJob(plannedJob.Value)
                     ? ResolveConstructionProjectType(world, city, city.PrefectPlanConstructionProjectType)
                     : ConstructionProjectType.None;
                 city.PrefectPlanInvestedGold = GetRecommendedInternalAffairsGold(plannedJob.Value, ChooseAuthorizedPlanDuration(city, plannedJob.Value, prefect));

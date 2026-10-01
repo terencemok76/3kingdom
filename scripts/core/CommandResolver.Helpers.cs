@@ -489,6 +489,11 @@ public partial class CommandResolver
             schedule.OfficerId == officerId);
     }
 
+    private static bool IsConstructionProjectJob(InternalAffairsJobType jobType)
+    {
+        return jobType is InternalAffairsJobType.Construction or InternalAffairsJobType.Manufacturing;
+    }
+
     private static bool HasActiveInternalAffairsJob(WorldState world, int cityId, InternalAffairsJobType jobType, ConstructionProjectType constructionProjectType = ConstructionProjectType.None)
     {
         return world.InternalAffairsSchedules.Any(schedule =>
@@ -500,12 +505,12 @@ public partial class CommandResolver
                 return false;
             }
 
-            if (jobType != InternalAffairsJobType.Construction)
+            if (!IsConstructionProjectJob(jobType))
             {
                 return true;
             }
 
-            return schedule.ConstructionProjectType == constructionProjectType;
+            return IsConstructionProjectJob(schedule.JobType) && schedule.ConstructionProjectType == constructionProjectType;
         });
     }
 
@@ -1248,7 +1253,7 @@ public partial class CommandResolver
                 .Where(schedule =>
                     schedule.State == InternalAffairsScheduleState.Active &&
                     schedule.CityId == city.Id &&
-                    schedule.JobType == InternalAffairsJobType.Construction)
+                    IsConstructionProjectJob(schedule.JobType))
                 .Select(schedule => schedule.ConstructionProjectType));
 
         var politics = prefect?.Politics ?? 50;
@@ -1332,7 +1337,7 @@ public partial class CommandResolver
 
     private InternalAffairsScheduleData CreateAuthorizedPlanSchedule(WorldState world, CityData city, int officerId)
     {
-        var projectType = city.PrefectPlanJobType == InternalAffairsJobType.Construction
+        var projectType = IsConstructionProjectJob(city.PrefectPlanJobType)
             ? ResolveConstructionProjectType(world, city, city.PrefectPlanConstructionProjectType)
             : ConstructionProjectType.None;
         var investedGold = city.PrefectPlanInvestedGold > 0
@@ -1411,6 +1416,7 @@ public partial class CommandResolver
             InternalAffairsJobType.Defend => officer.Leadership * 2 + officer.Politics * 2 + officer.DefendRank * 25,
             InternalAffairsJobType.WaterControl => officer.Intelligence * 2 + officer.Politics * 2 + officer.DisasterPreventionRank * 25,
             InternalAffairsJobType.Construction => officer.Politics * 2 + officer.Leadership + officer.Intelligence + officer.ConstructionRank * 25,
+            InternalAffairsJobType.Manufacturing => officer.Politics * 2 + officer.Leadership + officer.Intelligence + officer.ConstructionRank * 25,
             InternalAffairsJobType.Extraction => officer.Politics * 2 + officer.Intelligence + officer.ConstructionRank * 25,
             InternalAffairsJobType.Survey => officer.Intelligence * 3 + officer.Politics * 2 + officer.ConstructionRank * 25,
             _ => officer.Politics + officer.Intelligence + officer.Charm
@@ -1436,13 +1442,19 @@ public partial class CommandResolver
         var goldBonus = 1 + Math.Min(4, Math.Max(0, (monthlyInvestment - 50) / 100));
         var primaryGain = 2 + officerBonus + progressionBonus + goldBonus;
         var secondaryGain = 1 + Math.Max(0, progressionBonus / 2);
+        var constructionPoints = ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus);
+        if (jobType == InternalAffairsJobType.Manufacturing)
+        {
+            constructionPoints = ConstructionRules.ApplySiegeWorkshopManufacturingBonus(city, constructionPoints);
+        }
+
         (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput, ResourceRules.SurveyResult SurveyOutput) gains = jobType switch
         {
             InternalAffairsJobType.Farm => (primaryGain, 0, 0, 0, 0, 0, default, default, default),
             InternalAffairsJobType.Commercial => (0, primaryGain, 0, 0, 0, 0, default, default, default),
             InternalAffairsJobType.Defend => (0, 0, primaryGain, 0, 0, 0, default, default, default),
             InternalAffairsJobType.WaterControl => (0, 0, 0, primaryGain, secondaryGain, 0, default, default, default),
-            InternalAffairsJobType.Construction => (0, secondaryGain, secondaryGain, secondaryGain, 0, ConstructionRules.GetConstructionPoints(politics, intelligence, leadership, monthlyInvestment, progressionBonus), default, default, default),
+            InternalAffairsJobType.Construction or InternalAffairsJobType.Manufacturing => (0, secondaryGain, secondaryGain, secondaryGain, 0, constructionPoints, default, default, default),
             InternalAffairsJobType.Extraction => (0, 0, 0, 0, 0, 0, default, default, default),
             InternalAffairsJobType.Survey => (0, 0, 0, 0, 0, 0, default, default, default),
             _ => (0, 0, 0, 0, 0, 0, default, default, default)
@@ -1462,7 +1474,7 @@ public partial class CommandResolver
         city.Defense = ClampStat(city.Defense + gains.Defense);
         city.DisasterPrevention = ClampStat(city.DisasterPrevention + gains.DisasterPrevention);
         city.Loyalty = ClampStat(city.Loyalty + gains.Loyalty);
-        if (jobType == InternalAffairsJobType.Construction)
+        if (IsConstructionProjectJob(jobType))
         {
             gains.ConstructionResult = ConstructionRules.ApplyProgress(city, constructionProjectType, gains.ConstructionPoints);
         }
@@ -1509,6 +1521,7 @@ public partial class CommandResolver
             InternalAffairsJobType.Defend => 80,
             InternalAffairsJobType.WaterControl => 70,
             InternalAffairsJobType.Construction => 100,
+            InternalAffairsJobType.Manufacturing => 100,
             InternalAffairsJobType.Extraction => 75,
             InternalAffairsJobType.Survey => 120,
             _ => 60
@@ -1524,6 +1537,7 @@ public partial class CommandResolver
             InternalAffairsJobType.Defend => "command.internal_affairs.defend",
             InternalAffairsJobType.WaterControl => "command.internal_affairs.disaster_prevention",
             InternalAffairsJobType.Construction => "command.internal_affairs.construction",
+            InternalAffairsJobType.Manufacturing => "command.internal_affairs.manufacturing",
             InternalAffairsJobType.Extraction => "command.internal_affairs.extraction",
             InternalAffairsJobType.Survey => "command.internal_affairs.survey",
             _ => string.Empty
@@ -1575,11 +1589,12 @@ public partial class CommandResolver
         ConstructionProjectType projectType,
         int constructionPoints,
         ConstructionRules.ConstructionProgressResult progressResult,
+        bool isManufacturing,
         GameLanguage language)
     {
         var progressText = _localization?.FormatForLanguage(
                    language,
-                   "fmt.internal_affairs_construction_progress",
+                   isManufacturing ? "fmt.internal_affairs_manufacturing_progress" : "fmt.internal_affairs_construction_progress",
                    GetConstructionProjectName(projectType, language),
                    constructionPoints,
                    FormatConstructionProjectProgress(city, projectType, language),

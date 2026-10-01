@@ -418,7 +418,9 @@ public partial class HudController : CanvasLayer
         string LeftLabel,
         string LeftValue,
         string RightLabel,
-        string RightValue);
+        string RightValue,
+        string LeftTooltip = "",
+        string RightTooltip = "");
 
     private void PopulateCityStatsPanel(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount)
     {
@@ -499,7 +501,12 @@ public partial class HudController : CanvasLayer
             new CityStatRowDefinition(_localization.T("ui.stone"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Stone) : UnknownInfoText, _localization.T("ui.resource_deposits"), canViewCity ? BuildResourceDepositSummary(city) : UnknownInfoText),
             new CityStatRowDefinition(_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
             new CityStatRowDefinition(_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
-            new CityStatRowDefinition(_localization.T("ui.bow_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText, _localization.T("ui.siege_workshop"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText),
+            new CityStatRowDefinition(
+                _localization.T("ui.bow_workshop"),
+                canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText,
+                _localization.T("ui.siege_workshop"),
+                canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText,
+                RightTooltip: canViewCity ? _localization.FormatSiegeWorkshopTooltip(city) : string.Empty),
             new CityStatRowDefinition(_localization.T("ui.horse_pasture"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText, _localization.T("ui.horse_stable"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorseStable) : UnknownInfoText),
             new CityStatRowDefinition(_localization.T("ui.granary"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.Granary) : UnknownInfoText, string.Empty, string.Empty),
             new CityStatRowDefinition(_localization.T("ui.resource_depot"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.ResourceDepot) : UnknownInfoText, string.Empty, string.Empty),
@@ -517,36 +524,41 @@ public partial class HudController : CanvasLayer
     {
         var container = new HBoxContainer
         {
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            TooltipText = string.IsNullOrWhiteSpace(row.LeftTooltip) ? row.RightTooltip : row.LeftTooltip
         };
         container.AddThemeConstantOverride("separation", 6);
 
-        container.AddChild(CreateCityStatsLabelCell(row.LeftLabel, 48, HorizontalAlignment.Left, true));
-        container.AddChild(CreateCityStatsValueCell(row.LeftValue, 90));
-        container.AddChild(CreateCityStatsLabelCell(row.RightLabel, 48, HorizontalAlignment.Left, false));
-        container.AddChild(CreateCityStatsValueCell(row.RightValue, 0));
+        container.AddChild(CreateCityStatsLabelCell(row.LeftLabel, 48, HorizontalAlignment.Left, true, row.LeftTooltip));
+        container.AddChild(CreateCityStatsValueCell(row.LeftValue, 90, row.LeftTooltip));
+        container.AddChild(CreateCityStatsLabelCell(row.RightLabel, 48, HorizontalAlignment.Left, false, row.RightTooltip));
+        container.AddChild(CreateCityStatsValueCell(row.RightValue, 0, row.RightTooltip));
         return container;
     }
 
-    private static Label CreateCityStatsLabelCell(string text, int minimumWidth, HorizontalAlignment alignment, bool visibleWhenEmpty)
+    private static Label CreateCityStatsLabelCell(string text, int minimumWidth, HorizontalAlignment alignment, bool visibleWhenEmpty, string tooltip)
     {
         var label = new Label
         {
             Text = string.IsNullOrWhiteSpace(text) ? string.Empty : $"{text}:",
             HorizontalAlignment = alignment,
             CustomMinimumSize = new Vector2(minimumWidth, 0.0f),
-            Visible = visibleWhenEmpty || !string.IsNullOrWhiteSpace(text)
+            Visible = visibleWhenEmpty || !string.IsNullOrWhiteSpace(text),
+            TooltipText = tooltip,
+            MouseFilter = Control.MouseFilterEnum.Stop
         };
         return label;
     }
 
-    private static Label CreateCityStatsValueCell(string text, int minimumWidth)
+    private static Label CreateCityStatsValueCell(string text, int minimumWidth, string tooltip)
     {
         var label = new Label
         {
             Text = text ?? string.Empty,
             SizeFlagsHorizontal = minimumWidth > 0 ? Control.SizeFlags.Fill : Control.SizeFlags.ExpandFill,
-            AutowrapMode = TextServer.AutowrapMode.Off
+            AutowrapMode = TextServer.AutowrapMode.Off,
+            TooltipText = tooltip,
+            MouseFilter = Control.MouseFilterEnum.Stop
         };
         if (minimumWidth > 0)
         {

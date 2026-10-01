@@ -68,7 +68,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         SetLabelText("JobRow/JobLabel", _context.Localization.T("ui.internal_affairs_job"));
         SetLabelText("DurationRow/DurationLabel", _context.Localization.T("ui.internal_affairs_duration"));
         SetLabelText("GoldRow/GoldLabel", _context.Localization.T("ui.internal_affairs_gold"));
-        SetLabelText("ConstructionProjectRow/ConstructionProjectLabel", _context.Localization.T("ui.internal_affairs_construction_project"));
+        RefreshConstructionProjectLabel();
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.internal_affairs_officer"));
         SetLabelText("ScheduleListLabel", _context.Localization.T("ui.internal_affairs_active_schedules"));
         if (_selectOfficerButton != null)
@@ -276,6 +276,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         AddJobOption(InternalAffairsJobType.Defend);
         AddJobOption(InternalAffairsJobType.WaterControl);
         AddJobOption(InternalAffairsJobType.Construction);
+        AddJobOption(InternalAffairsJobType.Manufacturing);
         AddJobOption(InternalAffairsJobType.Extraction);
         AddJobOption(InternalAffairsJobType.Survey);
     }
@@ -330,14 +331,18 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         }
 
         var city = _context.SelectedCity;
+        var jobType = GetSelectedJobType();
         _constructionProjectOption.Clear();
-        AddConstructionProjectOption(ConstructionProjectType.BowWorkshop);
-        AddConstructionProjectOption(ConstructionProjectType.SiegeWorkshop);
-        AddConstructionProjectOption(ConstructionProjectType.HorsePasture);
-        AddConstructionProjectOption(ConstructionProjectType.ResourceDepot);
-        AddConstructionProjectOption(ConstructionProjectType.Granary);
-        AddConstructionProjectOption(ConstructionProjectType.HorseStable);
-        if (city?.SiegeWorkshopLevel > 0)
+        if (jobType == InternalAffairsJobType.Construction)
+        {
+            AddConstructionProjectOption(ConstructionProjectType.BowWorkshop);
+            AddConstructionProjectOption(ConstructionProjectType.SiegeWorkshop);
+            AddConstructionProjectOption(ConstructionProjectType.HorsePasture);
+            AddConstructionProjectOption(ConstructionProjectType.ResourceDepot);
+            AddConstructionProjectOption(ConstructionProjectType.Granary);
+            AddConstructionProjectOption(ConstructionProjectType.HorseStable);
+        }
+        else if (jobType == InternalAffairsJobType.Manufacturing && city?.SiegeWorkshopLevel > 0)
         {
             AddConstructionProjectOption(ConstructionProjectType.Ram);
             AddConstructionProjectOption(ConstructionProjectType.Catapult);
@@ -371,10 +376,46 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
         }
 
         var projectName = GetConstructionProjectName(projectType);
+        var city = _context.SelectedCity;
+        var jobType = GetSelectedJobType();
         var resourceCost = ConstructionRules.GetResourceCost(projectType);
+        var actionText = projectName;
+        if (_context.Localization != null && city != null)
+        {
+            if (jobType == InternalAffairsJobType.Construction)
+            {
+                var currentLevel = ConstructionRules.GetLevel(city, projectType);
+                actionText = currentLevel <= 0
+                    ? _context.Localization.Format("fmt.internal_affairs_build_facility", projectName)
+                    : _context.Localization.Format("fmt.internal_affairs_upgrade_facility", projectName, currentLevel, currentLevel + 1);
+                if (projectType == ConstructionProjectType.SiegeWorkshop && currentLevel > 0)
+                {
+                    actionText = _context.Localization.Format(
+                        "fmt.internal_affairs_siege_workshop_effects",
+                        actionText,
+                        _context.Localization.FormatSiegeWorkshopEffects(currentLevel + 1));
+                }
+            }
+            else if (jobType == InternalAffairsJobType.Manufacturing)
+            {
+                actionText = _context.Localization.Format("fmt.internal_affairs_manufacture_equipment", projectName);
+            }
+        }
+
         var optionText = resourceCost.IsEmpty || _context.Localization == null
-            ? projectName
-            : _context.Localization.Format("fmt.construction_project_material_cost", projectName, resourceCost.Wood, resourceCost.Metal, resourceCost.Stone);
+            ? actionText
+            : projectType == ConstructionProjectType.SiegeWorkshop &&
+              jobType == InternalAffairsJobType.Construction &&
+              city != null &&
+              ConstructionRules.GetLevel(city, projectType) <= 0
+                ? _context.Localization.Format(
+                    "fmt.construction_project_material_cost_description",
+                    actionText,
+                    resourceCost.Wood,
+                    resourceCost.Metal,
+                    resourceCost.Stone,
+                    _context.Localization.T("ui.siege_workshop_unbuilt_tooltip"))
+                : _context.Localization.Format("fmt.construction_project_material_cost", actionText, resourceCost.Wood, resourceCost.Metal, resourceCost.Stone);
         _constructionProjectOption.AddItem(optionText);
         _constructionProjectOption.SetItemMetadata(_constructionProjectOption.ItemCount - 1, (int)projectType);
     }
@@ -621,6 +662,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
 
     private void OnJobSelectionChanged(long _index)
     {
+        RefreshConstructionProjectOptionText();
         RefreshConstructionProjectVisibility();
         if (_goldSpinBox != null && !_goldValueManuallyEdited)
         {
@@ -850,7 +892,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
 
     private ConstructionProjectType GetSelectedConstructionProjectType()
     {
-        if (GetSelectedJobType() != InternalAffairsJobType.Construction || _constructionProjectOption == null || _constructionProjectOption.Selected < 0)
+        if (GetSelectedJobType() is not (InternalAffairsJobType.Construction or InternalAffairsJobType.Manufacturing) || _constructionProjectOption == null || _constructionProjectOption.Selected < 0)
         {
             return ConstructionProjectType.None;
         }
@@ -875,6 +917,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             InternalAffairsJobType.Defend => _context.Localization.T("command.internal_affairs.defend"),
             InternalAffairsJobType.WaterControl => _context.Localization.T("command.internal_affairs.disaster_prevention"),
             InternalAffairsJobType.Construction => _context.Localization.T("command.internal_affairs.construction"),
+            InternalAffairsJobType.Manufacturing => _context.Localization.T("command.internal_affairs.manufacturing"),
             InternalAffairsJobType.Extraction => _context.Localization.T("command.internal_affairs.extraction"),
             InternalAffairsJobType.Survey => _context.Localization.T("command.internal_affairs.survey"),
             _ => jobType.ToString()
@@ -926,7 +969,7 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
     private string GetScheduleJobName(CityData city, InternalAffairsScheduleData schedule)
     {
         var jobName = GetJobName(schedule.JobType);
-        if (schedule.JobType != InternalAffairsJobType.Construction)
+        if (schedule.JobType is not (InternalAffairsJobType.Construction or InternalAffairsJobType.Manufacturing))
         {
             return jobName;
         }
@@ -1046,7 +1089,8 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             return;
         }
 
-        _constructionProjectRow.Visible = GetSelectedJobType() == InternalAffairsJobType.Construction;
+        _constructionProjectRow.Visible = GetSelectedJobType() is InternalAffairsJobType.Construction or InternalAffairsJobType.Manufacturing;
+        RefreshConstructionProjectLabel();
         if (_durationSpinBox != null)
         {
             var isSurvey = GetSelectedJobType() == InternalAffairsJobType.Survey;
@@ -1056,6 +1100,19 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
                 _durationSpinBox.Value = 1;
             }
         }
+    }
+
+    private void RefreshConstructionProjectLabel()
+    {
+        if (_context.Localization == null)
+        {
+            return;
+        }
+
+        var labelKey = GetSelectedJobType() == InternalAffairsJobType.Manufacturing
+            ? "ui.internal_affairs_manufacturing_project"
+            : "ui.internal_affairs_construction_project";
+        SetLabelText("ConstructionProjectRow/ConstructionProjectLabel", _context.Localization.T(labelKey));
     }
 
     private void SetWarning(string text)

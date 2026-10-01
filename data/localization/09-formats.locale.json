@@ -155,6 +155,38 @@
         "zhHant": "{0}｜木材 {1}、金屬 {2}、石材 {3}",
         "en": "{0} | Wood {1}, Metal {2}, Stone {3}"
     },
+    "fmt.construction_project_material_cost_description": {
+        "zhHant": "{0}｜木材 {1}、金屬 {2}、石材 {3}｜{4}",
+        "en": "{0} | Wood {1}, Metal {2}, Stone {3} | {4}"
+    },
+    "fmt.internal_affairs_build_facility": {
+        "zhHant": "建設 {0}",
+        "en": "Build {0}"
+    },
+    "fmt.internal_affairs_upgrade_facility": {
+        "zhHant": "升級 {0} Lv.{1} → Lv.{2}",
+        "en": "Upgrade {0} Lv.{1} → Lv.{2}"
+    },
+    "fmt.siege_workshop_effects": {
+        "zhHant": "Lv.{0}：製造 +{1}%｜城防修繕 +{2}｜攻城壓力 +{3}%",
+        "en": "Lv.{0}: Manufacturing +{1}% | Defense Repair +{2} | Siege Pressure +{3}%"
+    },
+    "fmt.siege_workshop_next_effects": {
+        "zhHant": "下一級：{0}",
+        "en": "Next level: {0}"
+    },
+    "fmt.internal_affairs_siege_workshop_effects": {
+        "zhHant": "{0}｜完成後：{1}",
+        "en": "{0} | On completion: {1}"
+    },
+    "fmt.internal_affairs_manufacture_equipment": {
+        "zhHant": "製造 {0}",
+        "en": "Manufacture {0}"
+    },
+    "fmt.internal_affairs_manufacturing_progress": {
+        "zhHant": "製造「{0}」製造點 +{1}，目前 {2}，本月完成 +{3}。",
+        "en": "Manufacturing \"{0}\" gained +{1} points, now {2}, completed +{3} this month."
+    },
     "fmt.internal_affairs_materials_spent": {
         "zhHant": "消耗木材 {0}、金屬 {1}、石材 {2}。",
         "en": "Spent Wood {0}, Metal {1}, Stone {2}."

@@ -329,7 +329,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
         }
         _marketTable.Clear();
         _marketTable.Columns = 6;
-        var headers = new[] { "ui.market_product", "ui.market_buy", "ui.market_sell", "ui.market_previous", "ui.market_change", "ui.market_status" };
+        var headers = new[] { "ui.market_product", "ui.market_buy", "ui.market_sell", "ui.market_previous", "ui.market_change", "ui.market_price_reason" };
         for (var index = 0; index < headers.Length; index += 1)
         {
             _marketTable.SetColumnTitle(index, _context.Localization.T(headers[index]));
@@ -359,7 +359,7 @@ internal sealed class MerchantDialogController : FloatingOverlayController
             row.SetText(2, MarketRules.GetDisplaySellUnitPrice(city, product).ToString());
             row.SetText(3, previous > 0 ? previous.ToString() : "-");
             row.SetText(4, previous <= 0 ? "-" : current == previous ? "0" : current > previous ? $"↑{current - previous}" : $"↓{previous - current}");
-            row.SetText(5, _context.Localization.T(MarketRules.GetDisplayStatusKey(city, product)));
+            row.SetText(5, _context.Localization.T(MarketRules.GetDisplayPriceReasonKey(city, product)));
             row.SetTextAlignment(0, HorizontalAlignment.Left);
             row.SetTextAlignment(1, HorizontalAlignment.Right);
             row.SetTextAlignment(2, HorizontalAlignment.Right);

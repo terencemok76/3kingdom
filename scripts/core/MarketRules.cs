@@ -213,6 +213,19 @@ public static class MarketRules
         return stock < target / 2 ? "ui.market_status.shortage" : stock > target * 3 / 2 ? "ui.market_status.surplus" : "ui.market_status.normal";
     }
 
+    // Prices currently depend only on merchant supply relative to the city's
+    // target market stock. Keep this explanation alongside the shared price
+    // calculation so the UI never attributes a price change to a rule that is
+    // not actually in effect.
+    public static string GetDisplayPriceReasonKey(CityData city, MarketProductType product)
+    {
+        var stock = GetDisplayMerchantStock(city, product);
+        var target = Math.Max(GetTradeLotSize(product), GetCapacity(city, product) / 4);
+        return stock < target / 2 ? "ui.market_price_reason.low_supply" :
+            stock > target * 3 / 2 ? "ui.market_price_reason.high_supply" :
+            "ui.market_price_reason.balanced_supply";
+    }
+
     private static int GetLastBuyPrice(CityData city, MarketProductType product) => product switch
     {
         MarketProductType.Food => city.LastFoodBuyPrice,

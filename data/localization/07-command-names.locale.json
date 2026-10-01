@@ -51,6 +51,10 @@
                                                   "zhHant":  "建設",
                                                   "en":  "Construction"
                                               },
+    "command.internal_affairs.manufacturing":  {
+                                                  "zhHant":  "製造",
+                                                  "en":  "Manufacturing"
+                                              },
     "command.internal_affairs.defend":  {
                                             "zhHant":  "防衛",
                                             "en":  "Defend"

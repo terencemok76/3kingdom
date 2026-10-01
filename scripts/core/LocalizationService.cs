@@ -274,6 +274,28 @@ public class LocalizationService
         return Format("fmt.facility_level_progress", level, progress, required);
     }
 
+    public string FormatSiegeWorkshopEffects(int workshopLevel)
+    {
+        var level = Math.Max(0, workshopLevel);
+        return Format(
+            "fmt.siege_workshop_effects",
+            level,
+            ConstructionRules.GetSiegeWorkshopManufacturingBonusPercent(level),
+            ConstructionRules.GetSiegeWorkshopDefenseRepairBonus(level),
+            ConstructionRules.GetSiegeWorkshopPressureBonusPercent(level));
+    }
+
+    public string FormatSiegeWorkshopTooltip(CityData city)
+    {
+        var level = Math.Max(0, city.SiegeWorkshopLevel);
+        if (level <= 0)
+        {
+            return T("ui.siege_workshop_unbuilt_tooltip");
+        }
+
+        return $"{FormatSiegeWorkshopEffects(level)}\n{Format("fmt.siege_workshop_next_effects", FormatSiegeWorkshopEffects(level + 1))}";
+    }
+
     public string FormatStorageAmount(CityData city, MarketProductType product) =>
         Format("fmt.storage_amount", MarketRules.GetAmount(city, product), MarketRules.GetCapacity(city, product));
 
