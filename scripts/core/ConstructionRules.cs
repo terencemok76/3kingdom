@@ -28,8 +28,7 @@ internal static class ConstructionRules
     private const int DisasterPreventionStoneCostPerPoint = 2;
     private const int SiegeWorkshopManufacturingBonusPercentPerLevel = 15;
     private const int SiegeWorkshopDefenseRepairBonusPerLevel = 1;
-    private const int SiegeWorkshopPressureBonusPercentPerLevel = 2;
-    private const int MaximumSiegeWorkshopPressureBonusPercent = 6;
+    private const int SiegeWorkshopDisasterPreventionBonusPerLevel = 1;
 
     internal static int GetRequiredPointsForNextLevel(int currentLevel)
     {
@@ -89,8 +88,9 @@ internal static class ConstructionRules
 
     internal static int ApplyDisasterPrevention(CityData city, int requestedGain)
     {
+        var requestedWithWorkshopBonus = Math.Max(0, requestedGain) + GetSiegeWorkshopDisasterPreventionBonus(city);
         var affordableGain = Math.Min(
-            Math.Max(0, requestedGain),
+            requestedWithWorkshopBonus,
             Math.Min(city.Wood / DisasterPreventionWoodCostPerPoint, city.Stone / DisasterPreventionStoneCostPerPoint));
         city.Wood -= affordableGain * DisasterPreventionWoodCostPerPoint;
         city.Stone -= affordableGain * DisasterPreventionStoneCostPerPoint;
@@ -128,8 +128,11 @@ internal static class ConstructionRules
     internal static int GetSiegeWorkshopDefenseRepairBonus(int workshopLevel) =>
         Math.Max(0, workshopLevel) * SiegeWorkshopDefenseRepairBonusPerLevel;
 
-    internal static int GetSiegeWorkshopPressureBonusPercent(int workshopLevel) =>
-        Math.Min(MaximumSiegeWorkshopPressureBonusPercent, Math.Max(0, workshopLevel) * SiegeWorkshopPressureBonusPercentPerLevel);
+    internal static int GetSiegeWorkshopDisasterPreventionBonus(CityData city) =>
+        GetSiegeWorkshopDisasterPreventionBonus(city.SiegeWorkshopLevel);
+
+    internal static int GetSiegeWorkshopDisasterPreventionBonus(int workshopLevel) =>
+        Math.Max(0, workshopLevel) * SiegeWorkshopDisasterPreventionBonusPerLevel;
 
     internal static bool IsFacilityProject(ConstructionProjectType projectType)
     {

@@ -282,7 +282,7 @@ public class LocalizationService
             level,
             ConstructionRules.GetSiegeWorkshopManufacturingBonusPercent(level),
             ConstructionRules.GetSiegeWorkshopDefenseRepairBonus(level),
-            ConstructionRules.GetSiegeWorkshopPressureBonusPercent(level));
+            ConstructionRules.GetSiegeWorkshopDisasterPreventionBonus(level));
     }
 
     public string FormatSiegeWorkshopTooltip(CityData city)

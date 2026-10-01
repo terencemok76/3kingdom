@@ -168,8 +168,8 @@
         "en": "Upgrade {0} Lv.{1} → Lv.{2}"
     },
     "fmt.siege_workshop_effects": {
-        "zhHant": "Lv.{0}：製造 +{1}%｜城防修繕 +{2}｜攻城壓力 +{3}%",
-        "en": "Lv.{0}: Manufacturing +{1}% | Defense Repair +{2} | Siege Pressure +{3}%"
+        "zhHant": "Lv.{0}：製造 +{1}%｜防衛工程 +{2}｜防災工程 +{3}",
+        "en": "Lv.{0}: Manufacturing +{1}% | Defense Engineering +{2} | Disaster Prevention Engineering +{3}"
     },
     "fmt.siege_workshop_next_effects": {
         "zhHant": "下一級：{0}",

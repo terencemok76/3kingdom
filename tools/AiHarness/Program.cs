@@ -1673,15 +1673,18 @@ internal static class Program
         var results = services.Turn.ResolvePendingCommands(services.Resolver);
         var repairCity = new CityData { SiegeWorkshopLevel = 2, Stone = 6 };
         var repairGain = ConstructionRules.ApplyDefenseRepair(repairCity, 1);
+        var preventionCity = new CityData { SiegeWorkshopLevel = 2, Wood = 3, Stone = 6 };
+        var preventionGain = ConstructionRules.ApplyDisasterPrevention(preventionCity, 1);
 
         Assert(
             build.Success && manufacture.Success && results.Count >= 2 &&
             constructionScheduled && manufacturingScheduled &&
             city.BowWorkshopProgress > 0 && city.RamProgress > city.BowWorkshopProgress &&
             repairGain == 3 && repairCity.Stone == 0 &&
-            ConstructionRules.GetSiegeWorkshopPressureBonusPercent(4) == 6,
-            "Workshop level accelerates manufacturing, repairs defenses, and caps siege pressure",
-            $"build={build.Success}, manufacture={manufacture.Success}, scheduled={constructionScheduled}/{manufacturingScheduled}, bow/ramProgress={city.BowWorkshopProgress}/{city.RamProgress}, repair={repairGain}, pressure={ConstructionRules.GetSiegeWorkshopPressureBonusPercent(4)}%, results={results.Count}");
+            preventionGain == 3 && preventionCity.Wood == 0 && preventionCity.Stone == 0 &&
+            ConstructionRules.GetSiegeWorkshopDisasterPreventionBonus(4) == 4,
+            "Workshop level accelerates manufacturing and improves scheduled defense and disaster-prevention engineering",
+            $"build={build.Success}, manufacture={manufacture.Success}, scheduled={constructionScheduled}/{manufacturingScheduled}, bow/ramProgress={city.BowWorkshopProgress}/{city.RamProgress}, repair={repairGain}, prevention={preventionGain}, results={results.Count}");
     }
 
     private static void RunMarketMonthlySnapshotAndTradeTest()
