@@ -175,6 +175,18 @@
         "zhHant": "下一級：{0}",
         "en": "Next level: {0}"
     },
+    "fmt.horse_pasture_effects": {
+        "zhHant": "目前：馬匹年繁殖率 +{0}%\n下一級：+{1}%",
+        "en": "Current: annual horse breeding +{0}%\nNext level: +{1}%"
+    },
+    "fmt.facility_storage_effects": {
+        "zhHant": "目前 {0} 容量：{1}\n下一級：{2}",
+        "en": "Current {0} capacity: {1}\nNext level: {2}"
+    },
+    "fmt.resource_depot_effects": {
+        "zhHant": "目前木材／金屬／石材容量：各 {0}\n下一級：各 {1}",
+        "en": "Current Wood/Metal/Stone capacity: {0} each\nNext level: {1} each"
+    },
     "fmt.internal_affairs_siege_workshop_effects": {
         "zhHant": "{0}｜完成後：{1}",
         "en": "{0} | On completion: {1}"

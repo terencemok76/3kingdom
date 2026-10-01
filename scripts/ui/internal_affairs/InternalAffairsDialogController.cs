@@ -402,19 +402,22 @@ internal sealed class InternalAffairsDialogController : FloatingOverlayControlle
             }
         }
 
+        var buildDescription = city != null &&
+                               jobType == InternalAffairsJobType.Construction &&
+                               ConstructionRules.IsFacilityProject(projectType) &&
+                               ConstructionRules.GetLevel(city, projectType) <= 0
+            ? _context.Localization?.FormatFacilityTooltip(city, projectType) ?? string.Empty
+            : string.Empty;
         var optionText = resourceCost.IsEmpty || _context.Localization == null
             ? actionText
-            : projectType == ConstructionProjectType.SiegeWorkshop &&
-              jobType == InternalAffairsJobType.Construction &&
-              city != null &&
-              ConstructionRules.GetLevel(city, projectType) <= 0
+            : !string.IsNullOrWhiteSpace(buildDescription)
                 ? _context.Localization.Format(
                     "fmt.construction_project_material_cost_description",
                     actionText,
                     resourceCost.Wood,
                     resourceCost.Metal,
                     resourceCost.Stone,
-                    _context.Localization.T("ui.siege_workshop_unbuilt_tooltip"))
+                    buildDescription)
                 : _context.Localization.Format("fmt.construction_project_material_cost", actionText, resourceCost.Wood, resourceCost.Metal, resourceCost.Stone);
         _constructionProjectOption.AddItem(optionText);
         _constructionProjectOption.SetItemMetadata(_constructionProjectOption.ItemCount - 1, (int)projectType);

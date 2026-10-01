@@ -27,6 +27,30 @@
     "zhHant": "建成後可製造軍事裝備，並可徵募工兵。",
     "en": "Build one to manufacture military equipment and recruit engineers."
   },
+  "ui.bow_workshop_unbuilt_tooltip": {
+    "zhHant": "建成後可徵募弩兵。",
+    "en": "Build one to recruit crossbow troops."
+  },
+  "ui.bow_workshop_built_tooltip": {
+    "zhHant": "可徵募弩兵。",
+    "en": "Can recruit crossbow troops."
+  },
+  "ui.horse_pasture_unbuilt_tooltip": {
+    "zhHant": "建成後每級提高馬匹年繁殖率 5%。",
+    "en": "Each level increases annual horse breeding by 5%."
+  },
+  "ui.horse_stable_unbuilt_tooltip": {
+    "zhHant": "建成後每級增加馬匹容量 200。",
+    "en": "Each level increases horse capacity by 200."
+  },
+  "ui.granary_unbuilt_tooltip": {
+    "zhHant": "建成後每級增加糧食容量 5,000。",
+    "en": "Each level increases food capacity by 5,000."
+  },
+  "ui.resource_depot_unbuilt_tooltip": {
+    "zhHant": "建成後每級增加木材、金屬與石材容量各 500。",
+    "en": "Each level increases Wood, Metal, and Stone capacity by 500 each."
+  },
   "construction_project.bow_workshop": {
     "zhHant": "弓坊",
     "en": "Bow Shop"

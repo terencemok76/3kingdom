@@ -296,6 +296,33 @@ public class LocalizationService
         return $"{FormatSiegeWorkshopEffects(level)}\n{Format("fmt.siege_workshop_next_effects", FormatSiegeWorkshopEffects(level + 1))}";
     }
 
+    public string FormatFacilityTooltip(CityData city, ConstructionProjectType projectType)
+    {
+        var level = Math.Max(0, ConstructionRules.GetLevel(city, projectType));
+        if (level <= 0)
+        {
+            return T(projectType switch
+            {
+                ConstructionProjectType.BowWorkshop => "ui.bow_workshop_unbuilt_tooltip",
+                ConstructionProjectType.HorsePasture => "ui.horse_pasture_unbuilt_tooltip",
+                ConstructionProjectType.HorseStable => "ui.horse_stable_unbuilt_tooltip",
+                ConstructionProjectType.Granary => "ui.granary_unbuilt_tooltip",
+                ConstructionProjectType.ResourceDepot => "ui.resource_depot_unbuilt_tooltip",
+                _ => "ui.none"
+            });
+        }
+
+        return projectType switch
+        {
+            ConstructionProjectType.BowWorkshop => T("ui.bow_workshop_built_tooltip"),
+            ConstructionProjectType.HorsePasture => Format("fmt.horse_pasture_effects", level * 5, (level + 1) * 5),
+            ConstructionProjectType.HorseStable => Format("fmt.facility_storage_effects", T("ui.horse"), MarketRules.GetCapacity(city, MarketProductType.Horse), MarketRules.GetCapacity(city, MarketProductType.Horse) + 200),
+            ConstructionProjectType.Granary => Format("fmt.facility_storage_effects", T("ui.food"), MarketRules.GetCapacity(city, MarketProductType.Food), MarketRules.GetCapacity(city, MarketProductType.Food) + 5000),
+            ConstructionProjectType.ResourceDepot => Format("fmt.resource_depot_effects", MarketRules.GetCapacity(city, MarketProductType.Wood), MarketRules.GetCapacity(city, MarketProductType.Wood) + 500),
+            _ => string.Empty
+        };
+    }
+
     public string FormatStorageAmount(CityData city, MarketProductType product) =>
         Format("fmt.storage_amount", MarketRules.GetAmount(city, product), MarketRules.GetCapacity(city, product));
 
