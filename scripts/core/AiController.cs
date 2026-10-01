@@ -443,7 +443,7 @@ public class AiController
                 cityId,
                 internalAffairsOfficerId,
                 internalAffairsJob.Value,
-                internalAffairsJob.Value == InternalAffairsJobType.Survey ? 1 : 3,
+                ShouldUseSingleMonthEquipmentMaterialJob(city, internalAffairsJob.Value, siegeEquipmentPlan) ? 1 : 3,
                 constructionProjectType));
             availableOfficerIds.Remove(internalAffairsOfficerId);
             if (searchOfficerId == internalAffairsOfficerId)
@@ -864,6 +864,11 @@ public class AiController
             world.InternalAffairsSchedules
                 .Where(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.CityId == city.Id)
                 .Select(schedule => schedule.JobType));
+        var awaitingEquipmentMaterials = siegeEquipmentPlan.IsValid &&
+                                        !AiConstructionRules.HasReadySiegeEquipment(city, siegeEquipmentPlan.ProjectType) &&
+                                        !ConstructionRules.CanAffordResourceCost(city, ConstructionRules.GetResourceCost(siegeEquipmentPlan.ProjectType));
+        var canExtractForEquipment = awaitingEquipmentMaterials && ResourceRules.HasExtractableResource(city);
+        var canSurveyForEquipment = awaitingEquipmentMaterials && !canExtractForEquipment && ResourceRules.HasSurveyableResource(world, city);
 
         var candidates = new (InternalAffairsJobType JobType, int Score)[]
         {
@@ -872,9 +877,9 @@ public class AiController
             (InternalAffairsJobType.Defend, city.Defense),
             (InternalAffairsJobType.WaterControl, city.DisasterPrevention),
             (InternalAffairsJobType.Construction, city.Commercial + city.Defense - (developmentPlan == AiCityDevelopmentPlan.None ? 0 : 30)),
-            (InternalAffairsJobType.Manufacturing, siegeEquipmentPlan.IsValid && !AiConstructionRules.HasReadySiegeEquipment(city, siegeEquipmentPlan.ProjectType) ? -40 : int.MaxValue),
-            (InternalAffairsJobType.Extraction, ResourceRules.GetExtractionPriority(city)),
-            (InternalAffairsJobType.Survey, ResourceRules.GetSurveyPriority(world, city))
+            (InternalAffairsJobType.Manufacturing, siegeEquipmentPlan.IsValid && !AiConstructionRules.HasReadySiegeEquipment(city, siegeEquipmentPlan.ProjectType) && !awaitingEquipmentMaterials ? -40 : int.MaxValue),
+            (InternalAffairsJobType.Extraction, canExtractForEquipment ? -60 : ResourceRules.GetExtractionPriority(city)),
+            (InternalAffairsJobType.Survey, canSurveyForEquipment ? -50 : ResourceRules.GetSurveyPriority(world, city))
         };
 
         return candidates
@@ -883,6 +888,22 @@ public class AiController
             .ThenBy(candidate => (int)candidate.JobType)
             .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
             .FirstOrDefault();
+    }
+
+    private static bool ShouldUseSingleMonthEquipmentMaterialJob(
+        CityData city,
+        InternalAffairsJobType jobType,
+        AiSiegeEquipmentPlan siegeEquipmentPlan)
+    {
+        if (jobType == InternalAffairsJobType.Survey)
+        {
+            return true;
+        }
+
+        return jobType == InternalAffairsJobType.Extraction &&
+               siegeEquipmentPlan.IsValid &&
+               !AiConstructionRules.HasReadySiegeEquipment(city, siegeEquipmentPlan.ProjectType) &&
+               !ConstructionRules.CanAffordResourceCost(city, ConstructionRules.GetResourceCost(siegeEquipmentPlan.ProjectType));
     }
 
     private static SiegeEngineAllocationData CreateSiegeEquipmentAllocation(ConstructionProjectType projectType)

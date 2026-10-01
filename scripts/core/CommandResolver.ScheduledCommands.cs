@@ -1131,6 +1131,9 @@ public partial class CommandResolver
             return failedResult;
         }
 
+        // A captured city never inherits its former owner's work orders.  This
+        // applies equally to player and AI cities, including paused schedules.
+        world.InternalAffairsSchedules.RemoveAll(schedule => schedule.CityId == targetCity.Id);
         targetCity.OwnerFactionId = sourceCity.OwnerFactionId;
         ClearCityPrefectAuthorization(targetCity);
         var aiCapturedOfficerResultsAfterVictory = new List<CommandResult>();

@@ -672,6 +672,9 @@ public static class BattleCampaignService
 
         if (attackerWonCity)
         {
+            // Campaign captures use the same ownership rule as normal attacks:
+            // no internal-affairs schedule may survive the change of faction.
+            world.InternalAffairsSchedules.RemoveAll(schedule => schedule.CityId == targetCity.Id);
             targetCity.OwnerFactionId = campaign.AttackerFactionId;
             foreach (var officerId in targetCity.OfficerIds.ToList())
             {

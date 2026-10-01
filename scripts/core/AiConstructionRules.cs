@@ -159,7 +159,6 @@ internal static class AiConstructionRules
         }
 
         var chancellor = GetChancellor(world, faction);
-        var sourceGovernor = GetCityGovernor(world, productionCity);
         var candidates = productionCity.ConnectedCityIds
             .Select(world.GetCity)
             .Where(target => target != null && target.OwnerFactionId == productionCity.OwnerFactionId && IsFrontlineCity(world, target))
@@ -168,11 +167,16 @@ internal static class AiConstructionRules
             {
                 Target = target,
                 Project = ChooseNeededSiegeEquipment(world, target),
-                Score = ScoreSiegeEquipmentPlan(world, target, strategist, chancellor, sourceGovernor)
+                ProductionCity = ChooseBestSiegeEquipmentProductionCity(world, target, productionCity.OwnerFactionId, ChooseNeededSiegeEquipment(world, target))
             })
-            .Where(candidate => candidate.Project != ConstructionProjectType.None && candidate.Score >= 150)
-            .Where(candidate => HasReadySiegeEquipment(productionCity, candidate.Project) ||
-                                ConstructionRules.CanAffordResourceCost(productionCity, ConstructionRules.GetResourceCost(candidate.Project)))
+            .Where(candidate => candidate.Project != ConstructionProjectType.None && candidate.ProductionCity?.Id == productionCity.Id)
+            .Select(candidate => new
+            {
+                candidate.Target,
+                candidate.Project,
+                Score = ScoreSiegeEquipmentPlan(world, candidate.Target, strategist, chancellor, GetCityGovernor(world, productionCity))
+            })
+            .Where(candidate => candidate.Score >= 150)
             .OrderByDescending(candidate => candidate.Score)
             .ThenBy(candidate => candidate.Target.Id)
             .FirstOrDefault();
@@ -257,6 +261,45 @@ internal static class AiConstructionRules
         return target.SiegeTroops >= 200 && target.LadderCount < 1
             ? ConstructionProjectType.Ladder
             : ConstructionProjectType.None;
+    }
+
+    // One frontline request has one designated safe workshop.  This keeps the
+    // strategic loop legible: only the selected city gathers materials or
+    // manufactures, then the completed engine moves to the frontline.
+    private static CityData? ChooseBestSiegeEquipmentProductionCity(
+        WorldState world,
+        CityData target,
+        int factionId,
+        ConstructionProjectType projectType)
+    {
+        if (projectType == ConstructionProjectType.None)
+        {
+            return null;
+        }
+
+        return world.Cities
+            .Where(city => city.OwnerFactionId == factionId &&
+                           city.SiegeWorkshopLevel > 0 &&
+                           !IsFrontlineCity(world, city) &&
+                           city.ConnectedCityIds.Contains(target.Id))
+            .OrderByDescending(city => ScoreSiegeEquipmentProductionCity(world, city, projectType))
+            .ThenBy(city => city.Id)
+            .FirstOrDefault();
+    }
+
+    private static int ScoreSiegeEquipmentProductionCity(
+        WorldState world,
+        CityData city,
+        ConstructionProjectType projectType)
+    {
+        var resourceCost = ConstructionRules.GetResourceCost(projectType);
+        var coveredMaterials = System.Math.Min(city.Wood, resourceCost.Wood) +
+                               System.Math.Min(city.Metal, resourceCost.Metal) +
+                               System.Math.Min(city.Stone, resourceCost.Stone);
+        var governorPolitics = GetCityGovernor(world, city)?.Politics ?? 40;
+        return (HasReadySiegeEquipment(city, projectType) ? 1000 : 0) +
+               (ConstructionRules.CanAffordResourceCost(city, resourceCost) ? 500 : 0) +
+               coveredMaterials + city.SiegeWorkshopLevel * 20 + governorPolitics / 3;
     }
 
     private static int ScoreSiegeEquipmentPlan(

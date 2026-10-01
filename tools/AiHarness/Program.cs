@@ -40,6 +40,13 @@ internal static class Program
             return;
         }
 
+        if (args.Contains("--attack-resolution-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunAttackResolutionTest();
+            PrintSummary();
+            return;
+        }
+
         if (args.Contains("--resource-depot-only", StringComparer.OrdinalIgnoreCase))
         {
             RunResourceDepotStorageTest();
@@ -1119,12 +1126,24 @@ internal static class Program
         world.Officers.Add(TestHelpers.Officer(201, "A1", 2, 90, 60, 60, 90));
         world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
         world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201 }));
+        world.InternalAffairsSchedules.Add(new InternalAffairsScheduleData
+        {
+            CityId = 1,
+            JobType = InternalAffairsJobType.Manufacturing,
+            ConstructionProjectType = ConstructionProjectType.Ram,
+            RemainingMonths = 1,
+            TotalMonths = 1,
+            State = InternalAffairsScheduleState.Paused
+        });
         var services = CreateServices(world);
 
         _ = services.Ai.RunSingleCityDecision(2, 2);
         _ = services.Turn.ResolvePendingCommands(services.Resolver);
 
-        Assert(world.GetCity(1)?.OwnerFactionId == 2, "AI attack resolution", $"owner={world.GetCity(1)?.OwnerFactionId}");
+        Assert(world.GetCity(1)?.OwnerFactionId == 2 &&
+               !world.InternalAffairsSchedules.Any(schedule => schedule.CityId == 1),
+            "AI attack resolution clears captured-city schedules",
+            $"owner={world.GetCity(1)?.OwnerFactionId}, schedules={world.InternalAffairsSchedules.Count}");
     }
 
     private static void RunAttackRulerDeathPlayerSuccessionPendingTest()
@@ -1742,6 +1761,42 @@ internal static class Program
             command.Type == CommandType.Move && command.SourceCityId == productionCity.Id && command.TargetCityId == frontlineCity.Id &&
             command.SiegeEngineAllocation.Ram == 1 && command.WoodToSend == 0 && command.MetalToSend == 0 && command.StoneToSend == 0);
 
+        var materialCity = TestHelpers.City(12, "MaterialWorkshop", 1, 1000, 1000, 3000, new[] { 904 }, new[] { 13 });
+        materialCity.SiegeWorkshopLevel = 1;
+        materialCity.Wood = 40;
+        materialCity.ResourceDeposits.Add(new CityResourceDepositData
+        {
+            Type = StrategicResourceType.Metal,
+            MonthlyYield = 30,
+            RemainingReserve = 300
+        });
+        var materialFrontline = TestHelpers.City(13, "MaterialFrontline", 1, 1000, 1000, 500, Array.Empty<int>(), new[] { 12, 14 });
+        var materialEnemy = TestHelpers.City(14, "MaterialEnemy", 2, 1000, 1000, 500, Array.Empty<int>(), new[] { 13 });
+        materialEnemy.Defense = 85;
+        var materialOfficer = new OfficerData { Id = 904, CityId = materialCity.Id, Intelligence = 70, Politics = 80 };
+        world.Cities.AddRange(new[] { materialCity, materialFrontline, materialEnemy });
+        world.Officers.Add(materialOfficer);
+        playerFaction.OfficerIds.Add(materialOfficer.Id);
+        _ = logisticsServices.Ai.RunSingleCityDecision(playerFaction.Id, materialCity.Id);
+        var materialExtractionScheduled = world.InternalAffairsSchedules.Any(schedule =>
+            schedule.CityId == materialCity.Id && schedule.JobType == InternalAffairsJobType.Extraction && schedule.RemainingMonths == 1);
+
+        var poorWorkshop = TestHelpers.City(15, "PoorWorkshop", 1, 1000, 1000, 3000, Array.Empty<int>(), new[] { 17 });
+        poorWorkshop.SiegeWorkshopLevel = 1;
+        poorWorkshop.Wood = 40;
+        var richWorkshop = TestHelpers.City(16, "RichWorkshop", 1, 1000, 1000, 3000, Array.Empty<int>(), new[] { 17 });
+        richWorkshop.SiegeWorkshopLevel = 2;
+        richWorkshop.Wood = 100;
+        richWorkshop.Metal = 100;
+        var coordinatedFrontline = TestHelpers.City(17, "CoordinatedFrontline", 1, 1000, 1000, 500, Array.Empty<int>(), new[] { 15, 16, 18 });
+        var coordinatedEnemy = TestHelpers.City(18, "CoordinatedEnemy", 2, 1000, 1000, 500, Array.Empty<int>(), new[] { 17 });
+        coordinatedEnemy.Defense = 85;
+        world.Cities.AddRange(new[] { poorWorkshop, richWorkshop, coordinatedFrontline, coordinatedEnemy });
+        var poorWorkshopPlan = AiConstructionRules.ChooseSiegeEquipmentPlan(world, poorWorkshop, playerFaction);
+        var richWorkshopPlan = AiConstructionRules.ChooseSiegeEquipmentPlan(world, richWorkshop, playerFaction);
+        var coordinatedProduction = !poorWorkshopPlan.IsValid && richWorkshopPlan.IsValid &&
+                                    richWorkshopPlan.TargetCityId == coordinatedFrontline.Id && richWorkshopPlan.ProjectType == ConstructionProjectType.Ram;
+
         var horseWorld = TestHelpers.World(month: 1);
         var horseCity = TestHelpers.City(3, "HorseCity", 1, 1000, 1000, 0, Array.Empty<int>(), Array.Empty<int>());
         horseCity.Horses = 399;
@@ -1762,9 +1817,10 @@ internal static class Program
             strategistPlan == AiCityDevelopmentPlan.Supply && strategistProject == ConstructionProjectType.Granary && basicPlan == AiCityDevelopmentPlan.None &&
             equipmentPlan.IsValid && equipmentPlan.TargetCityId == frontlineCity.Id && equipmentPlan.ProjectType == ConstructionProjectType.Ram &&
             manufacturingResult.Success && manufacturingScheduled && deliveryResult.Success && deliveryScheduled &&
+            materialExtractionScheduled && coordinatedProduction &&
             horseCity.Horses == 400 && constrainedBirths == 1,
             "Fixed storage capacity, shared overflow loss, stable-limited horse births, AI facility upgrades, strategist plans, and siege-equipment logistics",
-            $"player food/horse={playerCity.Food}/{playerCity.Horses}, raw={playerCity.Metal}/{playerCity.Wood}/{playerCity.Stone}, ai={aiCity.Metal}/{aiCity.Wood}/{aiCity.Stone}, choices=depot:{aiDepotChosen}/granary:{aiGranaryChosen}/stable:{aiHorseStableChosen}/pasture:{aiPastureChosen}/workshop:{aiWorkshopChosen}, plans=strategist:{strategistPlan}/{strategistProject}, equipment:{equipmentPlan.ProjectType}->{equipmentPlan.TargetCityId}/manufacturing:{manufacturingScheduled}/delivery:{deliveryScheduled}, basic:{basicPlan}, births={constrainedBirths}, loss={playerReport?.StorageLoss}");
+            $"player food/horse={playerCity.Food}/{playerCity.Horses}, raw={playerCity.Metal}/{playerCity.Wood}/{playerCity.Stone}, ai={aiCity.Metal}/{aiCity.Wood}/{aiCity.Stone}, choices=depot:{aiDepotChosen}/granary:{aiGranaryChosen}/stable:{aiHorseStableChosen}/pasture:{aiPastureChosen}/workshop:{aiWorkshopChosen}, plans=strategist:{strategistPlan}/{strategistProject}, equipment:{equipmentPlan.ProjectType}->{equipmentPlan.TargetCityId}/manufacturing:{manufacturingScheduled}/delivery:{deliveryScheduled}/extraction:{materialExtractionScheduled}/coordinated:{coordinatedProduction}, basic:{basicPlan}, births={constrainedBirths}, loss={playerReport?.StorageLoss}");
     }
 
     private static void RunResourceGatedConstructionTest()
