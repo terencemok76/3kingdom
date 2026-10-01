@@ -111,6 +111,30 @@
         "zhHant": "月結淨變化 {0}",
         "en": "Monthly net change {0}"
     },
+    "fmt.monthly_advisor_review": {
+        "zhHant": "{0}・{1}回顧：{2}",
+        "en": "{0} · {1} review: {2}"
+    },
+    "fmt.monthly_advisor_storage_loss": {
+        "zhHant": "{0}因滿倉損耗了 {1}；若下月仍會採集，先擴建對應倉庫，否則把採集人手轉往更缺的原料。",
+        "en": "{0} lost {1} to full storage; expand the matching storage before gathering again, or redirect labor to scarcer materials."
+    },
+    "fmt.monthly_advisor_food_pressure": {
+        "zhHant": "{0}的駐軍消耗為 {1:N0}，糧食本月變化 {2}；若要持續出征，先補足軍糧與後備。",
+        "en": "{0}'s garrison consumed {1:N0}, leaving monthly food change at {2}; replenish provisions and reserves before sustained campaigning."
+    },
+    "fmt.monthly_advisor_city_event": {
+        "zhHant": "{0}受{1}影響；先以防災或內政恢復受損項目，再評估前線投入。",
+        "en": "{0} was hit by {1}; restore the damaged area through prevention or domestic affairs before committing more to the front."
+    },
+    "fmt.monthly_advisor_resource_opportunity": {
+        "zhHant": "{0}本月新增 {1} {2}；可把這批原料安排到已選定的建設、修繕或軍械計畫。",
+        "en": "{0} gained {1} {2} this month; assign it to a chosen build, repair, or siege-equipment plan."
+    },
+    "fmt.monthly_advisor_stable": {
+        "zhHant": "{0}本月沒有迫切的補給缺口；可按既定城市定位推進下一項內政。",
+        "en": "{0} has no urgent supply gap this month; continue the next domestic task that fits its city role."
+    },
     "fmt.internal_affairs_survey_success": {
         "zhHant": " 勘探成功：發現新的{0}礦脈，儲量 {1:N0}（第 {2} 次勘探）。",
         "en": " Survey succeeded: discovered a new {0} vein with {1:N0} reserve (survey {2})."

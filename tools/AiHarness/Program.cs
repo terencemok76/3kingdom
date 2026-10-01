@@ -18,6 +18,7 @@ internal static class Program
             RunBattleCampaignLifecycleTest();
             RunBattleCampaignReinforcementTest();
             RunDefenseReinforcementRequestTest();
+            RunAlliedDefenseReinforcementRequestTest();
             RunAiCampaignReinforcementTest();
             RunBattleCampaignReorganizationTest();
             RunDefenderPlanOverrideTest();
@@ -53,6 +54,15 @@ internal static class Program
             RunResourceGatedConstructionTest();
             RunConstructionAndManufacturingScheduleTest();
             RunMarketMonthlySnapshotAndTradeTest();
+            RunMonthlyAdvisorRetrospectiveTest();
+            PrintSummary();
+            return;
+        }
+
+        if (args.Contains("--monthly-advisor-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunMonthlyAdvisorRetrospectiveTest();
+            RunMonthlyAdvisorSpeakerSelectionTest();
             PrintSummary();
             return;
         }
@@ -303,6 +313,67 @@ internal static class Program
             BattleCampaignService.IsOfficerCommitted(world, officer.Id),
             "Defense request dispatches on campaign day one and locks its source",
             $"status={order?.Status}, eta={order?.RemainingBattleDays}/{order?.RouteLinks * 2}, troops={troopsBefore}->{source.Troops}, committed={BattleCampaignService.IsOfficerCommitted(world, officer.Id)}");
+    }
+
+    private static void RunAlliedDefenseReinforcementRequestTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var allySource = TestHelpers.City(4, "AllyReserve", 3, 1500, 4000, 4000, new[] { 301 }, new[] { 2 });
+        var allyOfficer = TestHelpers.Officer(301, "AllyOfficer", allySource.Id, strength: 80, combat: 80);
+        world.Cities.Add(allySource);
+        world.Officers.Add(allyOfficer);
+        world.Factions.Add(TestHelpers.Faction(3, "Ally", false, allyOfficer.Id, new[] { allyOfficer.Id }));
+        world.DiplomacyRelations.Add(new DiplomacyRelationData
+        {
+            FactionAId = 2,
+            FactionBId = 3,
+            Status = DiplomacyStatusType.Alliance,
+            RemainingMonths = 4,
+            RelationScore = 50
+        });
+
+        var attack = CreateBattleCampaignAttack();
+        attack.DefenseReinforcementRequests.Add(new DefenseReinforcementRequestData
+        {
+            SourceCityId = allySource.Id,
+            IsAllianceRequest = true,
+            RequestedTroops = 600
+        });
+        var troopsBefore = allySource.Troops;
+        var campaign = BattleCampaignService.CreateCampaign(world, attack, DefenderBattlePlan.CityDefense);
+        BattleCampaignService.DispatchDefenseReinforcementRequests(world, campaign, attack);
+        var invitation = campaign.Invitations.SingleOrDefault();
+        var order = campaign.Reinforcements.SingleOrDefault();
+
+        var declinedWorld = CreateBattleCampaignWorld();
+        var declinedSource = TestHelpers.City(4, "NeutralReserve", 3, 1500, 4000, 4000, new[] { 301 }, new[] { 2 });
+        declinedWorld.Cities.Add(declinedSource);
+        declinedWorld.Officers.Add(TestHelpers.Officer(301, "NeutralOfficer", declinedSource.Id, strength: 80, combat: 80));
+        declinedWorld.Factions.Add(TestHelpers.Faction(3, "Neutral", false, 301, new[] { 301 }));
+        var declinedAttack = CreateBattleCampaignAttack();
+        declinedAttack.DefenseReinforcementRequests.Add(new DefenseReinforcementRequestData
+        {
+            SourceCityId = declinedSource.Id,
+            IsAllianceRequest = true,
+            RequestedTroops = 600
+        });
+        var declinedCampaign = BattleCampaignService.CreateCampaign(declinedWorld, declinedAttack, DefenderBattlePlan.CityDefense);
+        BattleCampaignService.DispatchDefenseReinforcementRequests(declinedWorld, declinedCampaign, declinedAttack);
+        var declinedInvitation = declinedCampaign.Invitations.SingleOrDefault();
+
+        Assert(
+            invitation?.Status == BattleInvitationStatus.Accepted &&
+            invitation.RequestedSourceCityId == allySource.Id &&
+            order?.Status == ReinforcementStatus.Traveling &&
+            order.Side == CampaignBattleSide.Defender &&
+            order.SourceCityId == allySource.Id &&
+            order.Teams.Count > 0 &&
+            allySource.Troops < troopsBefore &&
+            allySource.Troops >= BattleCampaignService.MinimumCityGarrison &&
+            declinedInvitation?.Status == BattleInvitationStatus.Declined &&
+            declinedCampaign.Reinforcements.Count == 0,
+            "Allied defense request honors its selected source and resolves accept or decline",
+            $"accepted={invitation?.Status}, source={invitation?.RequestedSourceCityId}/{order?.SourceCityId}, status={order?.Status}, teams={order?.Teams.Count ?? 0}, troops={troopsBefore}->{allySource.Troops}, declined={declinedInvitation?.Status}, declinedOrders={declinedCampaign.Reinforcements.Count}");
     }
 
     private static void RunAiCampaignReinforcementTest()
@@ -1935,6 +2006,66 @@ internal static class Program
             buy.Success && sell.Success && city.Food == 1000 && city.Gold > 0,
             "Monthly market snapshot and buy/sell use the shared market rules",
             $"previous/current={city.PreviousFoodBuyPrice}/{refreshedPrice}, buy={buy.Success}, sell={sell.Success}, food={city.Food}, gold={city.Gold}");
+    }
+
+    private static void RunMonthlyAdvisorRetrospectiveTest()
+    {
+        MonthlyAdvisorRetrospectiveSummary? Select(MonthlyCityEconomyReport report, MonthlyCityEvent? cityEvent = null)
+        {
+            var result = new MonthlyEconomyResult();
+            result.PlayerCityEconomyReports.Add(report);
+            if (cityEvent != null)
+            {
+                result.PlayerCityEvents.Add(cityEvent);
+            }
+            return MonthlyAdvisorRetrospectiveRules.SelectPriority(result);
+        }
+
+        var storage = Select(new MonthlyCityEconomyReport { CityId = 1, FoodCapacity = 100, FoodAmount = 90, StorageLoss = new MarketStorageLoss(10, 0, 0, 0, 0) });
+        var cityEvent = Select(new MonthlyCityEconomyReport { CityId = 2, FoodCapacity = 100, FoodAmount = 90 }, new MonthlyCityEvent { CityId = 2, FoodDelta = -10 });
+        var food = Select(new MonthlyCityEconomyReport { CityId = 3, FoodCapacity = 100, FoodAmount = 20, FoodDelta = -10, FoodUpkeep = 5 });
+        var resource = Select(new MonthlyCityEconomyReport { CityId = 4, FoodCapacity = 100, FoodAmount = 90, MetalDelta = 25 });
+        var stable = Select(new MonthlyCityEconomyReport { CityId = 5, FoodCapacity = 100, FoodAmount = 90 });
+
+        Assert(
+            storage?.Focus == MonthlyAdvisorRetrospectiveFocus.StorageLoss &&
+            cityEvent?.Focus == MonthlyAdvisorRetrospectiveFocus.CityEvent &&
+            food?.Focus == MonthlyAdvisorRetrospectiveFocus.FoodPressure &&
+            resource?.Focus == MonthlyAdvisorRetrospectiveFocus.ResourceOpportunity &&
+            stable?.Focus == MonthlyAdvisorRetrospectiveFocus.Stable,
+            "Monthly advisor retrospective prioritizes the most actionable causal outcome",
+            $"storage={storage?.Focus}, event={cityEvent?.Focus}, food={food?.Focus}, resource={resource?.Focus}, stable={stable?.Focus}");
+    }
+
+    private static void RunMonthlyAdvisorSpeakerSelectionTest()
+    {
+        var world = TestHelpers.World();
+        var ruler = TestHelpers.Officer(101, "Ruler", 1, intelligence: 70);
+        var chief = TestHelpers.Officer(102, "Chief", 1, intelligence: 80);
+        var strategist = TestHelpers.Officer(103, "Strategist", 1, intelligence: 85);
+        strategist.Appointments.Add(OfficerAppointmentRules.Strategist);
+        var substitute = TestHelpers.Officer(104, "Substitute", 1, intelligence: 90);
+        ruler.Politics = 70;
+        chief.Politics = 70;
+        strategist.Politics = 75;
+        substitute.Politics = 80;
+        world.Officers.AddRange(new[] { ruler, chief, strategist, substitute });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, ruler.Id, new[] { ruler.Id, chief.Id, strategist.Id, substitute.Id }));
+        var faction = world.GetFaction(1)!;
+        faction.ChiefStrategistOfficerId = chief.Id;
+
+        var chiefSelection = MonthlyAdvisorSpeakerRules.Select(world, faction.Id);
+        faction.ChiefStrategistOfficerId = 0;
+        var strategistSelection = MonthlyAdvisorSpeakerRules.Select(world, faction.Id);
+        strategist.Appointments.Clear();
+        var officerSelection = MonthlyAdvisorSpeakerRules.Select(world, faction.Id);
+
+        Assert(
+            chiefSelection.OfficerId == chief.Id && chiefSelection.Role == MonthlyAdvisorSpeakerRole.ChiefStrategist &&
+            strategistSelection.OfficerId == strategist.Id && strategistSelection.Role == MonthlyAdvisorSpeakerRole.Strategist &&
+            officerSelection.OfficerId == substitute.Id && officerSelection.Role == MonthlyAdvisorSpeakerRole.Officer,
+            "Monthly advisor speaker labels chief strategist, strategist, and suitable officer correctly",
+            $"chief={chiefSelection.OfficerId}/{chiefSelection.Role}, strategist={strategistSelection.OfficerId}/{strategistSelection.Role}, officer={officerSelection.OfficerId}/{officerSelection.Role}");
     }
 
     private static void RunMonthlyCityEventsTest()

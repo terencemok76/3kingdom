@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
@@ -62,6 +63,34 @@ public partial class HudController
         var close = new Button { Text = "×", CustomMinimumSize = new Vector2(38, 32) };
         close.Pressed += CloseMonthlyEconomyReport;
         header.AddChild(close);
+
+        var retrospective = BuildMonthlyAdvisorRetrospective(result, out var advisor);
+        if (!string.IsNullOrEmpty(retrospective))
+        {
+            var reviewRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            reviewRow.AddThemeConstantOverride("separation", 10);
+            if (advisor != null && BuildOfficerPortraitTexture(advisor.Id) is { } portraitTexture)
+            {
+                reviewRow.AddChild(new TextureRect
+                {
+                    Texture = portraitTexture,
+                    CustomMinimumSize = new Vector2(64, 64),
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered
+                });
+            }
+
+            var review = new Label
+            {
+                Text = retrospective,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            review.AddThemeColorOverride("font_color", new Color(0.84f, 0.9f, 0.72f));
+            reviewRow.AddChild(review);
+            content.AddChild(reviewRow);
+        }
 
         var scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         content.AddChild(scroll);
@@ -176,6 +205,96 @@ public partial class HudController
 
         return card;
     }
+
+    private string BuildMonthlyAdvisorRetrospective(MonthlyEconomyResult result, out OfficerData? advisor)
+    {
+        advisor = null;
+        var world = _turnManager?.World;
+        var summary = MonthlyAdvisorRetrospectiveRules.SelectPriority(result);
+        if (world == null || summary == null)
+        {
+            return string.Empty;
+        }
+
+        var city = world.GetCity(summary.CityId);
+        var report = result.PlayerCityEconomyReports.FirstOrDefault(item => item.CityId == summary.CityId);
+        if (city == null || report == null)
+        {
+            return string.Empty;
+        }
+
+        var speakerSelection = MonthlyAdvisorSpeakerRules.Select(world, city.OwnerFactionId);
+        advisor = world.GetOfficer(speakerSelection.OfficerId);
+        var speaker = advisor != null ? _localization!.GetOfficerName(advisor) : _localization!.T("ui.chief_strategist");
+        var speakerTitle = GetMonthlyAdvisorTitle(speakerSelection.Role);
+        var cityName = _localization!.GetCityName(city);
+        var advice = summary.Focus switch
+        {
+            MonthlyAdvisorRetrospectiveFocus.StorageLoss => _localization.Format(
+                "fmt.monthly_advisor_storage_loss", cityName, BuildStorageLossList(report.StorageLoss)),
+            MonthlyAdvisorRetrospectiveFocus.CityEvent => BuildMonthlyAdvisorEventAdvice(cityName, summary.CityId, result),
+            MonthlyAdvisorRetrospectiveFocus.FoodPressure => _localization.Format(
+                "fmt.monthly_advisor_food_pressure", cityName, report.FoodUpkeep, FormatSignedNumber(report.FoodDelta)),
+            MonthlyAdvisorRetrospectiveFocus.ResourceOpportunity => _localization.Format(
+                "fmt.monthly_advisor_resource_opportunity", cityName, GetLargestRawMaterialName(report), FormatSignedNumber(GetLargestRawMaterialGain(report))),
+            _ => _localization.Format("fmt.monthly_advisor_stable", cityName)
+        };
+        return _localization.Format("fmt.monthly_advisor_review", speaker, speakerTitle, advice);
+    }
+
+    private string GetMonthlyAdvisorTitle(MonthlyAdvisorSpeakerRole role) => role switch
+    {
+        MonthlyAdvisorSpeakerRole.ChiefStrategist => _localization!.T("ui.chief_strategist"),
+        MonthlyAdvisorSpeakerRole.Strategist => _localization!.GetAppointmentName(OfficerAppointmentRules.Strategist),
+        _ => string.Empty
+    };
+
+    private string BuildStorageLossList(MarketStorageLoss loss)
+    {
+        var items = new List<string>();
+        AddStorageLossItem(items, "ui.monthly_report_food", loss.Food);
+        AddStorageLossItem(items, "ui.monthly_report_horse", loss.Horse);
+        AddStorageLossItem(items, "ui.monthly_report_wood", loss.Wood);
+        AddStorageLossItem(items, "ui.monthly_report_metal", loss.Metal);
+        AddStorageLossItem(items, "ui.monthly_report_stone", loss.Stone);
+        return string.Join("、", items);
+    }
+
+    private void AddStorageLossItem(List<string> items, string resourceKey, int loss)
+    {
+        if (loss > 0)
+        {
+            items.Add($"{_localization!.T(resourceKey)} {loss:N0}");
+        }
+    }
+
+    private string BuildMonthlyAdvisorEventAdvice(string cityName, int cityId, MonthlyEconomyResult result)
+    {
+        var cityEvent = result.PlayerCityEvents.FirstOrDefault(item => item.CityId == cityId &&
+            (item.GoldDelta < 0 || item.FoodDelta < 0 || item.LoyaltyDelta < 0 || item.FarmDelta < 0 ||
+             item.DefenseDelta < 0 || item.PopulationDelta < 0 || item.TroopDelta < 0));
+        if (cityEvent == null)
+        {
+            return _localization!.Format("fmt.monthly_advisor_stable", cityName);
+        }
+
+        return _localization!.Format("fmt.monthly_advisor_city_event", cityName, GetEventDisplayName(cityEvent.EventType));
+    }
+
+    private string GetLargestRawMaterialName(MonthlyCityEconomyReport report)
+    {
+        if (report.MetalDelta >= report.WoodDelta && report.MetalDelta >= report.StoneDelta)
+        {
+            return _localization!.T("ui.monthly_report_metal");
+        }
+
+        return report.WoodDelta >= report.StoneDelta
+            ? _localization!.T("ui.monthly_report_wood")
+            : _localization!.T("ui.monthly_report_stone");
+    }
+
+    private static int GetLargestRawMaterialGain(MonthlyCityEconomyReport report) =>
+        System.Math.Max(report.WoodDelta, System.Math.Max(report.MetalDelta, report.StoneDelta));
 
     private string BuildMonthlyReportReasons(MonthlyCityEconomyReport report, MonthlyEconomyResult monthlyResult)
     {
