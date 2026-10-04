@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Godot;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
@@ -65,17 +66,7 @@ public sealed class MilitaryUiController
             return false;
         }
 
-        var candidateIds = new List<int>();
-        foreach (var targetId in city.ConnectedCityIds)
-        {
-            var target = world.GetCity(targetId);
-            if (target == null || target.OwnerFactionId != city.OwnerFactionId)
-            {
-                continue;
-            }
-
-            candidateIds.Add(target.Id);
-        }
+        var candidateIds = CaravanRouteRules.FindReachableFriendlyCityIds(world, city.Id, city.OwnerFactionId);
 
         if (candidateIds.Count == 0)
         {

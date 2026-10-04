@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
@@ -15,6 +16,16 @@ public partial class HudController
         public DiplomacyStatusType Status { get; init; } = DiplomacyStatusType.Neutral;
         public int RemainingMonths { get; init; }
         public int RelationScore { get; init; }
+    }
+
+    private sealed class LogisticsViewRow
+    {
+        public string Route { get; init; } = string.Empty;
+        public string CurrentCity { get; init; } = string.Empty;
+        public int RemainingMonths { get; init; }
+        public string Cargo { get; init; } = string.Empty;
+        public string Officers { get; init; } = string.Empty;
+        public string Status { get; init; } = string.Empty;
     }
 
     private List<CityData> GetFilteredCities()
@@ -115,6 +126,19 @@ public partial class HudController
     {
         if (_officerListTable == null || _localization == null)
         {
+            return;
+        }
+
+        if (_officerListContentMode == OfficerListContentMode.Logistics)
+        {
+            _officerListTable.Columns = 6;
+            SetViewTableColumn(0, _localization.T("ui.logistics_route"), 280, ViewTableSortField.Name);
+            SetViewTableColumn(1, _localization.T("ui.logistics_current_city"), 140, ViewTableSortField.City);
+            SetViewTableColumn(2, _localization.T("ui.remaining_months"), 100, ViewTableSortField.RemainingMonths);
+            SetViewTableColumn(3, _localization.T("ui.logistics_cargo"), 260, ViewTableSortField.Name);
+            SetViewTableColumn(4, _localization.T("ui.officers"), 160, ViewTableSortField.Name);
+            SetViewTableColumn(5, _localization.T("ui.status"), 120, ViewTableSortField.Status);
+            StretchTrailingViewColumns(6, 3, 280 + 140 + 100);
             return;
         }
 
@@ -489,6 +513,102 @@ public partial class HudController
         row.SetText(1, GetDiplomacyStatusText(relation.Status));
         row.SetText(2, relation.Status == DiplomacyStatusType.Neutral ? "-" : relation.RemainingMonths.ToString());
         row.SetText(3, relation.RelationScore.ToString());
+    }
+
+    private List<LogisticsViewRow> GetActiveLogisticsRows()
+    {
+        if (_turnManager?.World == null || _selectedCity == null || _localization == null)
+        {
+            return new List<LogisticsViewRow>();
+        }
+
+        var factionId = _selectedCity.OwnerFactionId;
+        return _turnManager.World.PendingCommands
+            .Where(command => command.Type == CommandType.Move && command.ActorFactionId == factionId)
+            .OrderBy(command => command.TargetCityId)
+            .ThenBy(command => command.SourceCityId)
+            .Select(command => BuildLogisticsViewRow(command))
+            .Where(row => row != null)
+            .Cast<LogisticsViewRow>()
+            .ToList();
+    }
+
+    private LogisticsViewRow? BuildLogisticsViewRow(PendingCommandData command)
+    {
+        if (_turnManager?.World == null || _localization == null)
+        {
+            return null;
+        }
+
+        var routeCityIds = command.RouteCityIds.Count >= 2
+            ? command.RouteCityIds
+            : CaravanRouteRules.FindFriendlyRoute(_turnManager.World, command.SourceCityId, command.TargetCityId, command.ActorFactionId);
+        if (routeCityIds.Count < 2)
+        {
+            return null;
+        }
+
+        var currentRouteIndex = command.IsTraveling ? command.CurrentRouteIndex : 0;
+        if (currentRouteIndex < 0 || currentRouteIndex >= routeCityIds.Count)
+        {
+            return null;
+        }
+
+        var currentCity = _turnManager.World.GetCity(routeCityIds[currentRouteIndex]);
+        if (currentCity == null)
+        {
+            return null;
+        }
+
+        var routeNames = routeCityIds
+            .Select(cityId => _turnManager.World.GetCity(cityId))
+            .Where(city => city != null)
+            .Select(city => _localization.GetCityName(city!));
+        var cargoParts = new List<string>();
+        void AddCargo(string label, int amount)
+        {
+            if (amount > 0)
+            {
+                cargoParts.Add($"{label} {amount}");
+            }
+        }
+
+        AddCargo(_localization.T("ui.troops"), command.TroopAllocation.Total);
+        AddCargo(_localization.T("ui.gold"), command.GoldToSend);
+        AddCargo(_localization.T("ui.food"), command.FoodToSend);
+        AddCargo(_localization.T("ui.horse"), command.HorsesToSend);
+        AddCargo(_localization.T("ui.wood"), command.WoodToSend);
+        AddCargo(_localization.T("ui.metal"), command.MetalToSend);
+        AddCargo(_localization.T("ui.stone"), command.StoneToSend);
+        AddCargo(_localization.T("battle_equipment.supply_cart"), command.SiegeEngineAllocation.SupplyCart);
+        AddCargo(_localization.T("siege_engine.ram"), command.SiegeEngineAllocation.Ram);
+        AddCargo(_localization.T("siege_engine.catapult"), command.SiegeEngineAllocation.Catapult);
+        AddCargo(_localization.T("siege_engine.ladder"), command.SiegeEngineAllocation.Ladder);
+
+        var officers = command.OfficerIds
+            .Select(_turnManager.World.GetOfficer)
+            .Where(officer => officer != null)
+            .Select(officer => _localization.GetOfficerName(officer!))
+            .ToList();
+        return new LogisticsViewRow
+        {
+            Route = string.Join(" → ", routeNames),
+            CurrentCity = _localization.GetCityName(currentCity),
+            RemainingMonths = Math.Max(0, routeCityIds.Count - 1 - currentRouteIndex),
+            Cargo = cargoParts.Count > 0 ? string.Join(_localization.T("cmd.move.transfer_separator"), cargoParts) : _localization.T("cmd.move.transfer_empty"),
+            Officers = officers.Count > 0 ? string.Join(_localization.T("cmd.move.transfer_separator"), officers) : _localization.T("ui.none"),
+            Status = _localization.T(command.IsTraveling ? "ui.logistics_status_traveling" : "ui.logistics_status_scheduled")
+        };
+    }
+
+    private static void PopulateLogisticsTableRow(TreeItem row, LogisticsViewRow shipment)
+    {
+        row.SetText(0, shipment.Route);
+        row.SetText(1, shipment.CurrentCity);
+        row.SetText(2, shipment.RemainingMonths.ToString());
+        row.SetText(3, shipment.Cargo);
+        row.SetText(4, shipment.Officers);
+        row.SetText(5, shipment.Status);
     }
 
     private ViewTableSortField GetViewTableSortFieldForColumn(int column)

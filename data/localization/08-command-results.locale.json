@@ -742,6 +742,18 @@
         "zhHant": " 道路風險：{0}（盜賊伏擊 {1}%）。",
         "en": " Road risk: {0} ({1}% bandit ambush)."
     },
+    "cmd.move.travel_time": {
+        "zhHant": " 路線需 {0} 個月，物資將逐月通過友方城市。",
+        "en": " The route takes {0} month(s) through friendly cities."
+    },
+    "cmd.move.in_transit": {
+        "zhHant": "商隊已抵達「{0}」（第 {1}/{2} 路段），下月繼續行軍。",
+        "en": "The caravan reached \"{0}\" (leg {1}/{2}) and continues next month."
+    },
+    "cmd.move.route_blocked": {
+        "zhHant": "商隊路線已中斷，貨物停留於「{0}」。",
+        "en": "The caravan route is blocked; its cargo remains in \"{0}\"."
+    },
     "cmd.move.caravan_debug_forced": {
         "zhHant": " Debug：此商隊已標記為月結必定遇伏。",
         "en": " Debug: this caravan is marked for a guaranteed month-end ambush."

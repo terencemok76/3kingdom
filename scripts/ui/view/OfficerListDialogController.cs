@@ -114,6 +114,14 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             return;
         }
 
+        if (_context.IsOfficerListInViewMode() && _context.IsOfficerListShowingLogistics())
+        {
+            _ = _context.PopulateLogisticsRows(root);
+            UpdateDialogTitle();
+            RequestDeferredTableVisualRefresh();
+            return;
+        }
+
         var officerData = _context.GetOfficerListRowsData();
         if (officerData == null)
         {
@@ -156,6 +164,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         _context.ViewFactionItemsButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewFactionItemsButton");
         _context.ViewDiplomacyRelationsButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewDiplomacyRelationsButton");
         _context.ViewCitiesButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCitiesButton");
+        _context.ViewLogisticsButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewLogisticsButton");
         _context.CityListFilterOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/CityListFilterOption");
         _context.OfficerSortOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/OfficerSortOption");
         _context.OfficerListTable = root.GetNodeOrNull<Tree>("OfficerListContentMargin/OfficerListContent/OfficerListTable");
@@ -189,6 +198,11 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         if (_context.ViewCitiesButton != null)
         {
             _context.ViewCitiesButton.Pressed += OnViewCitiesPressed;
+        }
+
+        if (_context.ViewLogisticsButton != null)
+        {
+            _context.ViewLogisticsButton.Pressed += OnViewLogisticsPressed;
         }
 
         if (_context.CityListFilterOption != null)
@@ -271,6 +285,18 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _context.SetOfficerListContentToCities();
+        RefreshChrome();
+        PopulateDialog();
+    }
+
+    private void OnViewLogisticsPressed()
+    {
+        if (!_context.IsOfficerListInViewMode())
+        {
+            return;
+        }
+
+        _context.SetOfficerListContentToLogistics();
         RefreshChrome();
         PopulateDialog();
     }
@@ -372,12 +398,13 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         var itemButton = _context.ViewFactionItemsButton;
         var diplomacyButton = _context.ViewDiplomacyRelationsButton;
         var citiesButton = _context.ViewCitiesButton;
+        var logisticsButton = _context.ViewLogisticsButton;
         var cityFilter = _context.CityListFilterOption;
         var sortOption = _context.OfficerSortOption;
         var selectedCity = _context.SelectedCity;
         var world = _context.World;
         var localization = _context.Localization;
-        if (toolbar == null || cityButton == null || factionButton == null || itemButton == null || diplomacyButton == null || citiesButton == null || cityFilter == null || sortOption == null || selectedCity == null || world == null || localization == null)
+        if (toolbar == null || cityButton == null || factionButton == null || itemButton == null || diplomacyButton == null || citiesButton == null || logisticsButton == null || cityFilter == null || sortOption == null || selectedCity == null || world == null || localization == null)
         {
             return;
         }
@@ -394,6 +421,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         itemButton.Text = localization.T("ui.view_faction_items");
         diplomacyButton.Text = localization.T("ui.view_diplomacy_relations");
         citiesButton.Text = localization.T("ui.view_cities");
+        logisticsButton.Text = localization.T("ui.view_logistics");
 
         if (cityFilter.ItemCount == 0)
         {
@@ -435,6 +463,8 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         itemButton.Disabled = !canInspectFaction || _context.IsOfficerListShowingItems();
         diplomacyButton.Disabled = !canInspectFaction || _context.IsOfficerListShowingDiplomacyRelations();
         citiesButton.Disabled = _context.IsOfficerListShowingCityContent();
+        logisticsButton.Visible = canInspectFaction;
+        logisticsButton.Disabled = !canInspectFaction || _context.IsOfficerListShowingLogistics();
         cityFilter.Visible = _context.IsOfficerListShowingCityContent();
         sortOption.Visible = false;
     }
@@ -462,6 +492,12 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         if (_context.IsOfficerListShowingDiplomacyRelations())
         {
             _context.SetOfficerListDialogTitle(localization.T("ui.view_title.diplomacy_faction"));
+            return;
+        }
+
+        if (_context.IsOfficerListShowingLogistics())
+        {
+            _context.SetOfficerListDialogTitle(localization.T("ui.view_title.logistics"));
             return;
         }
 

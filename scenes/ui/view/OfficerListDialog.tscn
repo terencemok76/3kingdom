@@ -177,6 +177,10 @@ size_flags_horizontal = 3
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="ViewLogisticsButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="CityListFilterOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
 layout_mode = 2
 size_flags_horizontal = 3

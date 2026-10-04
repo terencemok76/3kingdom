@@ -133,7 +133,7 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Spy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
-        World.PendingCommands.Clear();
+        World.PendingCommands.RemoveAll(command => !(command.Type == CommandType.Move && command.IsTraveling));
         return results;
     }
 
@@ -153,7 +153,9 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Diplomacy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Spy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
-        World.PendingCommands.RemoveAll(command => command.Type != CommandType.Attack);
+        World.PendingCommands.RemoveAll(command =>
+            command.Type != CommandType.Attack &&
+            !(command.Type == CommandType.Move && command.IsTraveling));
         return results;
     }
 

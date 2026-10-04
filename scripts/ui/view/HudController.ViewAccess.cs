@@ -68,6 +68,12 @@ public partial class HudController
         set => _viewCitiesDialogButton = value;
     }
 
+    internal Button? ViewLogisticsButton
+    {
+        get => _viewLogisticsDialogButton;
+        set => _viewLogisticsDialogButton = value;
+    }
+
     internal Button? ViewOfficerListConfirmButton
     {
         get => _officerListConfirmButton;
@@ -129,7 +135,7 @@ public partial class HudController
     internal bool ViewCanOpenMainDialog() => _selectedCity != null && _turnManager?.World != null && _officerListDialog != null && _officerListTable != null;
     internal bool ViewIsOfficerListInViewMode() => _officerListMode == OfficerListMode.View;
     internal bool ViewIsOfficerListSelectionOnlyMode() => _officerListMode is OfficerListMode.CommandSelection or OfficerListMode.GenericSelection;
-    internal bool ViewIsOfficerListShowingNonOfficerContent() => _officerListContentMode is OfficerListContentMode.Cities or OfficerListContentMode.Items or OfficerListContentMode.DiplomacyRelations;
+    internal bool ViewIsOfficerListShowingNonOfficerContent() => _officerListContentMode is OfficerListContentMode.Cities or OfficerListContentMode.Items or OfficerListContentMode.DiplomacyRelations or OfficerListContentMode.Logistics;
     internal bool ViewIsOfficerListShowingCityContent() => _turnManager?.World != null && _officerListTable != null && _officerListContentMode == OfficerListContentMode.Cities;
     internal TreeItem? ViewGetSelectedOfficerListItem() => _officerListTable?.GetSelected();
     internal OfficerData? ViewGetOfficerById(int officerId) => _turnManager?.World?.GetOfficer(officerId);
@@ -170,6 +176,11 @@ public partial class HudController
     }
 
     internal void ViewSetOfficerListContentToCities() => _officerListContentMode = OfficerListContentMode.Cities;
+    internal void ViewSetOfficerListContentToLogistics()
+    {
+        _officerListScope = OfficerListScope.Faction;
+        _officerListContentMode = OfficerListContentMode.Logistics;
+    }
 
     internal void ViewSetOfficerListConfirmButtonToDefaultText()
     {
@@ -217,6 +228,7 @@ public partial class HudController
     internal bool ViewIsOfficerListShowingFactionOfficers() => _officerListContentMode == OfficerListContentMode.Officers && _officerListScope == OfficerListScope.Faction;
     internal bool ViewIsOfficerListShowingItems() => _officerListContentMode == OfficerListContentMode.Items;
     internal bool ViewIsOfficerListShowingDiplomacyRelations() => _officerListContentMode == OfficerListContentMode.DiplomacyRelations;
+    internal bool ViewIsOfficerListShowingLogistics() => _officerListContentMode == OfficerListContentMode.Logistics;
     internal bool ViewIsOfficerListFactionScope() => _officerListScope == OfficerListScope.Faction;
     internal string ViewGetCityListDialogTitle()
     {
@@ -309,6 +321,24 @@ public partial class HudController
         }
 
         return relations.Count;
+    }
+
+    internal int ViewPopulateLogisticsRows(TreeItem root)
+    {
+        if (_officerListTable == null)
+        {
+            return 0;
+        }
+
+        var shipments = GetActiveLogisticsRows();
+        for (var index = 0; index < shipments.Count; index += 1)
+        {
+            var row = _officerListTable.CreateItem(root);
+            PopulateLogisticsTableRow(row, shipments[index]);
+            ApplyViewTableRowStriping(row, index, _officerListTable.Columns);
+        }
+
+        return shipments.Count;
     }
 
     internal (List<OfficerData> Officers, bool IncludeCityName, string EmptyMessage)? ViewGetOfficerListRowsData()

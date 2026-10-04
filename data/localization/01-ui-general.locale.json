@@ -851,6 +851,10 @@
 					"zhHant":  "道路風險：{0}（盜賊伏擊 {1}%）；護衛至少 {2} 人可進入道路野戰。",
 					"en":  "Road risk: {0} ({1}% bandit ambush); an escort of {2}+ enters the road field battle."
 				},
+	"fmt.road_route_preview":  {
+									"zhHant":  "路線需 {0} 個月；首段道路風險：{1}（盜賊伏擊 {2}%）；護衛至少 {3} 人可進入道路野戰。",
+									"en":  "Route takes {0} month(s); first-leg risk: {1} ({2}% bandit ambush); an escort of {3}+ enters the road field battle."
+								},
 	"fmt.move_equipment_city_available":  {
 					"zhHant":  "{0}（城內：{1}）",
 					"en":  "{0} (City: {1})"

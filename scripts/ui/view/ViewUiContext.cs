@@ -74,6 +74,12 @@ public sealed class ViewUiContext : IFloatingOverlayContext
         set => _hud.ViewCitiesButton = value;
     }
 
+    internal Button? ViewLogisticsButton
+    {
+        get => _hud.ViewLogisticsButton;
+        set => _hud.ViewLogisticsButton = value;
+    }
+
     internal Button? OfficerListConfirmButton
     {
         get => _hud.ViewOfficerListConfirmButton;
@@ -180,6 +186,7 @@ public sealed class ViewUiContext : IFloatingOverlayContext
     internal void SetOfficerListContentToFactionItems() => _hud.ViewSetOfficerListContentToFactionItems();
     internal void SetOfficerListContentToDiplomacyRelations() => _hud.ViewSetOfficerListContentToDiplomacyRelations();
     internal void SetOfficerListContentToCities() => _hud.ViewSetOfficerListContentToCities();
+    internal void SetOfficerListContentToLogistics() => _hud.ViewSetOfficerListContentToLogistics();
     internal void SetOfficerListConfirmButtonToDefaultText() => _hud.ViewSetOfficerListConfirmButtonToDefaultText();
     internal void PopupOfficerListDialog() => _hud.ViewPopupOfficerListDialog();
     internal bool SelectCityById(int cityId) => _hud.ViewSelectCityById(cityId);
@@ -199,6 +206,7 @@ public sealed class ViewUiContext : IFloatingOverlayContext
     internal bool IsOfficerListShowingFactionOfficers() => _hud.ViewIsOfficerListShowingFactionOfficers();
     internal bool IsOfficerListShowingItems() => _hud.ViewIsOfficerListShowingItems();
     internal bool IsOfficerListShowingDiplomacyRelations() => _hud.ViewIsOfficerListShowingDiplomacyRelations();
+    internal bool IsOfficerListShowingLogistics() => _hud.ViewIsOfficerListShowingLogistics();
     internal bool IsOfficerListFactionScope() => _hud.ViewIsOfficerListFactionScope();
     internal string GetCityListDialogTitle() => _hud.ViewGetCityListDialogTitle();
     internal void SetOfficerListDialogTitle(string title) => _hud.ViewSetOfficerListDialogTitle(title);
@@ -209,6 +217,7 @@ public sealed class ViewUiContext : IFloatingOverlayContext
     internal int PopulateCityRows(TreeItem root) => _hud.ViewPopulateCityRows(root);
     internal int PopulateItemRows(TreeItem root) => _hud.ViewPopulateItemRows(root);
     internal int PopulateDiplomacyRelationRows(TreeItem root) => _hud.ViewPopulateDiplomacyRelationRows(root);
+    internal int PopulateLogisticsRows(TreeItem root) => _hud.ViewPopulateLogisticsRows(root);
     internal (List<OfficerData> Officers, bool IncludeCityName, string EmptyMessage)? GetOfficerListRowsData() => _hud.ViewGetOfficerListRowsData();
     internal void PopulateOfficerRow(TreeItem row, OfficerData officer, bool includeCityName) => _hud.ViewPopulateOfficerRow(row, officer, includeCityName);
     internal void ApplyOfficerListRowStriping(TreeItem row, int rowIndex, int columnCount) => _hud.ViewApplyOfficerListRowStriping(row, rowIndex, columnCount);

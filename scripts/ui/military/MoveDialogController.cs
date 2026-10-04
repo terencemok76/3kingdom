@@ -338,7 +338,21 @@ internal sealed class MoveDialogController : FloatingOverlayController
             return;
         }
 
-        var risk = CaravanRoadRiskRules.Assess(_context.SelectedCity, targetCity);
+        var route = CaravanRouteRules.FindFriendlyRoute(_context.TurnManager.World, _context.SelectedCity.Id, targetCity.Id, _context.SelectedCity.OwnerFactionId);
+        if (route.Count < 2)
+        {
+            _roadRiskLabel.Visible = false;
+            return;
+        }
+
+        var firstRouteCity = _context.TurnManager.World.GetCity(route[1]);
+        if (firstRouteCity == null)
+        {
+            _roadRiskLabel.Visible = false;
+            return;
+        }
+
+        var risk = CaravanRoadRiskRules.Assess(_context.SelectedCity, firstRouteCity);
         var riskKey = risk.Level switch
         {
             CaravanRoadRiskLevel.Safe => "ui.road_risk_safe",
@@ -347,7 +361,8 @@ internal sealed class MoveDialogController : FloatingOverlayController
             _ => "ui.road_risk_high"
         };
         _roadRiskLabel.Text = _context.Localization.Format(
-            "fmt.road_risk_preview",
+            "fmt.road_route_preview",
+            route.Count - 1,
             _context.Localization.T(riskKey),
             risk.EncounterChancePercent,
             CaravanRoadRiskRules.MinimumEscortTroops);

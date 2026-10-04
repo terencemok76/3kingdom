@@ -225,6 +225,11 @@ public class PendingCommandData
     public int MetalToSend { get; set; }
     public int StoneToSend { get; set; }
     public bool ForceCaravanAmbushForDebug { get; set; }
+    // A multi-city Move travels one connected edge per month.  Direct Moves keep
+    // their original month-end behaviour and therefore leave this list empty.
+    public List<int> RouteCityIds { get; set; } = new();
+    public int CurrentRouteIndex { get; set; }
+    public bool IsTraveling { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;

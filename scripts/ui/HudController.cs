@@ -104,7 +104,8 @@ public partial class HudController : CanvasLayer
         Officers,
         Cities,
         Items,
-        DiplomacyRelations
+        DiplomacyRelations,
+        Logistics
     }
 
     private enum CityListFilterMode
@@ -212,6 +213,7 @@ public partial class HudController : CanvasLayer
     private Button? _viewFactionItemsDialogButton;
     private Button? _viewDiplomacyRelationsDialogButton;
     private Button? _viewCitiesDialogButton;
+    private Button? _viewLogisticsDialogButton;
     private Button? _officerListConfirmButton;
     private OptionButton? _cityListFilterOption;
     private OptionButton? _officerSortOption;

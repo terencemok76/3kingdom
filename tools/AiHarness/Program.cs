@@ -44,6 +44,8 @@ internal static class Program
         if (args.Contains("--caravan-road-only", StringComparer.OrdinalIgnoreCase))
         {
             RunCaravanRoadRiskTest();
+            RunLongRouteCaravanTest();
+            RunLongRouteInterruptionTest();
             PrintSummary();
             return;
         }
@@ -99,6 +101,8 @@ internal static class Program
         RunMoveSchedulingTest();
         RunMoveTroopAllocationTest();
         RunCaravanRoadRiskTest();
+        RunLongRouteCaravanTest();
+        RunLongRouteInterruptionTest();
         RunCoreActionsTest();
         RunAiDefensiveDiplomacyTruceTest();
         RunAiSpyReconPriorityTest();
@@ -681,6 +685,87 @@ internal static class Program
             resourceOnly.Success && resourceOnlyPending?.TroopAllocation.Total == 0,
             "Move accepts an explicit zero troop allocation",
             $"success={resourceOnly.Success}, troops={resourceOnlyPending?.TroopAllocation.Total}");
+    }
+
+    private static void RunLongRouteCaravanTest()
+    {
+        var world = TestHelpers.World();
+        var source = TestHelpers.City(31, "Origin", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 32 });
+        var relay = TestHelpers.City(32, "Relay", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 31, 33 });
+        var destination = TestHelpers.City(33, "Destination", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 32 });
+        source.Gold = 500;
+        source.Food = 800;
+        source.InfantryTroops = 150;
+        source.SyncLegacyTroops();
+        source.Defense = relay.Defense = destination.Defense = 100;
+        source.Loyalty = relay.Loyalty = destination.Loyalty = 100;
+        world.Cities.AddRange(new[] { source, relay, destination });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        var services = CreateServices(world);
+
+        var route = CaravanRouteRules.FindFriendlyRoute(world, source.Id, destination.Id, 1);
+        var schedule = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 1,
+            SourceCityId = source.Id,
+            TargetCityId = destination.Id,
+            GoldToSend = 200,
+            FoodToSend = 300,
+            HasTroopAllocation = true,
+            TroopAllocation = new TroopAllocationData { Infantry = 100 }
+        });
+        var firstMonth = services.Turn.ResolvePendingCommands(services.Resolver).Single();
+        var traveling = world.PendingCommands.SingleOrDefault(command => command.Type == CommandType.Move);
+        var wasTravelingAfterFirstMonth = traveling?.IsTraveling == true && traveling.CurrentRouteIndex == 1;
+        var secondMonth = services.Turn.ResolvePendingCommands(services.Resolver).Single();
+
+        Assert(
+            route.SequenceEqual(new[] { source.Id, relay.Id, destination.Id }) && schedule.Success &&
+            firstMonth.MessageZhHant.Contains("下月繼續", StringComparison.Ordinal) &&
+            wasTravelingAfterFirstMonth && world.PendingCommands.Count == 0 &&
+            source.Gold == 300 && source.Food == 500 && source.InfantryTroops == 50 &&
+            relay.Gold == 1000 && relay.Food == 1000 && relay.InfantryTroops == 0 &&
+            destination.Gold == 1200 && destination.Food == 1300 && destination.InfantryTroops == 100 &&
+            secondMonth.Success,
+            "Long-route caravan travels one friendly edge per month and arrives on the second month",
+            $"route={string.Join('>', route)}, first={firstMonth.MessageZhHant}, source={source.Gold}/{source.Food}/{source.InfantryTroops}, relay={relay.Gold}/{relay.Food}/{relay.InfantryTroops}, target={destination.Gold}/{destination.Food}/{destination.InfantryTroops}, pending={world.PendingCommands.Count}");
+    }
+
+    private static void RunLongRouteInterruptionTest()
+    {
+        var world = TestHelpers.World();
+        var source = TestHelpers.City(41, "Origin", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 42 });
+        var firstRelay = TestHelpers.City(42, "FirstRelay", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 41, 43 });
+        var lastFriendlyRelay = TestHelpers.City(43, "LastFriendlyRelay", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 42, 44 });
+        var destination = TestHelpers.City(44, "Destination", 1, 1000, 1000, 0, Array.Empty<int>(), new[] { 43 });
+        source.Gold = 500;
+        source.Defense = firstRelay.Defense = lastFriendlyRelay.Defense = destination.Defense = 100;
+        source.Loyalty = firstRelay.Loyalty = lastFriendlyRelay.Loyalty = destination.Loyalty = 100;
+        world.Cities.AddRange(new[] { source, firstRelay, lastFriendlyRelay, destination });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 0, Array.Empty<int>()));
+        var services = CreateServices(world);
+        var schedule = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 1,
+            SourceCityId = source.Id,
+            TargetCityId = destination.Id,
+            GoldToSend = 200,
+            HasTroopAllocation = true,
+            TroopAllocation = new TroopAllocationData()
+        });
+
+        _ = services.Turn.ResolvePendingCommands(services.Resolver);
+        _ = services.Turn.ResolvePendingCommands(services.Resolver);
+        destination.OwnerFactionId = 2;
+        var interruption = services.Turn.ResolvePendingCommands(services.Resolver).Single();
+        Assert(
+            schedule.Success && !interruption.Success && interruption.MessageZhHant.Contains("路線已中斷", StringComparison.Ordinal) &&
+            firstRelay.Gold == 1000 && lastFriendlyRelay.Gold == 1200 && destination.Gold == 1000 && world.PendingCommands.Count == 0,
+            "Long-route caravan continues through friendly relays and stops at the first blocked next city",
+            $"result={interruption.MessageZhHant}, firstRelay={firstRelay.Gold}, lastFriendlyRelay={lastFriendlyRelay.Gold}, destination={destination.Gold}, pending={world.PendingCommands.Count}");
     }
 
     private static void RunCaravanRoadRiskTest()

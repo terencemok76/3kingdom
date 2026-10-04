@@ -83,6 +83,34 @@
         "zhHant": "外交關係",
         "en": "Diplomacy"
     },
+    "ui.view_logistics": {
+        "zhHant": "物流",
+        "en": "Logistics"
+    },
+    "ui.view_title.logistics": {
+        "zhHant": "查看物流（運輸中）",
+        "en": "View Logistics (In Transit)"
+    },
+    "ui.logistics_route": {
+        "zhHant": "路線",
+        "en": "Route"
+    },
+    "ui.logistics_current_city": {
+        "zhHant": "目前位置",
+        "en": "Current City"
+    },
+    "ui.logistics_cargo": {
+        "zhHant": "載運內容",
+        "en": "Cargo"
+    },
+    "ui.logistics_status_scheduled": {
+        "zhHant": "本月末出發",
+        "en": "Departs at Month End"
+    },
+    "ui.logistics_status_traveling": {
+        "zhHant": "行軍中",
+        "en": "In Transit"
+    },
     "ui.view_title.diplomacy_faction": {
         "zhHant": "查看外交關係（勢力）",
         "en": "View Diplomacy (Faction)"
