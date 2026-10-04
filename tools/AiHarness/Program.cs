@@ -44,6 +44,7 @@ internal static class Program
         if (args.Contains("--caravan-road-only", StringComparer.OrdinalIgnoreCase))
         {
             RunCaravanRoadRiskTest();
+            RunAiCaravanAmbushAutoResolutionTest();
             RunLongRouteCaravanTest();
             RunLongRouteInterruptionTest();
             PrintSummary();
@@ -101,6 +102,7 @@ internal static class Program
         RunMoveSchedulingTest();
         RunMoveTroopAllocationTest();
         RunCaravanRoadRiskTest();
+        RunAiCaravanAmbushAutoResolutionTest();
         RunLongRouteCaravanTest();
         RunLongRouteInterruptionTest();
         RunCoreActionsTest();
@@ -700,8 +702,12 @@ internal static class Program
         source.Defense = relay.Defense = destination.Defense = 100;
         source.Loyalty = relay.Loyalty = destination.Loyalty = 100;
         world.Cities.AddRange(new[] { source, relay, destination });
-        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        source.OfficerIds.Add(301);
+        world.Officers.Add(TestHelpers.Officer(301, "CaravanOfficer", source.Id));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, new[] { 301 }));
         var services = CreateServices(world);
+        var localization = new LocalizationService();
+        localization.LoadFromFileSystem(GetLocalizationDirectoryPath());
 
         var route = CaravanRouteRules.FindFriendlyRoute(world, source.Id, destination.Id, 1);
         var schedule = services.Resolver.Execute(new CommandRequest
@@ -713,23 +719,34 @@ internal static class Program
             GoldToSend = 200,
             FoodToSend = 300,
             HasTroopAllocation = true,
-            TroopAllocation = new TroopAllocationData { Infantry = 100 }
+            TroopAllocation = new TroopAllocationData { Infantry = 100 },
+            OfficerIds = new List<int> { 301 }
         });
         var firstMonth = services.Turn.ResolvePendingCommands(services.Resolver).Single();
         var traveling = world.PendingCommands.SingleOrDefault(command => command.Type == CommandType.Move);
         var wasTravelingAfterFirstMonth = traveling?.IsTraveling == true && traveling.CurrentRouteIndex == 1;
+        var travelingOfficerStatus = localization.GetOfficerStatus(world, world.GetOfficer(301)!);
+        var conflictingMove = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 1,
+            SourceCityId = relay.Id,
+            TargetCityId = destination.Id,
+            GoldToSend = 1,
+            OfficerIds = new List<int> { 301 }
+        });
         var secondMonth = services.Turn.ResolvePendingCommands(services.Resolver).Single();
 
         Assert(
             route.SequenceEqual(new[] { source.Id, relay.Id, destination.Id }) && schedule.Success &&
             firstMonth.MessageZhHant.Contains("下月繼續", StringComparison.Ordinal) &&
-            wasTravelingAfterFirstMonth && world.PendingCommands.Count == 0 &&
+            wasTravelingAfterFirstMonth && travelingOfficerStatus == "移動" && !conflictingMove.Success && world.PendingCommands.Count == 0 &&
             source.Gold == 300 && source.Food == 500 && source.InfantryTroops == 50 &&
             relay.Gold == 1000 && relay.Food == 1000 && relay.InfantryTroops == 0 &&
             destination.Gold == 1200 && destination.Food == 1300 && destination.InfantryTroops == 100 &&
             secondMonth.Success,
             "Long-route caravan travels one friendly edge per month and arrives on the second month",
-            $"route={string.Join('>', route)}, first={firstMonth.MessageZhHant}, source={source.Gold}/{source.Food}/{source.InfantryTroops}, relay={relay.Gold}/{relay.Food}/{relay.InfantryTroops}, target={destination.Gold}/{destination.Food}/{destination.InfantryTroops}, pending={world.PendingCommands.Count}");
+            $"route={string.Join('>', route)}, first={firstMonth.MessageZhHant}, officerStatus={travelingOfficerStatus}, conflictingMove={conflictingMove.Success}, source={source.Gold}/{source.Food}/{source.InfantryTroops}, relay={relay.Gold}/{relay.Food}/{relay.InfantryTroops}, target={destination.Gold}/{destination.Food}/{destination.InfantryTroops}, pending={world.PendingCommands.Count}");
     }
 
     private static void RunLongRouteInterruptionTest()
@@ -1002,6 +1019,42 @@ internal static class Program
             !freeOfficerWorld.Factions.Single().OfficerIds.Contains(releasedOfficer.Id),
             "A defeated caravan officer becomes a free officer instead of a prisoner",
             $"city={releasedOfficer.CityId}, captive={releasedOfficer.CaptiveFactionId}, jail={releasedOfficer.JailedCityId}, employed={freeOfficerWorld.Factions.Single().OfficerIds.Contains(releasedOfficer.Id)}");
+    }
+
+    private static void RunAiCaravanAmbushAutoResolutionTest()
+    {
+        var world = TestHelpers.World();
+        world.InteractiveBattlesEnabled = true;
+        var playerCity = TestHelpers.City(1, "PlayerCity", 1, 0, 0, 0, Array.Empty<int>(), Array.Empty<int>());
+        var aiSource = TestHelpers.City(2, "AiSource", 2, 500, 500, 500, Array.Empty<int>(), new[] { 3 });
+        var aiTarget = TestHelpers.City(3, "AiTarget", 2, 0, 0, 0, Array.Empty<int>(), new[] { 2 });
+        aiSource.Defense = aiTarget.Defense = 100;
+        aiSource.Loyalty = aiTarget.Loyalty = 100;
+        world.Cities.AddRange(new[] { playerCity, aiSource, aiTarget });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 0, Array.Empty<int>()));
+        var services = CreateServices(world);
+
+        var schedule = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = 2,
+            SourceCityId = aiSource.Id,
+            TargetCityId = aiTarget.Id,
+            GoldToSend = 100,
+            HasTroopAllocation = true,
+            TroopAllocation = new TroopAllocationData { Infantry = CaravanRoadRiskRules.MinimumEscortTroops },
+            ForceCaravanAmbushForDebug = true
+        });
+        var resolution = services.Turn.ResolvePendingCommands(services.Resolver).Single();
+
+        Assert(
+            schedule.Success && resolution.Success && resolution.ActiveBattleCampaignId == 0 &&
+            world.ActiveBattleCampaigns.Count == 0 && aiSource.Gold == 400 && aiSource.InfantryTroops == 400 &&
+            aiTarget.Gold <= 100 && aiTarget.InfantryTroops is > 0 and < CaravanRoadRiskRules.MinimumEscortTroops &&
+            resolution.MessageZhHant.Contains("道路風險", StringComparison.Ordinal),
+            "AI escorted caravan ambush resolves automatically without creating a player battle",
+            $"scheduled={schedule.Success}, campaign={resolution.ActiveBattleCampaignId}, active={world.ActiveBattleCampaigns.Count}, sourceGold={aiSource.Gold}, targetGold={aiTarget.Gold}, targetTroops={aiTarget.InfantryTroops}, result={resolution.MessageZhHant}");
     }
 
     private static void RunAttackAutoBreakPactTest()

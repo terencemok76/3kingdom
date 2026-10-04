@@ -479,7 +479,8 @@ public partial class CommandResolver
 
     private static bool IsOfficerAssignedThisMonth(WorldState world, OfficerData officer)
     {
-        return officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month;
+        return OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id) ||
+               (officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month);
     }
 
     private static bool HasActiveInternalAffairsSchedule(WorldState world, int officerId)

@@ -73,7 +73,10 @@ public partial class HudController
             }
 
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
-            _turnManager.World.PendingCommands.Remove(pendingCommand);
+            if (!(pendingCommand.Type == CommandType.Move && pendingCommand.IsTraveling))
+            {
+                _turnManager.World.PendingCommands.Remove(pendingCommand);
+            }
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
             if (result.ActiveBattleCampaignId > 0)
             {

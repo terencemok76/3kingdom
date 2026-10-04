@@ -223,8 +223,9 @@ public partial class HudController : CanvasLayer
                 continue;
             }
 
-            if (officer.LastAssignedYear == _turnManager.World.Year &&
-                officer.LastAssignedMonth == _turnManager.World.Month)
+            if (OfficerAvailabilityRules.IsTravelingWithLogistics(_turnManager.World, officerId) ||
+                (officer.LastAssignedYear == _turnManager.World.Year &&
+                 officer.LastAssignedMonth == _turnManager.World.Month))
             {
                 continue;
             }

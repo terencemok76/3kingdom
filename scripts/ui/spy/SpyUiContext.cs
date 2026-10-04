@@ -87,6 +87,7 @@ internal sealed class SpyUiContext : IFloatingOverlayContext
             .Select(world.GetOfficer)
             .Where(officer =>
                 officer != null &&
+                !OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id) &&
                 !(officer.LastAssignedYear == world.Year &&
                   officer.LastAssignedMonth == world.Month) &&
                 !HasActiveInternalAffairsSchedule(officer.Id))

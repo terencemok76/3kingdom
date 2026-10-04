@@ -831,7 +831,8 @@ public class AiController
                 continue;
             }
 
-            if (officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month)
+            if (OfficerAvailabilityRules.IsTravelingWithLogistics(world, officerId) ||
+                (officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month))
             {
                 continue;
             }

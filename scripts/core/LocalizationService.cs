@@ -593,6 +593,11 @@ public class LocalizationService
 
     public string GetOfficerStatus(WorldState world, OfficerData officer)
     {
+        if (OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id))
+        {
+            return T("status.move");
+        }
+
         foreach (var schedule in world.InternalAffairsSchedules)
         {
             if (schedule.State == InternalAffairsScheduleState.Active && schedule.OfficerId == officer.Id)

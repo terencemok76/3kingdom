@@ -818,7 +818,9 @@ public partial class CommandResolver
         };
         var cargoValue = movableGold + movableFood + movableHorses + movableWood + movableMetal + movableStone + movableSiegeEngines.Total * 100;
         var caravanAmbush = CaravanRoadRiskRules.Resolve(world, sourceCity, targetCity, movableTroopAllocation, cargoValue, pendingCommand.ForceCaravanAmbushForDebug);
-        if (caravanAmbush.EncounteredBandits && caravanAmbush.HasEscort)
+        var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
+        if (caravanAmbush.EncounteredBandits && caravanAmbush.HasEscort &&
+            world.InteractiveBattlesEnabled && sourceCity.OwnerFactionId == playerFactionId)
         {
             sourceCity.RemoveTroopAllocation(dispatchedTroopAllocation);
             sourceCity.Gold -= dispatchedGold;
