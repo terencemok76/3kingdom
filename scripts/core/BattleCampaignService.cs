@@ -33,6 +33,9 @@ public static class BattleCampaignService
     public const int MaximumActivePiecesPerSide = 12;
     public const int MaximumSupplyCartsPerSide = 1;
     public const int MaximumSiegeEnginesPerSide = 3;
+    public const int CaravanEscortTeamMaximumTroops = 1000;
+    public const int CaravanBanditRationDays = 5;
+    private const int DailyFoodPer100Troops = 5;
     public const int MinimumCityGarrison = 1000;
     public const int DefenderCityWoundedRecoveryPercent = 100;
     public const int AttackerCampWoundedRecoveryPercent = 50;
@@ -218,6 +221,122 @@ public static class BattleCampaignService
         return campaign;
     }
 
+    public static ActiveBattleCampaignData CreateCaravanEscortCampaign(
+        WorldState world,
+        CityData sourceCity,
+        CityData targetCity,
+        TroopAllocationData escort,
+        IReadOnlyCollection<int> officerIds,
+        int gold, int food, int horses, int wood, int metal, int stone,
+        SiegeEngineAllocationData equipment)
+    {
+        var playerFactionId = world.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? -1;
+        var campaign = new ActiveBattleCampaignData
+        {
+            Id = world.ActiveBattleCampaigns.Count == 0 ? 1 : world.ActiveBattleCampaigns.Max(item => item.Id) + 1,
+            // Bandits are intentionally factionless and officerless.
+            AttackerFactionId = 0,
+            DefenderFactionId = sourceCity.OwnerFactionId,
+            SourceCityId = sourceCity.Id,
+            TargetCityId = targetCity.Id,
+            StartedYear = world.Year,
+            StartedMonth = world.Month,
+            CurrentYear = world.Year,
+            CurrentMonth = world.Month,
+            Stage = CampaignStage.FieldBattle,
+            IsPlayerInvolved = sourceCity.OwnerFactionId == playerFactionId,
+            IsCaravanEscortBattle = true,
+            CaravanGold = gold,
+            CaravanFood = food,
+            CaravanHorses = horses,
+            CaravanWood = wood,
+            CaravanMetal = metal,
+            CaravanStone = stone,
+            CaravanEquipment = equipment
+        };
+
+        var nextId = 1;
+        var availableOfficerIds = officerIds.Where(id => id > 0).Distinct().ToList();
+        var troopTeams = new List<(TroopType Type, int Troops)>();
+        foreach (var (type, count) in new[]
+                 {
+                     (TroopType.Infantry, escort.Infantry), (TroopType.Spearman, escort.Spearman),
+                     (TroopType.Cavalry, escort.Cavalry), (TroopType.Archer, escort.Archer),
+                     (TroopType.Crossbow, escort.Crossbow), (TroopType.Engineer, escort.Siege)
+                 }.Where(item => item.Item2 > 0))
+        {
+            var remaining = count;
+            while (remaining > 0)
+            {
+                var teamTroops = Math.Min(CaravanEscortTeamMaximumTroops, remaining);
+                troopTeams.Add((type, teamTroops));
+                remaining -= teamTroops;
+            }
+        }
+
+        var hasCargoCart = gold + food + horses + wood + metal + stone > 0 || equipment.SupplyCart > 0;
+        var equipmentTeamCount = (hasCargoCart ? 1 : 0) + equipment.Ram + equipment.Ladder + equipment.Catapult;
+        var maximumTroopTeams = Math.Max(troopTeams.Count, MaximumActivePiecesPerSide - equipmentTeamCount);
+        var desiredTroopTeams = Math.Min(availableOfficerIds.Count, maximumTroopTeams);
+        while (troopTeams.Count < desiredTroopTeams)
+        {
+            var splitIndex = troopTeams
+                .Select((team, index) => (team, index))
+                .Where(item => item.team.Troops > 1)
+                .OrderByDescending(item => item.team.Troops)
+                .Select(item => item.index)
+                .FirstOrDefault(-1);
+            if (splitIndex < 0)
+            {
+                break;
+            }
+
+            var team = troopTeams[splitIndex];
+            var firstTeamTroops = (team.Troops + 1) / 2;
+            troopTeams[splitIndex] = (team.Type, firstTeamTroops);
+            troopTeams.Insert(splitIndex + 1, (team.Type, team.Troops - firstTeamTroops));
+        }
+
+        for (var index = 0; index < troopTeams.Count; index++)
+        {
+            var team = troopTeams[index];
+            campaign.Teams.Add(new CampaignBattleTeamData
+            {
+                Id = nextId++,
+                FactionId = sourceCity.OwnerFactionId,
+                Side = CampaignBattleSide.Defender,
+                ControllerType = CampaignControllerType.Player,
+                OfficerId = index < availableOfficerIds.Count ? availableOfficerIds[index] : 0,
+                TroopType = team.Type,
+                ActiveTroops = team.Troops,
+                MaximumTroops = team.Troops,
+                OriginCityId = sourceCity.Id
+            });
+        }
+
+        // Cargo is represented by a real supply cart; all amounts remain attached
+        // to the campaign until it reaches NE or returns through SW.
+        if (hasCargoCart)
+        {
+            campaign.Teams.Add(new CampaignBattleTeamData { Id = nextId++, FactionId = sourceCity.OwnerFactionId, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Player, EquipmentType = BattleEquipmentType.SupplyCart, OriginCityId = sourceCity.Id, MaximumTroops = 1, ActiveTroops = 1 });
+        }
+        foreach (var equipmentType in Enumerable.Repeat(BattleEquipmentType.Ram, equipment.Ram)
+                     .Concat(Enumerable.Repeat(BattleEquipmentType.Ladder, equipment.Ladder))
+                     .Concat(Enumerable.Repeat(BattleEquipmentType.Catapult, equipment.Catapult)))
+        {
+            campaign.Teams.Add(new CampaignBattleTeamData { Id = nextId++, FactionId = sourceCity.OwnerFactionId, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Player, EquipmentType = equipmentType, OriginCityId = sourceCity.Id, MaximumTroops = 1, ActiveTroops = 1 });
+        }
+        var banditCount = Math.Clamp(100 + (gold + food + horses + wood + metal + stone) / 30, 100, 450);
+        var banditDailyFood = (int)Math.Ceiling(banditCount / 100.0) * DailyFoodPer100Troops;
+        // Road ambushers bring their own supplies.  This keeps their ration
+        // pool independent of cargo, while still allowing stolen carts to add
+        // to it through the normal battle resource transfer rules.
+        campaign.AttackerFood = banditDailyFood * CaravanBanditRationDays;
+        campaign.Teams.Add(new CampaignBattleTeamData { Id = nextId, FactionId = 0, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Ai, TroopType = TroopType.Infantry, ActiveTroops = banditCount, MaximumTroops = banditCount, OriginCityId = 0, CooperationObjective = "bandits" });
+        world.ActiveBattleCampaigns.Add(campaign);
+        return campaign;
+    }
+
     public static bool IsOfficerCommitted(WorldState world, int officerId) =>
         world.ActiveBattleCampaigns.Any(campaign =>
             campaign.Stage != CampaignStage.Resolved &&
@@ -243,6 +362,11 @@ public static class BattleCampaignService
         int food,
         CampaignSupplyOwnership supplyOwnership = CampaignSupplyOwnership.MainFaction)
     {
+        if (campaign.IsCaravanEscortBattle)
+        {
+            throw new ReinforcementDispatchException(ReinforcementDispatchFailure.InvalidDeployment,
+                "Caravan escort battles do not accept reinforcements.");
+        }
         var sourceCity = world.GetCity(sourceCityId) ??
             throw new ReinforcementDispatchException(ReinforcementDispatchFailure.InvalidSource, "Reinforcement source city is missing.");
         var expectedFactionId = side == CampaignBattleSide.Attacker
@@ -743,6 +867,153 @@ public static class BattleCampaignService
                 WinnerCityId = targetCity.Id,
                 OfficerId = officerId
             });
+        }
+    }
+
+    /// <summary>
+    /// Resolves a road-escort field battle without applying siege, capture, or
+    /// generic attacker/defender return rules. The convoy cargo remains in the
+    /// campaign until this point so it only reaches the destination on delivery.
+    /// </summary>
+    public static void CompleteCaravanEscortCampaign(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        CaravanEscortOutcome outcome)
+    {
+        if (!campaign.IsCaravanEscortBattle || campaign.Stage == CampaignStage.Resolved)
+        {
+            return;
+        }
+
+        var sourceCity = world.GetCity(campaign.SourceCityId);
+        var targetCity = world.GetCity(campaign.TargetCityId);
+        if (sourceCity == null || targetCity == null)
+        {
+            campaign.Stage = CampaignStage.Resolved;
+            return;
+        }
+
+        var delivered = outcome == CaravanEscortOutcome.Delivered;
+        var returnCity = delivered ? targetCity : sourceCity;
+        ReleaseDefeatedCaravanOfficers(world, campaign, sourceCity);
+        foreach (var team in campaign.Teams.Where(team =>
+                     team.Side == CampaignBattleSide.Defender &&
+                     team.Location is not (CampaignTeamLocation.Eliminated or CampaignTeamLocation.Captured) &&
+                     team.RetreatDestinationCityId <= 0))
+        {
+            ReturnTeamToCity(world, returnCity, team, returnCity);
+            team.ActiveTroops = 0;
+            team.WoundedTroops = 0;
+            team.Location = CampaignTeamLocation.NeighborCity;
+            team.RetreatDestinationCityId = returnCity.Id;
+        }
+
+        var transferredGold = 0;
+        var transferredFood = 0;
+        if (outcome is CaravanEscortOutcome.Delivered or CaravanEscortOutcome.ReturnedToSource)
+        {
+            returnCity.Gold += campaign.CaravanGold;
+            returnCity.Food += campaign.CaravanFood;
+            returnCity.Horses += campaign.CaravanHorses;
+            returnCity.Wood += campaign.CaravanWood;
+            returnCity.Metal += campaign.CaravanMetal;
+            returnCity.Stone += campaign.CaravanStone;
+            transferredGold = campaign.CaravanGold;
+            transferredFood = campaign.CaravanFood;
+        }
+
+        var attackerTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).ToList();
+        var defenderTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender).ToList();
+        // Vehicle markers are not troop casualties.  Count only actual troop
+        // teams here so an infantry force of 200 does not report 202 committed
+        // and 250 returned merely because a ram and cart have engineer crews.
+        var defenderTroopTeams = defenderTeams
+            .Where(team => team.EquipmentType == BattleEquipmentType.None)
+            .ToList();
+        var attackerCommitted = attackerTeams.Sum(team => Math.Max(0, team.MaximumTroops));
+        var attackerActive = attackerTeams.Sum(team => Math.Max(0, team.ActiveTroops));
+        var attackerWounded = attackerTeams.Sum(team => Math.Max(0, team.WoundedTroops));
+        var defenderCommitted = defenderTroopTeams.Sum(team => Math.Max(0, team.MaximumTroops));
+        var defenderArrived = defenderTroopTeams
+            .Where(team => team.RetreatDestinationCityId == targetCity.Id)
+            .Sum(team => Math.Max(0, team.ReturnedTroops));
+        var defenderReturned = defenderTroopTeams
+            .Where(team => team.RetreatDestinationCityId == sourceCity.Id)
+            .Sum(team => Math.Max(0, team.ReturnedTroops));
+        var winnerFactionId = outcome == CaravanEscortOutcome.Plundered
+            ? campaign.AttackerFactionId
+            : campaign.DefenderFactionId;
+
+        world.BattleReports.Add(new WorldState.BattleReportData
+        {
+            Id = world.BattleReports.Count == 0 ? 1 : world.BattleReports.Max(item => item.Id) + 1,
+            Year = campaign.CurrentYear,
+            Month = campaign.CurrentMonth,
+            SourceCityId = campaign.SourceCityId,
+            TargetCityId = campaign.TargetCityId,
+            AttackerFactionId = campaign.AttackerFactionId,
+            AttackerRulerOfficerId = campaign.AttackerRulerOfficerId,
+            DefenderFactionId = campaign.DefenderFactionId,
+            WinnerFactionId = winnerFactionId,
+            Stage = CampaignStage.FieldBattle,
+            AttackerCommittedTroops = attackerCommitted,
+            AttackerLostTroops = Math.Max(0, attackerCommitted - attackerActive - attackerWounded),
+            AttackerActiveTroops = attackerActive,
+            AttackerWoundedTroops = attackerWounded,
+            AttackerGoldSpent = campaign.AttackerGoldSpent,
+            AttackerFoodSpent = campaign.AttackerFoodSpent,
+            AttackerGoldGained = campaign.AttackerGoldGained,
+            AttackerFoodGained = campaign.AttackerFoodGained,
+            DefenderCommittedTroops = defenderCommitted,
+            DefenderLostTroops = Math.Max(0, defenderCommitted - defenderArrived - defenderReturned),
+            DefenderReturnedTroops = defenderReturned,
+            CaravanArrivedTroops = defenderArrived,
+            DefenderGoldSpent = campaign.DefenderGoldSpent,
+            DefenderFoodSpent = campaign.DefenderFoodSpent,
+            DefenderGoldGained = transferredGold,
+            DefenderFoodGained = transferredFood,
+            CaravanEscortOutcome = outcome
+        });
+
+        campaign.CaravanEscortOutcome = outcome;
+        campaign.CaravanGold = 0;
+        campaign.CaravanFood = 0;
+        campaign.CaravanHorses = 0;
+        campaign.CaravanWood = 0;
+        campaign.CaravanMetal = 0;
+        campaign.CaravanStone = 0;
+        campaign.Stage = CampaignStage.Resolved;
+        campaign.IsAwaitingPlayerDecision = false;
+        campaign.BattleSnapshotJson = string.Empty;
+    }
+
+    private static void ReleaseDefeatedCaravanOfficers(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        CityData sourceCity)
+    {
+        foreach (var team in campaign.Teams.Where(team =>
+                     team.Side == CampaignBattleSide.Defender &&
+                     team.OfficerId > 0 &&
+                     team.Location is CampaignTeamLocation.Eliminated or CampaignTeamLocation.Captured))
+        {
+            var officer = world.GetOfficer(team.OfficerId);
+            if (officer == null)
+            {
+                continue;
+            }
+
+            // A bandit ambush has no prison or captor faction. A defeated
+            // transport officer therefore becomes a visible free officer at
+            // their source city rather than entering the captive workflow.
+            officer.HomeCityId = sourceCity.Id;
+            RemoveCapturedOfficerFromFaction(world, officer);
+            RemoveOfficerFromAllCities(world, officer.Id);
+            officer.CityId = sourceCity.Id;
+            officer.CaptiveFactionId = 0;
+            officer.JailedCityId = 0;
+            officer.FreeOfficerStayMonths = 2;
+            team.Location = CampaignTeamLocation.Eliminated;
         }
     }
 
@@ -1259,6 +1530,54 @@ public static class BattleCampaignService
         team.WoundedTroops = 0;
         team.Location = CampaignTeamLocation.NeighborCity;
         team.RetreatDestinationCityId = destination.Id;
+        return true;
+    }
+
+    public static bool TryDeliverCaravanEscortTeam(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        CampaignBattleTeamData team)
+    {
+        if (!campaign.IsCaravanEscortBattle || team.Side != CampaignBattleSide.Defender)
+        {
+            return false;
+        }
+
+        var destination = world.GetCity(campaign.TargetCityId);
+        if (destination == null || destination.OwnerFactionId != team.FactionId)
+        {
+            return false;
+        }
+
+        ReturnTeamToCity(world, destination, team, destination);
+        team.ActiveTroops = 0;
+        team.WoundedTroops = 0;
+        team.Location = CampaignTeamLocation.NeighborCity;
+        team.RetreatDestinationCityId = destination.Id;
+        return true;
+    }
+
+    public static bool TryReturnCaravanEscortTeamToSource(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        CampaignBattleTeamData team)
+    {
+        if (!campaign.IsCaravanEscortBattle || team.Side != CampaignBattleSide.Defender)
+        {
+            return false;
+        }
+
+        var source = world.GetCity(campaign.SourceCityId);
+        if (source == null || source.OwnerFactionId != team.FactionId)
+        {
+            return false;
+        }
+
+        ReturnTeamToCity(world, source, team, source);
+        team.ActiveTroops = 0;
+        team.WoundedTroops = 0;
+        team.Location = CampaignTeamLocation.NeighborCity;
+        team.RetreatDestinationCityId = source.Id;
         return true;
     }
 

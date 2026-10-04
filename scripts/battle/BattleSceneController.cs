@@ -955,6 +955,17 @@ public partial class BattleSceneController : Node2D
             : _battleDateDay;
         var monthlyBattleDayLimit = GetMonthlyBattleDayLimit();
         battleDayThisMonth = Math.Clamp(battleDayThisMonth, 1, monthlyBattleDayLimit);
+        if (_activeCampaign?.IsCaravanEscortBattle == true)
+        {
+            return BattleFormat(
+                "ui.battle.caravan_escort_timeline",
+                "Year {0}, Month {1:00} | Battle Day: {2} | {3} | Turn: {4}",
+                _battleDateYear,
+                _battleDateMonth,
+                battleDayThisMonth,
+                FormatBattleTimeOfDay(GetCurrentBattleTimeOfDay()),
+                _turnNumber);
+        }
         return BattleFormat(
             "ui.battle.month_battle_timeline",
             "Year {0}, Month {1:00} | Battle Day: {2}/{3} | {4} | Turn: {5}",
@@ -1578,6 +1589,37 @@ public partial class BattleSceneController : Node2D
 
     private void ResolveBattlePeriodSupplyForTeam(string teamName, BattleTeamState team)
     {
+        if (IsCaravanEscortTransportTeam(teamName))
+        {
+            // The shipment itself is the transport side's field ration.  Gold is
+            // cargo, not a wage pool, so only food is consumed while on the road.
+            var escortSupply = BattleSupplySystem.ResolvePeriodUpkeep(
+                gold: 0,
+                food: _activeCampaign!.CaravanFood,
+                activeTroops: team.TotalTroops,
+                goldRemainder: 0,
+                foodRemainder: team.FoodUpkeepRemainder);
+            team.Gold = 0;
+            team.Food = escortSupply.Food;
+            team.GoldUpkeepRemainder = 0;
+            team.FoodUpkeepRemainder = escortSupply.FoodRemainder;
+            team.HadFoodShortageThisDay |= escortSupply.IsFoodShortage;
+            if (escortSupply.FoodSpent > 0)
+            {
+                ApplyTeamResourceDelta(teamName, 0, -escortSupply.FoodSpent);
+            }
+
+            if (escortSupply.FoodNeed > 0)
+            {
+                AppendBattleLog(
+                    teamName,
+                    "Supply",
+                    $"{GetCurrentBattleTimeOfDay()} escort rations: food -{escortSupply.FoodSpent:N0}/{escortSupply.FoodNeed:N0}");
+            }
+
+            return;
+        }
+
         var result = BattleSupplySystem.ResolvePeriodUpkeep(
             team.Gold,
             team.Food,
@@ -1794,11 +1836,21 @@ public partial class BattleSceneController : Node2D
 
     private int GetTeamGold(string teamName)
     {
+        if (IsCaravanEscortTransportTeam(teamName))
+        {
+            return _activeCampaign!.CaravanGold;
+        }
+
         return GetBattleTeamState(teamName).Gold;
     }
 
     private int GetTeamFood(string teamName)
     {
+        if (IsCaravanEscortTransportTeam(teamName))
+        {
+            return _activeCampaign!.CaravanFood;
+        }
+
         return GetBattleTeamState(teamName).Food;
     }
 
@@ -1874,6 +1926,26 @@ public partial class BattleSceneController : Node2D
     private void ApplyTeamResourceDelta(string teamName, int goldDelta, int foodDelta)
     {
         var team = GetBattleTeamState(teamName);
+        if (IsCaravanEscortTransportTeam(teamName))
+        {
+            var previousCaravanGold = _activeCampaign!.CaravanGold;
+            var previousCaravanFood = _activeCampaign.CaravanFood;
+            _activeCampaign.CaravanGold = Math.Max(0, previousCaravanGold + goldDelta);
+            _activeCampaign.CaravanFood = Math.Max(0, previousCaravanFood + foodDelta);
+            team.Gold = 0;
+            team.Food = _activeCampaign.CaravanFood;
+            RecordCampaignResourceChange(
+                teamName,
+                _activeCampaign.CaravanGold - previousCaravanGold,
+                _activeCampaign.CaravanFood - previousCaravanFood);
+            if (team.Food > 0)
+            {
+                team.ZeroFoodDays = 0;
+            }
+
+            return;
+        }
+
         var previousGold = team.Gold;
         var previousFood = team.Food;
         team.Gold = Math.Max(0, team.Gold + goldDelta);
@@ -1902,6 +1974,10 @@ public partial class BattleSceneController : Node2D
         if (goldDelta < 0) _activeCampaign.DefenderGoldSpent += -goldDelta; else _activeCampaign.DefenderGoldGained += goldDelta;
         if (foodDelta < 0) _activeCampaign.DefenderFoodSpent += -foodDelta; else _activeCampaign.DefenderFoodGained += foodDelta;
     }
+
+    private bool IsCaravanEscortTransportTeam(string teamName) =>
+        _activeCampaign?.IsCaravanEscortBattle == true &&
+        !BattleTeamIdentity.IsAttacker(teamName);
 
     private BattleTeamState GetBattleTeamState(string teamName)
     {
@@ -2096,16 +2172,26 @@ public partial class BattleSceneController : Node2D
     private void CompleteSelectedRetreat(
         BattleOccupantInfo retreatingUnit,
         BattleGridKey retreatingGrid,
-        bool campaignReturnHandled)
+        bool campaignReturnHandled,
+        bool isArrival = false)
     {
         if (!campaignReturnHandled)
         {
             ApplyRetreatTroopLoss(retreatingUnit);
         }
 
-        ShowRetreatNotice(retreatingUnit, retreatingGrid);
-        AppendBattleLog(retreatingUnit, "Retreat", $"{FormatLogUnit(retreatingUnit)} retreats from {retreatingGrid}");
+        ShowRetreatNotice(retreatingUnit, retreatingGrid, isArrival);
+        AppendBattleLog(
+            retreatingUnit,
+            isArrival ? "Arrive" : "Retreat",
+            isArrival
+                ? $"{FormatLogUnit(retreatingUnit)} arrives at the destination city."
+                : $"{FormatLogUnit(retreatingUnit)} retreats from {retreatingGrid}");
         RemoveOccupant(retreatingGrid, retreatingUnit);
+        // A retreating/arriving escort team is no longer on the battlefield.
+        // Rebuild the live HUD totals so its troops are excluded from both the
+        // display and subsequent per-period escort supply calculations.
+        RecalculateBattleHudTotals();
 
         _commandMode = BattleCommandMode.None;
         _movableGrids.Clear();

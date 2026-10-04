@@ -60,6 +60,7 @@ public partial class HudController
     internal void SystemSaveOptionSettings() => SaveOptionSettings();
     internal void SystemRestoreDefaultLayout() => RestoreDefaultFloatingPanelLayout();
     internal void SystemApplyLoadedWorld(WorldState loadedWorld) => ApplyLoadedWorld(loadedWorld);
+    internal bool SystemTryResumeSavedCampaignBattle() => TryResumeSavedCampaignBattle();
     internal void SystemApplyButtonTheme(Button button)
     {
         if (MainHudViewButton != null)

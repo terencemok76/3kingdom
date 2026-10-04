@@ -481,30 +481,47 @@ public partial class BattleSceneController
         var defenderSpeakers = speakers
             .Where(occupant => BattleTeamIdentity.IsDefender(occupant.TeamName))
             .ToList();
+        var banditSpeaker = _activeCampaign?.IsCaravanEscortBattle == true
+            ? _occupantsByGrid.Values
+                .SelectMany(static occupants => occupants)
+                .FirstOrDefault(occupant => occupant.Category == CategoryUnit &&
+                                            BattleTeamIdentity.IsAttacker(occupant.TeamName))
+            : null;
+        var escortSpeaker = _activeCampaign?.IsCaravanEscortBattle == true && defenderSpeakers.Count == 0
+            ? _occupantsByGrid.Values
+                .SelectMany(static occupants => occupants)
+                .FirstOrDefault(occupant => occupant.Category == CategoryUnit &&
+                                            BattleTeamIdentity.IsDefender(occupant.TeamName))
+            : null;
 
-        if (attackerSpeakers.Count > 0)
+        if (banditSpeaker != null)
+        {
+            FocusCameraOnOfficerSpeechUnit(banditSpeaker);
+            TryShowOfficerSpeech(banditSpeaker, BattleOfficerSpeechEvent.Opening);
+        }
+        else if (attackerSpeakers.Count > 0)
         {
             var attackerSpeaker = attackerSpeakers[_officerSpeechRandom.Next(attackerSpeakers.Count)];
             FocusCameraOnOfficerSpeechUnit(attackerSpeaker);
             TryShowOfficerSpeech(attackerSpeaker, BattleOfficerSpeechEvent.Opening);
         }
 
-        if (defenderSpeakers.Count > 0)
+        if (defenderSpeakers.Count > 0 || escortSpeaker != null)
         {
-            if (attackerSpeakers.Count > 0)
+            if (banditSpeaker != null || attackerSpeakers.Count > 0)
             {
                 await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds + 0.2), SceneTreeTimer.SignalName.Timeout);
             }
 
             if (GodotObject.IsInstanceValid(this) && !_isBattleFinished)
             {
-                var defenderSpeaker = defenderSpeakers[_officerSpeechRandom.Next(defenderSpeakers.Count)];
+                var defenderSpeaker = escortSpeaker ?? defenderSpeakers[_officerSpeechRandom.Next(defenderSpeakers.Count)];
                 FocusCameraOnOfficerSpeechUnit(defenderSpeaker);
                 TryShowOfficerSpeech(defenderSpeaker, BattleOfficerSpeechEvent.Opening);
             }
         }
 
-        if (attackerSpeakers.Count > 0 || defenderSpeakers.Count > 0)
+        if (banditSpeaker != null || attackerSpeakers.Count > 0 || defenderSpeakers.Count > 0 || escortSpeaker != null)
         {
             await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds + 0.2), SceneTreeTimer.SignalName.Timeout);
         }
@@ -553,8 +570,32 @@ public partial class BattleSceneController
             _officerSpeechTeamNameLabel == null ||
             _officerSpeechNameLabel == null ||
             _officerSpeechTextLabel == null ||
-            !IsGeneralCountedPiece(occupant.Category, occupant.OfficerName) ||
             _officerSpeechEntries.Count == 0)
+        {
+            return;
+        }
+
+        if (IsCaravanBandit(occupant))
+        {
+            TryShowCaravanBanditSpeech(speechEvent);
+            return;
+        }
+
+        if (IsCaravanEscortTeam(occupant) && !IsGeneralCountedPiece(occupant.Category, occupant.OfficerName))
+        {
+            TryShowCaravanEscortSpeech(speechEvent);
+            return;
+        }
+
+        if (IsCaravanEscortTeam(occupant))
+        {
+            if (TryShowCaravanOfficerSpeech(occupant, speechEvent))
+            {
+                return;
+            }
+        }
+
+        if (!IsGeneralCountedPiece(occupant.Category, occupant.OfficerName))
         {
             return;
         }
@@ -602,6 +643,188 @@ public partial class BattleSceneController
         HideOfficerSpeechAfterDelay(speechSerial);
     }
 
+    private bool IsCaravanBandit(BattleOccupantInfo occupant) =>
+        _activeCampaign?.IsCaravanEscortBattle == true &&
+        occupant.Category == CategoryUnit &&
+        BattleTeamIdentity.IsAttacker(occupant.TeamName);
+
+    private bool IsCaravanEscortTeam(BattleOccupantInfo occupant) =>
+        _activeCampaign?.IsCaravanEscortBattle == true &&
+        occupant.Category == CategoryUnit &&
+        BattleTeamIdentity.IsDefender(occupant.TeamName);
+
+    private void TryShowCaravanBanditSpeech(BattleOfficerSpeechEvent speechEvent)
+    {
+        var keys = speechEvent switch
+        {
+            BattleOfficerSpeechEvent.Opening => new[]
+            {
+                "ui.battle.caravan_bandit_speech.opening.01",
+                "ui.battle.caravan_bandit_speech.opening.02"
+            },
+            BattleOfficerSpeechEvent.Attack => new[]
+            {
+                "ui.battle.caravan_bandit_speech.attack.01",
+                "ui.battle.caravan_bandit_speech.attack.02"
+            },
+            BattleOfficerSpeechEvent.Capture or BattleOfficerSpeechEvent.Destroy => new[]
+            {
+                "ui.battle.caravan_bandit_speech.loot.01"
+            },
+            _ => Array.Empty<string>()
+        };
+        if (keys.Length == 0)
+        {
+            return;
+        }
+
+        const string banditSpeechKey = "caravan-bandit";
+        const int priority = 30;
+        var now = Time.GetTicksMsec();
+        if (_officerSpeechLastShownAt.TryGetValue(banditSpeechKey, out var lastShownAt) &&
+            now - lastShownAt < OfficerSpeechCooldownMilliseconds &&
+            speechEvent != BattleOfficerSpeechEvent.Opening)
+        {
+            return;
+        }
+        if (_officerSpeechOverlay!.Visible && priority < _activeOfficerSpeechPriority)
+        {
+            return;
+        }
+
+        _officerSpeechTeamNameLabel!.Text = BattleText("ui.battle.caravan_ambush", "Ambush");
+        _officerSpeechNameLabel!.Text = BattleText("ui.battle.caravan_bandit", "Bandit");
+        _officerSpeechTextLabel!.Text = BattleText(keys[_officerSpeechRandom.Next(keys.Length)], keys[0]);
+        if (_officerSpeechPortrait != null)
+        {
+            _officerSpeechPortrait.Texture = null;
+            _officerSpeechPortrait.Visible = false;
+        }
+
+        _officerSpeechLastShownAt[banditSpeechKey] = now;
+        _activeOfficerSpeechPriority = priority;
+        var speechSerial = ++_officerSpeechSerial;
+        _officerSpeechOverlay.Visible = true;
+        _officerSpeechOverlay.MoveToFront();
+        HideOfficerSpeechAfterDelay(speechSerial);
+    }
+
+    private void TryShowCaravanEscortSpeech(BattleOfficerSpeechEvent speechEvent)
+    {
+        var keys = speechEvent switch
+        {
+            BattleOfficerSpeechEvent.Opening => new[]
+            {
+                "ui.battle.caravan_escort_speech.opening.01",
+                "ui.battle.caravan_escort_speech.opening.02"
+            },
+            BattleOfficerSpeechEvent.Attack => new[]
+            {
+                "ui.battle.caravan_escort_speech.attack.01",
+                "ui.battle.caravan_escort_speech.attack.02"
+            },
+            BattleOfficerSpeechEvent.Capture or BattleOfficerSpeechEvent.Destroy => new[]
+            {
+                "ui.battle.caravan_escort_speech.protect_cargo.01"
+            },
+            _ => Array.Empty<string>()
+        };
+        if (keys.Length == 0)
+        {
+            return;
+        }
+
+        const string escortSpeechKey = "caravan-escort";
+        const int priority = 30;
+        var now = Time.GetTicksMsec();
+        if (_officerSpeechLastShownAt.TryGetValue(escortSpeechKey, out var lastShownAt) &&
+            now - lastShownAt < OfficerSpeechCooldownMilliseconds &&
+            speechEvent != BattleOfficerSpeechEvent.Opening)
+        {
+            return;
+        }
+        if (_officerSpeechOverlay!.Visible && priority < _activeOfficerSpeechPriority)
+        {
+            return;
+        }
+
+        _officerSpeechTeamNameLabel!.Text = BattleText("ui.battle.caravan_transport", "Transport");
+        _officerSpeechNameLabel!.Text = BattleText("ui.battle.caravan_guard", "Escort Guard");
+        _officerSpeechTextLabel!.Text = BattleText(keys[_officerSpeechRandom.Next(keys.Length)], keys[0]);
+        if (_officerSpeechPortrait != null)
+        {
+            _officerSpeechPortrait.Texture = null;
+            _officerSpeechPortrait.Visible = false;
+        }
+
+        _officerSpeechLastShownAt[escortSpeechKey] = now;
+        _activeOfficerSpeechPriority = priority;
+        var speechSerial = ++_officerSpeechSerial;
+        _officerSpeechOverlay.Visible = true;
+        _officerSpeechOverlay.MoveToFront();
+        HideOfficerSpeechAfterDelay(speechSerial);
+    }
+
+    private bool TryShowCaravanOfficerSpeech(BattleOccupantInfo occupant, BattleOfficerSpeechEvent speechEvent)
+    {
+        var keys = speechEvent switch
+        {
+            BattleOfficerSpeechEvent.Opening => new[]
+            {
+                "ui.battle.caravan_officer_speech.opening.01",
+                "ui.battle.caravan_officer_speech.opening.02"
+            },
+            BattleOfficerSpeechEvent.Attack => new[]
+            {
+                "ui.battle.caravan_officer_speech.attack.01",
+                "ui.battle.caravan_officer_speech.attack.02"
+            },
+            BattleOfficerSpeechEvent.Capture or BattleOfficerSpeechEvent.Destroy => new[]
+            {
+                "ui.battle.caravan_officer_speech.protect_cargo.01"
+            },
+            _ => Array.Empty<string>()
+        };
+        if (keys.Length == 0 ||
+            _officerSpeechOverlay == null ||
+            _officerSpeechTeamNameLabel == null ||
+            _officerSpeechNameLabel == null ||
+            _officerSpeechTextLabel == null)
+        {
+            return false;
+        }
+
+        const int priority = 30;
+        var now = Time.GetTicksMsec();
+        if (_officerSpeechLastShownAt.TryGetValue(occupant.OfficerName, out var lastShownAt) &&
+            now - lastShownAt < OfficerSpeechCooldownMilliseconds &&
+            speechEvent != BattleOfficerSpeechEvent.Opening)
+        {
+            return true;
+        }
+        if (_officerSpeechOverlay.Visible && priority < _activeOfficerSpeechPriority)
+        {
+            return true;
+        }
+
+        _officerSpeechTeamNameLabel.Text = BattleText("ui.battle.caravan_transport", "Transport");
+        _officerSpeechNameLabel.Text = FormatOfficerName(occupant.OfficerName);
+        _officerSpeechTextLabel.Text = BattleText(keys[_officerSpeechRandom.Next(keys.Length)], keys[0]);
+        if (_officerSpeechPortrait != null)
+        {
+            _officerSpeechPortrait.Texture = GetOfficerPortraitTexture(occupant);
+            _officerSpeechPortrait.Visible = _officerSpeechPortrait.Texture != null;
+        }
+
+        _officerSpeechLastShownAt[occupant.OfficerName] = now;
+        _activeOfficerSpeechPriority = priority;
+        var speechSerial = ++_officerSpeechSerial;
+        _officerSpeechOverlay.Visible = true;
+        _officerSpeechOverlay.MoveToFront();
+        HideOfficerSpeechAfterDelay(speechSerial);
+        return true;
+    }
+
     private async void HideOfficerSpeechAfterDelay(int speechSerial)
     {
         await ToSignal(GetTree().CreateTimer(OfficerSpeechDurationSeconds), SceneTreeTimer.SignalName.Timeout);
@@ -646,7 +869,7 @@ public partial class BattleSceneController
         return officerName is "Cao Hong" or "Guo Si" ? "steadfast" : "ambitious";
     }
 
-    private async void ShowRetreatNotice(BattleOccupantInfo retreatingUnit, BattleGridKey retreatingGrid)
+    private async void ShowRetreatNotice(BattleOccupantInfo retreatingUnit, BattleGridKey retreatingGrid, bool isArrival = false)
     {
         if (_retreatNotice == null || _retreatNoticeLabel == null)
         {
@@ -657,11 +880,14 @@ public partial class BattleSceneController
         var retreatingUnitName = IsGeneralCountedPiece(retreatingUnit.Category, retreatingUnit.OfficerName)
             ? $"{FormatOfficerName(retreatingUnit.OfficerName)} / {FormatTroopType(retreatingUnit.TroopType)}"
             : FormatTroopType(retreatingUnit.TroopType);
-        _retreatNoticeLabel.Text = $"{retreatingUnitName}\n{BattleText("ui.battle.retreat", "Retreat")}";
+        _retreatNoticeLabel.Text = $"{retreatingUnitName}\n{BattleText(isArrival ? "ui.battle.arrive" : "ui.battle.retreat", isArrival ? "Arrive" : "Retreat")}";
         _retreatNotice.Visible = true;
         _retreatNotice.MoveToFront();
-        TryShowOfficerSpeech(retreatingUnit, BattleOfficerSpeechEvent.Retreat);
-        TryShowOpponentRetreatSpeechAfterDelay(retreatingUnit, retreatingGrid);
+        if (!isArrival)
+        {
+            TryShowOfficerSpeech(retreatingUnit, BattleOfficerSpeechEvent.Retreat);
+            TryShowOpponentRetreatSpeechAfterDelay(retreatingUnit, retreatingGrid);
+        }
 
         await ToSignal(GetTree().CreateTimer(2.0), SceneTreeTimer.SignalName.Timeout);
         if (GodotObject.IsInstanceValid(this) && noticeSerial == _retreatNoticeSerial)

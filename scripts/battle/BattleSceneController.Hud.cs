@@ -56,9 +56,20 @@ public partial class BattleSceneController
 
     private string BuildTeamHudText(BattleHudTeamInfo info)
     {
-        var sideLabel = BattleTeamIdentity.IsAttacker(info.Name)
-            ? BattleText("ui.battle.log_attacker", "Attacker")
-            : BattleText("ui.battle.log_defender", "Defender");
+        var isCaravanEscort = _activeCampaign?.IsCaravanEscortBattle == true;
+        var isTransport = isCaravanEscort && !BattleTeamIdentity.IsAttacker(info.Name);
+        var sideLabel = isCaravanEscort
+            ? BattleTeamIdentity.IsAttacker(info.Name)
+                ? BattleText("ui.battle.caravan_ambush", "Ambush")
+                : BattleText("ui.battle.caravan_transport", "Transport")
+            : BattleTeamIdentity.IsAttacker(info.Name)
+                ? BattleText("ui.battle.log_attacker", "Attacker")
+                : BattleText("ui.battle.log_defender", "Defender");
+        // Caravan gold and food are cargo, not battle upkeep. Display the
+        // locked shipment values instead of the generic campaign supply pool,
+        // which is intentionally zero for an escort battle.
+        var displayedGold = isTransport ? _activeCampaign!.CaravanGold : info.TotalGold;
+        var displayedFood = isTransport ? _activeCampaign!.CaravanFood : info.TotalFood;
         return BattleFormat(
             "ui.battle.team_hud",
             "{0}: {1}   Troops: {2:N0} / {3:N0} wounded   Generals: {4:N0}   Workers: {5:N0}   Siege: {6:N0}   Gold: {7:N0}   Food: {8:N0}",
@@ -69,8 +80,8 @@ public partial class BattleSceneController
             info.TotalGenerals,
             GetActiveWorkerCountForTeam(info.Name),
             info.TotalSiegeUnits,
-            info.TotalGold,
-            info.TotalFood);
+            displayedGold,
+            displayedFood);
     }
 
     private int GetActiveWorkerCountForTeam(string teamName)

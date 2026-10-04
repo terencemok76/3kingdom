@@ -42,8 +42,7 @@ public partial class BattleSceneController
         _battleDateDay = Math.Clamp(_activeCampaign.BattleDaysThisMonth + 1, 1, DateTime.DaysInMonth(_battleDateYear, _battleDateMonth));
         _teamAGold = _activeCampaign.AttackerGold;
         _teamAFood = _activeCampaign.AttackerFood;
-        _teamBGold = _activeCampaign.DefenderGold;
-        _teamBFood = _activeCampaign.DefenderFood;
+        SyncCampaignDefenderSupplyToBattle();
 
         var playerFactionId = CampaignRuntimeContext.World?.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? -1;
         _aiControlledSides = BattleAiControlledSides.None;
@@ -68,6 +67,10 @@ public partial class BattleSceneController
         var cityName = targetCity == null
             ? BattleText("ui.unknown", "Unknown")
             : _localization.GetCityName(targetCity);
+        if (_activeCampaign.IsCaravanEscortBattle)
+        {
+            return BattleFormat("ui.battle.caravan_escort_title", "Caravan Escort Battle ({0})", cityName);
+        }
         return _activeCampaign.Stage == CampaignStage.FieldBattle
             ? BattleFormat("ui.battle.campaign_field_title", "Field Battle ({0})", cityName)
             : BattleFormat("ui.battle.campaign_city_title", "Siege Battle ({0})", cityName);
@@ -78,6 +81,11 @@ public partial class BattleSceneController
         if (_activeCampaign == null || CampaignRuntimeContext.World == null)
         {
             return string.Empty;
+        }
+
+        if (_activeCampaign.IsCaravanEscortBattle && side == CampaignBattleSide.Attacker)
+        {
+            return BattleText("ui.battle.caravan_bandit", "Bandit");
         }
 
         var factionId = side == CampaignBattleSide.Attacker
@@ -167,8 +175,7 @@ public partial class BattleSceneController
 
         _teamAGold = _activeCampaign.AttackerGold;
         _teamAFood = _activeCampaign.AttackerFood;
-        _teamBGold = _activeCampaign.DefenderGold;
-        _teamBFood = _activeCampaign.DefenderFood;
+        SyncCampaignDefenderSupplyToBattle();
         ResetCampaignTeamDailyUpkeep(_state.TeamA);
         ResetCampaignTeamDailyUpkeep(_state.TeamB);
         ApplyCampaignMonthRecoveryToBattleUnits();
@@ -283,6 +290,15 @@ public partial class BattleSceneController
         var deploymentZone = team.Side == CampaignBattleSide.Attacker
             ? BattleDeploymentZone.Attacker
             : BattleDeploymentZone.Defender;
+        // Existing field maps place Attacker in the south-west and Defender in
+        // the north-east.  A caravan therefore reverses those deployment zones:
+        // transport starts/retreats SW; bandits ambush from NE.
+        if (_activeCampaign?.IsCaravanEscortBattle == true)
+        {
+            deploymentZone = deploymentZone == BattleDeploymentZone.Attacker
+                ? BattleDeploymentZone.Defender
+                : BattleDeploymentZone.Attacker;
+        }
         if (team.ReinforcementOrderId > 0)
         {
             var configuredGrids = team.Side == CampaignBattleSide.Attacker
@@ -875,7 +891,10 @@ public partial class BattleSceneController
         }
         AnnounceCampaignReinforcementArrivals(arrivingOrderIds);
         ConfigureHud();
-        if (!BattleCampaignService.HasReachedMonthlyBattleLimit(_activeCampaign, GetMonthlyBattleDayLimit()))
+        // A caravan ambush is resolved in one uninterrupted encounter: it has
+        // no monthly pause and therefore cannot open reinforcement windows.
+        if (_activeCampaign.IsCaravanEscortBattle ||
+            !BattleCampaignService.HasReachedMonthlyBattleLimit(_activeCampaign, GetMonthlyBattleDayLimit()))
         {
             return;
         }
@@ -949,8 +968,19 @@ public partial class BattleSceneController
 
         _activeCampaign.AttackerGold = _teamAGold;
         _activeCampaign.AttackerFood = _teamAFood;
-        _activeCampaign.DefenderGold = _teamBGold;
-        _activeCampaign.DefenderFood = _teamBFood;
+        if (_activeCampaign.IsCaravanEscortBattle)
+        {
+            // Escort cargo is deliberately outside the generic defender supply
+            // pool so its gold is not consumed as upkeep.
+            _activeCampaign.CaravanFood = Math.Max(0, _teamBFood);
+            _activeCampaign.DefenderGold = 0;
+            _activeCampaign.DefenderFood = 0;
+        }
+        else
+        {
+            _activeCampaign.DefenderGold = _teamBGold;
+            _activeCampaign.DefenderFood = _teamBFood;
+        }
     }
 
     private void SyncCampaignResourcesToHud()
@@ -962,8 +992,20 @@ public partial class BattleSceneController
 
         _teamAGold = _activeCampaign.AttackerGold;
         _teamAFood = _activeCampaign.AttackerFood;
-        _teamBGold = _activeCampaign.DefenderGold;
-        _teamBFood = _activeCampaign.DefenderFood;
+        SyncCampaignDefenderSupplyToBattle();
+    }
+
+    private void SyncCampaignDefenderSupplyToBattle()
+    {
+        if (_activeCampaign?.IsCaravanEscortBattle == true)
+        {
+            _teamBGold = 0;
+            _teamBFood = Math.Max(0, _activeCampaign.CaravanFood);
+            return;
+        }
+
+        _teamBGold = _activeCampaign?.DefenderGold ?? 0;
+        _teamBFood = _activeCampaign?.DefenderFood ?? 0;
     }
 
     private bool HandleCampaignBattleFinished()
@@ -975,6 +1017,22 @@ public partial class BattleSceneController
 
         _campaignResultHandled = true;
         SyncCampaignFromBattle();
+        if (_activeCampaign.IsCaravanEscortBattle)
+        {
+            _activeCampaign.CaravanEscortOutcome = HasCaravanEscortDeliveryCompleted()
+                ? CaravanEscortOutcome.Delivered
+                : HasActiveCaravanBattleTeam(isDefender: false)
+                    ? HasCaravanTransportTeamReturnedToSource()
+                        ? CaravanEscortOutcome.ReturnedToSource
+                        : CaravanEscortOutcome.Plundered
+                    : CaravanEscortOutcome.Delivered;
+            BattleCampaignService.CompleteCaravanEscortCampaign(
+                CampaignRuntimeContext.World,
+                _activeCampaign,
+                _activeCampaign.CaravanEscortOutcome);
+            QueueCampaignReturnToGameplay();
+            return true;
+        }
         var attackerWon = HasActiveOfficerBattleTeam(isDefender: false) || _attackerOutpostVictorySecured;
         if (_activeCampaign.Stage == CampaignStage.FieldBattle && attackerWon)
         {
@@ -1099,6 +1157,31 @@ public partial class BattleSceneController
         team.ActiveTroops = Math.Max(0, unit.TroopCount);
         team.WoundedTroops = Math.Max(0, unit.WoundedTroops);
 
+        if (IsCaravanEscortArrivalExit(unit, grid))
+        {
+            if (!BattleCampaignService.TryDeliverCaravanEscortTeam(CampaignRuntimeContext.World, _activeCampaign, team))
+            {
+                ShowBattleEventNotice(BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat."));
+                return true;
+            }
+
+            CompleteSelectedRetreat(unit, grid, campaignReturnHandled: true, isArrival: true);
+            return true;
+        }
+
+        if (IsCaravanEscortReturnExit(unit, grid))
+        {
+            if (!BattleCampaignService.TryReturnCaravanEscortTeamToSource(CampaignRuntimeContext.World, _activeCampaign, team))
+            {
+                ShowBattleEventNotice(BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat."));
+                return true;
+            }
+
+            AppendBattleLog(unit, "Retreat", $"{FormatLogUnit(unit)} returns to the source city.");
+            CompleteSelectedRetreat(unit, grid, campaignReturnHandled: true);
+            return true;
+        }
+
         if (team.OfficerId <= 0)
         {
             if (!BattleCampaignService.TryReturnSupportTeamToOrigin(CampaignRuntimeContext.World, team))
@@ -1146,6 +1229,36 @@ public partial class BattleSceneController
         }
 
         return true;
+    }
+
+    private bool HasCaravanEscortDeliveryCompleted()
+    {
+        if (_activeCampaign?.IsCaravanEscortBattle != true)
+        {
+            return false;
+        }
+
+        // A convoy only completes after every transport piece has left the
+        // battle map. At least one must have used NE to reach the destination;
+        // the remaining teams may have withdrawn through SW to the source.
+        if (HasActiveCaravanBattleTeam(isDefender: true))
+        {
+            return false;
+        }
+
+        return _activeCampaign.Teams.Any(team =>
+            team.Side == CampaignBattleSide.Defender &&
+            team.Location == CampaignTeamLocation.NeighborCity &&
+            team.RetreatDestinationCityId == _activeCampaign.TargetCityId);
+    }
+
+    private bool HasCaravanTransportTeamReturnedToSource()
+    {
+        return _activeCampaign?.IsCaravanEscortBattle == true &&
+               _activeCampaign.Teams.Any(team =>
+                   team.Side == CampaignBattleSide.Defender &&
+                   team.Location == CampaignTeamLocation.NeighborCity &&
+                   team.RetreatDestinationCityId == _activeCampaign.SourceCityId);
     }
 
     private void MarkCampaignRetreatBlockedForAi(BattleOccupantInfo unit)

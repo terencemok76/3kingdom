@@ -250,13 +250,8 @@ public partial class BattleSceneController
 
     private void LoadCampaignFromSlot(WorldRepository repository, int slot)
     {
-        var world = repository.LoadSavedGame(BuildCampaignSaveSlotPath(slot));
-        var playerFactionId = world?.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? -1;
-        var campaign = world?.ActiveBattleCampaigns.FirstOrDefault(item =>
-            item.Stage != CampaignStage.Resolved &&
-            (item.AttackerFactionId == playerFactionId || item.DefenderFactionId == playerFactionId) &&
-            !string.IsNullOrWhiteSpace(item.BattleSnapshotJson));
-        if (world == null || campaign == null)
+        var loadedWorld = repository.LoadSavedGame(BuildCampaignSaveSlotPath(slot));
+        if (loadedWorld is not { } world)
         {
             ShowBattleEventNotice(BattleText(
                 "ui.battle.save_slot_no_battle",
@@ -264,7 +259,24 @@ public partial class BattleSceneController
             return;
         }
 
-        var targetCity = world.GetCity(campaign.TargetCityId);
+        var playerFactionId = world.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? -1;
+        var campaign = world!.ActiveBattleCampaigns.FirstOrDefault(item =>
+            item.Stage != CampaignStage.Resolved &&
+            (item.AttackerFactionId == playerFactionId || item.DefenderFactionId == playerFactionId) &&
+            !string.IsNullOrWhiteSpace(item.BattleSnapshotJson));
+        if (campaign == null)
+        {
+            // A normal save belongs to the strategic map.  The battle's Save /
+            // Load dialog intentionally lists these slots too, so loading one
+            // must replace the battle scene with Main rather than rejecting it.
+            PendingLaunchOptions = null;
+            CampaignRuntimeContext.Launch(world!, campaignId: 0);
+            CampaignRuntimeContext.ReturnToGameplay();
+            GetTree().ChangeSceneToFile(GameplayScenePath);
+            return;
+        }
+
+        var targetCity = world!.GetCity(campaign.TargetCityId);
         if (targetCity == null)
         {
             ShowBattleEventNotice(BattleText(

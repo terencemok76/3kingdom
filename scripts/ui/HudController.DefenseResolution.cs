@@ -75,6 +75,13 @@ public partial class HudController
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
             _turnManager.World.PendingCommands.Remove(pendingCommand);
             AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
+            if (result.ActiveBattleCampaignId > 0)
+            {
+                _turnManager.World.IsBattleResolutionPhase = true;
+                _turnManager.World.ResumeAttackResolutionAfterCampaign = true;
+                LaunchCampaignBattle(result.ActiveBattleCampaignId);
+                return;
+            }
             CheckFactionEliminations();
             if (HasQueuedFactionOutcomes())
             {

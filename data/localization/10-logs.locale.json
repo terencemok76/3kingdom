@@ -35,6 +35,18 @@
                                   "zhHant":  "「{0}」遭盜賊襲擾：金 -{1}，糧 -{2}，忠誠 -{3}。",
                                   "en":  "\"{0}\" was raided by bandits: Gold -{1}, Food -{2}, Loyalty -{3}."
                               },
+    "log.test_caravan_no_target": {
+        "zhHant": "測試道路野戰需要一座相連的我方城市。",
+        "en": "A connected player-owned city is required to test a road field battle."
+    },
+    "log.test_caravan_provisioned": {
+        "zhHant": "已在「{0}」備妥測試商隊：金 {1}、護衛 {2} 人；立即觸發道路野戰。",
+        "en": "Prepared a test caravan at \"{0}\": Gold {1}, escort {2}; immediately triggering the road field battle."
+    },
+    "log.test_caravan_armed": {
+        "zhHant": "道路野戰測試已啟用：請用 Move 排定攜帶貨物的商隊，月結時必定遇伏。",
+        "en": "Road battle test armed: schedule a Move carrying cargo; it will be ambushed at month end."
+    },
     "log.city_event_snow":  {
                                 "zhHant":  "「{0}」遭遇大雪：糧 -{2}，忠誠 -{3}，防禦 -{5}，人口 -{6}，兵力 -{7}。",
                                 "en":  "\"{0}\" was hit by heavy snow: Food -{2}, Loyalty -{3}, Defense -{5}, Population -{6}, Troops -{7}."

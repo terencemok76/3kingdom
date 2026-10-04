@@ -89,8 +89,31 @@ public partial class BattleSceneController
             return false;
         }
 
-        var teamAHasOfficerBattleTeam = HasActiveOfficerBattleTeam(isDefender: false);
-        var teamBHasOfficerBattleTeam = HasActiveOfficerBattleTeam(isDefender: true);
+        if (_activeCampaign?.IsCaravanEscortBattle == true)
+        {
+            if (HasCaravanEscortDeliveryCompleted())
+            {
+                resultMessage = string.Join('\n',
+                    BattleText("ui.battle.result_finished", "Battle Finished"),
+                    BattleText("ui.battle.caravan_arrived_result", "The convoy reached the destination city."));
+                return true;
+            }
+
+            if (!HasActiveCaravanBattleTeam(isDefender: true) && HasCaravanTransportTeamReturnedToSource())
+            {
+                resultMessage = string.Join('\n',
+                    BattleText("ui.battle.result_finished", "Battle Finished"),
+                    BattleText("ui.battle.caravan_returned_result", "Transport returned to the source city."));
+                return true;
+            }
+        }
+
+        var teamAHasOfficerBattleTeam = _activeCampaign?.IsCaravanEscortBattle == true
+            ? HasActiveCaravanBattleTeam(isDefender: false)
+            : HasActiveOfficerBattleTeam(isDefender: false);
+        var teamBHasOfficerBattleTeam = _activeCampaign?.IsCaravanEscortBattle == true
+            ? HasActiveCaravanBattleTeam(isDefender: true)
+            : HasActiveOfficerBattleTeam(isDefender: true);
         if (!teamAHasOfficerBattleTeam && !teamBHasOfficerBattleTeam)
         {
             resultMessage = string.Join('\n',
@@ -129,6 +152,13 @@ public partial class BattleSceneController
             .SelectMany(static occupants => occupants)
             .Any(occupant => IsDefenderTeam(occupant) == isDefender &&
                              IsGeneralCountedPiece(occupant.Category, occupant.OfficerName));
+    }
+
+    private bool HasActiveCaravanBattleTeam(bool isDefender)
+    {
+        return _occupantsByGrid.Values
+            .SelectMany(static occupants => occupants)
+            .Any(occupant => IsDefenderTeam(occupant) == isDefender && occupant.CampaignTeamId > 0);
     }
 
     private bool DoesAttackerHoldAllDefenseOutposts()

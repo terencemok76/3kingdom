@@ -225,6 +225,8 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.move.nothing_to_move");
         }
 
+        var cargoValue = movableGold + movableFood + movableHorses + movableWood + movableMetal + movableStone + movableSiegeEngines.Total * 100;
+        var forceCaravanAmbushForDebug = request.ForceCaravanAmbushForDebug && cargoValue > 0;
         MarkOfficersAssigned(world, selectedOfficerIds, CommandType.Move);
         UpsertPendingCommand(world, new PendingCommandData
         {
@@ -240,16 +242,24 @@ public partial class CommandResolver
             WoodToSend = movableWood,
             MetalToSend = movableMetal,
             StoneToSend = movableStone,
+            ForceCaravanAmbushForDebug = forceCaravanAmbushForDebug,
             SiegeEngineAllocation = movableSiegeEngines,
             OfficerIds = selectedOfficerIds,
             CaptiveOfficerIds = selectedCaptiveOfficerIds
         });
 
-        return LocalizedResult(
+        var scheduleResult = LocalizedResult(
             true,
             "cmd.move.scheduled",
             new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSiegeEngines, GameLanguage.TraditionalChinese) },
             new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English), BuildMoveTransferSummary(movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSiegeEngines, GameLanguage.English) });
+        AppendMoveCaravanRisk(scheduleResult, CaravanRoadRiskRules.Assess(sourceCity, targetCity), cargoValue > 0);
+        if (forceCaravanAmbushForDebug)
+        {
+            world.ForceNextCaravanAmbushForDebug = false;
+            AppendMoveCaravanDebugForced(scheduleResult);
+        }
+        return scheduleResult;
     }
 
     private string BuildMoveTransferSummary(int troops, int gold, int food, int horses, int wood, int metal, int stone, SiegeEngineAllocationData siegeEngines, GameLanguage language)
@@ -770,10 +780,79 @@ public partial class CommandResolver
             Catapult = movableCatapult,
             Ladder = movableLadder
         };
+        var dispatchedTroopAllocation = new TroopAllocationData
+        {
+            Infantry = movableTroopAllocation.Infantry,
+            Spearman = movableTroopAllocation.Spearman,
+            Cavalry = movableTroopAllocation.Cavalry,
+            Archer = movableTroopAllocation.Archer,
+            Crossbow = movableTroopAllocation.Crossbow,
+            Siege = movableTroopAllocation.Siege
+        };
+        var dispatchedGold = movableGold;
+        var dispatchedFood = movableFood;
+        var dispatchedHorses = movableHorses;
+        var dispatchedWood = movableWood;
+        var dispatchedMetal = movableMetal;
+        var dispatchedStone = movableStone;
+        var dispatchedSiegeEngines = new SiegeEngineAllocationData
+        {
+            SupplyCart = movableSupplyCart,
+            Ram = movableRam,
+            Catapult = movableCatapult,
+            Ladder = movableLadder
+        };
+        var cargoValue = movableGold + movableFood + movableHorses + movableWood + movableMetal + movableStone + movableSiegeEngines.Total * 100;
+        var caravanAmbush = CaravanRoadRiskRules.Resolve(world, sourceCity, targetCity, movableTroopAllocation, cargoValue, pendingCommand.ForceCaravanAmbushForDebug);
+        if (caravanAmbush.EncounteredBandits && caravanAmbush.HasEscort)
+        {
+            sourceCity.RemoveTroopAllocation(dispatchedTroopAllocation);
+            sourceCity.Gold -= dispatchedGold;
+            sourceCity.Food -= dispatchedFood;
+            sourceCity.Horses -= dispatchedHorses;
+            sourceCity.Wood -= dispatchedWood;
+            sourceCity.Metal -= dispatchedMetal;
+            sourceCity.Stone -= dispatchedStone;
+            sourceCity.RemoveSiegeEngineAllocation(dispatchedSiegeEngines);
+            var campaign = BattleCampaignService.CreateCaravanEscortCampaign(
+                world, sourceCity, targetCity, dispatchedTroopAllocation, pendingCommand.OfficerIds,
+                dispatchedGold, dispatchedFood, dispatchedHorses, dispatchedWood, dispatchedMetal, dispatchedStone,
+                dispatchedSiegeEngines);
+            var battleResult = LocalizedResult(
+                true,
+                "cmd.move.scheduled",
+                new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), GetCityName(targetCity, GameLanguage.TraditionalChinese), BuildMoveTransferSummary(dispatchedTroopAllocation.Total, dispatchedGold, dispatchedFood, dispatchedHorses, dispatchedWood, dispatchedMetal, dispatchedStone, dispatchedSiegeEngines, GameLanguage.TraditionalChinese) },
+                new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English), BuildMoveTransferSummary(dispatchedTroopAllocation.Total, dispatchedGold, dispatchedFood, dispatchedHorses, dispatchedWood, dispatchedMetal, dispatchedStone, dispatchedSiegeEngines, GameLanguage.English) });
+            battleResult.ActiveBattleCampaignId = campaign.Id;
+            AppendMoveCaravanAmbushSummary(battleResult, caravanAmbush);
+            return battleResult;
+        }
+        if (caravanAmbush.EncounteredBandits)
+        {
+            movableTroopAllocation = CaravanRoadRiskRules.ApplyTroopLoss(movableTroopAllocation, caravanAmbush.TroopLossPercent);
+            movableTroops = movableTroopAllocation.Total;
+            movableGold = CaravanRoadRiskRules.ApplyLoss(movableGold, caravanAmbush.CargoLossPercent);
+            movableFood = CaravanRoadRiskRules.ApplyLoss(movableFood, caravanAmbush.CargoLossPercent);
+            movableHorses = CaravanRoadRiskRules.ApplyLoss(movableHorses, caravanAmbush.CargoLossPercent);
+            movableWood = CaravanRoadRiskRules.ApplyLoss(movableWood, caravanAmbush.CargoLossPercent);
+            movableMetal = CaravanRoadRiskRules.ApplyLoss(movableMetal, caravanAmbush.CargoLossPercent);
+            movableStone = CaravanRoadRiskRules.ApplyLoss(movableStone, caravanAmbush.CargoLossPercent);
+            movableSupplyCart = CaravanRoadRiskRules.ApplyLoss(movableSupplyCart, caravanAmbush.CargoLossPercent);
+            movableRam = CaravanRoadRiskRules.ApplyLoss(movableRam, caravanAmbush.CargoLossPercent);
+            movableCatapult = CaravanRoadRiskRules.ApplyLoss(movableCatapult, caravanAmbush.CargoLossPercent);
+            movableLadder = CaravanRoadRiskRules.ApplyLoss(movableLadder, caravanAmbush.CargoLossPercent);
+            movableSiegeEngines = new SiegeEngineAllocationData
+            {
+                SupplyCart = movableSupplyCart,
+                Ram = movableRam,
+                Catapult = movableCatapult,
+                Ladder = movableLadder
+            };
+        }
         var movedOfficerCount = TransferOfficers(world, sourceCity, targetCity, pendingCommand.OfficerIds, out var sourcePrefectOutcome);
         var movedCaptiveCount = TransferCaptiveOfficers(world, sourceCity, targetCity, pendingCommand.CaptiveOfficerIds);
 
-        if (movableTroops <= 0 && movableGold <= 0 && movableFood <= 0 && movableHorses <= 0 && movableWood <= 0 && movableMetal <= 0 && movableStone <= 0 && movableSiegeEngines.Total <= 0 && movedOfficerCount == 0 && movedCaptiveCount == 0)
+        if (dispatchedTroopAllocation.Total <= 0 && dispatchedGold <= 0 && dispatchedFood <= 0 && dispatchedHorses <= 0 && dispatchedWood <= 0 && dispatchedMetal <= 0 && dispatchedStone <= 0 && dispatchedSiegeEngines.Total <= 0 && movedOfficerCount == 0 && movedCaptiveCount == 0)
         {
             return LocalizedResult(
                 false,
@@ -782,14 +861,14 @@ public partial class CommandResolver
                 new object[] { GetCityName(sourceCity, GameLanguage.English), GetCityName(targetCity, GameLanguage.English) });
         }
 
-        sourceCity.RemoveTroopAllocation(movableTroopAllocation);
-        sourceCity.Gold -= movableGold;
-        sourceCity.Food -= movableFood;
-        sourceCity.Horses -= movableHorses;
-        sourceCity.Wood -= movableWood;
-        sourceCity.Metal -= movableMetal;
-        sourceCity.Stone -= movableStone;
-        sourceCity.RemoveSiegeEngineAllocation(movableSiegeEngines);
+        sourceCity.RemoveTroopAllocation(dispatchedTroopAllocation);
+        sourceCity.Gold -= dispatchedGold;
+        sourceCity.Food -= dispatchedFood;
+        sourceCity.Horses -= dispatchedHorses;
+        sourceCity.Wood -= dispatchedWood;
+        sourceCity.Metal -= dispatchedMetal;
+        sourceCity.Stone -= dispatchedStone;
+        sourceCity.RemoveSiegeEngineAllocation(dispatchedSiegeEngines);
 
         targetCity.AddTroopAllocation(movableTroopAllocation);
         targetCity.Gold += movableGold;
@@ -805,9 +884,63 @@ public partial class CommandResolver
             "cmd.move.resolved",
             new object[] { GetCityName(sourceCity, GameLanguage.TraditionalChinese), movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.TraditionalChinese) },
             new object[] { GetCityName(sourceCity, GameLanguage.English), movableTroops, movableGold, movableFood, movableHorses, movableWood, movableMetal, movableStone, movableSupplyCart, movableRam, movableCatapult, movableLadder, movedOfficerCount, GetCityName(targetCity, GameLanguage.English) });
+        AppendMoveCaravanAmbushSummary(result, caravanAmbush);
         AppendMoveCaptiveSummary(result, movedCaptiveCount);
         AppendPrefectAutoAppointmentOutcome(result, sourcePrefectOutcome);
         return result;
+    }
+
+    private void AppendMoveCaravanRisk(CommandResult result, CaravanRoadRiskAssessment risk, bool carriesCargo)
+    {
+        if (!carriesCargo || _localization == null)
+        {
+            return;
+        }
+
+        result.MessageZhHant = $"{result.MessageZhHant}{_localization.FormatForLanguage(GameLanguage.TraditionalChinese, "cmd.move.caravan_risk", GetCaravanRiskName(risk.Level, GameLanguage.TraditionalChinese), risk.EncounterChancePercent)}";
+        result.MessageEn = $"{result.MessageEn}{_localization.FormatForLanguage(GameLanguage.English, "cmd.move.caravan_risk", GetCaravanRiskName(risk.Level, GameLanguage.English), risk.EncounterChancePercent)}";
+        result.Message = _localization.CurrentLanguage == GameLanguage.TraditionalChinese ? result.MessageZhHant : result.MessageEn;
+    }
+
+    private void AppendMoveCaravanAmbushSummary(CommandResult result, CaravanAmbushResolution ambush)
+    {
+        if (!ambush.EncounteredBandits || _localization == null)
+        {
+            return;
+        }
+
+        var key = !ambush.HasEscort
+            ? "cmd.move.caravan_ambush_unescorted"
+            : ambush.EscortWon
+                ? "cmd.move.caravan_ambush_escort_won"
+                : "cmd.move.caravan_ambush_escort_lost";
+        result.MessageZhHant = $"{result.MessageZhHant}{_localization.FormatForLanguage(GameLanguage.TraditionalChinese, key, GetCaravanRiskName(ambush.Risk.Level, GameLanguage.TraditionalChinese), ambush.TroopLossPercent, ambush.CargoLossPercent)}";
+        result.MessageEn = $"{result.MessageEn}{_localization.FormatForLanguage(GameLanguage.English, key, GetCaravanRiskName(ambush.Risk.Level, GameLanguage.English), ambush.TroopLossPercent, ambush.CargoLossPercent)}";
+        result.Message = _localization.CurrentLanguage == GameLanguage.TraditionalChinese ? result.MessageZhHant : result.MessageEn;
+    }
+
+    private void AppendMoveCaravanDebugForced(CommandResult result)
+    {
+        if (_localization == null)
+        {
+            return;
+        }
+
+        result.MessageZhHant = $"{result.MessageZhHant}{_localization.TForLanguage(GameLanguage.TraditionalChinese, "cmd.move.caravan_debug_forced")}";
+        result.MessageEn = $"{result.MessageEn}{_localization.TForLanguage(GameLanguage.English, "cmd.move.caravan_debug_forced")}";
+        result.Message = _localization.CurrentLanguage == GameLanguage.TraditionalChinese ? result.MessageZhHant : result.MessageEn;
+    }
+
+    private string GetCaravanRiskName(CaravanRoadRiskLevel level, GameLanguage language)
+    {
+        var key = level switch
+        {
+            CaravanRoadRiskLevel.Safe => "ui.road_risk_safe",
+            CaravanRoadRiskLevel.Low => "ui.road_risk_low",
+            CaravanRoadRiskLevel.Medium => "ui.road_risk_medium",
+            _ => "ui.road_risk_high"
+        };
+        return GetLocalizedText(language, key);
     }
 
     private static List<int> GetMovableCaptiveOfficerIds(WorldState world, CityData sourceCity, IEnumerable<int> requestedOfficerIds)

@@ -176,9 +176,17 @@ internal sealed class SaveLoadDialogController : FloatingOverlayController
         }
 
         _context.ApplyLoadedWorld(loadedWorld);
+        _context.AddLog(_context.GetSaveSlotLoadedMessage(slotNumber), isPlayerRelated: true);
+        // A save made from a battle contains its snapshot.  Loading it from the
+        // strategic map must immediately resume that battle instead of leaving
+        // the restored campaign stranded on the big map.
+        if (_context.TryResumeSavedCampaignBattle())
+        {
+            return;
+        }
+
         PopulateSaveSlotList();
         SelectSaveSlot(slotNumber - 1);
-        _context.AddLog(_context.GetSaveSlotLoadedMessage(slotNumber), isPlayerRelated: true);
     }
 
     private void PopulateSaveSlotList()

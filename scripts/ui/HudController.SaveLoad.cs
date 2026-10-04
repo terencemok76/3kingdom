@@ -63,6 +63,7 @@ public partial class HudController
 
         ApplyLoadedWorld(loadedWorld);
         AddLog(_localization?.T("log.quick_load_success") ?? "Quick load completed.", isPlayerRelated: true);
+        TryResumeSavedCampaignBattle();
     }
 
     internal void ApplyLoadedWorld(WorldState loadedWorld)

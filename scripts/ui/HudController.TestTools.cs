@@ -68,6 +68,19 @@ public partial class HudController
 
     private void OnTestHorsePastureUpgradePressed() => UpgradeTestFacility(ConstructionProjectType.HorsePasture);
 
+    private void OnTestCaravanRoadBattlePressed()
+    {
+        if (_turnManager?.World == null)
+        {
+            return;
+        }
+
+        _turnManager.World.ForceNextCaravanAmbushForDebug = true;
+        AddLog(_localization?.T("log.test_caravan_armed")
+            ?? "Debug armed: the next Move carrying cargo will be ambushed at month end.",
+            isPlayerRelated: true);
+    }
+
     private void UpgradeTestFacility(ConstructionProjectType projectType)
     {
         if (_turnManager?.World == null || _selectedCity == null)

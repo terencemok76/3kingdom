@@ -12,9 +12,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private Button? _engineerButton;
     private Button? _bowWorkshopButton;
     private Button? _horsePastureButton;
+    private Button? _caravanRoadBattleButton;
     private bool _signalsConnected;
 
-    protected override Vector2 MinimumOverlaySize => new(420.0f, 210.0f);
+    protected override Vector2 MinimumOverlaySize => new(420.0f, 260.0f);
 
     public TestToolsDialogController(MainHudUiContext context)
         : base(context, "res://scenes/ui/main/TestToolsDialog.tscn")
@@ -43,7 +44,9 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         SetOverlayTitleText(localization?.T("ui.test_tools") ?? "Test Tools");
         if (_summaryLabel != null)
         {
-            _summaryLabel.Text = localization?.T("ui.test_tools_open") ?? "Open a test tool.";
+            _summaryLabel.Text = _context.World?.ForceNextCaravanAmbushForDebug == true
+                ? localization?.T("ui.test_caravan_armed") ?? "Caravan ambush armed: schedule a Move carrying cargo."
+                : localization?.T("ui.test_tools_open") ?? "Open a test tool.";
         }
 
         if (_testCaptiveButton != null)
@@ -70,6 +73,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
                 ? "Upgrade Horse Pasture"
                 : $"{localization.T("ui.horse_pasture")} {localization.T("ui.test_upgrade")}";
         }
+        if (_caravanRoadBattleButton != null)
+        {
+            _caravanRoadBattleButton.Text = localization?.T("ui.test_caravan_road_battle") ?? "Force Next Caravan Ambush";
+        }
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -80,8 +87,9 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         _engineerButton = root.GetNodeOrNull<Button>("ActionRow/EngineerButton");
         _bowWorkshopButton = root.GetNodeOrNull<Button>("FacilityActionRow/BowWorkshopButton");
         _horsePastureButton = root.GetNodeOrNull<Button>("FacilityActionRow/HorsePastureButton");
+        _caravanRoadBattleButton = root.GetNodeOrNull<Button>("CaravanActionRow/CaravanRoadBattleButton");
 
-        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton }.Where(button => button != null))
+        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton }.Where(button => button != null))
         {
             if (_context.ViewButton == null)
             {
@@ -131,6 +139,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _horsePastureButton.Pressed += OnHorsePasturePressed;
         }
+        if (_caravanRoadBattleButton != null)
+        {
+            _caravanRoadBattleButton.Pressed += OnCaravanRoadBattlePressed;
+        }
 
         _signalsConnected = true;
     }
@@ -159,5 +171,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private void OnHorsePasturePressed()
     {
         _context.UpgradeTestHorsePasture();
+    }
+
+    private void OnCaravanRoadBattlePressed()
+    {
+        _context.TriggerTestCaravanRoadBattle();
     }
 }

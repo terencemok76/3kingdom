@@ -738,6 +738,26 @@
                                "zhHant":  "「{0}」已排定移動命令：{2}；月末將轉移至「{1}」。",
                                "en":  "\"{0}\" scheduled a Move to \"{1}\": {2}."
                            },
+    "cmd.move.caravan_risk": {
+        "zhHant": " 道路風險：{0}（盜賊伏擊 {1}%）。",
+        "en": " Road risk: {0} ({1}% bandit ambush)."
+    },
+    "cmd.move.caravan_debug_forced": {
+        "zhHant": " Debug：此商隊已標記為月結必定遇伏。",
+        "en": " Debug: this caravan is marked for a guaranteed month-end ambush."
+    },
+    "cmd.move.caravan_ambush_unescorted": {
+        "zhHant": " 道路風險 {0}：商隊遭盜賊伏擊，未設護衛，貨物損失 {2}%。",
+        "en": " Road risk {0}: bandits ambushed the unescorted caravan; cargo loss {2}%."
+    },
+    "cmd.move.caravan_ambush_escort_won": {
+        "zhHant": " 道路風險 {0}：護衛隊擊退盜賊（道路野戰自動結算），兵力損失 {1}%。",
+        "en": " Road risk {0}: escort defeated the bandits (road field battle auto-resolved); troop loss {1}%."
+    },
+    "cmd.move.caravan_ambush_escort_lost": {
+        "zhHant": " 道路風險 {0}：護衛隊道路野戰失利，兵力損失 {1}%，貨物損失 {2}%。",
+        "en": " Road risk {0}: escort lost the road field battle; troop loss {1}%, cargo loss {2}%."
+    },
     "cmd.move.transfer_separator": {
         "zhHant": "、",
         "en": ", "

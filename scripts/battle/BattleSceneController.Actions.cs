@@ -99,10 +99,32 @@ public partial class BattleSceneController
 
     private bool CanRetreatFromGrid(BattleGridKey grid, BattleOccupantInfo unit)
     {
-        return IsBattlePiece(unit) &&
-               grid.Level == 0 &&
-               GetRetreatExitGrids(unit).Any(exitGrid => exitGrid == grid.Grid);
+        if (!IsBattlePiece(unit) || grid.Level != 0)
+        {
+            return false;
+        }
+
+        // Road escort uses its two map edges differently: NE is the delivery
+        // exit for transport, while SW remains the route back to the source.
+        if (IsCaravanEscortTransport(unit))
+        {
+            return IsCaravanEscortArrivalExit(unit, grid) ||
+                   IsCaravanEscortReturnExit(unit, grid);
+        }
+
+        return GetRetreatExitGrids(unit).Any(exitGrid => exitGrid == grid.Grid);
     }
+
+    private bool IsCaravanEscortTransport(BattleOccupantInfo unit) =>
+        _activeCampaign?.IsCaravanEscortBattle == true && IsDefenderPiece(unit);
+
+    private bool IsCaravanEscortArrivalExit(BattleOccupantInfo unit, BattleGridKey grid) =>
+        IsCaravanEscortTransport(unit) &&
+        GetRetreatExitGrids(attacker: false).Any(exitGrid => exitGrid == grid.Grid);
+
+    private bool IsCaravanEscortReturnExit(BattleOccupantInfo unit, BattleGridKey grid) =>
+        IsCaravanEscortTransport(unit) &&
+        GetRetreatExitGrids(attacker: true).Any(exitGrid => exitGrid == grid.Grid);
 
     private IEnumerable<Vector2I> GetRetreatExitGrids(BattleOccupantInfo unit)
     {

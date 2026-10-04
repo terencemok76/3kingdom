@@ -827,6 +827,30 @@
 					"zhHant":  "移動",
 					"en":  "Move"
 				},
+	"ui.road_risk":  {
+					"zhHant":  "道路風險",
+					"en":  "Road risk"
+				},
+	"ui.road_risk_safe":  {
+					"zhHant":  "安全",
+					"en":  "Safe"
+				},
+	"ui.road_risk_low":  {
+					"zhHant":  "低",
+					"en":  "Low"
+				},
+	"ui.road_risk_medium":  {
+					"zhHant":  "中",
+					"en":  "Medium"
+				},
+	"ui.road_risk_high":  {
+					"zhHant":  "高",
+					"en":  "High"
+				},
+	"fmt.road_risk_preview":  {
+					"zhHant":  "道路風險：{0}（盜賊伏擊 {1}%）；護衛至少 {2} 人可進入道路野戰。",
+					"en":  "Road risk: {0} ({1}% bandit ambush); an escort of {2}+ enters the road field battle."
+				},
 	"fmt.move_equipment_city_available":  {
 					"zhHant":  "{0}（城內：{1}）",
 					"en":  "{0} (City: {1})"
@@ -1383,6 +1407,8 @@
 							  },
 	"ui.test_tools": { "zhHant": "測試工具", "en": "Test Tools" },
 	"ui.test_tools_open": { "zhHant": "開啟測試工具。", "en": "Open a test tool." },
+	"ui.test_caravan_road_battle": { "zhHant": "強制下次商隊遇伏", "en": "Force Next Caravan Ambush" },
+	"ui.test_caravan_armed": { "zhHant": "已啟用：在 Move 排定一支攜帶貨物的商隊；月結必定遇伏。", "en": "Armed: schedule a Move carrying cargo; it will be ambushed at month end." },
 	"ui.test_captive": { "zhHant": "測試俘虜", "en": "Test Captive" },
 	"ui.test_battle_equipment": { "zhHant": "戰役裝備 +1", "en": "Battle Equipment +1" },
 	"ui.test_engineers": { "zhHant": "工兵 +300", "en": "Engineers +300" },

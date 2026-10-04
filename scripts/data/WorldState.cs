@@ -52,12 +52,18 @@ public class WorldState
         public int DefenderCommittedTroops { get; set; }
         public int DefenderLostTroops { get; set; }
         public int DefenderReturnedTroops { get; set; }
+        // Only used by road-escort reports.  Source-city withdrawals remain in
+        // DefenderReturnedTroops, while this value records destination arrivals.
+        public int CaravanArrivedTroops { get; set; }
         public int DefenderActiveTroops { get; set; }
         public int DefenderWoundedTroops { get; set; }
         public int DefenderGoldSpent { get; set; }
         public int DefenderFoodSpent { get; set; }
         public int DefenderGoldGained { get; set; }
         public int DefenderFoodGained { get; set; }
+        // Non-None identifies a road-escort field battle so the report can
+        // present transport/ambush semantics instead of siege terminology.
+        public CaravanEscortOutcome CaravanEscortOutcome { get; set; }
         public List<int> CapturedOfficerIds { get; set; } = new();
         public bool PlayerAcknowledged { get; set; }
     }
@@ -69,6 +75,8 @@ public class WorldState
     public int Month { get; set; }
     public int RandomSeed { get; set; }
     public bool InteractiveBattlesEnabled { get; set; } = true;
+    // One-shot Debug/Test Tools switch. Consumed only after a Move with cargo is scheduled.
+    public bool ForceNextCaravanAmbushForDebug { get; set; }
     public bool ResumeAttackResolutionAfterCampaign { get; set; }
     public bool IsBattleResolutionPhase { get; set; }
     public List<CityData> Cities { get; set; } = new();

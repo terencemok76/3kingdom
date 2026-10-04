@@ -283,7 +283,14 @@ public partial class HudController
 
         var sourceCity = world.GetCity(report.SourceCityId);
         var targetCity = world.GetCity(report.TargetCityId);
-        var winnerName = localization.GetFactionName(world, report.WinnerFactionId);
+        var isCaravanEscortReport = report.CaravanEscortOutcome != CaravanEscortOutcome.None;
+        var winnerName = isCaravanEscortReport
+            ? report.CaravanEscortOutcome == CaravanEscortOutcome.Plundered
+                ? localization.T("ui.battle.caravan_report_ambush_side")
+                : localization.Format(
+                    "ui.battle.caravan_report_transport_side",
+                    localization.GetFactionName(world, report.DefenderFactionId))
+            : localization.GetFactionName(world, report.WinnerFactionId);
         var sourceName = sourceCity == null ? "?" : localization.GetCityName(sourceCity);
         var targetName = targetCity == null ? "?" : localization.GetCityName(targetCity);
         var capturedNames = report.CapturedOfficerIds
@@ -304,24 +311,37 @@ public partial class HudController
 
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/RouteLabel").Text =
             localization.Format("ui.campaign.battle_report_route", sourceName, targetName);
-        var playerWon = report.WinnerFactionId == playerFactionId;
+        var playerWon = isCaravanEscortReport
+            ? report.CaravanEscortOutcome != CaravanEscortOutcome.Plundered
+            : report.WinnerFactionId == playerFactionId;
         var outcomeLabel = _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/OutcomeLabel");
-        outcomeLabel.Text = localization.T(playerWon
-            ? "ui.campaign.battle_report_victory"
-            : "ui.campaign.battle_report_defeat");
+        outcomeLabel.Text = isCaravanEscortReport
+            ? report.CaravanEscortOutcome switch
+            {
+                CaravanEscortOutcome.Delivered => localization.T("ui.battle.caravan_report_delivered"),
+                CaravanEscortOutcome.ReturnedToSource => localization.T("ui.battle.caravan_report_returned"),
+                _ => localization.T("ui.campaign.battle_report_defeat")
+            }
+            : localization.T(playerWon
+                ? "ui.campaign.battle_report_victory"
+                : "ui.campaign.battle_report_defeat");
         outcomeLabel.AddThemeColorOverride("font_color", playerWon
             ? new Color(0.94f, 0.84f, 0.62f, 1.0f)
             : new Color(0.9f, 0.38f, 0.34f, 1.0f));
         GameAudioController.Instance?.PlayBattleOutcomeBgm(playerWon);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/WinnerLabel").Text =
             localization.Format("ui.campaign.battle_report_winner", winnerName);
-        var attackerRulerName = localization.GetFactionName(world, report.AttackerFactionId);
+        var attackerRulerName = isCaravanEscortReport
+            ? localization.T("ui.battle.caravan_report_ambush_side")
+            : localization.GetFactionName(world, report.AttackerFactionId);
         var defenderRulerName = localization.GetFactionName(world, report.DefenderFactionId);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content/SideLabel").Text =
-            localization.Format(
-                "ui.campaign.battle_report_side_ruler",
-                localization.T("ui.campaign.battle_report_attacker"),
-                attackerRulerName);
+            isCaravanEscortReport
+                ? attackerRulerName
+                : localization.Format(
+                    "ui.campaign.battle_report_side_ruler",
+                    localization.T("ui.campaign.battle_report_attacker"),
+                    attackerRulerName);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content/ForceLabel").Text =
             localization.Format(
                 "ui.campaign.battle_report_force",
@@ -331,21 +351,33 @@ public partial class HudController
                 report.AttackerReturnedTroops,
                 report.AttackerActiveTroops);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/SideLabel").Text =
-            localization.Format(
-                "ui.campaign.battle_report_side_ruler",
-                localization.T("ui.campaign.battle_report_defender"),
-                defenderRulerName);
+            isCaravanEscortReport
+                ? localization.Format("ui.battle.caravan_report_transport_side", defenderRulerName)
+                : localization.Format(
+                    "ui.campaign.battle_report_side_ruler",
+                    localization.T("ui.campaign.battle_report_defender"),
+                    defenderRulerName);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/ForceLabel").Text =
-            localization.Format(
-                "ui.campaign.battle_report_force",
-                Math.Max(report.DefenderCommittedTroops, report.DefenderActiveTroops + report.DefenderWoundedTroops),
-                report.DefenderLostTroops,
-                report.DefenderWoundedTroops,
-                report.DefenderReturnedTroops,
-                report.DefenderActiveTroops);
+            isCaravanEscortReport
+                ? localization.Format(
+                    "ui.battle.caravan_report_transport_force",
+                    report.DefenderCommittedTroops,
+                    report.DefenderLostTroops,
+                    report.DefenderWoundedTroops,
+                    report.CaravanArrivedTroops,
+                    report.DefenderReturnedTroops)
+                : localization.Format(
+                    "ui.campaign.battle_report_force",
+                    Math.Max(report.DefenderCommittedTroops, report.DefenderActiveTroops + report.DefenderWoundedTroops),
+                    report.DefenderLostTroops,
+                    report.DefenderWoundedTroops,
+                    report.DefenderReturnedTroops,
+                    report.DefenderActiveTroops);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ResourceLabel").Text =
             localization.Format(
-                "ui.campaign.battle_report_resources",
+                isCaravanEscortReport
+                    ? "ui.battle.caravan_report_resources"
+                    : "ui.campaign.battle_report_resources",
                 report.AttackerGoldSpent,
                 report.AttackerFoodSpent,
                 report.AttackerGoldGained,

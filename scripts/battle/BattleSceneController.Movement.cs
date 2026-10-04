@@ -1010,8 +1010,18 @@ public partial class BattleSceneController
         return BattleMovementService.GetMoveEnergyCost(cell);
     }
 
-    private static int GetMoveRangeCost(BattleCellData cell)
+    private int GetMoveRangeCost(BattleCellData cell)
     {
+        // Road escort cavalry can enter forest, but one forest tile consumes its
+        // complete movement-range allowance.  This is intentionally scoped to
+        // the escort scenario; regular field and siege battles retain the
+        // existing cavalry-forest prohibition.
+        if (_selectedUnit != null &&
+            IsCaravanEscortCavalryForestStep(_selectedUnit, cell))
+        {
+            return Math.Max(1, GetTeamMoveRangeCap(_selectedUnit));
+        }
+
         return BattleMovementService.GetMoveRangeCost(cell);
     }
 
@@ -1287,7 +1297,8 @@ public partial class BattleSceneController
         }
 
         if (_selectedUnit.TroopType == TroopCavalry &&
-            cell.Terrain == BattleTerrainType.Forest)
+            cell.Terrain == BattleTerrainType.Forest &&
+            !CanEnterCaravanEscortForest(_selectedUnit, destinationGrid))
         {
             return false;
         }
@@ -1313,6 +1324,30 @@ public partial class BattleSceneController
         }
 
         return true;
+    }
+
+    private bool CanEnterCaravanEscortForest(BattleOccupantInfo unit, BattleGridKey destinationGrid)
+    {
+        // A retreat exit is an evacuation route, not a terrain trap.  In the
+        // road-escort scenario every battle piece must be able to enter it,
+        // including a cavalry team when the authored exit tile is forest.
+        return _activeCampaign?.IsCaravanEscortBattle == true &&
+               (IsCaravanEscortCavalry(unit) ||
+                IsCaravanEscortArrivalExit(unit, destinationGrid) ||
+                IsCaravanEscortReturnExit(unit, destinationGrid) ||
+                GetRetreatExitGrids(unit).Any(exitGrid => exitGrid == destinationGrid.Grid));
+    }
+
+    private bool IsCaravanEscortCavalryForestStep(BattleOccupantInfo unit, BattleCellData cell)
+    {
+        return cell.Terrain == BattleTerrainType.Forest &&
+               IsCaravanEscortCavalry(unit);
+    }
+
+    private bool IsCaravanEscortCavalry(BattleOccupantInfo unit)
+    {
+        return _activeCampaign?.IsCaravanEscortBattle == true &&
+               unit.TroopType == TroopCavalry;
     }
 
     private bool IsClosedGateGroundMoveBlocked(BattleGridKey sourceGrid, BattleGridKey destinationGrid)

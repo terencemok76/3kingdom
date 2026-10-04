@@ -273,12 +273,20 @@ public partial class BattleSceneController
                              _selectedUnit != null &&
                              _selectedUnitGrid.HasValue &&
                              CanRetreatFromGrid(_selectedUnitGrid.Value, _selectedUnit);
+            var isCaravanArrival = canCommandSelectedUnit &&
+                                   _selectedUnit != null &&
+                                   _selectedUnitGrid.HasValue &&
+                                   IsCaravanEscortArrivalExit(_selectedUnit, _selectedUnitGrid.Value);
             _retreatButton.Visible = canCommandSelectedUnit && _selectedUnit != null && IsBattlePiece(_selectedUnit);
             _retreatButton.Disabled = !canRetreat;
-            _retreatButton.Text = BattleText("ui.battle.retreat", "Retreat");
-            _retreatButton.TooltipText = BattleText(
-                canRetreat ? "ui.battle.retreat_exit_ready" : "ui.battle.retreat_exit_required",
-                canRetreat ? "Leave through this exit" : "Reach your exit zone first");
+            _retreatButton.Text = isCaravanArrival
+                ? BattleText("ui.battle.arrive", "Arrive")
+                : BattleText("ui.battle.retreat", "Retreat");
+            _retreatButton.TooltipText = isCaravanArrival
+                ? BattleText("ui.battle.caravan_arrive_ready", "Deliver this transport team to the destination city")
+                : BattleText(
+                    canRetreat ? "ui.battle.retreat_exit_ready" : "ui.battle.retreat_exit_required",
+                    canRetreat ? "Leave through this exit" : "Reach your exit zone first");
         }
 
         if (_hideButton != null)

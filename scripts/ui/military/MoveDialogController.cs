@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ThreeKingdom.Core;
 using ThreeKingdom.Data;
 using ThreeKingdom.Map;
 
@@ -12,6 +13,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
     private readonly MilitaryUiContext _context;
     private OptionButton? _targetCityOption;
     private Button? _targetCityMapButton;
+    private Label? _roadRiskLabel;
     private Button? _confirmButton;
     private ScrollContainer? _contentScroll;
     private VBoxContainer? _content;
@@ -111,6 +113,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
         ConfigureSpinBox(_catapultSpinBox, _context.SelectedCity.CatapultCount, 0);
         ConfigureSpinBox(_ladderSpinBox, _context.SelectedCity.LadderCount, 0);
         ConfigureEquipmentRows(_context.SelectedCity);
+        RefreshRoadRiskPreview();
 
         PopulateOfficerList();
 
@@ -161,6 +164,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
         _content = root.GetNodeOrNull<VBoxContainer>("ContentScroll/Content");
         _targetCityOption = root.GetNodeOrNull<OptionButton>("ContentScroll/Content/TargetCityRow/TargetCityOption");
         _targetCityMapButton = root.GetNodeOrNull<Button>("ContentScroll/Content/TargetCityRow/TargetCityMapButton");
+        _roadRiskLabel = root.GetNodeOrNull<Label>("ContentScroll/Content/RoadRiskLabel");
         _infantrySpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/InfantryRow/InfantrySpinBox");
         _spearmanSpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/SpearmanRow/SpearmanSpinBox");
         _cavalrySpinBox = root.GetNodeOrNull<SpinBox>("ContentScroll/Content/CavalryRow/CavalrySpinBox");
@@ -236,6 +240,7 @@ internal sealed class MoveDialogController : FloatingOverlayController
 
         _confirmButton.Pressed += OnConfirmPressed;
         if (_targetCityMapButton != null) _targetCityMapButton.Pressed += OnTargetCityMapPressed;
+        if (_targetCityOption != null) _targetCityOption.ItemSelected += _ => RefreshRoadRiskPreview();
         ConnectMaxButton(_supplyCartMaxButton, _supplyCartSpinBox);
         ConnectMaxButton(_ramMaxButton, _ramSpinBox);
         ConnectMaxButton(_catapultMaxButton, _catapultSpinBox);
@@ -313,9 +318,40 @@ internal sealed class MoveDialogController : FloatingOverlayController
             if (metadata.VariantType == Variant.Type.Int && metadata.AsInt32() == cityId)
             {
                 _targetCityOption.Select(index);
+                RefreshRoadRiskPreview();
                 return;
             }
         }
+    }
+
+    private void RefreshRoadRiskPreview()
+    {
+        if (_roadRiskLabel == null || _context.SelectedCity == null || _context.TurnManager?.World == null || _context.Localization == null)
+        {
+            return;
+        }
+
+        var targetCity = _context.TurnManager.World.GetCity(GetSelectedTargetCityId());
+        if (targetCity == null)
+        {
+            _roadRiskLabel.Text = string.Empty;
+            return;
+        }
+
+        var risk = CaravanRoadRiskRules.Assess(_context.SelectedCity, targetCity);
+        var riskKey = risk.Level switch
+        {
+            CaravanRoadRiskLevel.Safe => "ui.road_risk_safe",
+            CaravanRoadRiskLevel.Low => "ui.road_risk_low",
+            CaravanRoadRiskLevel.Medium => "ui.road_risk_medium",
+            _ => "ui.road_risk_high"
+        };
+        _roadRiskLabel.Text = _context.Localization.Format(
+            "fmt.road_risk_preview",
+            _context.Localization.T(riskKey),
+            risk.EncounterChancePercent,
+            CaravanRoadRiskRules.MinimumEscortTroops);
+        _roadRiskLabel.Visible = true;
     }
 
     private void OnConfirmPressed()

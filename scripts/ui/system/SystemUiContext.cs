@@ -92,6 +92,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     public void SaveOptionSettings() => _owner.SystemSaveOptionSettings();
     public void RestoreDefaultLayout() => _owner.SystemRestoreDefaultLayout();
     public void ApplyLoadedWorld(WorldState loadedWorld) => _owner.SystemApplyLoadedWorld(loadedWorld);
+    public bool TryResumeSavedCampaignBattle() => _owner.SystemTryResumeSavedCampaignBattle();
     public void ApplyButtonTheme(Button button) => _owner.SystemApplyButtonTheme(button);
     public void ApplyOptionEntryTheme(Button button) => _owner.SystemApplyOptionEntryTheme(button);
 

@@ -191,6 +191,8 @@ public class CommandRequest
     public int WoodToSend { get; set; }
     public int MetalToSend { get; set; }
     public int StoneToSend { get; set; }
+    // Debug-only path used by Test Tools to make an immediate caravan encounter reproducible.
+    public bool ForceCaravanAmbushForDebug { get; set; }
     public bool SellFood { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public MerchantTradeMode MerchantTradeMode { get; set; } = MerchantTradeMode.BuyFood;
@@ -222,6 +224,7 @@ public class PendingCommandData
     public int WoodToSend { get; set; }
     public int MetalToSend { get; set; }
     public int StoneToSend { get; set; }
+    public bool ForceCaravanAmbushForDebug { get; set; }
     public TroopType RecruitTroopType { get; set; } = TroopType.Infantry;
     public DiplomacyActionType DiplomacyActionType { get; set; } = DiplomacyActionType.Alliance;
     public SpyActionType SpyActionType { get; set; } = SpyActionType.Reconnaissance;

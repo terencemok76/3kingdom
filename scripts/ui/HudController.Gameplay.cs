@@ -36,7 +36,8 @@ public partial class HudController : CanvasLayer
         bool sellFood = false,
         MerchantTradeMode merchantTradeMode = MerchantTradeMode.BuyFood,
         TroopType recruitTroopType = TroopType.Infantry,
-        DefenderBattlePlan? defenderBattlePlanOverride = null)
+        DefenderBattlePlan? defenderBattlePlanOverride = null,
+        bool forceCaravanAmbushForDebug = false)
     {
         if (_gameEnded || _turnManager?.World == null || _commandResolver == null || _selectedCity == null)
         {
@@ -64,6 +65,7 @@ public partial class HudController : CanvasLayer
             WoodToSend = type == CommandType.Move ? woodToSend : 0,
             MetalToSend = type == CommandType.Move ? metalToSend : 0,
             StoneToSend = type == CommandType.Move ? stoneToSend : 0,
+            ForceCaravanAmbushForDebug = type == CommandType.Move && (forceCaravanAmbushForDebug || _turnManager.World.ForceNextCaravanAmbushForDebug),
             SiegeEngineAllocation = type == CommandType.Move ? (siegeEngineAllocation ?? new SiegeEngineAllocationData()) : new SiegeEngineAllocationData(),
             SellFood = type == CommandType.Merchant && sellFood,
             MerchantTradeMode = merchantTradeMode,

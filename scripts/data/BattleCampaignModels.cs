@@ -10,6 +10,14 @@ public enum CampaignStage
     Resolved
 }
 
+public enum CaravanEscortOutcome
+{
+    None,
+    Delivered,
+    ReturnedToSource,
+    Plundered
+}
+
 public enum CampaignBattleSide
 {
     Attacker,
@@ -201,6 +209,17 @@ public class ActiveBattleCampaignData
     public int DefenderGoldUpkeepRemainder { get; set; }
     public int DefenderFoodUpkeepRemainder { get; set; }
     public string BattleSnapshotJson { get; set; } = string.Empty;
+    // A road ambush is a self-contained field battle.  It deliberately never
+    // advances into the siege/city stages used by normal attack campaigns.
+    public bool IsCaravanEscortBattle { get; set; }
+    public CaravanEscortOutcome CaravanEscortOutcome { get; set; }
+    public int CaravanGold { get; set; }
+    public int CaravanFood { get; set; }
+    public int CaravanHorses { get; set; }
+    public int CaravanWood { get; set; }
+    public int CaravanMetal { get; set; }
+    public int CaravanStone { get; set; }
+    public SiegeEngineAllocationData CaravanEquipment { get; set; } = new();
     public List<CampaignBattleTeamData> Teams { get; set; } = new();
     // One uncommanded engineering detachment and its shared equipment per side.
     public BattleSupportDeploymentData AttackerBattleSupport { get; set; } = new();

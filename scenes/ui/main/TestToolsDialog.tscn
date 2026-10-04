@@ -89,14 +89,14 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(420, 180)
+custom_minimum_size = Vector2(420, 240)
 offset_right = 420.0
-offset_bottom = 180.0
+offset_bottom = 240.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(380, 140)
+custom_minimum_size = Vector2(380, 200)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -174,3 +174,12 @@ text = "弓坊升級"
 layout_mode = 2
 focus_mode = 0
 text = "馬場升級"
+
+[node name="CaravanActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="CaravanRoadBattleButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/CaravanActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "觸發道路野戰"

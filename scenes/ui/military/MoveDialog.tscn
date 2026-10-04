@@ -169,6 +169,12 @@ layout_mode = 2
 focus_mode = 0
 text = "Map"
 
+[node name="RoadRiskLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
+layout_mode = 2
+autowrap_mode = 2
+text = "Road risk"
+theme_override_colors/font_color = Color(0.82, 0.72, 0.42, 1)
+
 [node name="InfantryRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentScroll/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
