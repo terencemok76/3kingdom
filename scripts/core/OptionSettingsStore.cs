@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using Godot;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.Core;
 
@@ -13,6 +14,7 @@ public sealed class OptionSettingsData
     public float SfxVolume { get; set; } = 1.0f;
     public bool AiDecisionDebugEnabled { get; set; }
     public bool MonthlyEconomyReportEnabled { get; set; } = true;
+    public MapPresentationSpeed MapPresentationSpeed { get; set; } = MapPresentationSpeed.Normal;
     public bool LeftPanelMinimized { get; set; }
     public float LeftPanelX { get; set; } = 10.0f;
     public float LeftPanelY { get; set; } = 70.0f;

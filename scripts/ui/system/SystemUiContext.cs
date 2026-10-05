@@ -1,6 +1,7 @@
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -54,6 +55,12 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
         set => _owner.SystemMonthlyEconomyReportEnabled = value;
     }
 
+    public MapPresentationSpeed MapPresentationSpeed
+    {
+        get => _owner.SystemMapPresentationSpeed;
+        set => _owner.SystemMapPresentationSpeed = value;
+    }
+
     public Control CreateOverlay(string scenePath, System.Action closeAction)
     {
         var dialog = GD.Load<PackedScene>(scenePath).Instantiate<Control>();
@@ -88,6 +95,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     public void ToggleGodMode() => _owner.SystemToggleGodMode();
     public void ToggleAiDecisionDebug() => _owner.SystemToggleAiDecisionDebug();
     public void ToggleMonthlyEconomyReport() => _owner.SystemToggleMonthlyEconomyReport();
+    public void CycleMapPresentationSpeed() => _owner.SystemCycleMapPresentationSpeed();
     public void ApplyAudioSettings() => _owner.SystemApplyAudioSettings();
     public void SaveOptionSettings() => _owner.SystemSaveOptionSettings();
     public void RestoreDefaultLayout() => _owner.SystemRestoreDefaultLayout();
@@ -103,6 +111,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     public string GetOptionGodModeButtonText() => _owner.SystemGetOptionGodModeButtonText();
     public string GetOptionAiDecisionDebugButtonText() => _owner.SystemGetOptionAiDecisionDebugButtonText();
     public string GetOptionMonthlyEconomyReportButtonText() => _owner.SystemGetOptionMonthlyEconomyReportButtonText();
+    public string GetOptionMapPresentationSpeedButtonText() => _owner.SystemGetOptionMapPresentationSpeedButtonText();
     public string GetAudioToggleButtonText(bool isBgm, bool enabled) => _owner.SystemGetAudioToggleButtonText(isBgm, enabled);
     public string GetSaveSettingsButtonText() => _owner.SystemGetSaveSettingsButtonText();
     public string GetRestoreLayoutButtonText() => _owner.SystemGetRestoreLayoutButtonText();

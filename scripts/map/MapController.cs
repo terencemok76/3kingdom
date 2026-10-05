@@ -27,6 +27,13 @@ public enum StrategicMapFactionFilter
     Neutral
 }
 
+public enum MapPresentationSpeed
+{
+    Normal,
+    Fast,
+    Skip
+}
+
 public partial class MapController : Node2D
 {
     private const float FrameOuterInset = 10.0f;
@@ -168,6 +175,15 @@ public partial class MapController : Node2D
     private StrategicMapLayer _strategicMapLayer = StrategicMapLayer.Faction;
     private StrategicMapFactionFilter _strategicMapFactionFilter = StrategicMapFactionFilter.All;
     private bool _isStrategicMapPresentationActive;
+
+    public MapPresentationSpeed PresentationSpeed { get; set; } = MapPresentationSpeed.Normal;
+
+    public void SetPresentationSpeed(MapPresentationSpeed speed)
+    {
+        PresentationSpeed = Enum.IsDefined(typeof(MapPresentationSpeed), speed)
+            ? speed
+            : MapPresentationSpeed.Normal;
+    }
 
     private bool _isDragging;
     private Vector2 _lastMousePosition;
@@ -335,6 +351,12 @@ public partial class MapController : Node2D
 
     private void PlayMovementAnimation(int sourceCityId, int targetCityId, MapMovementIcon icon, Action completed)
     {
+        if (PresentationSpeed == MapPresentationSpeed.Skip)
+        {
+            completed();
+            return;
+        }
+
         var source = _world?.GetCity(sourceCityId);
         var target = _world?.GetCity(targetCityId);
         if (_movementLayer == null || source == null || target == null)
@@ -350,11 +372,17 @@ public partial class MapController : Node2D
         }
         var marker = new MapMovementMarker();
         _movementLayer.AddChild(marker);
-        marker.Start(points, icon, Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f), completed);
+        marker.Start(points, icon, GetPresentationDuration(Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f)), completed);
     }
 
     private void PlayTargetBattleAnimation(int targetCityId, Action completed)
     {
+        if (PresentationSpeed == MapPresentationSpeed.Skip)
+        {
+            completed();
+            return;
+        }
+
         var cityNode = _cityNodes.FirstOrDefault(entry => entry.City.Id == targetCityId).Node;
         if (cityNode == null)
         {
@@ -362,10 +390,16 @@ public partial class MapController : Node2D
             return;
         }
 
-        const float durationSeconds = 0.9f;
+        var durationSeconds = GetPresentationDuration(0.9f);
         cityNode.PlayBattleAnimation(durationSeconds);
         GetTree().CreateTimer(durationSeconds).Timeout += completed;
     }
+
+    private float GetPresentationDuration(float normalDuration) => PresentationSpeed switch
+    {
+        MapPresentationSpeed.Fast => normalDuration * 0.5f,
+        _ => normalDuration
+    };
 
     public void HighlightCityEvent(int cityId, Color color, string eventTag, float durationSeconds = 0.0f)
     {

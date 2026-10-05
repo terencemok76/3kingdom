@@ -1336,6 +1336,11 @@
 								},
 		"ui.option_monthly_report": { "zhHant": "月度報告", "en": "Monthly Report" },
 		"fmt.option_monthly_report": { "zhHant": "{0}：{1}", "en": "{0}: {1}" },
+		"ui.option_map_presentation_speed": { "zhHant": "地圖演出速度", "en": "Map Presentation" },
+		"fmt.option_map_presentation_speed": { "zhHant": "{0}：{1}", "en": "{0}: {1}" },
+		"ui.map_presentation_speed_normal": { "zhHant": "正常", "en": "Normal" },
+		"ui.map_presentation_speed_fast": { "zhHant": "快速", "en": "Fast" },
+		"ui.map_presentation_speed_skip": { "zhHant": "略過", "en": "Skip" },
 		"ui.log_panel_title":  {
 								   "zhHant":  "??",
 								   "en":  "Log"

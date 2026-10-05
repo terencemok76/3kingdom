@@ -2,6 +2,7 @@ using System;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -65,6 +66,10 @@ public partial class HudController
         _sfxVolume = Mathf.Clamp(settings.SfxVolume, 0.0f, 1.0f);
         _aiDecisionDebugEnabled = settings.AiDecisionDebugEnabled;
         _monthlyEconomyReportEnabled = settings.MonthlyEconomyReportEnabled;
+        _mapPresentationSpeed = Enum.IsDefined(typeof(MapPresentationSpeed), settings.MapPresentationSpeed)
+            ? settings.MapPresentationSpeed
+            : MapPresentationSpeed.Normal;
+        _mapController?.SetPresentationSpeed(_mapPresentationSpeed);
         _localization?.SetLanguage(settings.Language);
         ApplyLoadedFloatingPanelSettings(
             settings.LeftPanelMinimized,
@@ -91,7 +96,8 @@ public partial class HudController
             BgmVolume = _bgmVolume,
             SfxVolume = _sfxVolume,
             AiDecisionDebugEnabled = _aiDecisionDebugEnabled,
-            MonthlyEconomyReportEnabled = _monthlyEconomyReportEnabled
+            MonthlyEconomyReportEnabled = _monthlyEconomyReportEnabled,
+            MapPresentationSpeed = _mapPresentationSpeed
         };
 
         PopulateFloatingPanelSettings(settings);
@@ -221,6 +227,15 @@ public partial class HudController
         "fmt.option_monthly_report", "{0}: {1}",
         Localize("ui.option_monthly_report", "Monthly Report"),
         _monthlyEconomyReportEnabled ? Localize("ui.on", "On") : Localize("ui.off", "Off"));
+    private string GetOptionMapPresentationSpeedButtonText() => LocalizeFormat(
+        "fmt.option_map_presentation_speed", "{0}: {1}",
+        Localize("ui.option_map_presentation_speed", "Map Presentation"),
+        _mapPresentationSpeed switch
+        {
+            MapPresentationSpeed.Fast => Localize("ui.map_presentation_speed_fast", "Fast"),
+            MapPresentationSpeed.Skip => Localize("ui.map_presentation_speed_skip", "Skip"),
+            _ => Localize("ui.map_presentation_speed_normal", "Normal")
+        });
 
     private string Localize(string key, string fallback)
     {

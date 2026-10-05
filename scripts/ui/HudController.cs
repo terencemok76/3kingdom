@@ -266,6 +266,7 @@ public partial class HudController : CanvasLayer
     private float _bgmVolume = 1.0f;
     private float _sfxVolume = 1.0f;
     private bool _aiDecisionDebugEnabled;
+    private MapPresentationSpeed _mapPresentationSpeed = MapPresentationSpeed.Normal;
     internal UiEventHub UiEventHub => _uiEventHub;
     public override void _Ready()
     {
@@ -459,6 +460,7 @@ public partial class HudController : CanvasLayer
         _aiController = aiController;
         _worldRepository = worldRepository;
         _mapController = mapController;
+        _mapController?.SetPresentationSpeed(_mapPresentationSpeed);
 
         _localization.LanguageChanged -= OnLanguageChanged;
         _localization.LanguageChanged += OnLanguageChanged;

@@ -11,6 +11,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private Button? _godModeButton;
     private Button? _aiDecisionDebugButton;
     private Button? _monthlyEconomyReportButton;
+    private Button? _mapPresentationSpeedButton;
     private Button? _bgmToggleButton;
     private Button? _sfxToggleButton;
     private HSlider? _bgmVolumeSlider;
@@ -20,7 +21,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private Button? _saveSettingsButton;
     private Button? _restoreLayoutButton;
     private bool _signalsConnected;
-    protected override Vector2 MinimumOverlaySize => new(540.0f, 380.0f);
+    protected override Vector2 MinimumOverlaySize => new(540.0f, 430.0f);
 
     public OptionDialogController(SystemUiContext context, System.Action showSaveLoadDialog)
         : base(context, "res://scenes/ui/system/OptionDialog.tscn")
@@ -72,6 +73,10 @@ internal sealed class OptionDialogController : FloatingOverlayController
         if (_monthlyEconomyReportButton != null)
         {
             _monthlyEconomyReportButton.Text = _context.GetOptionMonthlyEconomyReportButtonText();
+        }
+        if (_mapPresentationSpeedButton != null)
+        {
+            _mapPresentationSpeedButton.Text = _context.GetOptionMapPresentationSpeedButtonText();
         }
 
         if (_bgmToggleButton != null)
@@ -126,6 +131,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
         _godModeButton = root.GetNodeOrNull<Button>("GodModeButton");
         _aiDecisionDebugButton = root.GetNodeOrNull<Button>("AiDecisionDebugButton");
         _monthlyEconomyReportButton = root.GetNodeOrNull<Button>("MonthlyEconomyReportButton");
+        _mapPresentationSpeedButton = root.GetNodeOrNull<Button>("MapPresentationSpeedButton");
         _bgmToggleButton = root.GetNodeOrNull<Button>("BgmAudioRow/BgmToggleButton");
         _sfxToggleButton = root.GetNodeOrNull<Button>("SfxAudioRow/SfxToggleButton");
         _bgmVolumeSlider = root.GetNodeOrNull<HSlider>("BgmAudioRow/BgmVolumeSlider");
@@ -148,6 +154,7 @@ internal sealed class OptionDialogController : FloatingOverlayController
                      _godModeButton,
                      _aiDecisionDebugButton,
                      _monthlyEconomyReportButton,
+                     _mapPresentationSpeedButton,
                      _bgmToggleButton,
                      _sfxToggleButton,
                      _saveSettingsButton,
@@ -187,6 +194,10 @@ internal sealed class OptionDialogController : FloatingOverlayController
         if (_monthlyEconomyReportButton != null)
         {
             _monthlyEconomyReportButton.Pressed += OnMonthlyEconomyReportPressed;
+        }
+        if (_mapPresentationSpeedButton != null)
+        {
+            _mapPresentationSpeedButton.Pressed += OnMapPresentationSpeedPressed;
         }
         if (_bgmToggleButton != null)
         {
@@ -238,6 +249,13 @@ internal sealed class OptionDialogController : FloatingOverlayController
     private void OnMonthlyEconomyReportPressed()
     {
         _context.ToggleMonthlyEconomyReport();
+        _context.SaveOptionSettings();
+        RefreshText();
+    }
+
+    private void OnMapPresentationSpeedPressed()
+    {
+        _context.CycleMapPresentationSpeed();
         _context.SaveOptionSettings();
         RefreshText();
     }

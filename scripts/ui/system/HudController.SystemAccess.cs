@@ -1,6 +1,7 @@
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
 
 namespace ThreeKingdom.UI;
 
@@ -48,6 +49,15 @@ public partial class HudController
         get => _monthlyEconomyReportEnabled;
         set => _monthlyEconomyReportEnabled = value;
     }
+    internal MapPresentationSpeed SystemMapPresentationSpeed
+    {
+        get => _mapPresentationSpeed;
+        set
+        {
+            _mapPresentationSpeed = value;
+            _mapController?.SetPresentationSpeed(value);
+        }
+    }
 
     internal void SystemPopupDialog(Window? dialog) => PopupDialogUsingSceneSize(dialog);
     internal void SystemPlayUiClickSfx() => PlayUiClickSfx();
@@ -56,6 +66,12 @@ public partial class HudController
     internal void SystemToggleGodMode() => OnGodModePressed();
     internal void SystemToggleAiDecisionDebug() => _aiDecisionDebugEnabled = !_aiDecisionDebugEnabled;
     internal void SystemToggleMonthlyEconomyReport() => _monthlyEconomyReportEnabled = !_monthlyEconomyReportEnabled;
+    internal void SystemCycleMapPresentationSpeed() => SystemMapPresentationSpeed = _mapPresentationSpeed switch
+    {
+        MapPresentationSpeed.Normal => MapPresentationSpeed.Fast,
+        MapPresentationSpeed.Fast => MapPresentationSpeed.Skip,
+        _ => MapPresentationSpeed.Normal
+    };
     internal void SystemApplyAudioSettings() => ApplyAudioSettings();
     internal void SystemSaveOptionSettings() => SaveOptionSettings();
     internal void SystemRestoreDefaultLayout() => RestoreDefaultFloatingPanelLayout();
@@ -89,6 +105,7 @@ public partial class HudController
     internal string SystemGetOptionGodModeButtonText() => GetOptionGodModeButtonText();
     internal string SystemGetOptionAiDecisionDebugButtonText() => GetOptionAiDecisionDebugButtonText();
     internal string SystemGetOptionMonthlyEconomyReportButtonText() => GetOptionMonthlyEconomyReportButtonText();
+    internal string SystemGetOptionMapPresentationSpeedButtonText() => GetOptionMapPresentationSpeedButtonText();
     internal string SystemGetAudioToggleButtonText(bool isBgm, bool enabled) => GetAudioToggleButtonText(isBgm, enabled);
     internal string SystemGetSaveSettingsButtonText() => GetSaveSettingsButtonText();
     internal string SystemGetRestoreLayoutButtonText() => GetRestoreLayoutButtonText();
