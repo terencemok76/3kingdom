@@ -257,6 +257,8 @@ public partial class HudController : CanvasLayer
     private readonly List<PendingCommandData> _pendingNonAttackResolutionQueue = new();
     private readonly List<PendingCommandData> _pendingAttackResolutionQueue = new();
     private readonly Queue<int> _pendingAiFactionTurns = new();
+    private readonly Queue<PendingCommandData> _pendingFactionMovementAnimations = new();
+    private Action? _afterFactionMovementAnimations;
     private bool _isResolvingEndTurn;
     private bool _isEndTurnTransitionUiActive;
     private bool _bgmEnabled = true;

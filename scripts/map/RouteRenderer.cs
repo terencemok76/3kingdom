@@ -53,6 +53,9 @@ public partial class RouteRenderer : Node2D
         QueueRedraw();
     }
 
+    public static Vector2[] GetRoutePoints(int fromCityId, int toCityId, Vector2 from, Vector2 to) =>
+        BuildRoutePoints(fromCityId, toCityId, from, to);
+
     public override void _Draw()
     {
         foreach (var route in _routes)

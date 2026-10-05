@@ -132,7 +132,7 @@ public partial class HudController : CanvasLayer
             _pendingAiFactionTurns.Enqueue(faction.Id);
         }
 
-        ContinueAiFactionTurn();
+        PlayFactionMovementAnimations(_turnManager.GetPlayerFactionId(), ContinueAiFactionTurn);
     }
 
     private void ContinueAiFactionTurn()
@@ -195,7 +195,53 @@ public partial class HudController : CanvasLayer
             CheckFactionEliminations();
         }
 
-        GetTree().CreateTimer(AiTurnDisplaySeconds).Timeout += ContinueAiFactionTurn;
+        PlayFactionMovementAnimations(factionId, () =>
+            GetTree().CreateTimer(AiTurnDisplaySeconds).Timeout += ContinueAiFactionTurn);
+    }
+
+    private void PlayFactionMovementAnimations(int factionId, Action continuation)
+    {
+        _pendingFactionMovementAnimations.Clear();
+        _afterFactionMovementAnimations = continuation;
+        if (_turnManager?.World != null)
+        {
+            foreach (var command in _turnManager.World.PendingCommands.Where(command =>
+                         command.ActorFactionId == factionId &&
+                         command.Type is CommandType.Move or CommandType.Attack))
+            {
+                _pendingFactionMovementAnimations.Enqueue(command);
+            }
+        }
+
+        PlayNextFactionMovementAnimation();
+    }
+
+    private void PlayNextFactionMovementAnimation()
+    {
+        if (_pendingFactionMovementAnimations.Count == 0)
+        {
+            var continuation = _afterFactionMovementAnimations;
+            _afterFactionMovementAnimations = null;
+            continuation?.Invoke();
+            return;
+        }
+
+        var command = _pendingFactionMovementAnimations.Dequeue();
+        if (_mapController == null)
+        {
+            PlayNextFactionMovementAnimation();
+            return;
+        }
+
+        Action completed = () => Callable.From(PlayNextFactionMovementAnimation).CallDeferred();
+        if (command.Type == CommandType.Attack)
+        {
+            _mapController.PlayAttackAnimation(command.SourceCityId, command.TargetCityId, completed);
+        }
+        else
+        {
+            _mapController.PlayPendingCommandAnimation(command, completed);
+        }
     }
 
     private void BeginEndTurnTransitionUi()

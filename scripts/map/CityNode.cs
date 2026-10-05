@@ -33,6 +33,7 @@ public partial class CityNode : Node2D
     private bool _isSelected;
     private CityLabelOverlay? _labelOverlay;
     private bool _hasEventOverlay;
+    private bool _hasBattleAnimation;
     private string _eventTag = string.Empty;
     private Color _eventOverlayColor = Colors.Transparent;
     private bool _hasCampaignOverlay;
@@ -122,9 +123,16 @@ public partial class CityNode : Node2D
         }
 
         _hasEventOverlay = false;
+        _hasBattleAnimation = false;
         _eventTag = string.Empty;
         RefreshLabelOverlay();
         QueueRedraw();
+    }
+
+    public void PlayBattleAnimation(float durationSeconds)
+    {
+        _hasBattleAnimation = true;
+        SetEventOverlay(new Color("e34c45"), durationSeconds, "交戰");
     }
 
     public void SetCampaignOverlay(bool hasCampaignOverlay)
@@ -179,6 +187,13 @@ public partial class CityNode : Node2D
             var ringColor = new Color(_eventOverlayColor, ringAlpha);
             DrawCircle(Vector2.Zero, EventRingRadius + 2.5f, glowColor, false, 7.0f);
             DrawCircle(Vector2.Zero, EventRingRadius, ringColor, false, 3.5f);
+        }
+
+        if (_hasBattleAnimation)
+        {
+            var bladeColor = new Color("fff1c7");
+            DrawLine(new Vector2(-10.0f, -10.0f), new Vector2(10.0f, 10.0f), bladeColor, 3.0f);
+            DrawLine(new Vector2(10.0f, -10.0f), new Vector2(-10.0f, 10.0f), bladeColor, 3.0f);
         }
     }
 

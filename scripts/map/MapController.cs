@@ -158,6 +158,7 @@ public partial class MapController : Node2D
     private Node2D? _worldRoot;
     private Node2D? _citiesLayer;
     private Node2D? _routesLayer;
+    private Node2D? _movementLayer;
     private Sprite2D? _backgroundSprite;
 
     private readonly List<(CityData City, CityNode Node)> _cityNodes = new();
@@ -181,6 +182,12 @@ public partial class MapController : Node2D
         _worldRoot = GetNodeOrNull<Node2D>("WorldRoot");
         _citiesLayer = GetNodeOrNull<Node2D>("WorldRoot/CitiesLayer");
         _routesLayer = GetNodeOrNull<Node2D>("WorldRoot/RoutesLayer");
+        _movementLayer = GetNodeOrNull<Node2D>("WorldRoot/MovementLayer");
+        if (_movementLayer == null && _worldRoot != null)
+        {
+            _movementLayer = new Node2D { Name = "MovementLayer", ZIndex = 30 };
+            _worldRoot.AddChild(_movementLayer);
+        }
         _backgroundSprite = GetNodeOrNull<Sprite2D>("WorldRoot/BackgroundSprite");
         GetViewport().SizeChanged += OnViewportSizeChanged;
 
@@ -308,6 +315,56 @@ public partial class MapController : Node2D
         {
             SelectCity(_selectedCityId);
         }
+    }
+
+    public void PlayPendingCommandAnimation(PendingCommandData command, Action completed)
+    {
+        var currentCityId = command.RouteCityIds.Count > 2 && command.CurrentRouteIndex >= 0 && command.CurrentRouteIndex < command.RouteCityIds.Count
+            ? command.RouteCityIds[command.CurrentRouteIndex]
+            : command.SourceCityId;
+        var nextCityId = command.RouteCityIds.Count > 2 && command.CurrentRouteIndex + 1 < command.RouteCityIds.Count
+            ? command.RouteCityIds[command.CurrentRouteIndex + 1]
+            : command.TargetCityId;
+        var hasCargo = command.GoldToSend > 0 || command.FoodToSend > 0 || command.HorsesToSend > 0 ||
+            command.WoodToSend > 0 || command.MetalToSend > 0 || command.StoneToSend > 0 || command.SiegeEngineAllocation.Total > 0;
+        PlayMovementAnimation(currentCityId, nextCityId, hasCargo ? MapMovementIcon.Logistics : MapMovementIcon.Reinforcement, completed);
+    }
+
+    public void PlayAttackAnimation(int sourceCityId, int targetCityId, Action completed) =>
+        PlayMovementAnimation(sourceCityId, targetCityId, MapMovementIcon.Attack, () => PlayTargetBattleAnimation(targetCityId, completed));
+
+    private void PlayMovementAnimation(int sourceCityId, int targetCityId, MapMovementIcon icon, Action completed)
+    {
+        var source = _world?.GetCity(sourceCityId);
+        var target = _world?.GetCity(targetCityId);
+        if (_movementLayer == null || source == null || target == null)
+        {
+            completed();
+            return;
+        }
+        var points = RouteRenderer.GetRoutePoints(source.Id, target.Id, new Vector2(source.MapX, source.MapY), new Vector2(target.MapX, target.MapY));
+        if (points.Length < 2)
+        {
+            completed();
+            return;
+        }
+        var marker = new MapMovementMarker();
+        _movementLayer.AddChild(marker);
+        marker.Start(points, icon, Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f), completed);
+    }
+
+    private void PlayTargetBattleAnimation(int targetCityId, Action completed)
+    {
+        var cityNode = _cityNodes.FirstOrDefault(entry => entry.City.Id == targetCityId).Node;
+        if (cityNode == null)
+        {
+            completed();
+            return;
+        }
+
+        const float durationSeconds = 0.9f;
+        cityNode.PlayBattleAnimation(durationSeconds);
+        GetTree().CreateTimer(durationSeconds).Timeout += completed;
     }
 
     public void HighlightCityEvent(int cityId, Color color, string eventTag, float durationSeconds = 0.0f)
