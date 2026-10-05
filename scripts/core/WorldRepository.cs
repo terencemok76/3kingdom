@@ -103,7 +103,11 @@ public class WorldRepository
 
     public SaveSlotSummary LoadSaveSlotSummary(string path, int slotIndex)
     {
-        var document = LoadSaveDocument(path);
+        return BuildSaveSlotSummary(LoadSaveDocument(path), slotIndex);
+    }
+
+    public static SaveSlotSummary BuildSaveSlotSummary(SaveGameData? document, int slotIndex)
+    {
         if (document?.World == null)
         {
             return new SaveSlotSummary
@@ -113,6 +117,14 @@ public class WorldRepository
             };
         }
 
+        var battleCampaign = document.World.ActiveBattleCampaigns.FirstOrDefault(campaign =>
+            campaign.Stage != CampaignStage.Resolved &&
+            !string.IsNullOrWhiteSpace(campaign.BattleSnapshotJson));
+        var attacker = document.World.GetFaction(battleCampaign?.AttackerFactionId ?? 0);
+        var defender = document.World.GetFaction(battleCampaign?.DefenderFactionId ?? 0);
+        var location = document.World.GetCity(battleCampaign?.TargetCityId ?? 0);
+        var playerFaction = document.World.Factions.FirstOrDefault(faction => faction.IsPlayer);
+        var playerRuler = document.World.GetOfficer(playerFaction?.RulerOfficerId ?? 0);
         return new SaveSlotSummary
         {
             SlotIndex = slotIndex,
@@ -123,9 +135,15 @@ public class WorldRepository
             StoryNameZhHant = document.World.StoryNameZhHant,
             Year = document.World.Year,
             Month = document.World.Month,
-            IsCampaignBattleSave = document.World.ActiveBattleCampaigns.Any(campaign =>
-                campaign.Stage != CampaignStage.Resolved &&
-                !string.IsNullOrWhiteSpace(campaign.BattleSnapshotJson))
+            IsCampaignBattleSave = battleCampaign != null,
+            BattleAttackerNameEn = attacker?.NameEn ?? (battleCampaign?.AttackerFactionId == 0 ? "Bandits" : string.Empty),
+            BattleAttackerNameZhHant = attacker?.NameZhHant ?? (battleCampaign?.AttackerFactionId == 0 ? "盜賊" : string.Empty),
+            BattleDefenderNameEn = defender?.NameEn ?? string.Empty,
+            BattleDefenderNameZhHant = defender?.NameZhHant ?? string.Empty,
+            BattleLocationNameEn = location?.NameEn ?? location?.Name ?? string.Empty,
+            BattleLocationNameZhHant = location?.NameZhHant ?? location?.Name ?? string.Empty,
+            PlayerRulerNameEn = playerRuler?.Name ?? string.Empty,
+            PlayerRulerNameZhHant = playerRuler?.NameZhHant ?? playerRuler?.Name ?? string.Empty
         };
     }
 

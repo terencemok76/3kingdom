@@ -105,7 +105,8 @@ public partial class GameStartMenuController : CanvasLayer
     private Button? _lordConfirmButton;
     private Button? _lordBackButton;
     private ItemList? _loadSlotList;
-    private RichTextLabel? _loadSummaryLabel;
+    private GridContainer? _loadSummaryGrid;
+    private readonly List<Label> _loadSummaryCells = new();
     private Button? _loadConfirmButton;
     private Button? _loadBackButton;
     private ColorRect? _optionDialogBackdrop;
@@ -168,7 +169,8 @@ public partial class GameStartMenuController : CanvasLayer
         _lordConfirmButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/LordPanel/LordButtonRow/LordConfirmButton");
         _loadSectionLabel = GetNodeOrNull<Label>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadLabel");
         _loadSlotList = GetNodeOrNull<ItemList>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadSlotList");
-        _loadSummaryLabel = GetNodeOrNull<RichTextLabel>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadSummaryLabel");
+        _loadSummaryGrid = GetNodeOrNull<GridContainer>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadSummaryGrid");
+        EnsureLoadSummaryGrid();
         _loadBackButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadButtonRow/LoadBackButton");
         _loadConfirmButton = GetNodeOrNull<Button>("Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel/LoadButtonRow/LoadConfirmButton");
         _optionDialogBackdrop = GetNodeOrNull<ColorRect>("Root/OptionDialogBackdrop");
@@ -1107,17 +1109,79 @@ public partial class GameStartMenuController : CanvasLayer
 
     private void RefreshLoadSummary()
     {
-        if (_loadSummaryLabel == null || _worldRepository == null)
+        if (_loadSummaryGrid == null || _worldRepository == null)
         {
             return;
         }
 
         var slotNumber = _selectedLoadSlotIndex + 1;
         var summary = _worldRepository.LoadSaveSlotSummary(BuildSaveSlotPath(slotNumber), slotNumber);
-        _loadSummaryLabel.Text = BuildSaveSlotSummaryText(summary);
+        PopulateLoadSummaryGrid(summary);
         if (_loadConfirmButton != null)
         {
             _loadConfirmButton.Disabled = !summary.Exists;
+        }
+    }
+
+    private void EnsureLoadSummaryGrid()
+    {
+        if (_loadSummaryGrid == null || _loadSummaryCells.Count > 0)
+        {
+            return;
+        }
+
+        for (var index = 0; index < 10; index += 1)
+        {
+            var cell = new Label
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart
+            };
+            _loadSummaryGrid.AddChild(cell);
+            _loadSummaryCells.Add(cell);
+        }
+    }
+
+    private void PopulateLoadSummaryGrid(SaveSlotSummary summary)
+    {
+        EnsureLoadSummaryGrid();
+        if (_loadSummaryCells.Count == 0 || _localization == null)
+        {
+            return;
+        }
+
+        var rows = new List<(string Left, string Right)>();
+        if (!summary.Exists)
+        {
+            rows.Add((_localization.T("fmt.save_slot_empty_summary"), string.Empty));
+        }
+        else
+        {
+            var storyName = _localization.IsTraditionalChinese
+                ? (!string.IsNullOrWhiteSpace(summary.StoryNameZhHant) ? summary.StoryNameZhHant : summary.StoryNameEn)
+                : (!string.IsNullOrWhiteSpace(summary.StoryNameEn) ? summary.StoryNameEn : summary.StoryNameZhHant);
+            var description = string.IsNullOrWhiteSpace(summary.Description) ? _localization.T("ui.no_description") : summary.Description;
+            rows.Add((_localization.Format("fmt.save_slot_field", summary.SlotIndex), _localization.Format("fmt.save_type_field", GetSaveSlotTypeText(summary))));
+            rows.Add((_localization.Format("fmt.save_story_field", storyName), _localization.Format("fmt.save_progress_field", summary.Year, summary.Month)));
+            rows.Add((_localization.Format("fmt.save_description_field", description), _localization.Format("fmt.save_time_field", FormatSavedTime(summary.SavedAtUtc))));
+
+            if (summary.IsCampaignBattleSave)
+            {
+                rows.Add((_localization.Format("fmt.save_attacker_field", GetSaveBattleName(summary.BattleAttackerNameZhHant, summary.BattleAttackerNameEn)), _localization.Format("fmt.save_defender_field", GetSaveBattleName(summary.BattleDefenderNameZhHant, summary.BattleDefenderNameEn))));
+                rows.Add((_localization.Format("fmt.save_location_field", GetSaveBattleName(summary.BattleLocationNameZhHant, summary.BattleLocationNameEn)), _localization.Format("fmt.save_player_ruler_field", GetSaveBattleName(summary.PlayerRulerNameZhHant, summary.PlayerRulerNameEn))));
+            }
+            else
+            {
+                rows.Add((_localization.Format("fmt.save_player_ruler_field", GetSaveBattleName(summary.PlayerRulerNameZhHant, summary.PlayerRulerNameEn)), string.Empty));
+            }
+        }
+
+        for (var index = 0; index < _loadSummaryCells.Count; index += 1)
+        {
+            var row = index / 2;
+            _loadSummaryCells[index].Text = row < rows.Count
+                ? (index % 2 == 0 ? rows[row].Left : rows[row].Right)
+                : string.Empty;
         }
     }
 
@@ -1335,16 +1399,30 @@ public partial class GameStartMenuController : CanvasLayer
             ? (!string.IsNullOrWhiteSpace(summary.StoryNameZhHant) ? summary.StoryNameZhHant : summary.StoryNameEn)
             : (!string.IsNullOrWhiteSpace(summary.StoryNameEn) ? summary.StoryNameEn : summary.StoryNameZhHant);
         var description = string.IsNullOrWhiteSpace(summary.Description) ? _localization.T("ui.no_description") : summary.Description;
-        return _localization.Format(
-            "fmt.save_slot_summary",
+        var text = _localization.Format(
+            "fmt.save_slot_summary_table",
             summary.SlotIndex,
             GetSaveSlotTypeText(summary),
-            description,
-            storyName,
+            EscapeBbcodeText(description),
+            EscapeBbcodeText(storyName),
             FormatSavedTime(summary.SavedAtUtc),
             summary.Year,
             summary.Month);
+        return summary.IsCampaignBattleSave
+            ? text + "\n" + _localization.Format(
+                "fmt.save_slot_campaign_battle_table",
+                EscapeBbcodeText(GetSaveBattleName(summary.BattleAttackerNameZhHant, summary.BattleAttackerNameEn)),
+                EscapeBbcodeText(GetSaveBattleName(summary.BattleDefenderNameZhHant, summary.BattleDefenderNameEn)),
+                EscapeBbcodeText(GetSaveBattleName(summary.BattleLocationNameZhHant, summary.BattleLocationNameEn)))
+            : text;
     }
+
+    private static string EscapeBbcodeText(string value) => value.Replace("[", "[lb]");
+
+    private string GetSaveBattleName(string zhHant, string english) =>
+        _localization?.IsTraditionalChinese != false
+            ? (!string.IsNullOrWhiteSpace(zhHant) ? zhHant : english)
+            : (!string.IsNullOrWhiteSpace(english) ? english : zhHant);
 
     private string GetSaveSlotTypeText(SaveSlotSummary summary)
     {

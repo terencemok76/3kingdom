@@ -52,6 +52,13 @@ internal static class Program
             return;
         }
 
+        if (args.Contains("--save-summary-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunBattleSaveSlotSummaryTest();
+            PrintSummary();
+            return;
+        }
+
         if (args.Contains("--attack-resolution-only", StringComparer.OrdinalIgnoreCase))
         {
             RunAttackResolutionTest();
@@ -2127,6 +2134,44 @@ internal static class Program
                  loaded.PendingSuccessionRecords.Count == 1;
 
         Assert(ok, "Save/load round trip", loaded == null ? "loaded=null" : $"cityPop={loadedCity?.Population}, pending={(loadedPending != null ? 1 : 0)}");
+    }
+
+    private static void RunBattleSaveSlotSummaryTest()
+    {
+        var world = TestHelpers.World();
+        var source = TestHelpers.City(1, "Wuling", 1, 0, 0, 0, Array.Empty<int>(), new[] { 2 });
+        var target = TestHelpers.City(2, "Changsha", 2, 0, 0, 0, Array.Empty<int>(), new[] { 1 });
+        source.NameZhHant = "武陵";
+        target.NameZhHant = "長沙";
+        world.Cities.AddRange(new[] { source, target });
+        var playerRuler = TestHelpers.Officer(101, "Sun Jian", source.Id);
+        playerRuler.NameZhHant = "孫堅";
+        world.Officers.Add(playerRuler);
+        world.Factions.Add(TestHelpers.Faction(1, "Sun Jian", true, playerRuler.Id, new[] { playerRuler.Id }));
+        world.Factions.Add(TestHelpers.Faction(2, "Zhang Bao", false, 0, Array.Empty<int>()));
+        world.Factions[0].NameZhHant = "孫堅";
+        world.Factions[1].NameZhHant = "張寶";
+        world.ActiveBattleCampaigns.Add(new ActiveBattleCampaignData
+        {
+            Id = 1,
+            AttackerFactionId = 1,
+            DefenderFactionId = 2,
+            SourceCityId = 1,
+            TargetCityId = 2,
+            BattleSnapshotJson = "{}"
+        });
+        var summary = WorldRepository.BuildSaveSlotSummary(new SaveGameData
+        {
+            SlotIndex = 9,
+            Description = "Battle Save",
+            World = world
+        }, 9);
+        Assert(
+            summary.IsCampaignBattleSave && summary.BattleAttackerNameZhHant == "孫堅" &&
+            summary.BattleDefenderNameZhHant == "張寶" && summary.BattleLocationNameZhHant == "長沙" &&
+            summary.PlayerRulerNameZhHant == "孫堅",
+            "Battle save summary includes attacker, defender, location, and player ruler",
+            $"attacker={summary.BattleAttackerNameZhHant}, defender={summary.BattleDefenderNameZhHant}, location={summary.BattleLocationNameZhHant}, ruler={summary.PlayerRulerNameZhHant}");
     }
 
     private static void RunSeasonalFoodTest()

@@ -228,7 +228,7 @@ public partial class BattleSceneController
         var savedAt = DateTime.TryParse(summary.SavedAtUtc, out var savedTime)
             ? savedTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
             : BattleText("ui.unknown", "Unknown");
-        return BattleFormat("fmt.save_slot_summary", "Slot: {0}\nType: {1}\nDescription: {2}\nStory: {3}\nSaved: {4}\nProgress: Year {5}, Month {6}", summary.SlotIndex, saveType, description, storyName, savedAt, summary.Year, summary.Month);
+        return BattleFormat("fmt.save_slot_summary", "Slot: {0}    Type: {1}\nStory: {3}    Progress: Year {5}, Month {6}\nDescription: {2}\nSaved: {4}", summary.SlotIndex, saveType, description, storyName, savedAt, summary.Year, summary.Month);
     }
 
     private void SaveCampaignToSlot(WorldRepository repository, int slot, string description)

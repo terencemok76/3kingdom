@@ -223,13 +223,13 @@ custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="LoadSummaryLabel" type="RichTextLabel" parent="Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel"]
+[node name="LoadSummaryGrid" type="GridContainer" parent="Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel"]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 size_flags_horizontal = 3
-bbcode_enabled = false
-fit_content = true
-scroll_active = true
+columns = 2
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 4
 
 [node name="LoadButtonRow" type="HBoxContainer" parent="Root/CenterContainer/MenuPanel/MenuRoot/LoadPanel"]
 layout_mode = 2

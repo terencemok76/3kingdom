@@ -424,9 +424,61 @@
                                         "en":  "This save slot is empty.\nEnter a description and save the game here."
                                     },
     "fmt.save_slot_summary":  {
-                                  "zhHant":  "欄位：{0}\n類型：{1}\n描述：{2}\n劇本：{3}\n存檔時間：{4}\n進度：{5}年 {6}月",
-                                  "en":  "Slot: {0}\nType: {1}\nDescription: {2}\nStory: {3}\nSaved: {4}\nProgress: Year {5}, Month {6}"
+                                  "zhHant":  "欄位：{0}　　類型：{1}\n劇本：{3}　　進度：{5}年 {6}月\n描述：{2}\n存檔時間：{4}",
+                                  "en":  "Slot: {0}    Type: {1}\nStory: {3}    Progress: Year {5}, Month {6}\nDescription: {2}\nSaved: {4}"
                               },
+    "fmt.save_slot_campaign_battle_details": {
+        "zhHant": "攻方：{0}　　守方：{1}\n地點：{2}",
+        "en": "Attacker: {0}    Defender: {1}\nLocation: {2}"
+    },
+    "fmt.save_slot_summary_table": {
+        "zhHant": "[table=2][cell expand=1]欄位：{0}[/cell][cell expand=1]類型：{1}[/cell][cell expand=1]劇本：{3}[/cell][cell expand=1]進度：{5}年 {6}月[/cell][cell expand=1]描述：{2}[/cell][cell expand=1]存檔時間：{4}[/cell][/table]",
+        "en": "[table=2][cell expand=1]Slot: {0}[/cell][cell expand=1]Type: {1}[/cell][cell expand=1]Story: {3}[/cell][cell expand=1]Progress: Year {5}, Month {6}[/cell][cell expand=1]Description: {2}[/cell][cell expand=1]Saved: {4}[/cell][/table]"
+    },
+    "fmt.save_slot_campaign_battle_table": {
+        "zhHant": "[table=2][cell expand=1]攻方：{0}[/cell][cell expand=1]守方：{1}[/cell][cell expand=1]地點：{2}[/cell][cell expand=1][/cell][/table]",
+        "en": "[table=2][cell expand=1]Attacker: {0}[/cell][cell expand=1]Defender: {1}[/cell][cell expand=1]Location: {2}[/cell][cell expand=1][/cell][/table]"
+    },
+    "fmt.save_slot_field": {
+        "zhHant": "欄位：{0}",
+        "en": "Slot: {0}"
+    },
+    "fmt.save_type_field": {
+        "zhHant": "類型：{0}",
+        "en": "Type: {0}"
+    },
+    "fmt.save_story_field": {
+        "zhHant": "劇本：{0}",
+        "en": "Story: {0}"
+    },
+    "fmt.save_progress_field": {
+        "zhHant": "進度：{0}年 {1}月",
+        "en": "Progress: Year {0}, Month {1}"
+    },
+    "fmt.save_description_field": {
+        "zhHant": "描述：{0}",
+        "en": "Description: {0}"
+    },
+    "fmt.save_time_field": {
+        "zhHant": "存檔時間：{0}",
+        "en": "Saved: {0}"
+    },
+    "fmt.save_attacker_field": {
+        "zhHant": "攻方：{0}",
+        "en": "Attacker: {0}"
+    },
+    "fmt.save_defender_field": {
+        "zhHant": "守方：{0}",
+        "en": "Defender: {0}"
+    },
+    "fmt.save_location_field": {
+        "zhHant": "地點：{0}",
+        "en": "Location: {0}"
+    },
+    "fmt.save_player_ruler_field": {
+        "zhHant": "玩家君主：{0}",
+        "en": "Player Ruler: {0}"
+    },
     "fmt.save_confirm_message":  {
                                      "zhHant":  "確定要存到欄位 {0} 嗎？",
                                      "en":  "Save to slot {0}?"

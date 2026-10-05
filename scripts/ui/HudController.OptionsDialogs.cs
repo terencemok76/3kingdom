@@ -132,17 +132,32 @@ public partial class HudController
             : (!string.IsNullOrWhiteSpace(summary.StoryNameEn) ? summary.StoryNameEn : summary.StoryNameZhHant);
         var description = string.IsNullOrWhiteSpace(summary.Description) ? GetNoDescriptionText() : summary.Description;
 
-        return LocalizeFormat(
-            "fmt.save_slot_summary",
-            "Slot: {0}\nType: {1}\nDescription: {2}\nStory: {3}\nSaved: {4}\nProgress: Year {5}, Month {6}",
+        var text = LocalizeFormat(
+            "fmt.save_slot_summary_table",
+            "[table=2][cell expand=1]Slot: {0}[/cell][cell expand=1]Type: {1}[/cell][cell expand=1]Story: {3}[/cell][cell expand=1]Progress: Year {5}, Month {6}[/cell][cell expand=1]Description: {2}[/cell][cell expand=1]Saved: {4}[/cell][/table]",
             summary.SlotIndex,
             GetSaveSlotTypeText(summary),
-            description,
-            storyName,
+            EscapeBbcodeText(description),
+            EscapeBbcodeText(storyName),
             savedTime,
             summary.Year,
             summary.Month);
+        return summary.IsCampaignBattleSave
+            ? text + "\n" + LocalizeFormat(
+                "fmt.save_slot_campaign_battle_table",
+                "[table=2][cell expand=1]Attacker: {0}[/cell][cell expand=1]Defender: {1}[/cell][cell expand=1]Location: {2}[/cell][cell expand=1][/cell][/table]",
+                EscapeBbcodeText(GetSaveBattleName(summary.BattleAttackerNameZhHant, summary.BattleAttackerNameEn)),
+                EscapeBbcodeText(GetSaveBattleName(summary.BattleDefenderNameZhHant, summary.BattleDefenderNameEn)),
+                EscapeBbcodeText(GetSaveBattleName(summary.BattleLocationNameZhHant, summary.BattleLocationNameEn)))
+            : text;
     }
+
+    private static string EscapeBbcodeText(string value) => value.Replace("[", "[lb]");
+
+    private string GetSaveBattleName(string zhHant, string english) =>
+        _localization?.IsTraditionalChinese != false
+            ? (!string.IsNullOrWhiteSpace(zhHant) ? zhHant : english)
+            : (!string.IsNullOrWhiteSpace(english) ? english : zhHant);
 
     private string FormatSavedTime(string savedAtUtc)
     {
