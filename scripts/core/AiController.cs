@@ -346,30 +346,7 @@ public class AiController
 
         if (militaryResult == null && !siegeEquipmentPlan.IsValid)
         {
-            foreach (var targetId in city.ConnectedCityIds)
-            {
-                var target = world.GetCity(targetId);
-                if (target == null || target.OwnerFactionId != factionId)
-                {
-                    continue;
-                }
-
-                if (city.Troops > target.Troops + 800)
-                {
-                    militaryResult = _commandResolver.Execute(new CommandRequest
-                    {
-                        Type = CommandType.Move,
-                        ActorFactionId = factionId,
-                        SourceCityId = cityId,
-                        TargetCityId = targetId,
-                        TroopsToSend = city.Troops / 2,
-                        GoldToSend = city.Gold / 3,
-                        FoodToSend = city.Food / 3,
-                        HorsesToSend = city.Horses / 3
-                    });
-                    break;
-                }
-            }
+            militaryResult = TryIssueFriendlyLogisticsMove(world, city, factionId);
         }
 
         CommandResult? diplomacyResult = null;
@@ -538,6 +515,72 @@ public class AiController
             Message = messages.Count > 0 ? string.Join(" | ", messages) : (_localization?.TForLanguage(GameLanguage.English, "cmd.pass") ?? "Pass"),
             MessageZhHant = messagesZh.Count > 0 ? string.Join(" | ", messagesZh) : (_localization?.TForLanguage(GameLanguage.TraditionalChinese, "cmd.pass") ?? "Pass"),
             MessageEn = messagesEn.Count > 0 ? string.Join(" | ", messagesEn) : (_localization?.TForLanguage(GameLanguage.English, "cmd.pass") ?? "Pass")
+        };
+    }
+
+    private CommandResult? TryIssueFriendlyLogisticsMove(WorldState world, CityData sourceCity, int factionId)
+    {
+        if (_commandResolver == null || world.PendingCommands.Any(command =>
+                command.Type == CommandType.Move && command.ActorFactionId == factionId &&
+                (command.SourceCityId == sourceCity.Id || command.TargetCityId == sourceCity.Id)))
+        {
+            return null;
+        }
+
+        var targets = CaravanRouteRules.FindReachableFriendlyCityIds(world, sourceCity.Id, factionId)
+            .Select(world.GetCity)
+            .Where(target => target != null)
+            .Cast<CityData>()
+            .OrderByDescending(target => AiConstructionRules.IsFrontlineCity(world, target))
+            .ThenBy(target => target.Troops)
+            .ThenBy(target => target.Food)
+            .ThenBy(target => target.Gold)
+            .ThenBy(target => target.Id);
+
+        foreach (var targetCity in targets)
+        {
+            var request = BuildFriendlyLogisticsRequest(sourceCity, targetCity, factionId);
+            if (request != null)
+            {
+                return _commandResolver.Execute(request);
+            }
+        }
+
+        return null;
+    }
+
+    private static CommandRequest? BuildFriendlyLogisticsRequest(CityData sourceCity, CityData targetCity, int factionId)
+    {
+        var movableTroops = Math.Max(0, sourceCity.Troops - BattleCampaignService.MinimumCityGarrison);
+        var troopsToSend = sourceCity.Troops > targetCity.Troops && movableTroops > 0
+            ? Math.Max(1, movableTroops / 2)
+            : 0;
+        var goldToSend = sourceCity.Gold > targetCity.Gold ? sourceCity.Gold / 3 : 0;
+        var foodToSend = sourceCity.Food > targetCity.Food ? sourceCity.Food / 3 : 0;
+        var horsesToSend = sourceCity.Horses > targetCity.Horses ? sourceCity.Horses / 3 : 0;
+        var woodToSend = sourceCity.Wood > targetCity.Wood ? sourceCity.Wood / 3 : 0;
+        var metalToSend = sourceCity.Metal > targetCity.Metal ? sourceCity.Metal / 3 : 0;
+        var stoneToSend = sourceCity.Stone > targetCity.Stone ? sourceCity.Stone / 3 : 0;
+
+        if (troopsToSend <= 0 && goldToSend <= 0 && foodToSend <= 0 && horsesToSend <= 0 &&
+            woodToSend <= 0 && metalToSend <= 0 && stoneToSend <= 0)
+        {
+            return null;
+        }
+
+        return new CommandRequest
+        {
+            Type = CommandType.Move,
+            ActorFactionId = factionId,
+            SourceCityId = sourceCity.Id,
+            TargetCityId = targetCity.Id,
+            TroopsToSend = troopsToSend,
+            GoldToSend = goldToSend,
+            FoodToSend = foodToSend,
+            HorsesToSend = horsesToSend,
+            WoodToSend = woodToSend,
+            MetalToSend = metalToSend,
+            StoneToSend = stoneToSend
         };
     }
 

@@ -45,6 +45,7 @@ internal static class Program
         {
             RunCaravanRoadRiskTest();
             RunAiCaravanAmbushAutoResolutionTest();
+            RunAiMultiCityLogisticsTest();
             RunTestCityOwnerSwitchTest();
             RunLongRouteCaravanTest();
             RunLongRouteInterruptionTest();
@@ -111,6 +112,7 @@ internal static class Program
         RunMoveTroopAllocationTest();
         RunCaravanRoadRiskTest();
         RunAiCaravanAmbushAutoResolutionTest();
+        RunAiMultiCityLogisticsTest();
         RunTestCityOwnerSwitchTest();
         RunLongRouteCaravanTest();
         RunLongRouteInterruptionTest();
@@ -792,6 +794,34 @@ internal static class Program
             firstRelay.Gold == 1000 && lastFriendlyRelay.Gold == 1200 && destination.Gold == 1000 && world.PendingCommands.Count == 0,
             "Long-route caravan continues through friendly relays and stops at the first blocked next city",
             $"result={interruption.MessageZhHant}, firstRelay={firstRelay.Gold}, lastFriendlyRelay={lastFriendlyRelay.Gold}, destination={destination.Gold}, pending={world.PendingCommands.Count}");
+    }
+
+    private static void RunAiMultiCityLogisticsTest()
+    {
+        var world = TestHelpers.World();
+        var source = TestHelpers.City(31, "AiDepot", 2, 600, 900, 1200, Array.Empty<int>(), new[] { 32 });
+        var relay = TestHelpers.City(32, "AiRelay", 2, 700, 700, 900, Array.Empty<int>(), new[] { 31, 33 });
+        var frontline = TestHelpers.City(33, "AiFrontline", 2, 500, 100, 100, Array.Empty<int>(), new[] { 32, 34 });
+        var enemy = TestHelpers.City(34, "EnemyBorder", 3, 500, 500, 500, Array.Empty<int>(), new[] { 33 });
+        source.Horses = 90;
+        source.Wood = 90;
+        source.Metal = 60;
+        source.Stone = 30;
+        world.Cities.AddRange(new[] { source, relay, frontline, enemy });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(3, "Enemy", false, 0, Array.Empty<int>()));
+        var services = CreateServices(world);
+
+        _ = services.Ai.RunSingleCityDecision(2, source.Id);
+
+        var order = world.PendingCommands.SingleOrDefault(command => command.Type == CommandType.Move && command.SourceCityId == source.Id);
+        Assert(
+            order?.TargetCityId == frontline.Id && order.RouteCityIds.SequenceEqual(new[] { source.Id, relay.Id, frontline.Id }) &&
+            order.TroopsToSend > 0 && order.GoldToSend > 0 && order.FoodToSend > 0 &&
+            order.HorsesToSend > 0 && order.WoodToSend > 0 && order.MetalToSend > 0 && order.StoneToSend > 0,
+            "AI schedules multi-city logistics without the old 800-troop gap",
+            $"target={order?.TargetCityId}, route={string.Join('>', order?.RouteCityIds ?? new List<int>())}, troops={order?.TroopsToSend}, gold={order?.GoldToSend}, food={order?.FoodToSend}, raw={order?.WoodToSend}/{order?.MetalToSend}/{order?.StoneToSend}");
     }
 
     private static void RunCaravanRoadRiskTest()
