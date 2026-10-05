@@ -45,6 +45,7 @@ internal static class Program
         {
             RunCaravanRoadRiskTest();
             RunAiCaravanAmbushAutoResolutionTest();
+            RunTestCityOwnerSwitchTest();
             RunLongRouteCaravanTest();
             RunLongRouteInterruptionTest();
             PrintSummary();
@@ -103,6 +104,7 @@ internal static class Program
         RunMoveTroopAllocationTest();
         RunCaravanRoadRiskTest();
         RunAiCaravanAmbushAutoResolutionTest();
+        RunTestCityOwnerSwitchTest();
         RunLongRouteCaravanTest();
         RunLongRouteInterruptionTest();
         RunCoreActionsTest();
@@ -1055,6 +1057,23 @@ internal static class Program
             resolution.MessageZhHant.Contains("道路風險", StringComparison.Ordinal),
             "AI escorted caravan ambush resolves automatically without creating a player battle",
             $"scheduled={schedule.Success}, campaign={resolution.ActiveBattleCampaignId}, active={world.ActiveBattleCampaigns.Count}, sourceGold={aiSource.Gold}, targetGold={aiTarget.Gold}, targetTroops={aiTarget.InfantryTroops}, result={resolution.MessageZhHant}");
+    }
+
+    private static void RunTestCityOwnerSwitchTest()
+    {
+        var world = TestHelpers.World();
+        var city = TestHelpers.City(21, "Relay", 1, 0, 0, 0, Array.Empty<int>(), Array.Empty<int>());
+        var aiCity = TestHelpers.City(22, "AiCity", 2, 0, 0, 0, Array.Empty<int>(), Array.Empty<int>());
+        world.Cities.AddRange(new[] { city, aiCity });
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 0, Array.Empty<int>()));
+        world.InternalAffairsSchedules.Add(new InternalAffairsScheduleData { Id = 1, CityId = city.Id, State = InternalAffairsScheduleState.Active });
+
+        var switched = TestCityOwnershipRules.TrySwitchToNextActiveFaction(world, city, out var previousFactionId, out var nextFactionId);
+        Assert(
+            switched && previousFactionId == 1 && nextFactionId == 2 && city.OwnerFactionId == 2 && world.InternalAffairsSchedules.Count == 0,
+            "Test city ownership switch cycles to the next active faction and clears city schedules",
+            $"switched={switched}, owner={city.OwnerFactionId}, previous={previousFactionId}, next={nextFactionId}, schedules={world.InternalAffairsSchedules.Count}");
     }
 
     private static void RunAttackAutoBreakPactTest()

@@ -89,14 +89,14 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
-custom_minimum_size = Vector2(420, 240)
+custom_minimum_size = Vector2(420, 290)
 offset_right = 420.0
-offset_bottom = 240.0
+offset_bottom = 290.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
 [node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
-custom_minimum_size = Vector2(380, 200)
+custom_minimum_size = Vector2(380, 250)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -183,3 +183,12 @@ alignment = 1
 layout_mode = 2
 focus_mode = 0
 text = "觸發道路野戰"
+
+[node name="OwnershipActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="CycleCityOwnerButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OwnershipActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "切換城市勢力"

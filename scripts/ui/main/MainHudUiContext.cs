@@ -87,6 +87,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public void UpgradeTestBowWorkshop() => _owner.MainHudUpgradeTestBowWorkshop();
     public void UpgradeTestHorsePasture() => _owner.MainHudUpgradeTestHorsePasture();
     public void TriggerTestCaravanRoadBattle() => _owner.MainHudTriggerTestCaravanRoadBattle();
+    public void CycleTestCityOwner() => _owner.MainHudCycleTestCityOwner();
 
     public Control CreateOverlay(string scenePath, Action closeAction)
     {

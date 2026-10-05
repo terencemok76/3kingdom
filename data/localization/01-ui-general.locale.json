@@ -1417,6 +1417,8 @@
 	"ui.test_battle_equipment": { "zhHant": "戰役裝備 +1", "en": "Battle Equipment +1" },
 	"ui.test_engineers": { "zhHant": "工兵 +300", "en": "Engineers +300" },
 	"ui.test_upgrade": { "zhHant": "升級", "en": "Upgrade" },
+	"ui.test_cycle_city_owner": { "zhHant": "切換城市勢力", "en": "Switch City Faction" },
 	"log.test_player_city_only": { "zhHant": "只有玩家城市可升級測試設施。", "en": "Test facilities can only be upgraded in a player-owned city." },
-	"log.test_facility_upgraded": { "zhHant": "「{0}」{1}升至 Lv.{2}。", "en": "{0}'s {1} reached Lv.{2}." }
+	"log.test_facility_upgraded": { "zhHant": "「{0}」{1}升至 Lv.{2}。", "en": "{0}'s {1} reached Lv.{2}." },
+	"log.test_city_owner_changed": { "zhHant": "【測試】「{0}」勢力由「{1}」切換為「{2}」。", "en": "[Test] \"{0}\" ownership changed from \"{1}\" to \"{2}\"." }
 }

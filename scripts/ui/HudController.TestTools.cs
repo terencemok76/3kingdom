@@ -81,6 +81,34 @@ public partial class HudController
             isPlayerRelated: true);
     }
 
+    private void OnTestCycleCityOwnerPressed()
+    {
+        if (_turnManager?.World == null || _selectedCity == null)
+        {
+            return;
+        }
+
+        var world = _turnManager.World;
+        if (!TestCityOwnershipRules.TrySwitchToNextActiveFaction(world, _selectedCity, out var previousFactionId, out var nextFactionId))
+        {
+            AddLog(_localization?.IsTraditionalChinese == true
+                ? "切換城市勢力需要至少兩個仍存活的勢力。"
+                : "Switching city ownership requires at least two active factions.");
+            return;
+        }
+
+        var cityName = _localization?.GetCityName(_selectedCity) ?? _selectedCity.Name;
+        var previousFactionName = _localization?.GetFactionName(world, previousFactionId) ?? previousFactionId.ToString();
+        var nextFactionName = _localization?.GetFactionName(world, nextFactionId) ?? nextFactionId.ToString();
+        AddLog(_localization?.Format("log.test_city_owner_changed", cityName, previousFactionName, nextFactionName)
+            ?? $"[Test] {cityName} ownership changed: {previousFactionName} -> {nextFactionName}.",
+            isPlayerRelated: true);
+        _uiEventHub.PublishCityStateChanged(_selectedCity.Id, nextFactionId);
+        _mapController?.RefreshVisuals();
+        RefreshSelectedCity();
+        UpdateGameplayButtonStates();
+    }
+
     private void UpgradeTestFacility(ConstructionProjectType projectType)
     {
         if (_turnManager?.World == null || _selectedCity == null)

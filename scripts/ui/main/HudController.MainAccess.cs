@@ -93,6 +93,7 @@ public partial class HudController
     internal void MainHudUpgradeTestBowWorkshop() => OnTestBowWorkshopUpgradePressed();
     internal void MainHudUpgradeTestHorsePasture() => OnTestHorsePastureUpgradePressed();
     internal void MainHudTriggerTestCaravanRoadBattle() => OnTestCaravanRoadBattlePressed();
+    internal void MainHudCycleTestCityOwner() => OnTestCycleCityOwnerPressed();
     internal void MainHudPopupDialog(Control? dialog) => ShowOverlay(dialog);
     internal void MainHudPlayUiClickSfx() => PlayUiClickSfx();
 }

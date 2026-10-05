@@ -13,9 +13,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private Button? _bowWorkshopButton;
     private Button? _horsePastureButton;
     private Button? _caravanRoadBattleButton;
+    private Button? _cycleCityOwnerButton;
     private bool _signalsConnected;
 
-    protected override Vector2 MinimumOverlaySize => new(420.0f, 260.0f);
+    protected override Vector2 MinimumOverlaySize => new(420.0f, 310.0f);
 
     public TestToolsDialogController(MainHudUiContext context)
         : base(context, "res://scenes/ui/main/TestToolsDialog.tscn")
@@ -77,6 +78,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _caravanRoadBattleButton.Text = localization?.T("ui.test_caravan_road_battle") ?? "Force Next Caravan Ambush";
         }
+        if (_cycleCityOwnerButton != null)
+        {
+            _cycleCityOwnerButton.Text = localization?.T("ui.test_cycle_city_owner") ?? "Switch City Faction";
+        }
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -88,8 +93,9 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         _bowWorkshopButton = root.GetNodeOrNull<Button>("FacilityActionRow/BowWorkshopButton");
         _horsePastureButton = root.GetNodeOrNull<Button>("FacilityActionRow/HorsePastureButton");
         _caravanRoadBattleButton = root.GetNodeOrNull<Button>("CaravanActionRow/CaravanRoadBattleButton");
+        _cycleCityOwnerButton = root.GetNodeOrNull<Button>("OwnershipActionRow/CycleCityOwnerButton");
 
-        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton }.Where(button => button != null))
+        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _cycleCityOwnerButton }.Where(button => button != null))
         {
             if (_context.ViewButton == null)
             {
@@ -143,6 +149,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _caravanRoadBattleButton.Pressed += OnCaravanRoadBattlePressed;
         }
+        if (_cycleCityOwnerButton != null)
+        {
+            _cycleCityOwnerButton.Pressed += OnCycleCityOwnerPressed;
+        }
 
         _signalsConnected = true;
     }
@@ -176,5 +186,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private void OnCaravanRoadBattlePressed()
     {
         _context.TriggerTestCaravanRoadBattle();
+    }
+
+    private void OnCycleCityOwnerPressed()
+    {
+        _context.CycleTestCityOwner();
     }
 }
