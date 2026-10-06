@@ -563,6 +563,7 @@ public partial class BattleSceneController
         var damage = CanUseAmmoDepletedWeakAttack(attacker)
             ? Mathf.Max(1, Mathf.RoundToInt(GetBaseAttackDamage(attacker) * AmmoDepletedWeakAttackDamageRatio))
             : GetBaseAttackDamage(attacker);
+        damage = Mathf.Max(1, Mathf.RoundToInt(damage * GetSiegeEngineConditionDamageMultiplier(attacker)));
         return IsSustainedZeroFood(attacker.TeamName)
             ? Mathf.Max(1, Mathf.RoundToInt(damage * SustainedZeroFoodAttackDamageRatio))
             : damage;
@@ -629,9 +630,23 @@ public partial class BattleSceneController
         return BattleCombatResolver.GetBaseAttackDamage(attacker);
     }
 
-    private static int GetStructureAttackDamage(BattleOccupantInfo attacker)
+    private int GetStructureAttackDamage(BattleOccupantInfo attacker)
     {
-        return BattleCombatResolver.GetStructureAttackDamage(attacker);
+        var damage = BattleCombatResolver.GetStructureAttackDamage(attacker);
+        return Mathf.Max(1, Mathf.RoundToInt(damage * GetSiegeEngineConditionDamageMultiplier(attacker)));
+    }
+
+    private static float GetSiegeEngineConditionDamageMultiplier(BattleOccupantInfo attacker)
+    {
+        if (attacker.Category != CategorySiegeEngine || attacker.TroopType != TroopCatapult || attacker.MaxHitPoints <= 0)
+        {
+            return 1.0f;
+        }
+
+        return Mathf.Clamp(
+            attacker.HitPoints / (float)attacker.MaxHitPoints,
+            CatapultMinimumDamageRatio,
+            1.0f);
     }
 
 

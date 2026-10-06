@@ -72,7 +72,10 @@ internal static class BattleBalanceSettings
     internal const int FireDamageToBridge = 220;
     internal const int FireMaxSpreadCandidates = 2;
     internal const int RamAttackDamage = 500;
-    internal const int CatapultAttackDamage = 1300;
+    // Catapults are siege tools, not an efficient replacement for a full
+    // battle team when attacking personnel.  Their structure damage remains
+    // intentionally higher below.
+    internal const int CatapultAttackDamage = 350;
     internal const int InfantryStructureDamage = 180;
     internal const int SpearmanStructureDamage = 160;
     internal const int ArcherStructureDamage = 120;
@@ -83,6 +86,7 @@ internal static class BattleBalanceSettings
     internal const int RamMaxHitPoints = 2800;
     internal const int LadderMaxHitPoints = 2200;
     internal const int CatapultMaxHitPoints = 1800;
+    internal const float CatapultMinimumDamageRatio = 0.30f;
     internal const int SupplyCartMaxHitPoints = 1600;
     internal const int InitialTeamAGold = 8200;
     internal const int InitialTeamAFood = 26000;
