@@ -32,6 +32,7 @@ public partial class BattleSceneController
                     infoLines.Add(BattleFormat("ui.battle.menu_officer", "Officer: {0}", officerText));
                     infoLines.Add(BattleFormat("ui.battle.menu_intelligence", "Intelligence: {0}", GetOfficerTacticalIntelligence(_selectedUnit.OfficerName)));
                     infoLines.Add(BattleFormat("ui.battle.menu_combat", "Combat: {0}", GetOfficerBattleAttribute(_selectedUnit.OfficerName)));
+                    infoLines.Add(BattleFormat("ui.battle.menu_command_rating", "Command: {0} (damage {1:P0})", GetOfficerCommandRating(_selectedUnit), GetOfficerCommandMultiplier(_selectedUnit) - 1.0f));
                 }
 
                 infoLines.Add(BattleFormat("ui.battle.menu_type", "Type: {0}", FormatTroopType(_selectedUnit.TroopType)));

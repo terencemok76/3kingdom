@@ -307,6 +307,7 @@
 	"ui.battle.menu_officer": { "zhHant": "武將：{0}", "en": "Officer: {0}" },
 	"ui.battle.menu_intelligence": { "zhHant": "智略：{0}", "en": "Intelligence: {0}" },
 	"ui.battle.menu_combat": { "zhHant": "戰鬥：{0}", "en": "Combat: {0}" },
+	"ui.battle.menu_command_rating": { "zhHant": "指揮：{0}（傷害 {1:P0}）", "en": "Command: {0} (damage {1:P0})" },
 	"ui.battle.officer_xiahou_yuan": { "zhHant": "夏侯淵", "en": "Xiahou Yuan" },
 	"ui.battle.officer_zhang_he": { "zhHant": "張郃", "en": "Zhang He" },
 	"ui.battle.officer_dong_zhuo": { "zhHant": "董卓", "en": "Dong Zhuo" },

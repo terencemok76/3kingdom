@@ -181,6 +181,7 @@ public partial class BattleSceneController
             return;
         }
 
+        damage = CapUnitCasualties(target, damage, NormalAttackCasualtyCapRatio);
         var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, NormalDamageKilledRatio, isGuardReducibleAttack: IsGuardReducibleAttack(attacker));
         var updatedTarget = casualtyResult.UpdatedTarget;
 
@@ -224,6 +225,7 @@ public partial class BattleSceneController
         }
 
         var counterDamage = Mathf.Max(1, Mathf.RoundToInt(GetAttackDamageAgainst(defenderAfterCounter, currentAttacker) * GuardCounterAttackRatio));
+        counterDamage = CapUnitCasualties(currentAttacker, counterDamage, NormalAttackCasualtyCapRatio);
         var counterResult = ApplyUnitCasualties(attackerGrid.Value, currentAttacker, counterDamage, NormalDamageKilledRatio);
         ShowDamagePopup(attackerGrid.Value, counterResult.ActualDamage);
         AppendBattleLog(defenderAfterCounter, "Counter", $"{FormatLogUnit(defenderAfterCounter)} counterattacks {FormatLogUnit(currentAttacker)} for {counterResult.ActualDamage:N0}.{FormatTroopTypeAdvantageLog(defenderAfterCounter, currentAttacker)}");
@@ -574,17 +576,40 @@ public partial class BattleSceneController
     private int GetAttackDamageAgainst(BattleOccupantInfo attacker, BattleOccupantInfo target)
     {
         var damage = GetAttackDamage(attacker);
-        return HasTroopTypeAdvantage(attacker, target)
-            ? Mathf.Max(1, Mathf.RoundToInt(damage * TroopTypeAdvantageDamageMultiplier))
+        damage = Mathf.Max(1, Mathf.RoundToInt(damage * GetOfficerCommandMultiplier(attacker) / GetOfficerCommandMultiplier(target)));
+        if (HasTroopTypeAdvantage(attacker, target))
+        {
+            return Mathf.Max(1, Mathf.RoundToInt(damage * TroopTypeAdvantageDamageMultiplier));
+        }
+
+        return HasTroopTypeAdvantage(target, attacker)
+            ? Mathf.Max(1, Mathf.RoundToInt(damage * TroopTypeDisadvantageDamageMultiplier))
             : damage;
     }
 
     private int GetChargeDamage(BattleOccupantInfo cavalry, BattleOccupantInfo target)
     {
-        var damage = target.TroopType == TroopSpearman ? CavalryChargeVsSpearmanDamage : CavalryChargeDamage;
+        var damage = Mathf.Max(1, Mathf.RoundToInt(cavalry.TroopCount * CavalryChargeCasualtyRate));
+        damage = Mathf.Max(1, Mathf.RoundToInt(damage * GetOfficerCommandMultiplier(cavalry) / GetOfficerCommandMultiplier(target)));
+        if (HasTroopTypeAdvantage(target, cavalry))
+        {
+            damage = Mathf.Max(1, Mathf.RoundToInt(damage * TroopTypeDisadvantageDamageMultiplier));
+        }
+
         return IsSustainedZeroFood(cavalry.TeamName)
             ? Mathf.Max(1, Mathf.RoundToInt(damage * SustainedZeroFoodAttackDamageRatio))
             : damage;
+    }
+
+    private static int CapUnitCasualties(BattleOccupantInfo target, int damage, float maximumRatio)
+    {
+        if (target.Category != CategoryUnit)
+        {
+            return damage;
+        }
+
+        var cap = Mathf.Max(1, Mathf.CeilToInt(target.TroopCount * maximumRatio));
+        return Mathf.Min(damage, cap);
     }
 
     private static bool HasTroopTypeAdvantage(BattleOccupantInfo attacker, BattleOccupantInfo target)
@@ -742,7 +767,7 @@ public partial class BattleSceneController
     private void ExecuteCharge(BattleGridKey sourceGrid, BattleOccupantInfo cavalry, BattleGridKey targetGrid, BattleOccupantInfo target, BattleGridKey destinationGrid)
     {
         var direction = GetInfantryDirection(sourceGrid.Grid, targetGrid.Grid);
-        var damage = GetChargeDamage(cavalry, target);
+        var damage = CapUnitCasualties(target, GetChargeDamage(cavalry, target), ChargeCasualtyCapRatio);
         var targetHurtDuration = ApplyTargetHurtAnimation(sourceGrid, targetGrid, cavalry);
         var casualtyResult = ApplyUnitCasualties(targetGrid, target, damage, NormalDamageKilledRatio);
         ShowDamagePopup(targetGrid, casualtyResult.ActualDamage);
@@ -775,7 +800,8 @@ public partial class BattleSceneController
             new[] { GetMarkerPosition(targetGrid), GetMarkerPosition(destinationGrid) });
         if (target.TroopType == TroopSpearman)
         {
-            var counterResult = ApplyUnitCasualties(destinationGrid, movedCavalry, CavalryChargeSpearmanCounterDamage, NormalDamageKilledRatio);
+            var counterDamage = CapUnitCasualties(movedCavalry, GetAttackDamageAgainst(target, movedCavalry), ChargeCasualtyCapRatio);
+            var counterResult = ApplyUnitCasualties(destinationGrid, movedCavalry, counterDamage, NormalDamageKilledRatio);
             ShowDamagePopup(destinationGrid, counterResult.ActualDamage);
             AppendBattleLog(
                 target,

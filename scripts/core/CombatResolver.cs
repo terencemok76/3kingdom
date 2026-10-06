@@ -16,6 +16,10 @@ public class CombatResolver
 {
     private const float StrongCounterBonus = 0.18f;
     private const float LightCounterBonus = 0.10f;
+    private const int AutomaticCombatRounds = 5;
+    private const float BaseAutomaticCasualtyRate = 0.12f;
+    private const float MinimumAutomaticCasualtyRate = 0.05f;
+    private const float MaximumAutomaticCasualtyRate = 0.28f;
 
     public CombatResult Resolve(
         WorldState world,
@@ -39,28 +43,67 @@ public class CombatResolver
         var effectiveDefenseAllocation = GetEffectiveDefenseAllocation(defender, defendingAllocation, defenderOfficerDeployments);
         var siegeEngineAllocation = GetSiegeEngineAllocation(attackOfficerDeployments);
 
-        var attackStat = attackerStrength * 0.3f + attackerLeadership * 0.4f + attackerCombat * 0.3f;
+        var attackerCommandMultiplier = GetOfficerCommandMultiplier(attackerStrength, attackerLeadership, attackerCombat);
+        var defenderCommandMultiplier = GetOfficerCommandMultiplier(
+            GetAverageOfficerStat(world, defender, officer => officer.Strength, item => item.StrengthBonus, OfficerProgressionStat.Strength, defendingOfficerIds),
+            defenderLeadership,
+            defenderCombat);
         var deploymentModifier = GetAttackDeploymentModifier(effectiveAttackAllocation) + GetSiegeEngineAttackModifier(siegeEngineAllocation);
         var siegePressure = GetSiegePressureModifier(effectiveAttackAllocation) + GetSiegeEnginePressureBonus(siegeEngineAllocation);
         var troopCounterAttackModifier = GetAttackCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
         var troopCounterDefenseModifier = GetDefenseCounterModifier(effectiveAttackAllocation, effectiveDefenseAllocation);
-        var attackMultiplier = 1.0f + attackStat / 220.0f + deploymentModifier + troopCounterAttackModifier;
-        var defenseMultiplier = 1.0f + (defender.Defense * 0.006f) + (defenderLeadership / 260.0f) + (defenderCombat / 550.0f) + GetDefenderTroopModifier(effectiveDefenseAllocation) + troopCounterDefenseModifier - siegePressure;
-        if (defenseMultiplier < 0.75f)
+        var attackMultiplier = attackerCommandMultiplier * (1.0f + deploymentModifier + troopCounterAttackModifier);
+        var defenseMultiplier = defenderCommandMultiplier *
+            (1.0f + (defender.Defense / 250.0f) + GetDefenderTroopModifier(effectiveDefenseAllocation) + troopCounterDefenseModifier - siegePressure);
+        defenseMultiplier = Math.Max(0.75f, defenseMultiplier);
+
+        var remainingAttackers = clampedAttackTroops;
+        var remainingDefenders = Math.Max(0, defender.Troops);
+        for (var round = 0; round < AutomaticCombatRounds && remainingAttackers > 0 && remainingDefenders > 0; round++)
         {
-            defenseMultiplier = 0.75f;
+            var effectiveAttack = remainingAttackers * attackMultiplier;
+            var effectiveDefense = remainingDefenders * defenseMultiplier;
+            var powerRatio = effectiveAttack / Math.Max(1.0f, effectiveDefense);
+            var defenderLoss = CalculateAutomaticLoss(remainingDefenders, powerRatio);
+            var attackerLoss = CalculateAutomaticLoss(remainingAttackers, 1.0f / Math.Max(0.01f, powerRatio));
+            remainingDefenders = Math.Max(0, remainingDefenders - defenderLoss);
+            remainingAttackers = Math.Max(0, remainingAttackers - attackerLoss);
         }
 
-        var effectiveAttack = clampedAttackTroops * attackMultiplier;
-        var effectiveDefense = defender.Troops * defenseMultiplier;
-
-        var attackerWon = effectiveAttack >= effectiveDefense;
+        // A strategic attack captures a city only after the defender has been
+        // broken below a meaningful fieldable force.  This keeps a modest
+        // numerical edge from converting directly into an implausible capture.
+        var defenderBreakThreshold = Math.Max(1, (int)Math.Ceiling(defender.Troops * 0.40f));
+        var attackerWon = remainingAttackers > 0 && remainingDefenders <= defenderBreakThreshold;
         return new CombatResult
         {
             AttackerWon = attackerWon,
-            AttackerLosses = attackerWon ? defender.Troops / 3 : clampedAttackTroops / 2,
-            DefenderLosses = attackerWon ? defender.Troops : clampedAttackTroops / 2
+            AttackerLosses = clampedAttackTroops - remainingAttackers,
+            // Captured cities cannot retain a former-owner garrison in the
+            // current command model.  The surviving defenders are treated as
+            // routed/captured when their force has broken.
+            DefenderLosses = attackerWon ? defender.Troops : defender.Troops - remainingDefenders
         };
+    }
+
+    private static float GetOfficerCommandMultiplier(int strength, int leadership, int combat)
+    {
+        var command = leadership * 0.45f + combat * 0.35f + strength * 0.20f;
+        return Math.Clamp(1.0f + ((command - 50.0f) / 200.0f), 0.85f, 1.25f);
+    }
+
+    private static int CalculateAutomaticLoss(int troops, float opposingPowerRatio)
+    {
+        if (troops <= 0)
+        {
+            return 0;
+        }
+
+        var lossRate = Math.Clamp(
+            BaseAutomaticCasualtyRate * (float)Math.Pow(opposingPowerRatio, 0.55f),
+            MinimumAutomaticCasualtyRate,
+            MaximumAutomaticCasualtyRate);
+        return Math.Clamp((int)Math.Round(troops * lossRate), 1, troops);
     }
 
     private static TroopAllocationData GetDeploymentAllocation(

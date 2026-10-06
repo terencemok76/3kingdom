@@ -2123,6 +2123,30 @@ public partial class BattleSceneController : Node2D
         return GetBattleOfficerData(officerName)?.Combat ?? BattleOfficerAiProfiles.GetCombatAttribute(officerName);
     }
 
+    private int GetOfficerCommandRating(BattleOccupantInfo unit)
+    {
+        if (!IsGeneralCountedPiece(unit.Category, unit.OfficerName))
+        {
+            return 50;
+        }
+
+        var officer = GetBattleOfficerData(unit.OfficerName);
+        if (officer != null)
+        {
+            return Mathf.RoundToInt(officer.Leadership * 0.45f + officer.Combat * 0.35f + officer.Strength * 0.20f);
+        }
+
+        // Prototype-only officers have no complete WorldState data.  Their
+        // tactical combat attribute remains a useful neutral fallback.
+        return GetOfficerBattleAttribute(unit.OfficerName);
+    }
+
+    private float GetOfficerCommandMultiplier(BattleOccupantInfo unit)
+    {
+        var rawBonus = (GetOfficerCommandRating(unit) - 50) / 200.0f;
+        return Mathf.Clamp(1.0f + rawBonus, OfficerCommandMinimumMultiplier, OfficerCommandMaximumMultiplier);
+    }
+
     private void ExecuteSelectedGuard()
     {
         if (_selectedUnit == null || !_selectedUnitGrid.HasValue || !CanUseGuard(_selectedUnit))

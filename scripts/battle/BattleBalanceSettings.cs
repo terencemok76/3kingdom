@@ -3,14 +3,20 @@ namespace ThreeKingdom.Battle;
 internal static class BattleBalanceSettings
 {
     internal const int BattleTimePeriodsPerDay = 4;
-    internal const int InfantryAttackDamage = 850;
-    internal const int SpearmanAttackDamage = 800;
-    internal const int ArcherAttackDamage = 900;
-    internal const int CavalryAttackDamage = 1100;
-    internal const int CavalryChargeDamage = 1650;
-    internal const int CavalryChargeVsSpearmanDamage = 900;
-    internal const int CavalryChargeSpearmanCounterDamage = 600;
-    internal const float TroopTypeAdvantageDamageMultiplier = 1.25f;
+    // Unit damage is intentionally derived from active troops.  A near-empty
+    // battle team must not retain the damage of a full-strength formation.
+    internal const float InfantryAttackCasualtyRate = 0.08f;
+    internal const float SpearmanAttackCasualtyRate = 0.08f;
+    internal const float ArcherAttackCasualtyRate = 0.065f;
+    internal const float CavalryAttackCasualtyRate = 0.08f;
+    internal const float WorkerAttackCasualtyRate = 0.04f;
+    internal const float CavalryChargeCasualtyRate = 0.12f;
+    internal const float TroopTypeAdvantageDamageMultiplier = 1.20f;
+    internal const float TroopTypeDisadvantageDamageMultiplier = 0.85f;
+    internal const float NormalAttackCasualtyCapRatio = 0.35f;
+    internal const float ChargeCasualtyCapRatio = 0.45f;
+    internal const float OfficerCommandMinimumMultiplier = 0.85f;
+    internal const float OfficerCommandMaximumMultiplier = 1.25f;
     internal const float BuildingCoverDamageReduction = 0.20f;
     internal const int WorkerBridgeRepairAmount = 450;
     internal const int WorkerGateRepairAmount = 600;

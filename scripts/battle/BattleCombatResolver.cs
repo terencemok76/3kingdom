@@ -27,15 +27,18 @@ internal static class BattleCombatResolver
             };
         }
 
-        return attacker.TroopType switch
+        var casualtyRate = attacker.TroopType switch
         {
-            TroopInfantry => InfantryAttackDamage,
-            TroopSpearman => SpearmanAttackDamage,
-            TroopArcher or TroopCrossbow => ArcherAttackDamage,
-            TroopCavalry => CavalryAttackDamage,
-            TroopWorker => WorkerAttackDamage,
-            _ => 0
+            TroopInfantry => InfantryAttackCasualtyRate,
+            TroopSpearman => SpearmanAttackCasualtyRate,
+            TroopArcher or TroopCrossbow => ArcherAttackCasualtyRate,
+            TroopCavalry => CavalryAttackCasualtyRate,
+            TroopWorker => WorkerAttackCasualtyRate,
+            _ => 0.0f
         };
+        return casualtyRate <= 0.0f
+            ? 0
+            : System.Math.Max(1, Godot.Mathf.RoundToInt(attacker.TroopCount * casualtyRate));
     }
 
     internal static int GetStructureAttackDamage(BattleOccupantInfo attacker)
