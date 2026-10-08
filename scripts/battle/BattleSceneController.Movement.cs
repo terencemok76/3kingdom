@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattlePresentationSettings;
+using static ThreeKingdom.Battle.BattleResourcePaths;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 using static ThreeKingdom.Battle.BattleUnitVisualCatalog;
+using ThreeKingdom.Core;
 
 namespace ThreeKingdom.Battle;
 
@@ -100,6 +102,7 @@ public partial class BattleSceneController
         _movableGrids.Clear();
         _attackableGrids.Clear();
         HideCommandMenu();
+        PlayBattleMovementSfx(movedOccupant, sourceGrid, movePath);
         ApplyMoveAnimation(
             movedOccupant,
             moveDirection,
@@ -129,6 +132,43 @@ public partial class BattleSceneController
         }
 
         return true;
+    }
+
+    private void PlayBattleMovementSfx(BattleOccupantInfo occupant, BattleGridKey sourceGrid, IReadOnlyList<BattleGridKey> movePath)
+    {
+        if (GameAudioController.Instance == null)
+        {
+            return;
+        }
+
+        var crossesBridge = IsBridgeGrid(sourceGrid) || movePath.Any(IsBridgeGrid);
+        if (occupant.Category == CategoryUnit)
+        {
+            if (occupant.TroopType == TroopCavalry)
+            {
+                GameAudioController.Instance.PlayGameplaySfx(
+                    crossesBridge ? [CavalryCrossBridgeSfxPath] : CavalryMovementSfxPaths);
+                return;
+            }
+
+            GameAudioController.Instance.PlayGameplaySfx(
+                crossesBridge ? [InfantryCrossBridgeSfxPath] : InfantryMovementSfxPaths);
+            return;
+        }
+
+        if (occupant.Category == CategorySiegeEngine &&
+            occupant.TroopType is TroopCatapult or TroopSupplyCart or TroopRam or TroopLadder)
+        {
+            GameAudioController.Instance.PlayGameplaySfx(CatapultMovementSfxPaths);
+        }
+    }
+
+    private bool IsBridgeGrid(BattleGridKey grid)
+    {
+        return _mapData != null &&
+               grid.Level == 0 &&
+               IsWithinMap(grid.Grid) &&
+               _mapData.GetCell(grid.X, grid.Y).Terrain == BattleTerrainType.Bridge;
     }
 
     private void RestorePlayerCommandMenuAfterMove(BattleOccupantInfo movedOccupant, BattleGridKey destinationGrid)
@@ -290,7 +330,7 @@ public partial class BattleSceneController
 
                 var moveCost = GetMoveEnergyCost(cell);
                 var remainingEnergy = current.RemainingEnergy - moveCost;
-                var remainingRange = current.RemainingRange - GetMoveRangeCost(cell);
+                var remainingRange = current.RemainingRange - GetMoveRangeCost(cell) - GetCarLadderTraversalRangePenalty(current.Grid, neighbor);
                 if (remainingEnergy < 0 || remainingRange < 0)
                 {
                     continue;
@@ -382,7 +422,7 @@ public partial class BattleSceneController
                 var newStats = (
                     LayerChanges: currentStats.LayerChanges + (current.Level == neighbor.Level ? 0 : 1),
                     GateVerticalSteps: currentStats.GateVerticalSteps + (IsGateVerticalLayerMove(current, neighbor) ? 1 : 0),
-                    RangeCost: currentStats.RangeCost + GetMoveRangeCost(cell),
+                    RangeCost: currentStats.RangeCost + GetMoveRangeCost(cell) + GetCarLadderTraversalRangePenalty(current, neighbor),
                     Steps: currentStats.Steps + 1);
                 if (newStats.RangeCost > rangeBudget)
                 {
@@ -992,10 +1032,25 @@ public partial class BattleSceneController
 
     private int GetTeamMoveRangeCap(BattleOccupantInfo unit)
     {
-        var moveRange = GetEffectiveMoveRange(unit);
+        var moveRange = Math.Max(1, GetEffectiveMoveRange(unit) - GetSiegeEngineMovePenalty(unit));
         return IsSustainedZeroFood(unit.TeamName)
             ? Math.Min(moveRange, SustainedZeroFoodMoveRangeCap)
             : moveRange;
+    }
+
+    private static int GetSiegeEngineMovePenalty(BattleOccupantInfo unit)
+    {
+        if (unit.Category != CategorySiegeEngine || unit.MaxHitPoints <= 0)
+        {
+            return 0;
+        }
+
+        var healthRatio = unit.HitPoints / (float)unit.MaxHitPoints;
+        return healthRatio <= SiegeEngineCriticalHpRatio
+            ? CriticalSiegeEngineMovePenalty
+            : healthRatio <= SiegeEngineDamagedHpRatio
+                ? DamagedSiegeEngineMovePenalty
+                : 0;
     }
 
     private int GetAvailableMoveRange(BattleOccupantInfo unit)
@@ -1025,6 +1080,31 @@ public partial class BattleSceneController
         return BattleMovementService.GetMoveRangeCost(cell);
     }
 
+    private int GetCarLadderTraversalRangePenalty(BattleGridKey fromGrid, BattleGridKey toGrid)
+    {
+        if (!TryGetCarLadderGridForTransition(fromGrid, toGrid, out var ladderGrid) ||
+            !_occupantsByGrid.TryGetValue(ladderGrid, out var occupants))
+        {
+            return 0;
+        }
+
+        var ladder = occupants.FirstOrDefault(occupant =>
+            occupant.Category == CategorySiegeEngine &&
+            occupant.TroopType == TroopLadder &&
+            occupant.Marker != null);
+        if (ladder == null || ladder.MaxHitPoints <= 0)
+        {
+            return 0;
+        }
+
+        var healthRatio = ladder.HitPoints / (float)ladder.MaxHitPoints;
+        return healthRatio <= SiegeEngineCriticalHpRatio
+            ? CriticalLadderTraversalRangeCost
+            : healthRatio <= SiegeEngineDamagedHpRatio
+                ? DamagedLadderTraversalRangeCost
+                : 0;
+    }
+
     private int GetMovePathEnergyCost(IEnumerable<BattleGridKey> path)
     {
         if (_mapData == null)
@@ -1042,7 +1122,20 @@ public partial class BattleSceneController
             return int.MaxValue;
         }
 
-        return path.Sum(grid => GetMoveRangeCost(_mapData.GetCell(grid.X, grid.Y)));
+        var rangeCost = 0;
+        var previousGrid = _selectedUnitGrid;
+        foreach (var grid in path)
+        {
+            rangeCost += GetMoveRangeCost(_mapData.GetCell(grid.X, grid.Y));
+            if (previousGrid.HasValue)
+            {
+                rangeCost += GetCarLadderTraversalRangePenalty(previousGrid.Value, grid);
+            }
+
+            previousGrid = grid;
+        }
+
+        return rangeCost;
     }
 
     private bool TryGetMovePreview(BattleGridKey? destinationGrid, out int energyCost, out int remainingEnergy, out int remainingMoveRange)

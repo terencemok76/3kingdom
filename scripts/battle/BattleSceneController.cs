@@ -1280,6 +1280,7 @@ public partial class BattleSceneController : Node2D
         }
 
         var isWorker = _selectedUnit.TroopType == TroopWorker;
+        var engineerWorkSfxPaths = GetEngineerWorkSfxPaths(_selectedUnit, targetGrid.Grid, targetCell);
         if (!ApplyWork(_selectedUnit, targetGrid.Grid, targetCell, out var removedWoodFence))
         {
             return false;
@@ -1296,6 +1297,11 @@ public partial class BattleSceneController : Node2D
         _selectedUnit = workingUnit;
         if (isWorker)
         {
+            if (engineerWorkSfxPaths != null)
+            {
+                GameAudioController.Instance?.PlayGameplaySfx(engineerWorkSfxPaths);
+            }
+
             workingUnit.Marker?.PlayAction(
                 GetWorkerWorkScene(workDirection),
                 GetWorkerIdleScene(workDirection),
@@ -1318,6 +1324,38 @@ public partial class BattleSceneController : Node2D
         HideCommandMenu();
         MarkUnitActed(workingUnit);
         return true;
+    }
+
+    private string[]? GetEngineerWorkSfxPaths(BattleOccupantInfo unit, Vector2I targetGrid, BattleCellData targetCell)
+    {
+        if (unit.TroopType != TroopWorker)
+        {
+            return null;
+        }
+
+        if (_workerWorkAction == WorkerWorkAction.WoodFence)
+        {
+            return targetCell.Structure == BattleStructureType.WoodenFence
+                ? EngineerDestroySfxPaths
+                : EngineerBuildSfxPaths;
+        }
+
+        if ((targetCell.Terrain == BattleTerrainType.Moat &&
+             _mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.MoatSiegeBattle) ||
+            (targetCell.Terrain == BattleTerrainType.River &&
+             _mapData?.ScenarioDefinition.ScenarioType == BattleScenarioType.FieldBattle))
+        {
+            return EngineerBuildSfxPaths;
+        }
+
+        if (targetCell.IsBridgeDamaged || CanRepairGate(unit, targetGrid, targetCell))
+        {
+            return EngineerRepairSfxPaths;
+        }
+
+        return targetCell.Structure == BattleStructureType.Trap
+            ? EngineerDestroySfxPaths
+            : null;
     }
 
     private static int GetWorkerWorkEnergyCost(BattleCellData targetCell, WorkerWorkAction workAction)
@@ -2250,6 +2288,7 @@ public partial class BattleSceneController : Node2D
         var suppliedUnits = GetSupplyMoraleTargets(_selectedUnitGrid.Value, _selectedUnit).ToList();
         var recoveryTargets = GetWoundedRecoveryTargets(_selectedUnitGrid.Value, _selectedUnit).ToList();
         var repairTargets = GetSupplyRepairTargets(_selectedUnitGrid.Value, _selectedUnit).ToList();
+        var supportMultiplier = GetSupplyCartSupportMultiplier(_selectedUnit);
         if (suppliedUnits.Count == 0 && recoveryTargets.Count == 0 && repairTargets.Count == 0)
         {
             return;
@@ -2258,7 +2297,7 @@ public partial class BattleSceneController : Node2D
         var suppliedTargetCount = 0;
         foreach (var (targetGrid, target) in suppliedUnits)
         {
-            if (UpdateUnitMorale(targetGrid, target, SupplyCartMoraleRestore, out _))
+            if (UpdateUnitMorale(targetGrid, target, Mathf.Max(1, Mathf.RoundToInt(SupplyCartMoraleRestore * supportMultiplier)), out _))
             {
                 suppliedTargetCount++;
             }
@@ -2268,7 +2307,7 @@ public partial class BattleSceneController : Node2D
         var recoveredTargetCount = 0;
         foreach (var (targetGrid, target) in recoveryTargets)
         {
-            var targetRecoveredTroops = RecoverWoundedTroops(targetGrid, target, SupplyCartWoundedRecoveryAmount);
+            var targetRecoveredTroops = RecoverWoundedTroops(targetGrid, target, Mathf.Max(1, Mathf.RoundToInt(SupplyCartWoundedRecoveryAmount * supportMultiplier)));
             if (targetRecoveredTroops > 0)
             {
                 recoveredTroops += targetRecoveredTroops;
@@ -2280,7 +2319,7 @@ public partial class BattleSceneController : Node2D
         var repairedTargetCount = 0;
         foreach (var (targetGrid, target) in repairTargets)
         {
-            var targetRepairedHp = RepairSiegeEngine(targetGrid, target, SupplyCartRepairAmount);
+            var targetRepairedHp = RepairSiegeEngine(targetGrid, target, Mathf.Max(1, Mathf.RoundToInt(SupplyCartRepairAmount * supportMultiplier)));
             if (targetRepairedHp > 0)
             {
                 repairedHp += targetRepairedHp;
@@ -2872,6 +2911,18 @@ public partial class BattleSceneController : Node2D
 
         ShowRepairPopup(targetGrid, actualRepair);
         return actualRepair;
+    }
+
+    private static float GetSupplyCartSupportMultiplier(BattleOccupantInfo supplyCart)
+    {
+        if (supplyCart.MaxHitPoints <= 0)
+        {
+            return 1.0f;
+        }
+
+        return supplyCart.HitPoints / (float)supplyCart.MaxHitPoints <= SiegeEngineCriticalHpRatio
+            ? CriticalSupplyCartSupportRatio
+            : 1.0f;
     }
 
     private int RecoverWoundedTroops(BattleGridKey targetGrid, BattleOccupantInfo target, int recoveryAmount)
@@ -4524,7 +4575,9 @@ public partial class BattleSceneController : Node2D
             return;
         }
 
-        foreach (var groupGateGrid in gateGroup)
+        var gates = gateGroup.ToList();
+        var openedAnyGate = gates.Any(grid => !_mapData.GetCell(grid.X, grid.Y).IsGateOpen);
+        foreach (var groupGateGrid in gates)
         {
             var gateCell = _mapData.GetCell(groupGateGrid.X, groupGateGrid.Y);
             gateCell.IsGateOpen = true;
@@ -4536,6 +4589,10 @@ public partial class BattleSceneController : Node2D
             RefreshCastleDepthVisual(groupGateGrid);
         }
 
+        if (openedAnyGate)
+        {
+            GameAudioController.Instance?.PlayGameplaySfx(GateOpenSfxPaths);
+        }
         RefreshOccludedUnitSilhouettes();
     }
 
@@ -4573,6 +4630,7 @@ public partial class BattleSceneController : Node2D
             RefreshCastleDepthVisual(groupGateGrid);
         }
 
+        GameAudioController.Instance?.PlayGameplaySfx(shouldOpen ? GateOpenSfxPaths : [GateCloseSfxPath]);
         RefreshOccludedUnitSilhouettes();
     }
 

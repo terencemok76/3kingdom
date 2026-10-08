@@ -633,7 +633,21 @@ public partial class BattleSceneController
     private int GetStructureAttackDamage(BattleOccupantInfo attacker)
     {
         var damage = BattleCombatResolver.GetStructureAttackDamage(attacker);
-        return Mathf.Max(1, Mathf.RoundToInt(damage * GetSiegeEngineConditionDamageMultiplier(attacker)));
+        var conditionMultiplier = GetSiegeEngineConditionDamageMultiplier(attacker) * GetRamConditionDamageMultiplier(attacker);
+        return Mathf.Max(1, Mathf.RoundToInt(damage * conditionMultiplier));
+    }
+
+    private static float GetRamConditionDamageMultiplier(BattleOccupantInfo attacker)
+    {
+        if (attacker.Category != CategorySiegeEngine || attacker.TroopType != TroopRam || attacker.MaxHitPoints <= 0)
+        {
+            return 1.0f;
+        }
+
+        return Mathf.Clamp(
+            attacker.HitPoints / (float)attacker.MaxHitPoints,
+            CatapultMinimumDamageRatio,
+            1.0f);
     }
 
     private static float GetSiegeEngineConditionDamageMultiplier(BattleOccupantInfo attacker)

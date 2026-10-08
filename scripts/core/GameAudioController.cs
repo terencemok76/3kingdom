@@ -1,9 +1,11 @@
 using Godot;
+using System.Collections.Generic;
 
 namespace ThreeKingdom.Core;
 
 public partial class GameAudioController : Node
 {
+    private const int GameplaySfxVoiceCount = 6;
     private const string DefaultBgmPath = "res://assets/bgm/bgm_main_menu_01.ogg";
     private const string SecondaryBgmPath = "res://assets/bgm/bgm_main_menu_02.ogg";
     private const string WorldMapBgmPath = "res://assets/bgm/bgm_world_map_01.ogg";
@@ -43,6 +45,9 @@ public partial class GameAudioController : Node
     private AudioStreamPlayer? _sfxPlayer;
     private AudioStreamPlayer? _citySfxPlayer;
     private AudioStreamPlayer? _eventSfxPlayer;
+    private readonly List<AudioStreamPlayer> _gameplaySfxPlayers = new();
+    private readonly Dictionary<string, AudioStream> _gameplaySfxCache = new();
+    private int _nextGameplaySfxPlayerIndex;
     private int _currentBgmIndex;
     private bool _bgmEnabled = true;
     private bool _sfxEnabled = true;
@@ -85,6 +90,18 @@ public partial class GameAudioController : Node
             ProcessMode = ProcessModeEnum.Always
         };
         AddChild(_eventSfxPlayer);
+
+        for (var index = 0; index < GameplaySfxVoiceCount; index++)
+        {
+            var gameplaySfxPlayer = new AudioStreamPlayer
+            {
+                Name = $"GameplaySfxPlayer{index + 1}",
+                Bus = "Master",
+                ProcessMode = ProcessModeEnum.Always
+            };
+            _gameplaySfxPlayers.Add(gameplaySfxPlayer);
+            AddChild(gameplaySfxPlayer);
+        }
 
         PlayCurrentBgm();
         LoadClickSfx();
@@ -161,6 +178,38 @@ public partial class GameAudioController : Node
 
         _eventSfxPlayer.Stream = stream;
         _eventSfxPlayer.Play();
+    }
+
+    public void PlayGameplaySfx(params string[] resourcePaths)
+    {
+        if (!_sfxEnabled || resourcePaths.Length == 0 || _gameplaySfxPlayers.Count == 0)
+        {
+            return;
+        }
+
+        var resourcePath = resourcePaths.Length == 1
+            ? resourcePaths[0]
+            : resourcePaths[(int)(GD.Randi() % (uint)resourcePaths.Length)];
+        if (string.IsNullOrWhiteSpace(resourcePath))
+        {
+            return;
+        }
+
+        if (!_gameplaySfxCache.TryGetValue(resourcePath, out var stream))
+        {
+            stream = ResourceLoader.Load<AudioStream>(resourcePath);
+            if (stream == null)
+            {
+                GD.PushWarning($"Gameplay SFX resource missing: {resourcePath}");
+                return;
+            }
+
+            _gameplaySfxCache[resourcePath] = stream;
+        }
+
+        var player = GetAvailableGameplaySfxPlayer();
+        player.Stream = stream;
+        player.Play();
     }
 
     public void PlayMainMenuBgm()
@@ -278,28 +327,38 @@ public partial class GameAudioController : Node
 
     private void ApplySfxState()
     {
-        if (_sfxPlayer == null)
+        ApplySfxPlayerState(_sfxPlayer);
+        ApplySfxPlayerState(_citySfxPlayer);
+        ApplySfxPlayerState(_eventSfxPlayer);
+        foreach (var gameplaySfxPlayer in _gameplaySfxPlayers)
+        {
+            ApplySfxPlayerState(gameplaySfxPlayer);
+        }
+    }
+
+    private AudioStreamPlayer GetAvailableGameplaySfxPlayer()
+    {
+        foreach (var player in _gameplaySfxPlayers)
+        {
+            if (!player.Playing)
+            {
+                return player;
+            }
+        }
+
+        var fallback = _gameplaySfxPlayers[_nextGameplaySfxPlayerIndex];
+        _nextGameplaySfxPlayerIndex = (_nextGameplaySfxPlayerIndex + 1) % _gameplaySfxPlayers.Count;
+        return fallback;
+    }
+
+    private void ApplySfxPlayerState(AudioStreamPlayer? player)
+    {
+        if (player == null)
         {
             return;
         }
 
-        _sfxPlayer.StreamPaused = !_sfxEnabled;
-        _sfxPlayer.VolumeDb = _sfxEnabled ? Mathf.LinearToDb(Mathf.Max(_sfxVolume, 0.0001f)) : -80.0f;
-
-        if (_citySfxPlayer == null)
-        {
-            return;
-        }
-
-        _citySfxPlayer.StreamPaused = !_sfxEnabled;
-        _citySfxPlayer.VolumeDb = _sfxEnabled ? Mathf.LinearToDb(Mathf.Max(_sfxVolume, 0.0001f)) : -80.0f;
-
-        if (_eventSfxPlayer == null)
-        {
-            return;
-        }
-
-        _eventSfxPlayer.StreamPaused = !_sfxEnabled;
-        _eventSfxPlayer.VolumeDb = _sfxEnabled ? Mathf.LinearToDb(Mathf.Max(_sfxVolume, 0.0001f)) : -80.0f;
+        player.StreamPaused = !_sfxEnabled;
+        player.VolumeDb = _sfxEnabled ? Mathf.LinearToDb(Mathf.Max(_sfxVolume, 0.0001f)) : -80.0f;
     }
 }

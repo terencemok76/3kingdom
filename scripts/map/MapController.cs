@@ -36,6 +36,8 @@ public enum MapPresentationSpeed
 
 public partial class MapController : Node2D
 {
+    private const string ArmyMovementSfxPath = "res://assets/sfx/bigmap/move_army.ogg";
+    private const string LogisticsMovementSfxPath = "res://assets/sfx/bigmap/move_logistics.ogg";
     private const float FrameOuterInset = 10.0f;
     private const float FrameWoodInset = 12.0f;
     private const float FrameParchmentInset = 22.0f;
@@ -372,6 +374,8 @@ public partial class MapController : Node2D
         }
         var marker = new MapMovementMarker();
         _movementLayer.AddChild(marker);
+        GameAudioController.Instance?.PlayGameplaySfx(
+            icon == MapMovementIcon.Logistics ? LogisticsMovementSfxPath : ArmyMovementSfxPath);
         marker.Start(points, icon, GetPresentationDuration(Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f)), completed);
     }
 

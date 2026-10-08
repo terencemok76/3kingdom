@@ -107,7 +107,9 @@ public partial class BattleSceneController
                                       HasWorkTarget(_selectedUnit, WorkerWorkAction.General);
             _workButton.Visible = hasBridgeWorkTarget;
             _workButton.Text = _selectedUnit?.TroopType == TroopWorker
-                ? BattleText("ui.battle.bridge", "Bridge")
+                ? HasAdjacentRepairableGate(_selectedUnit)
+                    ? BattleFormat("ui.battle.repair_gate", "Repair Gate (+{0} HP)", WorkerGateRepairAmount)
+                    : BattleText("ui.battle.bridge", "Bridge")
                 : BattleFormat(
                     "ui.battle.repair_bridge",
                     "Repair Bridge (+{0} HP, Energy {1})",
@@ -368,6 +370,15 @@ public partial class BattleSceneController
                 yield return button;
             }
         }
+    }
+
+    private bool HasAdjacentRepairableGate(BattleOccupantInfo unit)
+    {
+        return _selectedUnitGrid.HasValue &&
+               _mapData != null &&
+               GetOrthogonalNeighbors(_selectedUnitGrid.Value.Grid)
+                   .Where(IsWithinMap)
+                   .Any(grid => CanRepairGate(unit, grid, _mapData.GetCell(grid.X, grid.Y)));
     }
 
     private void HideCommandMenu()

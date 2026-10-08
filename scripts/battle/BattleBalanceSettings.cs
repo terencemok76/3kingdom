@@ -87,6 +87,13 @@ internal static class BattleBalanceSettings
     internal const int LadderMaxHitPoints = 2200;
     internal const int CatapultMaxHitPoints = 1800;
     internal const float CatapultMinimumDamageRatio = 0.30f;
+    internal const float SiegeEngineDamagedHpRatio = 0.70f;
+    internal const float SiegeEngineCriticalHpRatio = 0.40f;
+    internal const int DamagedSiegeEngineMovePenalty = 1;
+    internal const int CriticalSiegeEngineMovePenalty = 2;
+    internal const int DamagedLadderTraversalRangeCost = 1;
+    internal const int CriticalLadderTraversalRangeCost = 2;
+    internal const float CriticalSupplyCartSupportRatio = 0.60f;
     internal const int SupplyCartMaxHitPoints = 1600;
     internal const int InitialTeamAGold = 8200;
     internal const int InitialTeamAFood = 26000;

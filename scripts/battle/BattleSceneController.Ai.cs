@@ -1470,13 +1470,14 @@ public partial class BattleSceneController
 
     private int GetAiSupplyActionScore(BattleGridKey supplyGrid, BattleOccupantInfo supplyCart, int commandIntelligence)
     {
+        var supportMultiplier = GetSupplyCartSupportMultiplier(supplyCart);
         var moraleScore = GetSupplyMoraleTargets(supplyGrid, supplyCart)
-            .Sum(target => Mathf.Max(0, DefaultUnitMorale - target.Occupant.Morale.GetValueOrDefault(DefaultUnitMorale)) * 10);
+            .Sum(target => Mathf.RoundToInt(Mathf.Max(0, DefaultUnitMorale - target.Occupant.Morale.GetValueOrDefault(DefaultUnitMorale)) * 10 * supportMultiplier));
         var recoveryScore = GetWoundedRecoveryTargets(supplyGrid, supplyCart)
-            .Sum(target => Mathf.Min(SupplyCartWoundedRecoveryAmount, target.Occupant.WoundedTroops) * 2);
+            .Sum(target => Mathf.RoundToInt(Mathf.Min(SupplyCartWoundedRecoveryAmount, target.Occupant.WoundedTroops) * 2 * supportMultiplier));
         var repairScore = GetSupplyRepairTargets(supplyGrid, supplyCart)
             .Where(target => target.Occupant.TroopType != TroopSupplyCart)
-            .Sum(target => Mathf.Min(SupplyCartRepairAmount, target.Occupant.MaxHitPoints - target.Occupant.HitPoints) * 2);
+            .Sum(target => Mathf.RoundToInt(Mathf.Min(SupplyCartRepairAmount, target.Occupant.MaxHitPoints - target.Occupant.HitPoints) * 2 * supportMultiplier));
         var criticalSupportScore = GetWoundedRecoveryTargets(supplyGrid, supplyCart)
             .Concat(GetSupplyMoraleTargets(supplyGrid, supplyCart))
             .Concat(GetSupplyRepairTargets(supplyGrid, supplyCart))

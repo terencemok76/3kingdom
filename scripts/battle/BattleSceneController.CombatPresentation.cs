@@ -9,6 +9,7 @@ using static ThreeKingdom.Battle.BattlePresentationSettings;
 using static ThreeKingdom.Battle.BattleResourcePaths;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 using static ThreeKingdom.Battle.BattleUnitVisualCatalog;
+using ThreeKingdom.Core;
 
 namespace ThreeKingdom.Battle;
 
@@ -129,6 +130,8 @@ public partial class BattleSceneController
             return 0.0;
         }
 
+        PlayBattleAttackSfx(occupant);
+
         if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopCatapult)
         {
             occupant.Marker.PlayAction(
@@ -191,6 +194,37 @@ public partial class BattleSceneController
         return 0.0;
     }
 
+    private static void PlayBattleAttackSfx(BattleOccupantInfo occupant)
+    {
+        if (occupant.Category == CategorySiegeEngine && occupant.TroopType == TroopCatapult)
+        {
+            GameAudioController.Instance?.PlayGameplaySfx(CatapultAttackSfxPaths);
+            return;
+        }
+
+        if (occupant.Category != CategoryUnit)
+        {
+            return;
+        }
+
+        if (occupant.TroopType is TroopArcher or TroopCrossbow)
+        {
+            GameAudioController.Instance?.PlayGameplaySfx(ArcherAttackSfxPaths);
+            return;
+        }
+
+        if (occupant.TroopType == TroopCavalry)
+        {
+            GameAudioController.Instance?.PlayGameplaySfx(CavalryAttackSfxPaths);
+            return;
+        }
+
+        if (occupant.TroopType is TroopInfantry or TroopSpearman or TroopGuard or TroopWorker)
+        {
+            GameAudioController.Instance?.PlayGameplaySfx(InfantryAttackSfxPaths);
+        }
+    }
+
     private double ApplyTargetHurtAnimation(BattleGridKey attackerGrid, BattleGridKey targetGrid, BattleOccupantInfo? attacker = null)
     {
         if (IsClosedGateStructureTarget(targetGrid))
@@ -215,6 +249,8 @@ public partial class BattleSceneController
         {
             return 0.0;
         }
+
+        GameAudioController.Instance?.PlayGameplaySfx(HumanHurtSfxPaths);
 
         var hurtDirection = GetInfantryDirection(attackerGrid.Grid, targetGrid.Grid);
         Action? onHurtAnimationComplete = IsUnitOccludedByCastleVisual(targetGrid)

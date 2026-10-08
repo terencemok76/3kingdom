@@ -325,6 +325,19 @@ public partial class BattleSceneController
     private string FormatBattleStatus(BattleOccupantInfo unit)
     {
         var statuses = new List<string>();
+        if (unit.Category == CategorySiegeEngine && unit.MaxHitPoints > 0)
+        {
+            var healthRatio = unit.HitPoints / (float)unit.MaxHitPoints;
+            if (healthRatio <= SiegeEngineCriticalHpRatio)
+            {
+                statuses.Add(BattleText("ui.battle.status_engine_critical", "Siege engine: critically damaged"));
+            }
+            else if (healthRatio <= SiegeEngineDamagedHpRatio)
+            {
+                statuses.Add(BattleText("ui.battle.status_engine_damaged", "Siege engine: damaged"));
+            }
+        }
+
         if (unit.IsHidden)
         {
             statuses.Add(BattleText("ui.battle.status_hidden", "Hidden"));
