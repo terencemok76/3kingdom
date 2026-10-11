@@ -16,8 +16,10 @@ internal static class BattlePresentationSettings
     internal const float MinimumBattleCameraZoom = 0.75f;
     internal const float MaximumBattleCameraZoom = 1.35f;
     internal const float BattleCameraZoomStep = 0.10f;
-    internal const float BattleLogMinimumWidth = 240.0f;
+    internal const float BattleLogMinimumWidth = 360.0f;
     internal const float BattleLogMinimumHeight = 150.0f;
+    internal const float TileInfoPanelMinimumWidth = 260.0f;
+    internal const float TileInfoPanelMinimumHeight = 180.0f;
     internal const float DefaultUnitVisualLift = -16.0f;
     internal const float WallWalkUnitVisualLift = -58.0f;
     internal const float WallWalkHighlightVisualLift = -42.0f;

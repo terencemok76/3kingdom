@@ -75,26 +75,7 @@ public partial class BattleSceneController
 
     private void ApplyBattleLogPanelStyle()
     {
-        if (_battleLogPanel is PanelContainer panel)
-        {
-            var panelStyle = new StyleBoxFlat
-            {
-                BgColor = new Color(0.025f, 0.025f, 0.022f, 0.95f),
-                BorderColor = new Color(0.69f, 0.51f, 0.23f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthTop = 2,
-                BorderWidthRight = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 6,
-                CornerRadiusTopRight = 6,
-                CornerRadiusBottomLeft = 6,
-                CornerRadiusBottomRight = 6,
-                ShadowColor = new Color(0.0f, 0.0f, 0.0f, 0.55f),
-                ShadowSize = 6
-            };
-            panel.AddThemeStyleboxOverride("panel", panelStyle);
-        }
-
+        AlignBattleLogBackgroundToNinePatch();
         if (_battleLogTitleLabel != null)
         {
             _battleLogTitleLabel.Text = BattleText("ui.battle.battle_log", "Battle Log");
@@ -109,6 +90,53 @@ public partial class BattleSceneController
         {
             _battleLogLabel.AddThemeColorOverride("font_color", new Color(0.92f, 0.88f, 0.78f, 1.0f));
         }
+    }
+
+    private void AlignBattleLogBackgroundToNinePatch()
+    {
+        if (_battleLogPanel is not NinePatchRect panel)
+        {
+            return;
+        }
+
+        var background = panel.GetNodeOrNull<Control>("LogBackground");
+        if (background == null)
+        {
+            return;
+        }
+
+        const float backgroundHorizontalInset = 9.0f;
+        const float backgroundVerticalInset = 7.0f;
+        background.OffsetLeft = backgroundHorizontalInset;
+        background.OffsetTop = backgroundVerticalInset;
+        background.OffsetRight = -backgroundHorizontalInset;
+        background.OffsetBottom = -backgroundVerticalInset;
+
+        var bronzeTexture = panel.GetNodeOrNull<Control>("BronzeTexture");
+        if (bronzeTexture != null)
+        {
+            bronzeTexture.OffsetLeft = backgroundHorizontalInset;
+            bronzeTexture.OffsetTop = backgroundVerticalInset;
+            bronzeTexture.OffsetRight = -backgroundHorizontalInset;
+            bronzeTexture.OffsetBottom = -backgroundVerticalInset;
+        }
+
+        var contentMargin = panel.GetNodeOrNull<MarginContainer>("Margin");
+        if (contentMargin == null)
+        {
+            return;
+        }
+
+        const float contentHorizontalInset = 14.0f;
+        const float contentVerticalInset = 12.0f;
+        contentMargin.OffsetLeft = contentHorizontalInset;
+        contentMargin.OffsetTop = contentVerticalInset;
+        contentMargin.OffsetRight = -contentHorizontalInset;
+        contentMargin.OffsetBottom = -contentVerticalInset;
+        contentMargin.AddThemeConstantOverride("margin_left", 0);
+        contentMargin.AddThemeConstantOverride("margin_top", 0);
+        contentMargin.AddThemeConstantOverride("margin_right", 0);
+        contentMargin.AddThemeConstantOverride("margin_bottom", 0);
     }
 
     private static void ApplyBattleLogButtonStyle(Button? button)
@@ -230,6 +258,7 @@ public partial class BattleSceneController
 
                     if (!_isBattleLogMinimized && IsPointInBattleLogResizeGrip(mousePosition))
                     {
+                        BringFloatingPanelToFront(_battleLogPanel);
                         _isResizingBattleLog = true;
                         _isDraggingBattleLog = false;
                         _battleLogResizeStartMouse = mousePosition;
@@ -240,6 +269,7 @@ public partial class BattleSceneController
 
                     if (IsPointInBattleLogDragArea(mousePosition))
                     {
+                        BringFloatingPanelToFront(_battleLogPanel);
                         _isDraggingBattleLog = true;
                         _isResizingBattleLog = false;
                         _battleLogDragOffset = mousePosition - _battleLogPanel.Position;

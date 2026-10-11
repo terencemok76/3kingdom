@@ -113,6 +113,13 @@ public partial class BattleSceneController : Node2D
     private Control? _commandMenu;
     private Control? _topBar;
     private Control? _tileInfoPanel;
+    private bool _isTileInfoPanelDragPending;
+    private bool _isDraggingTileInfoPanel;
+    private bool _isResizingTileInfoPanel;
+    private Vector2 _tileInfoPanelDragStartMouse;
+    private Vector2 _tileInfoPanelDragOffset;
+    private Vector2 _tileInfoPanelResizeStartMouse;
+    private Vector2 _tileInfoPanelResizeStartSize;
     private Control? _battleLogPanel;
     private Control? _battleLogHeaderRow;
     private Control? _battleLogContent;
@@ -293,7 +300,7 @@ public partial class BattleSceneController : Node2D
     private float _battleBgmVolume = 1.0f;
     private float _battleSfxVolume = 1.0f;
     private double _weatherEffectTime;
-    private Vector2 _battleLogExpandedSize = new(310.0f, 370.0f);
+    private Vector2 _battleLogExpandedSize = new(360.0f, 370.0f);
     private bool _editorBakeBattleLayout;
     private bool _editorClearTileLayout;
     private bool _editorRefreshBattleDepthPreview;
@@ -1077,26 +1084,6 @@ public partial class BattleSceneController : Node2D
 
     private void ApplyBattleOptionDialogStyle()
     {
-        var optionPanel = GetNodeOrNull<PanelContainer>("UiLayer/BattleOptionOverlay/Center/Panel");
-        if (optionPanel != null)
-        {
-            optionPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-            {
-                BgColor = new Color(0.05f, 0.05f, 0.06f, 0.88f),
-                BorderColor = new Color(0.58f, 0.48f, 0.28f, 1.0f),
-                BorderWidthLeft = 2,
-                BorderWidthTop = 2,
-                BorderWidthRight = 2,
-                BorderWidthBottom = 2,
-                CornerRadiusTopLeft = 8,
-                CornerRadiusTopRight = 8,
-                CornerRadiusBottomLeft = 8,
-                CornerRadiusBottomRight = 8,
-                ShadowColor = new Color(0.0f, 0.0f, 0.0f, 0.34f),
-                ShadowSize = 8
-            });
-        }
-
         var debugPanel = GetNodeOrNull<PanelContainer>("UiLayer/BattleDebugOverlay/Center/Panel");
         if (debugPanel != null)
         {
@@ -1183,12 +1170,6 @@ public partial class BattleSceneController : Node2D
         if (topHeaderRow != null)
         {
             topHeaderRow.MouseFilter = Control.MouseFilterEnum.Pass;
-        }
-
-        var terrainPanel = GetNodeOrNull<ColorRect>("UiLayer/SidePanel");
-        if (terrainPanel != null)
-        {
-            terrainPanel.Color = new Color(0.03f, 0.028f, 0.023f, 0.94f);
         }
 
         var attackerLabel = GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/SummaryLabel");
@@ -5021,7 +5002,12 @@ public partial class BattleSceneController : Node2D
         }
 
         _commandMenu.ResetSize();
-        var minimumSize = _commandMenu.GetCombinedMinimumSize();
+        // CommandMenu is a NinePatchRect whose content is full-anchored.  That
+        // layout does not feed its height back into the parent's minimum size,
+        // so measure the button stack directly before sizing the frame.
+        var menuButtons = _commandMenu.GetNodeOrNull<Control>("MenuMargin/MenuButtons");
+        var minimumSize = menuButtons?.GetCombinedMinimumSize() ?? Vector2.Zero;
+        minimumSize += new Vector2(36.0f, 30.0f);
         _commandMenu.Size = new Vector2(
             Mathf.Max(_commandMenu.CustomMinimumSize.X, minimumSize.X),
             Mathf.Max(_commandMenu.CustomMinimumSize.Y, minimumSize.Y));

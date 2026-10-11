@@ -211,7 +211,44 @@ public partial class BattleSceneController
         }
 
         HandleBattleDebugDialogInput(@event);
-        HandleBattleLogPanelInput(@event);
+        if (DoesBattleLogOwnInput(@event))
+        {
+            HandleBattleLogPanelInput(@event);
+            return;
+        }
+
+        HandleTileInfoPanelInput(@event);
+    }
+
+    private bool DoesBattleLogOwnInput(InputEvent @event)
+    {
+        if (_isDraggingBattleLog || _isResizingBattleLog)
+        {
+            return true;
+        }
+
+        return @event is InputEventMouseButton
+            {
+                ButtonIndex: MouseButton.Left,
+                Pressed: true
+            } mouseButton &&
+            _battleLogPanel?.Visible == true &&
+            _battleLogPanel.GetGlobalRect().HasPoint(mouseButton.GlobalPosition) &&
+            IsBattleLogVisuallyAboveTileInfoPanel(mouseButton.GlobalPosition);
+    }
+
+    private bool IsBattleLogVisuallyAboveTileInfoPanel(Vector2 globalPosition)
+    {
+        if (_battleLogPanel == null ||
+            _tileInfoPanel?.Visible != true ||
+            !_tileInfoPanel.GetGlobalRect().HasPoint(globalPosition))
+        {
+            return true;
+        }
+
+        // The Battle Log is authored after SidePanel, so it is visually above
+        // it when the two panels have the same Z index.
+        return _battleLogPanel.ZIndex >= _tileInfoPanel.ZIndex;
     }
 
     private bool TryHandleTopHeaderButtonInput(InputEvent @event)

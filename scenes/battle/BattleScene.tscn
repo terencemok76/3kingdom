@@ -32,11 +32,9 @@
 [ext_resource type="Texture2D" uid="uid://dgfl7k3nwlih2" path="res://assets/ui/battle/top_border.png" id="25_battle_top_border"]
 [ext_resource type="Texture2D" uid="uid://bxbblc7nkucrl" path="res://assets/ui/battle/red_flag.png" id="26_battle_attacker_flag"]
 [ext_resource type="Texture2D" uid="uid://duaa0x7i3y0oo" path="res://assets/ui/battle/blue_flag.png" id="27_battle_defender_flag"]
-[sub_resource type="SystemFont" id="SystemFont_battle_title_fallback"]
-font_names = PackedStringArray("Noto Serif TC", "Noto Serif HK")
-font_weight = 900
+[ext_resource type="Texture2D" uid="uid://gpxoq2502ox1" path="res://assets/ui/battle/card_border.png" id="29_battle_card_border"]
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ijfny"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_smwl8"]
 texture = ExtResource("2_625j4")
 texture_region_size = Vector2i(128, 64)
 use_texture_padding = false
@@ -57,11 +55,11 @@ use_texture_padding = false
 6:1/0 = 0
 7:1/0 = 0
 
-[sub_resource type="TileSet" id="TileSet_smwl8"]
+[sub_resource type="TileSet" id="TileSet_nnkfw"]
 tile_shape = 1
 tile_layout = 5
 tile_size = Vector2i(128, 64)
-sources/0 = SubResource("TileSetAtlasSource_ijfny")
+sources/0 = SubResource("TileSetAtlasSource_smwl8")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_4n3h1"]
 shader = ExtResource("8_u2g6b")
@@ -74,7 +72,7 @@ shader_parameter/highlight_strength = 0.075
 shader_parameter/tint = Color(0.88, 0.98, 1.1, 1)
 shader_parameter/highlight_tint = Color(0.7, 0.9, 1.12, 1)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nnkfw"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_m8y27"]
 texture = ExtResource("2_625j4")
 texture_region_size = Vector2i(128, 64)
 use_texture_padding = false
@@ -95,13 +93,13 @@ use_texture_padding = false
 6:1/0 = 0
 7:1/0 = 0
 
-[sub_resource type="TileSet" id="TileSet_m8y27"]
+[sub_resource type="TileSet" id="TileSet_28k10"]
 tile_shape = 1
 tile_layout = 5
 tile_size = Vector2i(128, 64)
-sources/0 = SubResource("TileSetAtlasSource_nnkfw")
+sources/0 = SubResource("TileSetAtlasSource_m8y27")
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_28k10"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dhs18"]
 texture = ExtResource("3_bkj5p")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -116,7 +114,7 @@ use_texture_padding = false
 4:0/0 = 0
 4:0/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dhs18"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_c31q5"]
 texture = ExtResource("4_building")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -127,7 +125,7 @@ use_texture_padding = false
 2:0/0 = 0
 2:0/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_c31q5"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_13cqt"]
 texture = ExtResource("13_farm_object")
 texture_region_size = Vector2i(128, 96)
 use_texture_padding = false
@@ -148,7 +146,7 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 16)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_13cqt"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yfr20"]
 texture = ExtResource("14_forest_object")
 texture_region_size = Vector2i(128, 96)
 use_texture_padding = false
@@ -169,7 +167,7 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 16)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yfr20"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4pwql"]
 texture = ExtResource("8_hnsx0")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -178,7 +176,7 @@ use_texture_padding = false
 1:0/0 = 0
 1:0/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4pwql"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_r72f0"]
 texture = ExtResource("5_forest")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -199,7 +197,7 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_r72f0"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dfjnm"]
 texture = ExtResource("6_swamp")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -220,7 +218,7 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dfjnm"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_um5on"]
 texture = ExtResource("7_hill")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -241,7 +239,7 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_um5on"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_urqt2"]
 texture = ExtResource("8_mountain")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -262,7 +260,7 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_urqt2"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tdj1d"]
 texture = ExtResource("9_wood")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -283,7 +281,7 @@ use_texture_padding = false
 3:1/0 = 0
 3:1/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tdj1d"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ss6fd"]
 texture = ExtResource("10_farm")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -312,7 +310,7 @@ use_texture_padding = false
 3:2/0 = 0
 3:2/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ss6fd"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_afy7r"]
 texture = ExtResource("11_bridge")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -327,7 +325,7 @@ use_texture_padding = false
 0:1/0 = 0
 0:1/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_afy7r"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bjo6t"]
 texture = ExtResource("12_river_object")
 texture_region_size = Vector2i(128, 128)
 use_texture_padding = false
@@ -352,23 +350,23 @@ use_texture_padding = false
 1:2/0 = 0
 1:2/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSet" id="TileSet_bjo6t"]
+[sub_resource type="TileSet" id="TileSet_841mh"]
 tile_shape = 1
 tile_layout = 5
 tile_size = Vector2i(128, 64)
-sources/0 = SubResource("TileSetAtlasSource_28k10")
-sources/1 = SubResource("TileSetAtlasSource_dhs18")
-sources/2 = SubResource("TileSetAtlasSource_4pwql")
-sources/3 = SubResource("TileSetAtlasSource_r72f0")
-sources/4 = SubResource("TileSetAtlasSource_dfjnm")
-sources/5 = SubResource("TileSetAtlasSource_um5on")
-sources/6 = SubResource("TileSetAtlasSource_urqt2")
-sources/7 = SubResource("TileSetAtlasSource_tdj1d")
-sources/8 = SubResource("TileSetAtlasSource_ss6fd")
-sources/9 = SubResource("TileSetAtlasSource_afy7r")
-sources/10 = SubResource("TileSetAtlasSource_c31q5")
-sources/11 = SubResource("TileSetAtlasSource_13cqt")
-sources/12 = SubResource("TileSetAtlasSource_yfr20")
+sources/0 = SubResource("TileSetAtlasSource_dhs18")
+sources/1 = SubResource("TileSetAtlasSource_c31q5")
+sources/2 = SubResource("TileSetAtlasSource_r72f0")
+sources/3 = SubResource("TileSetAtlasSource_dfjnm")
+sources/4 = SubResource("TileSetAtlasSource_um5on")
+sources/5 = SubResource("TileSetAtlasSource_urqt2")
+sources/6 = SubResource("TileSetAtlasSource_tdj1d")
+sources/7 = SubResource("TileSetAtlasSource_ss6fd")
+sources/8 = SubResource("TileSetAtlasSource_afy7r")
+sources/9 = SubResource("TileSetAtlasSource_bjo6t")
+sources/10 = SubResource("TileSetAtlasSource_13cqt")
+sources/11 = SubResource("TileSetAtlasSource_yfr20")
+sources/12 = SubResource("TileSetAtlasSource_4pwql")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_oajdb"]
 texture = ExtResource("3_bkj5p")
@@ -660,22 +658,27 @@ tile_layout = 5
 tile_size = Vector2i(128, 64)
 sources/0 = SubResource("TileSetAtlasSource_fbtt2")
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_841mh"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6tmj0"]
 texture = ExtResource("4_pxx3e")
 texture_region_size = Vector2i(128, 64)
 use_texture_padding = false
 0:0/0 = 0
 1:0/0 = 0
 
-[sub_resource type="TileSet" id="TileSet_6tmj0"]
+[sub_resource type="TileSet" id="TileSet_qdc4c"]
 tile_shape = 1
 tile_layout = 5
 tile_size = Vector2i(128, 64)
-sources/0 = SubResource("TileSetAtlasSource_841mh")
+sources/0 = SubResource("TileSetAtlasSource_6tmj0")
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_battle_lacquer"]
 atlas = ExtResource("15_battle_hud_material")
 region = Rect2(0, 0, 624, 624)
+
+[sub_resource type="SystemFont" id="SystemFont_battle_title_fallback"]
+font_names = PackedStringArray("Noto Serif TC", "Noto Serif HK")
+font_weight = 900
+subpixel_positioning = 0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_portrait"]
 bg_color = Color(0.015, 0.012, 0.01, 1)
@@ -693,6 +696,80 @@ corner_radius_bottom_left = 4
 atlas = ExtResource("15_battle_hud_material")
 region = Rect2(624, 0, 624, 624)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_button_disabled"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.09, 0.07, 0.035, 0.9)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.23, 0.12, 0.8)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_button_hover"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.38, 0.285, 0.105, 0.98)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.82, 0.38, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_button_normal"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.22, 0.165, 0.075, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.72, 0.56, 0.25, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_button_pressed"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.13, 0.095, 0.035, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.92, 0.68, 0.25, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="Theme" id="Theme_command_buttons"]
+Button/colors/font_color = Color(1, 0.91, 0.68, 1)
+Button/colors/font_disabled_color = Color(0.58, 0.53, 0.42, 1)
+Button/colors/font_hover_color = Color(1, 0.96, 0.78, 1)
+Button/colors/font_pressed_color = Color(1, 0.82, 0.4, 1)
+Button/styles/disabled = SubResource("StyleBoxFlat_command_button_disabled")
+Button/styles/hover = SubResource("StyleBoxFlat_command_button_hover")
+Button/styles/normal = SubResource("StyleBoxFlat_command_button_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_command_button_pressed")
+
 [node name="BattleScene" type="Node2D" unique_id=1970255355]
 script = ExtResource("1")
 UseEditorAuthoredLayout = true
@@ -705,20 +782,20 @@ position = Vector2(800, 40)
 
 [node name="GroundLayer" type="TileMapLayer" parent="MapRoot" unique_id=1972652565]
 tile_map_data = PackedByteArray("AAAAAAAAAAACAAAAAAABAAAAAAACAAAAAAACAAAAAAACAAAAAAADAAAAAAACAAAAAAAEAAAAAAACAAAAAAAFAAAAAAACAAAAAAAGAAAAAAACAAAAAAAHAAAAAAACAAAAAAAIAAAAAAACAAAAAAAJAAAAAAACAAAAAAAKAAAAAAACAAAAAAALAAAAAAACAAAAAAAMAAAAAAACAAAAAAANAAAAAAACAAAAAAAOAAAAAAACAAAAAAAPAAAAAAACAAAAAAAQAAAAAAACAAAAAAARAAAAAAACAAAAAAASAAAAAAACAAAAAAATAAAAAAACAAAAAAAUAAAAAAACAAAAAAAVAAAAAAACAAAAAAAWAAAAAAACAAAAAAAXAAAAAAACAAAAAAAYAAAAAAACAAAAAAAAAAEAAAACAAAAAAABAAEAAAACAAAAAAACAAEAAAACAAAAAAADAAEAAAACAAAAAAAEAAEAAAACAAAAAAAFAAEAAAACAAAAAAAGAAEAAAACAAAAAAAHAAEAAAACAAAAAAAIAAEAAAACAAAAAAAJAAEAAAACAAAAAAAKAAEAAAACAAAAAAALAAEAAAACAAAAAAAMAAEAAAACAAAAAAANAAEAAAACAAAAAAAOAAEAAAACAAAAAAAPAAEAAAACAAAAAAAQAAEAAAACAAAAAAARAAEAAAACAAAAAAASAAEAAAACAAAAAAATAAEAAAACAAAAAAAUAAEAAAACAAAAAAAVAAEAAAACAAAAAAAWAAEAAAACAAAAAAAXAAEAAAACAAAAAAAYAAEAAAACAAAAAAAAAAIAAAACAAAAAAABAAIAAAACAAAAAAACAAIAAAACAAAAAAADAAIAAAACAAAAAAAEAAIAAAACAAAAAAAFAAIAAAACAAAAAAAGAAIAAAACAAAAAAAHAAIAAAACAAAAAAAIAAIAAAACAAAAAAAJAAIAAAACAAAAAAAKAAIAAAACAAAAAAALAAIAAAACAAAAAAAMAAIAAAACAAAAAAANAAIAAAACAAAAAAAOAAIAAAACAAAAAAAPAAIAAAACAAAAAAAQAAIAAAACAAAAAAARAAIAAAACAAAAAAASAAIAAAACAAAAAAATAAIAAAACAAAAAAAUAAIAAAACAAAAAAAVAAIAAAACAAAAAAAWAAIAAAACAAAAAAAXAAIAAAACAAAAAAAYAAIAAAACAAAAAAAAAAMAAAACAAAAAAABAAMAAAACAAAAAAACAAMAAAACAAAAAAADAAMAAAACAAAAAAAEAAMAAAACAAAAAAAFAAMAAAACAAAAAAAGAAMAAAACAAAAAAAHAAMAAAACAAAAAAAIAAMAAAACAAAAAAAJAAMAAAACAAAAAAAKAAMAAAACAAAAAAALAAMAAAACAAAAAAAMAAMAAAACAAAAAAANAAMAAAACAAAAAAAOAAMAAAACAAAAAAAPAAMAAAACAAAAAAAQAAMAAAACAAAAAAARAAMAAAACAAAAAAASAAMAAAACAAAAAAATAAMAAAACAAAAAAAUAAMAAAACAAAAAAAVAAMAAAACAAAAAAAWAAMAAAACAAAAAAAXAAMAAAACAAAAAAAYAAMAAAACAAAAAAAAAAQAAAACAAAAAAABAAQAAAACAAAAAAACAAQAAAACAAAAAAADAAQAAAACAAAAAAAEAAQAAAACAAAAAAAFAAQAAAACAAAAAAAGAAQAAAACAAAAAAAHAAQAAAACAAAAAAAIAAQAAAACAAAAAAAJAAQAAAACAAAAAAAKAAQAAAACAAAAAAALAAQAAAACAAAAAAAMAAQAAAACAAAAAAANAAQAAAACAAAAAAAOAAQAAAACAAAAAAAPAAQAAAACAAAAAAAQAAQAAAACAAAAAAARAAQAAAACAAAAAAASAAQAAAACAAAAAAATAAQAAAACAAAAAAAUAAQAAAACAAAAAAAVAAQAAAACAAAAAAAWAAQAAAACAAAAAAAXAAQAAAACAAAAAAAYAAQAAAACAAAAAAAAAAUAAAACAAAAAAABAAUAAAACAAAAAAACAAUAAAACAAAAAAADAAUAAAACAAAAAAAEAAUAAAACAAAAAAAFAAUAAAACAAAAAAAGAAUAAAACAAAAAAAHAAUAAAACAAAAAAAIAAUAAAACAAAAAAAJAAUAAAACAAAAAAAKAAUAAAACAAAAAAALAAUAAAACAAAAAAAMAAUAAAACAAAAAAANAAUAAAACAAAAAAAOAAUAAAACAAAAAAAPAAUAAAACAAAAAAAQAAUAAAACAAAAAAARAAUAAAACAAAAAAASAAUAAAACAAAAAAATAAUAAAACAAAAAAAUAAUAAAACAAAAAAAVAAUAAAACAAAAAAAWAAUAAAACAAAAAAAXAAUAAAACAAAAAAAYAAUAAAACAAAAAAAAAAYAAAACAAAAAAABAAYAAAACAAAAAAACAAYAAAACAAAAAAADAAYAAAACAAAAAAAEAAYAAAACAAAAAAAFAAYAAAACAAAAAAAGAAYAAAACAAAAAAAHAAYAAAACAAAAAAAIAAYAAAACAAAAAAAJAAYAAAACAAAAAAAKAAYAAAACAAAAAAALAAYAAAACAAAAAAAMAAYAAAACAAAAAAANAAYAAAACAAAAAAAOAAYAAAACAAAAAAAPAAYAAAACAAAAAAAQAAYAAAACAAAAAAARAAYAAAACAAAAAAASAAYAAAACAAAAAAATAAYAAAACAAAAAAAUAAYAAAACAAAAAAAVAAYAAAACAAAAAAAWAAYAAAACAAAAAAAXAAYAAAACAAAAAAAYAAYAAAACAAAAAAAAAAcAAAAAAAAAAAABAAcAAAAAAAAAAAACAAcAAAAAAAAAAAADAAcAAAAAAAAAAAAEAAcAAAAAAAAAAAAFAAcAAAAAAAAAAAAGAAcAAAAAAAAAAAAHAAcAAAAAAAAAAAAIAAcAAAAAAAAAAAAJAAcAAAAAAAAAAAALAAcAAAACAAAAAAAMAAcAAAACAAAAAAANAAcAAAACAAAAAAAOAAcAAAAAAAAAAAAPAAcAAAAAAAAAAAAQAAcAAAAAAAAAAAARAAcAAAAAAAAAAAASAAcAAAAAAAAAAAATAAcAAAAAAAAAAAAUAAcAAAAAAAAAAAAVAAcAAAAAAAAAAAAWAAcAAAAAAAAAAAAXAAcAAAAAAAAAAAAYAAcAAAAAAAAAAAAAAAgAAAAAAAAAAAABAAgAAAAAAAAAAAACAAgAAAAAAAAAAAADAAgAAAAAAAAAAAAEAAgAAAAAAAAAAAAFAAgAAAAAAAAAAAAGAAgAAAAAAAAAAAAHAAgAAAAAAAAAAAAIAAgAAAAAAAAAAAAJAAgAAAAAAAAAAAAKAAgAAAABAAAAAAAMAAgAAAABAAAAAAANAAgAAAABAAAAAAAOAAgAAAAAAAAAAAAPAAgAAAAAAAAAAAAQAAgAAAAAAAAAAAARAAgAAAAAAAAAAAASAAgAAAAAAAAAAAATAAgAAAAAAAAAAAAUAAgAAAAAAAAAAAAVAAgAAAAAAAAAAAAWAAgAAAAAAAAAAAAXAAgAAAAAAAAAAAAYAAgAAAAAAAAAAAAAAAkAAAAAAAAAAAABAAkAAAAAAAAAAAACAAkAAAAAAAAAAAADAAkAAAAAAAAAAAAEAAkAAAAAAAAAAAAFAAkAAAAAAAAAAAAGAAkAAAAAAAAAAAAHAAkAAAAAAAAAAAAIAAkAAAAAAAAAAAAJAAkAAAAAAAAAAAAKAAkAAAABAAAAAAALAAkAAAABAAAAAAAMAAkAAAABAAAAAAANAAkAAAABAAAAAAAOAAkAAAAAAAAAAAAPAAkAAAAAAAAAAAAQAAkAAAAAAAAAAAARAAkAAAAAAAAAAAASAAkAAAAAAAAAAAATAAkAAAAAAAAAAAAUAAkAAAAAAAAAAAAVAAkAAAAAAAAAAAAWAAkAAAAAAAAAAAAXAAkAAAAAAAAAAAAYAAkAAAAAAAAAAAAAAAoAAAAAAAAAAAABAAoAAAAAAAAAAAACAAoAAAAAAAAAAAADAAoAAAAAAAAAAAAEAAoAAAAAAAAAAAAFAAoAAAAAAAAAAAAGAAoAAAAAAAAAAAAHAAoAAAAAAAAAAAAIAAoAAAAAAAAAAAAJAAoAAAABAAAAAAAKAAoAAAABAAAAAAALAAoAAAABAAAAAAAMAAoAAAABAAAAAAANAAoAAAABAAAAAAAOAAoAAAABAAAAAAAPAAoAAAAAAAAAAAAQAAoAAAAAAAAAAAARAAoAAAAAAAAAAAASAAoAAAAAAAAAAAATAAoAAAAAAAAAAAAUAAoAAAAAAAAAAAAVAAoAAAAAAAAAAAAWAAoAAAAAAAAAAAAXAAoAAAAAAAAAAAAYAAoAAAAAAAAAAAAAAAsAAAAEAAAAAAABAAsAAAAEAAAAAAACAAsAAAAEAAAAAAADAAsAAAAEAAAAAAAEAAsAAAAAAAAAAAAFAAsAAAAAAAAAAAAGAAsAAAAAAAAAAAAHAAsAAAAAAAAAAAAIAAsAAAAAAAAAAAAJAAsAAAAAAAAAAAAKAAsAAAAAAAAAAAALAAsAAAAAAAAAAAAMAAsAAAABAAAAAAANAAsAAAAAAAAAAAAOAAsAAAAAAAAAAAAPAAsAAAAAAAAAAAAQAAsAAAAAAAAAAAARAAsAAAAAAAAAAAATAAsAAAAAAAAAAAAUAAsAAAAAAAAAAAAVAAsAAAAAAAAAAAAWAAsAAAAAAAAAAAAXAAsAAAAAAAAAAAAYAAsAAAAAAAAAAAAAAAwAAAAEAAAAAAABAAwAAAAEAAAAAAACAAwAAAAEAAAAAAADAAwAAAAEAAAAAAAEAAwAAAAAAAAAAAAFAAwAAAAAAAAAAAAGAAwAAAAAAAAAAAAHAAwAAAAAAAAAAAAIAAwAAAAAAAAAAAAJAAwAAAAAAAAAAAAKAAwAAAAAAAAAAAALAAwAAAAAAAAAAAAMAAwAAAABAAAAAAANAAwAAAAAAAAAAAAOAAwAAAAAAAAAAAAPAAwAAAAAAAAAAAAQAAwAAAAAAAAAAAARAAwAAAAAAAAAAAASAAwAAAAAAAAAAAATAAwAAAAAAAAAAAAUAAwAAAAAAAAAAAAVAAwAAAAAAAAAAAAWAAwAAAAAAAAAAAAXAAwAAAAAAAAAAAAYAAwAAAAAAAAAAAAAAA0AAAAEAAAAAAABAA0AAAAEAAAAAAACAA0AAAAEAAAAAAADAA0AAAAEAAAAAAAEAA0AAAAAAAAAAAAFAA0AAAAAAAAAAAAGAA0AAAAAAAAAAAAHAA0AAAAAAAAAAAAIAA0AAAAAAAAAAAAJAA0AAAAAAAAAAAAKAA0AAAAAAAAAAAALAA0AAAAAAAAAAAAMAA0AAAABAAAAAAANAA0AAAAAAAAAAAAOAA0AAAAAAAAAAAAPAA0AAAAAAAAAAAAQAA0AAAAAAAAAAAARAA0AAAAAAAAAAAASAA0AAAAEAAAAAAATAA0AAAAEAAAAAAAUAA0AAAAEAAAAAAAVAA0AAAAEAAAAAAAWAA0AAAAEAAAAAAAXAA0AAAAAAAAAAAAYAA0AAAAAAAAAAAAAAA4AAAAEAAAAAAABAA4AAAAEAAAAAAACAA4AAAAAAAAAAAADAA4AAAAEAAAAAAAEAA4AAAAAAAAAAAAFAA4AAAAAAAAAAAAGAA4AAAAAAAAAAAAHAA4AAAAAAAAAAAAIAA4AAAAAAAAAAAAJAA4AAAAAAAAAAAAKAA4AAAAAAAAAAAALAA4AAAAAAAAAAAAMAA4AAAABAAAAAAANAA4AAAAAAAAAAAAOAA4AAAAAAAAAAAAPAA4AAAAAAAAAAAAQAA4AAAAAAAAAAAARAA4AAAAAAAAAAAASAA4AAAAEAAAAAAATAA4AAAAEAAAAAAAUAA4AAAAEAAAAAAAVAA4AAAAEAAAAAAAWAA4AAAAEAAAAAAAXAA4AAAAAAAAAAAAYAA4AAAAAAAAAAAAAAA8AAAAEAAAAAAABAA8AAAAEAAAAAAACAA8AAAAEAAAAAAADAA8AAAAAAAAAAAAEAA8AAAAAAAAAAAAFAA8AAAAAAAAAAAAGAA8AAAAAAAAAAAAHAA8AAAAAAAAAAAAIAA8AAAAAAAAAAAAJAA8AAAAAAAAAAAAKAA8AAAAAAAAAAAALAA8AAAAAAAAAAAAMAA8AAAABAAAAAAANAA8AAAAAAAAAAAAOAA8AAAAAAAAAAAAPAA8AAAAAAAAAAAAQAA8AAAAAAAAAAAARAA8AAAAAAAAAAAASAA8AAAAEAAAAAAATAA8AAAAEAAAAAAAUAA8AAAAEAAAAAAAVAA8AAAAEAAAAAAAWAA8AAAAAAAAAAAAXAA8AAAAAAAAAAAAYAA8AAAAAAAAAAAAAABAAAAAEAAAAAAABABAAAAAEAAAAAAACABAAAAAEAAAAAAADABAAAAAEAAAAAAAEABAAAAAAAAAAAAAFABAAAAAAAAAAAAAGABAAAAAAAAAAAAAHABAAAAAAAAAAAAAIABAAAAAAAAAAAAAJABAAAAAAAAAAAAAKABAAAAAAAAAAAAALABAAAAAAAAAAAAAMABAAAAABAAAAAAANABAAAAAAAAAAAAAOABAAAAAAAAAAAAAPABAAAAAAAAAAAAAQABAAAAAAAAAAAAARABAAAAAAAAAAAAASABAAAAAAAAAAAAATABAAAAAEAAAAAAAUABAAAAAAAAAAAAAVABAAAAAEAAAAAAAWABAAAAAEAAAAAAAXABAAAAAAAAAAAAAYABAAAAAAAAAAAAAAABEAAAAAAAAAAAABABEAAAAAAAAAAAACABEAAAAAAAAAAAADABEAAAAAAAAAAAAEABEAAAAAAAAAAAAFABEAAAAAAAAAAAAGABEAAAAAAAAAAAAHABEAAAAAAAAAAAAIABEAAAAAAAAAAAAJABEAAAAAAAAAAAAKABEAAAAAAAAAAAALABEAAAAAAAAAAAAMABEAAAABAAAAAAANABEAAAAAAAAAAAAOABEAAAAAAAAAAAAPABEAAAAAAAAAAAAQABEAAAAAAAAAAAARABEAAAAAAAAAAAASABEAAAAEAAAAAAATABEAAAAAAAAAAAAUABEAAAAEAAAAAAAVABEAAAAAAAAAAAAWABEAAAAEAAAAAAAXABEAAAAAAAAAAAAYABEAAAAAAAAAAAAAABIAAAAAAAAAAAABABIAAAAAAAAAAAACABIAAAAAAAAAAAADABIAAAAAAAAAAAAEABIAAAAAAAAAAAAFABIAAAAAAAAAAAAGABIAAAAEAAAAAAAHABIAAAAEAAAAAAAIABIAAAAEAAAAAAAJABIAAAAEAAAAAAAKABIAAAAAAAAAAAALABIAAAAAAAAAAAAMABIAAAABAAAAAAANABIAAAAAAAAAAAAOABIAAAAAAAAAAAAPABIAAAAAAAAAAAAQABIAAAAAAAAAAAARABIAAAAAAAAAAAASABIAAAAEAAAAAAATABIAAAAEAAAAAAAUABIAAAAEAAAAAAAVABIAAAAEAAAAAAAWABIAAAAEAAAAAAAXABIAAAAAAAAAAAAYABIAAAAAAAAAAAAAABMAAAAAAAAAAAABABMAAAAAAAAAAAACABMAAAAAAAAAAAADABMAAAAAAAAAAAAEABMAAAAAAAAAAAAFABMAAAAAAAAAAAAGABMAAAAEAAAAAAAHABMAAAAEAAAAAAAIABMAAAAEAAAAAAAJABMAAAAEAAAAAAAKABMAAAAAAAAAAAALABMAAAAAAAAAAAAMABMAAAABAAAAAAANABMAAAAAAAAAAAAOABMAAAAAAAAAAAAPABMAAAAAAAAAAAAQABMAAAAAAAAAAAARABMAAAAAAAAAAAASABMAAAAAAAAAAAATABMAAAAAAAAAAAAUABMAAAAAAAAAAAAVABMAAAAAAAAAAAAWABMAAAAAAAAAAAAXABMAAAAAAAAAAAAYABMAAAAAAAAAAAAAABQAAAAAAAAAAAABABQAAAAAAAAAAAACABQAAAAAAAAAAAADABQAAAAAAAAAAAAEABQAAAAAAAAAAAAFABQAAAAAAAAAAAAGABQAAAAEAAAAAAAHABQAAAAEAAAAAAAIABQAAAAAAAAAAAAJABQAAAAEAAAAAAAKABQAAAAAAAAAAAALABQAAAAAAAAAAAAMABQAAAABAAAAAAANABQAAAAAAAAAAAAOABQAAAAAAAAAAAAPABQAAAAAAAAAAAAQABQAAAAAAAAAAAARABQAAAAAAAAAAAASABQAAAAAAAAAAAATABQAAAAAAAAAAAAUABQAAAAAAAAAAAAVABQAAAAAAAAAAAAWABQAAAAAAAAAAAAXABQAAAAAAAAAAAAYABQAAAAAAAAAAAAAABUAAAAAAAAAAAABABUAAAAAAAAAAAACABUAAAAAAAAAAAADABUAAAAAAAAAAAAEABUAAAAAAAAAAAAFABUAAAAAAAAAAAAGABUAAAAEAAAAAAAHABUAAAAAAAAAAAAIABUAAAAEAAAAAAAJABUAAAAAAAAAAAAKABUAAAAAAAAAAAALABUAAAAAAAAAAAAMABUAAAABAAAAAAANABUAAAAAAAAAAAAOABUAAAAAAAAAAAAPABUAAAAAAAAAAAAQABUAAAAAAAAAAAARABUAAAAAAAAAAAASABUAAAAAAAAAAAATABUAAAAAAAAAAAAUABUAAAAAAAAAAAAVABUAAAAAAAAAAAAWABUAAAAAAAAAAAAXABUAAAAAAAAAAAAYABUAAAAAAAAAAAAAABYAAAAAAAAAAAABABYAAAAAAAAAAAACABYAAAAAAAAAAAADABYAAAAAAAAAAAAEABYAAAAAAAAAAAAFABYAAAAAAAAAAAAGABYAAAAAAAAAAAAHABYAAAAAAAAAAAAIABYAAAAAAAAAAAAJABYAAAAAAAAAAAAKABYAAAAAAAAAAAALABYAAAAAAAAAAAAMABYAAAABAAAAAAANABYAAAAAAAAAAAAOABYAAAAAAAAAAAAPABYAAAAAAAAAAAAQABYAAAAAAAAAAAARABYAAAAAAAAAAAASABYAAAAAAAAAAAATABYAAAAAAAAAAAAUABYAAAAAAAAAAAAVABYAAAAAAAAAAAAWABYAAAAAAAAAAAAXABYAAAAAAAAAAAAYABYAAAAAAAAAAAAAABcAAAAAAAAAAAABABcAAAAAAAAAAAACABcAAAAAAAAAAAADABcAAAAAAAAAAAAEABcAAAAAAAAAAAAFABcAAAAAAAAAAAAGABcAAAAAAAAAAAAHABcAAAAAAAAAAAAIABcAAAAAAAAAAAAJABcAAAAAAAAAAAAKABcAAAAAAAAAAAALABcAAAAAAAAAAAAMABcAAAABAAAAAAANABcAAAAAAAAAAAAOABcAAAAAAAAAAAAPABcAAAAAAAAAAAAQABcAAAAAAAAAAAARABcAAAAAAAAAAAASABcAAAAAAAAAAAATABcAAAAAAAAAAAAUABcAAAAAAAAAAAAVABcAAAAAAAAAAAAWABcAAAAAAAAAAAAXABcAAAAAAAAAAAAYABcAAAAAAAAAAAAAABgAAAAAAAAAAAABABgAAAAAAAAAAAACABgAAAAAAAAAAAADABgAAAAAAAAAAAAEABgAAAAAAAAAAAAFABgAAAAAAAAAAAAGABgAAAAAAAAAAAAHABgAAAAAAAAAAAAIABgAAAAAAAAAAAAJABgAAAAAAAAAAAAKABgAAAAAAAAAAAALABgAAAAAAAAAAAAMABgAAAABAAAAAAANABgAAAAAAAAAAAAOABgAAAAAAAAAAAAPABgAAAAAAAAAAAAQABgAAAAAAAAAAAARABgAAAAAAAAAAAASABgAAAAAAAAAAAATABgAAAAAAAAAAAAUABgAAAAAAAAAAAAVABgAAAAAAAAAAAAWABgAAAAAAAAAAAAXABgAAAAAAAAAAAAYABgAAAAAAAAAAAALAAgAAAABAAAAAAAKAAcAAAACAAAAAAASAAsAAAAAAAAAAAA=")
-tile_set = SubResource("TileSet_smwl8")
+tile_set = SubResource("TileSet_nnkfw")
 rendering_quadrant_size = 8
 
 [node name="MoatLayer" type="TileMapLayer" parent="MapRoot" unique_id=878213441]
 visible = false
 z_index = 1
 material = SubResource("ShaderMaterial_4n3h1")
-tile_set = SubResource("TileSet_m8y27")
+tile_set = SubResource("TileSet_28k10")
 rendering_quadrant_size = 8
 
 [node name="ObjectLayer" type="TileMapLayer" parent="MapRoot" unique_id=1405019962]
 z_index = 5
 tile_map_data = PackedByteArray("AAACAA4AAAAAAAAAAAAEAA4AAAAAAAAAAAADAA8AAAAAAAAAAAAWAA8AAAACAAAAAAASABAAAAAAAAAAAAAUABAAAAAAAAAAAAATABEAAAAAAAAAAAAVABEAAAAAAAAAAAAFABIAAAABAAAAAAAQABMAAAABAAAAAAAIABQAAAAAAAAAAAAHABUAAAAAAAAAAAAJABUAAAAAAAAAAAAKABYAAAACAAAAAAAGAAwAAQAAAAAAAAA=")
-tile_set = SubResource("TileSet_bjo6t")
+tile_set = SubResource("TileSet_841mh")
 rendering_quadrant_size = 8
 
 [node name="RiverObjectLayer" type="TileMapLayer" parent="MapRoot" unique_id=533425441]
@@ -750,7 +827,7 @@ rendering_quadrant_size = 8
 [node name="OverlayLayer" type="TileMapLayer" parent="MapRoot" unique_id=1900053212]
 z_index = 15
 tile_map_data = PackedByteArray("AAAHAAIAAAABAAAAAAAIAAIAAAABAAAAAAAJAAIAAAABAAAAAAAKAAIAAAABAAAAAAALAAIAAAABAAAAAAAMAAIAAAABAAAAAAANAAIAAAABAAAAAAAOAAIAAAABAAAAAAAPAAIAAAABAAAAAAAQAAIAAAABAAAAAAARAAIAAAABAAAAAAAHAAMAAAABAAAAAAAIAAMAAAABAAAAAAAJAAMAAAABAAAAAAAKAAMAAAABAAAAAAALAAMAAAABAAAAAAAMAAMAAAABAAAAAAANAAMAAAABAAAAAAAOAAMAAAABAAAAAAAPAAMAAAABAAAAAAAQAAMAAAABAAAAAAARAAMAAAABAAAAAAAFABEAAAAAAAAAAAAGABEAAAAAAAAAAAAHABEAAAAAAAAAAAAIABEAAAAAAAAAAAAJABEAAAAAAAAAAAAKABEAAAAAAAAAAAALABEAAAAAAAAAAAAMABEAAAAAAAAAAAANABEAAAAAAAAAAAAOABEAAAAAAAAAAAAPABEAAAAAAAAAAAAQABEAAAAAAAAAAAARABEAAAAAAAAAAAASABEAAAAAAAAAAAATABEAAAAAAAAAAAAFABIAAAAAAAAAAAAGABIAAAAAAAAAAAAHABIAAAAAAAAAAAAIABIAAAAAAAAAAAAJABIAAAAAAAAAAAAKABIAAAAAAAAAAAALABIAAAAAAAAAAAAMABIAAAAAAAAAAAANABIAAAAAAAAAAAAOABIAAAAAAAAAAAAPABIAAAAAAAAAAAAQABIAAAAAAAAAAAARABIAAAAAAAAAAAASABIAAAAAAAAAAAATABIAAAAAAAAAAAAFABMAAAAAAAAAAAAGABMAAAAAAAAAAAAHABMAAAAAAAAAAAAIABMAAAAAAAAAAAAJABMAAAAAAAAAAAAKABMAAAAAAAAAAAALABMAAAAAAAAAAAAMABMAAAAAAAAAAAANABMAAAAAAAAAAAAOABMAAAAAAAAAAAAPABMAAAAAAAAAAAAQABMAAAAAAAAAAAARABMAAAAAAAAAAAASABMAAAAAAAAAAAATABMAAAAAAAAAAAAFABQAAAAAAAAAAAAGABQAAAAAAAAAAAAHABQAAAAAAAAAAAAIABQAAAAAAAAAAAAJABQAAAAAAAAAAAAKABQAAAAAAAAAAAALABQAAAAAAAAAAAAMABQAAAAAAAAAAAANABQAAAAAAAAAAAAOABQAAAAAAAAAAAAPABQAAAAAAAAAAAAQABQAAAAAAAAAAAARABQAAAAAAAAAAAASABQAAAAAAAAAAAATABQAAAAAAAAAAAAFABUAAAAAAAAAAAAGABUAAAAAAAAAAAAHABUAAAAAAAAAAAAIABUAAAAAAAAAAAAJABUAAAAAAAAAAAAKABUAAAAAAAAAAAALABUAAAAAAAAAAAAMABUAAAAAAAAAAAANABUAAAAAAAAAAAAOABUAAAAAAAAAAAAPABUAAAAAAAAAAAAQABUAAAAAAAAAAAARABUAAAAAAAAAAAASABUAAAAAAAAAAAATABUAAAAAAAAAAAAFABYAAAAAAAAAAAAGABYAAAAAAAAAAAAHABYAAAAAAAAAAAAIABYAAAAAAAAAAAAJABYAAAAAAAAAAAAKABYAAAAAAAAAAAALABYAAAAAAAAAAAAMABYAAAAAAAAAAAANABYAAAAAAAAAAAAOABYAAAAAAAAAAAAPABYAAAAAAAAAAAAQABYAAAAAAAAAAAARABYAAAAAAAAAAAASABYAAAAAAAAAAAATABYAAAAAAAAAAAA=")
-tile_set = SubResource("TileSet_6tmj0")
+tile_set = SubResource("TileSet_qdc4c")
 rendering_quadrant_size = 8
 
 [node name="HighlightLayer" type="Node2D" parent="MapRoot" unique_id=1655506300]
@@ -859,7 +936,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.02, 0.025, 0.018, 0.62)
 
-[node name="ResultPanel" type="PanelContainer" parent="UiLayer/BattleResultOverlay" unique_id=894016692]
+[node name="ResultPanel" type="NinePatchRect" parent="UiLayer/BattleResultOverlay" unique_id=894016692]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -872,10 +949,35 @@ offset_right = 310.0
 offset_bottom = 120.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/BattleResultOverlay/ResultPanel" unique_id=438610951]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+color = Color(0.03, 0.028, 0.023, 0.94)
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/BattleResultOverlay/ResultPanel" unique_id=728245456]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 28
@@ -888,7 +990,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="RetreatNotice" type="PanelContainer" parent="UiLayer" unique_id=1343491018]
+[node name="RetreatNotice" type="NinePatchRect" parent="UiLayer" unique_id=1343491018]
 visible = false
 z_index = 100
 anchors_preset = 8
@@ -902,10 +1004,35 @@ offset_right = 170.0
 offset_bottom = 48.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/RetreatNotice" unique_id=431968603]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+color = Color(0.03, 0.028, 0.023, 0.94)
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/RetreatNotice" unique_id=1446820374]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 24
@@ -921,7 +1048,7 @@ text = "Retreat"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="OfficerCaptureNotice" type="PanelContainer" parent="UiLayer" unique_id=211570798]
+[node name="OfficerCaptureNotice" type="NinePatchRect" parent="UiLayer" unique_id=211570798]
 visible = false
 z_index = 120
 anchors_preset = 8
@@ -935,10 +1062,35 @@ offset_right = 250.0
 offset_bottom = 58.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/OfficerCaptureNotice" unique_id=955464876]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+color = Color(0.03, 0.028, 0.023, 0.94)
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/OfficerCaptureNotice" unique_id=890532094]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 24
@@ -965,7 +1117,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TurnBanner" type="PanelContainer" parent="UiLayer" unique_id=800195690]
+[node name="TurnBanner" type="NinePatchRect" parent="UiLayer" unique_id=800195690]
 visible = false
 z_index = 90
 anchors_preset = 8
@@ -979,10 +1131,35 @@ offset_right = 210.0
 offset_bottom = 44.0
 grow_horizontal = 2
 grow_vertical = 2
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/TurnBanner" unique_id=100171552]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+color = Color(0.03, 0.028, 0.023, 0.94)
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/TurnBanner" unique_id=437290395]
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 24
@@ -998,23 +1175,48 @@ text = "Turn"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="OfficerSpeechOverlay" type="PanelContainer" parent="UiLayer" unique_id=1267291692]
+[node name="OfficerSpeechOverlay" type="NinePatchRect" parent="UiLayer" unique_id=1267291692]
 visible = false
 z_index = 110
 offset_left = 28.0
-offset_top = 220.0
+offset_top = 225.0
 offset_right = 470.0
-offset_bottom = 416.0
+offset_bottom = 421.0
 grow_horizontal = 0
 grow_vertical = 0
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/OfficerSpeechOverlay" unique_id=1627638629]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
+color = Color(0.03, 0.028, 0.023, 0.94)
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/OfficerSpeechOverlay" unique_id=1075752623]
-layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="Row" type="HBoxContainer" parent="UiLayer/OfficerSpeechOverlay/Margin" unique_id=1475390346]
 layout_mode = 2
@@ -1089,10 +1291,10 @@ patch_margin_bottom = 14
 
 [node name="TopHeaderRow" type="HBoxContainer" parent="UiLayer/TopBar/TopBorder" unique_id=1217757]
 layout_mode = 0
-offset_left = 141.0
-offset_top = 39.0
-offset_right = 1491.0
-offset_bottom = 81.0
+offset_left = 140.0
+offset_top = 40.0
+offset_right = 1490.0
+offset_bottom = 84.0
 theme_override_constants/separation = 10
 
 [node name="BattleTypeLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1919964614]
@@ -1221,9 +1423,9 @@ text = "End"
 [node name="AttackerCard" type="NinePatchRect" parent="UiLayer/TopBar" unique_id=608240784]
 layout_mode = 0
 offset_left = 10.0
-offset_top = 115.0
+offset_top = 108.0
 offset_right = 660.0
-offset_bottom = 235.0
+offset_bottom = 228.0
 texture = ExtResource("23_battle_top_card")
 patch_margin_left = 32
 patch_margin_top = 20
@@ -1398,9 +1600,9 @@ text = "0"
 [node name="TurnCard" type="NinePatchRect" parent="UiLayer/TopBar" unique_id=2110548228]
 layout_mode = 0
 offset_left = 680.0
-offset_top = 93.0
+offset_top = 88.0
 offset_right = 920.0
-offset_bottom = 243.0
+offset_bottom = 238.0
 texture = ExtResource("24_battle_top_round")
 patch_margin_left = 48
 patch_margin_top = 48
@@ -1456,9 +1658,9 @@ autowrap_mode = 2
 [node name="DefenderCard" type="NinePatchRect" parent="UiLayer/TopBar" unique_id=1377969054]
 layout_mode = 0
 offset_left = 930.0
-offset_top = 115.0
+offset_top = 108.0
 offset_right = 1580.0
-offset_bottom = 235.0
+offset_bottom = 228.0
 texture = ExtResource("23_battle_top_card")
 patch_margin_left = 32
 patch_margin_top = 20
@@ -1676,29 +1878,63 @@ offset_bottom = 176.0
 theme_override_font_sizes/font_size = 14
 text = "Hover: -    Click: -"
 
-[node name="SidePanel" type="ColorRect" parent="UiLayer" unique_id=991802699]
-offset_left = 1261.0
-offset_top = 258.0
-offset_right = 1571.0
-offset_bottom = 624.0
+[node name="SidePanel" type="NinePatchRect" parent="UiLayer" unique_id=991802699]
+offset_left = 1255.0
+offset_top = 225.0
+offset_right = 1577.0
+offset_bottom = 525.0
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/SidePanel" unique_id=1445817956]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 color = Color(0.03, 0.028, 0.023, 0.94)
 
 [node name="BronzeTexture" type="TextureRect" parent="UiLayer/SidePanel" unique_id=1043478414]
 modulate = Color(1, 1, 1, 0.2)
-layout_mode = 0
-offset_right = 310.0
-offset_bottom = 366.0
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 texture = SubResource("AtlasTexture_battle_bronze")
 expand_mode = 1
 stretch_mode = 6
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/SidePanel" unique_id=1281471013]
-layout_mode = 0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = 298.0
-offset_bottom = 354.0
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
@@ -1706,17 +1942,20 @@ theme_override_constants/margin_bottom = 6
 
 [node name="PanelContent" type="VBoxContainer" parent="UiLayer/SidePanel/Margin" unique_id=1472170231]
 layout_mode = 2
+mouse_filter = 2
 theme_override_constants/separation = 18
 
 [node name="InfoScroll" type="ScrollContainer" parent="UiLayer/SidePanel/Margin/PanelContent" unique_id=1160977972]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 horizontal_scroll_mode = 0
 
 [node name="InfoPadding" type="MarginContainer" parent="UiLayer/SidePanel/Margin/PanelContent/InfoScroll" unique_id=220696583]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 2
 theme_override_constants/margin_right = 18
 theme_override_constants/margin_bottom = 12
 
@@ -1729,19 +1968,59 @@ theme_override_font_sizes/font_size = 17
 text = "Click a tile to inspect."
 autowrap_mode = 3
 
-[node name="BattleLogPanel" type="PanelContainer" parent="UiLayer" unique_id=334530495]
-custom_minimum_size = Vector2(310, 150)
-offset_left = 1260.0
+[node name="BattleLogPanel" type="NinePatchRect" parent="UiLayer" unique_id=334530495]
+custom_minimum_size = Vector2(360, 150)
+offset_left = 1210.0
 offset_top = 540.0
 offset_right = 1570.0
 offset_bottom = 910.0
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="LogBackground" type="ColorRect" parent="UiLayer/BattleLogPanel" unique_id=445824910]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.028, 0.023, 0.94)
+
+[node name="BronzeTexture" type="TextureRect" parent="UiLayer/BattleLogPanel" unique_id=171083215]
+modulate = Color(1, 1, 1, 0.2)
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 9.0
+offset_top = 7.0
+offset_right = -9.0
+offset_bottom = -7.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_battle_bronze")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/BattleLogPanel" unique_id=795403490]
-layout_mode = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 6
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 12.0
+offset_right = -14.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="LogContent" type="VBoxContainer" parent="UiLayer/BattleLogPanel/Margin" unique_id=1685940430]
 layout_mode = 2
@@ -1793,7 +2072,7 @@ theme_override_font_sizes/font_size = 14
 text = "No battle log yet."
 autowrap_mode = 3
 
-[node name="CommandMenu" type="PanelContainer" parent="UiLayer" unique_id=2044591462]
+[node name="CommandMenu" type="NinePatchRect" parent="UiLayer" unique_id=2044591462]
 visible = false
 z_index = 50
 custom_minimum_size = Vector2(280, 0)
@@ -1801,13 +2080,39 @@ offset_left = 20.0
 offset_top = 160.0
 offset_right = 300.0
 offset_bottom = 160.0
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/CommandMenu" unique_id=813481208]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.03, 0.028, 0.023, 0.94)
 
 [node name="MenuMargin" type="MarginContainer" parent="UiLayer/CommandMenu" unique_id=825828224]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
 
 [node name="MenuButtons" type="VBoxContainer" parent="UiLayer/CommandMenu/MenuMargin" unique_id=2142726475]
 layout_mode = 2
@@ -1849,6 +2154,7 @@ horizontal_scroll_mode = 0
 [node name="ActionButtons" type="VBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll" unique_id=1504791542]
 layout_mode = 2
 size_flags_horizontal = 3
+theme = SubResource("Theme_command_buttons")
 theme_override_constants/separation = 8
 
 [node name="MoveButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1368341891]
@@ -1955,16 +2261,42 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="UiLayer/BattleOptionOverlay/Center" unique_id=299723669]
+[node name="Panel" type="NinePatchRect" parent="UiLayer/BattleOptionOverlay/Center" unique_id=299723669]
 custom_minimum_size = Vector2(560, 360)
 layout_mode = 2
+texture = ExtResource("29_battle_card_border")
+draw_center = false
+patch_margin_left = 16
+patch_margin_top = 16
+patch_margin_right = 16
+patch_margin_bottom = 16
+
+[node name="Background" type="ColorRect" parent="UiLayer/BattleOptionOverlay/Center/Panel" unique_id=1454542284]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.025, 0.027, 0.026, 0.97)
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel" unique_id=59835117]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="OptionRoot" type="VBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin" unique_id=1113100602]
 layout_mode = 2
