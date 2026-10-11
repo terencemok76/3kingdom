@@ -4,23 +4,39 @@
 [ext_resource type="Texture2D" uid="uid://cxgy8jyeja1y8" path="res://assets/battle/floor/floor.png" id="2_625j4"]
 [ext_resource type="Script" uid="uid://dy0u0cwc0nnma" path="res://scripts/battle/BattlePieceMarker.cs" id="3"]
 [ext_resource type="Texture2D" uid="uid://5rjaor1uh4n4" path="res://assets/battle/object/object_01.png" id="3_bkj5p"]
-[ext_resource type="Texture2D" uid="uid://lgadeqq5pb4f" path="res://assets/battle/object/building_01.png" id="4_building"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/forest_01.png" id="5_forest"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/swamp_01.png" id="6_swamp"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/hill_01.png" id="7_hill"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/mountain_01.png" id="8_mountain"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/wood_01.png" id="9_wood"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/farm_01.png" id="10_farm"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/bridge_01.png" id="11_bridge"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/river_object_01.png" id="12_river_object"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/farm_object_01.png" id="13_farm_object"]
-[ext_resource type="Texture2D" path="res://assets/battle/object/forest_object_01.png" id="14_forest_object"]
 [ext_resource type="Script" uid="uid://jcdb0o1ek8ut" path="res://scripts/battle/BattleHighlightRenderer.cs" id="4"]
 [ext_resource type="Texture2D" uid="uid://bvm6spy5bxnj5" path="res://assets/battle/wall/castle.png" id="4_bkj5p"]
+[ext_resource type="Texture2D" uid="uid://lgadeqq5pb4f" path="res://assets/battle/object/building_01.png" id="4_building"]
 [ext_resource type="Texture2D" uid="uid://c510c1l7ai20q" path="res://assets/battle/overlay/overlay.png" id="4_pxx3e"]
-[ext_resource type="Shader" path="res://assets/battle/floor/moat_water.gdshader" id="8_u2g6b"]
+[ext_resource type="Texture2D" uid="uid://voog64n2slkq" path="res://assets/battle/object/forest_01.png" id="5_forest"]
+[ext_resource type="Texture2D" uid="uid://eydyu80vmuyg" path="res://assets/battle/object/swamp_01.png" id="6_swamp"]
+[ext_resource type="Texture2D" uid="uid://clj8n0xjkbk0y" path="res://assets/battle/object/hill_01.png" id="7_hill"]
+[ext_resource type="Texture2D" uid="uid://dboc5kjswn6cq" path="res://assets/battle/object/fortress_01.png" id="8_hnsx0"]
+[ext_resource type="Texture2D" uid="uid://cn1stib6tir1u" path="res://assets/battle/object/mountain_01.png" id="8_mountain"]
+[ext_resource type="Shader" uid="uid://yxr0blsot2oe" path="res://assets/battle/floor/moat_water.gdshader" id="8_u2g6b"]
+[ext_resource type="Texture2D" uid="uid://dryh8dwnp2lbg" path="res://assets/battle/object/wood_01.png" id="9_wood"]
+[ext_resource type="Texture2D" uid="uid://cgvhk4ia75yo6" path="res://assets/battle/object/farm_01.png" id="10_farm"]
+[ext_resource type="Texture2D" uid="uid://dkvcrfifq4w1a" path="res://assets/battle/object/bridge_01.png" id="11_bridge"]
+[ext_resource type="Texture2D" uid="uid://crcbpwsc6yckr" path="res://assets/battle/object/river_object_01.png" id="12_river_object"]
+[ext_resource type="Texture2D" uid="uid://c32vh1drk3tws" path="res://assets/battle/object/farm_object_01.png" id="13_farm_object"]
+[ext_resource type="Texture2D" uid="uid://dprefhihc20jw" path="res://assets/battle/object/forest_object_01.png" id="14_forest_object"]
+[ext_resource type="Texture2D" uid="uid://bbmr55l8nre8d" path="res://assets/ui/battle/battle_hud_material_atlas_v1.png" id="15_battle_hud_material"]
+[ext_resource type="Texture2D" uid="uid://bjh0hp383rltk" path="res://assets/ui/battle/icons/troops.svg" id="17_battle_troops_icon"]
+[ext_resource type="Texture2D" uid="uid://gcl17n7mls5p" path="res://assets/ui/icons/64x64/engineer.png" id="18_battle_engineer_icon"]
+[ext_resource type="Texture2D" uid="uid://duekfv0irme4e" path="res://assets/ui/icons/64x64/machine.png" id="19_battle_siege_icon"]
+[ext_resource type="Texture2D" uid="uid://rymd6vu75huh" path="res://assets/ui/icons/64x64/gold.png" id="20_battle_gold_icon"]
+[ext_resource type="Texture2D" uid="uid://c5nn2u46faaxq" path="res://assets/ui/icons/64x64/food.png" id="21_battle_food_icon"]
+[ext_resource type="Texture2D" uid="uid://cnia0p8o1jkje" path="res://assets/ui/icons/64x64/officer.png" id="22_battle_officer_icon"]
+[ext_resource type="Texture2D" uid="uid://cffoi02u7mcho" path="res://assets/ui/battle/top_card.png" id="23_battle_top_card"]
+[ext_resource type="Texture2D" uid="uid://cdwaa17stjbnv" path="res://assets/ui/battle/top_round.png" id="24_battle_top_round"]
+[ext_resource type="Texture2D" uid="uid://dgfl7k3nwlih2" path="res://assets/ui/battle/top_border.png" id="25_battle_top_border"]
+[ext_resource type="Texture2D" uid="uid://bxbblc7nkucrl" path="res://assets/ui/battle/red_flag.png" id="26_battle_attacker_flag"]
+[ext_resource type="Texture2D" uid="uid://duaa0x7i3y0oo" path="res://assets/ui/battle/blue_flag.png" id="27_battle_defender_flag"]
+[sub_resource type="SystemFont" id="SystemFont_battle_title_fallback"]
+font_names = PackedStringArray("Noto Serif TC", "Noto Serif HK")
+font_weight = 900
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_bkj5p"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ijfny"]
 texture = ExtResource("2_625j4")
 texture_region_size = Vector2i(128, 64)
 use_texture_padding = false
@@ -41,11 +57,318 @@ use_texture_padding = false
 6:1/0 = 0
 7:1/0 = 0
 
-[sub_resource type="TileSet" id="TileSet_pxx3e"]
+[sub_resource type="TileSet" id="TileSet_smwl8"]
 tile_shape = 1
 tile_layout = 5
 tile_size = Vector2i(128, 64)
-sources/0 = SubResource("TileSetAtlasSource_bkj5p")
+sources/0 = SubResource("TileSetAtlasSource_ijfny")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4n3h1"]
+shader = ExtResource("8_u2g6b")
+shader_parameter/flow_speed = 1.1
+shader_parameter/swell_scale = 0.02
+shader_parameter/ripple_scale = 0.042
+shader_parameter/cross_scale = 0.03
+shader_parameter/shimmer_strength = 0.1
+shader_parameter/highlight_strength = 0.075
+shader_parameter/tint = Color(0.88, 0.98, 1.1, 1)
+shader_parameter/highlight_tint = Color(0.7, 0.9, 1.12, 1)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nnkfw"]
+texture = ExtResource("2_625j4")
+texture_region_size = Vector2i(128, 64)
+use_texture_padding = false
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+6:0/0 = 0
+7:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+5:1/0 = 0
+6:1/0 = 0
+7:1/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_m8y27"]
+tile_shape = 1
+tile_layout = 5
+tile_size = Vector2i(128, 64)
+sources/0 = SubResource("TileSetAtlasSource_nnkfw")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_28k10"]
+texture = ExtResource("3_bkj5p")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+4:0/0 = 0
+4:0/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dhs18"]
+texture = ExtResource("4_building")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_c31q5"]
+texture = ExtResource("13_farm_object")
+texture_region_size = Vector2i(128, 96)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 16)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 16)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 16)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 16)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 16)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 16)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 16)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_13cqt"]
+texture = ExtResource("14_forest_object")
+texture_region_size = Vector2i(128, 96)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 16)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 16)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 16)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 16)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 16)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 16)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 16)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_yfr20"]
+texture = ExtResource("8_hnsx0")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4pwql"]
+texture = ExtResource("5_forest")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_r72f0"]
+texture = ExtResource("6_swamp")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_dfjnm"]
+texture = ExtResource("7_hill")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_um5on"]
+texture = ExtResource("8_mountain")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_urqt2"]
+texture = ExtResource("9_wood")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_tdj1d"]
+texture = ExtResource("10_farm")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+0:2/0 = 0
+0:2/0/texture_origin = Vector2i(0, 32)
+1:2/0 = 0
+1:2/0/texture_origin = Vector2i(0, 32)
+2:2/0 = 0
+2:2/0/texture_origin = Vector2i(0, 32)
+3:2/0 = 0
+3:2/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ss6fd"]
+texture = ExtResource("11_bridge")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_afy7r"]
+texture = ExtResource("12_river_object")
+texture_region_size = Vector2i(128, 128)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 32)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 32)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 32)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 32)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 32)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 32)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 32)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 32)
+0:2/0 = 0
+0:2/0/texture_origin = Vector2i(0, 32)
+1:2/0 = 0
+1:2/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSet" id="TileSet_bjo6t"]
+tile_shape = 1
+tile_layout = 5
+tile_size = Vector2i(128, 64)
+sources/0 = SubResource("TileSetAtlasSource_28k10")
+sources/1 = SubResource("TileSetAtlasSource_dhs18")
+sources/2 = SubResource("TileSetAtlasSource_4pwql")
+sources/3 = SubResource("TileSetAtlasSource_r72f0")
+sources/4 = SubResource("TileSetAtlasSource_dfjnm")
+sources/5 = SubResource("TileSetAtlasSource_um5on")
+sources/6 = SubResource("TileSetAtlasSource_urqt2")
+sources/7 = SubResource("TileSetAtlasSource_tdj1d")
+sources/8 = SubResource("TileSetAtlasSource_ss6fd")
+sources/9 = SubResource("TileSetAtlasSource_afy7r")
+sources/10 = SubResource("TileSetAtlasSource_c31q5")
+sources/11 = SubResource("TileSetAtlasSource_13cqt")
+sources/12 = SubResource("TileSetAtlasSource_yfr20")
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_oajdb"]
 texture = ExtResource("3_bkj5p")
@@ -72,6 +395,48 @@ use_texture_padding = false
 1:0/0/texture_origin = Vector2i(0, 32)
 2:0/0 = 0
 2:0/0/texture_origin = Vector2i(0, 32)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_farm_object"]
+texture = ExtResource("13_farm_object")
+texture_region_size = Vector2i(128, 96)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 16)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 16)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 16)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 16)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 16)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 16)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 16)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 16)
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_forest_edge_object"]
+texture = ExtResource("14_forest_object")
+texture_region_size = Vector2i(128, 96)
+use_texture_padding = false
+0:0/0 = 0
+0:0/0/texture_origin = Vector2i(0, 16)
+1:0/0 = 0
+1:0/0/texture_origin = Vector2i(0, 16)
+2:0/0 = 0
+2:0/0/texture_origin = Vector2i(0, 16)
+3:0/0 = 0
+3:0/0/texture_origin = Vector2i(0, 16)
+0:1/0 = 0
+0:1/0/texture_origin = Vector2i(0, 16)
+1:1/0 = 0
+1:1/0/texture_origin = Vector2i(0, 16)
+2:1/0 = 0
+2:1/0/texture_origin = Vector2i(0, 16)
+3:1/0 = 0
+3:1/0/texture_origin = Vector2i(0, 16)
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_forest"]
 texture = ExtResource("5_forest")
@@ -247,48 +612,6 @@ use_texture_padding = false
 1:2/0 = 0
 1:2/0/texture_origin = Vector2i(0, 32)
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_farm_object"]
-texture = ExtResource("13_farm_object")
-texture_region_size = Vector2i(128, 96)
-use_texture_padding = false
-0:0/0 = 0
-0:0/0/texture_origin = Vector2i(0, 16)
-1:0/0 = 0
-1:0/0/texture_origin = Vector2i(0, 16)
-2:0/0 = 0
-2:0/0/texture_origin = Vector2i(0, 16)
-3:0/0 = 0
-3:0/0/texture_origin = Vector2i(0, 16)
-0:1/0 = 0
-0:1/0/texture_origin = Vector2i(0, 16)
-1:1/0 = 0
-1:1/0/texture_origin = Vector2i(0, 16)
-2:1/0 = 0
-2:1/0/texture_origin = Vector2i(0, 16)
-3:1/0 = 0
-3:1/0/texture_origin = Vector2i(0, 16)
-
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_forest_edge_object"]
-texture = ExtResource("14_forest_object")
-texture_region_size = Vector2i(128, 96)
-use_texture_padding = false
-0:0/0 = 0
-0:0/0/texture_origin = Vector2i(0, 16)
-1:0/0 = 0
-1:0/0/texture_origin = Vector2i(0, 16)
-2:0/0 = 0
-2:0/0/texture_origin = Vector2i(0, 16)
-3:0/0 = 0
-3:0/0/texture_origin = Vector2i(0, 16)
-0:1/0 = 0
-0:1/0/texture_origin = Vector2i(0, 16)
-1:1/0 = 0
-1:1/0/texture_origin = Vector2i(0, 16)
-2:1/0 = 0
-2:1/0/texture_origin = Vector2i(0, 16)
-3:1/0 = 0
-3:1/0/texture_origin = Vector2i(0, 16)
-
 [sub_resource type="TileSet" id="TileSet_qrg6v"]
 tile_shape = 1
 tile_layout = 5
@@ -337,21 +660,38 @@ tile_layout = 5
 tile_size = Vector2i(128, 64)
 sources/0 = SubResource("TileSetAtlasSource_fbtt2")
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_nks2m"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_841mh"]
 texture = ExtResource("4_pxx3e")
 texture_region_size = Vector2i(128, 64)
 use_texture_padding = false
 0:0/0 = 0
 1:0/0 = 0
 
-[sub_resource type="TileSet" id="TileSet_ngogi"]
+[sub_resource type="TileSet" id="TileSet_6tmj0"]
 tile_shape = 1
 tile_layout = 5
 tile_size = Vector2i(128, 64)
-sources/0 = SubResource("TileSetAtlasSource_nks2m")
+sources/0 = SubResource("TileSetAtlasSource_841mh")
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_4n3h1"]
-shader = ExtResource("8_u2g6b")
+[sub_resource type="AtlasTexture" id="AtlasTexture_battle_lacquer"]
+atlas = ExtResource("15_battle_hud_material")
+region = Rect2(0, 0, 624, 624)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_portrait"]
+bg_color = Color(0.015, 0.012, 0.01, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.76, 0.61, 0.31, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_battle_bronze"]
+atlas = ExtResource("15_battle_hud_material")
+region = Rect2(624, 0, 624, 624)
 
 [node name="BattleScene" type="Node2D" unique_id=1970255355]
 script = ExtResource("1")
@@ -365,39 +705,38 @@ position = Vector2(800, 40)
 
 [node name="GroundLayer" type="TileMapLayer" parent="MapRoot" unique_id=1972652565]
 tile_map_data = PackedByteArray("AAAAAAAAAAACAAAAAAABAAAAAAACAAAAAAACAAAAAAACAAAAAAADAAAAAAACAAAAAAAEAAAAAAACAAAAAAAFAAAAAAACAAAAAAAGAAAAAAACAAAAAAAHAAAAAAACAAAAAAAIAAAAAAACAAAAAAAJAAAAAAACAAAAAAAKAAAAAAACAAAAAAALAAAAAAACAAAAAAAMAAAAAAACAAAAAAANAAAAAAACAAAAAAAOAAAAAAACAAAAAAAPAAAAAAACAAAAAAAQAAAAAAACAAAAAAARAAAAAAACAAAAAAASAAAAAAACAAAAAAATAAAAAAACAAAAAAAUAAAAAAACAAAAAAAVAAAAAAACAAAAAAAWAAAAAAACAAAAAAAXAAAAAAACAAAAAAAYAAAAAAACAAAAAAAAAAEAAAACAAAAAAABAAEAAAACAAAAAAACAAEAAAACAAAAAAADAAEAAAACAAAAAAAEAAEAAAACAAAAAAAFAAEAAAACAAAAAAAGAAEAAAACAAAAAAAHAAEAAAACAAAAAAAIAAEAAAACAAAAAAAJAAEAAAACAAAAAAAKAAEAAAACAAAAAAALAAEAAAACAAAAAAAMAAEAAAACAAAAAAANAAEAAAACAAAAAAAOAAEAAAACAAAAAAAPAAEAAAACAAAAAAAQAAEAAAACAAAAAAARAAEAAAACAAAAAAASAAEAAAACAAAAAAATAAEAAAACAAAAAAAUAAEAAAACAAAAAAAVAAEAAAACAAAAAAAWAAEAAAACAAAAAAAXAAEAAAACAAAAAAAYAAEAAAACAAAAAAAAAAIAAAACAAAAAAABAAIAAAACAAAAAAACAAIAAAACAAAAAAADAAIAAAACAAAAAAAEAAIAAAACAAAAAAAFAAIAAAACAAAAAAAGAAIAAAACAAAAAAAHAAIAAAACAAAAAAAIAAIAAAACAAAAAAAJAAIAAAACAAAAAAAKAAIAAAACAAAAAAALAAIAAAACAAAAAAAMAAIAAAACAAAAAAANAAIAAAACAAAAAAAOAAIAAAACAAAAAAAPAAIAAAACAAAAAAAQAAIAAAACAAAAAAARAAIAAAACAAAAAAASAAIAAAACAAAAAAATAAIAAAACAAAAAAAUAAIAAAACAAAAAAAVAAIAAAACAAAAAAAWAAIAAAACAAAAAAAXAAIAAAACAAAAAAAYAAIAAAACAAAAAAAAAAMAAAACAAAAAAABAAMAAAACAAAAAAACAAMAAAACAAAAAAADAAMAAAACAAAAAAAEAAMAAAACAAAAAAAFAAMAAAACAAAAAAAGAAMAAAACAAAAAAAHAAMAAAACAAAAAAAIAAMAAAACAAAAAAAJAAMAAAACAAAAAAAKAAMAAAACAAAAAAALAAMAAAACAAAAAAAMAAMAAAACAAAAAAANAAMAAAACAAAAAAAOAAMAAAACAAAAAAAPAAMAAAACAAAAAAAQAAMAAAACAAAAAAARAAMAAAACAAAAAAASAAMAAAACAAAAAAATAAMAAAACAAAAAAAUAAMAAAACAAAAAAAVAAMAAAACAAAAAAAWAAMAAAACAAAAAAAXAAMAAAACAAAAAAAYAAMAAAACAAAAAAAAAAQAAAACAAAAAAABAAQAAAACAAAAAAACAAQAAAACAAAAAAADAAQAAAACAAAAAAAEAAQAAAACAAAAAAAFAAQAAAACAAAAAAAGAAQAAAACAAAAAAAHAAQAAAACAAAAAAAIAAQAAAACAAAAAAAJAAQAAAACAAAAAAAKAAQAAAACAAAAAAALAAQAAAACAAAAAAAMAAQAAAACAAAAAAANAAQAAAACAAAAAAAOAAQAAAACAAAAAAAPAAQAAAACAAAAAAAQAAQAAAACAAAAAAARAAQAAAACAAAAAAASAAQAAAACAAAAAAATAAQAAAACAAAAAAAUAAQAAAACAAAAAAAVAAQAAAACAAAAAAAWAAQAAAACAAAAAAAXAAQAAAACAAAAAAAYAAQAAAACAAAAAAAAAAUAAAACAAAAAAABAAUAAAACAAAAAAACAAUAAAACAAAAAAADAAUAAAACAAAAAAAEAAUAAAACAAAAAAAFAAUAAAACAAAAAAAGAAUAAAACAAAAAAAHAAUAAAACAAAAAAAIAAUAAAACAAAAAAAJAAUAAAACAAAAAAAKAAUAAAACAAAAAAALAAUAAAACAAAAAAAMAAUAAAACAAAAAAANAAUAAAACAAAAAAAOAAUAAAACAAAAAAAPAAUAAAACAAAAAAAQAAUAAAACAAAAAAARAAUAAAACAAAAAAASAAUAAAACAAAAAAATAAUAAAACAAAAAAAUAAUAAAACAAAAAAAVAAUAAAACAAAAAAAWAAUAAAACAAAAAAAXAAUAAAACAAAAAAAYAAUAAAACAAAAAAAAAAYAAAACAAAAAAABAAYAAAACAAAAAAACAAYAAAACAAAAAAADAAYAAAACAAAAAAAEAAYAAAACAAAAAAAFAAYAAAACAAAAAAAGAAYAAAACAAAAAAAHAAYAAAACAAAAAAAIAAYAAAACAAAAAAAJAAYAAAACAAAAAAAKAAYAAAACAAAAAAALAAYAAAACAAAAAAAMAAYAAAACAAAAAAANAAYAAAACAAAAAAAOAAYAAAACAAAAAAAPAAYAAAACAAAAAAAQAAYAAAACAAAAAAARAAYAAAACAAAAAAASAAYAAAACAAAAAAATAAYAAAACAAAAAAAUAAYAAAACAAAAAAAVAAYAAAACAAAAAAAWAAYAAAACAAAAAAAXAAYAAAACAAAAAAAYAAYAAAACAAAAAAAAAAcAAAAAAAAAAAABAAcAAAAAAAAAAAACAAcAAAAAAAAAAAADAAcAAAAAAAAAAAAEAAcAAAAAAAAAAAAFAAcAAAAAAAAAAAAGAAcAAAAAAAAAAAAHAAcAAAAAAAAAAAAIAAcAAAAAAAAAAAAJAAcAAAAAAAAAAAALAAcAAAACAAAAAAAMAAcAAAACAAAAAAANAAcAAAACAAAAAAAOAAcAAAAAAAAAAAAPAAcAAAAAAAAAAAAQAAcAAAAAAAAAAAARAAcAAAAAAAAAAAASAAcAAAAAAAAAAAATAAcAAAAAAAAAAAAUAAcAAAAAAAAAAAAVAAcAAAAAAAAAAAAWAAcAAAAAAAAAAAAXAAcAAAAAAAAAAAAYAAcAAAAAAAAAAAAAAAgAAAAAAAAAAAABAAgAAAAAAAAAAAACAAgAAAAAAAAAAAADAAgAAAAAAAAAAAAEAAgAAAAAAAAAAAAFAAgAAAAAAAAAAAAGAAgAAAAAAAAAAAAHAAgAAAAAAAAAAAAIAAgAAAAAAAAAAAAJAAgAAAAAAAAAAAAKAAgAAAABAAAAAAAMAAgAAAABAAAAAAANAAgAAAABAAAAAAAOAAgAAAAAAAAAAAAPAAgAAAAAAAAAAAAQAAgAAAAAAAAAAAARAAgAAAAAAAAAAAASAAgAAAAAAAAAAAATAAgAAAAAAAAAAAAUAAgAAAAAAAAAAAAVAAgAAAAAAAAAAAAWAAgAAAAAAAAAAAAXAAgAAAAAAAAAAAAYAAgAAAAAAAAAAAAAAAkAAAAAAAAAAAABAAkAAAAAAAAAAAACAAkAAAAAAAAAAAADAAkAAAAAAAAAAAAEAAkAAAAAAAAAAAAFAAkAAAAAAAAAAAAGAAkAAAAAAAAAAAAHAAkAAAAAAAAAAAAIAAkAAAAAAAAAAAAJAAkAAAAAAAAAAAAKAAkAAAABAAAAAAALAAkAAAABAAAAAAAMAAkAAAABAAAAAAANAAkAAAABAAAAAAAOAAkAAAAAAAAAAAAPAAkAAAAAAAAAAAAQAAkAAAAAAAAAAAARAAkAAAAAAAAAAAASAAkAAAAAAAAAAAATAAkAAAAAAAAAAAAUAAkAAAAAAAAAAAAVAAkAAAAAAAAAAAAWAAkAAAAAAAAAAAAXAAkAAAAAAAAAAAAYAAkAAAAAAAAAAAAAAAoAAAAAAAAAAAABAAoAAAAAAAAAAAACAAoAAAAAAAAAAAADAAoAAAAAAAAAAAAEAAoAAAAAAAAAAAAFAAoAAAAAAAAAAAAGAAoAAAAAAAAAAAAHAAoAAAAAAAAAAAAIAAoAAAAAAAAAAAAJAAoAAAABAAAAAAAKAAoAAAABAAAAAAALAAoAAAABAAAAAAAMAAoAAAABAAAAAAANAAoAAAABAAAAAAAOAAoAAAABAAAAAAAPAAoAAAAAAAAAAAAQAAoAAAAAAAAAAAARAAoAAAAAAAAAAAASAAoAAAAAAAAAAAATAAoAAAAAAAAAAAAUAAoAAAAAAAAAAAAVAAoAAAAAAAAAAAAWAAoAAAAAAAAAAAAXAAoAAAAAAAAAAAAYAAoAAAAAAAAAAAAAAAsAAAAEAAAAAAABAAsAAAAEAAAAAAACAAsAAAAEAAAAAAADAAsAAAAEAAAAAAAEAAsAAAAAAAAAAAAFAAsAAAAAAAAAAAAGAAsAAAAAAAAAAAAHAAsAAAAAAAAAAAAIAAsAAAAAAAAAAAAJAAsAAAAAAAAAAAAKAAsAAAAAAAAAAAALAAsAAAAAAAAAAAAMAAsAAAABAAAAAAANAAsAAAAAAAAAAAAOAAsAAAAAAAAAAAAPAAsAAAAAAAAAAAAQAAsAAAAAAAAAAAARAAsAAAAAAAAAAAATAAsAAAAAAAAAAAAUAAsAAAAAAAAAAAAVAAsAAAAAAAAAAAAWAAsAAAAAAAAAAAAXAAsAAAAAAAAAAAAYAAsAAAAAAAAAAAAAAAwAAAAEAAAAAAABAAwAAAAEAAAAAAACAAwAAAAEAAAAAAADAAwAAAAEAAAAAAAEAAwAAAAAAAAAAAAFAAwAAAAAAAAAAAAGAAwAAAAAAAAAAAAHAAwAAAAAAAAAAAAIAAwAAAAAAAAAAAAJAAwAAAAAAAAAAAAKAAwAAAAAAAAAAAALAAwAAAAAAAAAAAAMAAwAAAABAAAAAAANAAwAAAAAAAAAAAAOAAwAAAAAAAAAAAAPAAwAAAAAAAAAAAAQAAwAAAAAAAAAAAARAAwAAAAAAAAAAAASAAwAAAAAAAAAAAATAAwAAAAAAAAAAAAUAAwAAAAAAAAAAAAVAAwAAAAAAAAAAAAWAAwAAAAAAAAAAAAXAAwAAAAAAAAAAAAYAAwAAAAAAAAAAAAAAA0AAAAEAAAAAAABAA0AAAAEAAAAAAACAA0AAAAEAAAAAAADAA0AAAAEAAAAAAAEAA0AAAAAAAAAAAAFAA0AAAAAAAAAAAAGAA0AAAAAAAAAAAAHAA0AAAAAAAAAAAAIAA0AAAAAAAAAAAAJAA0AAAAAAAAAAAAKAA0AAAAAAAAAAAALAA0AAAAAAAAAAAAMAA0AAAABAAAAAAANAA0AAAAAAAAAAAAOAA0AAAAAAAAAAAAPAA0AAAAAAAAAAAAQAA0AAAAAAAAAAAARAA0AAAAAAAAAAAASAA0AAAAEAAAAAAATAA0AAAAEAAAAAAAUAA0AAAAEAAAAAAAVAA0AAAAEAAAAAAAWAA0AAAAEAAAAAAAXAA0AAAAAAAAAAAAYAA0AAAAAAAAAAAAAAA4AAAAEAAAAAAABAA4AAAAEAAAAAAACAA4AAAAAAAAAAAADAA4AAAAEAAAAAAAEAA4AAAAAAAAAAAAFAA4AAAAAAAAAAAAGAA4AAAAAAAAAAAAHAA4AAAAAAAAAAAAIAA4AAAAAAAAAAAAJAA4AAAAAAAAAAAAKAA4AAAAAAAAAAAALAA4AAAAAAAAAAAAMAA4AAAABAAAAAAANAA4AAAAAAAAAAAAOAA4AAAAAAAAAAAAPAA4AAAAAAAAAAAAQAA4AAAAAAAAAAAARAA4AAAAAAAAAAAASAA4AAAAEAAAAAAATAA4AAAAEAAAAAAAUAA4AAAAEAAAAAAAVAA4AAAAEAAAAAAAWAA4AAAAEAAAAAAAXAA4AAAAAAAAAAAAYAA4AAAAAAAAAAAAAAA8AAAAEAAAAAAABAA8AAAAEAAAAAAACAA8AAAAEAAAAAAADAA8AAAAAAAAAAAAEAA8AAAAAAAAAAAAFAA8AAAAAAAAAAAAGAA8AAAAAAAAAAAAHAA8AAAAAAAAAAAAIAA8AAAAAAAAAAAAJAA8AAAAAAAAAAAAKAA8AAAAAAAAAAAALAA8AAAAAAAAAAAAMAA8AAAABAAAAAAANAA8AAAAAAAAAAAAOAA8AAAAAAAAAAAAPAA8AAAAAAAAAAAAQAA8AAAAAAAAAAAARAA8AAAAAAAAAAAASAA8AAAAEAAAAAAATAA8AAAAEAAAAAAAUAA8AAAAEAAAAAAAVAA8AAAAEAAAAAAAWAA8AAAAAAAAAAAAXAA8AAAAAAAAAAAAYAA8AAAAAAAAAAAAAABAAAAAEAAAAAAABABAAAAAEAAAAAAACABAAAAAEAAAAAAADABAAAAAEAAAAAAAEABAAAAAAAAAAAAAFABAAAAAAAAAAAAAGABAAAAAAAAAAAAAHABAAAAAAAAAAAAAIABAAAAAAAAAAAAAJABAAAAAAAAAAAAAKABAAAAAAAAAAAAALABAAAAAAAAAAAAAMABAAAAABAAAAAAANABAAAAAAAAAAAAAOABAAAAAAAAAAAAAPABAAAAAAAAAAAAAQABAAAAAAAAAAAAARABAAAAAAAAAAAAASABAAAAAAAAAAAAATABAAAAAEAAAAAAAUABAAAAAAAAAAAAAVABAAAAAEAAAAAAAWABAAAAAEAAAAAAAXABAAAAAAAAAAAAAYABAAAAAAAAAAAAAAABEAAAAAAAAAAAABABEAAAAAAAAAAAACABEAAAAAAAAAAAADABEAAAAAAAAAAAAEABEAAAAAAAAAAAAFABEAAAAAAAAAAAAGABEAAAAAAAAAAAAHABEAAAAAAAAAAAAIABEAAAAAAAAAAAAJABEAAAAAAAAAAAAKABEAAAAAAAAAAAALABEAAAAAAAAAAAAMABEAAAABAAAAAAANABEAAAAAAAAAAAAOABEAAAAAAAAAAAAPABEAAAAAAAAAAAAQABEAAAAAAAAAAAARABEAAAAAAAAAAAASABEAAAAEAAAAAAATABEAAAAAAAAAAAAUABEAAAAEAAAAAAAVABEAAAAAAAAAAAAWABEAAAAEAAAAAAAXABEAAAAAAAAAAAAYABEAAAAAAAAAAAAAABIAAAAAAAAAAAABABIAAAAAAAAAAAACABIAAAAAAAAAAAADABIAAAAAAAAAAAAEABIAAAAAAAAAAAAFABIAAAAAAAAAAAAGABIAAAAEAAAAAAAHABIAAAAEAAAAAAAIABIAAAAEAAAAAAAJABIAAAAEAAAAAAAKABIAAAAAAAAAAAALABIAAAAAAAAAAAAMABIAAAABAAAAAAANABIAAAAAAAAAAAAOABIAAAAAAAAAAAAPABIAAAAAAAAAAAAQABIAAAAAAAAAAAARABIAAAAAAAAAAAASABIAAAAEAAAAAAATABIAAAAEAAAAAAAUABIAAAAEAAAAAAAVABIAAAAEAAAAAAAWABIAAAAEAAAAAAAXABIAAAAAAAAAAAAYABIAAAAAAAAAAAAAABMAAAAAAAAAAAABABMAAAAAAAAAAAACABMAAAAAAAAAAAADABMAAAAAAAAAAAAEABMAAAAAAAAAAAAFABMAAAAAAAAAAAAGABMAAAAEAAAAAAAHABMAAAAEAAAAAAAIABMAAAAEAAAAAAAJABMAAAAEAAAAAAAKABMAAAAAAAAAAAALABMAAAAAAAAAAAAMABMAAAABAAAAAAANABMAAAAAAAAAAAAOABMAAAAAAAAAAAAPABMAAAAAAAAAAAAQABMAAAAAAAAAAAARABMAAAAAAAAAAAASABMAAAAAAAAAAAATABMAAAAAAAAAAAAUABMAAAAAAAAAAAAVABMAAAAAAAAAAAAWABMAAAAAAAAAAAAXABMAAAAAAAAAAAAYABMAAAAAAAAAAAAAABQAAAAAAAAAAAABABQAAAAAAAAAAAACABQAAAAAAAAAAAADABQAAAAAAAAAAAAEABQAAAAAAAAAAAAFABQAAAAAAAAAAAAGABQAAAAEAAAAAAAHABQAAAAEAAAAAAAIABQAAAAAAAAAAAAJABQAAAAEAAAAAAAKABQAAAAAAAAAAAALABQAAAAAAAAAAAAMABQAAAABAAAAAAANABQAAAAAAAAAAAAOABQAAAAAAAAAAAAPABQAAAAAAAAAAAAQABQAAAAAAAAAAAARABQAAAAAAAAAAAASABQAAAAAAAAAAAATABQAAAAAAAAAAAAUABQAAAAAAAAAAAAVABQAAAAAAAAAAAAWABQAAAAAAAAAAAAXABQAAAAAAAAAAAAYABQAAAAAAAAAAAAAABUAAAAAAAAAAAABABUAAAAAAAAAAAACABUAAAAAAAAAAAADABUAAAAAAAAAAAAEABUAAAAAAAAAAAAFABUAAAAAAAAAAAAGABUAAAAEAAAAAAAHABUAAAAAAAAAAAAIABUAAAAEAAAAAAAJABUAAAAAAAAAAAAKABUAAAAAAAAAAAALABUAAAAAAAAAAAAMABUAAAABAAAAAAANABUAAAAAAAAAAAAOABUAAAAAAAAAAAAPABUAAAAAAAAAAAAQABUAAAAAAAAAAAARABUAAAAAAAAAAAASABUAAAAAAAAAAAATABUAAAAAAAAAAAAUABUAAAAAAAAAAAAVABUAAAAAAAAAAAAWABUAAAAAAAAAAAAXABUAAAAAAAAAAAAYABUAAAAAAAAAAAAAABYAAAAAAAAAAAABABYAAAAAAAAAAAACABYAAAAAAAAAAAADABYAAAAAAAAAAAAEABYAAAAAAAAAAAAFABYAAAAAAAAAAAAGABYAAAAAAAAAAAAHABYAAAAAAAAAAAAIABYAAAAAAAAAAAAJABYAAAAAAAAAAAAKABYAAAAAAAAAAAALABYAAAAAAAAAAAAMABYAAAABAAAAAAANABYAAAAAAAAAAAAOABYAAAAAAAAAAAAPABYAAAAAAAAAAAAQABYAAAAAAAAAAAARABYAAAAAAAAAAAASABYAAAAAAAAAAAATABYAAAAAAAAAAAAUABYAAAAAAAAAAAAVABYAAAAAAAAAAAAWABYAAAAAAAAAAAAXABYAAAAAAAAAAAAYABYAAAAAAAAAAAAAABcAAAAAAAAAAAABABcAAAAAAAAAAAACABcAAAAAAAAAAAADABcAAAAAAAAAAAAEABcAAAAAAAAAAAAFABcAAAAAAAAAAAAGABcAAAAAAAAAAAAHABcAAAAAAAAAAAAIABcAAAAAAAAAAAAJABcAAAAAAAAAAAAKABcAAAAAAAAAAAALABcAAAAAAAAAAAAMABcAAAABAAAAAAANABcAAAAAAAAAAAAOABcAAAAAAAAAAAAPABcAAAAAAAAAAAAQABcAAAAAAAAAAAARABcAAAAAAAAAAAASABcAAAAAAAAAAAATABcAAAAAAAAAAAAUABcAAAAAAAAAAAAVABcAAAAAAAAAAAAWABcAAAAAAAAAAAAXABcAAAAAAAAAAAAYABcAAAAAAAAAAAAAABgAAAAAAAAAAAABABgAAAAAAAAAAAACABgAAAAAAAAAAAADABgAAAAAAAAAAAAEABgAAAAAAAAAAAAFABgAAAAAAAAAAAAGABgAAAAAAAAAAAAHABgAAAAAAAAAAAAIABgAAAAAAAAAAAAJABgAAAAAAAAAAAAKABgAAAAAAAAAAAALABgAAAAAAAAAAAAMABgAAAABAAAAAAANABgAAAAAAAAAAAAOABgAAAAAAAAAAAAPABgAAAAAAAAAAAAQABgAAAAAAAAAAAARABgAAAAAAAAAAAASABgAAAAAAAAAAAATABgAAAAAAAAAAAAUABgAAAAAAAAAAAAVABgAAAAAAAAAAAAWABgAAAAAAAAAAAAXABgAAAAAAAAAAAAYABgAAAAAAAAAAAALAAgAAAABAAAAAAAKAAcAAAACAAAAAAASAAsAAAAAAAAAAAA=")
-tile_set = SubResource("TileSet_pxx3e")
+tile_set = SubResource("TileSet_smwl8")
 rendering_quadrant_size = 8
 
 [node name="MoatLayer" type="TileMapLayer" parent="MapRoot" unique_id=878213441]
 visible = false
 z_index = 1
 material = SubResource("ShaderMaterial_4n3h1")
-tile_map_data = PackedByteArray("AAAKAAoAAAAFAAAAAAAEAAoAAAAFAAAAAAAKAAsAAAAFAAAAAAAAAAsAAAAFAAAAAAAAAAoAAAAFAAAAAAABAAoAAAAFAAAAAAACAAoAAAAFAAAAAAADAAoAAAAFAAAAAAAFAAoAAAAFAAAAAAAGAAoAAAAFAAAAAAAHAAoAAAAFAAAAAAAIAAoAAAAFAAAAAAAJAAoAAAAFAAAAAAABAAsAAAAFAAAAAAACAAsAAAAFAAAAAAADAAsAAAAFAAAAAAAEAAsAAAAFAAAAAAAFAAsAAAAFAAAAAAAGAAsAAAAFAAAAAAAHAAsAAAAFAAAAAAAJAAsAAAAFAAAAAAAIAAsAAAAFAAAAAAALAAoAAAAFAAAAAAAMAAoAAAAFAAAAAAANAAoAAAAFAAAAAAAOAAoAAAAFAAAAAAAPAAoAAAAFAAAAAAAQAAoAAAAFAAAAAAARAAoAAAAFAAAAAAASAAoAAAAFAAAAAAATAAoAAAAFAAAAAAAUAAoAAAAFAAAAAAAVAAoAAAAFAAAAAAAWAAoAAAAFAAAAAAAXAAoAAAAFAAAAAAAYAAoAAAAFAAAAAAALAAsAAAAFAAAAAAAMAAsAAAAFAAAAAAANAAsAAAAFAAAAAAAOAAsAAAAFAAAAAAAPAAsAAAAFAAAAAAAQAAsAAAAFAAAAAAARAAsAAAAFAAAAAAASAAsAAAAFAAAAAAATAAsAAAAFAAAAAAAUAAsAAAAFAAAAAAAVAAsAAAAFAAAAAAAWAAsAAAAFAAAAAAAXAAsAAAAFAAAAAAAYAAsAAAAFAAAAAAA=")
-tile_set = SubResource("TileSet_pxx3e")
+tile_set = SubResource("TileSet_m8y27")
 rendering_quadrant_size = 8
 
 [node name="ObjectLayer" type="TileMapLayer" parent="MapRoot" unique_id=1405019962]
 z_index = 5
-tile_map_data = PackedByteArray("AAACAA4AAAAAAAAAAAAEAA4AAAAAAAAAAAADAA8AAAAAAAAAAAAWAA8AAAACAAAAAAASABAAAAAAAAAAAAAUABAAAAAAAAAAAAATABEAAAAAAAAAAAAVABEAAAAAAAAAAAAFABIAAAABAAAAAAAQABMAAAABAAAAAAAIABQAAAAAAAAAAAAHABUAAAAAAAAAAAAJABUAAAAAAAAAAAAKABYAAAACAAAAAAAMAAsAAAADAAAAAAAMAAoAAAADAAAAAAAGAAwAAQAAAAAAAAA=")
-tile_set = SubResource("TileSet_qrg6v")
+tile_map_data = PackedByteArray("AAACAA4AAAAAAAAAAAAEAA4AAAAAAAAAAAADAA8AAAAAAAAAAAAWAA8AAAACAAAAAAASABAAAAAAAAAAAAAUABAAAAAAAAAAAAATABEAAAAAAAAAAAAVABEAAAAAAAAAAAAFABIAAAABAAAAAAAQABMAAAABAAAAAAAIABQAAAAAAAAAAAAHABUAAAAAAAAAAAAJABUAAAAAAAAAAAAKABYAAAACAAAAAAAGAAwAAQAAAAAAAAA=")
+tile_set = SubResource("TileSet_bjo6t")
 rendering_quadrant_size = 8
 
-[node name="RiverObjectLayer" type="TileMapLayer" parent="MapRoot"]
+[node name="RiverObjectLayer" type="TileMapLayer" parent="MapRoot" unique_id=533425441]
 z_index = 4
 tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
 
-[node name="FarmObjectLayer" type="TileMapLayer" parent="MapRoot"]
+[node name="FarmObjectLayer" type="TileMapLayer" parent="MapRoot" unique_id=1172019617]
 z_index = 6
 tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
 
-[node name="WorkerFenceLayer" type="TileMapLayer" parent="MapRoot"]
+[node name="WorkerFenceLayer" type="TileMapLayer" parent="MapRoot" unique_id=1575454611]
 z_index = 7
 tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
 
-[node name="ForestEdgeObjectLayer" type="TileMapLayer" parent="MapRoot"]
+[node name="ForestEdgeObjectLayer" type="TileMapLayer" parent="MapRoot" unique_id=1588401723]
 z_index = 4
 tile_set = SubResource("TileSet_qrg6v")
 rendering_quadrant_size = 8
@@ -411,7 +750,7 @@ rendering_quadrant_size = 8
 [node name="OverlayLayer" type="TileMapLayer" parent="MapRoot" unique_id=1900053212]
 z_index = 15
 tile_map_data = PackedByteArray("AAAHAAIAAAABAAAAAAAIAAIAAAABAAAAAAAJAAIAAAABAAAAAAAKAAIAAAABAAAAAAALAAIAAAABAAAAAAAMAAIAAAABAAAAAAANAAIAAAABAAAAAAAOAAIAAAABAAAAAAAPAAIAAAABAAAAAAAQAAIAAAABAAAAAAARAAIAAAABAAAAAAAHAAMAAAABAAAAAAAIAAMAAAABAAAAAAAJAAMAAAABAAAAAAAKAAMAAAABAAAAAAALAAMAAAABAAAAAAAMAAMAAAABAAAAAAANAAMAAAABAAAAAAAOAAMAAAABAAAAAAAPAAMAAAABAAAAAAAQAAMAAAABAAAAAAARAAMAAAABAAAAAAAFABEAAAAAAAAAAAAGABEAAAAAAAAAAAAHABEAAAAAAAAAAAAIABEAAAAAAAAAAAAJABEAAAAAAAAAAAAKABEAAAAAAAAAAAALABEAAAAAAAAAAAAMABEAAAAAAAAAAAANABEAAAAAAAAAAAAOABEAAAAAAAAAAAAPABEAAAAAAAAAAAAQABEAAAAAAAAAAAARABEAAAAAAAAAAAASABEAAAAAAAAAAAATABEAAAAAAAAAAAAFABIAAAAAAAAAAAAGABIAAAAAAAAAAAAHABIAAAAAAAAAAAAIABIAAAAAAAAAAAAJABIAAAAAAAAAAAAKABIAAAAAAAAAAAALABIAAAAAAAAAAAAMABIAAAAAAAAAAAANABIAAAAAAAAAAAAOABIAAAAAAAAAAAAPABIAAAAAAAAAAAAQABIAAAAAAAAAAAARABIAAAAAAAAAAAASABIAAAAAAAAAAAATABIAAAAAAAAAAAAFABMAAAAAAAAAAAAGABMAAAAAAAAAAAAHABMAAAAAAAAAAAAIABMAAAAAAAAAAAAJABMAAAAAAAAAAAAKABMAAAAAAAAAAAALABMAAAAAAAAAAAAMABMAAAAAAAAAAAANABMAAAAAAAAAAAAOABMAAAAAAAAAAAAPABMAAAAAAAAAAAAQABMAAAAAAAAAAAARABMAAAAAAAAAAAASABMAAAAAAAAAAAATABMAAAAAAAAAAAAFABQAAAAAAAAAAAAGABQAAAAAAAAAAAAHABQAAAAAAAAAAAAIABQAAAAAAAAAAAAJABQAAAAAAAAAAAAKABQAAAAAAAAAAAALABQAAAAAAAAAAAAMABQAAAAAAAAAAAANABQAAAAAAAAAAAAOABQAAAAAAAAAAAAPABQAAAAAAAAAAAAQABQAAAAAAAAAAAARABQAAAAAAAAAAAASABQAAAAAAAAAAAATABQAAAAAAAAAAAAFABUAAAAAAAAAAAAGABUAAAAAAAAAAAAHABUAAAAAAAAAAAAIABUAAAAAAAAAAAAJABUAAAAAAAAAAAAKABUAAAAAAAAAAAALABUAAAAAAAAAAAAMABUAAAAAAAAAAAANABUAAAAAAAAAAAAOABUAAAAAAAAAAAAPABUAAAAAAAAAAAAQABUAAAAAAAAAAAARABUAAAAAAAAAAAASABUAAAAAAAAAAAATABUAAAAAAAAAAAAFABYAAAAAAAAAAAAGABYAAAAAAAAAAAAHABYAAAAAAAAAAAAIABYAAAAAAAAAAAAJABYAAAAAAAAAAAAKABYAAAAAAAAAAAALABYAAAAAAAAAAAAMABYAAAAAAAAAAAANABYAAAAAAAAAAAAOABYAAAAAAAAAAAAPABYAAAAAAAAAAAAQABYAAAAAAAAAAAARABYAAAAAAAAAAAASABYAAAAAAAAAAAATABYAAAAAAAAAAAA=")
-tile_set = SubResource("TileSet_ngogi")
+tile_set = SubResource("TileSet_6tmj0")
 rendering_quadrant_size = 8
 
 [node name="HighlightLayer" type="Node2D" parent="MapRoot" unique_id=1655506300]
@@ -438,7 +777,7 @@ script = ExtResource("3")
 [node name="AttackerC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1617047366]
 script = ExtResource("3")
 
-[node name="AttackerWorker" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="AttackerWorker" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1813988953]
 script = ExtResource("3")
 
 [node name="Spearman" type="Node2D" parent="MapRoot/UnitLayer" unique_id=58640053]
@@ -453,7 +792,7 @@ script = ExtResource("3")
 [node name="DefenderC" type="Node2D" parent="MapRoot/UnitLayer" unique_id=498644608]
 script = ExtResource("3")
 
-[node name="Worker" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="Worker" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1672311956]
 script = ExtResource("3")
 
 [node name="Ram" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1833571858]
@@ -465,10 +804,10 @@ script = ExtResource("3")
 [node name="Catapult" type="Node2D" parent="MapRoot/UnitLayer" unique_id=838561412]
 script = ExtResource("3")
 
-[node name="SupplyCart" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="SupplyCart" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1842563777]
 script = ExtResource("3")
 
-[node name="DefenderSupplyCart" type="Node2D" parent="MapRoot/UnitLayer"]
+[node name="DefenderSupplyCart" type="Node2D" parent="MapRoot/UnitLayer" unique_id=1075028858]
 script = ExtResource("3")
 
 [node name="SiegeEngineLayer" type="Node2D" parent="MapRoot" unique_id=1292689697]
@@ -479,7 +818,7 @@ z_index = 30
 
 [node name="UiLayer" type="CanvasLayer" parent="." unique_id=338083734]
 
-[node name="TimeOfDayOverlay" type="ColorRect" parent="UiLayer"]
+[node name="TimeOfDayOverlay" type="ColorRect" parent="UiLayer" unique_id=51533432]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -489,27 +828,28 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
-[node name="WeatherOverlay" type="ColorRect" parent="UiLayer"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 142.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
+[node name="WeatherOverlay" type="ColorRect" parent="UiLayer" unique_id=1597273534]
 clip_contents = true
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 142.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 color = Color(1, 1, 1, 0)
 
-[node name="BattleResultOverlay" type="Control" parent="UiLayer"]
+[node name="BattleResultOverlay" type="Control" parent="UiLayer" unique_id=1046973575]
 visible = false
+z_index = 200
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="Dim" type="ColorRect" parent="UiLayer/BattleResultOverlay"]
+[node name="Dim" type="ColorRect" parent="UiLayer/BattleResultOverlay" unique_id=455281397]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -519,7 +859,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.02, 0.025, 0.018, 0.62)
 
-[node name="ResultPanel" type="PanelContainer" parent="UiLayer/BattleResultOverlay"]
+[node name="ResultPanel" type="PanelContainer" parent="UiLayer/BattleResultOverlay" unique_id=894016692]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -534,25 +874,23 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/BattleResultOverlay/ResultPanel"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleResultOverlay/ResultPanel" unique_id=728245456]
 layout_mode = 2
 theme_override_constants/margin_left = 28
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 28
 theme_override_constants/margin_bottom = 24
 
-[node name="ResultLabel" type="Label" parent="UiLayer/BattleResultOverlay/ResultPanel/Margin"]
+[node name="ResultLabel" type="Label" parent="UiLayer/BattleResultOverlay/ResultPanel/Margin" unique_id=733916787]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
-text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="RetreatNotice" type="PanelContainer" parent="UiLayer"]
+[node name="RetreatNotice" type="PanelContainer" parent="UiLayer" unique_id=1343491018]
 visible = false
 z_index = 100
-layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
@@ -566,14 +904,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/RetreatNotice"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/RetreatNotice" unique_id=1446820374]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 18
 
-[node name="Label" type="Label" parent="UiLayer/RetreatNotice/Margin"]
+[node name="Label" type="Label" parent="UiLayer/RetreatNotice/Margin" unique_id=852112494]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.82, 0.36, 1)
 theme_override_colors/font_outline_color = Color(0.1, 0.07, 0.01, 0.95)
@@ -583,10 +921,9 @@ text = "Retreat"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="OfficerCaptureNotice" type="PanelContainer" parent="UiLayer"]
+[node name="OfficerCaptureNotice" type="PanelContainer" parent="UiLayer" unique_id=211570798]
 visible = false
 z_index = 120
-layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
@@ -600,14 +937,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/OfficerCaptureNotice"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/OfficerCaptureNotice" unique_id=890532094]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 18
 
-[node name="Label" type="Label" parent="UiLayer/OfficerCaptureNotice/Margin"]
+[node name="Label" type="Label" parent="UiLayer/OfficerCaptureNotice/Margin" unique_id=1348313200]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.72, 0.34, 1)
 theme_override_colors/font_outline_color = Color(0.12, 0.03, 0.01, 0.95)
@@ -618,21 +955,19 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="TurnInputBlocker" type="Control" parent="UiLayer"]
+[node name="TurnInputBlocker" type="Control" parent="UiLayer" unique_id=616253294]
 visible = false
 z_index = 89
-layout_mode = 1
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="TurnBanner" type="PanelContainer" parent="UiLayer"]
+[node name="TurnBanner" type="PanelContainer" parent="UiLayer" unique_id=800195690]
 visible = false
 z_index = 90
-layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
@@ -646,14 +981,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/TurnBanner"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/TurnBanner" unique_id=437290395]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 14
 
-[node name="Label" type="Label" parent="UiLayer/TurnBanner/Margin"]
+[node name="Label" type="Label" parent="UiLayer/TurnBanner/Margin" unique_id=309001012]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.42, 1)
 theme_override_colors/font_outline_color = Color(0.08, 0.05, 0.01, 0.95)
@@ -663,11 +998,9 @@ text = "Turn"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="OfficerSpeechOverlay" type="PanelContainer" parent="UiLayer"]
+[node name="OfficerSpeechOverlay" type="PanelContainer" parent="UiLayer" unique_id=1267291692]
 visible = false
 z_index = 110
-layout_mode = 1
-anchors_preset = 0
 offset_left = 28.0
 offset_top = 220.0
 offset_right = 470.0
@@ -676,29 +1009,29 @@ grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/OfficerSpeechOverlay"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/OfficerSpeechOverlay" unique_id=1075752623]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="Row" type="HBoxContainer" parent="UiLayer/OfficerSpeechOverlay/Margin"]
+[node name="Row" type="HBoxContainer" parent="UiLayer/OfficerSpeechOverlay/Margin" unique_id=1475390346]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Portrait" type="TextureRect" parent="UiLayer/OfficerSpeechOverlay/Margin/Row"]
+[node name="Portrait" type="TextureRect" parent="UiLayer/OfficerSpeechOverlay/Margin/Row" unique_id=1666246377]
 custom_minimum_size = Vector2(116, 148)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TextColumn" type="VBoxContainer" parent="UiLayer/OfficerSpeechOverlay/Margin/Row"]
+[node name="TextColumn" type="VBoxContainer" parent="UiLayer/OfficerSpeechOverlay/Margin/Row" unique_id=247501866]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="TeamName" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn"]
+[node name="TeamName" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn" unique_id=2006834235]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.82, 0.98, 1)
 theme_override_colors/font_outline_color = Color(0.05, 0.04, 0.02, 0.95)
@@ -706,7 +1039,7 @@ theme_override_constants/outline_size = 2
 theme_override_font_sizes/font_size = 18
 text = "Faction"
 
-[node name="OfficerName" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn"]
+[node name="OfficerName" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn" unique_id=966188805]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.96, 0.81, 0.39, 1)
 theme_override_colors/font_outline_color = Color(0.08, 0.05, 0.01, 0.95)
@@ -714,105 +1047,651 @@ theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 22
 text = "Officer"
 
-[node name="SpeechText" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn"]
+[node name="SpeechText" type="Label" parent="UiLayer/OfficerSpeechOverlay/Margin/Row/TextColumn" unique_id=385496653]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.96, 0.94, 0.84, 1)
 theme_override_colors/font_outline_color = Color(0.05, 0.04, 0.02, 0.95)
 theme_override_constants/outline_size = 2
 theme_override_font_sizes/font_size = 20
-autowrap_mode = 2
-vertical_alignment = 1
 text = "Speech"
+vertical_alignment = 1
+autowrap_mode = 2
 
 [node name="TopBar" type="ColorRect" parent="UiLayer" unique_id=1605276365]
+z_index = 100
 offset_right = 1600.0
-offset_bottom = 142.0
-color = Color(0.13, 0.2, 0.1, 0.92)
+offset_bottom = 254.0
+mouse_filter = 1
+color = Color(0, 0, 0, 0)
+
+[node name="LacquerTexture" type="TextureRect" parent="UiLayer/TopBar" unique_id=1245103510]
+visible = false
+modulate = Color(1, 1, 1, 0.44)
+layout_mode = 0
+offset_right = 1600.0
+offset_bottom = 254.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_battle_lacquer")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TopBorder" type="NinePatchRect" parent="UiLayer/TopBar" unique_id=1931781954]
+layout_mode = 0
+offset_right = 1600.0
+offset_bottom = 125.0
+mouse_filter = 1
+texture = ExtResource("25_battle_top_border")
+patch_margin_left = 128
+patch_margin_top = 14
+patch_margin_right = 72
+patch_margin_bottom = 14
+
+[node name="TopHeaderRow" type="HBoxContainer" parent="UiLayer/TopBar/TopBorder" unique_id=1217757]
+layout_mode = 0
+offset_left = 141.0
+offset_top = 39.0
+offset_right = 1491.0
+offset_bottom = 81.0
+theme_override_constants/separation = 10
+
+[node name="BattleTypeLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1919964614]
+custom_minimum_size = Vector2(82, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.86, 0.63, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = SubResource("SystemFont_battle_title_fallback")
+theme_override_font_sizes/font_size = 30
+text = "Battle"
+vertical_alignment = 1
+
+[node name="BattlePlaceLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1436661959]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 4
+theme_override_fonts/font = SubResource("SystemFont_battle_title_fallback")
+theme_override_font_sizes/font_size = 26
+text = "Place"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderSeparatorA" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=974539345]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.67, 0.55, 0.35, 0.85)
+theme_override_font_sizes/font_size = 20
+text = "|"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BattleDateLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1352558067]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.9, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "191 Year 04 Month"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderSeparatorB" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1907792180]
+custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.67, 0.55, 0.35, 0.85)
+theme_override_font_sizes/font_size = 20
+text = "|"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BattleDayLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1507338760]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.9, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "Day 1/10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WeatherIconLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1271399867]
+custom_minimum_size = Vector2(28, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.8, 0.25, 1)
+theme_override_colors/font_outline_color = Color(0.12, 0.075, 0.01, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 24
+text = "☀"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TimeSlotLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=118328991]
+custom_minimum_size = Vector2(54, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.9, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 17
+text = "Morning"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ClimateLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1283176622]
+custom_minimum_size = Vector2(42, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.9, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 17
+text = "Sunny"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WindLabel" type="Label" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=737984302]
+custom_minimum_size = Vector2(78, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.9, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 17
+text = "SE Breeze"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderSpacer" type="Control" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1939701524]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BattleOptionButton" type="Button" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1227366411]
+layout_mode = 2
+text = "Option"
+
+[node name="BattleDebugButton" type="Button" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=396847057]
+layout_mode = 2
+text = "Debug"
+
+[node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/TopBorder/TopHeaderRow" unique_id=1103344127]
+layout_mode = 2
+text = "End"
+
+[node name="AttackerCard" type="NinePatchRect" parent="UiLayer/TopBar" unique_id=608240784]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 115.0
+offset_right = 660.0
+offset_bottom = 235.0
+texture = ExtResource("23_battle_top_card")
+patch_margin_left = 32
+patch_margin_top = 20
+patch_margin_right = 32
+patch_margin_bottom = 20
+
+[node name="AttackerPortraitFrame" type="PanelContainer" parent="UiLayer/TopBar/AttackerCard" unique_id=1920301263]
+layout_mode = 0
+offset_left = 82.0
+offset_top = 20.0
+offset_right = 144.0
+offset_bottom = 107.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_portrait")
+
+[node name="AttackerPortrait" type="TextureRect" parent="UiLayer/TopBar/AttackerCard/AttackerPortraitFrame" unique_id=1303088673]
+texture_filter = 1
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackerFlag" type="TextureRect" parent="UiLayer/TopBar/AttackerCard" unique_id=643208763]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 20.0
+offset_right = 78.0
+offset_bottom = 107.0
+mouse_filter = 2
+texture = ExtResource("26_battle_attacker_flag")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackerRulerSurnameLabel" type="Label" parent="UiLayer/TopBar/AttackerCard/AttackerFlag" unique_id=1788642104]
+layout_mode = 0
+offset_right = 60.0
+offset_bottom = 87.0
+theme_override_colors/font_color = Color(1, 0.84, 0.37, 1)
+theme_override_colors/font_outline_color = Color(0.1, 0.015, 0.005, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "曹"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="AttackerTroopsIcon" type="TextureRect" parent="UiLayer/TopBar/AttackerCard" unique_id=1121141364]
+layout_mode = 0
+offset_left = 156.0
+offset_top = 54.0
+offset_right = 188.0
+offset_bottom = 86.0
+mouse_filter = 2
+texture = ExtResource("17_battle_troops_icon")
+
+[node name="AttackerEngineerIcon" type="TextureRect" parent="UiLayer/TopBar/AttackerCard" unique_id=11996431]
+layout_mode = 0
+offset_left = 442.0
+offset_top = 28.0
+offset_right = 474.0
+offset_bottom = 60.0
+mouse_filter = 2
+texture = ExtResource("18_battle_engineer_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackerOfficerIcon" type="TextureRect" parent="UiLayer/TopBar/AttackerCard" unique_id=1696522154]
+layout_mode = 0
+offset_left = 336.0
+offset_top = 28.0
+offset_right = 366.0
+offset_bottom = 58.0
+mouse_filter = 2
+texture = ExtResource("22_battle_officer_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackerGoldIcon" type="TextureRect" parent="UiLayer/TopBar/AttackerCard" unique_id=911372917]
+layout_mode = 0
+offset_left = 351.0
+offset_top = 70.0
+offset_right = 383.0
+offset_bottom = 102.0
+mouse_filter = 2
+texture = ExtResource("20_battle_gold_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackerFoodIcon" type="TextureRect" parent="UiLayer/TopBar/AttackerCard" unique_id=1349983670]
+layout_mode = 0
+offset_left = 491.0
+offset_top = 70.0
+offset_right = 523.0
+offset_bottom = 102.0
+mouse_filter = 2
+texture = ExtResource("21_battle_food_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackerFactionLabel" type="Label" parent="UiLayer/TopBar/AttackerCard" unique_id=1949067981]
+layout_mode = 0
+offset_left = 167.0
+offset_top = 29.0
+offset_right = 352.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 16
+text = "Attacker · Faction"
+
+[node name="AttackerTroopsLabel" type="Label" parent="UiLayer/TopBar/AttackerCard" unique_id=506310633]
+layout_mode = 0
+offset_left = 189.0
+offset_top = 57.0
+offset_right = 347.0
+offset_bottom = 81.0
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="AttackerOfficersLabel" type="Label" parent="UiLayer/TopBar/AttackerCard" unique_id=1726693329]
+layout_mode = 0
+offset_left = 367.0
+offset_top = 34.0
+offset_right = 437.0
+offset_bottom = 57.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="AttackerEngineersLabel" type="Label" parent="UiLayer/TopBar/AttackerCard" unique_id=701613313]
+layout_mode = 0
+offset_left = 475.0
+offset_top = 34.0
+offset_right = 545.0
+offset_bottom = 57.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="AttackerGoldLabel" type="Label" parent="UiLayer/TopBar/AttackerCard" unique_id=559631710]
+layout_mode = 0
+offset_left = 383.0
+offset_top = 74.0
+offset_right = 493.0
+offset_bottom = 97.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="AttackerFoodLabel" type="Label" parent="UiLayer/TopBar/AttackerCard" unique_id=1136120681]
+layout_mode = 0
+offset_left = 525.0
+offset_top = 74.0
+offset_right = 645.0
+offset_bottom = 97.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="AttackerMachineIcon" type="TextureRect" parent="UiLayer/TopBar/AttackerCard" unique_id=1296884317]
+layout_mode = 0
+offset_left = 544.0
+offset_top = 27.0
+offset_right = 576.0
+offset_bottom = 59.0
+mouse_filter = 2
+texture = ExtResource("19_battle_siege_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AttackerSiegeLabel" type="Label" parent="UiLayer/TopBar/AttackerCard" unique_id=675642103]
+layout_mode = 0
+offset_left = 580.0
+offset_top = 33.0
+offset_right = 670.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="TurnCard" type="NinePatchRect" parent="UiLayer/TopBar" unique_id=2110548228]
+layout_mode = 0
+offset_left = 680.0
+offset_top = 93.0
+offset_right = 920.0
+offset_bottom = 243.0
+texture = ExtResource("24_battle_top_round")
+patch_margin_left = 48
+patch_margin_top = 48
+patch_margin_right = 48
+patch_margin_bottom = 40
+
+[node name="TurnLabel" type="Label" parent="UiLayer/TopBar/TurnCard" unique_id=1138522491]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 44.0
+offset_right = 208.0
+offset_bottom = 79.0
+theme_override_colors/font_color = Color(0.98, 0.9, 0.67, 1)
+theme_override_colors/font_outline_color = Color(0.06, 0.035, 0.01, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 22
+text = "Round 1"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="ActionLabel" type="Label" parent="UiLayer/TopBar/TurnCard" unique_id=2139413696]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 79.0
+offset_right = 220.0
+offset_bottom = 118.0
+theme_override_colors/font_color = Color(0.98, 0.9, 0.67, 1)
+theme_override_colors/font_outline_color = Color(0.06, 0.035, 0.01, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 20
+text = "Attacker Acting"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="AiRoundStatusLabel" type="Label" parent="UiLayer/TopBar" unique_id=1549381396]
+visible = false
+layout_mode = 0
+offset_left = 680.0
+offset_top = 245.0
+offset_right = 920.0
+offset_bottom = 283.0
+theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "ABC Action"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="DefenderCard" type="NinePatchRect" parent="UiLayer/TopBar" unique_id=1377969054]
+layout_mode = 0
+offset_left = 930.0
+offset_top = 115.0
+offset_right = 1580.0
+offset_bottom = 235.0
+texture = ExtResource("23_battle_top_card")
+patch_margin_left = 32
+patch_margin_top = 20
+patch_margin_right = 32
+patch_margin_bottom = 20
+
+[node name="DefenderFlag" type="TextureRect" parent="UiLayer/TopBar/DefenderCard" unique_id=1806116183]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 20.0
+offset_right = 88.0
+offset_bottom = 107.0
+mouse_filter = 2
+texture = ExtResource("27_battle_defender_flag")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenderRulerSurnameLabel" type="Label" parent="UiLayer/TopBar/DefenderCard/DefenderFlag" unique_id=459160846]
+layout_mode = 0
+offset_right = 60.0
+offset_bottom = 87.0
+theme_override_colors/font_color = Color(1, 0.84, 0.37, 1)
+theme_override_colors/font_outline_color = Color(0.005, 0.03, 0.1, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 34
+text = "董"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DefenderPortraitFrame" type="PanelContainer" parent="UiLayer/TopBar/DefenderCard" unique_id=2018423769]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 20.0
+offset_right = 154.0
+offset_bottom = 107.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_hud_portrait")
+
+[node name="DefenderPortrait" type="TextureRect" parent="UiLayer/TopBar/DefenderCard/DefenderPortraitFrame" unique_id=1788099787]
+texture_filter = 1
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenderTroopsIcon" type="TextureRect" parent="UiLayer/TopBar/DefenderCard" unique_id=217555770]
+layout_mode = 0
+offset_left = 167.0
+offset_top = 51.0
+offset_right = 199.0
+offset_bottom = 83.0
+mouse_filter = 2
+texture = ExtResource("17_battle_troops_icon")
+
+[node name="DefenderEngineerIcon" type="TextureRect" parent="UiLayer/TopBar/DefenderCard" unique_id=432802796]
+layout_mode = 0
+offset_left = 432.0
+offset_top = 27.0
+offset_right = 464.0
+offset_bottom = 59.0
+mouse_filter = 2
+texture = ExtResource("18_battle_engineer_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenderOfficerIcon" type="TextureRect" parent="UiLayer/TopBar/DefenderCard" unique_id=158181213]
+layout_mode = 0
+offset_left = 337.0
+offset_top = 27.0
+offset_right = 367.0
+offset_bottom = 57.0
+mouse_filter = 2
+texture = ExtResource("22_battle_officer_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenderGoldIcon" type="TextureRect" parent="UiLayer/TopBar/DefenderCard" unique_id=188092419]
+layout_mode = 0
+offset_left = 349.0
+offset_top = 70.0
+offset_right = 381.0
+offset_bottom = 102.0
+mouse_filter = 2
+texture = ExtResource("20_battle_gold_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenderFoodIcon" type="TextureRect" parent="UiLayer/TopBar/DefenderCard" unique_id=654570302]
+layout_mode = 0
+offset_left = 482.0
+offset_top = 69.0
+offset_right = 514.0
+offset_bottom = 101.0
+mouse_filter = 2
+texture = ExtResource("21_battle_food_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenderFactionLabel" type="Label" parent="UiLayer/TopBar/DefenderCard" unique_id=1297091757]
+layout_mode = 0
+offset_left = 178.0
+offset_top = 24.0
+offset_right = 338.0
+offset_bottom = 48.0
+theme_override_font_sizes/font_size = 16
+text = "Defender · Faction"
+
+[node name="DefenderTroopsLabel" type="Label" parent="UiLayer/TopBar/DefenderCard" unique_id=141300647]
+layout_mode = 0
+offset_left = 200.0
+offset_top = 52.0
+offset_right = 338.0
+offset_bottom = 76.0
+theme_override_font_sizes/font_size = 17
+text = "0"
+
+[node name="DefenderOfficersLabel" type="Label" parent="UiLayer/TopBar/DefenderCard" unique_id=639646812]
+layout_mode = 0
+offset_left = 368.0
+offset_top = 30.0
+offset_right = 438.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="DefenderEngineersLabel" type="Label" parent="UiLayer/TopBar/DefenderCard" unique_id=642834400]
+layout_mode = 0
+offset_left = 465.0
+offset_top = 30.0
+offset_right = 543.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="DefenderGoldLabel" type="Label" parent="UiLayer/TopBar/DefenderCard" unique_id=315555945]
+layout_mode = 0
+offset_left = 382.0
+offset_top = 75.0
+offset_right = 492.0
+offset_bottom = 98.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="DefenderFoodLabel" type="Label" parent="UiLayer/TopBar/DefenderCard" unique_id=838217955]
+layout_mode = 0
+offset_left = 516.0
+offset_top = 74.0
+offset_right = 636.0
+offset_bottom = 97.0
+theme_override_font_sizes/font_size = 14
+text = "0"
+
+[node name="DefenderMachineIcon" type="TextureRect" parent="UiLayer/TopBar/DefenderCard" unique_id=1381616325]
+layout_mode = 0
+offset_left = 535.0
+offset_top = 27.0
+offset_right = 567.0
+offset_bottom = 59.0
+mouse_filter = 2
+texture = ExtResource("19_battle_siege_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DefenderSiegeLabel" type="Label" parent="UiLayer/TopBar/DefenderCard" unique_id=218699245]
+layout_mode = 0
+offset_left = 570.0
+offset_top = 30.0
+offset_right = 650.0
+offset_bottom = 53.0
+theme_override_font_sizes/font_size = 14
+text = "0"
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/TopBar" unique_id=2060358279]
 layout_mode = 0
 offset_left = 20.0
 offset_top = 12.0
 offset_right = 1580.0
-offset_bottom = 130.0
+offset_bottom = 246.0
 theme_override_constants/margin_left = 8
 theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="TopBarContent" type="VBoxContainer" parent="UiLayer/TopBar/Margin" unique_id=1499492291]
+[node name="TopBarContent" type="Control" parent="UiLayer/TopBar/Margin" unique_id=1499492291]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 6
-
-[node name="TopHeaderRow" type="HBoxContainer" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=1217757]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="TitleLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1919964614]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 22
-clip_text = true
-text_overrun_behavior = 3
-text = "Date / Weather"
-
-[node name="TimeButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Morning"
-
-[node name="WeatherButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Cloudy"
-
-[node name="WindButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "SE"
-
-[node name="WindPowerButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Breeze"
-
-[node name="BattleOptionButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Option"
-
-[node name="BattleDebugButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow"]
-layout_mode = 2
-text = "Debug"
-
-[node name="EndTurnButton" type="Button" parent="UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow" unique_id=1103344127]
-layout_mode = 2
-text = "End"
-
-[node name="AiRoundStatusLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
-theme_override_font_sizes/font_size = 16
-text = ""
 
 [node name="SummaryLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=972321462]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
+visible = false
+layout_mode = 0
+offset_left = 150.0
+offset_top = 59.0
+offset_right = 620.0
+offset_bottom = 157.0
+theme_override_font_sizes/font_size = 15
 text = "-"
+autowrap_mode = 2
 
 [node name="TeamBLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=1873090564]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
+visible = false
+layout_mode = 0
+offset_left = 1080.0
+offset_top = 59.0
+offset_right = 1530.0
+offset_bottom = 157.0
+theme_override_font_sizes/font_size = 15
 text = "-"
+autowrap_mode = 2
 
 [node name="CoordinateLabel" type="Label" parent="UiLayer/TopBar/Margin/TopBarContent" unique_id=166900311]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
+visible = false
+layout_mode = 0
+offset_left = 18.0
+offset_top = 156.0
+offset_right = 620.0
+offset_bottom = 176.0
+theme_override_font_sizes/font_size = 14
 text = "Hover: -    Click: -"
 
 [node name="SidePanel" type="ColorRect" parent="UiLayer" unique_id=991802699]
-offset_left = 1260.0
-offset_top = 154.0
-offset_right = 1570.0
-offset_bottom = 520.0
-color = Color(0.16, 0.13, 0.1, 0.82)
+offset_left = 1261.0
+offset_top = 258.0
+offset_right = 1571.0
+offset_bottom = 624.0
+color = Color(0.03, 0.028, 0.023, 0.94)
+
+[node name="BronzeTexture" type="TextureRect" parent="UiLayer/SidePanel" unique_id=1043478414]
+modulate = Color(1, 1, 1, 0.2)
+layout_mode = 0
+offset_right = 310.0
+offset_bottom = 366.0
+mouse_filter = 2
+texture = SubResource("AtlasTexture_battle_bronze")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Margin" type="MarginContainer" parent="UiLayer/SidePanel" unique_id=1281471013]
 layout_mode = 0
@@ -829,13 +1708,13 @@ theme_override_constants/margin_bottom = 6
 layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="InfoScroll" type="ScrollContainer" parent="UiLayer/SidePanel/Margin/PanelContent"]
+[node name="InfoScroll" type="ScrollContainer" parent="UiLayer/SidePanel/Margin/PanelContent" unique_id=1160977972]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="InfoPadding" type="MarginContainer" parent="UiLayer/SidePanel/Margin/PanelContent/InfoScroll"]
+[node name="InfoPadding" type="MarginContainer" parent="UiLayer/SidePanel/Margin/PanelContent/InfoScroll" unique_id=220696583]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_right = 18
@@ -844,73 +1723,69 @@ theme_override_constants/margin_bottom = 12
 [node name="InfoLabel" type="Label" parent="UiLayer/SidePanel/Margin/PanelContent/InfoScroll/InfoPadding" unique_id=1526984529]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.94, 0.9, 0.8, 1)
 theme_override_constants/line_spacing = -8
 theme_override_font_sizes/font_size = 17
 text = "Click a tile to inspect."
 autowrap_mode = 3
 
-[node name="BattleLogPanel" type="PanelContainer" parent="UiLayer"]
+[node name="BattleLogPanel" type="PanelContainer" parent="UiLayer" unique_id=334530495]
 custom_minimum_size = Vector2(310, 150)
 offset_left = 1260.0
 offset_top = 540.0
 offset_right = 1570.0
 offset_bottom = 910.0
-mouse_filter = 0
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/BattleLogPanel"]
-layout_mode = 0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = 298.0
-offset_bottom = 358.0
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleLogPanel" unique_id=795403490]
+layout_mode = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 6
 
-[node name="LogContent" type="VBoxContainer" parent="UiLayer/BattleLogPanel/Margin"]
+[node name="LogContent" type="VBoxContainer" parent="UiLayer/BattleLogPanel/Margin" unique_id=1685940430]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HeaderRow" type="HBoxContainer" parent="UiLayer/BattleLogPanel/Margin/LogContent"]
+[node name="HeaderRow" type="HBoxContainer" parent="UiLayer/BattleLogPanel/Margin/LogContent" unique_id=141955372]
 layout_mode = 2
 mouse_filter = 0
 theme_override_constants/separation = 6
 
-[node name="TitleLabel" type="Label" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+[node name="TitleLabel" type="Label" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow" unique_id=1281960907]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 0
 theme_override_font_sizes/font_size = 17
 text = "日誌"
 
-[node name="AllLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+[node name="AllLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow" unique_id=741529307]
 custom_minimum_size = Vector2(52, 0)
 layout_mode = 2
 text = "全部"
 
-[node name="SelfLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+[node name="SelfLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow" unique_id=1986956422]
 custom_minimum_size = Vector2(72, 0)
 layout_mode = 2
 text = "本勢力"
 
-[node name="CopyLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+[node name="CopyLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow" unique_id=897968377]
 custom_minimum_size = Vector2(64, 0)
 layout_mode = 2
 text = "複製全部"
 
-[node name="MinimizeLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow"]
+[node name="MinimizeLogButton" type="Button" parent="UiLayer/BattleLogPanel/Margin/LogContent/HeaderRow" unique_id=1798869787]
 custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 text = "_"
 
-[node name="LogScroll" type="ScrollContainer" parent="UiLayer/BattleLogPanel/Margin/LogContent"]
+[node name="LogScroll" type="ScrollContainer" parent="UiLayer/BattleLogPanel/Margin/LogContent" unique_id=1827036453]
 custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="LogLabel" type="Label" parent="UiLayer/BattleLogPanel/Margin/LogContent/LogScroll"]
+[node name="LogLabel" type="Label" parent="UiLayer/BattleLogPanel/Margin/LogContent/LogScroll" unique_id=1174915112]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/line_spacing = -4
@@ -944,11 +1819,11 @@ mouse_filter = 0
 theme_override_font_sizes/font_size = 17
 text = "Unit Command"
 
-[node name="OfficerInfoRow" type="HBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="OfficerInfoRow" type="HBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=934550618]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="OfficerPortrait" type="TextureRect" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow"]
+[node name="OfficerPortrait" type="TextureRect" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow" unique_id=474077523]
 custom_minimum_size = Vector2(78, 98)
 layout_mode = 2
 expand_mode = 1
@@ -967,11 +1842,11 @@ Ammo: -
 Troops: -"
 autowrap_mode = 3
 
-[node name="CommandScroll" type="ScrollContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+[node name="CommandScroll" type="ScrollContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1813548555]
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="ActionButtons" type="VBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll"]
+[node name="ActionButtons" type="VBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll" unique_id=1504791542]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
@@ -984,27 +1859,27 @@ text = "Move"
 layout_mode = 2
 text = "Attack"
 
-[node name="UnionAttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="UnionAttackButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1266679914]
 layout_mode = 2
 text = "Union Attack"
 
-[node name="GuardButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="GuardButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1502003583]
 layout_mode = 2
 text = "Guard"
 
-[node name="ChargeButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="ChargeButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1226551119]
 layout_mode = 2
 text = "Charge"
 
-[node name="DuelButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="DuelButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=60502923]
 layout_mode = 2
 text = "Duel"
 
-[node name="RetreatButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="RetreatButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1503636640]
 layout_mode = 2
 text = "Retreat"
 
-[node name="HideButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="HideButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=469548139]
 layout_mode = 2
 text = "Hide"
 
@@ -1016,31 +1891,31 @@ text = "Drop Stone"
 layout_mode = 2
 text = "Pour Oil"
 
-[node name="WorkButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="WorkButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=590459245]
 layout_mode = 2
 text = "Bridge"
 
-[node name="InstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="InstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=749757143]
 layout_mode = 2
 text = "Wood Fence"
 
-[node name="UninstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="UninstallWoodFenceButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=1341735063]
 layout_mode = 2
 text = "Wood Fence"
 
-[node name="SupplyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="SupplyButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=895755761]
 layout_mode = 2
 text = "Supply"
 
-[node name="ResupplyWeaponButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="ResupplyWeaponButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=369337562]
 layout_mode = 2
 text = "Resupply Weapon"
 
-[node name="CaptureSupplyCartButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="CaptureSupplyCartButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=632790263]
 layout_mode = 2
 text = "Capture Cart"
 
-[node name="HireOfficerButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons"]
+[node name="HireOfficerButton" type="Button" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons" unique_id=558526524]
 layout_mode = 2
 text = "Hire Officer"
 
@@ -1052,27 +1927,26 @@ text = "Strategy"
 layout_mode = 2
 text = "Open Gate"
 
-[node name="BattleOptionOverlay" type="Control" parent="UiLayer"]
+[node name="BattleOptionOverlay" type="Control" parent="UiLayer" unique_id=2090893116]
 visible = false
+z_index = 190
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="Backdrop" type="ColorRect" parent="UiLayer/BattleOptionOverlay"]
+[node name="Backdrop" type="ColorRect" parent="UiLayer/BattleOptionOverlay" unique_id=428865556]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.45)
 
-[node name="Center" type="CenterContainer" parent="UiLayer/BattleOptionOverlay"]
+[node name="Center" type="CenterContainer" parent="UiLayer/BattleOptionOverlay" unique_id=203323355]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1081,120 +1955,116 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="UiLayer/BattleOptionOverlay/Center"]
+[node name="Panel" type="PanelContainer" parent="UiLayer/BattleOptionOverlay/Center" unique_id=299723669]
 custom_minimum_size = Vector2(560, 360)
 layout_mode = 2
-mouse_filter = 0
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel" unique_id=59835117]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="OptionRoot" type="VBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin"]
+[node name="OptionRoot" type="VBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin" unique_id=1113100602]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="TitleBar" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+[node name="TitleBar" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot" unique_id=2032808632]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TitleSpacerLeft" type="Control" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+[node name="TitleSpacerLeft" type="Control" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar" unique_id=811457439]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TitleLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+[node name="TitleLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar" unique_id=90718534]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Options"
 horizontal_alignment = 1
 
-[node name="TitleSpacerRight" type="Control" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+[node name="TitleSpacerRight" type="Control" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar" unique_id=249813343]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CloseButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar"]
+[node name="CloseButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/TitleBar" unique_id=110935457]
 custom_minimum_size = Vector2(30, 28)
 layout_mode = 2
 text = "x"
 
-[node name="SaveLoadRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+[node name="SaveLoadRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot" unique_id=412026763]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="SaveLoadButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow"]
+[node name="SaveLoadButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow" unique_id=30674111]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save / Load"
 
-[node name="LanguageButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+[node name="LanguageButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot" unique_id=527568126]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Language"
 
-[node name="BgmAudioRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+[node name="BgmAudioRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot" unique_id=1432694234]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="BgmToggleButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow"]
+[node name="BgmToggleButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow" unique_id=664824080]
 custom_minimum_size = Vector2(148, 34)
 layout_mode = 2
 text = "BGM: On"
 
-[node name="BgmVolumeSlider" type="HSlider" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow"]
+[node name="BgmVolumeSlider" type="HSlider" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow" unique_id=734973183]
 layout_mode = 2
 size_flags_horizontal = 3
-max_value = 100.0
-step = 1.0
 value = 100.0
 
-[node name="BgmVolumeValueLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow"]
+[node name="BgmVolumeValueLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow" unique_id=549339708]
 custom_minimum_size = Vector2(52, 0)
 layout_mode = 2
 text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="SfxAudioRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+[node name="SfxAudioRow" type="HBoxContainer" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot" unique_id=1814449743]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="SfxToggleButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow"]
+[node name="SfxToggleButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow" unique_id=1916249908]
 custom_minimum_size = Vector2(148, 34)
 layout_mode = 2
 text = "SFX: On"
 
-[node name="SfxVolumeSlider" type="HSlider" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow"]
+[node name="SfxVolumeSlider" type="HSlider" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow" unique_id=660630482]
 layout_mode = 2
 size_flags_horizontal = 3
-max_value = 100.0
-step = 1.0
 value = 100.0
 
-[node name="SfxVolumeValueLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow"]
+[node name="SfxVolumeValueLabel" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SfxAudioRow" unique_id=867237547]
 custom_minimum_size = Vector2(52, 0)
 layout_mode = 2
 text = "100%"
 horizontal_alignment = 2
 vertical_alignment = 1
 
-[node name="SaveSettingsButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+[node name="SaveSettingsButton" type="Button" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot" unique_id=2080212739]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save Settings"
 
-[node name="BattleDebugOverlay" type="Control" parent="UiLayer"]
+[node name="BattleDebugOverlay" type="Control" parent="UiLayer" unique_id=907483716]
 visible = false
+z_index = 191
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -1203,7 +2073,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Backdrop" type="ColorRect" parent="UiLayer/BattleDebugOverlay"]
+[node name="Backdrop" type="ColorRect" parent="UiLayer/BattleDebugOverlay" unique_id=424127491]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -1214,7 +2084,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.45)
 
-[node name="Center" type="Control" parent="UiLayer/BattleDebugOverlay"]
+[node name="Center" type="Control" parent="UiLayer/BattleDebugOverlay" unique_id=1606715064]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1223,7 +2093,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="UiLayer/BattleDebugOverlay/Center"]
+[node name="Panel" type="PanelContainer" parent="UiLayer/BattleDebugOverlay/Center" unique_id=1654111175]
 layout_mode = 0
 anchor_left = 0.5
 anchor_top = 0.5
@@ -1235,101 +2105,130 @@ offset_right = 250.0
 offset_bottom = 122.5
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="Margin" type="MarginContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel"]
+[node name="Margin" type="MarginContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel" unique_id=944721632]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="DebugRoot" type="VBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin"]
+[node name="DebugRoot" type="VBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin" unique_id=15597333]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="TitleBar" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+[node name="TitleBar" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot" unique_id=703727732]
 layout_mode = 2
+mouse_default_cursor_shape = 6
 theme_override_constants/separation = 8
 
-[node name="TitleSpacerLeft" type="Control" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+[node name="TitleSpacerLeft" type="Control" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar" unique_id=1193029505]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="TitleLabel" type="Label" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+[node name="TitleLabel" type="Label" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar" unique_id=1674219111]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Battle Debug"
 horizontal_alignment = 1
 
-[node name="TitleSpacerRight" type="Control" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+[node name="TitleSpacerRight" type="Control" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar" unique_id=1956377727]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CloseButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar"]
+[node name="CloseButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar" unique_id=2064919626]
 custom_minimum_size = Vector2(30, 28)
 layout_mode = 2
 text = "x"
 
-[node name="AiControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+[node name="AiControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot" unique_id=2010867895]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="EnableAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow"]
+[node name="EnableAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow" unique_id=1726657820]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Enable AI"
 
-[node name="DisableAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow"]
+[node name="DisableAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow" unique_id=1226383082]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Disable AI"
 
-[node name="RoundControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+[node name="RoundControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot" unique_id=1167487751]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="StartRoundButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow"]
+[node name="StartRoundButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow" unique_id=1982562184]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Start Round"
 
-[node name="NextAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow"]
+[node name="NextAiButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow" unique_id=299197055]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Next"
 
-[node name="FoodControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+[node name="FoodControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot" unique_id=199241589]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="AttackerOneDayFoodButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow"]
+[node name="AttackerOneDayFoodButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow" unique_id=1223327232]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Attacker Food: 1d"
 
-[node name="DefenderOneDayFoodButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow"]
+[node name="DefenderOneDayFoodButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow" unique_id=1841941289]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Defender Food: 1d"
 
-[node name="MonthLimitRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot"]
+[node name="MonthLimitRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot" unique_id=2030593284]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="MonthlyBattleLimitOneDayButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/MonthLimitRow"]
+[node name="MonthlyBattleLimitOneDayButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/MonthLimitRow" unique_id=1108653872]
 custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Month limit: 1 day"
+
+[node name="EnvironmentControlsRow" type="HBoxContainer" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot" unique_id=284192184]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="TimeButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow" unique_id=351353394]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Time"
+
+[node name="WeatherButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow" unique_id=403429058]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Weather"
+
+[node name="WindButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow" unique_id=315676904]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Wind"
+
+[node name="WindPowerButton" type="Button" parent="UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow" unique_id=267104389]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Wind Power"

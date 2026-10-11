@@ -95,30 +95,9 @@ public partial class BattleSceneController
             return;
         }
 
-        if (!IsStandaloneBattleAiTest)
-        {
-            _aiRoundStatusLabel.Visible = false;
-        }
-        else if (!_isFieldAiRoundStarted)
-        {
-            _aiRoundStatusLabel.Visible = true;
-            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_not_started", "Test round not started: click Start Round"));
-        }
-        else if (allActed)
-        {
-            _aiRoundStatusLabel.Visible = true;
-            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_all_acted", "All battle teams have acted: click End Turn"));
-        }
-        else if (isAiSide)
-        {
-            _aiRoundStatusLabel.Visible = true;
-            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_review", "AI waiting for review: click Next, or End Turn"));
-        }
-        else
-        {
-            _aiRoundStatusLabel.Visible = true;
-            SetFieldAiRoundStatus(BattleText("ui.battle.ai_status_player", "Player turn: command battle teams, or End Turn"));
-        }
+        // The center card already communicates the active side. Keep test-only
+        // workflow text out of the player-facing battle HUD.
+        _aiRoundStatusLabel.Visible = false;
     }
 
     private void SetFieldAiRoundStatus(string status)

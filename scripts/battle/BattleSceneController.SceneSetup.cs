@@ -105,7 +105,7 @@ public partial class BattleSceneController
         _unitMenuInfoLabel ??= GetNodeOrNull<Label>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow/UnitMenuInfoLabel");
         _officerPortrait ??= GetNodeOrNull<TextureRect>("UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow/OfficerPortrait");
         _commandScroll ??= GetNodeOrNull<ScrollContainer>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll");
-        _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/EndTurnButton");
+        _endTurnButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/TopBorder/TopHeaderRow/EndTurnButton");
         _enableAiButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow/EnableAiButton");
         _disableAiButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/AiControlsRow/DisableAiButton");
         _startRoundButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/RoundControlsRow/StartRoundButton");
@@ -113,13 +113,13 @@ public partial class BattleSceneController
         _attackerOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow/AttackerOneDayFoodButton");
         _defenderOneDayFoodButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/FoodControlsRow/DefenderOneDayFoodButton");
         _monthlyBattleLimitOneDayButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/MonthLimitRow/MonthlyBattleLimitOneDayButton");
-        _aiRoundStatusLabel ??= GetNodeOrNull<Label>("UiLayer/TopBar/Margin/TopBarContent/AiRoundStatusLabel");
-        _timeButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/TimeButton");
-        _weatherButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WeatherButton");
-        _windButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindButton");
-        _windPowerButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/WindPowerButton");
-        _battleOptionButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/BattleOptionButton");
-        _battleDebugButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/Margin/TopBarContent/TopHeaderRow/BattleDebugButton");
+        _aiRoundStatusLabel ??= GetNodeOrNull<Label>("UiLayer/TopBar/AiRoundStatusLabel");
+        _timeButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow/TimeButton");
+        _weatherButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow/WeatherButton");
+        _windButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow/WindButton");
+        _windPowerButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow/WindPowerButton");
+        _battleOptionButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/TopBorder/TopHeaderRow/BattleOptionButton");
+        _battleDebugButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/TopBorder/TopHeaderRow/BattleDebugButton");
         _battleOptionOverlay ??= GetNodeOrNull<Control>("UiLayer/BattleOptionOverlay");
         _battleDebugOverlay ??= GetNodeOrNull<Control>("UiLayer/BattleDebugOverlay");
         _battleDebugPanel ??= GetNodeOrNull<PanelContainer>("UiLayer/BattleDebugOverlay/Center/Panel");
@@ -196,6 +196,14 @@ public partial class BattleSceneController
 
     public override void _Input(InputEvent @event)
     {
+        // BattleSceneController receives _Input before Control._GuiInput.  Route
+        // the compact top-header buttons here so map input can never prevent
+        // their actions from reaching the existing handlers.
+        if (TryHandleTopHeaderButtonInput(@event))
+        {
+            return;
+        }
+
         if (IsTurnBannerInputLocked())
         {
             GetViewport().SetInputAsHandled();
@@ -204,6 +212,44 @@ public partial class BattleSceneController
 
         HandleBattleDebugDialogInput(@event);
         HandleBattleLogPanelInput(@event);
+    }
+
+    private bool TryHandleTopHeaderButtonInput(InputEvent @event)
+    {
+        if (@event is not InputEventMouseButton
+            {
+                ButtonIndex: MouseButton.Left,
+                Pressed: true
+            } mouseButton)
+        {
+            return false;
+        }
+
+        if (_battleOptionButton?.Visible == true &&
+            !_battleOptionButton.Disabled &&
+            _battleOptionButton.GetGlobalRect().HasPoint(mouseButton.GlobalPosition))
+        {
+            OnBattleOptionButtonPressed();
+        }
+        else if (_battleDebugButton?.Visible == true &&
+                 !_battleDebugButton.Disabled &&
+                 _battleDebugButton.GetGlobalRect().HasPoint(mouseButton.GlobalPosition))
+        {
+            OnBattleDebugButtonPressed();
+        }
+        else if (_endTurnButton?.Visible == true &&
+                 !_endTurnButton.Disabled &&
+                 _endTurnButton.GetGlobalRect().HasPoint(mouseButton.GlobalPosition))
+        {
+            OnEndTurnButtonPressed();
+        }
+        else
+        {
+            return false;
+        }
+
+        GetViewport().SetInputAsHandled();
+        return true;
     }
 
     private bool IsTurnBannerInputLocked() => _isTurnBannerActionLocked;
