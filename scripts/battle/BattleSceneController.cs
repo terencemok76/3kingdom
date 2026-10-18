@@ -165,7 +165,7 @@ public partial class BattleSceneController : Node2D
     private Button? _windButton;
     private Button? _windPowerButton;
     private Button? _battleOptionButton;
-    private Button? _battleDebugButton;
+    private Button? _battleOptionDebugButton;
     private Control? _battleOptionOverlay;
     private Control? _battleDebugOverlay;
     private PanelContainer? _battleDebugPanel;
@@ -205,6 +205,7 @@ public partial class BattleSceneController : Node2D
     private Button? _strategyButton;
     private Button? _openGateButton;
     private bool _isDraggingMap;
+    private bool _isPanningMapFromTileInfoPanel;
     private bool _isDraggingCommandMenu;
     private bool _isDraggingBattleLog;
     private bool _isResizingBattleLog;
@@ -535,9 +536,9 @@ public partial class BattleSceneController : Node2D
             _battleOptionButton.Pressed += OnBattleOptionButtonPressed;
         }
 
-        if (_battleDebugButton != null)
+        if (_battleOptionDebugButton != null)
         {
-            _battleDebugButton.Pressed += OnBattleDebugButtonPressed;
+            _battleOptionDebugButton.Pressed += OnBattleOptionDebugButtonPressed;
         }
 
         if (_battleOptionCloseButton != null)
@@ -712,7 +713,7 @@ public partial class BattleSceneController : Node2D
 
         if (_windowTitleLabel != null)
         {
-            _windowTitleLabel.GuiInput += OnCommandMenuTitleGuiInput;
+            _windowTitleLabel.GuiInput += HandleCommandMenuDragInput;
         }
 
         InitializeMapDataAndLayers();
@@ -730,6 +731,7 @@ public partial class BattleSceneController : Node2D
         BuildWeatherVisuals();
         ApplyWeatherVisual(animate: false);
         ApplyBattleLogPanelStyle();
+        ApplyBattleScrollBarStyles();
         ApplyBattleOptionDialogStyle();
         ApplyBattleHudPresentation();
         RefreshBattleLogPanel();
@@ -1128,6 +1130,7 @@ public partial class BattleSceneController : Node2D
             _monthlyBattleLimitOneDayButton,
             _battleOptionSaveLoadButton,
             _battleOptionLanguageButton,
+            _battleOptionDebugButton,
             _battleBgmToggleButton,
             _battleSfxToggleButton,
             _battleSaveSettingsButton
@@ -1190,7 +1193,7 @@ public partial class BattleSceneController : Node2D
         defenderLabel?.AddThemeColorOverride("font_outline_color", new Color(0.005f, 0.025f, 0.09f, 1.0f));
         defenderLabel?.AddThemeConstantOverride("outline_size", 2);
 
-        foreach (var button in new[] { _timeButton, _weatherButton, _windButton, _windPowerButton, _battleOptionButton, _battleDebugButton })
+        foreach (var button in new[] { _timeButton, _weatherButton, _windButton, _windPowerButton, _battleOptionButton })
         {
             if (button != null)
             {
@@ -4958,7 +4961,7 @@ public partial class BattleSceneController : Node2D
             Mathf.Clamp(desiredPosition.Y, 0.0f, maxY));
     }
 
-    private void OnCommandMenuTitleGuiInput(InputEvent @event)
+    private void HandleCommandMenuDragInput(InputEvent @event)
     {
         if (_commandMenu == null)
         {
@@ -5007,7 +5010,7 @@ public partial class BattleSceneController : Node2D
         // so measure the button stack directly before sizing the frame.
         var menuButtons = _commandMenu.GetNodeOrNull<Control>("MenuMargin/MenuButtons");
         var minimumSize = menuButtons?.GetCombinedMinimumSize() ?? Vector2.Zero;
-        minimumSize += new Vector2(36.0f, 30.0f);
+        minimumSize += new Vector2(52.0f, 48.0f);
         _commandMenu.Size = new Vector2(
             Mathf.Max(_commandMenu.CustomMinimumSize.X, minimumSize.X),
             Mathf.Max(_commandMenu.CustomMinimumSize.Y, minimumSize.Y));

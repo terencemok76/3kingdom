@@ -378,6 +378,7 @@ public partial class HudController : CanvasLayer
 
     public override void _ExitTree()
     {
+        ShutdownFloatingPanels();
         if (_localization != null)
         {
             _localization.LanguageChanged -= OnLanguageChanged;

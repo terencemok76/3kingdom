@@ -105,8 +105,8 @@ public partial class BattleSceneController
             return;
         }
 
-        const float backgroundHorizontalInset = 9.0f;
-        const float backgroundVerticalInset = 7.0f;
+        const float backgroundHorizontalInset = 10.0f;
+        const float backgroundVerticalInset = 10.0f;
         background.OffsetLeft = backgroundHorizontalInset;
         background.OffsetTop = backgroundVerticalInset;
         background.OffsetRight = -backgroundHorizontalInset;
@@ -127,8 +127,8 @@ public partial class BattleSceneController
             return;
         }
 
-        const float contentHorizontalInset = 14.0f;
-        const float contentVerticalInset = 12.0f;
+        const float contentHorizontalInset = 26.0f;
+        const float contentVerticalInset = 24.0f;
         contentMargin.OffsetLeft = contentHorizontalInset;
         contentMargin.OffsetTop = contentVerticalInset;
         contentMargin.OffsetRight = -contentHorizontalInset;

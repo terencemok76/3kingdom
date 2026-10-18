@@ -119,7 +119,6 @@ public partial class BattleSceneController
         _windButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow/WindButton");
         _windPowerButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/EnvironmentControlsRow/WindPowerButton");
         _battleOptionButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/TopBorder/TopHeaderRow/BattleOptionButton");
-        _battleDebugButton ??= GetNodeOrNull<Button>("UiLayer/TopBar/TopBorder/TopHeaderRow/BattleDebugButton");
         _battleOptionOverlay ??= GetNodeOrNull<Control>("UiLayer/BattleOptionOverlay");
         _battleDebugOverlay ??= GetNodeOrNull<Control>("UiLayer/BattleDebugOverlay");
         _battleDebugPanel ??= GetNodeOrNull<PanelContainer>("UiLayer/BattleDebugOverlay/Center/Panel");
@@ -142,6 +141,7 @@ public partial class BattleSceneController
         _battleDebugCloseButton ??= GetNodeOrNull<Button>("UiLayer/BattleDebugOverlay/Center/Panel/Margin/DebugRoot/TitleBar/CloseButton");
         _battleOptionSaveLoadButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveLoadRow/SaveLoadButton");
         _battleOptionLanguageButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/LanguageButton");
+        _battleOptionDebugButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/DebugButton");
         _battleBgmToggleButton ??= GetNodeOrNull<Button>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow/BgmToggleButton");
         _battleBgmVolumeSlider ??= GetNodeOrNull<HSlider>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow/BgmVolumeSlider");
         _battleBgmVolumeValueLabel ??= GetNodeOrNull<Label>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/BgmAudioRow/BgmVolumeValueLabel");
@@ -211,13 +211,52 @@ public partial class BattleSceneController
         }
 
         HandleBattleDebugDialogInput(@event);
+        if (DoesCommandMenuOwnInput(@event))
+        {
+            HandleCommandMenuDragInput(@event);
+            return;
+        }
+
         if (DoesBattleLogOwnInput(@event))
         {
             HandleBattleLogPanelInput(@event);
             return;
         }
 
+        if (TryHandleMapPanFromTileInfoPanel(@event))
+        {
+            return;
+        }
+
         HandleTileInfoPanelInput(@event);
+    }
+
+    private bool DoesCommandMenuOwnInput(InputEvent @event)
+    {
+        if (_isDraggingCommandMenu)
+        {
+            return true;
+        }
+
+        return @event is InputEventMouseButton
+            {
+                ButtonIndex: MouseButton.Left,
+                Pressed: true
+            } mouseButton &&
+            IsPointInCommandMenuDragSurface(mouseButton.GlobalPosition);
+    }
+
+    private bool IsPointInCommandMenuDragSurface(Vector2 globalPosition)
+    {
+        if (_commandMenu?.Visible != true ||
+            !_commandMenu.GetGlobalRect().HasPoint(globalPosition))
+        {
+            return false;
+        }
+
+        // Buttons and their scroll area retain their normal click and scroll
+        // behavior. Every other visible part of the card is a drag surface.
+        return _commandScroll == null || !_commandScroll.GetGlobalRect().HasPoint(globalPosition);
     }
 
     private bool DoesBattleLogOwnInput(InputEvent @event)
@@ -267,12 +306,6 @@ public partial class BattleSceneController
             _battleOptionButton.GetGlobalRect().HasPoint(mouseButton.GlobalPosition))
         {
             OnBattleOptionButtonPressed();
-        }
-        else if (_battleDebugButton?.Visible == true &&
-                 !_battleDebugButton.Disabled &&
-                 _battleDebugButton.GetGlobalRect().HasPoint(mouseButton.GlobalPosition))
-        {
-            OnBattleDebugButtonPressed();
         }
         else if (_endTurnButton?.Visible == true &&
                  !_endTurnButton.Disabled &&

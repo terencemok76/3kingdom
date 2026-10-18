@@ -15,11 +15,11 @@ public partial class BattleSceneController
         var allActed = HaveAllActingBattlePiecesActed();
         var turnActionsLocked = IsTurnBannerInputLocked();
 
-        if (_battleDebugButton != null)
+        if (_battleOptionDebugButton != null)
         {
-            _battleDebugButton.Visible = debugAvailable;
-            _battleDebugButton.Disabled = !debugAvailable;
-            _battleDebugButton.Text = BattleText("ui.battle.debug", "Debug");
+            _battleOptionDebugButton.Visible = debugAvailable;
+            _battleOptionDebugButton.Disabled = !debugAvailable;
+            _battleOptionDebugButton.Text = BattleText("ui.battle.debug", "Debug");
         }
         if (!debugAvailable && _battleDebugOverlay != null)
         {
@@ -183,9 +183,9 @@ public partial class BattleSceneController
 
     private void RefreshBattleDebugDialogText()
     {
-        if (_battleDebugButton != null)
+        if (_battleOptionDebugButton != null)
         {
-            _battleDebugButton.Text = BattleText("ui.battle.debug", "Debug");
+            _battleOptionDebugButton.Text = BattleText("ui.battle.debug", "Debug");
         }
         if (_battleDebugTitleLabel != null)
         {

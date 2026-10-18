@@ -29,6 +29,7 @@ public partial class HudController
     private Label? _logPanelHeaderLabel;
     private Button? _logPanelMinimizeButton;
     private Button? _logResizeHandle;
+    private Viewport? _floatingPanelViewport;
 
     private FloatingPanelKind _draggingFloatingPanel = FloatingPanelKind.None;
     private Vector2 _floatingPanelDragMouseOffset;
@@ -45,7 +46,8 @@ public partial class HudController
         _rootControl = GetNodeOrNull<Control>("Root");
         _topBarBg = GetNodeOrNull<ColorRect>("Root/TopBarBg");
         _topBar = GetNodeOrNull<HBoxContainer>("Root/TopBar");
-        var monthLabel = GetNodeOrNull<Label>("Root/TopBar/MonthLabel");
+        var yearLabel = GetNodeOrNull<Label>("Root/YearLabel");
+        var monthLabel = GetNodeOrNull<Label>("Root/MonthLabel");
         var playerFactionLabel = GetNodeOrNull<Label>("Root/TopBar/PlayerFactionLabel");
         var storyLabel = GetNodeOrNull<Label>("Root/TopBar/StoryLabel");
         var leftSpacer = GetNodeOrNull<Control>("Root/TopBar/LeftSpacer");
@@ -68,7 +70,7 @@ public partial class HudController
 
         _topBarBg.GuiInput += OnTopBarGuiInput;
         _topBar.GuiInput += OnTopBarGuiInput;
-        foreach (var dragControl in new Control?[] { monthLabel, playerFactionLabel, storyLabel, leftSpacer, rightSpacer })
+        foreach (var dragControl in new Control?[] { yearLabel, monthLabel, playerFactionLabel, storyLabel, leftSpacer, rightSpacer })
         {
             if (dragControl == null)
             {
@@ -105,7 +107,24 @@ public partial class HudController
         _mainHudUiController.ApplyTopBarLayout();
         _mainHudUiController.ApplyCityInfoLayout();
         _mainHudUiController.ApplyLogLayout();
+        _floatingPanelViewport = GetViewport();
+        _floatingPanelViewport.SizeChanged += OnFloatingPanelViewportSizeChanged;
         _floatingPanelsInitialized = true;
+        RequestFloatingPanelLayoutRefresh();
+    }
+
+    private void ShutdownFloatingPanels()
+    {
+        if (_floatingPanelViewport != null)
+        {
+            _floatingPanelViewport.SizeChanged -= OnFloatingPanelViewportSizeChanged;
+            _floatingPanelViewport = null;
+        }
+    }
+
+    private void OnFloatingPanelViewportSizeChanged()
+    {
+        _mainHudUiController?.RefreshTopBarViewportLayout();
         RequestFloatingPanelLayoutRefresh();
     }
 

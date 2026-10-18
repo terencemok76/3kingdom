@@ -23,6 +23,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public UiEventHub UiEventHub => _owner.UiEventHub;
     public MapController? MapController => _owner.MainHudMapController;
 
+    public Label? YearLabel => _owner.MainHudYearLabel;
     public Label? MonthLabel => _owner.MainHudMonthLabel;
     public Label? PlayerFactionLabel => _owner.MainHudPlayerFactionLabel;
     public Label? StoryLabel => _owner.MainHudStoryLabel;
@@ -30,6 +31,8 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public Button? GodModeButton => _owner.MainHudGodModeButton;
     public Button? TestButton => _owner.MainHudTopBarTestButton;
     public Button? EndTurnButton => _owner.MainHudEndTurnButton;
+    public Label? EndTurnButtonLabel => _owner.MainHudEndTurnButtonLabel;
+    public Button? OptionButton => _owner.MainHudOptionButton;
 
     public Label? CityNameLabel => _owner.MainHudCityNameLabel;
     public VBoxContainer? CityStatsPanel => _owner.MainHudCityStatsPanel;

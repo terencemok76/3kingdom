@@ -102,6 +102,7 @@ internal sealed class MainHudUiController
     public Vector2 GetTopBarSize() => _topBarController.GetSize();
     public void SetTopBarDraggedPosition(Vector2 targetPosition) => _topBarController.SetDraggedPosition(targetPosition);
     public void ApplyTopBarLayout() => _topBarController.ApplyLayout();
+    public void RefreshTopBarViewportLayout() => _topBarController.RefreshViewportLayout();
     public void SetTopBarTemporarilyHidden(bool hidden) => _topBarController.SetTemporarilyHidden(hidden);
     public void SetTopBarTurnState(int factionId, bool isAiTurn, bool buttonsEnabled) => _topBarController.SetTurnState(factionId, isAiTurn, buttonsEnabled);
     public void BringTopBarToFront() => _topBarController.BringToFront();

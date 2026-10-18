@@ -6,18 +6,28 @@ namespace ThreeKingdom.UI;
 internal sealed class TopBarController
 {
     private readonly MainHudUiContext _context;
-    private const float FloatingPanelViewportMargin = 8.0f;
-    private const float FloatingPanelTopClamp = 8.0f;
-    private const float TopBarWidth = 720.0f;
-    private const float TopBarHeight = 42.0f;
+    // Keep the strategic top bar horizontally inside the map frame while aligning it to the top edge.
+    private const float MapFrameContentInset = 44.0f;
+    private const float TopBarTop = 0.0f;
+    private const float TopBarWidth = 950.0f;
+    private const float TopBarHeight = 140.0f;
 
     private ColorRect? _background;
     private HBoxContainer? _content;
     private Vector2 _defaultPosition;
     private Vector2 _position;
     private Vector2 _size;
-    private readonly Vector2 _contentOffset = new(12.0f, 6.0f);
-    private Vector2 _contentSize;
+    private Vector2 _contentOffset = new(260.0f, 52.0f);
+    private Vector2 _yearOffset = new(58.0f, 34.0f);
+    private Vector2 _yearSize = new(120.0f, 24.0f);
+    private Vector2 _monthOffset = new(58.0f, 54.0f);
+    private Vector2 _monthSize = new(120.0f, 40.0f);
+    private Vector2 _designedContentSize = new(600.0f, 42.0f);
+    private Vector2 _contentSize = new(600.0f, 42.0f);
+    private Vector2 _endTurnOffset = new(681.0f, 52.0f);
+    private Vector2 _endTurnSize = new(116.0f, 42.0f);
+    private Vector2 _optionOffset = new(813.0f, 52.0f);
+    private Vector2 _optionSize = new(48.0f, 42.0f);
     private int _displayedFactionId = -1;
     private bool _displayingAiTurn;
     private bool _temporarilyHidden;
@@ -51,21 +61,26 @@ internal sealed class TopBarController
             return;
         }
 
-        _defaultPosition = _background.Position;
-        _position = _background.Position;
-        var viewportSize = _background.GetViewportRect().Size;
-        _size = new Vector2(Mathf.Min(TopBarWidth, viewportSize.X - (FloatingPanelViewportMargin * 2.0f)), TopBarHeight);
-        if (_size.X < 520.0f)
-        {
-            _size.X = Mathf.Max(420.0f, _background.Size.X);
-        }
-
-        _contentSize = new Vector2(_size.X - 24.0f, 28.0f);
-        _background.Color = new Color(0.06f, 0.06f, 0.08f, 0.9f);
+        CaptureEditorLayoutOffsets();
+        UpdateViewportLayoutMetrics();
+        _position = _defaultPosition;
+        _background.Color = new Color(0.0f, 0.0f, 0.0f, 0.0f);
         _background.MouseFilter = Control.MouseFilterEnum.Pass;
         _content.MouseFilter = Control.MouseFilterEnum.Pass;
         _content.AddThemeConstantOverride("separation", 10);
         ApplyButtonThemes();
+        ApplyLayout();
+    }
+
+    public void RefreshViewportLayout()
+    {
+        if (_background == null || _content == null)
+        {
+            return;
+        }
+
+        UpdateViewportLayoutMetrics();
+        _position = _defaultPosition;
         ApplyLayout();
     }
 
@@ -95,7 +110,11 @@ internal sealed class TopBarController
                 : (!string.IsNullOrWhiteSpace(world.StoryNameEn) ? world.StoryNameEn : world.StoryNameZhHant);
         }
 
-        if (_context.EndTurnButton != null)
+        if (_context.EndTurnButtonLabel != null)
+        {
+            _context.EndTurnButtonLabel.Text = localization.T("ui.end_turn");
+        }
+        else if (_context.EndTurnButton != null)
         {
             _context.EndTurnButton.Text = localization.T("ui.end_turn");
         }
@@ -123,12 +142,24 @@ internal sealed class TopBarController
     {
         var localization = _context.Localization;
         var world = _context.World;
-        if (_context.MonthLabel == null || localization == null || world == null)
+        if (localization == null || world == null)
         {
             return;
         }
 
-        _context.MonthLabel.Text = localization.FormatYearMonth(world.Year, world.Month);
+        if (_context.YearLabel != null)
+        {
+            _context.YearLabel.Text = localization.IsTraditionalChinese
+                ? $"{world.Year}年"
+                : world.Year.ToString();
+        }
+
+        if (_context.MonthLabel != null)
+        {
+            _context.MonthLabel.Text = localization.IsTraditionalChinese
+                ? $"{world.Month}月"
+                : $"M{world.Month}";
+        }
     }
 
     public Vector2 GetPosition() => _position;
@@ -137,7 +168,7 @@ internal sealed class TopBarController
 
     public void SetDraggedPosition(Vector2 targetPosition)
     {
-        _position = ClampPosition(targetPosition, _size.X, _size.Y);
+        _position = _defaultPosition;
         ApplyLayout();
     }
 
@@ -153,6 +184,30 @@ internal sealed class TopBarController
         _background.Size = _size;
         _content.Position = _position + _contentOffset;
         _content.Size = _contentSize;
+        if (_context.YearLabel != null)
+        {
+            _context.YearLabel.Position = _position + _yearOffset;
+            _context.YearLabel.Size = _yearSize;
+            _context.YearLabel.Visible = !_temporarilyHidden;
+        }
+        if (_context.MonthLabel != null)
+        {
+            _context.MonthLabel.Position = _position + _monthOffset;
+            _context.MonthLabel.Size = _monthSize;
+            _context.MonthLabel.Visible = !_temporarilyHidden;
+        }
+        if (_context.EndTurnButton != null)
+        {
+            _context.EndTurnButton.Position = _position + _endTurnOffset;
+            _context.EndTurnButton.Size = _endTurnSize;
+            _context.EndTurnButton.Visible = !_temporarilyHidden;
+        }
+        if (_context.OptionButton != null)
+        {
+            _context.OptionButton.Position = _position + _optionOffset;
+            _context.OptionButton.Size = _optionSize;
+            _context.OptionButton.Visible = !_temporarilyHidden;
+        }
         _background.Visible = !_temporarilyHidden;
         _content.Visible = !_temporarilyHidden;
     }
@@ -197,18 +252,74 @@ internal sealed class TopBarController
     public void BringToFront()
     {
         _context.MoveToFront(_background);
+        _context.MoveToFront(_context.YearLabel);
+        _context.MoveToFront(_context.MonthLabel);
         _context.MoveToFront(_content);
+        _context.MoveToFront(_context.EndTurnButton);
+        _context.MoveToFront(_context.OptionButton);
     }
 
     public void ApplyLoadedSettings(float x, float y)
     {
-        _position = new Vector2(x, y);
+        _position = _defaultPosition;
     }
 
     public void RestoreDefaultLayout()
     {
         _position = _defaultPosition;
         ApplyLayout();
+    }
+
+    private void UpdateViewportLayoutMetrics()
+    {
+        if (_background == null)
+        {
+            return;
+        }
+
+        var viewportSize = _background.GetViewportRect().Size;
+        _size = new Vector2(Mathf.Min(TopBarWidth, viewportSize.X - (MapFrameContentInset * 2.0f)), TopBarHeight);
+        _defaultPosition = new Vector2(
+            Mathf.Max(MapFrameContentInset, (viewportSize.X - _size.X) * 0.5f),
+            TopBarTop);
+
+        var availableContentWidth = Mathf.Max(120.0f, _size.X - _contentOffset.X - 28.0f);
+        _contentSize = new Vector2(Mathf.Min(_designedContentSize.X, availableContentWidth), _designedContentSize.Y);
+    }
+
+    private void CaptureEditorLayoutOffsets()
+    {
+        if (_background == null || _content == null)
+        {
+            return;
+        }
+
+        _contentOffset = _content.Position - _background.Position;
+        _designedContentSize = _content.Size;
+        _contentSize = _designedContentSize;
+        if (_context.YearLabel != null)
+        {
+            _yearOffset = _context.YearLabel.Position - _background.Position;
+            _yearSize = _context.YearLabel.Size;
+        }
+
+        if (_context.MonthLabel != null)
+        {
+            _monthOffset = _context.MonthLabel.Position - _background.Position;
+            _monthSize = _context.MonthLabel.Size;
+        }
+
+        if (_context.EndTurnButton != null)
+        {
+            _endTurnOffset = _context.EndTurnButton.Position - _background.Position;
+            _endTurnSize = _context.EndTurnButton.Size;
+        }
+
+        if (_context.OptionButton != null)
+        {
+            _optionOffset = _context.OptionButton.Position - _background.Position;
+            _optionSize = _context.OptionButton.Size;
+        }
     }
 
     public void PopulateSettings(OptionSettingsData settings)
@@ -249,7 +360,6 @@ internal sealed class TopBarController
         ApplySharedButtonTheme(_context.LanguageButton);
         ApplySharedButtonTheme(_context.GodModeButton);
         ApplySharedButtonTheme(_context.TestButton);
-        ApplySharedButtonTheme(_context.EndTurnButton);
     }
 
     private void ApplySharedButtonTheme(Button? button)
@@ -264,6 +374,8 @@ internal sealed class TopBarController
 
     private static void CopyButtonTheme(Button source, Button target)
     {
+        var designedMinimumSize = target.CustomMinimumSize;
+
         foreach (var name in new[] { "normal", "hover", "pressed", "disabled", "focus" })
         {
             var style = source.GetThemeStylebox(name);
@@ -281,7 +393,9 @@ internal sealed class TopBarController
             }
         }
 
-        target.CustomMinimumSize = source.CustomMinimumSize;
+        target.CustomMinimumSize = new Vector2(
+            Mathf.Max(source.CustomMinimumSize.X, designedMinimumSize.X),
+            Mathf.Max(source.CustomMinimumSize.Y, designedMinimumSize.Y));
     }
 
     private void DisconnectButtons()
@@ -344,10 +458,10 @@ internal sealed class TopBarController
             return position;
         }
 
-        var maxX = Mathf.Max(FloatingPanelViewportMargin, viewportSize.X - width - FloatingPanelViewportMargin);
-        var maxY = Mathf.Max(FloatingPanelTopClamp, viewportSize.Y - height - FloatingPanelViewportMargin);
+        var maxX = Mathf.Max(MapFrameContentInset, viewportSize.X - width - MapFrameContentInset);
+        var maxY = Mathf.Max(TopBarTop, viewportSize.Y - height);
         return new Vector2(
-            Mathf.Clamp(position.X, FloatingPanelViewportMargin, maxX),
-            Mathf.Clamp(position.Y, FloatingPanelTopClamp, maxY));
+            Mathf.Clamp(position.X, MapFrameContentInset, maxX),
+            Mathf.Clamp(position.Y, TopBarTop, maxY));
     }
 }

@@ -182,6 +182,7 @@ public partial class BattleSceneController
     private bool IsPointInCameraZoomBlockedUi(Vector2 globalPosition)
     {
         return (_topBar?.Visible == true && _topBar.GetGlobalRect().HasPoint(globalPosition)) ||
+               (_tileInfoPanel?.Visible == true && _tileInfoPanel.GetGlobalRect().HasPoint(globalPosition)) ||
                (_battleLogPanel?.Visible == true && _battleLogPanel.GetGlobalRect().HasPoint(globalPosition)) ||
                (_battleDebugOverlay?.Visible == true &&
                 _battleDebugPanel?.GetGlobalRect().HasPoint(globalPosition) == true);

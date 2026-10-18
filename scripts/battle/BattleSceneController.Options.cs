@@ -108,6 +108,12 @@ public partial class BattleSceneController
         ShowBattleOptionDialog();
     }
 
+    private void OnBattleOptionDebugButtonPressed()
+    {
+        HideBattleOptionDialog();
+        OnBattleDebugButtonPressed();
+    }
+
     private void ShowBattleOptionDialog()
     {
         RefreshBattleOptionDialogText();

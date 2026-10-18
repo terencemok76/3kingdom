@@ -15,6 +15,7 @@ internal sealed class SystemUiContext : IFloatingOverlayContext
     }
 
     public HBoxContainer? TopBar => _owner.SystemTopBar;
+    public Button? OptionButton => _owner.SystemOptionEntryButton;
     public GridContainer? CommandButtons => _owner.SystemCommandButtons;
     public TurnManager? TurnManager => _owner.SystemTurnManager;
     public WorldRepository? WorldRepository => _owner.SystemWorldRepository;

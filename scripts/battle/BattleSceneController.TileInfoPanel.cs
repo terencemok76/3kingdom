@@ -8,6 +8,56 @@ public partial class BattleSceneController
     private const float TileInfoPanelDragThreshold = 6.0f;
     private const float TileInfoPanelResizeGripSize = 24.0f;
 
+    private bool TryHandleMapPanFromTileInfoPanel(InputEvent @event)
+    {
+        if (_isPanningMapFromTileInfoPanel)
+        {
+            switch (@event)
+            {
+                case InputEventMouseMotion mouseMotion:
+                    HandleMouseMotion(mouseMotion);
+                    return true;
+                case InputEventMouseButton
+                    {
+                        ButtonIndex: MouseButton.Right,
+                        Pressed: false
+                    } mouseButton:
+                    HandleMouseButton(mouseButton);
+                    _isPanningMapFromTileInfoPanel = false;
+                    return true;
+            }
+        }
+
+        if (@event is not InputEventMouseButton
+            {
+                ButtonIndex: MouseButton.Right,
+                Pressed: true
+            } rightMouseButton ||
+            !IsPointInTileInfoPanelMapPanSurface(rightMouseButton.GlobalPosition))
+        {
+            return false;
+        }
+
+        _isPanningMapFromTileInfoPanel = true;
+        HandleMouseButton(rightMouseButton);
+        return true;
+    }
+
+    private bool IsPointInTileInfoPanelMapPanSurface(Vector2 globalPosition)
+    {
+        if (_tileInfoPanel?.Visible != true ||
+            !_tileInfoPanel.GetGlobalRect().HasPoint(globalPosition))
+        {
+            return false;
+        }
+
+        // BattleLogPanel is authored after SidePanel, so it remains the active
+        // surface when both cards overlap at the same Z index.
+        return _battleLogPanel?.Visible != true ||
+               !_battleLogPanel.GetGlobalRect().HasPoint(globalPosition) ||
+               _tileInfoPanel.ZIndex > _battleLogPanel.ZIndex;
+    }
+
     private void HandleTileInfoPanelInput(InputEvent @event)
     {
         if (_tileInfoPanel?.Visible != true)

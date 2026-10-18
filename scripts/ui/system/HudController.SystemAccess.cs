@@ -11,6 +11,7 @@ public partial class HudController
     internal Window? SystemSaveLoadDialog => _saveLoadDialog;
     internal Window? SystemSaveLoadConfirmDialog => _saveLoadConfirmDialog;
     internal HBoxContainer? SystemTopBar => GetNodeOrNull<HBoxContainer>("Root/TopBar");
+    internal Button? SystemOptionEntryButton => GetNodeOrNull<Button>("Root/OptionButton");
     internal GridContainer? SystemCommandButtons => _commandButtons;
     internal TurnManager? SystemTurnManager => _turnManager;
     internal WorldRepository? SystemWorldRepository => _worldRepository;

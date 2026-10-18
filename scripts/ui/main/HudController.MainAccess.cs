@@ -14,13 +14,16 @@ public partial class HudController
     internal CityData? MainHudSelectedCity => _selectedCity;
     internal MapController? MainHudMapController => _mapController;
 
-    internal Label? MainHudMonthLabel => GetNodeOrNull<Label>("Root/TopBar/MonthLabel");
+    internal Label? MainHudYearLabel => GetNodeOrNull<Label>("Root/YearLabel");
+    internal Label? MainHudMonthLabel => GetNodeOrNull<Label>("Root/MonthLabel");
     internal Label? MainHudPlayerFactionLabel => GetNodeOrNull<Label>("Root/TopBar/PlayerFactionLabel");
     internal Label? MainHudStoryLabel => GetNodeOrNull<Label>("Root/TopBar/StoryLabel");
     internal Button? MainHudLanguageButton => GetNodeOrNull<Button>("Root/TopBar/LanguageButton");
     internal Button? MainHudGodModeButton => GetNodeOrNull<Button>("Root/TopBar/GodModeButton");
     internal Button? MainHudTopBarTestButton => GetNodeOrNull<Button>("Root/TopBar/TestButton");
-    internal Button? MainHudEndTurnButton => GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
+    internal Button? MainHudEndTurnButton => GetNodeOrNull<Button>("Root/EndTurnButton");
+    internal Label? MainHudEndTurnButtonLabel => GetNodeOrNull<Label>("Root/EndTurnButton/Label");
+    internal Button? MainHudOptionButton => GetNodeOrNull<Button>("Root/OptionButton");
     internal Control? MainHudOverlayParent => GetNodeOrNull<Control>("Root");
 
     internal Label? MainHudCityNameLabel => GetNodeOrNull<Label>("Root/LeftPanel/CityNameLabel");

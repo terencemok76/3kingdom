@@ -573,7 +573,7 @@ public sealed partial class SelectOfficerDialog : Control
     {
         var hudController = FindAncestor<HudController>(this);
         var sourceButton = hudController?.GetNodeOrNull<Button>("Root/LeftPanel/CommandButtons/ViewButton") ??
-                           hudController?.GetNodeOrNull<Button>("Root/TopBar/EndTurnButton");
+                           hudController?.GetNodeOrNull<Button>("Root/EndTurnButton");
         if (sourceButton == null)
         {
             return;

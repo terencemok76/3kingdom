@@ -42,28 +42,30 @@ internal sealed class SystemEntryButtonController
     {
         if (_button != null)
         {
-            _button.Text = _context.GetOptionButtonText();
+            _button.Text = string.Empty;
+            _button.TooltipText = _context.GetOptionButtonText();
         }
     }
 
     private Button? EnsureButton()
     {
         var commandButtons = _context.CommandButtons;
-        var topBar = _context.TopBar;
-        if (topBar == null)
-        {
-            return null;
-        }
-
         if (commandButtons?.GetNodeOrNull<Button>("OptionButton") is { } legacyButton)
         {
             legacyButton.QueueFree();
         }
 
-        var existingButton = topBar.GetNodeOrNull<Button>("OptionButton");
+        var existingButton = _context.OptionButton;
         if (existingButton != null)
         {
+            ConfigureButton(existingButton, applySharedTheme: false);
             return existingButton;
+        }
+
+        var topBar = _context.TopBar;
+        if (topBar == null)
+        {
+            return null;
         }
 
         var button = new Button
@@ -73,9 +75,23 @@ internal sealed class SystemEntryButtonController
             FocusMode = Control.FocusModeEnum.None
         };
 
-        _context.ApplyOptionEntryTheme(button);
+        ConfigureButton(button, applySharedTheme: true);
         topBar.AddChild(button);
         topBar.MoveChild(button, Mathf.Max(topBar.GetChildCount() - 1, 0));
         return button;
+    }
+
+    private void ConfigureButton(Button button, bool applySharedTheme)
+    {
+        if (applySharedTheme)
+        {
+            _context.ApplyOptionEntryTheme(button);
+        }
+        button.Text = string.Empty;
+        button.Icon = GD.Load<Texture2D>("res://assets/ui/icons/64x64/option_btn.png");
+        button.ExpandIcon = true;
+        button.IconAlignment = HorizontalAlignment.Center;
+        button.CustomMinimumSize = new Vector2(48.0f, 42.0f);
+        button.AddThemeConstantOverride("icon_max_width", 30);
     }
 }
