@@ -15,6 +15,7 @@ public partial class HudController
     }
 
     private const float ResizeHandleSize = 30.0f;
+    private const float MinimizedButtonDragThreshold = 5.0f;
 
     private Control? _rootControl;
     private ColorRect? _topBarBg;
@@ -33,6 +34,9 @@ public partial class HudController
 
     private FloatingPanelKind _draggingFloatingPanel = FloatingPanelKind.None;
     private Vector2 _floatingPanelDragMouseOffset;
+    private Vector2 _leftPanelMinimizeDragStartMouse;
+    private bool _leftPanelMinimizeDragCandidate;
+    private bool _leftPanelMinimizeDragged;
     private bool _floatingPanelsInitialized;
     private int _pendingFloatingPanelRefreshFrames;
 
@@ -46,12 +50,9 @@ public partial class HudController
         _rootControl = GetNodeOrNull<Control>("Root");
         _topBarBg = GetNodeOrNull<ColorRect>("Root/TopBarBg");
         _topBar = GetNodeOrNull<HBoxContainer>("Root/TopBar");
-        var yearLabel = GetNodeOrNull<Label>("Root/YearLabel");
-        var monthLabel = GetNodeOrNull<Label>("Root/MonthLabel");
+        var dateLabel = GetNodeOrNull<Label>("Root/TopBar/DateLabel");
         var playerFactionLabel = GetNodeOrNull<Label>("Root/TopBar/PlayerFactionLabel");
         var storyLabel = GetNodeOrNull<Label>("Root/TopBar/StoryLabel");
-        var leftSpacer = GetNodeOrNull<Control>("Root/TopBar/LeftSpacer");
-        var rightSpacer = GetNodeOrNull<Control>("Root/TopBar/RightSpacer");
         _leftPanelBg = GetNodeOrNull<ColorRect>("Root/LeftPanelBg");
         _leftPanelContent = GetNodeOrNull<VBoxContainer>("Root/LeftPanel");
         _logPanelBg = GetNodeOrNull<ColorRect>("Root/LogPanelBg");
@@ -70,7 +71,7 @@ public partial class HudController
 
         _topBarBg.GuiInput += OnTopBarGuiInput;
         _topBar.GuiInput += OnTopBarGuiInput;
-        foreach (var dragControl in new Control?[] { yearLabel, monthLabel, playerFactionLabel, storyLabel, leftSpacer, rightSpacer })
+        foreach (var dragControl in new Control?[] { dateLabel, playerFactionLabel, storyLabel })
         {
             if (dragControl == null)
             {
@@ -81,15 +82,41 @@ public partial class HudController
             dragControl.GuiInput += OnTopBarGuiInput;
         }
 
+        ApplyPanelContentMouseFilters(_leftPanelBg);
         ApplyPanelContentMouseFilters(_leftPanelContent);
+        _leftPanelBg.MouseFilter = Control.MouseFilterEnum.Stop;
+        _leftPanelBg.GuiInput += OnLeftPanelBodyGuiInput;
+        _leftPanelContent.MouseFilter = Control.MouseFilterEnum.Stop;
+        _leftPanelContent.GuiInput += OnLeftPanelBodyGuiInput;
 
-        _leftPanelHeader = CreateFloatingPanelHeader(
-            "LeftPanelHeader",
-            _localization?.T("ui.city_panel_title") ?? "City Affairs",
-            OnLeftPanelHeaderGuiInput,
-            OnLeftPanelMinimizePressed,
-            out _leftPanelHeaderLabel,
-            out _leftPanelMinimizeButton);
+        _leftPanelHeader = GetNodeOrNull<PanelContainer>("Root/LeftPanelHeader");
+        _leftPanelMinimizeButton = GetNodeOrNull<Button>("Root/LeftPanelMinimizeButton");
+        if (_leftPanelHeader == null || _leftPanelMinimizeButton == null)
+        {
+            _leftPanelHeader = CreateFloatingPanelHeader(
+                "LeftPanelHeader",
+                _localization?.T("ui.city_panel_title") ?? "City Affairs",
+                OnLeftPanelHeaderGuiInput,
+                OnLeftPanelMinimizePressed,
+                out _leftPanelHeaderLabel,
+                out _leftPanelMinimizeButton);
+            ConfigureLeftPanelMinimizeButton(_leftPanelHeader, _leftPanelHeaderLabel, _leftPanelMinimizeButton, false);
+        }
+        else
+        {
+            _leftPanelHeaderLabel = _leftPanelHeader.GetNodeOrNull<Label>("CityBarLabel");
+            ConfigureLeftPanelMinimizeButton(_leftPanelHeader, _leftPanelHeaderLabel, _leftPanelMinimizeButton, true);
+            // Scene-authored controls do not go through CreateFloatingPanelHeader(),
+            // so they must explicitly receive the same drag handler.
+            _leftPanelHeader.GuiInput += OnLeftPanelHeaderGuiInput;
+            RegisterButtonClickSfx(_leftPanelMinimizeButton);
+        }
+        var minimizePressedCallable = Callable.From(OnLeftPanelMinimizePressed);
+        if (_leftPanelMinimizeButton.IsConnected(BaseButton.SignalName.Pressed, minimizePressedCallable))
+        {
+            _leftPanelMinimizeButton.Pressed -= OnLeftPanelMinimizePressed;
+        }
+        _leftPanelMinimizeButton.GuiInput += OnLeftPanelMinimizeButtonGuiInput;
         _logPanelHeader = CreateFloatingPanelHeader(
             "LogPanelHeader",
             _localization?.T("ui.log_panel_title") ?? "War Log",
@@ -128,7 +155,7 @@ public partial class HudController
         RequestFloatingPanelLayoutRefresh();
     }
 
-    private static void ApplyPanelContentMouseFilters(Control root)
+    private void ApplyPanelContentMouseFilters(Control root)
     {
         foreach (var child in root.GetChildren())
         {
@@ -142,9 +169,8 @@ public partial class HudController
                 continue;
             }
 
-            control.MouseFilter = control is Container
-                ? Control.MouseFilterEnum.Pass
-                : Control.MouseFilterEnum.Ignore;
+            control.MouseFilter = Control.MouseFilterEnum.Stop;
+            control.GuiInput += OnLeftPanelBodyGuiInput;
 
             ApplyPanelContentMouseFilters(control);
         }
@@ -275,6 +301,67 @@ public partial class HudController
         return header;
     }
 
+    private void ConfigureLeftPanelMinimizeButton(PanelContainer header, Label? headerLabel, Button minimizeButton, bool preserveSceneLayout)
+    {
+        var icon = GD.Load<Texture2D>("res://assets/ui/icons/128x128/minus.png");
+        if (icon == null)
+        {
+            return;
+        }
+
+        minimizeButton.Text = string.Empty;
+        minimizeButton.Icon = icon;
+        minimizeButton.ExpandIcon = true;
+        // A flat Godot button deliberately skips StyleBox backgrounds.
+        // This button uses the option-button style boxes, so it must draw.
+        minimizeButton.Flat = false;
+        if (!preserveSceneLayout)
+        {
+            minimizeButton.CustomMinimumSize = new Vector2(44.0f, 44.0f);
+        }
+
+        // Match the dark, gold-edged option button so the gold icon remains
+        // legible against both the map and the left-panel artwork.
+        var normalStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.075f, 0.065f, 0.05f, 0.96f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.58f, 0.4f, 0.15f, 1.0f),
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomRight = 6,
+            CornerRadiusBottomLeft = 6
+        };
+        var hoverStyle = (StyleBoxFlat)normalStyle.Duplicate();
+        hoverStyle.BgColor = new Color(0.15f, 0.12f, 0.075f, 0.98f);
+        var pressedStyle = (StyleBoxFlat)normalStyle.Duplicate();
+        pressedStyle.BgColor = new Color(0.035f, 0.03f, 0.025f, 1.0f);
+        minimizeButton.AddThemeStyleboxOverride("normal", normalStyle);
+        minimizeButton.AddThemeStyleboxOverride("hover", hoverStyle);
+        minimizeButton.AddThemeStyleboxOverride("pressed", pressedStyle);
+        minimizeButton.AddThemeStyleboxOverride("focus", hoverStyle);
+        if (headerLabel != null)
+        {
+            headerLabel.Visible = true;
+            headerLabel.AddThemeFontSizeOverride("font_size", 24);
+            headerLabel.AddThemeColorOverride("font_color", new Color(0.95f, 0.82f, 0.55f, 1.0f));
+        }
+        header.MouseFilter = Control.MouseFilterEnum.Stop;
+        if (minimizeButton.GetParent() != _rootControl)
+        {
+            minimizeButton.Reparent(_rootControl, false);
+            if (_leftPanelBg != null)
+            {
+                minimizeButton.Position = _leftPanelBg.Position + new Vector2(_leftPanelBg.Size.X - 56.0f, 9.0f);
+                minimizeButton.Size = new Vector2(44.0f, 44.0f);
+            }
+        }
+        minimizeButton.MoveToFront();
+    }
+
     private Button CreateResizeHandle(string name, Action<InputEvent> guiInputHandler)
     {
         var handle = new Button
@@ -354,18 +441,33 @@ public partial class HudController
 
     private void OnLeftPanelHeaderGuiInput(InputEvent @event)
     {
+        OnLeftPanelBodyGuiInput(@event);
+    }
+
+    private void OnLeftPanelBodyGuiInput(InputEvent @event)
+    {
+        if (@event is InputEventMouseMotion &&
+            _draggingFloatingPanel == FloatingPanelKind.Left &&
+            Input.IsMouseButtonPressed(MouseButton.Left) &&
+            _mainHudUiController != null)
+        {
+            var targetPosition = GetViewport().GetMousePosition() - _floatingPanelDragMouseOffset;
+            _mainHudUiController.SetCityInfoDraggedPosition(targetPosition);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event is not InputEventMouseButton mouseButton ||
             mouseButton.ButtonIndex != MouseButton.Left ||
             !mouseButton.Pressed ||
-            _mainHudUiController == null ||
-            _leftPanelHeader == null)
+            _mainHudUiController == null)
         {
             return;
         }
 
         _mainHudUiController.BringCityInfoToFront();
         _draggingFloatingPanel = FloatingPanelKind.Left;
-        _floatingPanelDragMouseOffset = GetViewport().GetMousePosition() - _leftPanelHeader.Position;
+        _floatingPanelDragMouseOffset = GetViewport().GetMousePosition() - _mainHudUiController.GetCityInfoHeaderPosition();
         GetViewport().SetInputAsHandled();
     }
 
@@ -390,6 +492,72 @@ public partial class HudController
     {
         _mainHudUiController?.ToggleCityInfoMinimized();
         SaveOptionSettings();
+    }
+
+    private void OnLeftPanelMinimizeButtonGuiInput(InputEvent @event)
+    {
+        if (_mainHudUiController == null)
+        {
+            return;
+        }
+
+        if (@event is InputEventMouseButton mouseButton && mouseButton.ButtonIndex == MouseButton.Left)
+        {
+            if (mouseButton.Pressed)
+            {
+                _leftPanelMinimizeDragCandidate = true;
+                _leftPanelMinimizeDragged = false;
+                _leftPanelMinimizeDragStartMouse = mouseButton.Position;
+
+                if (_mainHudUiController.IsCityInfoMinimized())
+                {
+                    _mainHudUiController.BringCityInfoToFront();
+                    _floatingPanelDragMouseOffset = mouseButton.Position - _mainHudUiController.GetCityInfoHeaderPosition();
+                }
+
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+
+            if (!_leftPanelMinimizeDragCandidate)
+            {
+                return;
+            }
+
+            var wasDrag = _leftPanelMinimizeDragged;
+            _leftPanelMinimizeDragCandidate = false;
+            _leftPanelMinimizeDragged = false;
+            if (wasDrag)
+            {
+                SaveOptionSettings();
+            }
+            else
+            {
+                OnLeftPanelMinimizePressed();
+            }
+
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (@event is not InputEventMouseMotion mouseMotion ||
+            (mouseMotion.ButtonMask & MouseButtonMask.Left) == 0 ||
+            !_leftPanelMinimizeDragCandidate ||
+            !_mainHudUiController.IsCityInfoMinimized())
+        {
+            return;
+        }
+
+        if (!_leftPanelMinimizeDragged &&
+            mouseMotion.Position.DistanceTo(_leftPanelMinimizeDragStartMouse) < MinimizedButtonDragThreshold)
+        {
+            return;
+        }
+
+        _leftPanelMinimizeDragged = true;
+        var targetPosition = mouseMotion.Position - _floatingPanelDragMouseOffset;
+        _mainHudUiController.SetCityInfoDraggedPosition(targetPosition);
+        GetViewport().SetInputAsHandled();
     }
 
     private void OnLogPanelMinimizePressed()

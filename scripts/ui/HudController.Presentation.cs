@@ -422,16 +422,18 @@ public partial class HudController : CanvasLayer
         string LeftTooltip = "",
         string RightTooltip = "");
 
-    private void PopulateCityStatsPanel(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount)
+    private void PopulateCityStatsPanel(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount, CityInfoDataTab tab)
     {
         foreach (var child in panel.GetChildren())
         {
             child.QueueFree();
         }
 
-        foreach (var row in BuildCityStatRows(ownerName, city, freeOfficerCount))
+        var rowIndex = 0;
+        foreach (var row in BuildCityStatRows(ownerName, city, freeOfficerCount, tab))
         {
-            panel.AddChild(CreateCityStatsRowControl(row));
+            panel.AddChild(CreateCityStatsRowControl(row, rowIndex));
+            rowIndex += 1;
         }
     }
 
@@ -452,7 +454,7 @@ public partial class HudController : CanvasLayer
         return _localization.FormatCityHeader($"{cityName}{authorizationSuffix}");
     }
 
-    private IReadOnlyList<CityStatRowDefinition> BuildCityStatRows(string ownerName, CityData? city, int freeOfficerCount)
+    private IReadOnlyList<CityStatRowDefinition> BuildCityStatRows(string ownerName, CityData? city, int freeOfficerCount, CityInfoDataTab tab)
     {
         if (_localization == null)
         {
@@ -468,61 +470,108 @@ public partial class HudController : CanvasLayer
         var prefectLabel = showPrefect ? BuildPrefectLabel() : string.Empty;
         var prefectValue = showPrefect && city != null ? BuildPrefectNameText(city) : string.Empty;
 
-        if (city == null)
-        {
-            return new[]
-            {
-                new CityStatRowDefinition(_localization.T("ui.faction_owner"), ownerName, string.Empty, string.Empty),
-                new CityStatRowDefinition(_localization.T("ui.gold"), "0", _localization.T("ui.food"), "0"),
-                new CityStatRowDefinition(_localization.T("ui.horse"), "0", _localization.T("ui.population"), "0"),
-                new CityStatRowDefinition(_localization.T("ui.farm"), "0", _localization.T("ui.commercial"), "0"),
-                new CityStatRowDefinition(_localization.T("ui.defense"), "0", _localization.T("ui.disaster_prevention"), "0"),
-                new CityStatRowDefinition(_localization.T("ui.bow_workshop"), _localization.Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0)), _localization.T("ui.siege_workshop"), _localization.Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0))),
-                new CityStatRowDefinition(_localization.T("ui.horse_pasture"), _localization.Format("fmt.facility_level_progress", 0, 0, ConstructionRules.GetRequiredPointsForNextLevel(0)), string.Empty, string.Empty),
-                new CityStatRowDefinition(_localization.T("ui.loyalty"), "0", string.Empty, string.Empty),
-                new CityStatRowDefinition(_localization.T("ui.officers"), "0", _localization.T("ui.free_officers"), "0"),
-                new CityStatRowDefinition(_localization.T("ui.troops"), "0", string.Empty, string.Empty),
-                new CityStatRowDefinition(_localization.T("troop_type.infantry"), "0", _localization.T("troop_type.spearman"), "0"),
-                new CityStatRowDefinition(_localization.T("troop_type.cavalry"), "0", _localization.T("troop_type.archer"), "0"),
-                new CityStatRowDefinition(_localization.T("troop_type.crossbow"), "0", _localization.T("troop_type.engineer"), "0")
-            };
-        }
+        var emptyFacility = _localization.Format(
+            "fmt.facility_level_progress",
+            0,
+            0,
+            ConstructionRules.GetRequiredPointsForNextLevel(0));
+        string Number(int value) => city == null ? "0" : MaskedNumberText(canViewCity, value);
+        string Storage(MarketProductType type) => city == null
+            ? "0"
+            : canViewCity
+                ? _localization.FormatStorageAmount(city, type)
+                : UnknownInfoText;
+        string Facility(ConstructionProjectType type) => city == null
+            ? emptyFacility
+            : canViewCity
+                ? _localization.FormatFacilityProgress(city, type)
+                : UnknownInfoText;
+        string FacilityTooltip(ConstructionProjectType type) => city != null && canViewCity
+            ? _localization.FormatFacilityTooltip(city, type)
+            : string.Empty;
 
-        var rows = new List<CityStatRowDefinition>
+        var ownerRow = new CityStatRowDefinition(
+            _localization.T("ui.faction_owner"),
+            city == null ? ownerName : ownerValue,
+            prefectLabel,
+            prefectValue);
+        var goldFoodRow = new CityStatRowDefinition(
+            _localization.T("ui.gold"),
+            Number(city?.Gold ?? 0),
+            _localization.T("ui.food"),
+            Storage(MarketProductType.Food));
+        var populationLoyaltyRow = new CityStatRowDefinition(
+            _localization.T("ui.population"),
+            Number(city?.Population ?? 0),
+            _localization.T("ui.loyalty"),
+            Number(city?.Loyalty ?? 0));
+        var officersRow = new CityStatRowDefinition(
+            _localization.T("ui.officers"),
+            Number(city?.OfficerIds.Count ?? 0),
+            _localization.T("ui.free_officers"),
+            Number(freeOfficerCount));
+        var troopsDefenseRow = new CityStatRowDefinition(
+            _localization.T("ui.troops"),
+            Number(city?.Troops ?? 0),
+            _localization.T("ui.defense"),
+            Number(city?.Defense ?? 0));
+        var farmCommercialRow = new CityStatRowDefinition(
+            _localization.T("ui.farm"),
+            Number(city?.Farm ?? 0),
+            _localization.T("ui.commercial"),
+            Number(city?.Commercial ?? 0));
+
+        return tab switch
         {
-            new(_localization.T("ui.faction_owner"), ownerValue, prefectLabel, prefectValue)
+            CityInfoDataTab.Resources =>
+            [
+                goldFoodRow,
+                new CityStatRowDefinition(_localization.T("ui.horse"), Storage(MarketProductType.Horse), _localization.T("ui.resource_deposits"), city == null ? _localization.T("ui.none") : canViewCity ? BuildResourceDepositSummary(city) : UnknownInfoText),
+                new CityStatRowDefinition(_localization.T("ui.wood"), Storage(MarketProductType.Wood), _localization.T("ui.metal"), Storage(MarketProductType.Metal)),
+                new CityStatRowDefinition(_localization.T("ui.stone"), Storage(MarketProductType.Stone), string.Empty, string.Empty)
+            ],
+            CityInfoDataTab.Military =>
+            [
+                troopsDefenseRow,
+                officersRow,
+                new CityStatRowDefinition(_localization.T("troop_type.infantry"), Number(city?.InfantryTroops ?? 0), _localization.T("troop_type.spearman"), Number(city?.SpearmanTroops ?? 0)),
+                new CityStatRowDefinition(_localization.T("troop_type.cavalry"), Number(city?.CavalryTroops ?? 0), _localization.T("troop_type.archer"), Number(city?.ArcherTroops ?? 0)),
+                new CityStatRowDefinition(_localization.T("troop_type.crossbow"), Number(city?.CrossbowTroops ?? 0), _localization.T("troop_type.engineer"), Number(city?.EngineerTroops ?? 0))
+            ],
+            CityInfoDataTab.Construction =>
+            [
+                new CityStatRowDefinition(_localization.T("ui.bow_workshop"), Facility(ConstructionProjectType.BowWorkshop), _localization.T("ui.siege_workshop"), Facility(ConstructionProjectType.SiegeWorkshop), FacilityTooltip(ConstructionProjectType.BowWorkshop), city != null && canViewCity ? _localization.FormatSiegeWorkshopTooltip(city) : string.Empty),
+                new CityStatRowDefinition(_localization.T("ui.horse_pasture"), Facility(ConstructionProjectType.HorsePasture), _localization.T("ui.horse_stable"), Facility(ConstructionProjectType.HorseStable), FacilityTooltip(ConstructionProjectType.HorsePasture), FacilityTooltip(ConstructionProjectType.HorseStable)),
+                new CityStatRowDefinition(_localization.T("ui.granary"), Facility(ConstructionProjectType.Granary), _localization.T("ui.resource_depot"), Facility(ConstructionProjectType.ResourceDepot), FacilityTooltip(ConstructionProjectType.Granary), FacilityTooltip(ConstructionProjectType.ResourceDepot))
+            ],
+            CityInfoDataTab.Domestic =>
+            [
+                ownerRow,
+                populationLoyaltyRow,
+                farmCommercialRow,
+                new CityStatRowDefinition(_localization.T("ui.defense"), Number(city?.Defense ?? 0), _localization.T("ui.disaster_prevention"), Number(city?.DisasterPrevention ?? 0))
+            ],
+            _ =>
+            [
+                ownerRow,
+                goldFoodRow,
+                populationLoyaltyRow,
+                officersRow,
+                troopsDefenseRow,
+                farmCommercialRow
+            ]
         };
-
-        rows.AddRange(
-        [
-            new CityStatRowDefinition(_localization.T("ui.gold"), MaskedNumberText(canViewCity, city.Gold), _localization.T("ui.food"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Food) : UnknownInfoText),
-            new CityStatRowDefinition(_localization.T("ui.horse"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Horse) : UnknownInfoText, _localization.T("ui.population"), MaskedNumberText(canViewCity, city.Population)),
-            new CityStatRowDefinition(_localization.T("ui.wood"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Wood) : UnknownInfoText, _localization.T("ui.metal"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Metal) : UnknownInfoText),
-            new CityStatRowDefinition(_localization.T("ui.stone"), canViewCity ? _localization.FormatStorageAmount(city, MarketProductType.Stone) : UnknownInfoText, _localization.T("ui.resource_deposits"), canViewCity ? BuildResourceDepositSummary(city) : UnknownInfoText),
-            new CityStatRowDefinition(_localization.T("ui.farm"), MaskedNumberText(canViewCity, city.Farm), _localization.T("ui.commercial"), MaskedNumberText(canViewCity, city.Commercial)),
-            new CityStatRowDefinition(_localization.T("ui.defense"), MaskedNumberText(canViewCity, city.Defense), _localization.T("ui.disaster_prevention"), MaskedNumberText(canViewCity, city.DisasterPrevention)),
-            new CityStatRowDefinition(
-                _localization.T("ui.bow_workshop"),
-                canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.BowWorkshop) : UnknownInfoText,
-                _localization.T("ui.siege_workshop"),
-                canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.SiegeWorkshop) : UnknownInfoText,
-                LeftTooltip: canViewCity ? _localization.FormatFacilityTooltip(city, ConstructionProjectType.BowWorkshop) : string.Empty,
-                RightTooltip: canViewCity ? _localization.FormatSiegeWorkshopTooltip(city) : string.Empty),
-            new CityStatRowDefinition(_localization.T("ui.horse_pasture"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorsePasture) : UnknownInfoText, _localization.T("ui.horse_stable"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.HorseStable) : UnknownInfoText, LeftTooltip: canViewCity ? _localization.FormatFacilityTooltip(city, ConstructionProjectType.HorsePasture) : string.Empty, RightTooltip: canViewCity ? _localization.FormatFacilityTooltip(city, ConstructionProjectType.HorseStable) : string.Empty),
-            new CityStatRowDefinition(_localization.T("ui.granary"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.Granary) : UnknownInfoText, string.Empty, string.Empty, LeftTooltip: canViewCity ? _localization.FormatFacilityTooltip(city, ConstructionProjectType.Granary) : string.Empty),
-            new CityStatRowDefinition(_localization.T("ui.resource_depot"), canViewCity ? _localization.FormatFacilityProgress(city, ConstructionProjectType.ResourceDepot) : UnknownInfoText, string.Empty, string.Empty, LeftTooltip: canViewCity ? _localization.FormatFacilityTooltip(city, ConstructionProjectType.ResourceDepot) : string.Empty),
-            new CityStatRowDefinition(_localization.T("ui.loyalty"), MaskedNumberText(canViewCity, city.Loyalty), string.Empty, string.Empty),
-            new CityStatRowDefinition(_localization.T("ui.officers"), MaskedNumberText(canViewCity, city.OfficerIds.Count), _localization.T("ui.free_officers"), MaskedNumberText(canViewCity, freeOfficerCount)),
-            new CityStatRowDefinition(_localization.T("ui.troops"), MaskedNumberText(canViewCity, city.Troops), string.Empty, string.Empty),
-            new CityStatRowDefinition(_localization.T("troop_type.infantry"), MaskedNumberText(canViewCity, city.InfantryTroops), _localization.T("troop_type.spearman"), MaskedNumberText(canViewCity, city.SpearmanTroops)),
-            new CityStatRowDefinition(_localization.T("troop_type.cavalry"), MaskedNumberText(canViewCity, city.CavalryTroops), _localization.T("troop_type.archer"), MaskedNumberText(canViewCity, city.ArcherTroops)),
-            new CityStatRowDefinition(_localization.T("troop_type.crossbow"), MaskedNumberText(canViewCity, city.CrossbowTroops), _localization.T("troop_type.engineer"), MaskedNumberText(canViewCity, city.EngineerTroops))
-        ]);
-        return rows;
     }
 
-    private Control CreateCityStatsRowControl(CityStatRowDefinition row)
+    private Control CreateCityStatsRowControl(CityStatRowDefinition row, int rowIndex)
     {
+        var rowPanel = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(0.0f, 23.0f),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            TooltipText = string.IsNullOrWhiteSpace(row.LeftTooltip) ? row.RightTooltip : row.LeftTooltip,
+            MouseFilter = Control.MouseFilterEnum.Pass
+        };
         var container = new HBoxContainer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
@@ -530,11 +579,26 @@ public partial class HudController : CanvasLayer
         };
         container.AddThemeConstantOverride("separation", 6);
 
+        var rowStyle = new StyleBoxFlat
+        {
+            BgColor = rowIndex % 2 == 0
+                ? new Color(0.08f, 0.075f, 0.065f, 0.78f)
+                : new Color(0.045f, 0.043f, 0.038f, 0.72f),
+            BorderWidthBottom = 1,
+            BorderColor = new Color(0.35f, 0.27f, 0.14f, 0.55f),
+            ContentMarginLeft = 4,
+            ContentMarginRight = 4,
+            ContentMarginTop = 2,
+            ContentMarginBottom = 2
+        };
+        rowPanel.AddThemeStyleboxOverride("panel", rowStyle);
+        rowPanel.AddChild(container);
+
         container.AddChild(CreateCityStatsLabelCell(row.LeftLabel, 48, HorizontalAlignment.Left, true, row.LeftTooltip));
         container.AddChild(CreateCityStatsValueCell(row.LeftValue, 90, row.LeftTooltip));
         container.AddChild(CreateCityStatsLabelCell(row.RightLabel, 48, HorizontalAlignment.Left, false, row.RightTooltip));
         container.AddChild(CreateCityStatsValueCell(row.RightValue, 0, row.RightTooltip));
-        return container;
+        return rowPanel;
     }
 
     private static Label CreateCityStatsLabelCell(string text, int minimumWidth, HorizontalAlignment alignment, bool visibleWhenEmpty, string tooltip)
@@ -546,8 +610,9 @@ public partial class HudController : CanvasLayer
             CustomMinimumSize = new Vector2(minimumWidth, 0.0f),
             Visible = visibleWhenEmpty || !string.IsNullOrWhiteSpace(text),
             TooltipText = tooltip,
-            MouseFilter = Control.MouseFilterEnum.Stop
+            MouseFilter = Control.MouseFilterEnum.Pass
         };
+        label.AddThemeColorOverride("font_color", new Color(0.83f, 0.69f, 0.43f, 1.0f));
         return label;
     }
 
@@ -559,8 +624,9 @@ public partial class HudController : CanvasLayer
             SizeFlagsHorizontal = minimumWidth > 0 ? Control.SizeFlags.Fill : Control.SizeFlags.ExpandFill,
             AutowrapMode = TextServer.AutowrapMode.Off,
             TooltipText = tooltip,
-            MouseFilter = Control.MouseFilterEnum.Stop
+            MouseFilter = Control.MouseFilterEnum.Pass
         };
+        label.AddThemeColorOverride("font_color", new Color(0.94f, 0.91f, 0.82f, 1.0f));
         if (minimumWidth > 0)
         {
             label.CustomMinimumSize = new Vector2(minimumWidth, 0.0f);

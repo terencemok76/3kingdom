@@ -111,6 +111,7 @@ internal sealed class MainHudUiController
     public void RestoreTopBarLayout() => _topBarController.RestoreDefaultLayout();
 
     public Vector2 GetCityInfoHeaderPosition() => _cityInfoPanelController.GetHeaderPosition();
+    public bool IsCityInfoMinimized() => _cityInfoPanelController.IsMinimized();
     public float GetCityInfoHeaderWidth() => _cityInfoPanelController.GetHeaderWidth();
     public float GetCityInfoTotalHeight() => _cityInfoPanelController.GetTotalHeight();
     public void SetCityInfoDraggedPosition(Vector2 targetPosition) => _cityInfoPanelController.SetDraggedPosition(targetPosition);

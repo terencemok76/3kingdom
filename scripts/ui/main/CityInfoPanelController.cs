@@ -6,16 +6,33 @@ using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
+internal enum CityInfoDataTab
+{
+    Overview,
+    Resources,
+    Military,
+    Construction,
+    Domestic
+}
+
 internal sealed class CityInfoPanelController
 {
     private const int CityNameEnglishFontSize = 14;
     private const int CityStatsEnglishFontSize = 12;
     private const int CityCommandButtonEnglishFontSize = 12;
-    private const float FloatingPanelHeaderHeight = 30.0f;
+    private const float FloatingPanelHeaderHeight = 0.0f;
+    private const float CityBarHeight = 56.0f;
+    private const float CityBarButtonInset = 12.0f;
     private const float FloatingPanelViewportMargin = 8.0f;
     private const float FloatingPanelTopClamp = 8.0f;
-    private const float LeftPanelMinimizedWidth = 176.0f;
     private const float LeftPanelMinimumHeight = 260.0f;
+    private const float LeftPanelBottomPadding = 56.0f;
+    private const string LeftPanelMinimizeIconPath = "res://assets/ui/icons/128x128/minus.png";
+    private const string LeftPanelMaximizeIconPath = "res://assets/ui/icons/128x128/plus.png";
+    private static readonly Vector2 DefaultLeftPanelMinimizeButtonSize = new(44.0f, 44.0f);
+    // leftPanel_2.png has a decorative outer frame.  Keep the draggable city
+    // bar inside its usable inner area, aligned with the tabs and data content.
+    private static readonly Vector2 CityBarOffset = new(28.0f, 14.0f);
 
     private readonly MainHudUiContext _context;
     private PanelContainer? _header;
@@ -30,6 +47,10 @@ internal sealed class CityInfoPanelController
     private Vector2 _contentOffset;
     private Vector2 _defaultContentSize;
     private Vector2 _contentSize;
+    private Vector2 _minimizeButtonSize = DefaultLeftPanelMinimizeButtonSize;
+    private Texture2D? _minimizeButtonIcon;
+    private Texture2D? _maximizeButtonIcon;
+    private StyleBox? _minimizedCityBarStyle;
     private bool _minimized;
     private bool _temporarilyHidden;
     private bool _developButtonConnected;
@@ -46,6 +67,12 @@ internal sealed class CityInfoPanelController
     private bool _viewButtonConnected;
     private bool _strategicMapButtonConnected;
     private bool _testCaptureButtonConnected;
+    private bool _overviewTabConnected;
+    private bool _resourcesTabConnected;
+    private bool _militaryTabConnected;
+    private bool _constructionTabConnected;
+    private bool _domesticTabConnected;
+    private CityInfoDataTab _selectedDataTab = CityInfoDataTab.Overview;
 
     public CityInfoPanelController(MainHudUiContext context)
     {
@@ -68,6 +95,12 @@ internal sealed class CityInfoPanelController
         _minimizeButton = minimizeButton;
         _background = background;
         _content = content;
+        if (_header != null)
+        {
+            // Editor defaults to the expanded, frameless presentation.  The
+            // bordered version is created only for the collapsed city bar.
+            _minimizedCityBarStyle = CreateMinimizedCityBarStyle();
+        }
         if (_background == null || _content == null)
         {
             return;
@@ -81,9 +114,18 @@ internal sealed class CityInfoPanelController
         _contentOffset = (_content.Position - originalPosition) + new Vector2(0.0f, FloatingPanelHeaderHeight);
         _defaultContentSize = new Vector2(_content.Size.X, _content.Size.Y - FloatingPanelHeaderHeight);
         _contentSize = _defaultContentSize;
+        if (_minimizeButton != null)
+        {
+            _minimizeButtonIcon = _minimizeButton.Icon ?? GD.Load<Texture2D>(LeftPanelMinimizeIconPath);
+            _maximizeButtonIcon = GD.Load<Texture2D>(LeftPanelMaximizeIconPath);
+            if (_minimizeButton.Size.X > 0.0f && _minimizeButton.Size.Y > 0.0f)
+            {
+                _minimizeButtonSize = _minimizeButton.Size;
+            }
+        }
         if (_background != null)
         {
-            _background.MouseFilter = Control.MouseFilterEnum.Ignore;
+            _background.MouseFilter = Control.MouseFilterEnum.Stop;
         }
         if (_content != null)
         {
@@ -104,6 +146,12 @@ internal sealed class CityInfoPanelController
         {
             _context.CommandsTitle.Text = localization.T("ui.commands");
         }
+
+        SetButtonText(_context.OverviewTab, localization.T("ui.city_tab_overview"));
+        SetButtonText(_context.ResourcesTab, localization.T("ui.city_tab_resources"));
+        SetButtonText(_context.MilitaryTab, localization.T("ui.city_tab_military"));
+        SetButtonText(_context.ConstructionTab, localization.T("ui.city_tab_construction"));
+        SetButtonText(_context.DomesticTab, localization.T("ui.city_tab_domestic"));
 
         SetButtonText(_context.DevelopButton, localization.T("ui.internal_affairs"));
         SetButtonText(_context.RecruitButton, localization.T("ui.military"));
@@ -130,6 +178,7 @@ internal sealed class CityInfoPanelController
             _context.AttackButton.Visible = false;
         }
 
+        UpdateDataTabStates();
         ApplyTypography();
         RefreshPanelTitle();
         RefreshSelectedCity();
@@ -137,9 +186,14 @@ internal sealed class CityInfoPanelController
 
     public void RefreshPanelTitle()
     {
+        RefreshCityBarLabel(_context.SelectedCity);
+    }
+
+    private void RefreshCityBarLabel(CityData? city)
+    {
         if (_context.CityPanelHeaderLabel != null)
         {
-            _context.CityPanelHeaderLabel.Text = _context.Localization?.T("ui.city_panel_title") ?? "City Info";
+            _context.CityPanelHeaderLabel.Text = _context.BuildCityHeaderText(city);
         }
     }
 
@@ -159,10 +213,11 @@ internal sealed class CityInfoPanelController
             {
                 _context.CityNameLabel.Text = _context.BuildCityHeaderText(null);
             }
+            RefreshCityBarLabel(null);
 
             if (_context.CityStatsPanel != null)
             {
-                _context.PopulateCityStats(_context.CityStatsPanel, "-", null, 0);
+                _context.PopulateCityStats(_context.CityStatsPanel, "-", null, 0, _selectedDataTab);
                 ApplyCityStatsTypography(_context.CityStatsPanel, localization.IsTraditionalChinese);
             }
 
@@ -175,6 +230,7 @@ internal sealed class CityInfoPanelController
         {
             _context.CityNameLabel.Text = _context.BuildCityHeaderText(selectedCity);
         }
+        RefreshCityBarLabel(selectedCity);
 
         if (_context.CityStatsPanel != null)
         {
@@ -182,7 +238,7 @@ internal sealed class CityInfoPanelController
             var freeOfficerCount = world.Officers.Count(officer =>
                 officer.CityId == selectedCity.Id &&
                 FreeOfficerMovement.IsVisibleFreeOfficer(world, officer));
-            _context.PopulateCityStats(_context.CityStatsPanel, ownerName, selectedCity, freeOfficerCount);
+            _context.PopulateCityStats(_context.CityStatsPanel, ownerName, selectedCity, freeOfficerCount, _selectedDataTab);
             ApplyCityStatsTypography(_context.CityStatsPanel, localization.IsTraditionalChinese);
         }
 
@@ -190,22 +246,30 @@ internal sealed class CityInfoPanelController
         _context.RequestFloatingPanelLayoutRefresh();
     }
 
-    public Vector2 GetHeaderPosition() => _headerPosition;
+    // Consumers use this for mouse-offset calculations, so expose the actual
+    // visible bar position rather than the invisible outer-frame origin.
+    public Vector2 GetHeaderPosition() => _headerPosition + CityBarOffset;
 
-    public float GetHeaderWidth() => _minimized ? LeftPanelMinimizedWidth : _backgroundSize.X;
+    public bool IsMinimized() => _minimized;
+
+    public float GetHeaderWidth() => Mathf.Max(1.0f, _backgroundSize.X - (CityBarOffset.X * 2.0f));
 
     public float GetTotalHeight()
     {
         return _minimized
-            ? FloatingPanelHeaderHeight
+            ? CityBarHeight
             : Mathf.Max(
-                FloatingPanelHeaderHeight + _backgroundOffset.Y + _backgroundSize.Y,
-                FloatingPanelHeaderHeight + _contentOffset.Y + _contentSize.Y);
+                CityBarHeight,
+                Mathf.Max(
+                    _backgroundOffset.Y + _backgroundSize.Y,
+                    _contentOffset.Y + _contentSize.Y));
     }
 
     public void SetDraggedPosition(Vector2 targetPosition)
     {
-        _headerPosition = ClampPosition(targetPosition, GetHeaderWidth(), GetTotalHeight());
+        // targetPosition is the city bar's position; store the enclosing panel
+        // origin so the frame, content, and bar continue to move together.
+        _headerPosition = targetPosition - CityBarOffset;
         ApplyLayout();
     }
 
@@ -224,11 +288,28 @@ internal sealed class CityInfoPanelController
 
         ClampSizeToCurrentLimits();
         var headerWidth = GetHeaderWidth();
-        _headerPosition = ClampPosition(_headerPosition, headerWidth, GetTotalHeight());
-        _header.Position = _headerPosition;
-        _header.Size = new Vector2(headerWidth, FloatingPanelHeaderHeight);
-        _minimizeButton.Text = _minimized ? "+" : "-";
+        _headerPosition = _minimized
+            ? ClampPosition(_headerPosition + CityBarOffset, headerWidth, CityBarHeight) - CityBarOffset
+            : ClampPosition(_headerPosition, _backgroundSize.X, GetTotalHeight());
+        var cityBarPosition = _headerPosition + CityBarOffset;
+        _header.Position = cityBarPosition;
+        _header.Size = new Vector2(headerWidth, CityBarHeight);
+        // The full panel already has its own gold frame.  Showing a second
+        // city-bar frame inside it looks like a duplicate, so only use it
+        // when the city bar is the collapsed panel itself.
+        _header.AddThemeStyleboxOverride(
+            "panel",
+            _minimized ? _minimizedCityBarStyle ?? new StyleBoxEmpty() : new StyleBoxEmpty());
+        _minimizeButton.Text = string.Empty;
+        _minimizeButton.Icon = _minimized
+            ? _maximizeButtonIcon ?? _minimizeButtonIcon
+            : _minimizeButtonIcon;
         _header.Visible = !_temporarilyHidden;
+        _minimizeButton.Visible = !_temporarilyHidden;
+        _minimizeButton.Position = cityBarPosition + new Vector2(
+            headerWidth - _minimizeButtonSize.X - CityBarButtonInset,
+            (CityBarHeight - _minimizeButtonSize.Y) * 0.5f);
+        _minimizeButton.Size = _minimizeButtonSize;
 
         _background.Visible = !_temporarilyHidden && !_minimized;
         _content.Visible = !_temporarilyHidden && !_minimized;
@@ -248,6 +329,7 @@ internal sealed class CityInfoPanelController
         _context.MoveToFront(_background);
         _context.MoveToFront(_content);
         _context.MoveToFront(_header);
+        _context.MoveToFront(_minimizeButton);
     }
 
     public void CollectVisiblePanelControls(System.Collections.Generic.List<Control> controls)
@@ -255,6 +337,7 @@ internal sealed class CityInfoPanelController
         AddVisibleControl(controls, _header);
         AddVisibleControl(controls, _background);
         AddVisibleControl(controls, _content);
+        AddVisibleControl(controls, _minimizeButton);
     }
 
     public void SetTemporarilyHidden(bool hidden)
@@ -275,8 +358,9 @@ internal sealed class CityInfoPanelController
 
         if (height > 0.0f)
         {
-            _backgroundSize.Y = GetPreferredHeight();
-            _contentSize.Y = Mathf.Max(GetMinimumContentHeight(), _backgroundSize.Y - 20.0f);
+            var minimumContentHeight = GetMinimumContentHeight();
+            _backgroundSize.Y = GetPreferredHeight(minimumContentHeight);
+            _contentSize.Y = minimumContentHeight;
         }
     }
 
@@ -300,51 +384,53 @@ internal sealed class CityInfoPanelController
 
     private void ClampSizeToCurrentLimits()
     {
-        _backgroundSize = new Vector2(_defaultBackgroundSize.X, GetPreferredHeight());
-        _contentSize = new Vector2(_defaultContentSize.X, Mathf.Max(GetMinimumContentHeight(), _backgroundSize.Y - 20.0f));
+        var minimumContentHeight = GetMinimumContentHeight();
+        _backgroundSize = new Vector2(_defaultBackgroundSize.X, GetPreferredHeight(minimumContentHeight));
+        _contentSize = new Vector2(_defaultContentSize.X, minimumContentHeight);
+    }
+
+    private static StyleBoxFlat CreateMinimizedCityBarStyle()
+    {
+        return new StyleBoxFlat
+        {
+            ContentMarginLeft = 18.0f,
+            ContentMarginTop = 8.0f,
+            ContentMarginRight = 62.0f,
+            ContentMarginBottom = 8.0f,
+            BgColor = new Color(0.025f, 0.022f, 0.018f, 0.9f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            BorderColor = new Color(0.58f, 0.4f, 0.15f, 0.9f),
+            CornerRadiusTopLeft = 5,
+            CornerRadiusTopRight = 5,
+            CornerRadiusBottomRight = 5,
+            CornerRadiusBottomLeft = 5
+        };
     }
 
     private float GetPreferredHeight()
     {
-        return Mathf.Max(LeftPanelMinimumHeight, GetMinimumContentHeight() + 20.0f) + 4.0f;
+        return GetPreferredHeight(GetMinimumContentHeight());
+    }
+
+    private float GetPreferredHeight(float minimumContentHeight)
+    {
+        var contentTopInset = Mathf.Max(0.0f, _contentOffset.Y - _backgroundOffset.Y);
+        return Mathf.Max(
+            LeftPanelMinimumHeight,
+            contentTopInset + minimumContentHeight + LeftPanelBottomPadding);
     }
 
     private float GetMinimumContentHeight()
     {
-        var commandBottom = 0.0f;
-        if (_context.CommandsTitle != null && _context.CommandsTitle.Visible)
-        {
-            commandBottom = Mathf.Max(commandBottom, _context.CommandsTitle.Position.Y + _context.CommandsTitle.Size.Y);
-        }
-
-        var commandButtons = _context.DevelopButton?.GetParent() as Control;
-        if (commandButtons != null && commandButtons.Visible)
-        {
-            commandBottom = Mathf.Max(commandBottom, commandButtons.Position.Y + commandButtons.Size.Y);
-        }
-
-        if (commandBottom > 0.0f)
-        {
-            return Mathf.Max(180.0f, commandBottom + 12.0f);
-        }
-
         if (_content == null)
         {
             return 180.0f;
         }
 
-        var maxBottom = 0.0f;
-        foreach (var child in _content.GetChildren())
-        {
-            if (child is not Control control || !control.Visible)
-            {
-                continue;
-            }
-
-            maxBottom = Mathf.Max(maxBottom, control.Position.Y + control.Size.Y);
-        }
-
-        return Mathf.Max(180.0f, maxBottom + 8.0f);
+        return Mathf.Max(180.0f, _content.GetCombinedMinimumSize().Y);
     }
 
     private Vector2 ClampPosition(Vector2 position, float width, float height)
@@ -408,9 +494,15 @@ internal sealed class CityInfoPanelController
                 continue;
             }
 
+            button.CustomMinimumSize = new Vector2(0.0f, 38.0f);
+            button.AddThemeColorOverride("font_color", new Color(0.94f, 0.82f, 0.58f, 1.0f));
+            button.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.9f, 0.66f, 1.0f));
+            button.AddThemeColorOverride("font_pressed_color", new Color(0.82f, 0.67f, 0.4f, 1.0f));
+            button.AddThemeColorOverride("font_disabled_color", new Color(0.46f, 0.43f, 0.37f, 1.0f));
+
             if (useChineseSizing)
             {
-                button.RemoveThemeFontSizeOverride("font_size");
+                button.AddThemeFontSizeOverride("font_size", 16);
             }
             else
             {
@@ -478,6 +570,11 @@ internal sealed class CityInfoPanelController
 
     private void ConnectButtons()
     {
+        ConnectButton(_context.OverviewTab, ref _overviewTabConnected, OnOverviewTabPressed);
+        ConnectButton(_context.ResourcesTab, ref _resourcesTabConnected, OnResourcesTabPressed);
+        ConnectButton(_context.MilitaryTab, ref _militaryTabConnected, OnMilitaryTabPressed);
+        ConnectButton(_context.ConstructionTab, ref _constructionTabConnected, OnConstructionTabPressed);
+        ConnectButton(_context.DomesticTab, ref _domesticTabConnected, OnDomesticTabPressed);
         ConnectButton(_context.DevelopButton, ref _developButtonConnected, OnDevelopButtonPressed);
         ConnectButton(_context.RecruitButton, ref _recruitButtonConnected, OnRecruitButtonPressed);
         ConnectButton(_context.MoveButton, ref _moveButtonConnected, OnMoveButtonPressed);
@@ -496,6 +593,11 @@ internal sealed class CityInfoPanelController
 
     private void DisconnectButtons()
     {
+        DisconnectButton(_context.OverviewTab, ref _overviewTabConnected, OnOverviewTabPressed);
+        DisconnectButton(_context.ResourcesTab, ref _resourcesTabConnected, OnResourcesTabPressed);
+        DisconnectButton(_context.MilitaryTab, ref _militaryTabConnected, OnMilitaryTabPressed);
+        DisconnectButton(_context.ConstructionTab, ref _constructionTabConnected, OnConstructionTabPressed);
+        DisconnectButton(_context.DomesticTab, ref _domesticTabConnected, OnDomesticTabPressed);
         DisconnectButton(_context.DevelopButton, ref _developButtonConnected, OnDevelopButtonPressed);
         DisconnectButton(_context.RecruitButton, ref _recruitButtonConnected, OnRecruitButtonPressed);
         DisconnectButton(_context.MoveButton, ref _moveButtonConnected, OnMoveButtonPressed);
@@ -532,6 +634,36 @@ internal sealed class CityInfoPanelController
 
         button.Pressed -= pressedHandler;
         isConnected = false;
+    }
+
+    private void OnOverviewTabPressed() => SelectDataTab(CityInfoDataTab.Overview);
+    private void OnResourcesTabPressed() => SelectDataTab(CityInfoDataTab.Resources);
+    private void OnMilitaryTabPressed() => SelectDataTab(CityInfoDataTab.Military);
+    private void OnConstructionTabPressed() => SelectDataTab(CityInfoDataTab.Construction);
+    private void OnDomesticTabPressed() => SelectDataTab(CityInfoDataTab.Domestic);
+
+    private void SelectDataTab(CityInfoDataTab tab)
+    {
+        _selectedDataTab = tab;
+        UpdateDataTabStates();
+        RefreshSelectedCity();
+    }
+
+    private void UpdateDataTabStates()
+    {
+        SetTabPressed(_context.OverviewTab, _selectedDataTab == CityInfoDataTab.Overview);
+        SetTabPressed(_context.ResourcesTab, _selectedDataTab == CityInfoDataTab.Resources);
+        SetTabPressed(_context.MilitaryTab, _selectedDataTab == CityInfoDataTab.Military);
+        SetTabPressed(_context.ConstructionTab, _selectedDataTab == CityInfoDataTab.Construction);
+        SetTabPressed(_context.DomesticTab, _selectedDataTab == CityInfoDataTab.Domestic);
+    }
+
+    private static void SetTabPressed(Button? button, bool pressed)
+    {
+        if (button != null)
+        {
+            button.ButtonPressed = pressed;
+        }
     }
 
     private void OnDevelopButtonPressed() => _context.OpenInternalAffairs();

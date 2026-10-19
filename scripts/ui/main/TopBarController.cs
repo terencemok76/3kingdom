@@ -8,9 +8,11 @@ internal sealed class TopBarController
     private readonly MainHudUiContext _context;
     // Keep the strategic top bar horizontally inside the map frame while aligning it to the top edge.
     private const float MapFrameContentInset = 44.0f;
-    private const float TopBarTop = 0.0f;
-    private const float TopBarWidth = 950.0f;
-    private const float TopBarHeight = 140.0f;
+    private const float TopBarTop = 20.0f;
+    private const float TopBarWidth = 750.0f;
+    private const float TopBarHeight = 80.0f;
+    private const float RightControlInset = 30.0f;
+    private const float RightControlGap = 10.0f;
 
     private ColorRect? _background;
     private HBoxContainer? _content;
@@ -18,10 +20,6 @@ internal sealed class TopBarController
     private Vector2 _position;
     private Vector2 _size;
     private Vector2 _contentOffset = new(260.0f, 52.0f);
-    private Vector2 _yearOffset = new(58.0f, 34.0f);
-    private Vector2 _yearSize = new(120.0f, 24.0f);
-    private Vector2 _monthOffset = new(58.0f, 54.0f);
-    private Vector2 _monthSize = new(120.0f, 40.0f);
     private Vector2 _designedContentSize = new(600.0f, 42.0f);
     private Vector2 _contentSize = new(600.0f, 42.0f);
     private Vector2 _endTurnOffset = new(681.0f, 52.0f);
@@ -147,18 +145,11 @@ internal sealed class TopBarController
             return;
         }
 
-        if (_context.YearLabel != null)
+        if (_context.DateLabel != null)
         {
-            _context.YearLabel.Text = localization.IsTraditionalChinese
-                ? $"{world.Year}年"
-                : world.Year.ToString();
-        }
-
-        if (_context.MonthLabel != null)
-        {
-            _context.MonthLabel.Text = localization.IsTraditionalChinese
-                ? $"{world.Month}月"
-                : $"M{world.Month}";
+            _context.DateLabel.Text = localization.IsTraditionalChinese
+                ? $"{world.Year}年 {world.Month}月"
+                : $"{world.Year} / M{world.Month}";
         }
     }
 
@@ -184,27 +175,15 @@ internal sealed class TopBarController
         _background.Size = _size;
         _content.Position = _position + _contentOffset;
         _content.Size = _contentSize;
-        if (_context.YearLabel != null)
-        {
-            _context.YearLabel.Position = _position + _yearOffset;
-            _context.YearLabel.Size = _yearSize;
-            _context.YearLabel.Visible = !_temporarilyHidden;
-        }
-        if (_context.MonthLabel != null)
-        {
-            _context.MonthLabel.Position = _position + _monthOffset;
-            _context.MonthLabel.Size = _monthSize;
-            _context.MonthLabel.Visible = !_temporarilyHidden;
-        }
         if (_context.EndTurnButton != null)
         {
-            _context.EndTurnButton.Position = _position + _endTurnOffset;
+            _context.EndTurnButton.Position = _position + GetEndTurnOffset();
             _context.EndTurnButton.Size = _endTurnSize;
             _context.EndTurnButton.Visible = !_temporarilyHidden;
         }
         if (_context.OptionButton != null)
         {
-            _context.OptionButton.Position = _position + _optionOffset;
+            _context.OptionButton.Position = _position + GetOptionOffset();
             _context.OptionButton.Size = _optionSize;
             _context.OptionButton.Visible = !_temporarilyHidden;
         }
@@ -252,8 +231,6 @@ internal sealed class TopBarController
     public void BringToFront()
     {
         _context.MoveToFront(_background);
-        _context.MoveToFront(_context.YearLabel);
-        _context.MoveToFront(_context.MonthLabel);
         _context.MoveToFront(_content);
         _context.MoveToFront(_context.EndTurnButton);
         _context.MoveToFront(_context.OptionButton);
@@ -297,18 +274,6 @@ internal sealed class TopBarController
         _contentOffset = _content.Position - _background.Position;
         _designedContentSize = _content.Size;
         _contentSize = _designedContentSize;
-        if (_context.YearLabel != null)
-        {
-            _yearOffset = _context.YearLabel.Position - _background.Position;
-            _yearSize = _context.YearLabel.Size;
-        }
-
-        if (_context.MonthLabel != null)
-        {
-            _monthOffset = _context.MonthLabel.Position - _background.Position;
-            _monthSize = _context.MonthLabel.Size;
-        }
-
         if (_context.EndTurnButton != null)
         {
             _endTurnOffset = _context.EndTurnButton.Position - _background.Position;
@@ -320,6 +285,21 @@ internal sealed class TopBarController
             _optionOffset = _context.OptionButton.Position - _background.Position;
             _optionSize = _context.OptionButton.Size;
         }
+    }
+
+    private Vector2 GetOptionOffset()
+    {
+        return new Vector2(
+            Mathf.Max(0.0f, _size.X - RightControlInset - _optionSize.X),
+            _optionOffset.Y);
+    }
+
+    private Vector2 GetEndTurnOffset()
+    {
+        var optionOffset = GetOptionOffset();
+        return new Vector2(
+            Mathf.Max(0.0f, optionOffset.X - RightControlGap - _endTurnSize.X),
+            _endTurnOffset.Y);
     }
 
     public void PopulateSettings(OptionSettingsData settings)

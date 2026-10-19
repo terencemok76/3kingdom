@@ -19,10 +19,13 @@ public partial class HudController
             }
         }
 
-        foreach (var colorName in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_disabled_color" })
-        {
-            target.AddThemeColorOverride(colorName, source.GetThemeColor(colorName));
-        }
+        // The shared source button has a dark label for its former light
+        // background.  Overlay dialogs use the same dark-gold button frame,
+        // so their labels must be explicitly high-contrast instead.
+        target.AddThemeColorOverride("font_color", new Color(0.94f, 0.82f, 0.58f, 1.0f));
+        target.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.9f, 0.66f, 1.0f));
+        target.AddThemeColorOverride("font_pressed_color", new Color(0.82f, 0.67f, 0.4f, 1.0f));
+        target.AddThemeColorOverride("font_disabled_color", new Color(0.46f, 0.43f, 0.37f, 1.0f));
     }
 
     private string GetRestoreLayoutButtonText() => Localize("ui.restore_layout", "Restore Layout");

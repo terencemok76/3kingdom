@@ -23,8 +23,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public UiEventHub UiEventHub => _owner.UiEventHub;
     public MapController? MapController => _owner.MainHudMapController;
 
-    public Label? YearLabel => _owner.MainHudYearLabel;
-    public Label? MonthLabel => _owner.MainHudMonthLabel;
+    public Label? DateLabel => _owner.MainHudDateLabel;
     public Label? PlayerFactionLabel => _owner.MainHudPlayerFactionLabel;
     public Label? StoryLabel => _owner.MainHudStoryLabel;
     public Button? LanguageButton => _owner.MainHudLanguageButton;
@@ -35,6 +34,11 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public Button? OptionButton => _owner.MainHudOptionButton;
 
     public Label? CityNameLabel => _owner.MainHudCityNameLabel;
+    public Button? OverviewTab => _owner.MainHudOverviewTab;
+    public Button? ResourcesTab => _owner.MainHudResourcesTab;
+    public Button? MilitaryTab => _owner.MainHudMilitaryTab;
+    public Button? ConstructionTab => _owner.MainHudConstructionTab;
+    public Button? DomesticTab => _owner.MainHudDomesticTab;
     public VBoxContainer? CityStatsPanel => _owner.MainHudCityStatsPanel;
     public Label? CommandsTitle => _owner.MainHudCommandsTitle;
     public Button? DevelopButton => _owner.MainHudDevelopButton;
@@ -59,7 +63,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public string BuildGodModeButtonText() => _owner.MainHudBuildGodModeButtonText();
     public bool IsGodModeEnabled() => _owner.MainHudIsGodModeEnabled();
     public string BuildCityHeaderText(CityData? city) => _owner.MainHudBuildCityHeaderText(city);
-    public void PopulateCityStats(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount) => _owner.MainHudPopulateCityStats(panel, ownerName, city, freeOfficerCount);
+    public void PopulateCityStats(VBoxContainer panel, string ownerName, CityData? city, int freeOfficerCount, CityInfoDataTab tab) => _owner.MainHudPopulateCityStats(panel, ownerName, city, freeOfficerCount, tab);
     public void UpdateGameplayButtonStates() => _owner.MainHudUpdateGameplayButtonStates();
     public void ApplyCommandButtonTheme(Button button) => _owner.MainHudApplyCommandButtonTheme(button);
     public void RequestFloatingPanelLayoutRefresh() => _owner.MainHudRequestFloatingPanelLayoutRefresh();

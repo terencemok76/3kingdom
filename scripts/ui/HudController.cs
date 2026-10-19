@@ -286,7 +286,7 @@ public partial class HudController : CanvasLayer
             topBarTestButton.Visible = false;
         }
 
-        _commandButtons = GetNodeOrNull<GridContainer>("Root/LeftPanel/CommandButtons");
+        _commandButtons = GetNodeOrNull<GridContainer>("Root/LeftPanel/CommandPanel/CommandContent/CommandButtons");
         _cityOfficerListTitle = GetNodeOrNull<Label>("Root/LeftPanel/OfficerListTitle");
         if (_cityOfficerListTitle != null)
         {

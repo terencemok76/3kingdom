@@ -6,7 +6,7 @@ public partial class HudController
 {
     private void EnsureAdvisorButton()
     {
-        var commandButtons = GetNodeOrNull<GridContainer>("Root/LeftPanel/CommandButtons");
+        var commandButtons = GetNodeOrNull<GridContainer>("Root/LeftPanel/CommandPanel/CommandContent/CommandButtons");
         if (commandButtons == null)
         {
             return;

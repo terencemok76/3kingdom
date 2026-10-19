@@ -2,5 +2,25 @@
   "ui.city_panel_title": {
     "zhHant": "城市資訊",
     "en": "City Info"
+  },
+  "ui.city_tab_overview": {
+    "zhHant": "總覽",
+    "en": "Overview"
+  },
+  "ui.city_tab_resources": {
+    "zhHant": "資源",
+    "en": "Resources"
+  },
+  "ui.city_tab_military": {
+    "zhHant": "軍事",
+    "en": "Military"
+  },
+  "ui.city_tab_construction": {
+    "zhHant": "建設",
+    "en": "Building"
+  },
+  "ui.city_tab_domestic": {
+    "zhHant": "內政",
+    "en": "Domestic"
   }
 }
