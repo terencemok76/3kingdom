@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="FlagAnimationSettings" format=3 uid="uid://dvlrbvc556eq5"]
+
+[ext_resource type="Script" uid="uid://bkbes24tyj71d" path="res://scripts/map/FlagAnimationSettings.cs" id="1_flag_animation_settings"]
+
+[resource]
+script = ExtResource("1_flag_animation_settings")
+FramePivotOffsets = PackedVector2Array(0, 0, 4, 0, 4, 0, 7.5, 0)

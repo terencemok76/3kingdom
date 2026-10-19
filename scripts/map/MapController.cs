@@ -291,7 +291,7 @@ public partial class MapController : Node2D
                 Name = $"City_{city.Id}",
                 Position = new Vector2(city.MapX, city.MapY)
             };
-            cityNode.Bind(city, BuildCityLabel(city), GetCityFillColor(city));
+            cityNode.Bind(city, BuildCityLabel(city), BuildRulerFlagMark(city), GetCityFillColor(city));
             cityNode.SetCampaignOverlay(HasActiveCampaign(city));
             _citiesLayer.AddChild(cityNode);
             _cityNodes.Add((city, cityNode));
@@ -324,6 +324,7 @@ public partial class MapController : Node2D
         foreach (var entry in _cityNodes)
         {
             entry.Node.SetDisplayLabel(BuildCityLabel(entry.City));
+            entry.Node.SetRulerFlagMark(BuildRulerFlagMark(entry.City));
             entry.Node.SetFillColor(GetCityFillColor(entry.City));
             entry.Node.SetCampaignOverlay(HasActiveCampaign(entry.City));
             entry.Node.QueueRedraw();
@@ -562,6 +563,7 @@ public partial class MapController : Node2D
         foreach (var entry in _cityNodes)
         {
             entry.Node.SetDisplayLabel(BuildCityLabel(entry.City));
+            entry.Node.SetRulerFlagMark(BuildRulerFlagMark(entry.City));
         }
 
         if (_selectedCityId > 0)
@@ -579,6 +581,17 @@ public partial class MapController : Node2D
 
         var cityName = _localization.GetCityName(city);
         return $"{cityName}({city.Id})";
+    }
+
+    private string BuildRulerFlagMark(CityData city)
+    {
+        if (_world == null || _localization == null || city.OwnerFactionId <= 0)
+        {
+            return string.Empty;
+        }
+
+        var rulerName = _localization.GetFactionName(_world, city.OwnerFactionId).Trim();
+        return string.IsNullOrEmpty(rulerName) ? string.Empty : rulerName[..1];
     }
 
     private void RefreshStrategicMapPresentation()

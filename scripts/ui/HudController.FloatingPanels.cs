@@ -344,7 +344,7 @@ public partial class HudController
         minimizeButton.ExpandIcon = false;
         minimizeButton.IconAlignment = HorizontalAlignment.Center;
         minimizeButton.Alignment = HorizontalAlignment.Center;
-        minimizeButton.AddThemeConstantOverride("icon_max_width", 18);
+        minimizeButton.AddThemeConstantOverride("icon_max_width", 24);
         // A flat Godot button deliberately skips StyleBox backgrounds.
         // This button uses the option-button style boxes, so it must draw.
         minimizeButton.Flat = false;

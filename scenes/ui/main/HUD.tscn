@@ -7,8 +7,8 @@
 [ext_resource type="FontFile" uid="uid://diqopapmic06t" path="res://assets/fonts/LXGWWenKaiTC-Regular.ttf" id="5_art_font"]
 [ext_resource type="Texture2D" uid="uid://ww2765yftfrb" path="res://assets/ui/map/leftPanel_2.png" id="6_left_panel_border"]
 [ext_resource type="Texture2D" uid="uid://6jcajj0p0xu5" path="res://assets/map/city_1.png" id="7_city_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/128x128/minus.png" id="8_left_panel_minimize"]
-[ext_resource type="Texture2D" path="res://assets/ui/icons/128x128/resize.png" id="9_log_resize"]
+[ext_resource type="Texture2D" uid="uid://b1mbo1f487a0h" path="res://assets/ui/icons/128x128/minus.png" id="8_left_panel_minimize"]
+[ext_resource type="Texture2D" uid="uid://c30u4wikfepg1" path="res://assets/ui/icons/128x128/resize.png" id="9_log_resize"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end_turn_normal"]
 bg_color = Color(0.8, 0.73, 0.56, 0.95)
@@ -176,8 +176,6 @@ corner_radius_top_right = 5
 corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_city_bar_expanded"]
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_command_pressed"]
 bg_color = Color(0.035, 0.03, 0.025, 1)
 border_width_left = 2
@@ -201,6 +199,8 @@ corner_radius_top_left = 6
 corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_city_bar_expanded"]
 
 [node name="HUD" type="CanvasLayer" unique_id=1377864672]
 layer = 10
@@ -691,7 +691,6 @@ offset_left = 46.0
 offset_top = 136.0
 offset_right = 390.0
 offset_bottom = 192.0
-mouse_filter = 0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_city_bar_expanded")
 
 [node name="CityBarLabel" type="Label" parent="Root/LeftPanelHeader" unique_id=891491011]
@@ -712,20 +711,17 @@ offset_right = 378.0
 offset_bottom = 180.0
 focus_mode = 0
 mouse_default_cursor_shape = 2
-icon = ExtResource("8_left_panel_minimize")
-icon_alignment = 1
-alignment = 1
-flat = false
-expand_icon = false
-theme_override_constants/icon_max_width = 18
+theme_override_constants/icon_max_width = 24
 theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
 theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
+icon = ExtResource("8_left_panel_minimize")
+icon_alignment = 1
 
 [node name="LogPanelBg" type="ColorRect" parent="Root" unique_id=538340313]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
@@ -746,7 +742,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
 texture = ExtResource("6_left_panel_border")
 patch_margin_left = 28
 patch_margin_top = 28
@@ -762,7 +757,6 @@ offset_top = 14.0
 offset_right = -28.0
 offset_bottom = 58.0
 grow_horizontal = 2
-mouse_filter = 0
 theme_override_styles/panel = SubResource("StyleBoxEmpty_city_bar_expanded")
 
 [node name="HeaderRow" type="HBoxContainer" parent="Root/LogPanelBg/LogPanelHeader" unique_id=163698539]
@@ -832,18 +826,17 @@ custom_minimum_size = Vector2(36, 28)
 layout_mode = 2
 size_flags_vertical = 4
 focus_mode = 0
-theme_override_constants/icon_max_width = 18
+theme_override_constants/icon_max_width = 24
 theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
 icon = ExtResource("8_left_panel_minimize")
 icon_alignment = 1
-alignment = 1
 expand_icon = true
 
 [node name="LogResizeHandle" type="Button" parent="Root/LogPanelBg" unique_id=143593130]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0

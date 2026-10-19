@@ -7,14 +7,34 @@ public partial class CityNode : Node2D
 {
     private static readonly Texture2D? CityTexture = GD.Load<Texture2D>("res://assets/map/city_1.png");
     private static readonly Texture2D? FlagTexture = GD.Load<Texture2D>("res://assets/map/flag_1.png");
+    private static readonly Texture2D? FlagAnimationTexture = GD.Load<Texture2D>("res://assets/map/flag_anim2.png");
+    private static readonly FlagAnimationSettings? FlagAnimationSettings = GD.Load<FlagAnimationSettings>("res://data/map/flag_animation_settings.tres");
+    private static readonly RandomNumberGenerator FlagAnimationRandom = CreateFlagAnimationRandom();
+    private static readonly Font? FlagFont = GD.Load<FontFile>("res://assets/fonts/LXGWWenKaiTC-Regular.ttf");
     private static readonly Texture2D? ArrowTexture = GD.Load<Texture2D>("res://assets/map/arrow_1.png");
     private static readonly Texture2D? BattleIconTexture = GD.Load<Texture2D>("res://assets/map/battle_icon.png");
 
     private const float MarkerSize = 56.0f;
     private const float FlagWidth = 48.0f;
-    private const float FlagHeight = 48.0f;
-    private const float FlagOffsetX = 10.0f;
-    private const float FlagOffsetY = -24.0f;
+    // Each flag_anim2 frame is 128x154; retain that cloth-and-pole aspect ratio.
+    private const float FlagHeight = 57.75f;
+    private const float FlagOffsetX = 20.0f; //10.0f;
+    // Align the bottom of the flag with the top of the 56px city marker.
+    private const float FlagOffsetY = -(MarkerSize * 0.5f) - (FlagHeight * 0.5f) + 16.0f;
+    private const int FlagAnimationFrameCount = 4;
+    private const float FlagAnimationFrameDurationSeconds = 0.40f;
+    // Used only when the editor-authored settings resource is unavailable.
+    private static readonly Vector2[] DefaultFlagAnimationFramePivotOffsets =
+    {
+        Vector2.Zero,
+        new Vector2(4.0f, 0.0f),
+        new Vector2(4.5f, 0.0f),
+        new Vector2(8.0f, 0.0f)
+    };
+    // Keep the ruler mark within the visible cloth rather than letting it compete
+    // with nearby city labels on the densely packed strategic map.
+    private const int FlagLabelFontSize = 16;
+    private const float FlagLabelClothOffsetX = -1.0f;
     private const float ArrowWidth = 64.0f;
     private const float ArrowHeight = 64.0f;
     private const float ArrowOffsetX = 0.0f;
@@ -29,9 +49,12 @@ public partial class CityNode : Node2D
 
     private CityData? _city;
     private string _displayLabel = string.Empty;
+    private string _rulerFlagMark = string.Empty;
     private Color _fillColor = new("6d6d6d");
     private bool _isSelected;
+    private CityFlagOverlay? _flagOverlay;
     private CityLabelOverlay? _labelOverlay;
+    private CitySelectionArrowOverlay? _selectionArrowOverlay;
     private bool _hasEventOverlay;
     private bool _hasBattleAnimation;
     private string _eventTag = string.Empty;
@@ -40,11 +63,16 @@ public partial class CityNode : Node2D
     private string _strategicDetailLabel = string.Empty;
     private double _eventOverlayStartTime;
     private double _eventOverlayEndTime;
+    private int _flagAnimationFrame = -1;
+    private int _flagAnimationStartFrame;
 
     public override void _Process(double delta)
     {
+        UpdateFlagAnimationFrame();
+
         if (_isSelected)
         {
+            _selectionArrowOverlay?.QueueRedraw();
             QueueRedraw();
         }
 
@@ -65,20 +93,40 @@ public partial class CityNode : Node2D
 
     public override void _Ready()
     {
+        _flagOverlay = new CityFlagOverlay(this)
+        {
+            Name = "CityFlagOverlay",
+            // Render above every sibling city marker, but below the city label.
+            ZIndex = 5
+        };
+        AddChild(_flagOverlay);
+
         _labelOverlay = new CityLabelOverlay
         {
             Name = "CityLabelOverlay",
             ZIndex = 10
         };
         AddChild(_labelOverlay);
+
+        _selectionArrowOverlay = new CitySelectionArrowOverlay(this)
+        {
+            Name = "CitySelectionArrowOverlay",
+            // Selection is an active interaction cue and must win every overlap.
+            ZIndex = 20
+        };
+        AddChild(_selectionArrowOverlay);
         RefreshLabelOverlay();
     }
 
-    public void Bind(CityData city, string displayLabel, Color fillColor)
+    public void Bind(CityData city, string displayLabel, string rulerFlagMark, Color fillColor)
     {
         _city = city;
+        _flagAnimationStartFrame = (int)FlagAnimationRandom.RandiRange(0, FlagAnimationFrameCount - 1);
+        _flagAnimationFrame = -1;
         _displayLabel = displayLabel;
+        _rulerFlagMark = rulerFlagMark ?? string.Empty;
         _fillColor = fillColor;
+        _flagOverlay?.QueueRedraw();
         RefreshLabelOverlay();
         QueueRedraw();
     }
@@ -90,15 +138,24 @@ public partial class CityNode : Node2D
         QueueRedraw();
     }
 
+    public void SetRulerFlagMark(string rulerFlagMark)
+    {
+        _rulerFlagMark = rulerFlagMark ?? string.Empty;
+        _flagOverlay?.QueueRedraw();
+        QueueRedraw();
+    }
+
     public void SetFillColor(Color fillColor)
     {
         _fillColor = fillColor;
+        _flagOverlay?.QueueRedraw();
         QueueRedraw();
     }
 
     public void SetSelected(bool isSelected)
     {
         _isSelected = isSelected;
+        _selectionArrowOverlay?.QueueRedraw();
         QueueRedraw();
     }
 
@@ -156,7 +213,6 @@ public partial class CityNode : Node2D
         {
             var textureRect = new Rect2(new Vector2(-MarkerSize * 0.5f, -MarkerSize * 0.5f), new Vector2(MarkerSize, MarkerSize));
             DrawTextureRect(CityTexture, textureRect, false, Colors.White);
-            DrawFactionFlag();
         }
         else
         {
@@ -173,8 +229,6 @@ public partial class CityNode : Node2D
                 new Vector2(BattleIconSize, BattleIconSize));
             DrawTextureRect(BattleIconTexture, iconRect, false, Colors.White);
         }
-
-        DrawSelectionArrow();
 
         if (_hasEventOverlay)
         {
@@ -197,37 +251,49 @@ public partial class CityNode : Node2D
         }
     }
 
-    private void DrawSelectionArrow()
-    {
-        if (!_isSelected || ArrowTexture == null)
-        {
-            return;
-        }
-
-        var arrowRect = new Rect2(
-            new Vector2(ArrowOffsetX - (ArrowWidth * 0.5f), GetAnimatedArrowOffsetY() - (ArrowHeight * 0.5f)),
-            new Vector2(ArrowWidth, ArrowHeight));
-        DrawTextureRect(ArrowTexture, arrowRect, false, Colors.White);
-    }
-
     private float GetAnimatedArrowOffsetY()
     {
         var time = (float)(Time.GetTicksMsec() / 1000.0);
         return Mathf.Round(ArrowOffsetY + (Mathf.Sin(time * ArrowBobSpeed) * ArrowBobAmplitude));
     }
 
-    private void DrawFactionFlag()
+    private void UpdateFlagAnimationFrame()
     {
-        if (FlagTexture == null || _city == null || _city.OwnerFactionId <= 0)
+        if (FlagAnimationTexture == null)
         {
             return;
         }
 
-        var flagRect = new Rect2(
-            new Vector2(FlagOffsetX - (FlagWidth * 0.5f), FlagOffsetY - (FlagHeight * 0.5f)),
-            new Vector2(FlagWidth, FlagHeight));
-        var flagTint = GetFlagTintColor(_fillColor);
-        DrawTextureRect(FlagTexture, flagRect, false, flagTint);
+        var elapsedSeconds = Time.GetTicksMsec() / 1000.0;
+        var nextFrame = ((int)(elapsedSeconds / FlagAnimationFrameDurationSeconds) + _flagAnimationStartFrame) % FlagAnimationFrameCount;
+        if (nextFrame == _flagAnimationFrame)
+        {
+            return;
+        }
+
+        _flagAnimationFrame = nextFrame;
+        _flagOverlay?.QueueRedraw();
+        QueueRedraw();
+    }
+
+    private static Vector2 GetFlagAnimationFramePivotOffset(int frameIndex)
+    {
+        var configuredOffsets = FlagAnimationSettings?.FramePivotOffsets;
+        if (configuredOffsets != null && frameIndex >= 0 && frameIndex < configuredOffsets.Length)
+        {
+            return configuredOffsets[frameIndex];
+        }
+
+        return frameIndex >= 0 && frameIndex < DefaultFlagAnimationFramePivotOffsets.Length
+            ? DefaultFlagAnimationFramePivotOffsets[frameIndex]
+            : Vector2.Zero;
+    }
+
+    private static RandomNumberGenerator CreateFlagAnimationRandom()
+    {
+        var random = new RandomNumberGenerator();
+        random.Randomize();
+        return random;
     }
 
     private static Color GetFlagTintColor(Color sourceColor)
@@ -249,6 +315,99 @@ public partial class CityNode : Node2D
             ? _displayLabel
             : _city?.Name ?? string.Empty;
         _labelOverlay.SetLabel(label, _eventTag, _strategicDetailLabel, _eventOverlayColor);
+    }
+
+    private sealed partial class CityFlagOverlay : Node2D
+    {
+        private readonly CityNode _owner;
+
+        public CityFlagOverlay(CityNode owner)
+        {
+            _owner = owner;
+        }
+
+        public override void _Draw()
+        {
+            var flagTexture = FlagAnimationTexture ?? FlagTexture;
+            if (flagTexture == null || _owner._city == null || _owner._city.OwnerFactionId <= 0)
+            {
+                return;
+            }
+
+            var flagRect = new Rect2(
+                new Vector2(FlagOffsetX - (FlagWidth * 0.5f), FlagOffsetY - (FlagHeight * 0.5f)),
+                new Vector2(FlagWidth, FlagHeight));
+            var flagTint = GetFlagTintColor(_owner._fillColor);
+            if (FlagAnimationTexture != null)
+            {
+                var frameWidth = FlagAnimationTexture.GetWidth() / FlagAnimationFrameCount;
+                var frameIndex = Mathf.Clamp(_owner._flagAnimationFrame, 0, FlagAnimationFrameCount - 1);
+                var sourceRect = new Rect2(
+                    frameIndex * frameWidth,
+                    0.0f,
+                    frameWidth,
+                    FlagAnimationTexture.GetHeight());
+                var sourceToDisplayScale = FlagWidth / frameWidth;
+                flagRect.Position += GetFlagAnimationFramePivotOffset(frameIndex) * sourceToDisplayScale;
+                DrawTextureRectRegion(FlagAnimationTexture, flagRect, sourceRect, flagTint);
+            }
+            else
+            {
+                DrawTextureRect(flagTexture, flagRect, false, flagTint);
+            }
+
+            DrawRulerFlagMark(flagRect);
+        }
+
+        private void DrawRulerFlagMark(Rect2 flagRect)
+        {
+            if (string.IsNullOrWhiteSpace(_owner._rulerFlagMark))
+            {
+                return;
+            }
+
+            var font = FlagFont ?? ThemeDB.FallbackFont;
+            var textSize = font.GetStringSize(_owner._rulerFlagMark, fontSize: FlagLabelFontSize);
+            var textPosition = new Vector2(
+                flagRect.GetCenter().X + FlagLabelClothOffsetX - (textSize.X * 0.5f),
+                flagRect.GetCenter().Y + (textSize.Y * 0.30f));
+
+            foreach (var offset in new[]
+                     {
+                         new Vector2(-1.0f, 0.0f), new Vector2(1.0f, 0.0f),
+                         new Vector2(0.0f, -1.0f), new Vector2(0.0f, 1.0f)
+                     })
+            {
+                DrawString(font, textPosition + offset, _owner._rulerFlagMark,
+                    modulate: new Color(0.12f, 0.07f, 0.025f, 0.92f), fontSize: FlagLabelFontSize);
+            }
+
+            DrawString(font, textPosition, _owner._rulerFlagMark,
+                modulate: new Color("fff0bd"), fontSize: FlagLabelFontSize);
+        }
+    }
+
+    private sealed partial class CitySelectionArrowOverlay : Node2D
+    {
+        private readonly CityNode _owner;
+
+        public CitySelectionArrowOverlay(CityNode owner)
+        {
+            _owner = owner;
+        }
+
+        public override void _Draw()
+        {
+            if (!_owner._isSelected || ArrowTexture == null)
+            {
+                return;
+            }
+
+            var arrowRect = new Rect2(
+                new Vector2(ArrowOffsetX - (ArrowWidth * 0.5f), _owner.GetAnimatedArrowOffsetY() - (ArrowHeight * 0.5f)),
+                new Vector2(ArrowWidth, ArrowHeight));
+            DrawTextureRect(ArrowTexture, arrowRect, false, Colors.White);
+        }
     }
 
     private sealed partial class CityLabelOverlay : Node2D

@@ -291,7 +291,7 @@ internal sealed class LogPanelController
         _minimizeButton.Icon = _minimized ? _maximizeButtonIcon : _minimizeButtonIcon;
         _minimizeButton.IconAlignment = HorizontalAlignment.Center;
         _minimizeButton.Alignment = HorizontalAlignment.Center;
-        _minimizeButton.AddThemeConstantOverride("icon_max_width", 18);
+        _minimizeButton.AddThemeConstantOverride("icon_max_width", 24);
         _header.Visible = !_temporarilyHidden;
         var godModeEnabled = _context.IsGodModeEnabled();
         var requiredHeaderWidth = godModeEnabled
