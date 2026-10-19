@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -13,22 +14,45 @@ internal sealed class LogPanelController
         All
     }
 
+    private enum LogEntryType
+    {
+        GeneralInformation,
+        PlayerAction,
+        EconomyReport,
+        WarOrDanger,
+        SystemNotification
+    }
+
     private sealed class LogEntry
     {
         public required string Message { get; init; }
         public required bool IsPlayerRelated { get; init; }
+        public required LogEntryType Type { get; init; }
     }
 
     private readonly MainHudUiContext _context;
     private readonly List<LogEntry> _entries = new();
     private bool _hasEntries;
-    private const float FloatingPanelHeaderHeight = 30.0f;
+    private const float FloatingPanelHeaderHeight = 44.0f;
+    private const float LogPanelInnerMargin = 28.0f;
+    private const float LogPanelHeaderTopInset = 14.0f;
+    private const float LogPanelContentGap = 8.0f;
     private const float FloatingPanelViewportMargin = 8.0f;
     private const float FloatingPanelTopClamp = 8.0f;
     private const float LogPanelMinimizedWidth = 450.0f;
     private const float LogPanelMinimumWidth = 320.0f;
     private const float LogPanelMinimumHeight = 140.0f;
     private const float ResizeHandleSize = 30.0f;
+    private const float LogPanelScrollBarClearance = 28.0f;
+    // Title + four actions + minimize button + five HBox gaps.  Below this
+    // width, keeping partial actions is less usable than a clean title bar.
+    private const float StandardHeaderActionsMinimumWidth = 300.0f;
+    private const float DeveloperHeaderActionsMinimumWidth = 404.0f;
+    // Normal play hides the developer-only copy button.  This leaves room for
+    // the title, three player-facing actions, and the minimize button without
+    // forcing an overly wide default panel.
+    private const float LogPanelDefaultMinimumWidth = 360.0f;
+    private const float HeaderButtonHeight = 28.0f;
     private PanelContainer? _header;
     private HBoxContainer? _headerRow;
     private Button? _minimizeButton;
@@ -40,12 +64,15 @@ internal sealed class LogPanelController
     private ColorRect? _background;
     private Vector2 _defaultHeaderPosition;
     private Vector2 _headerPosition;
-    private readonly Vector2 _backgroundOffset = new(0.0f, FloatingPanelHeaderHeight);
     private Vector2 _defaultBackgroundSize;
     private Vector2 _backgroundSize;
     private Vector2 _contentOffset;
     private Vector2 _defaultContentSize;
     private Vector2 _contentSize;
+    private Texture2D? _minimizeButtonIcon;
+    private Texture2D? _maximizeButtonIcon;
+    private StyleBox? _expandedHeaderStyle;
+    private StyleBox? _minimizedHeaderStyle;
     private bool _minimized;
     private bool _temporarilyHidden;
     private bool _isResizing;
@@ -64,12 +91,14 @@ internal sealed class LogPanelController
         {
             _context.LogText.ScrollFollowing = true;
             _context.LogText.ScrollActive = true;
+            ApplyLogScrollBarStyle(_context.LogText);
             if (!string.IsNullOrWhiteSpace(_context.LogText.Text))
             {
                 _entries.Add(new LogEntry
                 {
                     Message = _context.LogText.Text,
-                    IsPlayerRelated = true
+                    IsPlayerRelated = true,
+                    Type = LogEntryType.PlayerAction
                 });
                 _hasEntries = true;
             }
@@ -89,16 +118,37 @@ internal sealed class LogPanelController
         }
 
         var originalPosition = _background.Position;
+        // The scene stores the framed body below its editor-visible header.
         _defaultHeaderPosition = originalPosition;
-        _headerPosition = originalPosition;
-        _defaultBackgroundSize = new Vector2(_background.Size.X, _background.Size.Y - FloatingPanelHeaderHeight);
+        _headerPosition = _defaultHeaderPosition;
+        _defaultBackgroundSize = new Vector2(
+            Mathf.Max(LogPanelDefaultMinimumWidth, _background.Size.X),
+            _background.Size.Y);
         _backgroundSize = _defaultBackgroundSize;
-        _contentOffset = (logText.Position - originalPosition) + new Vector2(0.0f, FloatingPanelHeaderHeight);
-        _defaultContentSize = new Vector2(logText.Size.X, logText.Size.Y - FloatingPanelHeaderHeight);
+        _contentOffset = new Vector2(
+            LogPanelInnerMargin,
+            LogPanelHeaderTopInset + FloatingPanelHeaderHeight + LogPanelContentGap);
+        _defaultContentSize = new Vector2(
+            Mathf.Max(80.0f, _backgroundSize.X - (LogPanelInnerMargin * 2.0f)),
+            Mathf.Max(60.0f, _backgroundSize.Y - _contentOffset.Y - LogPanelInnerMargin));
         _contentSize = _defaultContentSize;
-        _background.MouseFilter = Control.MouseFilterEnum.Ignore;
+        if (_minimizeButton != null)
+        {
+            _minimizeButtonIcon = GD.Load<Texture2D>("res://assets/ui/icons/128x128/minus.png");
+            _maximizeButtonIcon = GD.Load<Texture2D>("res://assets/ui/icons/128x128/plus.png");
+        }
+        // The expanded header sits inside the NinePatch frame, so another panel
+        // border there only overlaps the frame border.  When minimized it becomes
+        // its own floating bar and needs the dark gold edge again.
+        _expandedHeaderStyle = new StyleBoxEmpty();
+        _minimizedHeaderStyle = CreateMinimizedHeaderStyle();
+        _background.MouseFilter = Control.MouseFilterEnum.Stop;
         logText.MouseFilter = Control.MouseFilterEnum.Stop;
         InitializeHeaderButtons();
+        if (_headerRow != null && _minimizeButton != null)
+        {
+            _headerRow.MoveChild(_minimizeButton, _headerRow.GetChildCount() - 1);
+        }
         RefreshText();
         ApplyLayout();
     }
@@ -109,6 +159,7 @@ internal sealed class LogPanelController
         UpdateFilterButtonText();
         UpdateFilterButtonVisualState();
         RebuildLogView();
+        ApplyLayout();
     }
 
     public void RefreshPanelTitle()
@@ -129,28 +180,36 @@ internal sealed class LogPanelController
         _entries.Add(new LogEntry
         {
             Message = message,
-            IsPlayerRelated = isPlayerRelated
+            IsPlayerRelated = isPlayerRelated,
+            Type = ClassifyLogEntry(message, isPlayerRelated)
         });
         UpdateCopyButtonText();
         RebuildLogView();
     }
 
-    public Vector2 GetHeaderPosition() => _headerPosition;
+    public Vector2 GetHeaderPosition() => _minimized
+        ? _headerPosition
+        : _headerPosition + new Vector2(LogPanelInnerMargin, LogPanelHeaderTopInset);
 
-    public float GetHeaderWidth() => _minimized ? LogPanelMinimizedWidth : _backgroundSize.X;
+    public float GetHeaderWidth() => _minimized
+        ? LogPanelMinimizedWidth
+        : Mathf.Max(LogPanelMinimumWidth - (LogPanelInnerMargin * 2.0f), _backgroundSize.X - (LogPanelInnerMargin * 2.0f));
 
     public float GetTotalHeight()
     {
         return _minimized
             ? FloatingPanelHeaderHeight
-            : Mathf.Max(
-                FloatingPanelHeaderHeight + _backgroundOffset.Y + _backgroundSize.Y,
-                FloatingPanelHeaderHeight + _contentOffset.Y + _contentSize.Y);
+            : _backgroundSize.Y;
     }
 
     public void SetDraggedPosition(Vector2 targetPosition)
     {
-        _headerPosition = ClampPosition(targetPosition, GetHeaderWidth(), GetTotalHeight());
+        _headerPosition = _minimized
+            ? ClampPosition(targetPosition, GetHeaderWidth(), FloatingPanelHeaderHeight)
+            : ClampPosition(
+                targetPosition - new Vector2(LogPanelInnerMargin, LogPanelHeaderTopInset),
+                _backgroundSize.X,
+                _backgroundSize.Y);
         ApplyLayout();
     }
 
@@ -177,13 +236,11 @@ internal sealed class LogPanelController
         var mouseDelta = mousePosition - _resizeStartMousePosition;
         var viewportSize = _background.GetViewportRect().Size;
         var maxWidth = Mathf.Max(LogPanelMinimumWidth, viewportSize.X - _headerPosition.X - FloatingPanelViewportMargin);
-        var maxHeight = Mathf.Max(LogPanelMinimumHeight, viewportSize.Y - _headerPosition.Y - FloatingPanelHeaderHeight - FloatingPanelViewportMargin);
+        var maxHeight = Mathf.Max(LogPanelMinimumHeight, viewportSize.Y - _headerPosition.Y - FloatingPanelViewportMargin);
         _backgroundSize = new Vector2(
             Mathf.Clamp(_resizeStartSize.X + mouseDelta.X, LogPanelMinimumWidth, maxWidth),
             Mathf.Clamp(_resizeStartSize.Y + mouseDelta.Y, LogPanelMinimumHeight, maxHeight));
-        _contentSize = new Vector2(
-            Mathf.Max(80.0f, _backgroundSize.X - 12.0f),
-            Mathf.Max(60.0f, _backgroundSize.Y - 12.0f));
+        _contentSize = GetContentSizeForBackground();
         ApplyLayout();
         return true;
     }
@@ -220,11 +277,38 @@ internal sealed class LogPanelController
         }
 
         var headerWidth = GetHeaderWidth();
-        _headerPosition = ClampPosition(_headerPosition, headerWidth, GetTotalHeight());
-        _header.Position = _headerPosition;
+        _headerPosition = _minimized
+            ? ClampPosition(_headerPosition, headerWidth, FloatingPanelHeaderHeight)
+            : ClampPosition(_headerPosition, _backgroundSize.X, _backgroundSize.Y);
+        _header.Position = _minimized
+            ? _headerPosition
+            : _headerPosition + new Vector2(LogPanelInnerMargin, LogPanelHeaderTopInset);
         _header.Size = new Vector2(headerWidth, FloatingPanelHeaderHeight);
-        _minimizeButton.Text = _minimized ? "+" : "-";
+        _header.AddThemeStyleboxOverride(
+            "panel",
+            _minimized ? _minimizedHeaderStyle! : _expandedHeaderStyle!);
+        _minimizeButton.Text = string.Empty;
+        _minimizeButton.Icon = _minimized ? _maximizeButtonIcon : _minimizeButtonIcon;
+        _minimizeButton.IconAlignment = HorizontalAlignment.Center;
+        _minimizeButton.Alignment = HorizontalAlignment.Center;
+        _minimizeButton.AddThemeConstantOverride("icon_max_width", 18);
         _header.Visible = !_temporarilyHidden;
+        var godModeEnabled = _context.IsGodModeEnabled();
+        var requiredHeaderWidth = godModeEnabled
+            ? DeveloperHeaderActionsMinimumWidth
+            : StandardHeaderActionsMinimumWidth;
+        var showHeaderActions = !_minimized && headerWidth >= requiredHeaderWidth;
+        foreach (var actionButton in new[] { _selfFactionButton, _allLogButton, _clearLogButton })
+        {
+            if (actionButton != null)
+            {
+                actionButton.Visible = showHeaderActions;
+            }
+        }
+        if (_copyLogButton != null)
+        {
+            _copyLogButton.Visible = showHeaderActions && godModeEnabled;
+        }
 
         _background.Visible = !_temporarilyHidden && !_minimized;
         logText.Visible = !_temporarilyHidden && !_minimized;
@@ -238,13 +322,15 @@ internal sealed class LogPanelController
             return;
         }
 
-        _background.Position = _headerPosition + _backgroundOffset;
+        _background.Position = _headerPosition;
         _background.Size = _backgroundSize;
         logText.Position = _headerPosition + _contentOffset;
         logText.Size = _contentSize;
         if (_resizeHandle != null)
         {
-            _resizeHandle.Position = _background.Position + _background.Size - new Vector2(ResizeHandleSize + 12.0f, ResizeHandleSize + 12.0f);
+            _resizeHandle.Position = _background.Position + _background.Size - new Vector2(
+                ResizeHandleSize + LogPanelInnerMargin + LogPanelScrollBarClearance,
+                ResizeHandleSize + LogPanelInnerMargin);
             _resizeHandle.Size = new Vector2(ResizeHandleSize, ResizeHandleSize);
             _context.MoveToFront(_resizeHandle);
             _resizeHandle.QueueRedraw();
@@ -266,13 +352,13 @@ internal sealed class LogPanelController
         if (width > 0.0f)
         {
             _backgroundSize.X = width;
-            _contentSize.X = Mathf.Max(80.0f, width - 12.0f);
+            _contentSize = GetContentSizeForBackground();
         }
 
         if (height > 0.0f)
         {
             _backgroundSize.Y = height;
-            _contentSize.Y = Mathf.Max(60.0f, height - 12.0f);
+            _contentSize = GetContentSizeForBackground();
         }
     }
 
@@ -292,6 +378,13 @@ internal sealed class LogPanelController
         _backgroundSize = _defaultBackgroundSize;
         _contentSize = _defaultContentSize;
         ApplyLayout();
+    }
+
+    private Vector2 GetContentSizeForBackground()
+    {
+        return new Vector2(
+            Mathf.Max(80.0f, _backgroundSize.X - (LogPanelInnerMargin * 2.0f)),
+            Mathf.Max(60.0f, _backgroundSize.Y - _contentOffset.Y - LogPanelInnerMargin));
     }
 
     private Vector2 ClampPosition(Vector2 position, float width, float height)
@@ -327,45 +420,105 @@ internal sealed class LogPanelController
             return;
         }
 
-        _selfFactionButton = CreateHeaderActionButton(OnSelfFactionFilterPressed);
-        _allLogButton = CreateHeaderActionButton(OnAllLogFilterPressed);
-        _copyLogButton = CreateHeaderActionButton(OnCopyLogPressed, 64.0f);
-        _clearLogButton = CreateHeaderActionButton(OnClearLogPressed);
+        _selfFactionButton = GetOrCreateHeaderActionButton("SelfFactionButton", OnSelfFactionFilterPressed, 64.0f);
+        _allLogButton = GetOrCreateHeaderActionButton("AllLogButton", OnAllLogFilterPressed, 64.0f);
+        _copyLogButton = GetOrCreateHeaderActionButton("CopyLogButton", OnCopyLogPressed, 64.0f);
+        _clearLogButton = GetOrCreateHeaderActionButton("ClearLogButton", OnClearLogPressed, 72.0f);
+    }
 
-        if (_selfFactionButton != null)
+    private static StyleBoxFlat CreateMinimizedHeaderStyle()
+    {
+        return new StyleBoxFlat
         {
-            _headerRow.AddChild(_selfFactionButton);
-            _headerRow.MoveChild(_selfFactionButton, Mathf.Max(_headerRow.GetChildCount() - 2, 1));
-        }
+            BgColor = new Color(0.035f, 0.032f, 0.027f, 0.88f),
+            BorderColor = new Color(0.5f, 0.34f, 0.13f, 0.85f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 5,
+            CornerRadiusTopRight = 5,
+            CornerRadiusBottomRight = 5,
+            CornerRadiusBottomLeft = 5,
+            ContentMarginLeft = 6.0f,
+            ContentMarginTop = 4.0f,
+            ContentMarginRight = 6.0f,
+            ContentMarginBottom = 6.0f
+        };
+    }
 
-        if (_allLogButton != null)
-        {
-            _headerRow.AddChild(_allLogButton);
-            _headerRow.MoveChild(_allLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 2));
-        }
+    private static void ApplyLogScrollBarStyle(RichTextLabel logText)
+    {
+        var scrollBar = logText.GetVScrollBar();
+        scrollBar.CustomMinimumSize = new Vector2(8.0f, 0.0f);
 
-        if (_copyLogButton != null)
+        var track = new StyleBoxFlat
         {
-            _headerRow.AddChild(_copyLogButton);
-            _headerRow.MoveChild(_copyLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 3));
-        }
+            BgColor = new Color(0.055f, 0.042f, 0.018f, 0.86f),
+            BorderColor = new Color(0.34f, 0.25f, 0.10f, 0.9f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4
+        };
+        var grabber = new StyleBoxFlat
+        {
+            BgColor = new Color(0.55f, 0.40f, 0.15f, 0.96f),
+            BorderColor = new Color(0.86f, 0.66f, 0.27f, 1.0f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 3,
+            CornerRadiusTopRight = 3,
+            CornerRadiusBottomLeft = 3,
+            CornerRadiusBottomRight = 3
+        };
+        var hoverGrabber = (StyleBoxFlat)grabber.Duplicate();
+        hoverGrabber.BgColor = new Color(0.82f, 0.62f, 0.22f, 1.0f);
+        hoverGrabber.BorderColor = new Color(1.0f, 0.84f, 0.44f, 1.0f);
+        var pressedGrabber = (StyleBoxFlat)grabber.Duplicate();
+        pressedGrabber.BgColor = new Color(0.37f, 0.27f, 0.09f, 1.0f);
 
-        if (_clearLogButton != null)
-        {
-            _headerRow.AddChild(_clearLogButton);
-            _headerRow.MoveChild(_clearLogButton, Mathf.Max(_headerRow.GetChildCount() - 2, 4));
-        }
+        scrollBar.AddThemeStyleboxOverride("scroll", track);
+        scrollBar.AddThemeStyleboxOverride("scroll_focus", track);
+        scrollBar.AddThemeStyleboxOverride("grabber", grabber);
+        scrollBar.AddThemeStyleboxOverride("grabber_highlight", hoverGrabber);
+        scrollBar.AddThemeStyleboxOverride("grabber_pressed", pressedGrabber);
     }
 
     private Button CreateHeaderActionButton(System.Action pressedAction, float minimumWidth = 72.0f)
     {
         var button = new Button
         {
-            CustomMinimumSize = new Vector2(minimumWidth, 22.0f),
-            FocusMode = Control.FocusModeEnum.None
+            CustomMinimumSize = new Vector2(minimumWidth, HeaderButtonHeight),
+            FocusMode = Control.FocusModeEnum.None,
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter
         };
         CopySharedButtonTheme(button);
         button.Pressed += pressedAction;
+        return button;
+    }
+
+    private Button GetOrCreateHeaderActionButton(string nodeName, System.Action pressedAction, float minimumWidth = 72.0f)
+    {
+        var existing = _headerRow?.GetNodeOrNull<Button>(nodeName);
+        if (existing != null)
+        {
+            existing.CustomMinimumSize = new Vector2(minimumWidth, HeaderButtonHeight);
+            existing.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            existing.Pressed += pressedAction;
+            CopySharedButtonTheme(existing);
+            return existing;
+        }
+
+        var button = CreateHeaderActionButton(pressedAction, minimumWidth);
+        button.Name = nodeName;
+        _headerRow!.AddChild(button);
         return button;
     }
 
@@ -500,6 +653,40 @@ internal sealed class LogPanelController
             : _entries;
     }
 
+    private static LogEntryType ClassifyLogEntry(string message, bool isPlayerRelated)
+    {
+        // Keep the existing AddLog API intact while assigning meaningful UI
+        // categories for the many existing gameplay call sites.
+        if (ContainsAny(message, "經濟", "收入", "產出", "糧", "金", "木材", "石材", "金屬", "馬", "人口", "商業", "農業", "economy", "income", "food", "gold", "wood", "metal", "stone", "horse"))
+        {
+            return LogEntryType.EconomyReport;
+        }
+
+        if (ContainsAny(message, "戰", "攻", "防", "兵", "武將", "俘", "滅", "敗", "危", "傷", "死亡", "battle", "attack", "defend", "troop", "siege", "defeat", "victory", "danger", "wounded"))
+        {
+            return LogEntryType.WarOrDanger;
+        }
+
+        if (ContainsAny(message, "系統", "設定", "儲存", "讀取", "新月份", "God Mode", "Debug", "測試", "system", "option", "saved", "loaded", "new month", "god mode", "debug", "test"))
+        {
+            return LogEntryType.SystemNotification;
+        }
+
+        return isPlayerRelated ? LogEntryType.PlayerAction : LogEntryType.GeneralInformation;
+    }
+
+    private static bool ContainsAny(string message, params string[] values) =>
+        values.Any(value => message.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+    private static Color GetLogEntryColor(LogEntryType type) => type switch
+    {
+        LogEntryType.PlayerAction => Color.FromHtml("#8DB9E8"),
+        LogEntryType.EconomyReport => Color.FromHtml("#D6B77C"),
+        LogEntryType.WarOrDanger => Color.FromHtml("#E09A7A"),
+        LogEntryType.SystemNotification => Color.FromHtml("#A5AAA8"),
+        _ => Color.FromHtml("#D6D6CE")
+    };
+
     private void RebuildLogView()
     {
         var logText = _context.LogText;
@@ -518,17 +705,9 @@ internal sealed class LogPanelController
                 logText.Newline();
             }
 
-            if (entry.IsPlayerRelated)
-            {
-                logText.PushColor(new Color(0.24f, 0.43f, 0.82f, 1.0f));
-            }
-
+            logText.PushColor(GetLogEntryColor(entry.Type));
             logText.AddText(entry.Message);
-
-            if (entry.IsPlayerRelated)
-            {
-                logText.Pop();
-            }
+            logText.Pop();
 
             _hasEntries = true;
         }

@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://ww2765yftfrb" path="res://assets/ui/map/leftPanel_2.png" id="6_left_panel_border"]
 [ext_resource type="Texture2D" uid="uid://6jcajj0p0xu5" path="res://assets/map/city_1.png" id="7_city_icon"]
 [ext_resource type="Texture2D" path="res://assets/ui/icons/128x128/minus.png" id="8_left_panel_minimize"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/128x128/resize.png" id="9_log_resize"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end_turn_normal"]
 bg_color = Color(0.8, 0.73, 0.56, 0.95)
@@ -243,13 +244,13 @@ offset_bottom = 81.0
 theme_override_constants/separation = 10
 
 [node name="DateLabel" type="Label" parent="Root/TopBar" unique_id=57322653]
-custom_minimum_size = Vector2(118, 0)
+custom_minimum_size = Vector2(130, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_colors/font_color = Color(0.839216, 0.839216, 0.807843, 1)
 theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
 theme_override_constants/outline_size = 3
 theme_override_fonts/font = ExtResource("5_art_font")
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "184年 1月"
 vertical_alignment = 1
 
@@ -257,23 +258,23 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(110, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.96, 0.86, 0.63, 1)
+theme_override_colors/font_color = Color(0.839216, 0.717647, 0.486275, 1)
 theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
 theme_override_constants/outline_size = 4
 theme_override_fonts/font = ExtResource("5_art_font")
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 22
 text = "Story"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="PlayerFactionLabel" type="Label" parent="Root/TopBar" unique_id=158993905]
-custom_minimum_size = Vector2(140, 0)
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.94, 0.84, 0.62, 1)
+theme_override_colors/font_color = Color(0.839216, 0.839216, 0.807843, 1)
 theme_override_colors/font_outline_color = Color(0.04, 0.025, 0.01, 1)
 theme_override_constants/outline_size = 3
 theme_override_fonts/font = ExtResource("5_art_font")
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "Player: -"
 vertical_alignment = 1
 
@@ -705,15 +706,18 @@ vertical_alignment = 1
 
 [node name="LeftPanelMinimizeButton" type="Button" parent="Root" unique_id=598802823]
 layout_mode = 0
-offset_left = 334.0
-offset_top = 142.0
+offset_left = 346.0
+offset_top = 148.0
 offset_right = 378.0
-offset_bottom = 186.0
+offset_bottom = 180.0
 focus_mode = 0
 mouse_default_cursor_shape = 2
 icon = ExtResource("8_left_panel_minimize")
+icon_alignment = 1
+alignment = 1
 flat = false
-expand_icon = true
+expand_icon = false
+theme_override_constants/icon_max_width = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
@@ -721,30 +725,154 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
 
 [node name="LogPanelBg" type="ColorRect" parent="Root" unique_id=538340313]
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 15
+anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 370.0
-offset_top = -220.0
-offset_right = -10.0
-offset_bottom = -10.0
-grow_horizontal = 2
+offset_left = -595.0
+offset_top = -555.0
+offset_right = -235.0
+offset_bottom = -155.0
+grow_horizontal = 0
 grow_vertical = 0
-color = Color(0.08, 0.08, 0.1, 0.88)
+color = Color(1, 1, 1, 0)
 
-[node name="LogText" type="RichTextLabel" parent="Root" unique_id=1127870650]
+[node name="Frame" type="NinePatchRect" parent="Root/LogPanelBg" unique_id=130803190]
+material = SubResource("ShaderMaterial_left_panel_transparency")
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_left_panel_border")
+patch_margin_left = 28
+patch_margin_top = 28
+patch_margin_right = 28
+patch_margin_bottom = 28
+
+[node name="LogPanelHeader" type="PanelContainer" parent="Root/LogPanelBg" unique_id=861901581]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 28.0
+offset_top = 14.0
+offset_right = -28.0
+offset_bottom = 58.0
+grow_horizontal = 2
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBoxEmpty_city_bar_expanded")
+
+[node name="HeaderRow" type="HBoxContainer" parent="Root/LogPanelBg/LogPanelHeader" unique_id=163698539]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 6
+
+[node name="LogTitleLabel" type="Label" parent="Root/LogPanelBg/LogPanelHeader/HeaderRow" unique_id=789822769]
+custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
+text = "Log"
+vertical_alignment = 1
+
+[node name="SelfFactionButton" type="Button" parent="Root/LogPanelBg/LogPanelHeader/HeaderRow" unique_id=182751281]
+custom_minimum_size = Vector2(64, 28)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_colors/font_color = Color(0.94, 0.82, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+text = "Self"
+
+[node name="AllLogButton" type="Button" parent="Root/LogPanelBg/LogPanelHeader/HeaderRow" unique_id=132858668]
+custom_minimum_size = Vector2(64, 28)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_colors/font_color = Color(0.94, 0.82, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+text = "All"
+
+[node name="CopyLogButton" type="Button" parent="Root/LogPanelBg/LogPanelHeader/HeaderRow" unique_id=102651483]
+visible = false
+custom_minimum_size = Vector2(64, 28)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_colors/font_color = Color(0.94, 0.82, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+text = "Copy"
+
+[node name="ClearLogButton" type="Button" parent="Root/LogPanelBg/LogPanelHeader/HeaderRow" unique_id=139165452]
+custom_minimum_size = Vector2(72, 28)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_colors/font_color = Color(0.94, 0.82, 0.58, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_command_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_command_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_command_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+text = "Clear"
+
+[node name="LogPanelMinimizeButton" type="Button" parent="Root/LogPanelBg/LogPanelHeader/HeaderRow" unique_id=568863104]
+custom_minimum_size = Vector2(36, 28)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_constants/icon_max_width = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
+icon = ExtResource("8_left_panel_minimize")
+icon_alignment = 1
+alignment = 1
+expand_icon = true
+
+[node name="LogResizeHandle" type="Button" parent="Root/LogPanelBg" unique_id=143593130]
+layout_mode = 1
+anchors_preset = 15
+anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 382.0
-offset_top = -208.0
-offset_right = -22.0
-offset_bottom = -22.0
-grow_horizontal = 2
+offset_left = -86.0
+offset_top = -58.0
+offset_right = -56.0
+offset_bottom = -28.0
+grow_horizontal = 0
 grow_vertical = 0
+focus_mode = 0
+mouse_default_cursor_shape = 7
+theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
+icon = ExtResource("9_log_resize")
+expand_icon = true
+
+[node name="LogText" type="RichTextLabel" parent="Root/LogPanelBg" unique_id=1127870650]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = 66.0
+offset_right = -28.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 2
 bbcode_enabled = true
 
 [node name="EventPresentationOverlay" type="Control" parent="Root" unique_id=1811081332]

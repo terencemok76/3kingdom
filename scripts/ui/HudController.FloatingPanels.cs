@@ -68,6 +68,12 @@ public partial class HudController
         MakeControlAbsolute(_leftPanelContent);
         MakeControlAbsolute(_logPanelBg);
         MakeControlAbsolute(logText);
+        logText.Reparent(_rootControl, true);
+
+        // The log text keeps its own mouse handling for scrolling.  Every other
+        // exposed part of the framed log body is a drag surface.
+        _logPanelBg.GuiInput += OnLogPanelBodyGuiInput;
+        logText.GuiInput += OnLogPanelBodyGuiInput;
 
         _topBarBg.GuiInput += OnTopBarGuiInput;
         _topBar.GuiInput += OnTopBarGuiInput;
@@ -117,15 +123,39 @@ public partial class HudController
             _leftPanelMinimizeButton.Pressed -= OnLeftPanelMinimizePressed;
         }
         _leftPanelMinimizeButton.GuiInput += OnLeftPanelMinimizeButtonGuiInput;
-        _logPanelHeader = CreateFloatingPanelHeader(
-            "LogPanelHeader",
-            _localization?.T("ui.log_panel_title") ?? "War Log",
-            OnLogPanelHeaderGuiInput,
-            OnLogPanelMinimizePressed,
-            out _logPanelHeaderLabel,
-            out _logPanelMinimizeButton);
-        _logResizeHandle = CreateResizeHandle("LogResizeHandle", OnLogResizeHandleGuiInput);
-        _logResizeHandle.ButtonDown += StartLogPanelResize;
+        _logPanelHeader = GetNodeOrNull<PanelContainer>("Root/LogPanelBg/LogPanelHeader");
+        _logPanelMinimizeButton = GetNodeOrNull<Button>("Root/LogPanelBg/LogPanelHeader/HeaderRow/LogPanelMinimizeButton");
+        _logResizeHandle = GetNodeOrNull<Button>("Root/LogPanelBg/LogResizeHandle");
+        if (_logPanelHeader == null)
+        {
+            _logPanelHeader = CreateFloatingPanelHeader(
+                "LogPanelHeader",
+                _localization?.T("ui.log_panel_title") ?? "War Log",
+                OnLogPanelHeaderGuiInput,
+                OnLogPanelMinimizePressed,
+                out _logPanelHeaderLabel,
+                out _logPanelMinimizeButton);
+            _logResizeHandle = CreateResizeHandle("LogResizeHandle", OnLogResizeHandleGuiInput);
+        }
+        else
+        {
+            MakeControlAbsolute(_logPanelHeader);
+            _logPanelHeader.Reparent(_rootControl, true);
+            MakeControlAbsolute(_logResizeHandle!);
+            _logResizeHandle!.Reparent(_rootControl, true);
+            _logPanelHeaderLabel = _logPanelHeader.GetNodeOrNull<Label>("HeaderRow/LogTitleLabel");
+            _logPanelMinimizeButton ??= _logPanelHeader.GetNodeOrNull<Button>("HeaderRow/LogPanelMinimizeButton");
+            if (_logPanelMinimizeButton == null || _logResizeHandle == null)
+            {
+                GD.PushError("Scene-authored battle log is missing its minimize or resize button.");
+                return;
+            }
+            _logPanelHeader.GuiInput += OnLogPanelHeaderGuiInput;
+            _logPanelMinimizeButton.Pressed += OnLogPanelMinimizePressed;
+            _logResizeHandle.GuiInput += OnLogResizeHandleGuiInput;
+            RegisterButtonClickSfx(_logPanelMinimizeButton);
+        }
+        _logResizeHandle!.ButtonDown += StartLogPanelResize;
 
         _mainHudUiController.InitializeTopBarPanelBehavior(_topBarBg, _topBar);
         _mainHudUiController.InitializeCityInfoPanelBehavior(_leftPanelHeader, _leftPanelMinimizeButton, _leftPanelBg, _leftPanelContent);
@@ -311,13 +341,16 @@ public partial class HudController
 
         minimizeButton.Text = string.Empty;
         minimizeButton.Icon = icon;
-        minimizeButton.ExpandIcon = true;
+        minimizeButton.ExpandIcon = false;
+        minimizeButton.IconAlignment = HorizontalAlignment.Center;
+        minimizeButton.Alignment = HorizontalAlignment.Center;
+        minimizeButton.AddThemeConstantOverride("icon_max_width", 18);
         // A flat Godot button deliberately skips StyleBox backgrounds.
         // This button uses the option-button style boxes, so it must draw.
         minimizeButton.Flat = false;
         if (!preserveSceneLayout)
         {
-            minimizeButton.CustomMinimumSize = new Vector2(44.0f, 44.0f);
+            minimizeButton.CustomMinimumSize = new Vector2(32.0f, 32.0f);
         }
 
         // Match the dark, gold-edged option button so the gold icon remains
@@ -355,8 +388,8 @@ public partial class HudController
             minimizeButton.Reparent(_rootControl, false);
             if (_leftPanelBg != null)
             {
-                minimizeButton.Position = _leftPanelBg.Position + new Vector2(_leftPanelBg.Size.X - 56.0f, 9.0f);
-                minimizeButton.Size = new Vector2(44.0f, 44.0f);
+                minimizeButton.Position = _leftPanelBg.Position + new Vector2(_leftPanelBg.Size.X - 44.0f, 12.0f);
+                minimizeButton.Size = new Vector2(32.0f, 32.0f);
             }
         }
         minimizeButton.MoveToFront();
@@ -367,29 +400,29 @@ public partial class HudController
         var handle = new Button
         {
             Name = name,
-            Text = "/",
-            
+            Icon = GD.Load<Texture2D>("res://assets/ui/icons/128x128/resize.png"),
+            ExpandIcon = true,
             CustomMinimumSize = new Vector2(ResizeHandleSize, ResizeHandleSize),
             FocusMode = Control.FocusModeEnum.None
         };
 
         var normalStyle = new StyleBoxFlat
         {
-            BgColor = new Color(0.88f, 0.77f, 0.54f, 1.0f),
-            BorderWidthLeft = 1,
-            BorderWidthTop = 1,
-            BorderWidthRight = 1,
-            BorderWidthBottom = 1,
-            BorderColor = new Color(0.18f, 0.14f, 0.08f, 1.0f),
-            CornerRadiusTopLeft = 3,
-            CornerRadiusTopRight = 3,
-            CornerRadiusBottomLeft = 3,
-            CornerRadiusBottomRight = 3
+            BgColor = new Color(0.075f, 0.065f, 0.05f, 0.96f),
+            BorderWidthLeft = 2,
+            BorderWidthTop = 2,
+            BorderWidthRight = 2,
+            BorderWidthBottom = 2,
+            BorderColor = new Color(0.62f, 0.43f, 0.16f, 1.0f),
+            CornerRadiusTopLeft = 6,
+            CornerRadiusTopRight = 6,
+            CornerRadiusBottomLeft = 6,
+            CornerRadiusBottomRight = 6
         };
         var hoverStyle = (StyleBoxFlat)normalStyle.Duplicate();
-        hoverStyle.BgColor = new Color(0.95f, 0.84f, 0.62f, 1.0f);
+        hoverStyle.BgColor = new Color(0.15f, 0.12f, 0.075f, 0.98f);
         var pressedStyle = (StyleBoxFlat)normalStyle.Duplicate();
-        pressedStyle.BgColor = new Color(0.76f, 0.63f, 0.4f, 1.0f);
+        pressedStyle.BgColor = new Color(0.035f, 0.03f, 0.025f, 1.0f);
         handle.AddThemeStyleboxOverride("normal", normalStyle);
         handle.AddThemeStyleboxOverride("hover", hoverStyle);
         handle.AddThemeStyleboxOverride("pressed", pressedStyle);
@@ -472,6 +505,16 @@ public partial class HudController
     }
 
     private void OnLogPanelHeaderGuiInput(InputEvent @event)
+    {
+        StartLogPanelDrag(@event);
+    }
+
+    private void OnLogPanelBodyGuiInput(InputEvent @event)
+    {
+        StartLogPanelDrag(@event);
+    }
+
+    private void StartLogPanelDrag(InputEvent @event)
     {
         if (@event is not InputEventMouseButton mouseButton ||
             mouseButton.ButtonIndex != MouseButton.Left ||

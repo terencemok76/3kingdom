@@ -23,10 +23,10 @@ public sealed class OptionSettingsData
     public float TopBarX { get; set; } = 10.0f;
     public float TopBarY { get; set; } = 10.0f;
     public bool LogPanelMinimized { get; set; }
-    public float LogPanelX { get; set; } = 370.0f;
-    public float LogPanelY { get; set; } = 700.0f;
-    public float LogPanelWidth { get; set; } = 1210.0f;
-    public float LogPanelHeight { get; set; } = 180.0f;
+    public float LogPanelX { get; set; } = 1005.0f;
+    public float LogPanelY { get; set; } = 375.0f;
+    public float LogPanelWidth { get; set; } = 360.0f;
+    public float LogPanelHeight { get; set; } = 400.0f;
 }
 
 public static class OptionSettingsStore

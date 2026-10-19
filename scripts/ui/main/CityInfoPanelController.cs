@@ -29,7 +29,7 @@ internal sealed class CityInfoPanelController
     private const float LeftPanelBottomPadding = 56.0f;
     private const string LeftPanelMinimizeIconPath = "res://assets/ui/icons/128x128/minus.png";
     private const string LeftPanelMaximizeIconPath = "res://assets/ui/icons/128x128/plus.png";
-    private static readonly Vector2 DefaultLeftPanelMinimizeButtonSize = new(44.0f, 44.0f);
+    private static readonly Vector2 DefaultLeftPanelMinimizeButtonSize = new(32.0f, 32.0f);
     // leftPanel_2.png has a decorative outer frame.  Keep the draggable city
     // bar inside its usable inner area, aligned with the tabs and data content.
     private static readonly Vector2 CityBarOffset = new(28.0f, 14.0f);

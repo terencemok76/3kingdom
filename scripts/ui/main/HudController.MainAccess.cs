@@ -47,7 +47,9 @@ public partial class HudController
     internal Button? MainHudViewButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandPanel/CommandContent/CommandButtons/ViewButton");
     internal Button? MainHudStrategicMapButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandPanel/CommandContent/CommandButtons/StrategicMapButton");
     internal Button? MainHudTestCaptureButton => GetNodeOrNull<Button>("Root/LeftPanel/CommandPanel/CommandContent/CommandButtons/TestCaptureButton");
-    internal RichTextLabel? MainHudLogText => GetNodeOrNull<RichTextLabel>("Root/LogText");
+    internal RichTextLabel? MainHudLogText =>
+        GetNodeOrNull<RichTextLabel>("Root/LogText") ??
+        GetNodeOrNull<RichTextLabel>("Root/LogPanelBg/LogText");
     internal Label? MainHudCityPanelHeaderLabel => _leftPanelHeaderLabel;
     internal Label? MainHudLogPanelHeaderLabel => _logPanelHeaderLabel;
 
