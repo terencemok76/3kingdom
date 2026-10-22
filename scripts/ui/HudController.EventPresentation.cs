@@ -90,7 +90,7 @@ public partial class HudController
             _mapController?.HighlightCityEvent(
                 city.Id,
                 presentation.MarkerColor,
-                BuildEventMapTag(presentation.EventType));
+                GetEventMapIconPath(presentation.EventType));
 
             if (!groupedPresentations.TryGetValue(cityEvent.EventType, out var existingPresentation))
             {
@@ -271,17 +271,21 @@ public partial class HudController
         return string.Join(separator, cityNames);
     }
 
-    private string BuildEventMapTag(MonthlyCityEventType eventType)
+    private static string GetEventMapIconPath(MonthlyCityEventType eventType) => eventType switch
     {
-        if (_localization == null)
-        {
-            return $"[{eventType}]";
-        }
-
-        return _localization.Format(
-            "ui.event_presentation.map_tag",
-            GetEventDisplayName(eventType));
-    }
+        MonthlyCityEventType.Bandit => "res://assets/ui/icons/64x64/event_bandit.png",
+        MonthlyCityEventType.InsectDisaster => "res://assets/ui/icons/64x64/event_bug.png",
+        MonthlyCityEventType.Drought => "res://assets/ui/icons/64x64/event_dry.png",
+        MonthlyCityEventType.Earthquake => "res://assets/ui/icons/64x64/event_earthquake.png",
+        MonthlyCityEventType.Fire => "res://assets/ui/icons/64x64/event_fire.png",
+        MonthlyCityEventType.Flooding => "res://assets/ui/icons/64x64/event_flooding.png",
+        MonthlyCityEventType.BumperHarvest => "res://assets/ui/icons/64x64/event_harvest.png",
+        MonthlyCityEventType.Rebellion => "res://assets/ui/icons/64x64/event_riot.png",
+        MonthlyCityEventType.Plague => "res://assets/ui/icons/64x64/event_sick.png",
+        MonthlyCityEventType.Snow => "res://assets/ui/icons/64x64/event_snow.png",
+        MonthlyCityEventType.Typhoon => "res://assets/ui/icons/64x64/event_typhoon.png",
+        _ => string.Empty
+    };
 
     private string GetEventDisplayName(MonthlyCityEventType eventType)
     {

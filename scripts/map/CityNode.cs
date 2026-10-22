@@ -43,6 +43,8 @@ public partial class CityNode : Node2D
     private const float ArrowBobSpeed = 3.4f;
     private const float CircleRadius = 12.0f;
     private const float EventRingRadius = 22.0f;
+    private const float EventIconSize = 22.0f;
+    private static readonly Vector2 EventIconOffset = new(18.0f, -24.0f);
     private const float BattleIconSize = 52.0f;
     private const float LabelStartY = 30.0f;
     private const float LabelLineHeight = 16.0f;
@@ -55,9 +57,11 @@ public partial class CityNode : Node2D
     private CityFlagOverlay? _flagOverlay;
     private CityLabelOverlay? _labelOverlay;
     private CitySelectionArrowOverlay? _selectionArrowOverlay;
+    private CityEventIconOverlay? _eventIconOverlay;
     private bool _hasEventOverlay;
     private bool _hasBattleAnimation;
     private string _eventTag = string.Empty;
+    private Texture2D? _eventIconTexture;
     private Color _eventOverlayColor = Colors.Transparent;
     private bool _hasCampaignOverlay;
     private string _strategicDetailLabel = string.Empty;
@@ -107,6 +111,13 @@ public partial class CityNode : Node2D
             ZIndex = 10
         };
         AddChild(_labelOverlay);
+
+        _eventIconOverlay = new CityEventIconOverlay(this)
+        {
+            Name = "CityEventIconOverlay",
+            ZIndex = 15
+        };
+        AddChild(_eventIconOverlay);
 
         _selectionArrowOverlay = new CitySelectionArrowOverlay(this)
         {
@@ -159,16 +170,18 @@ public partial class CityNode : Node2D
         QueueRedraw();
     }
 
-    public void SetEventOverlay(Color color, float durationSeconds, string eventTag)
+    public void SetEventOverlay(Color color, float durationSeconds, string eventTag, Texture2D? eventIconTexture = null)
     {
         _hasEventOverlay = true;
         _eventTag = eventTag ?? string.Empty;
+        _eventIconTexture = eventIconTexture;
         _eventOverlayColor = color;
         _eventOverlayStartTime = Time.GetTicksMsec() / 1000.0;
         _eventOverlayEndTime = durationSeconds > 0.0f
             ? _eventOverlayStartTime + Mathf.Max(durationSeconds, 0.5f)
             : _eventOverlayStartTime;
         RefreshLabelOverlay();
+        _eventIconOverlay?.QueueRedraw();
         QueueRedraw();
     }
 
@@ -182,7 +195,9 @@ public partial class CityNode : Node2D
         _hasEventOverlay = false;
         _hasBattleAnimation = false;
         _eventTag = string.Empty;
+        _eventIconTexture = null;
         RefreshLabelOverlay();
+        _eventIconOverlay?.QueueRedraw();
         QueueRedraw();
     }
 
@@ -407,6 +422,29 @@ public partial class CityNode : Node2D
                 new Vector2(ArrowOffsetX - (ArrowWidth * 0.5f), _owner.GetAnimatedArrowOffsetY() - (ArrowHeight * 0.5f)),
                 new Vector2(ArrowWidth, ArrowHeight));
             DrawTextureRect(ArrowTexture, arrowRect, false, Colors.White);
+        }
+    }
+
+    private sealed partial class CityEventIconOverlay : Node2D
+    {
+        private readonly CityNode _owner;
+
+        public CityEventIconOverlay(CityNode owner)
+        {
+            _owner = owner;
+        }
+
+        public override void _Draw()
+        {
+            if (!_owner._hasEventOverlay || _owner._eventIconTexture == null)
+            {
+                return;
+            }
+
+            var iconRect = new Rect2(
+                EventIconOffset - new Vector2(EventIconSize * 0.5f, EventIconSize * 0.5f),
+                new Vector2(EventIconSize, EventIconSize));
+            DrawTextureRect(_owner._eventIconTexture, iconRect, false, Colors.White);
         }
     }
 

@@ -406,8 +406,11 @@ public partial class MapController : Node2D
         _ => normalDuration
     };
 
-    public void HighlightCityEvent(int cityId, Color color, string eventTag, float durationSeconds = 0.0f)
+    public void HighlightCityEvent(int cityId, Color color, string eventIconPath, float durationSeconds = 0.0f)
     {
+        var eventIcon = string.IsNullOrWhiteSpace(eventIconPath)
+            ? null
+            : GD.Load<Texture2D>(eventIconPath);
         foreach (var entry in _cityNodes)
         {
             if (entry.City.Id != cityId)
@@ -415,7 +418,7 @@ public partial class MapController : Node2D
                 continue;
             }
 
-            entry.Node.SetEventOverlay(color, durationSeconds, eventTag);
+            entry.Node.SetEventOverlay(color, durationSeconds, string.Empty, eventIcon);
             break;
         }
     }
