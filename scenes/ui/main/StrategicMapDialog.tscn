@@ -32,6 +32,42 @@ corner_radius_top_right = 6
 corner_radius_bottom_left = 6
 corner_radius_bottom_right = 6
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_normal"]
+bg_color = Color(0.62, 0.53, 0.36, 0.95)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_hover"]
+bg_color = Color(0.73, 0.62, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_pressed"]
+bg_color = Color(0.46, 0.38, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_map_frame"]
 content_margin_left = 5.0
 content_margin_top = 5.0
@@ -108,7 +144,11 @@ mouse_filter = 2
 layout_mode = 2
 custom_minimum_size = Vector2(28, 22)
 focus_mode = 0
-text = "X"
+text = "×"
+theme_override_colors/font_color = Color(0.12, 0.09, 0.05, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
 
 [node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2

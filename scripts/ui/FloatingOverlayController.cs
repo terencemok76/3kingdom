@@ -16,6 +16,7 @@ internal abstract class FloatingOverlayController
     private readonly string _scenePath;
     private bool _chromeSignalsConnected;
     private bool _contentReady;
+    private bool _dragSurfacesConfigured;
     private bool _hasPositionInitialized;
     private bool _isDragging;
     private bool _keepCenteredDuringInitialLayout;
@@ -46,6 +47,7 @@ internal abstract class FloatingOverlayController
         if (OverlayPanel != null)
         {
             OverlayPanel.Position = Vector2.Zero;
+            StrategyPanelChrome.Sync(OverlayPanel);
         }
         OverlayRoot.Hide();
     }
@@ -82,6 +84,8 @@ internal abstract class FloatingOverlayController
         OverlayContentRoot.MouseFilter = Control.MouseFilterEnum.Stop;
         titleBar.MouseFilter = Control.MouseFilterEnum.Stop;
 
+        StrategyPanelChrome.Apply(OverlayPanel);
+
         if (!_chromeSignalsConnected)
         {
             closeButton.Pressed += OnClosePressed;
@@ -95,6 +99,12 @@ internal abstract class FloatingOverlayController
             OnOverlayContentReady(OverlayContentRoot);
             ApplyOverlayInputThemes(OverlayContentRoot);
             _contentReady = true;
+        }
+
+        if (!_dragSurfacesConfigured)
+        {
+            ConfigureDragSurfaces(OverlayPanel, titleBar);
+            _dragSurfacesConfigured = true;
         }
 
         return true;
@@ -134,6 +144,11 @@ internal abstract class FloatingOverlayController
         {
             EnsureOverlayPosition();
             BringOverlayToFront();
+        }
+
+        if (OverlayPanel != null)
+        {
+            StrategyPanelChrome.Sync(OverlayPanel);
         }
     }
 
@@ -472,6 +487,16 @@ internal abstract class FloatingOverlayController
 
     private void OnTitleBarGuiInput(InputEvent @event)
     {
+        HandleDragInput(@event);
+    }
+
+    private void OnOverlayPanelGuiInput(InputEvent @event)
+    {
+        HandleDragInput(@event);
+    }
+
+    private void HandleDragInput(InputEvent @event)
+    {
         if (OverlayRoot == null || OverlayPanel == null)
         {
             return;
@@ -503,23 +528,70 @@ internal abstract class FloatingOverlayController
             OverlayPanel.Position = new Vector2(
                 Mathf.Clamp(target.X, 0.0f, Mathf.Max(0.0f, viewportSize.X - panelSize.X)),
                 Mathf.Clamp(target.Y, 0.0f, Mathf.Max(0.0f, viewportSize.Y - panelSize.Y)));
+            StrategyPanelChrome.Sync(OverlayPanel);
         }
     }
 
-    private void OnOverlayPanelGuiInput(InputEvent @event)
+    private void ConfigureDragSurfaces(Control root, Control titleBar)
     {
-        if (@event is InputEventMouseButton mouseButton &&
-            mouseButton.ButtonIndex == MouseButton.Left &&
-            mouseButton.Pressed)
+        foreach (var control in EnumerateDescendants<Control>(root))
         {
-            BringOverlayToFront();
-            OverlayPanel?.AcceptEvent();
+            if (control == root || control == titleBar || IsInside(titleBar, control))
+            {
+                continue;
+            }
+
+            if (control is ItemList itemList)
+            {
+                // Empty space in an item list is a safe drag surface, while
+                // existing items must remain selectable.
+                itemList.GuiInput += @event => OnItemListBackgroundGuiInput(itemList, @event);
+                continue;
+            }
+
+            if (IsInteractiveControl(control))
+            {
+                continue;
+            }
+
+            control.MouseFilter = Control.MouseFilterEnum.Stop;
+            control.GuiInput += OnOverlayPanelGuiInput;
+        }
+    }
+
+    private void OnItemListBackgroundGuiInput(ItemList itemList, InputEvent @event)
+    {
+        if (_isDragging)
+        {
+            HandleDragInput(@event);
             return;
         }
 
-        if (@event is InputEventMouseMotion)
+        if (@event is InputEventMouseButton mouseButton &&
+            mouseButton.ButtonIndex == MouseButton.Left &&
+            mouseButton.Pressed &&
+            itemList.GetItemAtPosition(mouseButton.Position, true) < 0)
         {
-            OverlayPanel?.AcceptEvent();
+            HandleDragInput(@event);
         }
+    }
+
+    private static bool IsInteractiveControl(Control control)
+    {
+        return control is BaseButton or OptionButton or LineEdit or TextEdit or SpinBox or HSlider or VSlider or
+            ScrollContainer or Tree or ItemList or TabContainer;
+    }
+
+    private static bool IsInside(Node ancestor, Node node)
+    {
+        for (var current = node.GetParent(); current != null; current = current.GetParent())
+        {
+            if (current == ancestor)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

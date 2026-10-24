@@ -64,7 +64,13 @@ public sealed partial class SelectOfficerDialog : Control
         _primaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/PrimaryScopeButton");
         _secondaryScopeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ScopeRow/SecondaryScopeButton");
         _confirmButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/ConfirmRow/ConfirmButton");
+        var dialogRoot = GetNodeOrNull<Control>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot");
         var closeButton = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/CloseButton");
+
+        if (_dialogPanel != null)
+        {
+            StrategyPanelChrome.Apply(_dialogPanel);
+        }
 
         ApplyExistingButtonThemes();
 
@@ -106,6 +112,10 @@ public sealed partial class SelectOfficerDialog : Control
         if (_dialogPanel != null)
         {
             _dialogPanel.GuiInput += OnDialogPanelGuiInput;
+        }
+        if (dialogRoot != null && _titleBar != null)
+        {
+            ConfigurePanelDragSurfaces(dialogRoot, _titleBar);
         }
         if (closeButton != null)
         {
@@ -502,15 +512,15 @@ public sealed partial class SelectOfficerDialog : Control
 
     private void OnDialogPanelGuiInput(InputEvent @event)
     {
-        if (@event is InputEventMouseButton mouseButton &&
-            mouseButton.ButtonIndex == MouseButton.Left &&
-            mouseButton.Pressed)
-        {
-            MoveToFront();
-        }
+        HandleDragInput(@event);
     }
 
     private void OnTitleBarGuiInput(InputEvent @event)
+    {
+        HandleDragInput(@event);
+    }
+
+    private void HandleDragInput(InputEvent @event)
     {
         if (_dialogPanel == null)
         {
@@ -541,6 +551,61 @@ public sealed partial class SelectOfficerDialog : Control
             _dialogPanel.Position = new Vector2(
                 Mathf.Clamp(target.X, 0.0f, Mathf.Max(0.0f, viewportSize.X - panelSize.X)),
                 Mathf.Clamp(target.Y, 0.0f, Mathf.Max(0.0f, viewportSize.Y - panelSize.Y)));
+            StrategyPanelChrome.Sync(_dialogPanel);
+        }
+    }
+
+    private void ConfigurePanelDragSurfaces(Control root, Control titleBar)
+    {
+        foreach (var control in EnumerateDescendants<Control>(root))
+        {
+            if (control == titleBar || IsInteractiveControl(control) || IsInside(titleBar, control))
+            {
+                continue;
+            }
+
+            control.MouseFilter = Control.MouseFilterEnum.Stop;
+            control.GuiInput += OnDialogPanelGuiInput;
+        }
+    }
+
+    private static bool IsInteractiveControl(Control control)
+    {
+        return control is BaseButton or OptionButton or LineEdit or TextEdit or SpinBox or HSlider or VSlider or
+            ScrollContainer or Tree or ItemList or TabContainer;
+    }
+
+    private static bool IsInside(Node ancestor, Node node)
+    {
+        for (var current = node.GetParent(); current != null; current = current.GetParent())
+        {
+            if (current == ancestor)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<T> EnumerateDescendants<T>(Node root) where T : class
+    {
+        if (root is T rootMatch)
+        {
+            yield return rootMatch;
+        }
+
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var descendant in EnumerateDescendants<T>(child))
+            {
+                yield return descendant;
+            }
         }
     }
 
@@ -567,6 +632,7 @@ public sealed partial class SelectOfficerDialog : Control
         _dialogPanel.Position = new Vector2(
             Mathf.Max(0.0f, (viewportSize.X - panelSize.X) * 0.5f),
             Mathf.Max(0.0f, (viewportSize.Y - panelSize.Y) * 0.5f));
+        StrategyPanelChrome.Sync(_dialogPanel);
     }
 
     private void ApplyExistingButtonThemes()
@@ -587,6 +653,10 @@ public sealed partial class SelectOfficerDialog : Control
             }
 
             CopyButtonTheme(sourceButton, button);
+            button.AddThemeColorOverride("font_color", new Color(0.94f, 0.82f, 0.58f, 1.0f));
+            button.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.9f, 0.66f, 1.0f));
+            button.AddThemeColorOverride("font_pressed_color", new Color(0.16f, 0.11f, 0.05f, 1.0f));
+            button.AddThemeColorOverride("font_disabled_color", new Color(0.62f, 0.56f, 0.44f, 1.0f));
         }
     }
 
