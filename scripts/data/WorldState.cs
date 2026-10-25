@@ -77,6 +77,9 @@ public class WorldState
     public bool InteractiveBattlesEnabled { get; set; } = true;
     // One-shot Debug/Test Tools switch. Consumed only after a Move with cargo is scheduled.
     public bool ForceNextCaravanAmbushForDebug { get; set; }
+    // One-shot Debug/Test Tools switch. It guarantees the next safe player-led
+    // surrender proposal so the absorption flow can be tested.
+    public bool ForceNextSurrenderSuccessForDebug { get; set; }
     public bool ResumeAttackResolutionAfterCampaign { get; set; }
     public bool IsBattleResolutionPhase { get; set; }
     public List<CityData> Cities { get; set; } = new();

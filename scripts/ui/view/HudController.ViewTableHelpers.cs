@@ -16,6 +16,8 @@ public partial class HudController
         public DiplomacyStatusType Status { get; init; } = DiplomacyStatusType.Neutral;
         public int RemainingMonths { get; init; }
         public int RelationScore { get; init; }
+        public int TrustScore { get; init; }
+        public int ThreatScore { get; init; }
     }
 
     private sealed class LogisticsViewRow
@@ -190,12 +192,14 @@ public partial class HudController
 
         if (_officerListContentMode == OfficerListContentMode.DiplomacyRelations)
         {
-            _officerListTable.Columns = 4;
+            _officerListTable.Columns = 6;
             SetViewTableColumn(0, _localization.T("ui.target_faction"), 160, ViewTableSortField.Name);
             SetViewTableColumn(1, _localization.T("ui.relation_status"), 120, ViewTableSortField.RelationStatus);
             SetViewTableColumn(2, _localization.T("ui.remaining_months"), 120, ViewTableSortField.RemainingMonths);
             SetViewTableColumn(3, _localization.T("ui.relation_score"), 110, ViewTableSortField.RelationScore);
-            StretchTrailingViewColumns(4, 1, 160);
+            SetViewTableColumn(4, _localization.T("ui.trust_score"), 90, ViewTableSortField.TrustScore);
+            SetViewTableColumn(5, _localization.T("ui.threat_score"), 90, ViewTableSortField.ThreatScore);
+            StretchTrailingViewColumns(6, 1, 160);
             return;
         }
 
@@ -513,6 +517,8 @@ public partial class HudController
         row.SetText(1, GetDiplomacyStatusText(relation.Status));
         row.SetText(2, relation.Status == DiplomacyStatusType.Neutral ? "-" : relation.RemainingMonths.ToString());
         row.SetText(3, relation.RelationScore.ToString());
+        row.SetText(4, relation.TrustScore.ToString());
+        row.SetText(5, relation.ThreatScore.ToString());
     }
 
     private List<LogisticsViewRow> GetActiveLogisticsRows()
@@ -869,7 +875,9 @@ public partial class HudController
                     TargetFactionName = _localization.GetFactionName(_turnManager.World, faction.Id),
                     Status = relation?.Status ?? DiplomacyStatusType.Neutral,
                     RemainingMonths = relation?.RemainingMonths ?? 0,
-                    RelationScore = relation?.RelationScore ?? 0
+                    RelationScore = relation?.RelationScore ?? 0,
+                    TrustScore = DiplomacyScoreRules.GetTrustScore(relation, factionId, faction.Id),
+                    ThreatScore = DiplomacyScoreRules.CalculateThreatScore(_turnManager.World, factionId, faction.Id, relation)
                 };
             })
             .ToList();
@@ -885,6 +893,12 @@ public partial class HudController
             ViewTableSortField.RelationScore => _viewTableSortAscending
                 ? relations.OrderBy(item => item.RelationScore)
                 : relations.OrderByDescending(item => item.RelationScore),
+            ViewTableSortField.TrustScore => _viewTableSortAscending
+                ? relations.OrderBy(item => item.TrustScore)
+                : relations.OrderByDescending(item => item.TrustScore),
+            ViewTableSortField.ThreatScore => _viewTableSortAscending
+                ? relations.OrderBy(item => item.ThreatScore)
+                : relations.OrderByDescending(item => item.ThreatScore),
             _ => _viewTableSortAscending
                 ? relations.OrderBy(item => item.TargetFactionName)
                 : relations.OrderByDescending(item => item.TargetFactionName)

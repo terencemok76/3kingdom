@@ -1178,6 +1178,7 @@ public partial class CommandResolver
         relation.Status = DiplomacyStatusType.Neutral;
         relation.RemainingMonths = 0;
         relation.RelationScore = Math.Clamp(relation.RelationScore - 18, -100, 100);
+        DiplomacyScoreRules.AdjustTrust(relation, defenderFactionId, -35);
         relation.LastUpdatedYear = world.Year;
         relation.LastUpdatedMonth = world.Month;
         return true;
@@ -2024,6 +2025,7 @@ public partial class CommandResolver
             DiplomacyActionType.Gift => "command.diplomacy.gift",
             DiplomacyActionType.Demand => "command.diplomacy.demand",
             DiplomacyActionType.BreakPact => "command.diplomacy.break_pact",
+            DiplomacyActionType.Surrender => "command.diplomacy.surrender",
             _ => "command.diplomacy.alliance"
         };
         return _localization?.TForLanguage(language, key) ?? actionType.ToString();

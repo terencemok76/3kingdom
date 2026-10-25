@@ -184,6 +184,15 @@ layout_mode = 2
 focus_mode = 0
 text = "觸發道路野戰"
 
+[node name="SurrenderActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ForceSurrenderButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/SurrenderActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "保證下次勸降成功"
+
 [node name="OwnershipActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1

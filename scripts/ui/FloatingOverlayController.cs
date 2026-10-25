@@ -473,11 +473,6 @@ internal abstract class FloatingOverlayController
 
         foreach (Node child in root.GetChildren())
         {
-            if (child is T match)
-            {
-                yield return match;
-            }
-
             foreach (var descendant in EnumerateDescendants<T>(child))
             {
                 yield return descendant;

@@ -427,6 +427,7 @@ public partial class CommandResolver
 
         var relation = GetOrCreateDiplomacyRelation(world, actorFactionId, targetFactionId);
         relation.RelationScore = Math.Clamp(relation.RelationScore - relationPenalty, -100, 100);
+        DiplomacyScoreRules.AdjustTrust(relation, targetFactionId, -12);
         relation.LastUpdatedYear = world.Year;
         relation.LastUpdatedMonth = world.Month;
     }

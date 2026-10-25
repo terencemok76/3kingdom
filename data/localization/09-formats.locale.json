@@ -71,6 +71,10 @@
         "zhHant": "{0:N0}/{1:N0}",
         "en": "{0:N0}/{1:N0}"
     },
+    "fmt.diplomacy_summary_surrender":  {
+        "zhHant": "預覽：向「{0}」提出勸降；若接受，該勢力的城市、武將與道具將併入我方。",
+        "en": "Preview: seek the surrender of \"{0}\". If accepted, its cities, officers, and items join your faction."
+    },
     "fmt.monthly_report_stock_line": {
         "zhHant": "糧 {0}（{1:N0}/{2:N0}）｜馬 {3}（{4:N0}/{5:N0}）｜木 {6}（{7:N0}/{8:N0}）｜鐵 {9}（{10:N0}/{11:N0}）｜石 {12}（{13:N0}/{14:N0}）",
         "en": "Food {0} ({1:N0}/{2:N0}) | Horse {3} ({4:N0}/{5:N0}) | Wood {6} ({7:N0}/{8:N0}) | Metal {9} ({10:N0}/{11:N0}) | Stone {12} ({13:N0}/{14:N0})"

@@ -25,6 +25,9 @@ public class AiController
     private const int DiplomacyDemandAmount = 200;
     private const int DiplomacyDemandTroopAdvantage = 1000;
     private const int DiplomacyDemandMaxRelationScore = 15;
+    private const int DiplomacySurrenderMaximumCityCount = 3;
+    private const int DiplomacySurrenderTroopRatioPercent = 60;
+    private const int DiplomacySurrenderMinimumThreatScore = 70;
     private const int DiplomacyBreakPactTroopAdvantage = 700;
     private const int DiplomacyBreakPactMaxRelationScore = 10;
     private const int SpySabotageDefenseThreshold = 65;
@@ -1120,7 +1123,13 @@ public class AiController
             .Cast<CityData>()
             .Where(target => !HasActiveDiplomacyBlock(world, factionId, target.OwnerFactionId))
             .OrderByDescending(target => target.Troops - city.Troops)
-            .FirstOrDefault(target => target.Troops >= city.Troops + DiplomacyThreatTroopGap);
+            .FirstOrDefault(target =>
+                target.Troops >= city.Troops + DiplomacyThreatTroopGap ||
+                DiplomacyScoreRules.CalculateThreatScore(
+                    world,
+                    factionId,
+                    target.OwnerFactionId,
+                    world.GetDiplomacyRelation(factionId, target.OwnerFactionId)) >= 60);
         if (threatenedNeighbor != null)
         {
             SetDiplomacyDecisionDebug(
@@ -1166,6 +1175,7 @@ public class AiController
                 relation.RemainingMonths > 0 &&
                 relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance &&
                 relation.RelationScore <= DiplomacyBreakPactMaxRelationScore &&
+                DiplomacyScoreRules.GetTrustScore(relation, factionId, relation.FactionAId == factionId ? relation.FactionBId : relation.FactionAId) <= 35 &&
                 (relation.FactionAId == factionId || relation.FactionBId == factionId))
             .Select(relation => relation.FactionAId == factionId ? relation.FactionBId : relation.FactionAId)
             .FirstOrDefault(targetFactionId =>
@@ -1210,6 +1220,38 @@ public class AiController
             return breakPactResult;
         }
 
+        var surrenderTargetFactionId = world.Factions
+                .Where(targetFaction => targetFaction.Id != factionId && !targetFaction.IsPlayer)
+                .Select(targetFaction => targetFaction.Id)
+                .Where(targetFactionId => CommandResolver.IsSurrenderEligible(
+                    world,
+                    factionId,
+                    targetFactionId,
+                    DiplomacySurrenderMaximumCityCount,
+                    DiplomacySurrenderTroopRatioPercent,
+                    DiplomacySurrenderMinimumThreatScore))
+                .OrderBy(targetFactionId => GetFactionTroopTotal(world, targetFactionId))
+                .FirstOrDefault();
+        if (surrenderTargetFactionId > 0)
+        {
+            var surrenderResult = _commandResolver.Execute(new CommandRequest
+                {
+                    Type = CommandType.Diplomacy,
+                    ActorFactionId = factionId,
+                    SourceCityId = city.Id,
+                    TargetFactionId = surrenderTargetFactionId,
+                    DiplomacyActionType = DiplomacyActionType.Surrender,
+                    OfficerIds = new System.Collections.Generic.List<int> { diplomacyOfficerId }
+                });
+
+            if (surrenderResult.Success)
+            {
+                availableOfficerIds.Remove(diplomacyOfficerId);
+            }
+
+            return surrenderResult;
+        }
+
         if (city.Gold >= DiplomacyDemandGoldThreshold)
         {
             var demandTargetFactionId = world.Factions
@@ -1223,6 +1265,7 @@ public class AiController
                 .Where(item =>
                     (item.Relation == null || item.Relation.RemainingMonths <= 0) &&
                     (item.Relation?.RelationScore ?? 0) <= DiplomacyDemandMaxRelationScore &&
+                    DiplomacyScoreRules.CalculateThreatScore(world, item.FactionId, factionId, item.Relation) >= 55 &&
                     GetFactionTroopTotal(world, factionId) >= item.Troops + DiplomacyDemandTroopAdvantage)
                 .OrderBy(item => item.Relation?.RelationScore ?? 0)
                 .ThenBy(item => item.Troops)
@@ -1270,6 +1313,7 @@ public class AiController
         var allianceTargetFactionId = world.DiplomacyRelations
             .Where(relation =>
                 relation.RelationScore >= DiplomacyAllianceRelationThreshold &&
+                DiplomacyScoreRules.GetTrustScore(relation, factionId, relation.FactionAId == factionId ? relation.FactionBId : relation.FactionAId) >= 55 &&
                 relation.RemainingMonths <= 0 &&
                 relation.Status == DiplomacyStatusType.Neutral &&
                 (relation.FactionAId == factionId || relation.FactionBId == factionId))

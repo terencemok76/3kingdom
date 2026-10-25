@@ -288,9 +288,25 @@ visible = false
 layout_mode = 2
 text = "God Mode: Off"
 
-[node name="TestButton" type="Button" parent="Root/TopBar" unique_id=830576357]
+[node name="TestButton" type="Button" parent="Root" unique_id=830576357]
 visible = false
-layout_mode = 2
+custom_minimum_size = Vector2(60, 42)
+layout_mode = 0
+offset_left = 1057.0
+offset_top = 39.0
+offset_right = 1117.0
+offset_bottom = 81.0
+tooltip_text = "Debug tools"
+focus_mode = 0
+theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_disabled_color = Color(0.42, 0.4, 0.34, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_end_turn_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_end_turn_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_end_turn_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_end_turn_disabled")
+theme_override_styles/focus = SubResource("StyleBoxFlat_end_turn_hover")
 text = "Test"
 
 [node name="EndTurnButton" type="Button" parent="Root" unique_id=580274708]

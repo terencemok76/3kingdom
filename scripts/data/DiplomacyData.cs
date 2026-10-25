@@ -14,6 +14,11 @@ public class DiplomacyRelationData
     public DiplomacyStatusType Status { get; set; } = DiplomacyStatusType.Neutral;
     public int RemainingMonths { get; set; }
     public int RelationScore { get; set; }
+    // These scores are directional: A's confidence in B need not match B's confidence in A.
+    public int TrustFromAToB { get; set; } = 50;
+    public int TrustFromBToA { get; set; } = 50;
+    public int ThreatFromAToB { get; set; }
+    public int ThreatFromBToA { get; set; }
     public int LastUpdatedYear { get; set; }
     public int LastUpdatedMonth { get; set; }
 }

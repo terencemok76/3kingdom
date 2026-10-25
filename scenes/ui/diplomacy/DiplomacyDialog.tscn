@@ -274,12 +274,27 @@ layout_mode = 2
 focus_mode = 0
 text = "Select Officer"
 
-[node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
+[node name="NoticeScrollContainer" type="ScrollContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 2
+
+[node name="NoticeContent" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/NoticeScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="SummaryLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/NoticeScrollContainer/NoticeContent"]
+layout_mode = 2
+size_flags_horizontal = 3
 autowrap_mode = 3
 
-[node name="WarningLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]
+[node name="WarningLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/NoticeScrollContainer/NoticeContent"]
 layout_mode = 2
+size_flags_horizontal = 3
 autowrap_mode = 3
 
 [node name="FooterRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection"]

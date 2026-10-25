@@ -11,6 +11,14 @@
         "zhHant": "「{0}」已滅亡；所屬城市已成為無主城市。",
         "en": "{0} has been destroyed. Its cities are now unclaimed."
     },
+    "ui.faction_surrendered_title": {
+        "zhHant": "勸降成功",
+        "en": "Surrender Accepted"
+    },
+    "ui.faction_surrendered_message": {
+        "zhHant": "「{0}」已接受勸降，勢力併入「{1}」；所屬城市與武將均已完成歸屬轉移。",
+        "en": "{0} accepted surrender and joined {1}; its cities and officers have transferred."
+    },
     "ui.game_over_title": {
         "zhHant": "遊戲敗北",
         "en": "Game Over"
@@ -62,6 +70,34 @@
     "ui.relation_score": {
         "zhHant": "關係值",
         "en": "Relation Score"
+    },
+    "ui.trust_score": {
+        "zhHant": "信任",
+        "en": "Trust"
+    },
+    "ui.threat_score": {
+        "zhHant": "威脅",
+        "en": "Threat"
+    },
+    "ui.diplomacy_attitude": {
+        "zhHant": "態度",
+        "en": "Attitude"
+    },
+    "ui.diplomacy_attitude_friendly": {
+        "zhHant": "友善",
+        "en": "Friendly"
+    },
+    "ui.diplomacy_attitude_neutral": {
+        "zhHant": "中立",
+        "en": "Neutral"
+    },
+    "ui.diplomacy_attitude_wary": {
+        "zhHant": "警戒",
+        "en": "Wary"
+    },
+    "ui.diplomacy_attitude_hostile": {
+        "zhHant": "敵對",
+        "en": "Hostile"
     },
     "ui.relation_status": {
         "zhHant": "關係",

@@ -678,6 +678,54 @@
         "zhHant": "「{0}」本月沒有商人駐留。",
         "en": "No merchant is present in {0} this month."
     },
+    "cmd.diplomacy.surrender_unavailable": {
+        "zhHant": "目前不符合勸降條件：目標須為非玩家勢力、擁有 1 至 3 城、未參與戰役、沒有有效同盟，且其兵力不超過我方六成並感受到高度威脅；野心 86 以上的君主則必須只剩一城、兵力不足我方三成且威脅感至少 90。",
+        "en": "Surrender is unavailable: the non-player target must own 1-3 cities, have no active campaign or alliance, field no more than 60% of your troops, and perceive a high threat. A ruler with Ambition 86 or higher must own one city, field under 30% of your troops, and perceive Threat of at least 90."
+    },
+    "cmd.diplomacy.surrender_city_count": {
+        "zhHant": "勸降未提出：目標目前有 {0} 座城市，必須為 1 至 3 座。",
+        "en": "Surrender not proposed: the target owns {0} cities; it must own 1 to 3."
+    },
+    "cmd.diplomacy.surrender_active_campaign": {
+        "zhHant": "勸降未提出：目標勢力目前正參與戰役。",
+        "en": "Surrender not proposed: the target faction is currently in a campaign."
+    },
+    "cmd.diplomacy.surrender_active_alliance": {
+        "zhHant": "勸降未提出：目標勢力目前有有效同盟。",
+        "en": "Surrender not proposed: the target faction has an active alliance."
+    },
+    "cmd.diplomacy.surrender_troop_ratio": {
+        "zhHant": "勸降未提出：目標兵力 {0}，超過我方兵力 {1} 的 {2}%。",
+        "en": "Surrender not proposed: target troops {0} exceed {2}% of your troops ({1})."
+    },
+    "cmd.diplomacy.surrender_troop_ratio_hidden": {
+        "zhHant": "勸降未提出：目標兵力仍超出可勸降範圍。先偵察目標君主所在城市，才會取得精確兵力。",
+        "en": "Surrender not proposed: target troops remain too strong. Reconnoiter the target ruler's city to reveal exact troop totals."
+    },
+    "cmd.diplomacy.surrender_threat": {
+        "zhHant": "勸降未提出：目標對我方的威脅感為 {0}，需要至少 {1}。",
+        "en": "Surrender not proposed: the target's perceived Threat is {0}; at least {1} is required."
+    },
+    "cmd.diplomacy.surrender_high_ambition_city_count": {
+        "zhHant": "勸降未提出：目標君主野心極高，目前仍有 {0} 座城市；必須只剩 1 座。",
+        "en": "Surrender not proposed: the target ruler is highly ambitious and still owns {0} cities; exactly 1 is required."
+    },
+    "cmd.diplomacy.surrender_high_ambition_troop_ratio": {
+        "zhHant": "勸降未提出：目標君主野心極高，目標兵力 {0} 必須不超過我方兵力 {1} 的 {2}%。",
+        "en": "Surrender not proposed: the target ruler is highly ambitious; target troops {0} must not exceed {2}% of your troops ({1})."
+    },
+    "cmd.diplomacy.surrender_high_ambition_troop_ratio_hidden": {
+        "zhHant": "勸降未提出：目標君主野心極高，兵力條件仍未達標。先偵察目標君主所在城市，才會取得精確兵力。",
+        "en": "Surrender not proposed: the highly ambitious ruler's military condition is still unmet. Reconnoiter the ruler's city to reveal exact troop totals."
+    },
+    "cmd.diplomacy.surrender_high_ambition_threat": {
+        "zhHant": "勸降未提出：目標君主野心極高，威脅感為 {0}，需要至少 {1}。",
+        "en": "Surrender not proposed: the target ruler is highly ambitious; Threat is {0}, at least {1} is required."
+    },
+    "cmd.diplomacy.surrender_resolved": {
+        "zhHant": "使者「{0}」成功勸降「{1}」；{2} 座城市與 {3} 名武將已併入我方。",
+        "en": "Envoy \"{0}\" secured the surrender of \"{1}\"; {2} cities and {3} officers joined your faction."
+    },
     "cmd.merchant.not_enough_food":  {
                                          "zhHant":  "「{0}」糧不足，無法賣糧。",
                                          "en":  "\"{0}\" does not have enough food to sell."

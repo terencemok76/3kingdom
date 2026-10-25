@@ -16,6 +16,7 @@ internal static class DiplomacyUiHelpers
             DiplomacyActionType.Gift => "command.diplomacy.gift",
             DiplomacyActionType.Demand => "command.diplomacy.demand",
             DiplomacyActionType.BreakPact => "command.diplomacy.break_pact",
+            DiplomacyActionType.Surrender => "command.diplomacy.surrender",
             _ => "command.diplomacy.alliance"
         };
     }

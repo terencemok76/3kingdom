@@ -145,6 +145,8 @@ public partial class HudController : CanvasLayer
         RelationStatus,
         RemainingMonths,
         RelationScore,
+        TrustScore,
+        ThreatScore,
         SpyExperience,
         DiplomacyExperience,
         Gold,

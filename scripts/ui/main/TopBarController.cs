@@ -24,6 +24,8 @@ internal sealed class TopBarController
     private Vector2 _contentSize = new(600.0f, 42.0f);
     private Vector2 _endTurnOffset = new(681.0f, 52.0f);
     private Vector2 _endTurnSize = new(116.0f, 42.0f);
+    private Vector2 _testButtonOffset = new(612.0f, 52.0f);
+    private Vector2 _testButtonSize = new(60.0f, 42.0f);
     private Vector2 _optionOffset = new(813.0f, 52.0f);
     private Vector2 _optionSize = new(48.0f, 42.0f);
     private int _displayedFactionId = -1;
@@ -124,7 +126,7 @@ internal sealed class TopBarController
 
         if (_context.TestButton != null)
         {
-            _context.TestButton.Visible = _context.IsGodModeEnabled();
+            _context.TestButton.Visible = _context.IsGodModeEnabled() && !_temporarilyHidden;
             _context.TestButton.Text = "Test";
         }
 
@@ -181,6 +183,12 @@ internal sealed class TopBarController
             _context.EndTurnButton.Size = _endTurnSize;
             _context.EndTurnButton.Visible = !_temporarilyHidden;
         }
+        if (_context.TestButton != null)
+        {
+            _context.TestButton.Position = _position + GetTestButtonOffset();
+            _context.TestButton.Size = _testButtonSize;
+            _context.TestButton.Visible = _context.IsGodModeEnabled() && !_temporarilyHidden;
+        }
         if (_context.OptionButton != null)
         {
             _context.OptionButton.Position = _position + GetOptionOffset();
@@ -232,6 +240,7 @@ internal sealed class TopBarController
     {
         _context.MoveToFront(_background);
         _context.MoveToFront(_content);
+        _context.MoveToFront(_context.TestButton);
         _context.MoveToFront(_context.EndTurnButton);
         _context.MoveToFront(_context.OptionButton);
     }
@@ -280,6 +289,12 @@ internal sealed class TopBarController
             _endTurnSize = _context.EndTurnButton.Size;
         }
 
+        if (_context.TestButton != null)
+        {
+            _testButtonOffset = _context.TestButton.Position - _background.Position;
+            _testButtonSize = _context.TestButton.Size;
+        }
+
         if (_context.OptionButton != null)
         {
             _optionOffset = _context.OptionButton.Position - _background.Position;
@@ -300,6 +315,14 @@ internal sealed class TopBarController
         return new Vector2(
             Mathf.Max(0.0f, optionOffset.X - RightControlGap - _endTurnSize.X),
             _endTurnOffset.Y);
+    }
+
+    private Vector2 GetTestButtonOffset()
+    {
+        var endTurnOffset = GetEndTurnOffset();
+        return new Vector2(
+            Mathf.Max(0.0f, endTurnOffset.X - RightControlGap - _testButtonSize.X),
+            _testButtonOffset.Y);
     }
 
     public void PopulateSettings(OptionSettingsData settings)
@@ -339,7 +362,6 @@ internal sealed class TopBarController
     {
         ApplySharedButtonTheme(_context.LanguageButton);
         ApplySharedButtonTheme(_context.GodModeButton);
-        ApplySharedButtonTheme(_context.TestButton);
     }
 
     private void ApplySharedButtonTheme(Button? button)

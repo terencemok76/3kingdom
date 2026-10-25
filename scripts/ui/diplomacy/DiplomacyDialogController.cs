@@ -100,8 +100,8 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("FooterSection/OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("FooterSection/OfficerSelectorRow/SelectOfficerButton");
         _relationInfoLabel = root.GetNodeOrNull<Label>("MiddleSection/RelationInfoLabel");
-        _summaryLabel = root.GetNodeOrNull<Label>("FooterSection/SummaryLabel");
-        _warningLabel = root.GetNodeOrNull<Label>("FooterSection/WarningLabel");
+        _summaryLabel = root.GetNodeOrNull<Label>("FooterSection/NoticeScrollContainer/NoticeContent/SummaryLabel");
+        _warningLabel = root.GetNodeOrNull<Label>("FooterSection/NoticeScrollContainer/NoticeContent/WarningLabel");
         _advisorButton = root.GetNodeOrNull<Button>("FooterSection/FooterRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("FooterSection/FooterRow/ConfirmButton");
         ApplyButtonThemes();
@@ -136,6 +136,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         AddActionOption(DiplomacyActionType.Truce);
         AddActionOption(DiplomacyActionType.Gift);
         AddActionOption(DiplomacyActionType.Demand);
+        AddActionOption(DiplomacyActionType.Surrender);
         AddActionOption(DiplomacyActionType.BreakPact);
 
         _targetFactionOption.Clear();
@@ -226,6 +227,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         AddActionOption(DiplomacyActionType.Truce);
         AddActionOption(DiplomacyActionType.Gift);
         AddActionOption(DiplomacyActionType.Demand);
+        AddActionOption(DiplomacyActionType.Surrender);
         AddActionOption(DiplomacyActionType.BreakPact);
         SelectActionOption(selectedActionType);
     }
@@ -383,6 +385,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
             DiplomacyActionType.Gift => "fmt.diplomacy_summary_gift",
             DiplomacyActionType.Demand => "fmt.diplomacy_summary_demand",
             DiplomacyActionType.BreakPact => "fmt.diplomacy_summary_break_pact",
+            DiplomacyActionType.Surrender => "fmt.diplomacy_summary_surrender",
             _ => "fmt.diplomacy_summary_treaty"
         };
         _summaryLabel.Text = actionType switch
@@ -390,6 +393,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
             DiplomacyActionType.Gift => _context.Localization.Format(summaryKey, actionName, targetFactionName, DiplomacyUiHelpers.BuildDemandResourceSummary(_context.Localization, gold, food, horses)),
             DiplomacyActionType.Demand => _context.Localization.Format(summaryKey, actionName, targetFactionName, DiplomacyUiHelpers.BuildDemandResourceSummary(_context.Localization, gold, food, horses)),
             DiplomacyActionType.BreakPact => _context.Localization.Format(summaryKey, actionName, targetFactionName),
+            DiplomacyActionType.Surrender => _context.Localization.Format(summaryKey, targetFactionName),
             _ => _context.Localization.Format(summaryKey, actionName, targetFactionName, duration)
         };
     }
@@ -406,11 +410,23 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         var status = relation?.Status ?? DiplomacyStatusType.Neutral;
         var remainingMonths = status == DiplomacyStatusType.Neutral ? "-" : (relation?.RemainingMonths ?? 0).ToString();
         var relationScore = relation?.RelationScore ?? 0;
+        var trustScore = DiplomacyScoreRules.GetTrustScore(relation, targetFactionId, _context.SelectedCity.OwnerFactionId);
+        var threatScore = DiplomacyScoreRules.CalculateThreatScore(_context.TurnManager.World, _context.SelectedCity.OwnerFactionId, targetFactionId, relation);
+        var attitudeKey = threatScore >= 65
+            ? "ui.diplomacy_attitude_wary"
+            : relationScore <= -30
+                ? "ui.diplomacy_attitude_hostile"
+                : relationScore >= 30 && trustScore >= 50
+                    ? "ui.diplomacy_attitude_friendly"
+                    : "ui.diplomacy_attitude_neutral";
 
         _relationInfoLabel.Text =
+            $"{_context.Localization.T("ui.diplomacy_attitude")}: {_context.Localization.T(attitudeKey)}\n" +
             $"{_context.Localization.T("ui.relation_status")}: {_context.GetStatusText(status)}\n" +
             $"{_context.Localization.T("ui.remaining_months")}: {remainingMonths}\n" +
-            $"{_context.Localization.T("ui.relation_score")}: {relationScore}";
+            $"{_context.Localization.T("ui.relation_score")}: {relationScore}\n" +
+            $"{_context.Localization.T("ui.trust_score")}: {trustScore}\n" +
+            $"{_context.Localization.T("ui.threat_score")}: {threatScore}";
     }
 
     private void UpdateConfirmButtonState()
@@ -455,6 +471,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         {
             DiplomacyActionType.Gift or DiplomacyActionType.Demand => 520,
             DiplomacyActionType.BreakPact => 420,
+            DiplomacyActionType.Surrender => 520,
             _ => 460
         };
 
@@ -548,6 +565,12 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         {
             DiplomacyActionType.Gift => localization.Format("fmt.diplomacy_advice_gift", actionName, targetName, gold, food, horses),
             DiplomacyActionType.BreakPact => localization.Format("fmt.diplomacy_advice_break_pact", actionName, targetName),
+            DiplomacyActionType.Surrender => localization.Format(
+                "fmt.diplomacy_advice_surrender",
+                actionName,
+                targetName,
+                world.GetOfficer(targetFaction.RulerOfficerId)?.Ambition ?? 50,
+                relationScore),
             _ => BuildDiplomacyChanceAdvice(world, city, targetFaction, relationScore, actionType, actionName, targetName, duration, localization)
         };
     }

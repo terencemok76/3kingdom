@@ -19,6 +19,10 @@
                                     "zhHant":  "索取歲貢",
                                     "en":  "Demand Tribute"
                                 },
+    "command.diplomacy.surrender":  {
+                                      "zhHant":  "勸降",
+                                      "en":  "Seek Surrender"
+                                  },
     "command.diplomacy.break_pact":  {
                                         "zhHant":  "毀約絕交",
                                         "en":  "Break Pact"

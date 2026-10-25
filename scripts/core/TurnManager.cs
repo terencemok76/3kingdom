@@ -423,6 +423,14 @@ public class TurnManager
             relation.RemainingMonths = 0;
             relation.Status = DiplomacyStatusType.Neutral;
         }
+
+        foreach (var relation in World.DiplomacyRelations.Where(relation => relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance && relation.RemainingMonths > 0))
+        {
+            DiplomacyScoreRules.AdjustTrust(relation, relation.FactionAId, 1);
+            DiplomacyScoreRules.AdjustTrust(relation, relation.FactionBId, 1);
+        }
+
+        DiplomacyScoreRules.RefreshThreatScores(World);
     }
 
     private void AdvanceCityIntel()

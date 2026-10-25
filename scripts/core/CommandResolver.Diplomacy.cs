@@ -6,6 +6,24 @@ namespace ThreeKingdom.Core;
 
 public partial class CommandResolver
 {
+    private const int SurrenderHighAmbitionThreshold = 86;
+    private const int SurrenderHighAmbitionMaximumCityCount = 1;
+    private const int SurrenderHighAmbitionTroopRatioPercent = 30;
+    private const int SurrenderHighAmbitionMinimumThreatScore = 90;
+    private const int SurrenderedOfficerStartingLoyalty = 60;
+    private enum SurrenderEligibilityFailure
+    {
+        None,
+        TargetMustBeAi,
+        CityCount,
+        ActiveCampaign,
+        ActiveAlliance,
+        TroopRatio,
+        Threat,
+        HighAmbitionCityCount,
+        HighAmbitionTroopRatio,
+        HighAmbitionThreat
+    }
     private CommandResult ScheduleDiplomacy(WorldState world, CityData sourceCity, CommandRequest request)
     {
         if (!request.TargetFactionId.HasValue)
@@ -56,10 +74,18 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.diplomacy.break_pact_not_active", GetFactionArgs(targetFaction, GameLanguage.TraditionalChinese), GetFactionArgs(targetFaction, GameLanguage.English));
         }
 
-        var duration = request.DiplomacyActionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand or DiplomacyActionType.BreakPact
+        var forceSurrenderSuccess = IsDebugSurrenderForceApplicable(world, request.ActorFactionId, targetFaction.Id);
+        if (request.DiplomacyActionType == DiplomacyActionType.Surrender &&
+            !forceSurrenderSuccess &&
+            !IsSurrenderEligible(world, request.ActorFactionId, targetFaction.Id))
+        {
+            return GetSurrenderUnavailableResult(world, request.ActorFactionId, targetFaction.Id);
+        }
+
+        var duration = request.DiplomacyActionType is DiplomacyActionType.Gift or DiplomacyActionType.Demand or DiplomacyActionType.BreakPact or DiplomacyActionType.Surrender
             ? 1
             : Math.Clamp(request.DurationMonths, 1, 12);
-        if (request.DiplomacyActionType is not (DiplomacyActionType.Gift or DiplomacyActionType.Demand or DiplomacyActionType.BreakPact) &&
+        if (request.DiplomacyActionType is not (DiplomacyActionType.Gift or DiplomacyActionType.Demand or DiplomacyActionType.BreakPact or DiplomacyActionType.Surrender) &&
             request.DurationMonths <= 0)
         {
             return LocalizedResult(false, "cmd.diplomacy.invalid_duration");
@@ -177,6 +203,7 @@ public partial class CommandResolver
                             pendingCommand.HorsesToSend * MerchantGoldPerHorseTrade / MerchantHorsePerTrade;
             var gain = Math.Clamp(giftValue / 100, 3, 25);
             relation.RelationScore = Math.Clamp(relation.RelationScore + gain, -100, 100);
+            DiplomacyScoreRules.AdjustTrust(relation, targetFaction.Id, 3);
             OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
                 true,
@@ -206,6 +233,7 @@ public partial class CommandResolver
             relation.Status = DiplomacyStatusType.Neutral;
             relation.RemainingMonths = 0;
             relation.RelationScore = Math.Clamp(relation.RelationScore - 18, -100, 100);
+            DiplomacyScoreRules.AdjustTrust(relation, targetFaction.Id, -35);
             OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
                 true,
@@ -229,6 +257,7 @@ public partial class CommandResolver
             if (!success)
             {
                 relation.RelationScore = Math.Clamp(relation.RelationScore - 8, -100, 100);
+                DiplomacyScoreRules.AdjustTrust(relation, targetFaction.Id, -4);
                 OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: false));
                 return LocalizedResult(
                     false,
@@ -300,6 +329,7 @@ public partial class CommandResolver
             }
 
             relation.RelationScore = Math.Clamp(relation.RelationScore - 14, -100, 100);
+            DiplomacyScoreRules.AdjustTrust(relation, targetFaction.Id, -8);
             OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
             return LocalizedResult(
                 true,
@@ -322,11 +352,71 @@ public partial class CommandResolver
                 });
         }
 
+        if (pendingCommand.DiplomacyActionType == DiplomacyActionType.Surrender)
+        {
+            var forceSurrenderSuccess = IsDebugSurrenderForceApplicable(world, pendingCommand.ActorFactionId, targetFaction.Id);
+            if (!forceSurrenderSuccess && !IsSurrenderEligible(world, pendingCommand.ActorFactionId, targetFaction.Id))
+            {
+                return GetSurrenderUnavailableResult(world, pendingCommand.ActorFactionId, targetFaction.Id);
+            }
+
+            var surrenderChance = forceSurrenderSuccess
+                ? 100
+                : CalculateDiplomacySuccessChance(world, sourceCity, officer, targetFaction, relation, pendingCommand.DiplomacyActionType);
+            if (_random.Next(100) >= surrenderChance)
+            {
+                relation.RelationScore = Math.Clamp(relation.RelationScore - 12, -100, 100);
+                DiplomacyScoreRules.AdjustTrust(relation, targetFaction.Id, -8);
+                OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: false));
+                return LocalizedResult(
+                    false,
+                    "cmd.diplomacy.failed",
+                    new object[]
+                    {
+                        GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
+                        GetDiplomacyActionName(pendingCommand.DiplomacyActionType, GameLanguage.TraditionalChinese),
+                        GetFactionName(targetFaction, GameLanguage.TraditionalChinese)
+                    },
+                    new object[]
+                    {
+                        GetOfficerDisplayName(officer, GameLanguage.English),
+                        GetDiplomacyActionName(pendingCommand.DiplomacyActionType, GameLanguage.English),
+                        GetFactionName(targetFaction, GameLanguage.English)
+                    });
+            }
+
+            var transferredCityCount = world.Cities.Count(city => city.OwnerFactionId == targetFaction.Id);
+            var transferredOfficerCount = AbsorbFaction(world, pendingCommand.ActorFactionId, targetFaction.Id, pendingCommand);
+            if (forceSurrenderSuccess)
+            {
+                world.ForceNextSurrenderSuccessForDebug = false;
+            }
+            OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
+            return LocalizedResult(
+                true,
+                "cmd.diplomacy.surrender_resolved",
+                new object[]
+                {
+                    GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese),
+                    GetFactionName(targetFaction, GameLanguage.TraditionalChinese),
+                    transferredCityCount,
+                    transferredOfficerCount
+                },
+                new object[]
+                {
+                    GetOfficerDisplayName(officer, GameLanguage.English),
+                    GetFactionName(targetFaction, GameLanguage.English),
+                    transferredCityCount,
+                    transferredOfficerCount
+                });
+        }
+
         var treatyChance = CalculateDiplomacySuccessChance(world, sourceCity, officer, targetFaction, relation, pendingCommand.DiplomacyActionType);
         var treatySuccess = _random.Next(100) < treatyChance;
         if (!treatySuccess)
         {
             relation.RelationScore = Math.Clamp(relation.RelationScore - 6, -100, 100);
+            DiplomacyScoreRules.AdjustTrust(relation, targetFaction.Id, -2);
             OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: false));
             return LocalizedResult(
                 false,
@@ -350,6 +440,9 @@ public partial class CommandResolver
             : DiplomacyStatusType.Truce;
         relation.RemainingMonths = Math.Max(relation.RemainingMonths, pendingCommand.DurationMonths + 1);
         relation.RelationScore = Math.Clamp(relation.RelationScore + (pendingCommand.DiplomacyActionType == DiplomacyActionType.Alliance ? 25 : 15), -100, 100);
+        var treatyTrustGain = pendingCommand.DiplomacyActionType == DiplomacyActionType.Alliance ? 8 : 5;
+        DiplomacyScoreRules.AdjustTrust(relation, pendingCommand.ActorFactionId, treatyTrustGain);
+        DiplomacyScoreRules.AdjustTrust(relation, targetFaction.Id, treatyTrustGain);
         OfficerProgressionRules.AwardDiplomacyExperience(officer, GetDiplomacyExperienceReward(pendingCommand.DiplomacyActionType, success: true));
 
         return LocalizedResult(
@@ -388,6 +481,11 @@ public partial class CommandResolver
         var officerScore = (charm + politics + intelligence) / 3;
         var targetScore = (rulerCharm + rulerPolitics) / 2;
         var relationBonus = relation.RelationScore / 4;
+        var targetTrust = DiplomacyScoreRules.GetTrustScore(relation, targetFaction.Id, sourceCity.OwnerFactionId);
+        var targetThreat = DiplomacyScoreRules.GetThreatScore(relation, targetFaction.Id, sourceCity.OwnerFactionId);
+        var ambitionPenalty = actionType == DiplomacyActionType.Surrender
+            ? Math.Max(0, (ruler?.Ambition ?? 50) - 50) / 2
+            : 0;
         var cityLoyaltyBonus = Math.Max(0, sourceCity.Loyalty - 70) / 10;
         var pressureBonus = GetFactionTroopTotal(world, sourceCity.OwnerFactionId) - GetFactionTroopTotal(world, targetFaction.Id);
         var rankBonus = OfficerProgressionRules.GetDiplomacySuccessBonus(officer);
@@ -396,10 +494,31 @@ public partial class CommandResolver
             DiplomacyActionType.Alliance => 42,
             DiplomacyActionType.Truce => 58,
             DiplomacyActionType.Demand => 34,
+            DiplomacyActionType.Surrender => 18,
             _ => 50
         };
-        var extraPressure = actionType == DiplomacyActionType.Demand ? pressureBonus / 120 : 0;
-        return Math.Clamp(baseChance + (officerScore - targetScore) / 4 + relationBonus + cityLoyaltyBonus + rankBonus + extraPressure, 10, 90);
+        var extraPressure = actionType switch
+        {
+            DiplomacyActionType.Demand => pressureBonus / 120,
+            DiplomacyActionType.Surrender => pressureBonus / 80,
+            _ => 0
+        };
+        var trustBonus = actionType switch
+        {
+            DiplomacyActionType.Alliance => (targetTrust - 50) / 3,
+            DiplomacyActionType.Truce => (targetTrust - 50) / 5,
+            DiplomacyActionType.Surrender => (targetTrust - 50) / 4,
+            _ => 0
+        };
+        var threatBonus = actionType switch
+        {
+            DiplomacyActionType.Demand => (targetThreat - 50) / 2,
+            DiplomacyActionType.Surrender => (targetThreat - 50) * 2 / 3,
+            DiplomacyActionType.Truce => (targetThreat - 50) / 4,
+            DiplomacyActionType.Alliance => (50 - targetThreat) / 5,
+            _ => 0
+        };
+        return Math.Clamp(baseChance + (officerScore - targetScore) / 4 + relationBonus + cityLoyaltyBonus + rankBonus + extraPressure + trustBonus + threatBonus - ambitionPenalty, 10, 90);
     }
 
     private static int GetFactionTroopTotal(WorldState world, int factionId)
@@ -407,6 +526,227 @@ public partial class CommandResolver
         return world.Cities
             .Where(city => city.OwnerFactionId == factionId)
             .Sum(city => city.Troops);
+    }
+
+    internal static bool IsSurrenderEligible(
+        WorldState world,
+        int actorFactionId,
+        int targetFactionId,
+        int maximumCityCount = 3,
+        int maximumTroopRatioPercent = 60,
+        int minimumThreatScore = 70)
+    {
+        return GetSurrenderEligibilityFailure(
+                   world,
+                   actorFactionId,
+                   targetFactionId,
+                   maximumCityCount,
+                   maximumTroopRatioPercent,
+                   minimumThreatScore) == SurrenderEligibilityFailure.None;
+    }
+
+    private static SurrenderEligibilityFailure GetSurrenderEligibilityFailure(
+        WorldState world,
+        int actorFactionId,
+        int targetFactionId,
+        int maximumCityCount = 3,
+        int maximumTroopRatioPercent = 60,
+        int minimumThreatScore = 70)
+    {
+        var actorFaction = world.GetFaction(actorFactionId);
+        var targetFaction = world.GetFaction(targetFactionId);
+        if (actorFaction == null || targetFaction == null || targetFaction.IsPlayer || actorFactionId == targetFactionId)
+        {
+            return SurrenderEligibilityFailure.TargetMustBeAi;
+        }
+
+        var targetCities = world.Cities.Where(city => city.OwnerFactionId == targetFactionId).ToList();
+        if (targetCities.Count is < 1 or > 3 || targetCities.Count > maximumCityCount)
+        {
+            return SurrenderEligibilityFailure.CityCount;
+        }
+
+        if (world.ActiveBattleCampaigns.Any(campaign =>
+                campaign.Stage != CampaignStage.Resolved &&
+                (campaign.AttackerFactionId == targetFactionId || campaign.DefenderFactionId == targetFactionId)))
+        {
+            return SurrenderEligibilityFailure.ActiveCampaign;
+        }
+
+        if (world.DiplomacyRelations.Any(relation =>
+                relation.Status == DiplomacyStatusType.Alliance &&
+                relation.RemainingMonths > 0 &&
+                (relation.FactionAId == targetFactionId || relation.FactionBId == targetFactionId)))
+        {
+            return SurrenderEligibilityFailure.ActiveAlliance;
+        }
+
+        var actorTroops = GetFactionTroopTotal(world, actorFactionId);
+        var targetTroops = GetFactionTroopTotal(world, targetFactionId);
+        if (actorTroops <= 0 || targetTroops * 100 > actorTroops * maximumTroopRatioPercent)
+        {
+            return SurrenderEligibilityFailure.TroopRatio;
+        }
+
+        var relation = world.GetDiplomacyRelation(actorFactionId, targetFactionId);
+        var threatScore = DiplomacyScoreRules.CalculateThreatScore(world, targetFactionId, actorFactionId, relation);
+        if (threatScore < minimumThreatScore)
+        {
+            return SurrenderEligibilityFailure.Threat;
+        }
+
+        var targetRuler = world.GetOfficer(targetFaction.RulerOfficerId);
+        if (targetRuler == null || targetRuler.Ambition < SurrenderHighAmbitionThreshold)
+        {
+            return SurrenderEligibilityFailure.None;
+        }
+
+        if (targetCities.Count > SurrenderHighAmbitionMaximumCityCount)
+        {
+            return SurrenderEligibilityFailure.HighAmbitionCityCount;
+        }
+
+        if (targetTroops * 100 > actorTroops * SurrenderHighAmbitionTroopRatioPercent)
+        {
+            return SurrenderEligibilityFailure.HighAmbitionTroopRatio;
+        }
+
+        return threatScore < SurrenderHighAmbitionMinimumThreatScore
+            ? SurrenderEligibilityFailure.HighAmbitionThreat
+            : SurrenderEligibilityFailure.None;
+    }
+
+    private CommandResult GetSurrenderUnavailableResult(WorldState world, int actorFactionId, int targetFactionId)
+    {
+        var targetCityCount = world.Cities.Count(city => city.OwnerFactionId == targetFactionId);
+        var actorTroops = GetFactionTroopTotal(world, actorFactionId);
+        var targetTroops = GetFactionTroopTotal(world, targetFactionId);
+        var relation = world.GetDiplomacyRelation(actorFactionId, targetFactionId);
+        var threatScore = DiplomacyScoreRules.CalculateThreatScore(world, targetFactionId, actorFactionId, relation);
+        var hasMilitaryIntel = HasSurrenderMilitaryIntel(world, actorFactionId, targetFactionId);
+        var failure = GetSurrenderEligibilityFailure(world, actorFactionId, targetFactionId);
+        return failure switch
+        {
+            SurrenderEligibilityFailure.CityCount => LocalizedResult(false, "cmd.diplomacy.surrender_city_count", new object[] { targetCityCount }, new object[] { targetCityCount }),
+            SurrenderEligibilityFailure.ActiveCampaign => LocalizedResult(false, "cmd.diplomacy.surrender_active_campaign"),
+            SurrenderEligibilityFailure.ActiveAlliance => LocalizedResult(false, "cmd.diplomacy.surrender_active_alliance"),
+            SurrenderEligibilityFailure.TroopRatio when !hasMilitaryIntel => LocalizedResult(false, "cmd.diplomacy.surrender_troop_ratio_hidden"),
+            SurrenderEligibilityFailure.TroopRatio => LocalizedResult(false, "cmd.diplomacy.surrender_troop_ratio", new object[] { targetTroops, actorTroops, 60 }, new object[] { targetTroops, actorTroops, 60 }),
+            SurrenderEligibilityFailure.Threat => LocalizedResult(false, "cmd.diplomacy.surrender_threat", new object[] { threatScore, 70 }, new object[] { threatScore, 70 }),
+            SurrenderEligibilityFailure.HighAmbitionCityCount => LocalizedResult(false, "cmd.diplomacy.surrender_high_ambition_city_count", new object[] { targetCityCount }, new object[] { targetCityCount }),
+            SurrenderEligibilityFailure.HighAmbitionTroopRatio when !hasMilitaryIntel => LocalizedResult(false, "cmd.diplomacy.surrender_high_ambition_troop_ratio_hidden"),
+            SurrenderEligibilityFailure.HighAmbitionTroopRatio => LocalizedResult(false, "cmd.diplomacy.surrender_high_ambition_troop_ratio", new object[] { targetTroops, actorTroops, SurrenderHighAmbitionTroopRatioPercent }, new object[] { targetTroops, actorTroops, SurrenderHighAmbitionTroopRatioPercent }),
+            SurrenderEligibilityFailure.HighAmbitionThreat => LocalizedResult(false, "cmd.diplomacy.surrender_high_ambition_threat", new object[] { threatScore, SurrenderHighAmbitionMinimumThreatScore }, new object[] { threatScore, SurrenderHighAmbitionMinimumThreatScore }),
+            _ => LocalizedResult(false, "cmd.diplomacy.surrender_unavailable")
+        };
+    }
+
+    private static bool HasSurrenderMilitaryIntel(WorldState world, int actorFactionId, int targetFactionId)
+    {
+        var targetRuler = world.GetFaction(targetFactionId) is { RulerOfficerId: > 0 } faction
+            ? world.GetOfficer(faction.RulerOfficerId)
+            : null;
+        return targetRuler != null &&
+               targetRuler.CityId > 0 &&
+               world.GetCity(targetRuler.CityId)?.OwnerFactionId == targetFactionId &&
+               world.HasActiveCityIntel(actorFactionId, targetRuler.CityId);
+    }
+
+    private static bool IsDebugSurrenderForceApplicable(WorldState world, int actorFactionId, int targetFactionId)
+    {
+        var actorFaction = world.GetFaction(actorFactionId);
+        var targetFaction = world.GetFaction(targetFactionId);
+        return world.ForceNextSurrenderSuccessForDebug &&
+               actorFaction?.IsPlayer == true &&
+               targetFaction is { IsPlayer: false } &&
+               actorFactionId != targetFactionId &&
+               !world.ActiveBattleCampaigns.Any(campaign =>
+                   campaign.Stage != CampaignStage.Resolved &&
+                   (campaign.AttackerFactionId == targetFactionId || campaign.DefenderFactionId == targetFactionId));
+    }
+
+    private int AbsorbFaction(
+        WorldState world,
+        int receivingFactionId,
+        int surrenderedFactionId,
+        PendingCommandData resolvingCommand)
+    {
+        var receivingFaction = world.GetFaction(receivingFactionId);
+        var surrenderedFaction = world.GetFaction(surrenderedFactionId);
+        if (receivingFaction == null || surrenderedFaction == null)
+        {
+            return 0;
+        }
+
+        var cityIds = world.Cities
+            .Where(city => city.OwnerFactionId == surrenderedFactionId)
+            .Select(city => city.Id)
+            .ToList();
+        foreach (var city in world.Cities.Where(city => cityIds.Contains(city.Id)))
+        {
+            city.OwnerFactionId = receivingFactionId;
+            city.Loyalty = Math.Max(city.Loyalty, 55);
+            ClearCityPrefectAuthorization(city);
+        }
+
+        world.InternalAffairsSchedules.RemoveAll(schedule => cityIds.Contains(schedule.CityId));
+        var transferredOfficerCount = 0;
+        var officerIds = new System.Collections.Generic.HashSet<int>(surrenderedFaction.OfficerIds);
+        foreach (var officer in world.Officers.Where(candidate => candidate.Belongs == surrenderedFactionId.ToString()))
+        {
+            officerIds.Add(officer.Id);
+        }
+
+        foreach (var officerId in officerIds)
+        {
+            var surrenderedOfficer = world.GetOfficer(officerId);
+            if (surrenderedOfficer == null || surrenderedOfficer.CaptiveFactionId > 0)
+            {
+                continue;
+            }
+
+            OfficerAppointmentRules.RemoveAppointment(surrenderedOfficer, OfficerAppointmentRules.Lord);
+            OfficerAppointmentRules.RemoveAppointment(surrenderedOfficer, OfficerAppointmentRules.Chancellor);
+            OfficerAppointmentRules.RemoveAppointment(surrenderedOfficer, OfficerAppointmentRules.ChiefStrategist);
+            surrenderedOfficer.Belongs = receivingFactionId.ToString();
+            // Loyalty belongs to the ruler, not to the city or faction label.
+            // A surrendered officer begins serving the new ruler at the
+            // standard recruit baseline instead of retaining old-ruler loyalty.
+            surrenderedOfficer.Loyalty = SurrenderedOfficerStartingLoyalty;
+            if (!receivingFaction.OfficerIds.Contains(surrenderedOfficer.Id))
+            {
+                receivingFaction.OfficerIds.Add(surrenderedOfficer.Id);
+            }
+
+            transferredOfficerCount += 1;
+        }
+
+        foreach (var item in world.Items.Where(item => item.OwnerFactionId == surrenderedFactionId))
+        {
+            item.OwnerFactionId = receivingFactionId;
+        }
+
+        surrenderedFaction.OfficerIds.Clear();
+        surrenderedFaction.RulerOfficerId = 0;
+        surrenderedFaction.ChancellorOfficerId = 0;
+        surrenderedFaction.ChiefStrategistOfficerId = 0;
+        surrenderedFaction.SurrenderedToFactionId = receivingFactionId;
+        world.DiplomacyRelations.RemoveAll(relation => relation.FactionAId == surrenderedFactionId || relation.FactionBId == surrenderedFactionId);
+        // TurnManager resolves commands by iterating this list.  Changing its
+        // size here would invalidate that enumeration, so obsolete commands
+        // are converted to Pass and discarded by the normal month-end cleanup.
+        foreach (var command in world.PendingCommands)
+        {
+            if (!ReferenceEquals(command, resolvingCommand) &&
+                (command.ActorFactionId == surrenderedFactionId || command.TargetFactionId == surrenderedFactionId))
+            {
+                command.Type = CommandType.Pass;
+            }
+        }
+        world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == surrenderedFactionId);
+        world.PendingCapturedOfficerRecords.RemoveAll(record => record.WinnerFactionId == surrenderedFactionId);
+        world.CityIntelRecords.RemoveAll(record => record.ViewerFactionId == surrenderedFactionId);
+        return transferredOfficerCount;
     }
 
     private static int GetDiplomacyExperienceReward(DiplomacyActionType actionType, bool success)
@@ -419,6 +759,7 @@ public partial class CommandResolver
                 DiplomacyActionType.Truce => 18,
                 DiplomacyActionType.Gift => 12,
                 DiplomacyActionType.Demand => 16,
+                DiplomacyActionType.Surrender => 32,
                 DiplomacyActionType.BreakPact => 10,
                 _ => 12
             };
@@ -427,6 +768,7 @@ public partial class CommandResolver
         return actionType switch
         {
             DiplomacyActionType.Demand => 8,
+            DiplomacyActionType.Surrender => 12,
             DiplomacyActionType.Alliance => 6,
             DiplomacyActionType.Truce => 6,
             _ => 6

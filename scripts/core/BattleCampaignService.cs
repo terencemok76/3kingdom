@@ -515,10 +515,12 @@ public static class BattleCampaignService
             .ToList();
         var source = candidateCities.FirstOrDefault();
         var relationScore = relation?.RelationScore ?? 0;
+        var trustScore = DiplomacyScoreRules.GetTrustScore(relation, invitation.InvitedFactionId, invitation.InviterFactionId);
+        var threatScore = DiplomacyScoreRules.CalculateThreatScore(world, invitation.InvitedFactionId, campaign.AttackerFactionId, relation);
         var envoy = world.GetOfficer(invitation.EnvoyOfficerId);
         var envoyBonus = envoy == null ? 0 : Math.Min(20, (envoy.Intelligence + envoy.Charm) / 10);
         var safeTroops = source.City == null ? 0 : Math.Max(0, source.City.Troops - MinimumCityGarrison);
-        var acceptanceScore = relationScore + (isAlliance ? 35 : 0) + Math.Min(25, safeTroops / 400) + envoyBonus;
+        var acceptanceScore = relationScore + (trustScore - 50) / 2 + (isAlliance ? 35 : 0) + Math.Min(25, safeTroops / 400) + envoyBonus - threatScore / 5;
         if (source.City == null || acceptanceScore < 45)
         {
             invitation.Status = BattleInvitationStatus.Declined;

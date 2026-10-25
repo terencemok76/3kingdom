@@ -81,6 +81,19 @@ public partial class HudController
             isPlayerRelated: true);
     }
 
+    private void OnTestForceSurrenderPressed()
+    {
+        if (_turnManager?.World == null)
+        {
+            return;
+        }
+
+        _turnManager.World.ForceNextSurrenderSuccessForDebug = true;
+        AddLog(_localization?.T("log.test_surrender_armed")
+            ?? "Debug armed: the next safe player-led surrender proposal will succeed.",
+            isPlayerRelated: true);
+    }
+
     private void OnTestCycleCityOwnerPressed()
     {
         if (_turnManager?.World == null || _selectedCity == null)

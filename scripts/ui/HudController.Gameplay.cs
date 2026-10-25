@@ -424,6 +424,15 @@ public partial class HudController : CanvasLayer
 
             var factionName = _localization.GetFactionName(world, factionId);
             var faction = world.GetFaction(factionId);
+            if (faction?.SurrenderedToFactionId > 0)
+            {
+                var receivingFactionName = _localization.GetFactionName(world, faction.SurrenderedToFactionId);
+                QueueFactionOutcome(
+                    _localization.T("ui.faction_surrendered_title"),
+                    _localization.Format("ui.faction_surrendered_message", factionName, receivingFactionName));
+                continue;
+            }
+
             var ruler = faction == null ? null : world.GetOfficer(faction.RulerOfficerId);
             var rulerName = ruler == null ? string.Empty : _localization.GetOfficerName(ruler);
             AddLog(_localization.FormatFactionDestroyed(factionName, rulerName));

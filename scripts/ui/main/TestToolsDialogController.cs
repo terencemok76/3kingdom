@@ -13,10 +13,11 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private Button? _bowWorkshopButton;
     private Button? _horsePastureButton;
     private Button? _caravanRoadBattleButton;
+    private Button? _forceSurrenderButton;
     private Button? _cycleCityOwnerButton;
     private bool _signalsConnected;
 
-    protected override Vector2 MinimumOverlaySize => new(420.0f, 310.0f);
+    protected override Vector2 MinimumOverlaySize => new(420.0f, 350.0f);
 
     public TestToolsDialogController(MainHudUiContext context)
         : base(context, "res://scenes/ui/main/TestToolsDialog.tscn")
@@ -45,7 +46,9 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         SetOverlayTitleText(localization?.T("ui.test_tools") ?? "Test Tools");
         if (_summaryLabel != null)
         {
-            _summaryLabel.Text = _context.World?.ForceNextCaravanAmbushForDebug == true
+            _summaryLabel.Text = _context.World?.ForceNextSurrenderSuccessForDebug == true
+                ? localization?.T("ui.test_surrender_armed") ?? "Surrender test armed: the next safe player-led surrender proposal will succeed."
+                : _context.World?.ForceNextCaravanAmbushForDebug == true
                 ? localization?.T("ui.test_caravan_armed") ?? "Caravan ambush armed: schedule a Move carrying cargo."
                 : localization?.T("ui.test_tools_open") ?? "Open a test tool.";
         }
@@ -78,6 +81,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _caravanRoadBattleButton.Text = localization?.T("ui.test_caravan_road_battle") ?? "Force Next Caravan Ambush";
         }
+        if (_forceSurrenderButton != null)
+        {
+            _forceSurrenderButton.Text = localization?.T("ui.test_force_surrender") ?? "Force Next Surrender";
+        }
         if (_cycleCityOwnerButton != null)
         {
             _cycleCityOwnerButton.Text = localization?.T("ui.test_cycle_city_owner") ?? "Switch City Faction";
@@ -93,9 +100,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         _bowWorkshopButton = root.GetNodeOrNull<Button>("FacilityActionRow/BowWorkshopButton");
         _horsePastureButton = root.GetNodeOrNull<Button>("FacilityActionRow/HorsePastureButton");
         _caravanRoadBattleButton = root.GetNodeOrNull<Button>("CaravanActionRow/CaravanRoadBattleButton");
+        _forceSurrenderButton = root.GetNodeOrNull<Button>("SurrenderActionRow/ForceSurrenderButton");
         _cycleCityOwnerButton = root.GetNodeOrNull<Button>("OwnershipActionRow/CycleCityOwnerButton");
 
-        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _cycleCityOwnerButton }.Where(button => button != null))
+        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _forceSurrenderButton, _cycleCityOwnerButton }.Where(button => button != null))
         {
             if (_context.ViewButton == null)
             {
@@ -118,6 +126,14 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
                     button.AddThemeColorOverride(name, _context.ViewButton.GetThemeColor(name));
                 }
             }
+
+            // Debug actions retain the shared dark command-button frame, but
+            // use the readable light-gold text treatment used by dialog actions.
+            button.AddThemeColorOverride("font_color", new Color(0.93f, 0.78f, 0.42f, 1.0f));
+            button.AddThemeColorOverride("font_hover_color", new Color(1.0f, 0.9f, 0.63f, 1.0f));
+            button.AddThemeColorOverride("font_pressed_color", new Color(0.78f, 0.61f, 0.3f, 1.0f));
+            button.AddThemeColorOverride("font_focus_color", new Color(1.0f, 0.9f, 0.63f, 1.0f));
+            button.AddThemeColorOverride("font_disabled_color", new Color(0.48f, 0.43f, 0.34f, 1.0f));
         }
 
         if (_signalsConnected)
@@ -148,6 +164,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         if (_caravanRoadBattleButton != null)
         {
             _caravanRoadBattleButton.Pressed += OnCaravanRoadBattlePressed;
+        }
+        if (_forceSurrenderButton != null)
+        {
+            _forceSurrenderButton.Pressed += OnForceSurrenderPressed;
         }
         if (_cycleCityOwnerButton != null)
         {
@@ -186,6 +206,12 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private void OnCaravanRoadBattlePressed()
     {
         _context.TriggerTestCaravanRoadBattle();
+    }
+
+    private void OnForceSurrenderPressed()
+    {
+        _context.ForceTestSurrender();
+        RefreshText();
     }
 
     private void OnCycleCityOwnerPressed()

@@ -19,7 +19,7 @@ public partial class HudController
     internal Label? MainHudStoryLabel => GetNodeOrNull<Label>("Root/TopBar/StoryLabel");
     internal Button? MainHudLanguageButton => GetNodeOrNull<Button>("Root/TopBar/LanguageButton");
     internal Button? MainHudGodModeButton => GetNodeOrNull<Button>("Root/TopBar/GodModeButton");
-    internal Button? MainHudTopBarTestButton => GetNodeOrNull<Button>("Root/TopBar/TestButton");
+    internal Button? MainHudTopBarTestButton => GetNodeOrNull<Button>("Root/TestButton");
     internal Button? MainHudEndTurnButton => GetNodeOrNull<Button>("Root/EndTurnButton");
     internal Label? MainHudEndTurnButtonLabel => GetNodeOrNull<Label>("Root/EndTurnButton/Label");
     internal Button? MainHudOptionButton => GetNodeOrNull<Button>("Root/OptionButton");
@@ -102,6 +102,7 @@ public partial class HudController
     internal void MainHudUpgradeTestBowWorkshop() => OnTestBowWorkshopUpgradePressed();
     internal void MainHudUpgradeTestHorsePasture() => OnTestHorsePastureUpgradePressed();
     internal void MainHudTriggerTestCaravanRoadBattle() => OnTestCaravanRoadBattlePressed();
+    internal void MainHudForceTestSurrender() => OnTestForceSurrenderPressed();
     internal void MainHudCycleTestCityOwner() => OnTestCycleCityOwnerPressed();
     internal void MainHudPopupDialog(Control? dialog) => ShowOverlay(dialog);
     internal void MainHudPlayUiClickSfx() => PlayUiClickSfx();

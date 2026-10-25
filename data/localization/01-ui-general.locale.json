@@ -1165,6 +1165,10 @@
 										 "zhHant":  "「{0}」會立即解除與「{1}」的現有條約，關係固定下降 18 點並回到中立；宜只在準備敵對行動時採用。",
 										 "en":  "{0} immediately ends the pact with {1}, lowers relations by 18, and returns them to neutral. Use it only when preparing hostile action."
 									 },
+		"fmt.diplomacy_advice_surrender":  {
+										 "zhHant":  "「{0}」目標為「{1}」，本月派使、月底結算，並非多月條約。對方君主野心 {2}、目前關係 {3}；仍須符合兵力、城市數、威脅感與同盟限制，野心極高者只有瀕臨滅亡時才可能投降。",
+										 "en":  "{0} targets {1}; the envoy is sent this month and resolves at month end, not as a multi-month treaty. Its ruler has Ambition {2} and relation is {3}; military, city-count, threat, and alliance requirements still apply, while highly ambitious rulers surrender only near collapse."
+									 },
 		"fmt.diplomacy_advice_chance":  {
 										 "zhHant":  "「{0}」目標為「{1}」，條約期 {2} 月；目前關係 {3}，依使者能力、對方君主、民心與兵力態勢估計成功機率約 {4}%。{5}",
 										 "en":  "{0} targets {1} for {2} months. Relation is {3}; envoy ability, target ruler, loyalty, and military balance estimate a success chance near {4}%. {5}"
@@ -1418,6 +1422,9 @@
 	"ui.test_tools_open": { "zhHant": "開啟測試工具。", "en": "Open a test tool." },
 	"ui.test_caravan_road_battle": { "zhHant": "強制下次商隊遇伏", "en": "Force Next Caravan Ambush" },
 	"ui.test_caravan_armed": { "zhHant": "已啟用：在 Move 排定一支攜帶貨物的商隊；月結必定遇伏。", "en": "Armed: schedule a Move carrying cargo; it will be ambushed at month end." },
+	"ui.test_force_surrender": { "zhHant": "保證下次勸降成功", "en": "Force Next Surrender" },
+	"ui.test_surrender_armed": { "zhHant": "已啟用：下次玩家對非戰役中勢力提出的勸降，月底必定成功。", "en": "Armed: the next player surrender proposal against a faction outside a campaign will succeed at month end." },
+	"log.test_surrender_armed": { "zhHant": "[測試] 已啟用：下次玩家勸降非戰役中勢力時必定成功。", "en": "[Test] Armed: the next player surrender proposal against a faction outside a campaign will succeed." },
 	"ui.test_captive": { "zhHant": "測試俘虜", "en": "Test Captive" },
 	"ui.test_battle_equipment": { "zhHant": "戰役裝備 +1", "en": "Battle Equipment +1" },
 	"ui.test_engineers": { "zhHant": "工兵 +300", "en": "Engineers +300" },
