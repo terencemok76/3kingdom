@@ -201,3 +201,35 @@ alignment = 1
 layout_mode = 2
 focus_mode = 0
 text = "切換城市勢力"
+
+[node name="AffinityActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="MaxAffinityButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AffinityActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "全部武將交情全滿"
+
+[node name="CovertActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ForceCovertButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/CovertActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "保證下次策反成功"
+
+[node name="AssignCovertRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="OfficerOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AssignCovertRow"]
+custom_minimum_size = Vector2(220, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AssignButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AssignCovertRow"]
+layout_mode = 2
+focus_mode = 0
+text = "指定為內應"

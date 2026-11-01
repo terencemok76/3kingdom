@@ -22,10 +22,15 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
     private Label? _warningLabel;
     private Button? _advisorButton;
     private Button? _confirmButton;
+    private Label? _contactSummary;
+    private Button? _letterButton;
+    private Button? _giftButton;
     private int _selectedOfficerId = -1;
     private int _selectedEnvoyOfficerId = -1;
     private bool _signalsConnected;
+    private bool _layoutRefreshPending;
     protected override Vector2 MinimumOverlaySize => new(460.0f, 320.0f);
+    protected override bool AutoFitOverlayHeight => true;
 
     public HireOfficerDialogController(PersonnelUiContext context)
         : base(context, "res://scenes/ui/personnel/HireOfficerDialog.tscn")
@@ -76,6 +81,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         if (_clearOfficerButton != null) _clearOfficerButton.Text = _context.Localization.T("ui.clear_selection");
         if (_selectEnvoyButton != null) _selectEnvoyButton.Text = _context.Localization.T("ui.select_officer");
         if (_advisorButton != null) _advisorButton.Text = _context.Localization.T("ui.personnel_advice_hire");
+        if (_letterButton != null) _letterButton.Text = _context.Localization.T("ui.contact_letter");
+        if (_giftButton != null) _giftButton.Text = _context.Localization.T("ui.contact_gift");
         UpdateSelectedOfficerSummary();
         UpdateSelectedEnvoySummary();
         RefreshItemOptionTexts();
@@ -96,6 +103,12 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         _warningLabel = root.GetNodeOrNull<Label>("WarningLabel");
         _advisorButton = root.GetNodeOrNull<Button>("ConfirmRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("ConfirmRow/ConfirmButton");
+        _contactSummary = root.GetNodeOrNull<Label>("ContactSummary");
+        _letterButton = root.GetNodeOrNull<Button>("ContactRow/LetterButton");
+        _giftButton = root.GetNodeOrNull<Button>("ContactRow/GiftButton");
+        root.MinimumSizeChanged += RequestContentLayoutRefresh;
+        if (_letterButton != null) _context.ApplyCommandButtonTheme(_letterButton);
+        if (_giftButton != null) _context.ApplyCommandButtonTheme(_giftButton);
         if (_selectOfficerButton != null)
         {
             _context.ApplyCommandButtonTheme(_selectOfficerButton);
@@ -137,6 +150,8 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             _confirmButton.Pressed += OnConfirmPressed;
         }
         if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
+        if (_letterButton != null) _letterButton.Pressed += () => ScheduleContact(false);
+        if (_giftButton != null) _giftButton.Pressed += () => ScheduleContact(true);
         _signalsConnected = true;
     }
 
@@ -279,6 +294,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
             ? _context.Localization.Format("fmt.hire_officer_preview", HudController.HireOfficerGoldCost, goldOffer, foodOffer)
             : _context.Localization.Format("fmt.hire_officer_preview_with_item", HudController.HireOfficerGoldCost, goldOffer, foodOffer, _context.Localization.GetItemName(item));
         _summaryLabel.Text = summary;
+        RequestContentLayoutRefresh();
     }
 
     private void RefreshItemOptionTexts()
@@ -368,6 +384,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         [
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.status"), MinWidth = 78 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.age"), MinWidth = 50 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.officer_affinity"), MinWidth = 65 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.loyalty"), MinWidth = 180 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.ambition"), MinWidth = 55 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.leadership"), MinWidth = 55 },
@@ -402,6 +419,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
                 [
                     localization.GetOfficerStatus(world, officer),
                     age.ToString(),
+                    (world.GetOfficerAffection(_context.TurnManager!.GetPlayerFactionId(), officer.Id)?.Score ?? 0).ToString(),
                     _context.BuildOfficerLoyaltyText(world, officer),
                     officer.Ambition.ToString(),
                     officer.Leadership.ToString(),
@@ -427,6 +445,58 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         var officer = _selectedOfficerId > 0 ? _context.TurnManager?.World?.GetOfficer(_selectedOfficerId) : null;
         var officerName = officer != null ? _context.Localization.GetOfficerName(officer) : _context.Localization.T("ui.unassigned");
         _selectedOfficerLabel.Text = $"{_context.Localization.T("ui.hire_officer_target")}: {officerName}";
+        UpdateContactSummary();
+    }
+
+    private void UpdateContactSummary()
+    {
+        var world = _context.TurnManager?.World;
+        var localization = _context.Localization;
+        if (_contactSummary == null || world == null || localization == null) return;
+        if (_selectedOfficerId <= 0)
+        {
+            _contactSummary.Text = localization.T("ui.contact_select_target");
+            RequestContentLayoutRefresh();
+            return;
+        }
+        var record = world.GetOfficerAffection(_context.TurnManager!.GetPlayerFactionId(), _selectedOfficerId);
+        var score = record?.Score ?? 0;
+        _contactSummary.Text = localization.Format("fmt.contact_summary", score, score / 5);
+        RequestContentLayoutRefresh();
+    }
+
+    private void RequestContentLayoutRefresh()
+    {
+        if (_layoutRefreshPending || OverlayRoot?.Visible != true) return;
+        _layoutRefreshPending = true;
+        Callable.From(RefreshContentLayout).CallDeferred();
+    }
+
+    private void RefreshContentLayout()
+    {
+        _layoutRefreshPending = false;
+        if (OverlayRoot?.Visible == true) UpdateOverlayLayoutNow();
+    }
+
+    private void ScheduleContact(bool gift)
+    {
+        var city = _context.SelectedCity;
+        var manager = _context.TurnManager;
+        var resolver = _context.CommandResolver;
+        if (city == null || manager == null || resolver == null) return;
+        var result = resolver.ScheduleOfficerContact(manager.GetPlayerFactionId(), city.Id, _selectedOfficerId, _selectedEnvoyOfficerId, gift);
+        var message = _context.GetLocalizedResultMessage(result);
+        _context.AddLog(message, isPlayerRelated: true);
+        if (result.Success)
+        {
+            _context.UiEventHub.PublishOfficerStateChanged(_selectedEnvoyOfficerId, city.Id, city.OwnerFactionId);
+            HideOverlay();
+        }
+        else if (_warningLabel != null)
+        {
+            _warningLabel.Text = message;
+            RequestContentLayoutRefresh();
+        }
     }
 
     private void UpdateSelectedEnvoySummary()

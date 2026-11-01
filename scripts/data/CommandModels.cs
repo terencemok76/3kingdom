@@ -15,7 +15,8 @@ public enum CommandType
     Spy,
     Attack,
     HireOfficer,
-    Pass
+    Pass,
+    ContactOfficer
 }
 
 public enum DiplomacyActionType
@@ -34,7 +35,8 @@ public enum SpyActionType
     Sabotage,
     Incite,
     Assassination,
-    SowDiscord
+    SowDiscord,
+    RecruitCovertOfficer
 }
 
 public enum TroopType

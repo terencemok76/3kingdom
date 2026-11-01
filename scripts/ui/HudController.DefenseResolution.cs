@@ -13,6 +13,7 @@ public partial class HudController
     private int _campaignWaitingForAllianceResponse;
     private Control? _allianceReinforcementResponseDialog;
     private Control? _playerAllianceResultDialog;
+    private Control? _officerContactResultDialog;
 
     private static string FormatSignedNumber(int value) => value > 0 ? $"+{value:N0}" : value.ToString("N0");
 
@@ -90,6 +91,11 @@ public partial class HudController
             {
                 return;
             }
+            if ((pendingCommand.Type == CommandType.ContactOfficer || pendingCommand.Type == CommandType.Spy && pendingCommand.SpyActionType == SpyActionType.RecruitCovertOfficer) && pendingCommand.ActorFactionId == playerFactionId)
+            {
+                ShowOfficerContactResult(result, pendingCommand.TargetOfficerId);
+                return;
+            }
             if (QueuePlayerAllianceResultNotification(pendingCommand, result, playerFactionId))
             {
                 return;
@@ -104,6 +110,59 @@ public partial class HudController
         _pendingAttackResolutionQueue.Clear();
         _pendingAttackResolutionQueue.AddRange(_turnManager.GetPendingCommandsOfType(CommandType.Attack));
         ContinuePendingAttackResolution();
+    }
+
+    private void ShowOfficerContactResult(CommandResult result, int officerId)
+    {
+        if (_officerContactResultDialog != null) return;
+        _officerContactResultDialog = GD.Load<PackedScene>(FactionOutcomeDialogScenePath).Instantiate<Control>();
+        var overlayRoot = GetNodeOrNull<Control>("Root") as Node ?? this;
+        overlayRoot.AddChild(_officerContactResultDialog);
+        _officerContactResultDialog.GetNode<Label>("Center/OutcomePanel/Root/Header/TitleLabel").Text =
+            _localization?.T("ui.officer_contact_result_title") ?? "Officer Contact";
+        var content = _officerContactResultDialog.GetNode<VBoxContainer>("Center/OutcomePanel/Root/Body/Content");
+        var messageLabel = content.GetNode<Label>("MessageLabel");
+        messageLabel.Text = GetLocalizedResultMessage(result);
+        messageLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        var responseRow = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        responseRow.AddThemeConstantOverride("separation", 18);
+        content.AddChild(responseRow);
+        content.MoveChild(responseRow, 0);
+        var portraitFrame = new PanelContainer { CustomMinimumSize = new Vector2(110, 140) };
+        responseRow.AddChild(portraitFrame);
+        var portrait = new TextureRect
+        {
+            Texture = BuildOfficerPortraitTexture(officerId),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            CustomMinimumSize = new Vector2(110, 140)
+        };
+        portraitFrame.AddChild(portrait);
+        if (portrait.Texture == null)
+        {
+            var officer = _turnManager?.World?.GetOfficer(officerId);
+            portraitFrame.AddChild(new Label
+            {
+                Text = officer != null ? _localization?.GetOfficerName(officer) ?? officer.Name : _localization?.T("ui.unknown") ?? "Unknown",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart
+            });
+        }
+        messageLabel.Reparent(responseRow, false);
+        var acknowledgeButton = _officerContactResultDialog.GetNode<Button>("Center/OutcomePanel/Root/Body/Content/ButtonRow/AcknowledgeButton");
+        acknowledgeButton.Text = _localization?.T("ui.acknowledge") ?? "Acknowledge";
+        acknowledgeButton.Pressed += CloseOfficerContactResult;
+        _officerContactResultDialog.Visible = true;
+        _officerContactResultDialog.MoveToFront();
+    }
+
+    private void CloseOfficerContactResult()
+    {
+        if (_officerContactResultDialog == null) return;
+        _officerContactResultDialog.QueueFree();
+        _officerContactResultDialog = null;
+        Callable.From(ContinuePendingNonAttackResolution).CallDeferred();
     }
 
     private bool ShouldPromptForPlayerDiplomacyProposal(PendingCommandData pendingCommand)
@@ -373,6 +432,21 @@ public partial class HudController
 
         var playerFactionId = _turnManager.GetPlayerFactionId();
         _turnManager.AdvanceMonth();
+        foreach (var maintenance in _turnManager.ConsumeCovertMaintenanceEvents())
+        {
+            if (maintenance.SponsorId != playerFactionId) continue;
+            var officer = world.GetOfficer(maintenance.OfficerId);
+            if (officer != null)
+                AddLog(_localization.Format("ui.covert_maintenance_" + maintenance.Kind, _localization.GetOfficerName(officer)), isPlayerRelated: true);
+        }
+        foreach (var action in _turnManager.ConsumeCovertDiscordEvents())
+        {
+            if (action.SponsorId != playerFactionId) continue;
+            var agent = world.GetOfficer(action.OfficerId);
+            var target = world.GetOfficer(action.TargetId);
+            if (agent != null && target != null)
+                AddLog(_localization.Format("ui.covert_discord_" + action.Kind, _localization.GetOfficerName(agent), _localization.GetOfficerName(target)), isPlayerRelated: true);
+        }
         world.IsBattleResolutionPhase = false;
         foreach (var escapeEvent in _turnManager.ConsumeOfficerEscapeEvents())
         {

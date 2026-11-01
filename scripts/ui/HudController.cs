@@ -140,6 +140,7 @@ public partial class HudController : CanvasLayer
         Politics,
         Combat,
         OfficerLoyalty,
+        OfficerAffinity,
         Owner,
         Faction,
         RelationStatus,

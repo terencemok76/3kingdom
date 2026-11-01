@@ -622,6 +622,7 @@ public class LocalizationService
             CommandType.Diplomacy => "status.diplomacy",
             CommandType.Spy => "status.spy",
             CommandType.Attack => "status.attack",
+            CommandType.ContactOfficer => "status.contact",
             _ => "status.idle"
         };
 

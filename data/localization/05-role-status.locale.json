@@ -43,6 +43,9 @@
                          "zhHant":  "俘虜",
                          "en":  "Captive"
                         },
+    "status.contact": { "zhHant": "聯繫武將", "en": "Contacting" },
+    "status.contact_letter": { "zhHant": "送信", "en": "Letter" },
+    "status.contact_gift": { "zhHant": "送禮", "en": "Gift" },
     "status.attack":  {
                           "zhHant":  "攻擊",
                           "en":  "Attack"

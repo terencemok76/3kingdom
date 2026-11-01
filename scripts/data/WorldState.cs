@@ -30,6 +30,27 @@ public class WorldState
         public int Month { get; set; }
     }
 
+    public class OfficerAffectionData
+    {
+        public int FactionId { get; set; }
+        public int OfficerId { get; set; }
+        public int Score { get; set; }
+        public int LastContactMonth { get; set; }
+    }
+
+    public class CovertOfficerData
+    {
+        public int SponsorFactionId { get; set; }
+        public int OfficerId { get; set; }
+        public int OriginalFactionId { get; set; }
+        public bool AwaitingDefection { get; set; }
+        // An unpaid annual fee suspends the agent until it can be paid.
+        public bool MaintenanceUnpaid { get; set; }
+        public int MaintenanceUnpaidSinceYear { get; set; }
+        public int DiscordTargetOfficerId { get; set; }
+        public int DiscordScheduledMonth { get; set; }
+    }
+
     public class PendingCapturedOfficerData
     {
         public int WinnerFactionId { get; set; }
@@ -90,6 +111,8 @@ public class WorldState
     // One-shot Debug/Test Tools switch. It guarantees the next safe player-led
     // surrender proposal so the absorption flow can be tested.
     public bool ForceNextSurrenderSuccessForDebug { get; set; }
+    // One-shot: the next valid player covert recruitment succeeds without exposure.
+    public bool ForceNextCovertRecruitmentForDebug { get; set; }
     public bool ResumeAttackResolutionAfterCampaign { get; set; }
     public bool IsBattleResolutionPhase { get; set; }
     public List<CityData> Cities { get; set; } = new();
@@ -103,6 +126,8 @@ public class WorldState
     public List<InternalAffairsScheduleData> InternalAffairsSchedules { get; set; } = new();
     public List<CityIntelData> CityIntelRecords { get; set; } = new();
     public List<OfficerIntelData> OfficerIntelRecords { get; set; } = new();
+    public List<OfficerAffectionData> OfficerAffectionRecords { get; set; } = new();
+    public List<CovertOfficerData> CovertOfficerRecords { get; set; } = new();
     public List<PendingSuccessionData> PendingSuccessionRecords { get; set; } = new();
     public List<PendingCapturedOfficerData> PendingCapturedOfficerRecords { get; set; } = new();
     public List<BattleReportData> BattleReports { get; set; } = new();
@@ -148,6 +173,9 @@ public class WorldState
 
     public OfficerIntelData? GetOfficerIntel(int viewerFactionId, int officerId) =>
         OfficerIntelRecords.FirstOrDefault(record => record.ViewerFactionId == viewerFactionId && record.OfficerId == officerId);
+
+    public OfficerAffectionData? GetOfficerAffection(int factionId, int officerId) =>
+        OfficerAffectionRecords.FirstOrDefault(record => record.FactionId == factionId && record.OfficerId == officerId);
 
     public void RecordCityOfficerIntel(int viewerFactionId, int cityId)
     {

@@ -208,6 +208,7 @@ public partial class HudController
     internal string ViewGetPortraitLabel() => _localization?.T("ui.portrait") ?? "Portrait";
     internal LocalizationService? ViewLocalization => _localization;
     internal WorldState? ViewWorld => _turnManager?.World;
+    internal int ViewPlayerFactionId => _turnManager?.GetPlayerFactionId() ?? 0;
     internal CityData? ViewSelectedCity => _selectedCity;
     internal int ViewGetCityListFilterIndex() => _cityListFilterMode switch
     {

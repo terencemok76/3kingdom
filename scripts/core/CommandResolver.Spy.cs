@@ -33,9 +33,17 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.spy.same_faction");
         }
 
-        if (request.SpyActionType == SpyActionType.SowDiscord && (!request.TargetOfficerId.HasValue || !IsValidDiscordTarget(world, targetCity, request.TargetOfficerId.Value)))
+        if ((request.SpyActionType == SpyActionType.SowDiscord || request.SpyActionType == SpyActionType.RecruitCovertOfficer) && (!request.TargetOfficerId.HasValue || !IsValidDiscordTarget(world, targetCity, request.TargetOfficerId.Value)))
         {
             return LocalizedResult(false, "cmd.spy.discord_invalid_target");
+        }
+
+        if (request.SpyActionType == SpyActionType.RecruitCovertOfficer)
+        {
+            var targetId = request.TargetOfficerId!.Value;
+            if (world.CovertOfficerRecords.Any(agent => agent.OfficerId == targetId && agent.SponsorFactionId == request.ActorFactionId))
+                return LocalizedResult(false, "cmd.spy.covert_already_own");
+            if (sourceCity.Gold < 300) return LocalizedResult(false, "cmd.spy.covert_gold");
         }
 
         if (request.SpyActionType == SpyActionType.Assassination && request.TargetOfficerId.HasValue)
@@ -64,7 +72,7 @@ public partial class CommandResolver
             SourceCityId = sourceCity.Id,
             TargetCityId = targetCity.Id,
             TargetFactionId = targetCity.OwnerFactionId,
-            TargetOfficerId = request.SpyActionType == SpyActionType.Assassination || request.SpyActionType == SpyActionType.SowDiscord
+            TargetOfficerId = request.SpyActionType == SpyActionType.Assassination || request.SpyActionType == SpyActionType.SowDiscord || request.SpyActionType == SpyActionType.RecruitCovertOfficer
                 ? request.TargetOfficerId ?? 0
                 : 0,
             SpyActionType = request.SpyActionType,
@@ -92,7 +100,7 @@ public partial class CommandResolver
     {
         var targetCity = world.GetCity(pendingCommand.TargetCityId);
         if (targetCity == null || targetCity.OwnerFactionId == pendingCommand.ActorFactionId ||
-            (pendingCommand.SpyActionType == SpyActionType.SowDiscord &&
+            ((pendingCommand.SpyActionType == SpyActionType.SowDiscord || pendingCommand.SpyActionType == SpyActionType.RecruitCovertOfficer) &&
              (targetCity.OwnerFactionId != pendingCommand.TargetFactionId || !IsValidDiscordTarget(world, targetCity, pendingCommand.TargetOfficerId))))
         {
             return LocalizedResult(false, "cmd.spy.cancelled");
@@ -104,10 +112,31 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.spy.cancelled");
         }
 
+        if (pendingCommand.SpyActionType == SpyActionType.RecruitCovertOfficer)
+        {
+            if (sourceCity.OwnerFactionId != pendingCommand.ActorFactionId || sourceCity.Gold < 300 || world.CovertOfficerRecords.Any(agent => agent.OfficerId == pendingCommand.TargetOfficerId))
+                return LocalizedResult(false, "cmd.spy.cancelled");
+            sourceCity.Gold -= 300;
+        }
+
         var successChance = CalculateSpySuccessChance(world, sourceCity, targetCity, officer, pendingCommand.SpyActionType);
+        if (pendingCommand.SpyActionType == SpyActionType.RecruitCovertOfficer)
+            successChance = Math.Clamp(successChance + ((world.GetOfficerAffection(pendingCommand.ActorFactionId, pendingCommand.TargetOfficerId)?.Score ?? 0) - 40) / 4 - (world.GetOfficer(pendingCommand.TargetOfficerId)?.Loyalty ?? 100) / 4, 10, 85);
         var exposedChance = CalculateSpyExposureChance(world, sourceCity, targetCity, officer, pendingCommand.SpyActionType);
         var success = _random.Next(100) < successChance;
         var exposed = _random.Next(100) < exposedChance;
+        if (pendingCommand.SpyActionType == SpyActionType.RecruitCovertOfficer)
+        {
+            var target = world.GetOfficer(pendingCommand.TargetOfficerId)!;
+            var affinity = world.GetOfficerAffection(pendingCommand.ActorFactionId, target.Id)?.Score ?? 0;
+            success = success && affinity >= 40 && target.Loyalty <= 70;
+            if (world.ForceNextCovertRecruitmentForDebug && world.GetFaction(pendingCommand.ActorFactionId)?.IsPlayer == true)
+            {
+                success = true;
+                exposed = false;
+                world.ForceNextCovertRecruitmentForDebug = false;
+            }
+        }
 
         if (success)
         {
@@ -115,12 +144,16 @@ public partial class CommandResolver
             AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, result);
             if (exposed)
             {
+                if (pendingCommand.SpyActionType == SpyActionType.RecruitCovertOfficer)
+                    world.CovertOfficerRecords.RemoveAll(agent => agent.OfficerId == pendingCommand.TargetOfficerId && agent.SponsorFactionId == pendingCommand.ActorFactionId);
                 ApplySpyExposurePenalty(world, pendingCommand.ActorFactionId, officer, targetCity.OwnerFactionId, 6, 3);
-                result.MessageZhHant = $"{result.MessageZhHant} {_localization?.TForLanguage(GameLanguage.TraditionalChinese, "cmd.spy.exposed_suffix") ?? string.Empty}".Trim();
-                result.MessageEn = $"{result.MessageEn} {_localization?.TForLanguage(GameLanguage.English, "cmd.spy.exposed_suffix") ?? string.Empty}".Trim();
+                var exposedKey = pendingCommand.SpyActionType == SpyActionType.RecruitCovertOfficer ? "cmd.spy.covert_exposed" : "cmd.spy.exposed_suffix";
+                result.MessageZhHant = $"{result.MessageZhHant} {_localization?.TForLanguage(GameLanguage.TraditionalChinese, exposedKey) ?? string.Empty}".Trim();
+                result.MessageEn = $"{result.MessageEn} {_localization?.TForLanguage(GameLanguage.English, exposedKey) ?? string.Empty}".Trim();
                 result.Message = result.MessageEn;
             }
 
+            AppendCovertResponse(world, pendingCommand, result, accepted: true);
             return result;
         }
 
@@ -144,6 +177,7 @@ public partial class CommandResolver
                     GetCityName(targetCity, GameLanguage.English)
                 });
             AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, result);
+            AppendCovertResponse(world, pendingCommand, result, accepted: false);
             return result;
         }
 
@@ -163,7 +197,21 @@ public partial class CommandResolver
                 GetCityName(targetCity, GameLanguage.English)
             });
         AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, failedResult);
+        AppendCovertResponse(world, pendingCommand, failedResult, accepted: false);
         return failedResult;
+    }
+
+    private void AppendCovertResponse(WorldState world, PendingCommandData pending, CommandResult result, bool accepted)
+    {
+        if (pending.SpyActionType != SpyActionType.RecruitCovertOfficer || world.GetOfficer(pending.TargetOfficerId) is not { } target) return;
+        var affinity = world.GetOfficerAffection(pending.ActorFactionId, target.Id)?.Score ?? 0;
+        var speechKey = accepted ? "cmd.spy.covert_speech_accept" :
+            affinity < 40 ? "cmd.spy.covert_speech_unfamiliar" :
+            target.Loyalty > 85 ? "cmd.spy.covert_speech_loyal" :
+            target.Loyalty > 70 ? "cmd.spy.covert_speech_hesitant" : "cmd.spy.covert_speech_uncertain";
+        result.MessageZhHant += "\n" + (_localization?.FormatForLanguage(GameLanguage.TraditionalChinese, speechKey, GetOfficerDisplayName(target, GameLanguage.TraditionalChinese)) ?? string.Empty);
+        result.MessageEn += "\n" + (_localization?.FormatForLanguage(GameLanguage.English, speechKey, GetOfficerDisplayName(target, GameLanguage.English)) ?? string.Empty);
+        result.Message = result.MessageEn;
     }
 
     private void AddSpyActorPrefix(WorldState world, int actorFactionId, OfficerData officer, CommandResult result)
@@ -192,6 +240,14 @@ public partial class CommandResolver
     {
         switch (actionType)
         {
+            case SpyActionType.RecruitCovertOfficer:
+            {
+                if (!IsValidDiscordTarget(world, targetCity, targetOfficerId)) return LocalizedResult(false, "cmd.spy.discord_invalid_target");
+                world.CovertOfficerRecords.Add(new WorldState.CovertOfficerData { SponsorFactionId = actorFactionId, OriginalFactionId = targetCity.OwnerFactionId, OfficerId = targetOfficerId });
+                OfficerProgressionRules.AwardSpyExperience(officer, 22);
+                var target = world.GetOfficer(targetOfficerId)!;
+                return LocalizedResult(true, "cmd.spy.covert_success", new object[] { GetOfficerDisplayName(target, GameLanguage.TraditionalChinese) }, new object[] { GetOfficerDisplayName(target, GameLanguage.English) });
+            }
             case SpyActionType.SowDiscord:
             {
                 if (!IsValidDiscordTarget(world, targetCity, targetOfficerId))
@@ -418,6 +474,7 @@ public partial class CommandResolver
             SpyActionType.Incite => 44,
             SpyActionType.Assassination => 28,
             SpyActionType.SowDiscord => 44,
+            SpyActionType.RecruitCovertOfficer => 50,
             _ => 50
         };
 
@@ -442,6 +499,7 @@ public partial class CommandResolver
             SpyActionType.Incite => 28,
             SpyActionType.Assassination => 42,
             SpyActionType.SowDiscord => 28,
+            SpyActionType.RecruitCovertOfficer => 30,
             _ => 25
         };
 

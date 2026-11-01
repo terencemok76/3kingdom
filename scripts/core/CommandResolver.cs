@@ -103,6 +103,7 @@ public partial class CommandResolver
             CommandType.Spy => ResolveSpy(world, sourceCity, pendingCommand),
             CommandType.Attack => ResolveAttack(world, sourceCity, pendingCommand),
             CommandType.HireOfficer => ExecuteHireOfficer(pendingCommand.ActorFactionId, sourceCity.Id, pendingCommand.TargetOfficerId, pendingCommand.GoldToSend, pendingCommand.FoodToSend, pendingCommand.ItemId),
+            CommandType.ContactOfficer => ResolveOfficerContact(world, sourceCity, pendingCommand),
             _ => LocalizedResult(false, "cmd.unsupported_pending_command")
         };
     }

@@ -13,6 +13,20 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--covert-officer-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunCovertOfficerRulesTest();
+            RunCovertOfficerResponseTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--officer-contact-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunOfficerContactTest();
+            RunMultipleOfficerContactTest();
+            PrintSummary();
+            return;
+        }
         if (args.Contains("--main-city-only", StringComparer.OrdinalIgnoreCase))
         {
             RunMainCityRulesTest();
@@ -1524,6 +1538,230 @@ internal static class Program
         Assert(OfficerAppointmentRules.HasAppointment(world.GetOfficer(202)!, OfficerAppointmentRules.Lord), "Spy assassination successor gets ruler appointment", string.Join(',', world.GetOfficer(202)!.Appointments));
         Assert(world.GetFaction(2)!.NameZhHant == "EnemyGeneral軍", "Spy assassination successor updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
         Assert(targetCity.OfficerIds.Contains(202), "Spy assassination keeps successor alive", $"cityHasSuccessor={targetCity.OfficerIds.Contains(202)}");
+    }
+
+    private static void RunCovertOfficerResponseTest()
+    {
+        var world = TestHelpers.World();
+        world.Year = 190; world.Month = 1;
+        world.Cities.Add(TestHelpers.City(1, "Home", 1, 3000, 500, 500, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "Enemy", 2, 500, 500, 500, new[] { 201, 202 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Spy", 1, intelligence: 90));
+        world.Officers.Add(TestHelpers.Officer(201, "Ruler", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "Target", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201, 202 }));
+        world.OfficerAffectionRecords.Add(new WorldState.OfficerAffectionData { FactionId = 1, OfficerId = 202, Score = 80 });
+        var target = world.GetOfficer(202)!;
+        target.Loyalty = 95;
+        var services = CreateServices(world);
+        CommandRequest MakeRequest() => new() { Type = CommandType.Spy, ActorFactionId = 1, SourceCityId = 1, TargetCityId = 2, TargetOfficerId = 202, SpyActionType = SpyActionType.RecruitCovertOfficer, OfficerIds = new List<int> { 101 } };
+        var scheduled = services.Resolver.Execute(MakeRequest());
+        var pending = world.PendingCommands.Single();
+        var result = services.Resolver.ResolvePendingCommand(pending);
+        Assert(scheduled.Success && !result.Success && world.GetCity(1)!.Gold == 2700 && result.MessageZhHant.Contains("不會背棄主公") && world.CovertOfficerRecords.Count == 0, "Covert approach without intel reveals loyal refusal after payment", result.MessageZhHant);
+        world.PendingCommands.Clear(); world.Month = 2;
+        target.Loyalty = 20;
+        world.GetOfficerAffection(1, 202)!.Score = 0;
+        scheduled = services.Resolver.Execute(MakeRequest());
+        result = services.Resolver.ResolvePendingCommand(world.PendingCommands.Single());
+        Assert(scheduled.Success && !result.Success && world.GetCity(1)!.Gold == 2400 && result.MessageZhHant.Contains("交情尚淺"), "Covert approach with low affinity gets refusal after payment", result.MessageZhHant);
+        world.PendingCommands.Clear(); world.Month = 3;
+        scheduled = services.Resolver.Execute(MakeRequest());
+        target.CityId = 1;
+        result = services.Resolver.ResolvePendingCommand(world.PendingCommands.Single());
+        Assert(scheduled.Success && !result.Success && world.GetCity(1)!.Gold == 2400, "Covert canceled before contact spends nothing", $"gold={world.GetCity(1)!.Gold}");
+        target.CityId = 2;
+        world.PendingCommands.Clear();
+        var sample = new CommandResult { Success = true };
+        typeof(CommandResolver).GetMethod("AppendCovertResponse", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(services.Resolver, new object[] { world, new PendingCommandData { SpyActionType = SpyActionType.RecruitCovertOfficer, ActorFactionId = 1, TargetOfficerId = 202 }, sample, true });
+        Assert(sample.MessageZhHant.Contains("願暗中相助"), "Covert acceptance has officer speech", sample.MessageZhHant);
+        world.ForceNextCovertRecruitmentForDebug = true;
+        var saved = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        Assert(saved.ForceNextCovertRecruitmentForDebug, "Forced covert test survives save", "armed");
+        var invalidPending = new PendingCommandData { Type = CommandType.Spy, ActorFactionId = 1, SourceCityId = 1, TargetCityId = 2, TargetFactionId = 2, TargetOfficerId = 201, SpyActionType = SpyActionType.RecruitCovertOfficer, OfficerIds = new List<int> { 101 } };
+        var invalidResult = services.Resolver.ResolvePendingCommand(invalidPending);
+        Assert(!invalidResult.Success && world.ForceNextCovertRecruitmentForDebug, "Invalid covert target preserves debug force", "ruler target");
+        world.Officers.Add(TestHelpers.Officer(102, "PlayerTarget", 1));
+        world.GetCity(1)!.OfficerIds.Add(102);
+        world.GetFaction(1)!.OfficerIds.Add(102);
+        world.GetOfficer(102)!.Loyalty = 100;
+        var aiPending = new PendingCommandData { Type = CommandType.Spy, ActorFactionId = 2, SourceCityId = 2, TargetCityId = 1, TargetFactionId = 1, TargetOfficerId = 102, SpyActionType = SpyActionType.RecruitCovertOfficer, OfficerIds = new List<int> { 201 } };
+        var aiResult = services.Resolver.ResolvePendingCommand(aiPending);
+        Assert(!aiResult.Success && world.ForceNextCovertRecruitmentForDebug, "AI covert attempt does not consume player debug force", $"success={aiResult.Success}");
+        world.Month = 4;
+        target.Loyalty = 100;
+        scheduled = services.Resolver.Execute(MakeRequest());
+        result = services.Resolver.ResolvePendingCommand(world.PendingCommands.Single());
+        Assert(scheduled.Success && result.Success && !world.ForceNextCovertRecruitmentForDebug && world.CovertOfficerRecords.Any(item => item.OfficerId == 202 && item.SponsorFactionId == 1) && result.MessageZhHant.Contains("願暗中相助"), "Debug guarantees covert recruitment without exposure and consumes switch", $"success={result.Success}");
+    }
+
+    private static void RunCovertOfficerRulesTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(2, "Enemy", 2, 0, 0, 0, new[] { 201, 202 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(201, "Ruler", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "Agent", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Sponsor", true, 101, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "Original", false, 201, new[] { 201, 202 }));
+        var agent = new WorldState.CovertOfficerData { SponsorFactionId = 1, OriginalFactionId = 2, OfficerId = 202, AwaitingDefection = true };
+        world.CovertOfficerRecords.Add(agent);
+        Assert(CovertOfficerRules.IsValid(world, agent), "Covert officer accepts valid foreign officer", "valid");
+        world.Officers.Add(TestHelpers.Officer(204, "Discord Target", 2));
+        world.GetFaction(2)!.OfficerIds.Add(204);
+        world.GetCity(2)!.OfficerIds.Add(204);
+        Assert(!CovertOfficerRules.ScheduleDiscord(world, agent, 201), "Covert discord rejects ruler", "ruler");
+        Assert(CovertOfficerRules.ScheduleDiscord(world, agent, 204) && !CovertOfficerRules.ScheduleDiscord(world, agent, 204), "Covert discord reserves one target", "scheduled");
+        var pendingCopy = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        Assert(pendingCopy.CovertOfficerRecords.Single().DiscordTargetOfficerId == 204, "Covert discord schedule survives save", "saved");
+        world.GetOfficer(204)!.CityId = 0;
+        world.Month++;
+        var discordResults = CovertOfficerRules.ProcessDiscord(world);
+        Assert(discordResults.Count == 1 && discordResults[0].Kind == "cancelled" && agent.DiscordTargetOfficerId == 0, "Moved discord target cancels safely", "cancelled");
+        world.GetOfficer(204)!.CityId = 2;
+        var resolutionWorld = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        var resolutionAgent = resolutionWorld.CovertOfficerRecords.Single();
+        var priorLoyalty = resolutionWorld.GetOfficer(204)!.Loyalty;
+        var queued = CovertOfficerRules.ScheduleDiscord(resolutionWorld, resolutionAgent, 204);
+        resolutionWorld.Month++;
+        var resolved = CovertOfficerRules.ProcessDiscord(resolutionWorld);
+        var loyaltyLoss = priorLoyalty - resolutionWorld.GetOfficer(204)!.Loyalty;
+        Assert(queued && resolved.Count == 1 && loyaltyLoss >= 0 && loyaltyLoss <= 8 && CovertOfficerRules.ProcessDiscord(resolutionWorld).Count == 0 && (resolved[0].Kind != "exposed" || !resolutionWorld.CovertOfficerRecords.Contains(resolutionAgent)), "Covert discord resolves once and exposure removes agent", $"result={resolved[0].Kind}, loss={loyaltyLoss}");
+        agent.AwaitingDefection = true;
+        var split = CovertOfficerRules.SplitTroops(101);
+        Assert(split.Joining == 60 && split.Withdrawing == 41, "Covert troop split conserves survivors", $"joining={split.Joining}, withdrawing={split.Withdrawing}");
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        Assert(copy.CovertOfficerRecords.Single().AwaitingDefection, "Covert officer survives serialization", "saved");
+        agent.OfficerId = 201;
+        Assert(!CovertOfficerRules.IsValid(world, agent), "Covert officer rejects ruler", "ruler");
+        world.CovertOfficerRecords.Clear();
+        world.Cities.Add(TestHelpers.City(1, "Home", 1, 1000, 500, 500, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Spy", 1, intelligence: 90));
+        world.GetFaction(1)!.OfficerIds.Add(101);
+        world.GetOfficer(202)!.Loyalty = 60;
+        world.RecordCityOfficerIntel(1, 2);
+        world.OfficerAffectionRecords.Add(new WorldState.OfficerAffectionData { FactionId = 1, OfficerId = 202, Score = 40 });
+        var services = CreateServices(world);
+        var scheduled = services.Resolver.Execute(new CommandRequest { Type = CommandType.Spy, ActorFactionId = 1, SourceCityId = 1, TargetCityId = 2, TargetOfficerId = 202, SpyActionType = SpyActionType.RecruitCovertOfficer, OfficerIds = new List<int> { 101 } });
+        Assert(scheduled.Success && world.PendingCommands.Single().TargetOfficerId == 202, "Covert recruitment schedules target", $"success={scheduled.Success}");
+        var success = InvokePrivateInstance<CommandResult>(services.Resolver, "ResolveSuccessfulSpyAction", world, 1, world.GetCity(2)!, world.GetOfficer(101)!, SpyActionType.RecruitCovertOfficer, 202);
+        Assert(success.Success && world.CovertOfficerRecords.Count == 1, "Covert recruitment creates agent", $"count={world.CovertOfficerRecords.Count}");
+        services.Turn.AdvanceMonth();
+        Assert(world.HasActiveCityIntel(1, 2) && world.GetOfficerIntel(1, 202)?.Month == world.Month, "Covert officer reports city intel", $"month={world.Month}");
+        var recruited = world.CovertOfficerRecords.Single();
+        recruited.AwaitingDefection = true;
+        var treasury = world.GetCity(1)!;
+        treasury.Gold = 0;
+        var unpaidEvents = CovertOfficerRules.ProcessMaintenance(world, true);
+        Assert(recruited.MaintenanceUnpaid && unpaidEvents.Any(item => item.Kind == "unpaid"), "Unpaid covert maintenance suspends agent", "unpaid");
+        var unpaidCopy = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        Assert(unpaidCopy.CovertOfficerRecords.Single().MaintenanceUnpaid, "Unpaid covert status survives save", "saved");
+        treasury.Gold = 100;
+        var paidEvents = CovertOfficerRules.ProcessMaintenance(world, false);
+        Assert(!recruited.MaintenanceUnpaid && treasury.Gold == 0 && paidEvents.Any(item => item.Kind == "recovered"), "Covert maintenance recovery charges treasury once", "paid");
+        var campaign = new ActiveBattleCampaignData { AttackerFactionId = 1, DefenderFactionId = 2, SourceCityId = 1, TargetCityId = 2, TotalBattleDays = 1, Stage = CampaignStage.FieldBattle };
+        var team = new CampaignBattleTeamData { Id = 1, OfficerId = 202, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Ai, ActiveTroops = 101, MaximumTroops = 101, OriginCityId = 2, Location = CampaignTeamLocation.Field };
+        campaign.Teams.Add(team);
+        recruited.MaintenanceUnpaid = true;
+        Assert(!CovertOfficerRules.TryDefect(world, campaign, team), "Unpaid agent cannot defect", "suspended");
+        recruited.MaintenanceUnpaid = false;
+        var originBefore = world.GetCity(2)!.Troops;
+        Assert(CovertOfficerRules.TryDefect(world, campaign, team), "Covert officer defects in battle", "defender to attacker");
+        Assert(team.Side == CampaignBattleSide.Attacker && team.ControllerType == CampaignControllerType.Player && team.ActiveTroops == 60 && world.GetCity(2)!.Troops == originBefore + 41, "Defection transfers control and returns remainder", $"active={team.ActiveTroops}");
+        Assert(world.GetFaction(1)!.OfficerIds.Contains(202) && !world.GetFaction(2)!.OfficerIds.Contains(202) && world.CovertOfficerRecords.Count == 0, "Defection transfers strategic officer ownership", "faction roster");
+        Assert(!CovertOfficerRules.TryDefect(world, campaign, team), "Defection cannot execute twice", "consumed agent");
+        world.Officers.Add(TestHelpers.Officer(203, "PlayerAgent", 1));
+        world.GetFaction(1)!.OfficerIds.Add(203);
+        world.GetCity(1)!.OfficerIds.Add(203);
+        world.CovertOfficerRecords.Add(new WorldState.CovertOfficerData { SponsorFactionId = 2, OriginalFactionId = 1, OfficerId = 203, AwaitingDefection = true });
+        var reverseTeam = new CampaignBattleTeamData { Id = 3, OfficerId = 203, FactionId = 1, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Player, ActiveTroops = 100, MaximumTroops = 100, OriginCityId = 1, Location = CampaignTeamLocation.Field };
+        campaign.Teams.Add(reverseTeam);
+        Assert(CovertOfficerRules.TryDefect(world, campaign, reverseTeam) && reverseTeam.Side == CampaignBattleSide.Defender && reverseTeam.ControllerType == CampaignControllerType.Ai && reverseTeam.ActiveTroops == 60, "Defection applies same rules to AI control", $"side={reverseTeam.Side}, control={reverseTeam.ControllerType}");
+        BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Attacker);
+        Assert(world.GetCity(1)!.OfficerIds.Contains(202) && world.GetOfficer(202)!.CaptiveFactionId == 0 && world.GetFaction(1)!.OfficerIds.Contains(202), "Defector returns to new side after campaign", $"city={world.GetOfficer(202)!.CityId}");
+    }
+
+    private static void RunMultipleOfficerContactTest()
+    {
+        var world = TestHelpers.World();
+        world.Year = 190; world.Month = 1;
+        world.Cities.Add(TestHelpers.City(1, "Home", 1, 200, 500, 500, new[] { 101, 102, 103, 104 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "Enemy", 2, 500, 500, 500, new[] { 201, 202, 203, 204 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "Envoy1", 1));
+        world.Officers.Add(TestHelpers.Officer(103, "Envoy2", 1));
+        world.Officers.Add(TestHelpers.Officer(104, "Envoy3", 1));
+        world.Officers.Add(TestHelpers.Officer(201, "EnemyRuler", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "Target1", 2));
+        world.Officers.Add(TestHelpers.Officer(203, "Target2", 2));
+        world.Officers.Add(TestHelpers.Officer(204, "Target3", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102, 103, 104 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201, 202, 203, 204 }));
+        var services = CreateServices(world);
+        var first = services.Resolver.ScheduleOfficerContact(1, 1, 202, 102, false);
+        var sameEnvoy = services.Resolver.ScheduleOfficerContact(1, 1, 203, 102, false);
+        var sameTarget = services.Resolver.ScheduleOfficerContact(1, 1, 202, 103, false);
+        var second = services.Resolver.ScheduleOfficerContact(1, 1, 203, 103, true);
+        var overBudget = services.Resolver.ScheduleOfficerContact(1, 1, 204, 104, false);
+        var pending = world.PendingCommands.Where(p => p.Type == CommandType.ContactOfficer).ToList();
+        Assert(first.Success && second.Success && pending.Count == 2 && pending.Select(p => p.TargetOfficerId).Order().SequenceEqual(new[] { 202, 203 }), "Multiple contacts from same city remain scheduled", $"count={pending.Count}");
+        Assert(!sameEnvoy.Success && !sameTarget.Success, "Contact rejects reused envoy and target", $"envoy={sameEnvoy.Success}, target={sameTarget.Success}");
+        Assert(!overBudget.Success && world.GetOfficer(104)!.LastAssignedYear != world.Year, "Contact rejects overcommitted funds without assigning envoy", $"success={overBudget.Success}");
+        var localization = new LocalizationService();
+        localization.LoadFromFileSystem(GetLocalizationDirectoryPath());
+        Assert(localization.GetOfficerStatus(world, world.GetOfficer(102)!) == localization.T("status.contact"), "Contact envoy has contact status", "status");
+        var saved = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        Assert(saved.PendingCommands.Count(p => p.Type == CommandType.ContactOfficer) == 2, "Multiple contacts survive save serialization", "pending=2");
+        var results = services.Turn.ResolvePendingCommandsExceptAttack(services.Resolver);
+        Assert(results.Count(result => result.Success) == 2 && world.GetOfficerAffection(1, 202)?.Score == 5 && world.GetOfficerAffection(1, 203)?.Score == 12 && world.GetCity(1)!.Gold == 0, "Multiple contacts resolve independently", $"gold={world.GetCity(1)!.Gold}");
+    }
+
+    private static void RunOfficerContactTest()
+    {
+        var world = TestHelpers.World();
+        world.Year = 190; world.Month = 1;
+        world.Cities.Add(TestHelpers.City(1, "Home", 1, 1000, 800, 1200, new[] { 101, 102 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "Foreign", 2, 900, 900, 1000, new[] { 201, 202 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "Envoy", 1));
+        world.Officers.Add(TestHelpers.Officer(201, "EnemyRuler", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "Target", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201, 202 }));
+        var services = CreateServices(world);
+        var city = world.GetCity(1)!;
+        var target = world.GetOfficer(202)!;
+        var before = InvokePrivateStatic<int>(typeof(CommandResolver), "GetHireAcceptanceScore", world, city, target, 1, 0, 0, null!);
+        var beforeGold = city.Gold;
+        var scheduled = services.Resolver.ScheduleOfficerContact(1, 1, 202, 102, false);
+        Assert(scheduled.Success && city.Gold == beforeGold, "Contact schedules without early charge", $"gold={city.Gold}");
+        var pending = world.PendingCommands.Single(p => p.Type == CommandType.ContactOfficer);
+        var result = services.Resolver.ResolvePendingCommand(pending);
+        var score = world.GetOfficerAffection(1, 202)?.Score;
+        Assert(result.Success && score == 5 && city.Gold == beforeGold - 50, "Letter resolves affinity and cost", $"score={score}, gold={city.Gold}");
+        var after = InvokePrivateStatic<int>(typeof(CommandResolver), "GetHireAcceptanceScore", world, city, target, 1, 0, 0, null!);
+        Assert(after == before + 1 && world.GetOfficerAffection(2, 202) == null, "Affinity boosts only actor hiring", $"before={before}, after={after}");
+        Assert(!services.Resolver.ResolvePendingCommand(pending).Success, "Officer cannot be contacted twice in the same month", "same month");
+        world.PendingCommands.Clear();
+        world.Month = 2;
+        Assert(services.Resolver.ScheduleOfficerContact(1, 1, 202, 102, true).Success, "Contact allowed next month", "month 2");
+        world.PendingCommands.Clear();
+        var saved = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        Assert(saved.GetOfficerAffection(1, 202)?.Score == 5, "Contact affinity survives serialization", "score=5");
+        world.Month = 4;
+        scheduled = services.Resolver.ScheduleOfficerContact(1, 1, 202, 102, true);
+        pending = world.PendingCommands.Single(p => p.Type == CommandType.ContactOfficer);
+        target.CityId = 1;
+        beforeGold = city.Gold;
+        result = services.Resolver.ResolvePendingCommand(pending);
+        Assert(scheduled.Success && !result.Success && city.Gold == beforeGold && world.GetOfficerAffection(1, 202)?.Score == 5, "Contact cancels without charge when target moves", $"gold={city.Gold}");
+        world.PendingCommands.Clear();
+        target.CityId = 2;
+        world.Month = 5;
+        scheduled = services.Resolver.ScheduleOfficerContact(1, 1, 202, 102, true);
+        pending = world.PendingCommands.Single(p => p.Type == CommandType.ContactOfficer);
+        result = services.Resolver.ResolvePendingCommand(pending);
+        Assert(scheduled.Success && result.Success && city.Gold == beforeGold - 150 && world.GetOfficerAffection(1, 202)?.Score == 17, "Gift applies cost and affinity", $"gold={city.Gold}, score={world.GetOfficerAffection(1, 202)?.Score}");
     }
 
     private static void RunMainCityRulesTest()

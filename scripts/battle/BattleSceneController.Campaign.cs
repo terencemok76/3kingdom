@@ -884,13 +884,17 @@ public partial class BattleSceneController
             .Select(order => order.Id)
             .ToHashSet();
         BattleCampaignService.AdvanceCompletedBattleDay(_activeCampaign);
+        ApplyCovertOfficerDefections();
         SyncCampaignResourcesToHud();
         if (GetNodeOrNull<Node2D>("MapRoot/UnitLayer") is { } unitLayer)
         {
             DeployCampaignTeams(unitLayer);
         }
         AnnounceCampaignReinforcementArrivals(arrivingOrderIds);
+        RecalculateBattleHudTotals();
         ConfigureHud();
+        RefreshBattleResultState();
+        if (_isBattleFinished) return;
         // A caravan ambush is resolved in one uninterrupted encounter: it has
         // no monthly pause and therefore cannot open reinforcement windows.
         if (_activeCampaign.IsCaravanEscortBattle ||
@@ -916,6 +920,45 @@ public partial class BattleSceneController
                 "log.campaign.month_limit_reached",
                 "Monthly battle limit reached: battle suspended after {0} days.",
                 GetMonthlyBattleDayLimit()));
+    }
+
+    private void ApplyCovertOfficerDefections()
+    {
+        var world = CampaignRuntimeContext.World;
+        if (_activeCampaign == null || world == null || _activeCampaign.TotalBattleDays != 1) return;
+        foreach (var (grid, occupants) in _occupantsByGrid.ToList())
+        {
+            foreach (var occupant in occupants.Where(item => item.Category == CategoryUnit && item.CampaignTeamId > 0).ToList())
+            {
+                var team = _activeCampaign.Teams.FirstOrDefault(item => item.Id == occupant.CampaignTeamId);
+                if (team == null) continue;
+                var agent = world.CovertOfficerRecords.FirstOrDefault(item => item.OfficerId == team.OfficerId && CovertOfficerRules.IsValid(world, item));
+                if (agent == null) continue;
+                var opposingFaction = team.Side == CampaignBattleSide.Attacker ? _activeCampaign.DefenderFactionId : _activeCampaign.AttackerFactionId;
+                if (agent.SponsorFactionId != opposingFaction) continue;
+                if (world.GetFaction(agent.SponsorFactionId)?.IsPlayer == false) agent.AwaitingDefection = true;
+                if (!CovertOfficerRules.TryDefect(world, _activeCampaign, team)) continue;
+                var converted = occupant with
+                {
+                    TeamName = team.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
+                    FactionId = team.FactionId,
+                    ControllerType = team.ControllerType,
+                    TroopCount = team.ActiveTroops,
+                    HitPoints = team.ActiveTroops,
+                    MaxHitPoints = team.MaximumTroops,
+                    WoundedTroops = 0
+                };
+                ReplaceOccupantAtGrid(grid, occupant, converted);
+                if (_selectedUnit == occupant) CancelCommandAction(clearSelection: true);
+                RefreshMarkerTeamVisual(converted);
+                var name = world.GetOfficer(team.OfficerId) is { } officer ? _localization.GetOfficerName(officer) : occupant.OfficerName;
+                var message = BattleFormat("ui.battle.covert_defection", "{0} defects with {1:N0} soldiers; {2:N0} withdraw.", name, team.ActiveTroops, occupant.TroopCount - team.ActiveTroops);
+                AppendBattleLog("Battle", "Defection", message);
+                ShowBattleEventNotice(message);
+            }
+        }
+        RefreshHiddenUnitVisibility();
+        RefreshHighlights();
     }
 
     private void HandleStandaloneTestCompletedDay()

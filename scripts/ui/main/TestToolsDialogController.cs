@@ -1,5 +1,7 @@
 using Godot;
 using System.Linq;
+using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
@@ -15,9 +17,14 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private Button? _caravanRoadBattleButton;
     private Button? _forceSurrenderButton;
     private Button? _cycleCityOwnerButton;
+    private Button? _maxAffinityButton;
+    private Button? _forceCovertButton;
+    private Button? _assignCovertButton;
+    private OptionButton? _covertOfficerOption;
     private bool _signalsConnected;
 
     protected override Vector2 MinimumOverlaySize => new(420.0f, 350.0f);
+    protected override bool AutoFitOverlayHeight => true;
 
     public TestToolsDialogController(MainHudUiContext context)
         : base(context, "res://scenes/ui/main/TestToolsDialog.tscn")
@@ -46,7 +53,9 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         SetOverlayTitleText(localization?.T("ui.test_tools") ?? "Test Tools");
         if (_summaryLabel != null)
         {
-            _summaryLabel.Text = _context.World?.ForceNextSurrenderSuccessForDebug == true
+            _summaryLabel.Text = _context.World?.ForceNextCovertRecruitmentForDebug == true
+                ? localization?.T("ui.test_covert_armed") ?? "Armed: the next valid player covert recruitment succeeds without exposure."
+                : _context.World?.ForceNextSurrenderSuccessForDebug == true
                 ? localization?.T("ui.test_surrender_armed") ?? "Surrender test armed: the next safe player-led surrender proposal will succeed."
                 : _context.World?.ForceNextCaravanAmbushForDebug == true
                 ? localization?.T("ui.test_caravan_armed") ?? "Caravan ambush armed: schedule a Move carrying cargo."
@@ -89,6 +98,13 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _cycleCityOwnerButton.Text = localization?.T("ui.test_cycle_city_owner") ?? "Switch City Faction";
         }
+        if (_maxAffinityButton != null)
+            _maxAffinityButton.Text = localization?.T("ui.test_max_affinity") ?? "Max All Officer Affinity";
+        if (_forceCovertButton != null)
+            _forceCovertButton.Text = localization?.T("ui.test_force_covert") ?? "Force Next Covert Recruitment";
+        if (_assignCovertButton != null)
+            _assignCovertButton.Text = localization?.T("ui.test_assign_covert") ?? "Assign Covert Agent";
+        RefreshCovertOfficerOptions();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -102,8 +118,12 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         _caravanRoadBattleButton = root.GetNodeOrNull<Button>("CaravanActionRow/CaravanRoadBattleButton");
         _forceSurrenderButton = root.GetNodeOrNull<Button>("SurrenderActionRow/ForceSurrenderButton");
         _cycleCityOwnerButton = root.GetNodeOrNull<Button>("OwnershipActionRow/CycleCityOwnerButton");
+        _maxAffinityButton = root.GetNodeOrNull<Button>("AffinityActionRow/MaxAffinityButton");
+        _forceCovertButton = root.GetNodeOrNull<Button>("CovertActionRow/ForceCovertButton");
+        _covertOfficerOption = root.GetNodeOrNull<OptionButton>("AssignCovertRow/OfficerOption");
+        _assignCovertButton = root.GetNodeOrNull<Button>("AssignCovertRow/AssignButton");
 
-        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _forceSurrenderButton, _cycleCityOwnerButton }.Where(button => button != null))
+        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _forceSurrenderButton, _cycleCityOwnerButton, _maxAffinityButton, _forceCovertButton, _assignCovertButton }.Where(button => button != null))
         {
             if (_context.ViewButton == null)
             {
@@ -173,6 +193,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _cycleCityOwnerButton.Pressed += OnCycleCityOwnerPressed;
         }
+        if (_maxAffinityButton != null) _maxAffinityButton.Pressed += OnMaxAffinityPressed;
+        if (_forceCovertButton != null) _forceCovertButton.Pressed += OnForceCovertPressed;
+        if (_assignCovertButton != null) _assignCovertButton.Pressed += OnAssignCovertPressed;
+        if (_covertOfficerOption != null) _covertOfficerOption.ItemSelected += _ => UpdateAssignCovertButton();
 
         _signalsConnected = true;
     }
@@ -217,5 +241,83 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private void OnCycleCityOwnerPressed()
     {
         _context.CycleTestCityOwner();
+    }
+
+    private void OnMaxAffinityPressed()
+    {
+        var world = _context.World;
+        var factionId = _context.PlayerFactionId;
+        if (world == null || factionId <= 0 || !_context.IsGodModeEnabled()) return;
+        foreach (var officer in world.Officers)
+        {
+            var record = world.GetOfficerAffection(factionId, officer.Id);
+            if (record == null)
+            {
+                record = new ThreeKingdom.Data.WorldState.OfficerAffectionData { FactionId = factionId, OfficerId = officer.Id, LastContactMonth = -1 };
+                world.OfficerAffectionRecords.Add(record);
+            }
+            record.Score = 100;
+        }
+        if (_summaryLabel != null) _summaryLabel.Text = _context.Localization?.T("ui.test_max_affinity_done") ?? "All officers' affinity with the player is now 100.";
+        _context.UiEventHub.PublishOfficerStateChanged(0, _context.SelectedCity?.Id ?? 0, factionId);
+        Callable.From(UpdateOverlayLayoutNow).CallDeferred();
+    }
+
+    private void RefreshCovertOfficerOptions()
+    {
+        var world = _context.World;
+        var option = _covertOfficerOption;
+        var localization = _context.Localization;
+        if (world == null || option == null) return;
+        var previousId = option.Selected >= 0 ? option.GetItemMetadata(option.Selected).AsInt32() : 0;
+        option.Clear();
+        option.AddItem(localization?.T("ui.test_covert_choose") ?? "Select foreign officer");
+        option.SetItemMetadata(0, 0);
+        foreach (var city in world.Cities.Where(city => city.OwnerFactionId > 0 && city.OwnerFactionId != _context.PlayerFactionId).OrderBy(city => city.Id))
+        {
+            foreach (var id in city.OfficerIds.Distinct().OrderBy(id => id))
+            {
+                var officer = world.GetOfficer(id);
+                var candidate = new WorldState.CovertOfficerData { SponsorFactionId = _context.PlayerFactionId, OriginalFactionId = city.OwnerFactionId, OfficerId = id };
+                if (officer == null || officer.CityId != city.Id || !CovertOfficerRules.IsValid(world, candidate) || world.CovertOfficerRecords.Any(agent => agent.OfficerId == id)) continue;
+                option.AddItem($"{localization?.GetCityName(city) ?? city.Name} | {localization?.GetOfficerName(officer) ?? officer.Name}");
+                option.SetItemMetadata(option.ItemCount - 1, id);
+                if (id == previousId) option.Select(option.ItemCount - 1);
+            }
+        }
+        UpdateAssignCovertButton();
+    }
+
+    private void UpdateAssignCovertButton()
+    {
+        if (_assignCovertButton != null)
+            _assignCovertButton.Disabled = _covertOfficerOption == null || _covertOfficerOption.Selected <= 0;
+    }
+
+    private void OnAssignCovertPressed()
+    {
+        var world = _context.World;
+        var option = _covertOfficerOption;
+        if (world == null || option == null || option.Selected <= 0 || !_context.IsGodModeEnabled()) return;
+        var officer = world.GetOfficer(option.GetItemMetadata(option.Selected).AsInt32());
+        var city = officer == null ? null : world.GetCity(officer.CityId);
+        if (officer == null || city == null || !city.OfficerIds.Contains(officer.Id)) { RefreshCovertOfficerOptions(); return; }
+        var agent = new WorldState.CovertOfficerData { SponsorFactionId = _context.PlayerFactionId, OriginalFactionId = city.OwnerFactionId, OfficerId = officer.Id };
+        if (!CovertOfficerRules.IsValid(world, agent) || world.CovertOfficerRecords.Any(item => item.OfficerId == officer.Id)) { RefreshCovertOfficerOptions(); return; }
+        world.CovertOfficerRecords.Add(agent);
+        if (_summaryLabel != null)
+            _summaryLabel.Text = _context.Localization?.Format("ui.test_assign_covert_done", _context.Localization.GetOfficerName(officer)) ?? $"{officer.Name} is now your covert agent.";
+        RefreshCovertOfficerOptions();
+        _context.UiEventHub.PublishOfficerStateChanged(officer.Id, city.Id, _context.PlayerFactionId);
+        Callable.From(UpdateOverlayLayoutNow).CallDeferred();
+    }
+
+    private void OnForceCovertPressed()
+    {
+        var world = _context.World;
+        if (world == null || _context.PlayerFactionId <= 0 || !_context.IsGodModeEnabled()) return;
+        world.ForceNextCovertRecruitmentForDebug = true;
+        RefreshText();
+        Callable.From(UpdateOverlayLayoutNow).CallDeferred();
     }
 }

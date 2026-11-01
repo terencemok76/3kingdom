@@ -87,6 +87,20 @@ public class TurnManager
     private const int BanditLoyaltyThreshold = 65;
     private const int BanditDefenseThreshold = 45;
     private readonly List<OfficerEscapeEvent> _latestOfficerEscapeEvents = new();
+    private readonly List<(int SponsorId, int OfficerId, string Kind)> _covertMaintenanceEvents = new();
+    private readonly List<(int SponsorId, int OfficerId, int TargetId, string Kind)> _covertDiscordEvents = new();
+    public List<(int SponsorId, int OfficerId, int TargetId, string Kind)> ConsumeCovertDiscordEvents()
+    {
+        var result = _covertDiscordEvents.ToList();
+        _covertDiscordEvents.Clear();
+        return result;
+    }
+    public List<(int SponsorId, int OfficerId, string Kind)> ConsumeCovertMaintenanceEvents()
+    {
+        var result = _covertMaintenanceEvents.ToList();
+        _covertMaintenanceEvents.Clear();
+        return result;
+    }
 
     public WorldState? World { get; private set; }
     public int ActiveFactionId { get; private set; }
@@ -132,6 +146,7 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Diplomacy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Spy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.ContactOfficer, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
         World.PendingCommands.RemoveAll(command => !(command.Type == CommandType.Move && command.IsTraveling));
         return results;
@@ -153,6 +168,7 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Diplomacy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Spy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.ContactOfficer, results);
         World.PendingCommands.RemoveAll(command =>
             command.Type != CommandType.Attack &&
             !(command.Type == CommandType.Move && command.IsTraveling));
@@ -187,6 +203,7 @@ public class TurnManager
             CommandType.Diplomacy,
             CommandType.Spy,
             CommandType.Move
+            ,CommandType.ContactOfficer
             ,CommandType.HireOfficer
         };
 
@@ -358,6 +375,28 @@ public class TurnManager
 
         AdvanceDiplomacyRelations();
         AdvanceCityIntel();
+        World.CovertOfficerRecords.RemoveAll(agent => !CovertOfficerRules.IsValid(World, agent));
+        _covertMaintenanceEvents.AddRange(CovertOfficerRules.ProcessMaintenance(World, World.Month == 1));
+        var discordEvents = CovertOfficerRules.ProcessDiscord(World);
+        _covertDiscordEvents.AddRange(discordEvents);
+        foreach (var agent in World.CovertOfficerRecords.Where(agent => !agent.AwaitingDefection && !agent.MaintenanceUnpaid && agent.DiscordTargetOfficerId == 0 && !discordEvents.Any(item => item.OfficerId == agent.OfficerId)))
+        {
+            var officer = World.GetOfficer(agent.OfficerId);
+            var city = officer == null ? null : World.GetCity(officer.CityId);
+            if (city == null || city.OwnerFactionId != agent.OriginalFactionId || !city.OfficerIds.Contains(agent.OfficerId)) continue;
+            World.UpsertCityIntel(agent.SponsorFactionId, city.Id, 1);
+            World.RecordCityOfficerIntel(agent.SponsorFactionId, city.Id);
+        }
+        // AI schedules through the same validation and resolution as the player.
+        if (World.Month % 3 == 0)
+        {
+            foreach (var agent in World.CovertOfficerRecords.Where(a => World.GetFaction(a.SponsorFactionId)?.IsPlayer == false && !a.AwaitingDefection && !a.MaintenanceUnpaid && a.DiscordTargetOfficerId == 0).ToList())
+            {
+                var city = World.GetCity(World.GetOfficer(agent.OfficerId)?.CityId ?? 0);
+                var target = city?.OfficerIds.Where(id => CovertOfficerRules.CanScheduleDiscord(World, agent, id)).OrderBy(id => id).FirstOrDefault() ?? 0;
+                if (target > 0) CovertOfficerRules.ScheduleDiscord(World, agent, target);
+            }
+        }
         AdvanceOfficerNaturalDeaths();
         AdvanceCapturedOfficerEscapes();
         FreeOfficerMovement.Advance(World);

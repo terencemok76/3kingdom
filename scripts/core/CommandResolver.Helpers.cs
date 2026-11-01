@@ -1889,7 +1889,7 @@ public partial class CommandResolver
     internal static int GetHireAcceptanceScore(WorldState world, CityData city, OfficerData officer, int actorFactionId, int goldOffer, int foodOffer, ItemData? giftedItem)
     {
         var rulerCharm = GetRulerCharm(world, actorFactionId);
-        var relationshipBonus = GetHireRelationshipBonus(world, officer, actorFactionId);
+        var relationshipBonus = GetHireRelationshipBonus(world, officer, actorFactionId) + (world.GetOfficerAffection(actorFactionId, officer.Id)?.Score ?? 0) / 5;
         if (FreeOfficerMovement.IsFreeOfficer(world, officer))
         {
             var offerBonus = goldOffer / 50 + foodOffer / 250;
@@ -2040,6 +2040,7 @@ public partial class CommandResolver
             SpyActionType.Incite => "command.spy.incite",
             SpyActionType.Assassination => "command.spy.assassination",
             SpyActionType.SowDiscord => "command.spy.sow_discord",
+            SpyActionType.RecruitCovertOfficer => "command.spy.recruit_covert",
             _ => "command.spy.reconnaissance"
         };
         return _localization?.TForLanguage(language, key) ?? actionType.ToString();
@@ -2172,8 +2173,8 @@ public partial class CommandResolver
 
     private static void UpsertPendingCommand(WorldState world, PendingCommandData pendingCommand)
     {
-        // Military orders can stack per source city; core city actions stay one-pending-per-type.
-        if (pendingCommand.Type == CommandType.Move || pendingCommand.Type == CommandType.Attack)
+        // Military and officer-contact orders can stack per city; core city actions stay one-pending-per-type.
+        if (pendingCommand.Type == CommandType.Move || pendingCommand.Type == CommandType.Attack || pendingCommand.Type == CommandType.ContactOfficer)
         {
             world.PendingCommands.Add(pendingCommand);
             return;

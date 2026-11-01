@@ -137,6 +137,19 @@ public partial class HudController
             return _localization?.Format("ui.campaign.battle_officer_status", side, location) ?? $"{side} - {location}";
         }
 
+        var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
+        if (playerFactionId > 0 && world.GetCity(officer.CityId)?.OwnerFactionId == playerFactionId)
+        {
+            var contact = world.PendingCommands.FirstOrDefault(command => command.Type == CommandType.ContactOfficer && command.ActorFactionId == playerFactionId && command.OfficerIds.Contains(officer.Id));
+            if (contact != null && _localization != null)
+            {
+                var target = world.GetOfficer(contact.TargetOfficerId);
+                var targetName = target == null ? UnknownInfoText : _localization.GetOfficerName(target);
+                var action = _localization.T(contact.GoldToSend == CommandResolver.OfficerGiftCost ? "status.contact_gift" : "status.contact_letter");
+                return _localization.Format("fmt.officer_contact_status", action, targetName);
+            }
+        }
+
         return MaskedText(
             CanViewOfficerFullInformation(officer),
             officer.CaptiveFactionId > 0

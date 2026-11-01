@@ -55,6 +55,9 @@
                             "zhHant":  "預覽：{0} -> {1}，將於月底結算",
                             "en":  "Preview: {0} -> {1}, resolves at month end"
                                      },
+    "fmt.spy_covert_advice": { "zhHant": "接觸 {0} 的暴露風險估計為 {1}%。{2}", "en": "Estimated exposure risk when approaching {0}: {1}%. {2}" },
+    "fmt.officer_contact_status": { "zhHant": "{0}：{1}", "en": "{0}: {1}" },
+    "fmt.contact_summary": { "zhHant": "交情 {0}/100｜登用加成 +{1}。每位武將每月最多接受一次聯繫；月底結算，佔用使者。向其他勢力武將送小禮有 10% 暴露風險（關係 -6、對方信任 -12、使者忠誠 -3）。", "en": "Affinity {0}/100 | Hiring score +{1}. Each officer can be contacted once per month; resolves at month end and uses the envoy. Gifts to foreign officers have a 10% exposure risk (relations -6, their trust -12, envoy loyalty -3)." },
     "fmt.return_main_city_tooltip": { "zhHant": "返回 {0}。優先選擇君主所在己方城市；君主不在城中時選擇己方備用城市。", "en": "Return to {0}. Uses the ruler's city, or a fallback owned city when the ruler is away." },
     "fmt.officer_loyalty_intel": { "zhHant": "{0}（{1}年{2}月情報）", "en": "{0} (intel {1}/{2})" },
     "fmt.spy_assassination_summary":  {

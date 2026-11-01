@@ -206,7 +206,7 @@ public partial class HudController
         var includeCityName = _officerListScope == OfficerListScope.Faction;
         var includeBattleFactionName = IsViewingBattleCityOfficerList();
         var offset = includeBattleFactionName ? 1 : 0;
-        _officerListTable.Columns = includeCityName ? 13 : 12;
+        _officerListTable.Columns = includeCityName ? 14 : 13;
         _officerListTable.Columns += offset;
         SetViewTableColumn(0, _localization.T("ui.officers"), 170, ViewTableSortField.Name);
         if (includeBattleFactionName)
@@ -216,32 +216,34 @@ public partial class HudController
 
         SetViewTableColumn(1 + offset, _localization.T("ui.role"), 120, ViewTableSortField.Role);
         SetViewTableColumn(2 + offset, _localization.T("ui.appointed_titles"), 170, ViewTableSortField.Appointment);
-        SetViewTableColumn(3 + offset, _localization.T("ui.status"), 130, ViewTableSortField.Status);
+        SetViewTableColumn(3 + offset, _localization.T("ui.status"), 180, ViewTableSortField.Status);
         if (includeCityName)
         {
             SetViewTableColumn(4 + offset, _localization.T("ui.city"), 140, ViewTableSortField.City);
             SetViewTableColumn(5 + offset, _localization.T("ui.age"), 70, ViewTableSortField.Age);
             SetViewTableColumn(6 + offset, _localization.T("ui.loyalty"), 180, ViewTableSortField.OfficerLoyalty);
-            SetViewTableColumn(7 + offset, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
-            SetViewTableColumn(8 + offset, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
-            SetViewTableColumn(9 + offset, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
-            SetViewTableColumn(10 + offset, _localization.T("ui.leadership"), 90, ViewTableSortField.Leadership);
-            SetViewTableColumn(11 + offset, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
-            SetViewTableColumn(12 + offset, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
-            StretchTrailingViewColumns(13 + offset, 6 + offset, 170 + (includeBattleFactionName ? 140 : 0) + 120 + 170 + 130 + 140 + 70);
+            SetViewTableColumn(7 + offset, _localization.T("ui.officer_affinity"), 90, ViewTableSortField.OfficerAffinity);
+            SetViewTableColumn(8 + offset, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
+            SetViewTableColumn(9 + offset, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
+            SetViewTableColumn(10 + offset, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
+            SetViewTableColumn(11 + offset, _localization.T("ui.leadership"), 90, ViewTableSortField.Leadership);
+            SetViewTableColumn(12 + offset, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
+            SetViewTableColumn(13 + offset, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
+            StretchTrailingViewColumns(14 + offset, 6 + offset, 170 + (includeBattleFactionName ? 140 : 0) + 120 + 170 + 180 + 140 + 70);
             _officerListTable.SetColumnCustomMinimumWidth(6 + offset, 180);
         }
         else
         {
             SetViewTableColumn(4 + offset, _localization.T("ui.age"), 70, ViewTableSortField.Age);
             SetViewTableColumn(5 + offset, _localization.T("ui.loyalty"), 180, ViewTableSortField.OfficerLoyalty);
-            SetViewTableColumn(6 + offset, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
-            SetViewTableColumn(7 + offset, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
-            SetViewTableColumn(8 + offset, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
-            SetViewTableColumn(9 + offset, _localization.T("ui.leadership"), 90, ViewTableSortField.Leadership);
-            SetViewTableColumn(10 + offset, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
-            SetViewTableColumn(11 + offset, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
-            StretchTrailingViewColumns(12 + offset, 5 + offset, 170 + (includeBattleFactionName ? 140 : 0) + 120 + 170 + 130 + 70);
+            SetViewTableColumn(6 + offset, _localization.T("ui.officer_affinity"), 90, ViewTableSortField.OfficerAffinity);
+            SetViewTableColumn(7 + offset, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
+            SetViewTableColumn(8 + offset, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
+            SetViewTableColumn(9 + offset, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
+            SetViewTableColumn(10 + offset, _localization.T("ui.leadership"), 90, ViewTableSortField.Leadership);
+            SetViewTableColumn(11 + offset, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
+            SetViewTableColumn(12 + offset, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
+            StretchTrailingViewColumns(13 + offset, 5 + offset, 170 + (includeBattleFactionName ? 140 : 0) + 120 + 170 + 180 + 70);
             _officerListTable.SetColumnCustomMinimumWidth(5 + offset, 180);
         }
     }
@@ -395,7 +397,10 @@ public partial class HudController
 
         var canViewOfficer = true; // Names, roles, age and core abilities are public.
         row.SetMetadata(0, officer.Id);
-        row.SetText(0, _localization.GetOfficerName(officer));
+        var isOwnCovert = _turnManager?.World?.CovertOfficerRecords.Any(agent =>
+            agent.OfficerId == officer.Id && agent.SponsorFactionId == _turnManager.GetPlayerFactionId() &&
+            CovertOfficerRules.IsValid(_turnManager.World, agent)) == true;
+        row.SetText(0, _localization.GetOfficerName(officer) + (isOwnCovert ? $" [{_localization.T("ui.covert_badge")}]" : string.Empty));
         var includeBattleFactionName = IsViewingBattleCityOfficerList();
         var offset = includeBattleFactionName ? 1 : 0;
         if (includeBattleFactionName)
@@ -409,29 +414,32 @@ public partial class HudController
         row.SetText(3 + offset, BuildMaskedOfficerStatus(world, officer));
         var officerAge = CalculateOfficerAge(officer, world.Year);
         var loyaltyText = BuildMaskedOfficerLoyalty(world, officer);
+        var affinityText = (world.GetOfficerAffection(_turnManager.GetPlayerFactionId(), officer.Id)?.Score ?? 0).ToString();
         if (includeCityName)
         {
             var city = _turnManager?.World?.GetCity(officer.CaptiveFactionId > 0 ? officer.JailedCityId : officer.CityId);
             row.SetText(4 + offset, canViewOfficer && city != null ? _localization.GetCityName(city) : UnknownInfoText);
             row.SetText(5 + offset, MaskedNumberText(canViewOfficer, officerAge));
             row.SetText(6 + offset, loyaltyText);
+            row.SetText(7 + offset, affinityText);
+            row.SetText(8 + offset, MaskedNumberText(canViewOfficer, officer.Strength));
+            row.SetText(9 + offset, MaskedNumberText(canViewOfficer, officer.Intelligence));
+            row.SetText(10 + offset, MaskedNumberText(canViewOfficer, officer.Charm));
+            row.SetText(11 + offset, MaskedNumberText(canViewOfficer, officer.Leadership));
+            row.SetText(12 + offset, MaskedNumberText(canViewOfficer, officer.Politics));
+            row.SetText(13 + offset, MaskedNumberText(canViewOfficer, officer.Combat));
+        }
+        else
+        {
+            row.SetText(4 + offset, MaskedNumberText(canViewOfficer, officerAge));
+            row.SetText(5 + offset, loyaltyText);
+            row.SetText(6 + offset, affinityText);
             row.SetText(7 + offset, MaskedNumberText(canViewOfficer, officer.Strength));
             row.SetText(8 + offset, MaskedNumberText(canViewOfficer, officer.Intelligence));
             row.SetText(9 + offset, MaskedNumberText(canViewOfficer, officer.Charm));
             row.SetText(10 + offset, MaskedNumberText(canViewOfficer, officer.Leadership));
             row.SetText(11 + offset, MaskedNumberText(canViewOfficer, officer.Politics));
             row.SetText(12 + offset, MaskedNumberText(canViewOfficer, officer.Combat));
-        }
-        else
-        {
-            row.SetText(4 + offset, MaskedNumberText(canViewOfficer, officerAge));
-            row.SetText(5 + offset, loyaltyText);
-            row.SetText(6 + offset, MaskedNumberText(canViewOfficer, officer.Strength));
-            row.SetText(7 + offset, MaskedNumberText(canViewOfficer, officer.Intelligence));
-            row.SetText(8 + offset, MaskedNumberText(canViewOfficer, officer.Charm));
-            row.SetText(9 + offset, MaskedNumberText(canViewOfficer, officer.Leadership));
-            row.SetText(10 + offset, MaskedNumberText(canViewOfficer, officer.Politics));
-            row.SetText(11 + offset, MaskedNumberText(canViewOfficer, officer.Combat));
         }
     }
 
@@ -678,6 +686,10 @@ public partial class HudController
             };
         }
 
+        var affinityColumn = _officerListScope == OfficerListScope.Faction || IsViewingBattleCityOfficerList() ? 7 : 6;
+        if (column == affinityColumn) return ViewTableSortField.OfficerAffinity;
+        if (column > affinityColumn) column--;
+
         if (_officerListScope == OfficerListScope.Faction)
         {
             return column switch
@@ -765,6 +777,9 @@ public partial class HudController
             ViewTableSortField.OfficerLoyalty => _viewTableSortAscending
                 ? officers.OrderBy(GetVisibleOfficerLoyaltyForSort)
                 : officers.OrderByDescending(GetVisibleOfficerLoyaltyForSort),
+            ViewTableSortField.OfficerAffinity => _viewTableSortAscending
+                ? officers.OrderBy(GetPlayerOfficerAffinity)
+                : officers.OrderByDescending(GetPlayerOfficerAffinity),
             ViewTableSortField.Strength => _viewTableSortAscending
                 ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Strength : int.MinValue)
                 : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Strength : int.MinValue),
@@ -794,6 +809,9 @@ public partial class HudController
                 : officers.OrderByDescending(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
         };
     }
+
+    private int GetPlayerOfficerAffinity(OfficerData officer) =>
+        _turnManager?.World?.GetOfficerAffection(_turnManager.GetPlayerFactionId(), officer.Id)?.Score ?? 0;
 
     private int GetVisibleOfficerLoyaltyForSort(OfficerData officer)
     {
@@ -1016,6 +1034,7 @@ public partial class HudController
             CommandType.Search => 3,
             CommandType.Move => 4,
             CommandType.Attack => 5,
+            CommandType.ContactOfficer => 6,
             _ => 0
         };
     }

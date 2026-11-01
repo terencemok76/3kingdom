@@ -68,7 +68,7 @@ internal sealed class SpyUiContext : IFloatingOverlayContext
             ActorFactionId = turnManager.GetPlayerFactionId(),
             SourceCityId = city.Id,
             TargetCityId = targetCityId,
-            TargetOfficerId = actionType == SpyActionType.Assassination || actionType == SpyActionType.SowDiscord ? targetOfficerId : null,
+            TargetOfficerId = actionType == SpyActionType.Assassination || actionType == SpyActionType.SowDiscord || actionType == SpyActionType.RecruitCovertOfficer ? targetOfficerId : null,
             OfficerIds = new List<int> { selectedOfficerId },
             SpyActionType = actionType
         });

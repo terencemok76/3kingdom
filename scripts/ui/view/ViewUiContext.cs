@@ -198,6 +198,7 @@ public sealed class ViewUiContext : IFloatingOverlayContext
     internal string GetPortraitLabel() => _hud.ViewGetPortraitLabel();
     internal LocalizationService? Localization => _hud.ViewLocalization;
     internal WorldState? World => _hud.ViewWorld;
+    internal int PlayerFactionId => _hud.ViewPlayerFactionId;
     internal CityData? SelectedCity => _hud.ViewSelectedCity;
     internal int GetCityListFilterIndex() => _hud.ViewGetCityListFilterIndex();
     internal int GetOfficerSortIndex() => _hud.ViewGetOfficerSortIndex();

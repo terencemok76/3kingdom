@@ -1791,6 +1791,27 @@ public class AiController
             return null;
         }
 
+        // Use the same observed loyalty and affinity requirements as the player.
+        var covertTarget = visibleTargets
+            .SelectMany(target => target.OfficerIds.Select(world.GetOfficer).Where(officer => officer != null).Select(officer => (City: target, Officer: officer!)))
+            .Where(item => world.GetFaction(item.City.OwnerFactionId)?.RulerOfficerId != item.Officer.Id && item.Officer.CaptiveFactionId <= 0 &&
+                           item.Officer.CityId == item.City.Id && world.GetOfficerIntel(factionId, item.Officer.Id) is { Loyalty: <= 70 } &&
+                           !world.CovertOfficerRecords.Any(agent => agent.OfficerId == item.Officer.Id))
+            .OrderByDescending(item => world.GetOfficerAffection(factionId, item.Officer.Id)?.Score ?? 0)
+            .FirstOrDefault();
+        if (covertTarget.Officer != null && city.Gold >= 300)
+        {
+            var affinity = world.GetOfficerAffection(factionId, covertTarget.Officer.Id)?.Score ?? 0;
+            var covertResult = affinity >= 40
+                ? _commandResolver.Execute(new CommandRequest { Type = CommandType.Spy, ActorFactionId = factionId, SourceCityId = city.Id, TargetCityId = covertTarget.City.Id, TargetOfficerId = covertTarget.Officer.Id, SpyActionType = SpyActionType.RecruitCovertOfficer, OfficerIds = new System.Collections.Generic.List<int> { spyOfficerId } })
+                : _commandResolver.ScheduleOfficerContact(factionId, city.Id, covertTarget.Officer.Id, spyOfficerId, true);
+            if (covertResult.Success)
+            {
+                availableOfficerIds.Remove(spyOfficerId);
+                return covertResult;
+            }
+        }
+
         var sabotageTarget = visibleTargets
             .Where(target =>
                 target.Defense >= SpySabotageDefenseThreshold ||

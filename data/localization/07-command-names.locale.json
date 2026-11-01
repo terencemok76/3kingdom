@@ -36,6 +36,7 @@
                               "en":  "Incite Unrest"
                           },
     "command.spy.sow_discord": { "zhHant": "離間武將", "en": "Sow Discord" },
+    "command.spy.recruit_covert": { "zhHant": "策反建立內應", "en": "Recruit Covert Officer" },
     "command.spy.assassination":  {
                                      "zhHant":  "暗殺要員",
                                      "en":  "Assassination"
