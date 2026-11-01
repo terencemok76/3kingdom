@@ -50,16 +50,12 @@ internal sealed class OfficerDetailDialogController : FloatingOverlayController
 
         if (_context.OfficerPortraitRect != null)
         {
-            _context.OfficerPortraitRect.Texture = _context.CanViewOfficerFullInformation(officer)
-                ? _context.BuildOfficerPortraitTexture(officer.Id)
-                : null;
+            _context.OfficerPortraitRect.Texture = _context.BuildOfficerPortraitTexture(officer.Id);
         }
 
         if (_context.OfficerPortraitPlaceholderLabel != null)
         {
-            var officerName = _context.CanViewOfficerFullInformation(officer)
-                ? _context.GetOfficerDisplayName(officer)
-                : _context.UnknownInfoText;
+            var officerName = _context.GetOfficerDisplayName(officer);
             var hasPortrait = _context.OfficerPortraitRect?.Texture != null;
             _context.OfficerPortraitPlaceholderLabel.Visible = !hasPortrait;
             _context.OfficerPortraitPlaceholderLabel.Text = $"{_context.GetPortraitLabel()}\n{officerName}";

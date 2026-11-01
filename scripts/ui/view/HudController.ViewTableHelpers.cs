@@ -221,7 +221,7 @@ public partial class HudController
         {
             SetViewTableColumn(4 + offset, _localization.T("ui.city"), 140, ViewTableSortField.City);
             SetViewTableColumn(5 + offset, _localization.T("ui.age"), 70, ViewTableSortField.Age);
-            SetViewTableColumn(6 + offset, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
+            SetViewTableColumn(6 + offset, _localization.T("ui.loyalty"), 180, ViewTableSortField.OfficerLoyalty);
             SetViewTableColumn(7 + offset, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
             SetViewTableColumn(8 + offset, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
             SetViewTableColumn(9 + offset, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
@@ -229,11 +229,12 @@ public partial class HudController
             SetViewTableColumn(11 + offset, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
             SetViewTableColumn(12 + offset, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
             StretchTrailingViewColumns(13 + offset, 6 + offset, 170 + (includeBattleFactionName ? 140 : 0) + 120 + 170 + 130 + 140 + 70);
+            _officerListTable.SetColumnCustomMinimumWidth(6 + offset, 180);
         }
         else
         {
             SetViewTableColumn(4 + offset, _localization.T("ui.age"), 70, ViewTableSortField.Age);
-            SetViewTableColumn(5 + offset, _localization.T("ui.loyalty"), 90, ViewTableSortField.OfficerLoyalty);
+            SetViewTableColumn(5 + offset, _localization.T("ui.loyalty"), 180, ViewTableSortField.OfficerLoyalty);
             SetViewTableColumn(6 + offset, _localization.T("ui.strength"), 90, ViewTableSortField.Strength);
             SetViewTableColumn(7 + offset, _localization.T("ui.intelligence"), 90, ViewTableSortField.Intelligence);
             SetViewTableColumn(8 + offset, _localization.T("ui.charm"), 90, ViewTableSortField.Charm);
@@ -241,6 +242,7 @@ public partial class HudController
             SetViewTableColumn(10 + offset, _localization.T("ui.politics"), 90, ViewTableSortField.Politics);
             SetViewTableColumn(11 + offset, _localization.T("ui.combat"), 90, ViewTableSortField.Combat);
             StretchTrailingViewColumns(12 + offset, 5 + offset, 170 + (includeBattleFactionName ? 140 : 0) + 120 + 170 + 130 + 70);
+            _officerListTable.SetColumnCustomMinimumWidth(5 + offset, 180);
         }
     }
 
@@ -391,9 +393,9 @@ public partial class HudController
             return;
         }
 
-        var canViewOfficer = CanViewOfficerFullInformation(officer);
+        var canViewOfficer = true; // Names, roles, age and core abilities are public.
         row.SetMetadata(0, officer.Id);
-        row.SetText(0, BuildMaskedOfficerName(officer));
+        row.SetText(0, _localization.GetOfficerName(officer));
         var includeBattleFactionName = IsViewingBattleCityOfficerList();
         var offset = includeBattleFactionName ? 1 : 0;
         if (includeBattleFactionName)
@@ -401,8 +403,8 @@ public partial class HudController
             row.SetText(1, GetBattleOfficerFactionName(officer));
         }
 
-        row.SetText(1 + offset, BuildMaskedOfficerRole(officer));
-        row.SetText(2 + offset, BuildMaskedOfficerAppointments(officer));
+        row.SetText(1 + offset, GetDisplayedOfficerRole(officer));
+        row.SetText(2 + offset, BuildOfficerAppointmentsText(officer));
         var world = _turnManager!.World!;
         row.SetText(3 + offset, BuildMaskedOfficerStatus(world, officer));
         var officerAge = CalculateOfficerAge(officer, world.Year);
@@ -761,8 +763,8 @@ public partial class HudController
                 ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0) : int.MinValue)
                 : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? CalculateOfficerAge(officer, _turnManager?.World?.Year ?? 0) : int.MinValue),
             ViewTableSortField.OfficerLoyalty => _viewTableSortAscending
-                ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Loyalty : int.MinValue)
-                : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Loyalty : int.MinValue),
+                ? officers.OrderBy(GetVisibleOfficerLoyaltyForSort)
+                : officers.OrderByDescending(GetVisibleOfficerLoyaltyForSort),
             ViewTableSortField.Strength => _viewTableSortAscending
                 ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.Strength : int.MinValue)
                 : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.Strength : int.MinValue),
@@ -788,9 +790,17 @@ public partial class HudController
                 ? officers.OrderBy(officer => CanViewOfficerFullInformation(officer) ? officer.DiplomacyExperience : int.MinValue)
                 : officers.OrderByDescending(officer => CanViewOfficerFullInformation(officer) ? officer.DiplomacyExperience : int.MinValue),
             _ => _viewTableSortAscending
-                ? officers.OrderBy(BuildMaskedOfficerName)
-                : officers.OrderByDescending(BuildMaskedOfficerName)
+                ? officers.OrderBy(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
+                : officers.OrderByDescending(officer => _localization?.GetOfficerName(officer) ?? officer.Name)
         };
+    }
+
+    private int GetVisibleOfficerLoyaltyForSort(OfficerData officer)
+    {
+        var world = _turnManager?.World;
+        if (world == null) return int.MinValue;
+        if (IsGodModeEnabled() || world.GetCity(officer.CityId)?.OwnerFactionId == _turnManager?.GetPlayerFactionId()) return officer.Loyalty;
+        return world.GetOfficerIntel(_turnManager?.GetPlayerFactionId() ?? 0, officer.Id)?.Loyalty ?? int.MinValue;
     }
 
     private string BuildOfficerAppointmentsForSort(OfficerData officer)

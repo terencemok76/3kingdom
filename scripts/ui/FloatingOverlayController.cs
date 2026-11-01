@@ -38,6 +38,7 @@ internal abstract class FloatingOverlayController
     protected virtual bool AutoFitOverlayHeight => false;
     protected virtual bool AutoFitOverlayWidth => false;
     protected virtual Vector2 MinimumOverlaySize => OverlayPanel?.CustomMinimumSize ?? Vector2.Zero;
+    protected virtual Vector2? UserOverlaySize => null;
 
     protected void InitializeOverlay()
     {
@@ -220,6 +221,12 @@ internal abstract class FloatingOverlayController
         var targetHeight = minimumSize.Y > 0.0f
             ? minimumSize.Y
             : currentSize.Y;
+
+        if (UserOverlaySize is { } userSize)
+        {
+            targetWidth = Mathf.Max(targetWidth, userSize.X);
+            targetHeight = Mathf.Max(targetHeight, userSize.Y);
+        }
 
         if (AutoFitOverlayWidth || AutoFitOverlayHeight)
         {

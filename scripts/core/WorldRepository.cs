@@ -346,6 +346,7 @@ public class WorldRepository
         world.PendingCommands ??= new List<PendingCommandData>();
         world.InternalAffairsSchedules ??= new List<InternalAffairsScheduleData>();
         world.CityIntelRecords ??= new List<WorldState.CityIntelData>();
+        world.OfficerIntelRecords ??= new List<WorldState.OfficerIntelData>();
         world.PendingSuccessionRecords ??= new List<WorldState.PendingSuccessionData>();
         world.PendingCapturedOfficerRecords ??= new List<WorldState.PendingCapturedOfficerData>();
         world.BattleReports ??= new List<WorldState.BattleReportData>();

@@ -35,6 +35,7 @@
                               "zhHant":  "煽動民心",
                               "en":  "Incite Unrest"
                           },
+    "command.spy.sow_discord": { "zhHant": "離間武將", "en": "Sow Discord" },
     "command.spy.assassination":  {
                                      "zhHant":  "暗殺要員",
                                      "en":  "Assassination"

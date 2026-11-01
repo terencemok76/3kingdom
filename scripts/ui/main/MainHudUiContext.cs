@@ -58,6 +58,7 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
 
     public RichTextLabel? LogText => _owner.MainHudLogText;
     public Label? CityPanelHeaderLabel => _owner.MainHudCityPanelHeaderLabel;
+    public Button? ReturnMainCityButton => _owner.MainHudReturnMainCityButton;
     public Label? LogPanelHeaderLabel => _owner.MainHudLogPanelHeaderLabel;
 
     public string BuildGodModeButtonText() => _owner.MainHudBuildGodModeButtonText();

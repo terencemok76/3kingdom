@@ -79,6 +79,8 @@ internal sealed class LogPanelController
     private LogFilterMode _filterMode = LogFilterMode.SelfFaction;
     private Vector2 _resizeStartMousePosition;
     private Vector2 _resizeStartSize;
+    private Vector2 _resizeHandleOffset = new(-ResizeHandleSize - LogPanelInnerMargin - LogPanelScrollBarClearance, -ResizeHandleSize - LogPanelInnerMargin);
+    private Vector2 _resizeHandleSize = new(ResizeHandleSize, ResizeHandleSize);
 
     public LogPanelController(MainHudUiContext context)
     {
@@ -105,11 +107,13 @@ internal sealed class LogPanelController
         }
     }
 
-    public void InitializePanelBehavior(PanelContainer? header, Button? minimizeButton, Button? resizeHandle, ColorRect? background)
+    public void InitializePanelBehavior(PanelContainer? header, Button? minimizeButton, Button? resizeHandle, ColorRect? background, Vector2? resizeOffset, Vector2? resizeSize)
     {
         _header = header;
         _minimizeButton = minimizeButton;
         _resizeHandle = resizeHandle;
+        if (resizeOffset.HasValue) _resizeHandleOffset = resizeOffset.Value;
+        if (resizeSize.HasValue && resizeSize.Value.X > 0 && resizeSize.Value.Y > 0) _resizeHandleSize = resizeSize.Value;
         _background = background;
         var logText = _context.LogText;
         if (_background == null || logText == null)
@@ -328,10 +332,8 @@ internal sealed class LogPanelController
         logText.Size = _contentSize;
         if (_resizeHandle != null)
         {
-            _resizeHandle.Position = _background.Position + _background.Size - new Vector2(
-                ResizeHandleSize + LogPanelInnerMargin + LogPanelScrollBarClearance,
-                ResizeHandleSize + LogPanelInnerMargin);
-            _resizeHandle.Size = new Vector2(ResizeHandleSize, ResizeHandleSize);
+            _resizeHandle.Position = _background.Position + _background.Size + _resizeHandleOffset;
+            _resizeHandle.Size = _resizeHandleSize;
             _context.MoveToFront(_resizeHandle);
             _resizeHandle.QueueRedraw();
         }

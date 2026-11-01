@@ -79,6 +79,7 @@ public partial class HudController
     internal bool PersonnelIsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => IsOfficerOldEnoughToJoin(world, officer);
     internal Texture2D? PersonnelBuildOfficerPortraitTexture(int officerId) => BuildOfficerPortraitTexture(officerId);
     internal string PersonnelBuildOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer);
+    internal string PersonnelBuildOfficerLoyaltyText(WorldState world, OfficerData officer) => BuildMaskedOfficerLoyalty(world, officer);
     internal string PersonnelBuildPrisonerOfficerDetailText(OfficerData officer) => BuildOfficerDetailText(officer, includeLoyalty: false);
     internal string PersonnelGetPortraitLabel() => _localization?.T("ui.portrait") ?? "Portrait";
 

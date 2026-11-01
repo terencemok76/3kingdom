@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://b3hn7ixwy7wj3"]
 
+[ext_resource type="Texture2D" uid="uid://c30u4wikfepg1" path="res://assets/ui/icons/128x128/resize.png" id="1_resize"]
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog_panel"]
 content_margin_left = 10.0
 content_margin_top = 10.0
@@ -31,8 +33,8 @@ border_width_bottom = 1
 border_color = Color(0.48, 0.39, 0.24, 1)
 corner_radius_top_left = 6
 corner_radius_top_right = 6
-corner_radius_bottom_left = 6
 corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_normal"]
 bg_color = Color(0.62, 0.53, 0.36, 0.95)
@@ -43,20 +45,8 @@ border_width_bottom = 1
 border_color = Color(0.26, 0.2, 0.12, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
-corner_radius_bottom_left = 5
 corner_radius_bottom_right = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_hover"]
-bg_color = Color(0.73, 0.62, 0.42, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.26, 0.2, 0.12, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
 corner_radius_bottom_left = 5
-corner_radius_bottom_right = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_pressed"]
 bg_color = Color(0.46, 0.38, 0.25, 1)
@@ -67,10 +57,54 @@ border_width_bottom = 1
 border_color = Color(0.26, 0.2, 0.12, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
-corner_radius_bottom_left = 5
 corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
-[node name="OfficerListDialogOverlay" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title_button_hover"]
+bg_color = Color(0.73, 0.62, 0.42, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.2, 0.12, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resize_normal"]
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
+bg_color = Color(0.12, 0.1, 0.08, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.65, 0.48, 0.22, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_resize_hover"]
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
+bg_color = Color(0.25, 0.2, 0.12, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.92, 0.73, 0.36, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 5
+
+[node name="OfficerListDialogOverlay" type="Control" unique_id=1693061231]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -79,7 +113,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="CenterContainer" type="Control" parent="."]
+[node name="CenterContainer" type="Control" parent="." unique_id=1359190265]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -88,56 +122,56 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer"]
+[node name="AdvisorDialogPanel" type="PanelContainer" parent="CenterContainer" unique_id=707866986]
 custom_minimum_size = Vector2(960, 380)
+layout_mode = 0
 offset_right = 960.0
 offset_bottom = 380.0
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_dialog_panel")
 
-[node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel"]
+[node name="AdvisorDialogRoot" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel" unique_id=662325555]
 custom_minimum_size = Vector2(960, 380)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="TitleBarPanel" type="PanelContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot" unique_id=751024294]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_title_bar")
 
-[node name="TitleBar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel"]
+[node name="TitleBar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel" unique_id=1630264526]
 layout_mode = 2
 mouse_filter = 0
 
-[node name="TitleSpacerLeft" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+[node name="TitleSpacerLeft" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar" unique_id=124827013]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+[node name="TitleLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar" unique_id=1816749283]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
 text = "Officer List"
 horizontal_alignment = 1
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.91, 0.87, 0.77, 1)
 
-[node name="TitleSpacerRight" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
+[node name="TitleSpacerRight" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar" unique_id=1690957710]
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="CloseButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar"]
-layout_mode = 2
+[node name="CloseButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar" unique_id=483234171]
 custom_minimum_size = Vector2(28, 22)
+layout_mode = 2
 focus_mode = 0
-text = "×"
 theme_override_colors/font_color = Color(0.12, 0.09, 0.05, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_title_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_title_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_title_button_hover")
+text = "×"
 
-[node name="OfficerListContentMargin" type="MarginContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+[node name="OfficerListContentMargin" type="MarginContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot" unique_id=1986228835]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -146,65 +180,65 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 8
 
-[node name="OfficerListContent" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin"]
+[node name="OfficerListContent" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin" unique_id=761029833]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="OfficerListToolbar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent"]
+[node name="OfficerListToolbar" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent" unique_id=723576508]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="ViewCityOfficersButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="ViewCityOfficersButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=1702153374]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ViewFactionOfficersButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="ViewFactionOfficersButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=1252377547]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ViewFactionItemsButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="ViewFactionItemsButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=1202219337]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ViewDiplomacyRelationsButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="ViewDiplomacyRelationsButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=216510046]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ViewCitiesButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="ViewCitiesButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=469244433]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ViewLogisticsButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="ViewLogisticsButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=776775095]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CityListFilterOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="CityListFilterOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=1474583733]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="OfficerSortOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar"]
+[node name="OfficerSortOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListToolbar" unique_id=1276129672]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="OfficerListAuxRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent"]
+[node name="OfficerListAuxRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent" unique_id=963912809]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 
-[node name="OfficerListAuxLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow"]
+[node name="OfficerListAuxLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow" unique_id=141215831]
 custom_minimum_size = Vector2(84, 0)
 layout_mode = 2
 vertical_alignment = 1
 
-[node name="OfficerListAuxOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow"]
+[node name="OfficerListAuxOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListAuxRow" unique_id=613744383]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="OfficerListTable" type="Tree" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent"]
+[node name="OfficerListTable" type="Tree" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent" unique_id=1955926511]
 custom_minimum_size = Vector2(920, 260)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -213,13 +247,44 @@ column_titles_visible = true
 hide_root = true
 select_mode = 1
 
-[node name="OfficerListConfirmRow" type="CenterContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent"]
+[node name="OfficerListConfirmRow" type="Control" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent" unique_id=15889118]
 custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="OfficerListConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow"]
+[node name="OfficerListConfirmButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow" unique_id=705747713]
 custom_minimum_size = Vector2(92, 28)
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -46.0
+offset_top = -14.0
+offset_right = 46.0
+offset_bottom = 14.0
+grow_horizontal = 2
+grow_vertical = 2
 focus_mode = 0
 text = "Confirm"
+
+[node name="ResizeHandle" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow" unique_id=2098317895]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -4.0
+offset_right = 8.0
+offset_bottom = 24.0
+grow_horizontal = 0
+grow_vertical = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_resize_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_resize_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_resize_hover")
+icon = ExtResource("1_resize")
+expand_icon = true

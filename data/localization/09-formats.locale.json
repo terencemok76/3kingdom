@@ -55,6 +55,8 @@
                             "zhHant":  "預覽：{0} -> {1}，將於月底結算",
                             "en":  "Preview: {0} -> {1}, resolves at month end"
                                      },
+    "fmt.return_main_city_tooltip": { "zhHant": "返回 {0}。優先選擇君主所在己方城市；君主不在城中時選擇己方備用城市。", "en": "Return to {0}. Uses the ruler's city, or a fallback owned city when the ruler is away." },
+    "fmt.officer_loyalty_intel": { "zhHant": "{0}（{1}年{2}月情報）", "en": "{0} (intel {1}/{2})" },
     "fmt.spy_assassination_summary":  {
                                            "zhHant":  "預覽：{0} -> {1} -> {2}，將於月底結算",
                                            "en":  "Preview: {0} -> {1} -> {2}, resolves at month end"

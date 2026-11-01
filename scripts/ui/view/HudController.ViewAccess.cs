@@ -398,10 +398,6 @@ public partial class HudController
 
                 emptyMessage = _localization?.T("ui.no_officer_in_city") ?? "No officers available in this city.";
             }
-            else if (!CanViewCityFullInformation(_selectedCity))
-            {
-                return null;
-            }
             else
             {
                 foreach (var officerId in _selectedCity.OfficerIds)

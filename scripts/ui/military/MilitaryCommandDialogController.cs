@@ -15,6 +15,7 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
     private Label? _warningLabel;
     private bool _signalsConnected;
     protected override Vector2 MinimumOverlaySize => new(340.0f, 170.0f);
+    protected override bool AutoFitOverlayHeight => true;
 
     public MilitaryCommandDialogController(MilitaryUiContext context, System.Func<bool> openMoveFlow, System.Func<bool> openAttackFlow, System.Action showRecruitTroopDialog)
         : base(context, "res://scenes/ui/military/MilitaryDialog.tscn")
@@ -65,6 +66,7 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
         if (_warningLabel != null)
         {
             _warningLabel.Text = string.Empty;
+            if (OverlayRoot?.Visible == true) Callable.From(RefreshWarningLayout).CallDeferred();
         }
 
         RefreshCommandOptionTexts();
@@ -176,7 +178,21 @@ internal sealed class MilitaryCommandDialogController : FloatingOverlayControlle
         if (_warningLabel != null && _context.Localization != null)
         {
             _warningLabel.Text = _context.Localization.T(localeKey);
+            // Wrapped text obtains its final height after the container has laid out.
+            Callable.From(RefreshWarningLayout).CallDeferred();
         }
+    }
+
+    private void RefreshWarningLayout()
+    {
+        if (OverlayRoot?.Visible != true) return;
+        UpdateOverlayLayoutNow();
+        Callable.From(RefreshWarningLayoutAfterWrap).CallDeferred();
+    }
+
+    private void RefreshWarningLayoutAfterWrap()
+    {
+        if (OverlayRoot?.Visible == true) UpdateOverlayLayoutNow();
     }
 
     private CommandType GetSelectedCommandType()

@@ -126,6 +126,13 @@ public partial class HudController
         _logPanelHeader = GetNodeOrNull<PanelContainer>("Root/LogPanelBg/LogPanelHeader");
         _logPanelMinimizeButton = GetNodeOrNull<Button>("Root/LogPanelBg/LogPanelHeader/HeaderRow/LogPanelMinimizeButton");
         _logResizeHandle = GetNodeOrNull<Button>("Root/LogPanelBg/LogResizeHandle");
+        // Capture scene offsets before reparenting and converting the control to absolute coordinates.
+        Vector2? logResizeOffset = _logResizeHandle != null
+            ? new Vector2(_logResizeHandle.OffsetLeft, _logResizeHandle.OffsetTop)
+            : null;
+        Vector2? logResizeSize = _logResizeHandle != null
+            ? new Vector2(_logResizeHandle.OffsetRight - _logResizeHandle.OffsetLeft, _logResizeHandle.OffsetBottom - _logResizeHandle.OffsetTop)
+            : null;
         if (_logPanelHeader == null)
         {
             _logPanelHeader = CreateFloatingPanelHeader(
@@ -159,7 +166,7 @@ public partial class HudController
 
         _mainHudUiController.InitializeTopBarPanelBehavior(_topBarBg, _topBar);
         _mainHudUiController.InitializeCityInfoPanelBehavior(_leftPanelHeader, _leftPanelMinimizeButton, _leftPanelBg, _leftPanelContent);
-        _mainHudUiController.InitializeLogPanelBehavior(_logPanelHeader, _logPanelMinimizeButton, _logResizeHandle, _logPanelBg);
+        _mainHudUiController.InitializeLogPanelBehavior(_logPanelHeader, _logPanelMinimizeButton, _logResizeHandle, _logPanelBg, logResizeOffset, logResizeSize);
 
         _mainHudUiController.ApplyTopBarLayout();
         _mainHudUiController.ApplyCityInfoLayout();

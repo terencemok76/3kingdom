@@ -1218,6 +1218,9 @@
 									"zhHant":  "破壞其金、糧與城防，預期損失為金 60 至 120、糧 120 至 240、城防 6 至 11。",
 									"en":  "Damages gold, food, and defenses: roughly 60-120 gold, 120-240 food, and 6-11 defense."
 								},
+		"ui.return_main_city": { "zhHant": "主城", "en": "Home" },
+		"ui.return_main_city_unavailable": { "zhHant": "目前沒有己方城市。", "en": "No city is currently owned by your faction." },
+		"ui.spy_advice_discord_effect": { "zhHant": "成功令指定武將忠誠下降 8 點（最低為 0）；消耗武將本月行動，暴露會損害外交關係及執行者忠誠。", "en": "On success, lowers the selected officer's loyalty by 8 (minimum 0). Uses the operative's monthly action; exposure harms relations and the operative's loyalty." },
 		"ui.spy_advice_incite_effect":  {
 									"zhHant":  "削減敵城民心約 7 至 11 點，適合作為攻城前的持續施壓。",
 									"en":  "Lowers city loyalty by roughly 7-11, useful as sustained pressure before an attack."

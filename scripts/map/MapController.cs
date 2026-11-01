@@ -441,6 +441,16 @@ public partial class MapController : Node2D
         SelectCity(cityId);
     }
 
+    public void FocusCityById(int cityId)
+    {
+        if (_worldRoot == null) return;
+        var entry = _cityNodes.FirstOrDefault(item => item.City.Id == cityId);
+        if (entry.Node == null) return;
+        SelectCity(cityId);
+        _springVelocity = Vector2.Zero;
+        _worldRoot.Position = GetClampedWorldRootPosition(_worldRoot.Position + GetMapViewportRect().GetCenter() - entry.Node.GlobalPosition);
+    }
+
     public void SetStrategicMapPresentation(StrategicMapLayer layer, StrategicMapFactionFilter factionFilter, bool active)
     {
         _strategicMapLayer = layer;

@@ -2039,6 +2039,7 @@ public partial class CommandResolver
             SpyActionType.Sabotage => "command.spy.sabotage",
             SpyActionType.Incite => "command.spy.incite",
             SpyActionType.Assassination => "command.spy.assassination",
+            SpyActionType.SowDiscord => "command.spy.sow_discord",
             _ => "command.spy.reconnaissance"
         };
         return _localization?.TForLanguage(language, key) ?? actionType.ToString();

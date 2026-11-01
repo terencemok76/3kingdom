@@ -199,9 +199,9 @@ public partial class HudController : CanvasLayer
     private string BuildOfficerDetailText(OfficerData officer, bool includeLoyalty = true)
     {
         var canViewOfficer = CanViewOfficerFullInformation(officer);
-        var officerName = canViewOfficer ? (_localization?.GetOfficerName(officer) ?? officer.Name) : UnknownInfoText;
-        var roleName = canViewOfficer ? GetDisplayedOfficerRole(officer) : UnknownInfoText;
-        var appointmentName = canViewOfficer ? BuildOfficerAppointmentsText(officer) : UnknownInfoText;
+        var officerName = _localization?.GetOfficerName(officer) ?? officer.Name;
+        var roleName = GetDisplayedOfficerRole(officer);
+        var appointmentName = BuildOfficerAppointmentsText(officer);
         var generalTitle = _localization?.GetProgressionTitle(officer.GeneralTitle) ?? officer.GeneralTitle;
         var strategistTitle = _localization?.GetProgressionTitle(officer.StrategistTitle) ?? officer.StrategistTitle;
         var spyTitle = _localization?.GetProgressionTitle(officer.SpyTitle) ?? officer.SpyTitle;
@@ -223,18 +223,18 @@ public partial class HudController : CanvasLayer
             (_localization?.T("ui.role") ?? "Role", roleName),
             (_localization?.T("ui.appointed_titles") ?? "Appointments", appointmentName),
             (_localization?.T("ui.status") ?? "Status", statusValue),
-            (_localization?.T("ui.age") ?? "Age", MaskedNumberText(canViewOfficer, officerAge)),
-            (_localization?.T("ui.strength") ?? "STR", MaskedNumberText(canViewOfficer, officer.Strength)),
-            (_localization?.T("ui.intelligence") ?? "INT", MaskedNumberText(canViewOfficer, officer.Intelligence)),
-            (_localization?.T("ui.charm") ?? "CHA", MaskedNumberText(canViewOfficer, officer.Charm)),
-            (_localization?.T("ui.leadership") ?? "LEA", MaskedNumberText(canViewOfficer, officer.Leadership)),
-            (_localization?.T("ui.politics") ?? "POL", MaskedNumberText(canViewOfficer, officer.Politics)),
-            (_localization?.T("ui.combat") ?? "COM", MaskedNumberText(canViewOfficer, officer.Combat))
+            (_localization?.T("ui.age") ?? "Age", officerAge.ToString()),
+            (_localization?.T("ui.strength") ?? "STR", officer.Strength.ToString()),
+            (_localization?.T("ui.intelligence") ?? "INT", officer.Intelligence.ToString()),
+            (_localization?.T("ui.charm") ?? "CHA", officer.Charm.ToString()),
+            (_localization?.T("ui.leadership") ?? "LEA", officer.Leadership.ToString()),
+            (_localization?.T("ui.politics") ?? "POL", officer.Politics.ToString()),
+            (_localization?.T("ui.combat") ?? "COM", officer.Combat.ToString())
         };
 
         if (includeLoyalty)
         {
-            entries.Insert(4, (_localization?.T("ui.loyalty_short") ?? "LOY", MaskedNumberText(canViewOfficer, officer.Loyalty)));
+            entries.Insert(4, (_localization?.T("ui.loyalty_short") ?? "LOY", _turnManager?.World != null ? BuildMaskedOfficerLoyalty(_turnManager.World, officer) : UnknownInfoText));
         }
 
         if (canViewOfficer && HasBattleProgression(officer))

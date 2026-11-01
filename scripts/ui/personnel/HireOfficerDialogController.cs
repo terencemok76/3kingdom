@@ -368,7 +368,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
         [
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.status"), MinWidth = 78 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.age"), MinWidth = 50 },
-            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.loyalty"), MinWidth = 55 },
+            new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.loyalty"), MinWidth = 180 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.ambition"), MinWidth = 55 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.leadership"), MinWidth = 55 },
             new HudController.OfficerSelectorColumnDefinition { Title = localization.T("ui.strength"), MinWidth = 55 },
@@ -402,7 +402,7 @@ internal sealed class HireOfficerDialogController : FloatingOverlayController
                 [
                     localization.GetOfficerStatus(world, officer),
                     age.ToString(),
-                    faction != null ? officer.Loyalty.ToString() : "--",
+                    _context.BuildOfficerLoyaltyText(world, officer),
                     officer.Ambition.ToString(),
                     officer.Leadership.ToString(),
                     officer.Strength.ToString(),

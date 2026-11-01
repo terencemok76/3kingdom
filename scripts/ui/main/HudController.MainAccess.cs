@@ -51,6 +51,7 @@ public partial class HudController
         GetNodeOrNull<RichTextLabel>("Root/LogText") ??
         GetNodeOrNull<RichTextLabel>("Root/LogPanelBg/LogText");
     internal Label? MainHudCityPanelHeaderLabel => _leftPanelHeaderLabel;
+    internal Button? MainHudReturnMainCityButton => GetNodeOrNull<Button>("Root/ReturnMainCityButton");
     internal Label? MainHudLogPanelHeaderLabel => _logPanelHeaderLabel;
 
     internal string MainHudBuildGodModeButtonText() => BuildGodModeButtonText();

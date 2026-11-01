@@ -13,6 +13,25 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--main-city-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunMainCityRulesTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--officer-intel-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunOfficerIntelSnapshotTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--spy-discord-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunSpySowDiscordTest();
+            PrintSummary();
+            return;
+        }
+
         if (args.Contains("--battle-campaign-only", StringComparer.OrdinalIgnoreCase))
         {
             RunBattleCampaignLifecycleTest();
@@ -129,6 +148,7 @@ internal static class Program
         RunDiplomacyBreakPactResolutionTest();
         RunSpyAssassinationResolutionTest();
         RunSpyAssassinationDesignatedTargetTest();
+        RunSpySowDiscordTest();
         RunSpyAssassinationPlayerSuccessionPendingTest();
         RunSpyAssassinationFactionCollapseTest();
         RunAttackResolutionTest();
@@ -1504,6 +1524,70 @@ internal static class Program
         Assert(OfficerAppointmentRules.HasAppointment(world.GetOfficer(202)!, OfficerAppointmentRules.Lord), "Spy assassination successor gets ruler appointment", string.Join(',', world.GetOfficer(202)!.Appointments));
         Assert(world.GetFaction(2)!.NameZhHant == "EnemyGeneral軍", "Spy assassination successor updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
         Assert(targetCity.OfficerIds.Contains(202), "Spy assassination keeps successor alive", $"cityHasSuccessor={targetCity.OfficerIds.Contains(202)}");
+    }
+
+    private static void RunMainCityRulesTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(4, "Fallback", 1, 0, 0, 0, Array.Empty<int>(), Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(8, "RulerCity", 1, 0, 0, 0, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Ruler", 8));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        Assert(MainCityRules.FindMainCity(world, 1)?.Id == 8, "Main city follows ruler", "ruler present");
+        world.GetOfficer(101)!.CaptiveFactionId = 2;
+        Assert(MainCityRules.FindMainCity(world, 1)?.Id == 4, "Main city falls back when ruler captive", "captive");
+        world.GetCity(4)!.OwnerFactionId = 2;
+        world.GetCity(8)!.OwnerFactionId = 2;
+        Assert(MainCityRules.FindMainCity(world, 1) == null, "Main city unavailable without owned cities", "no city");
+    }
+
+    private static void RunOfficerIntelSnapshotTest()
+    {
+        var world = TestHelpers.World();
+        world.Year = 190; world.Month = 3;
+        world.Cities.Add(TestHelpers.City(1, "C", 2, 0, 0, 0, new[] { 201 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "D", 2, 0, 0, 0, Array.Empty<int>(), Array.Empty<int>()));
+        var officer = TestHelpers.Officer(201, "A", 1);
+        officer.Loyalty = 78;
+        world.Officers.Add(officer);
+        world.RecordCityOfficerIntel(1, 1);
+        officer.CityId = 2; officer.Loyalty = 45;
+        world.Year = 190; world.Month = 4;
+        var record = world.GetOfficerIntel(1, 201);
+        Assert(record != null && record.Loyalty == 78 && record.CityId == 1 && record.Month == 3, "Officer intel remains a dated snapshot after movement", $"loyalty={record?.Loyalty}");
+        Assert(world.GetOfficerIntel(2, 201) == null, "Officer intel is faction-specific", "other viewer");
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        Assert(copy.GetOfficerIntel(1, 201)?.Loyalty == 78, "Officer intel survives serialization", "saved snapshot");
+        world.GetCity(2)!.OfficerIds.Add(201);
+        world.RecordCityOfficerIntel(1, 2);
+        record = world.GetOfficerIntel(1, 201);
+        Assert(record != null && record.Loyalty == 45 && record.CityId == 2 && record.Month == 4 && world.OfficerIntelRecords.Count == 1, "Recon refreshes only the target officer", $"loyalty={record?.Loyalty}");
+    }
+
+    private static void RunSpySowDiscordTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "SpyCity", 1, 800, 800, 1200, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "EnemyCity", 2, 900, 900, 1000, new[] { 201, 202 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Spy", 1));
+        world.Officers.Add(TestHelpers.Officer(201, "Ruler", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "Target", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Actor", false, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Target", false, 201, new[] { 201, 202 }));
+        var services = CreateServices(world);
+        var request = new CommandRequest { Type = CommandType.Spy, ActorFactionId = 1, SourceCityId = 1, TargetCityId = 2, TargetOfficerId = 201, SpyActionType = SpyActionType.SowDiscord, OfficerIds = new List<int> { 101 } };
+        Assert(!services.Resolver.Execute(request).Success, "Discord rejects ruler", "ruler target");
+        request.TargetOfficerId = 202;
+        Assert(services.Resolver.Execute(request).Success, "Discord schedules target", "officer target");
+        var pending = world.PendingCommands.Single(command => command.Type == CommandType.Spy);
+        Assert(pending.TargetOfficerId == 202, "Discord stores target", $"target={pending.TargetOfficerId}");
+        var target = world.GetOfficer(202)!;
+        target.Loyalty = 5;
+        var result = InvokePrivateInstance<CommandResult>(services.Resolver, "ResolveSuccessfulSpyAction", world, 1, world.GetCity(2)!, world.GetOfficer(101)!, SpyActionType.SowDiscord, 202);
+        Assert(result.Success && target.Loyalty == 0, "Discord lowers loyalty with floor", $"loyalty={target.Loyalty}");
+        target.CityId = 1;
+        result = InvokePrivateInstance<CommandResult>(services.Resolver, "ResolveSpy", world, world.GetCity(1)!, pending);
+        Assert(!result.Success, "Discord cancels if target moved", "target moved");
     }
 
     private static void RunSpyAssassinationDesignatedTargetTest()

@@ -121,6 +121,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         AddActionOption(SpyActionType.Sabotage);
         AddActionOption(SpyActionType.Incite);
         AddActionOption(SpyActionType.Assassination);
+        AddActionOption(SpyActionType.SowDiscord);
 
         _targetCityOption.Clear();
         foreach (var targetCity in world.Cities.Where(target => target.OwnerFactionId != city.OwnerFactionId))
@@ -189,6 +190,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.Sabotage => "command.spy.sabotage",
             SpyActionType.Incite => "command.spy.incite",
             SpyActionType.Assassination => "command.spy.assassination",
+            SpyActionType.SowDiscord => "command.spy.sow_discord",
             _ => "command.spy.reconnaissance"
         };
         _actionOption.AddItem(_context.Localization.T(key));
@@ -208,6 +210,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         AddActionOption(SpyActionType.Sabotage);
         AddActionOption(SpyActionType.Incite);
         AddActionOption(SpyActionType.Assassination);
+        AddActionOption(SpyActionType.SowDiscord);
         SelectActionOption(selectedActionType);
     }
 
@@ -345,12 +348,15 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.Sabotage => "command.spy.sabotage",
             SpyActionType.Incite => "command.spy.incite",
             SpyActionType.Assassination => "command.spy.assassination",
+            SpyActionType.SowDiscord => "command.spy.sow_discord",
             _ => "command.spy.reconnaissance"
         });
 
-        if (actionType == SpyActionType.Assassination)
+        if (actionType == SpyActionType.Assassination || actionType == SpyActionType.SowDiscord)
         {
             _summaryLabel.Text = localization.Format("fmt.spy_assassination_summary", actionName, targetCityName, GetSelectedTargetOfficerName());
+            if (actionType == SpyActionType.SowDiscord)
+                _summaryLabel.Text += "\n" + localization.T("ui.spy_advice_discord_effect");
             return;
         }
 
@@ -366,7 +372,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
 
         var hasOfficer = _selectedOfficerId > 0;
         var hasTarget = GetSelectedTargetCityId() > 0;
-        var needsTargetOfficer = GetSelectedActionType() == SpyActionType.Assassination;
+        var needsTargetOfficer = GetSelectedActionType() == SpyActionType.Assassination || GetSelectedActionType() == SpyActionType.SowDiscord;
         var hasTargetOfficer = !needsTargetOfficer || GetSelectedTargetOfficerId() > 0;
         _confirmButton.Disabled = !hasOfficer || !hasTarget || !hasTargetOfficer;
     }
@@ -498,12 +504,23 @@ internal sealed class SpyDialogController : FloatingOverlayController
                     continue;
                 }
 
-                _targetOfficerOption.AddItem($"{localization.GetOfficerName(officer)} | {localization.GetOfficerRole(officer)}");
+                if (GetSelectedActionType() == SpyActionType.SowDiscord &&
+                    (officer.CaptiveFactionId > 0 || officer.CityId != targetCity.Id ||
+                     world.GetFaction(targetCity.OwnerFactionId)?.RulerOfficerId == officer.Id ||
+                     world.GetFaction(targetCity.OwnerFactionId)?.OfficerIds.Contains(officer.Id) != true))
+                    continue;
+
+                var intel = world.GetOfficerIntel(_context.TurnManager?.GetPlayerFactionId() ?? 0, officer.Id);
+                var loyalty = world.ViewAllInformationEnabled ? officer.Loyalty.ToString() : intel == null ? "??" :
+                    localization.Format("fmt.officer_loyalty_intel", intel.Loyalty, intel.Year, intel.Month);
+                _targetOfficerOption.AddItem(GetSelectedActionType() == SpyActionType.SowDiscord
+                    ? $"{localization.GetOfficerName(officer)} | {localization.T("ui.loyalty")} {loyalty}"
+                    : $"{localization.GetOfficerName(officer)} | {localization.GetOfficerRole(officer)}");
                 _targetOfficerOption.SetItemMetadata(_targetOfficerOption.ItemCount - 1, officer.Id);
             }
         }
 
-        var isAssassination = GetSelectedActionType() == SpyActionType.Assassination;
+        var isAssassination = GetSelectedActionType() == SpyActionType.Assassination || GetSelectedActionType() == SpyActionType.SowDiscord;
         _targetOfficerOption.Disabled = !isAssassination;
         if (isAssassination && preferredOfficerId > 0)
         {
@@ -642,6 +659,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.Reconnaissance => localization.T("ui.spy_advice_recon_effect"),
             SpyActionType.Sabotage => localization.T("ui.spy_advice_sabotage_effect"),
             SpyActionType.Incite => localization.T("ui.spy_advice_incite_effect"),
+            SpyActionType.SowDiscord => localization.T("ui.spy_advice_discord_effect"),
             SpyActionType.Assassination => localization.Format(
                 "fmt.spy_advice_assassination_effect",
                 GetSelectedTargetOfficerName(),
@@ -658,6 +676,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.Sabotage => "command.spy.sabotage",
             SpyActionType.Incite => "command.spy.incite",
             SpyActionType.Assassination => "command.spy.assassination",
+            SpyActionType.SowDiscord => "command.spy.sow_discord",
             _ => "command.spy.reconnaissance"
         };
     }
@@ -688,6 +707,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.Sabotage => 48,
             SpyActionType.Incite => 44,
             SpyActionType.Assassination => 28,
+            SpyActionType.SowDiscord => 44,
             _ => 50
         };
         var sourceLoyaltyBonus = Math.Max(0, sourceCity.Loyalty - 60) / 8;
@@ -720,6 +740,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.Sabotage => 32,
             SpyActionType.Incite => 28,
             SpyActionType.Assassination => 42,
+            SpyActionType.SowDiscord => 28,
             _ => 25
         };
         var defensePenalty = Math.Max(0, targetCity.Defense - 40) / 8;
@@ -753,7 +774,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
 
         var actionType = GetSelectedActionType();
         var targetOfficerId = GetSelectedTargetOfficerId();
-        if (actionType == SpyActionType.Assassination && targetOfficerId <= 0)
+        if ((actionType == SpyActionType.Assassination || actionType == SpyActionType.SowDiscord) && targetOfficerId <= 0)
         {
             SetWarning(localization.T("ui.spy_target_officer_required_warning"));
             return;

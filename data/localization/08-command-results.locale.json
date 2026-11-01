@@ -407,6 +407,8 @@
                                             "zhHant":  "{0} 潛入「{1}」，但未找到可下手的目標。",
                                             "en":  "{0} infiltrated \"{1}\", but found no valid assassination target."
                                         },
+    "cmd.spy.discord_invalid_target": { "zhHant": "離間目標必須是在目標城內的敵方非君主武將。", "en": "The target must be a non-ruler enemy officer in the target city." },
+    "cmd.spy.discord_success": { "zhHant": "{0} 離間「{1}」成功，忠誠 -{2}，目前忠誠 {3}。", "en": "{0} sowed discord against {1}: loyalty -{2}, now {3}." },
     "cmd.spy.assassination_invalid_target":  {
                                                  "zhHant":  "指定的暗殺目標目前不在目標城市，無法執行。",
                                                  "en":  "The selected assassination target is no longer in the target city."

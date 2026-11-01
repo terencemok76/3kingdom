@@ -41,12 +41,19 @@ internal static class StrategyPanelChrome
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
 
-        var backdrop = new ColorRect
+        var backdrop = new Panel
         {
             Name = "Backdrop",
-            Color = new Color(0.045f, 0.04f, 0.03f, 0.91f),
             MouseFilter = Control.MouseFilterEnum.Ignore
         };
+        backdrop.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.045f, 0.04f, 0.03f, 0.91f),
+            CornerRadiusTopLeft = 18,
+            CornerRadiusTopRight = 18,
+            CornerRadiusBottomLeft = 18,
+            CornerRadiusBottomRight = 18
+        });
         backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         backdrop.OffsetLeft = BackdropInset;
         backdrop.OffsetTop = BackdropInset;

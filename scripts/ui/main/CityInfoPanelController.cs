@@ -73,6 +73,7 @@ internal sealed class CityInfoPanelController
     private bool _constructionTabConnected;
     private bool _domesticTabConnected;
     private CityInfoDataTab _selectedDataTab = CityInfoDataTab.Overview;
+    private bool _mainCityButtonConnected;
 
     public CityInfoPanelController(MainHudUiContext context)
     {
@@ -82,11 +83,21 @@ internal sealed class CityInfoPanelController
     public void Initialize()
     {
         ConnectButtons();
+        if (_context.ReturnMainCityButton is { } button && !_mainCityButtonConnected)
+        {
+            button.Pressed += OnReturnMainCityPressed;
+            _mainCityButtonConnected = true;
+        }
     }
 
     public void Shutdown()
     {
         DisconnectButtons();
+        if (_context.ReturnMainCityButton is { } button && _mainCityButtonConnected)
+        {
+            button.Pressed -= OnReturnMainCityPressed;
+            _mainCityButtonConnected = false;
+        }
     }
 
     public void InitializePanelBehavior(PanelContainer? header, Button? minimizeButton, ColorRect? background, VBoxContainer? content)
@@ -191,10 +202,30 @@ internal sealed class CityInfoPanelController
 
     private void RefreshCityBarLabel(CityData? city)
     {
+        UpdateMainCityButton();
         if (_context.CityPanelHeaderLabel != null)
         {
             _context.CityPanelHeaderLabel.Text = _context.BuildCityHeaderText(city);
         }
+    }
+
+    private void UpdateMainCityButton()
+    {
+        var button = _context.ReturnMainCityButton;
+        var world = _context.World;
+        var localization = _context.Localization;
+        if (button == null || localization == null) return;
+        var target = world == null ? null : MainCityRules.FindMainCity(world, _context.PlayerFactionId);
+        button.Disabled = target == null || _context.SelectedCity?.Id == target.Id;
+        button.TooltipText = target == null ? localization.T("ui.return_main_city_unavailable") :
+            localization.Format("fmt.return_main_city_tooltip", localization.GetCityName(target));
+    }
+
+    private void OnReturnMainCityPressed()
+    {
+        var world = _context.World;
+        var target = world == null ? null : MainCityRules.FindMainCity(world, _context.PlayerFactionId);
+        if (target != null) _context.MapController?.FocusCityById(target.Id);
     }
 
     public void RefreshSelectedCity()
@@ -310,6 +341,12 @@ internal sealed class CityInfoPanelController
             headerWidth - _minimizeButtonSize.X - CityBarButtonInset,
             (CityBarHeight - _minimizeButtonSize.Y) * 0.5f);
         _minimizeButton.Size = _minimizeButtonSize;
+        if (_context.ReturnMainCityButton is { } mainCityButton)
+        {
+            mainCityButton.Visible = !_temporarilyHidden;
+            mainCityButton.Position = _minimizeButton.Position - new Vector2(38.0f, 0.0f);
+            mainCityButton.Size = _minimizeButtonSize;
+        }
 
         _background.Visible = !_temporarilyHidden && !_minimized;
         _content.Visible = !_temporarilyHidden && !_minimized;
@@ -330,6 +367,7 @@ internal sealed class CityInfoPanelController
         _context.MoveToFront(_content);
         _context.MoveToFront(_header);
         _context.MoveToFront(_minimizeButton);
+        _context.MoveToFront(_context.ReturnMainCityButton);
     }
 
     public void CollectVisiblePanelControls(System.Collections.Generic.List<Control> controls)
@@ -338,6 +376,7 @@ internal sealed class CityInfoPanelController
         AddVisibleControl(controls, _background);
         AddVisibleControl(controls, _content);
         AddVisibleControl(controls, _minimizeButton);
+        AddVisibleControl(controls, _context.ReturnMainCityButton);
     }
 
     public void SetTemporarilyHidden(bool hidden)

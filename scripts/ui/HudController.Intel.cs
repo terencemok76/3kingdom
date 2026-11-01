@@ -217,7 +217,13 @@ public partial class HudController
             return "-";
         }
 
-        return MaskedNumberText(CanViewOfficerFullInformation(officer), officer.Loyalty);
+        var city = world.GetCity(officer.CityId);
+        if (IsGodModeEnabled() || city?.OwnerFactionId == _turnManager?.GetPlayerFactionId())
+            return officer.Loyalty.ToString();
+
+        var intel = world.GetOfficerIntel(_turnManager?.GetPlayerFactionId() ?? 0, officer.Id);
+        return intel == null ? UnknownInfoText :
+            _localization?.Format("fmt.officer_loyalty_intel", intel.Loyalty, intel.Year, intel.Month) ?? $"{intel.Loyalty} ({intel.Year}/{intel.Month})";
     }
 
     private bool HasVisibleOfficerInCity(CityData city)

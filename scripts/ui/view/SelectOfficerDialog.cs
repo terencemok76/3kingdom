@@ -49,10 +49,16 @@ public sealed partial class SelectOfficerDialog : Control
     private bool _sortAscending = true;
     private bool _dragging;
     private Vector2 _dragOffset = Vector2.Zero;
+    private Button? _resizeHandle;
+    private bool _resizing;
+    private Vector2 _resizeStartMouse;
+    private Vector2 _resizeStartSize;
+    private static readonly Vector2 MinimumPanelSize = new(640, 330);
 
     public override void _Ready()
     {
         _dialogPanel = GetNodeOrNull<PanelContainer>("CenterContainer/AdvisorDialogPanel");
+        _resizeHandle = GetNodeOrNull<Button>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/FooterSection/ConfirmRow/ResizeHandle");
         _titleBar = GetNodeOrNull<Control>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar");
         _titleLabel = GetNodeOrNull<Label>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/TitleBarPanel/TitleBar/TitleLabel");
         _officerTable = GetNodeOrNull<Tree>("CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/ContentSection/OfficerTable");
@@ -70,6 +76,11 @@ public sealed partial class SelectOfficerDialog : Control
         if (_dialogPanel != null)
         {
             StrategyPanelChrome.Apply(_dialogPanel);
+        }
+        if (_resizeHandle != null)
+        {
+            _resizeHandle.MouseDefaultCursorShape = CursorShape.Fdiagsize;
+            _resizeHandle.GuiInput += OnResizeHandleInput;
         }
 
         ApplyExistingButtonThemes();
@@ -506,6 +517,7 @@ public sealed partial class SelectOfficerDialog : Control
 
     private void OnCloseRequested()
     {
+        _resizing = false;
         _confirmedAction = null;
         Hide();
     }
@@ -553,6 +565,37 @@ public sealed partial class SelectOfficerDialog : Control
                 Mathf.Clamp(target.Y, 0.0f, Mathf.Max(0.0f, viewportSize.Y - panelSize.Y)));
             StrategyPanelChrome.Sync(_dialogPanel);
         }
+    }
+
+    private void OnResizeHandleInput(InputEvent input)
+    {
+        if (input is InputEventMouseButton button && button.ButtonIndex == MouseButton.Left && button.Pressed && _dialogPanel != null)
+        {
+            _resizing = true;
+            _dragging = false;
+            _resizeStartMouse = GetViewport().GetMousePosition();
+            _resizeStartSize = _dialogPanel.Size;
+            MoveToFront();
+            _resizeHandle?.AcceptEvent();
+        }
+    }
+
+    public override void _Input(InputEvent input)
+    {
+        if (!_resizing || _dialogPanel == null) return;
+        if (input is InputEventMouseButton button && button.ButtonIndex == MouseButton.Left && !button.Pressed)
+        {
+            _resizing = false;
+            return;
+        }
+        if (input is not InputEventMouseMotion) return;
+        var available = GetViewportRect().Size - _dialogPanel.Position;
+        var minimum = _dialogPanel.GetCombinedMinimumSize().Max(MinimumPanelSize);
+        var desired = _resizeStartSize + GetViewport().GetMousePosition() - _resizeStartMouse;
+        _dialogPanel.Size = new Vector2(
+            Mathf.Clamp(desired.X, minimum.X, Mathf.Max(minimum.X, available.X)),
+            Mathf.Clamp(desired.Y, minimum.Y, Mathf.Max(minimum.Y, available.Y)));
+        StrategyPanelChrome.Sync(_dialogPanel);
     }
 
     private void ConfigurePanelDragSurfaces(Control root, Control titleBar)

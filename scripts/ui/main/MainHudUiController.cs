@@ -95,8 +95,8 @@ internal sealed class MainHudUiController
     public void InitializeCityInfoPanelBehavior(PanelContainer? header, Button? minimizeButton, ColorRect? background, VBoxContainer? content) =>
         _cityInfoPanelController.InitializePanelBehavior(header, minimizeButton, background, content);
 
-    public void InitializeLogPanelBehavior(PanelContainer? header, Button? minimizeButton, Button? resizeHandle, ColorRect? background) =>
-        _logPanelController.InitializePanelBehavior(header, minimizeButton, resizeHandle, background);
+    public void InitializeLogPanelBehavior(PanelContainer? header, Button? minimizeButton, Button? resizeHandle, ColorRect? background, Vector2? resizeOffset, Vector2? resizeSize) =>
+        _logPanelController.InitializePanelBehavior(header, minimizeButton, resizeHandle, background, resizeOffset, resizeSize);
 
     public Vector2 GetTopBarPosition() => _topBarController.GetPosition();
     public Vector2 GetTopBarSize() => _topBarController.GetSize();

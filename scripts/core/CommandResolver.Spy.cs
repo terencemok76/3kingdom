@@ -6,6 +6,15 @@ namespace ThreeKingdom.Core;
 
 public partial class CommandResolver
 {
+    private static bool IsValidDiscordTarget(WorldState world, CityData city, int officerId)
+    {
+        var target = world.GetOfficer(officerId);
+        var faction = world.GetFaction(city.OwnerFactionId);
+        return target != null && faction != null && faction.RulerOfficerId != officerId &&
+               faction.OfficerIds.Contains(officerId) && city.OfficerIds.Contains(officerId) &&
+               target.CityId == city.Id && target.CaptiveFactionId <= 0 && IsOfficerAlive(world, target);
+    }
+
     private CommandResult ScheduleSpy(WorldState world, CityData sourceCity, CommandRequest request)
     {
         if (!request.TargetCityId.HasValue)
@@ -22,6 +31,11 @@ public partial class CommandResolver
         if (targetCity.OwnerFactionId == request.ActorFactionId)
         {
             return LocalizedResult(false, "cmd.spy.same_faction");
+        }
+
+        if (request.SpyActionType == SpyActionType.SowDiscord && (!request.TargetOfficerId.HasValue || !IsValidDiscordTarget(world, targetCity, request.TargetOfficerId.Value)))
+        {
+            return LocalizedResult(false, "cmd.spy.discord_invalid_target");
         }
 
         if (request.SpyActionType == SpyActionType.Assassination && request.TargetOfficerId.HasValue)
@@ -50,7 +64,7 @@ public partial class CommandResolver
             SourceCityId = sourceCity.Id,
             TargetCityId = targetCity.Id,
             TargetFactionId = targetCity.OwnerFactionId,
-            TargetOfficerId = request.SpyActionType == SpyActionType.Assassination
+            TargetOfficerId = request.SpyActionType == SpyActionType.Assassination || request.SpyActionType == SpyActionType.SowDiscord
                 ? request.TargetOfficerId ?? 0
                 : 0,
             SpyActionType = request.SpyActionType,
@@ -77,7 +91,9 @@ public partial class CommandResolver
     private CommandResult ResolveSpy(WorldState world, CityData sourceCity, PendingCommandData pendingCommand)
     {
         var targetCity = world.GetCity(pendingCommand.TargetCityId);
-        if (targetCity == null || targetCity.OwnerFactionId == pendingCommand.ActorFactionId)
+        if (targetCity == null || targetCity.OwnerFactionId == pendingCommand.ActorFactionId ||
+            (pendingCommand.SpyActionType == SpyActionType.SowDiscord &&
+             (targetCity.OwnerFactionId != pendingCommand.TargetFactionId || !IsValidDiscordTarget(world, targetCity, pendingCommand.TargetOfficerId))))
         {
             return LocalizedResult(false, "cmd.spy.cancelled");
         }
@@ -176,10 +192,23 @@ public partial class CommandResolver
     {
         switch (actionType)
         {
+            case SpyActionType.SowDiscord:
+            {
+                if (!IsValidDiscordTarget(world, targetCity, targetOfficerId))
+                    return LocalizedResult(false, "cmd.spy.discord_invalid_target");
+                var target = world.GetOfficer(targetOfficerId)!;
+                var loss = Math.Min(target.Loyalty, 8);
+                target.Loyalty -= loss;
+                OfficerProgressionRules.AwardSpyExperience(officer, GetSpyExperienceReward(actionType, true));
+                return LocalizedResult(true, "cmd.spy.discord_success",
+                    new object[] { GetOfficerDisplayName(officer, GameLanguage.TraditionalChinese), GetOfficerDisplayName(target, GameLanguage.TraditionalChinese), loss, target.Loyalty },
+                    new object[] { GetOfficerDisplayName(officer, GameLanguage.English), GetOfficerDisplayName(target, GameLanguage.English), loss, target.Loyalty });
+            }
             case SpyActionType.Reconnaissance:
             {
                 // The turn advances immediately after month-end resolution, so store one extra month here.
                 world.UpsertCityIntel(actorFactionId, targetCity.Id, 4);
+                world.RecordCityOfficerIntel(actorFactionId, targetCity.Id);
                 OfficerProgressionRules.AwardSpyExperience(officer, GetSpyExperienceReward(actionType, success: true));
                 return LocalizedResult(
                     true,
@@ -388,6 +417,7 @@ public partial class CommandResolver
             SpyActionType.Sabotage => 48,
             SpyActionType.Incite => 44,
             SpyActionType.Assassination => 28,
+            SpyActionType.SowDiscord => 44,
             _ => 50
         };
 
@@ -411,6 +441,7 @@ public partial class CommandResolver
             SpyActionType.Sabotage => 32,
             SpyActionType.Incite => 28,
             SpyActionType.Assassination => 42,
+            SpyActionType.SowDiscord => 28,
             _ => 25
         };
 
@@ -445,6 +476,7 @@ public partial class CommandResolver
             SpyActionType.Sabotage => 22,
             SpyActionType.Incite => 20,
             SpyActionType.Assassination => 28,
+            SpyActionType.SowDiscord => 20,
             _ => 18
         };
     }

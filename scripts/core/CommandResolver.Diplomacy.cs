@@ -746,6 +746,7 @@ public partial class CommandResolver
         world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == surrenderedFactionId);
         world.PendingCapturedOfficerRecords.RemoveAll(record => record.WinnerFactionId == surrenderedFactionId);
         world.CityIntelRecords.RemoveAll(record => record.ViewerFactionId == surrenderedFactionId);
+        world.OfficerIntelRecords.RemoveAll(record => record.ViewerFactionId == surrenderedFactionId);
         return transferredOfficerCount;
     }
 

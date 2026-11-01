@@ -33,7 +33,8 @@ public enum SpyActionType
     Reconnaissance,
     Sabotage,
     Incite,
-    Assassination
+    Assassination,
+    SowDiscord
 }
 
 public enum TroopType

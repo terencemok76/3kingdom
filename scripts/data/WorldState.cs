@@ -20,6 +20,16 @@ public class WorldState
         public int RemainingMonths { get; set; }
     }
 
+    public class OfficerIntelData
+    {
+        public int ViewerFactionId { get; set; }
+        public int OfficerId { get; set; }
+        public int CityId { get; set; }
+        public int Loyalty { get; set; }
+        public int Year { get; set; }
+        public int Month { get; set; }
+    }
+
     public class PendingCapturedOfficerData
     {
         public int WinnerFactionId { get; set; }
@@ -92,6 +102,7 @@ public class WorldState
     public List<PendingCommandData> PendingCommands { get; set; } = new();
     public List<InternalAffairsScheduleData> InternalAffairsSchedules { get; set; } = new();
     public List<CityIntelData> CityIntelRecords { get; set; } = new();
+    public List<OfficerIntelData> OfficerIntelRecords { get; set; } = new();
     public List<PendingSuccessionData> PendingSuccessionRecords { get; set; } = new();
     public List<PendingCapturedOfficerData> PendingCapturedOfficerRecords { get; set; } = new();
     public List<BattleReportData> BattleReports { get; set; } = new();
@@ -133,6 +144,30 @@ public class WorldState
             record.ViewerFactionId == viewerFactionId &&
             record.TargetCityId == cityId &&
             record.RemainingMonths > 0);
+    }
+
+    public OfficerIntelData? GetOfficerIntel(int viewerFactionId, int officerId) =>
+        OfficerIntelRecords.FirstOrDefault(record => record.ViewerFactionId == viewerFactionId && record.OfficerId == officerId);
+
+    public void RecordCityOfficerIntel(int viewerFactionId, int cityId)
+    {
+        var city = GetCity(cityId);
+        if (viewerFactionId <= 0 || city == null) return;
+        foreach (var id in city.OfficerIds)
+        {
+            var officer = GetOfficer(id);
+            if (officer == null || officer.CityId != cityId || officer.CaptiveFactionId > 0) continue;
+            var record = GetOfficerIntel(viewerFactionId, id);
+            if (record == null)
+            {
+                record = new OfficerIntelData { ViewerFactionId = viewerFactionId, OfficerId = id };
+                OfficerIntelRecords.Add(record);
+            }
+            record.CityId = cityId;
+            record.Loyalty = officer.Loyalty;
+            record.Year = Year;
+            record.Month = Month;
+        }
     }
 
     public PendingSuccessionData? GetPendingSuccession(int factionId)

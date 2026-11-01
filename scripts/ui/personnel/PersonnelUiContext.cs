@@ -119,6 +119,7 @@ internal sealed class PersonnelUiContext : IFloatingOverlayContext
     public bool IsOfficerOldEnoughToJoin(WorldState world, OfficerData officer) => _owner.PersonnelIsOfficerOldEnoughToJoin(world, officer);
     public Texture2D? BuildOfficerPortraitTexture(int officerId) => _owner.PersonnelBuildOfficerPortraitTexture(officerId);
     public string BuildOfficerDetailText(OfficerData officer) => _owner.PersonnelBuildOfficerDetailText(officer);
+    public string BuildOfficerLoyaltyText(WorldState world, OfficerData officer) => _owner.PersonnelBuildOfficerLoyaltyText(world, officer);
     public string BuildPrisonerOfficerDetailText(OfficerData officer) => _owner.PersonnelBuildPrisonerOfficerDetailText(officer);
     public string GetPortraitLabel() => _owner.PersonnelGetPortraitLabel();
     public void ApplyCommandButtonTheme(Button button) => _owner.PersonnelApplyCommandButtonTheme(button);

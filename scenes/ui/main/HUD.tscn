@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://6jcajj0p0xu5" path="res://assets/map/city_1.png" id="7_city_icon"]
 [ext_resource type="Texture2D" uid="uid://b1mbo1f487a0h" path="res://assets/ui/icons/128x128/minus.png" id="8_left_panel_minimize"]
 [ext_resource type="Texture2D" uid="uid://c30u4wikfepg1" path="res://assets/ui/icons/128x128/resize.png" id="9_log_resize"]
+[ext_resource type="Texture2D" uid="uid://c4t1wh2s1ccrl" path="res://assets/ui/icons/64x64/city_btn.png" id="10_main_city"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_end_turn_normal"]
 bg_color = Color(0.8, 0.73, 0.56, 0.95)
@@ -299,8 +300,8 @@ offset_bottom = 81.0
 tooltip_text = "Debug tools"
 focus_mode = 0
 theme_override_colors/font_color = Color(0.14, 0.11, 0.08, 1)
-theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
 theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.04, 1)
+theme_override_colors/font_hover_color = Color(0.14, 0.11, 0.08, 1)
 theme_override_colors/font_disabled_color = Color(0.42, 0.4, 0.34, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_end_turn_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_end_turn_pressed")
@@ -735,6 +736,24 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
 icon = ExtResource("8_left_panel_minimize")
 icon_alignment = 1
 
+[node name="ReturnMainCityButton" type="Button" parent="Root" unique_id=761350280]
+layout_mode = 0
+offset_left = 308.0
+offset_top = 148.0
+offset_right = 340.0
+offset_bottom = 180.0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+theme_override_constants/icon_max_width = 28
+theme_override_styles/normal = SubResource("StyleBoxFlat_option_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_option_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_option_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_command_disabled")
+theme_override_styles/focus = SubResource("StyleBoxFlat_option_hover")
+icon = ExtResource("10_main_city")
+icon_alignment = 1
+expand_icon = true
+
 [node name="LogPanelBg" type="ColorRect" parent="Root" unique_id=538340313]
 layout_mode = 1
 anchors_preset = 3
@@ -857,10 +876,10 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -86.0
-offset_top = -58.0
-offset_right = -56.0
-offset_bottom = -28.0
+offset_left = -65.0
+offset_top = -51.0
+offset_right = -35.0
+offset_bottom = -21.0
 grow_horizontal = 0
 grow_vertical = 0
 focus_mode = 0

@@ -7,6 +7,11 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
     private readonly ViewUiContext _context;
     private readonly OfficerDetailDialogController _officerDetailDialogController;
     protected override Vector2 MinimumOverlaySize => new(960.0f, 380.0f);
+    protected override Vector2? UserOverlaySize => _userSize;
+    private Vector2? _userSize;
+    private bool _resizing;
+    private Vector2 _resizeStartMouse;
+    private Vector2 _resizeStartSize;
 
     public OfficerListDialogController(ViewUiContext context, OfficerDetailDialogController officerDetailDialogController)
         : base(context, "res://scenes/ui/view/OfficerListDialog.tscn")
@@ -24,6 +29,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
 
     public void Hide()
     {
+        _resizing = false;
         HideOverlay();
     }
 
@@ -169,6 +175,12 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         _context.OfficerSortOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/OfficerSortOption");
         _context.OfficerListTable = root.GetNodeOrNull<Tree>("OfficerListContentMargin/OfficerListContent/OfficerListTable");
         _context.OfficerListConfirmButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow/OfficerListConfirmButton");
+        var resizeHandle = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListConfirmRow/ResizeHandle");
+        if (resizeHandle != null)
+        {
+            resizeHandle.MouseDefaultCursorShape = Control.CursorShape.Fdiagsize;
+            resizeHandle.GuiInput += OnResizeHandleGuiInput;
+        }
 
         if (_context.OfficerListAuxOption != null)
         {
@@ -225,6 +237,30 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         if (_context.OfficerListConfirmButton != null)
         {
             _context.OfficerListConfirmButton.Pressed += OnOfficerListConfirmPressed;
+        }
+    }
+
+    private void OnResizeHandleGuiInput(InputEvent input)
+    {
+        if (OverlayPanel == null || OverlayRoot == null) return;
+        if (input is InputEventMouseButton button && button.ButtonIndex == MouseButton.Left)
+        {
+            _resizing = button.Pressed;
+            if (_resizing)
+            {
+                _resizeStartMouse = OverlayRoot.GetViewport().GetMousePosition();
+                _resizeStartSize = OverlayPanel.Size;
+            }
+        }
+        else if (input is InputEventMouseMotion && _resizing)
+        {
+            var available = OverlayRoot.GetViewportRect().Size - OverlayPanel.Position;
+            var desired = _resizeStartSize + OverlayRoot.GetViewport().GetMousePosition() - _resizeStartMouse;
+            _userSize = new Vector2(
+                Mathf.Clamp(desired.X, MinimumOverlaySize.X, Mathf.Max(MinimumOverlaySize.X, available.X)),
+                Mathf.Clamp(desired.Y, MinimumOverlaySize.Y, Mathf.Max(MinimumOverlaySize.Y, available.Y)));
+            UpdateOverlayLayoutNow();
+            RequestDeferredTableVisualRefresh();
         }
     }
 
