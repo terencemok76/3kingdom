@@ -223,6 +223,7 @@ public partial class HudController
         if (_pendingEventPresentations.Count == 0)
         {
             RestoreSuppressedUiAfterEventPresentation();
+            Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
             TryShowQueuedMonthlyEconomyReport();
         }
     }

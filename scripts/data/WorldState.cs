@@ -49,6 +49,11 @@ public class WorldState
         public int MaintenanceUnpaidSinceYear { get; set; }
         public int DiscordTargetOfficerId { get; set; }
         public int DiscordScheduledMonth { get; set; }
+        // A city-governor covert officer may arrange a one-shot handover at
+        // the next month boundary.  The city is derived from the officer so
+        // that a move, dismissal, or capture cancels it safely.
+        public int CitySurrenderScheduledMonth { get; set; }
+        public int CitySurrenderCityId { get; set; }
     }
 
     public class PendingCapturedOfficerData
@@ -111,6 +116,8 @@ public class WorldState
     // One-shot Debug/Test Tools switch. It guarantees the next safe player-led
     // surrender proposal so the absorption flow can be tested.
     public bool ForceNextSurrenderSuccessForDebug { get; set; }
+    // Consumed by the next valid player-sponsored governor handover.
+    public bool ForceNextCitySurrenderSuccessForDebug { get; set; }
     // One-shot: the next valid player covert recruitment succeeds without exposure.
     public bool ForceNextCovertRecruitmentForDebug { get; set; }
     public bool ResumeAttackResolutionAfterCampaign { get; set; }

@@ -11,6 +11,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
 {
     // UI-only mode: scheduling goes directly through CovertOfficerRules, not a spy command.
     private const SpyActionType CovertDiscordAction = (SpyActionType)1000;
+    private const SpyActionType CovertCitySurrenderAction = (SpyActionType)1001;
     private readonly SpyUiContext _context;
     private OptionButton? _actionOption;
     private OptionButton? _targetCityOption;
@@ -20,6 +21,8 @@ internal sealed class SpyDialogController : FloatingOverlayController
     private HBoxContainer? _covertDiscordRow;
     private OptionButton? _covertDiscordTarget;
     private Button? _covertDiscordButton;
+    private HBoxContainer? _covertCitySurrenderRow;
+    private Button? _covertCitySurrenderButton;
     private Label? _selectedOfficerLabel;
     private Button? _selectOfficerButton;
     private Label? _summaryLabel;
@@ -109,7 +112,10 @@ internal sealed class SpyDialogController : FloatingOverlayController
         _covertDiscordRow = root.GetNodeOrNull<HBoxContainer>("CovertDiscordRow");
         _covertDiscordTarget = root.GetNodeOrNull<OptionButton>("CovertDiscordRow/DiscordTargetOption");
         _covertDiscordButton = root.GetNodeOrNull<Button>("CovertDiscordRow/DiscordButton");
+        _covertCitySurrenderRow = root.GetNodeOrNull<HBoxContainer>("CovertCitySurrenderRow");
+        _covertCitySurrenderButton = root.GetNodeOrNull<Button>("CovertCitySurrenderRow/CitySurrenderButton");
         if (_covertDiscordButton != null) _context.ApplyCommandButtonTheme(_covertDiscordButton);
+        if (_covertCitySurrenderButton != null) _context.ApplyCommandButtonTheme(_covertCitySurrenderButton);
         if (_covertModeButton != null) _context.ApplyCommandButtonTheme(_covertModeButton);
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
@@ -139,6 +145,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         AddActionOption(SpyActionType.SowDiscord);
         AddActionOption(SpyActionType.RecruitCovertOfficer);
         AddActionOption(CovertDiscordAction);
+        AddActionOption(CovertCitySurrenderAction);
 
         _targetCityOption.Clear();
         foreach (var targetCity in world.Cities.Where(target => target.OwnerFactionId != city.OwnerFactionId))
@@ -154,6 +161,13 @@ internal sealed class SpyDialogController : FloatingOverlayController
         if (!candidateOfficerIds.Contains(_selectedOfficerId))
         {
             _selectedOfficerId = candidateOfficerIds.FirstOrDefault();
+        }
+        if (_selectOfficerButton != null)
+        {
+            _selectOfficerButton.Disabled = candidateOfficerIds.Count == 0;
+            _selectOfficerButton.TooltipText = candidateOfficerIds.Count == 0
+                ? localization.T("ui.spy_no_available_officer")
+                : string.Empty;
         }
 
         PopulateTargetOfficerOptions();
@@ -211,6 +225,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.SowDiscord => "command.spy.sow_discord",
             SpyActionType.RecruitCovertOfficer => "command.spy.recruit_covert",
             CovertDiscordAction => "ui.spy_covert_discord",
+            CovertCitySurrenderAction => "ui.spy_covert_city_surrender",
             _ => "command.spy.reconnaissance"
         };
         _actionOption.AddItem(_context.Localization.T(key));
@@ -233,6 +248,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         AddActionOption(SpyActionType.SowDiscord);
         AddActionOption(SpyActionType.RecruitCovertOfficer);
         AddActionOption(CovertDiscordAction);
+        AddActionOption(CovertCitySurrenderAction);
         SelectActionOption(selectedActionType);
     }
 
@@ -249,9 +265,9 @@ internal sealed class SpyDialogController : FloatingOverlayController
         var selectedTargetCityId = GetSelectedTargetCityId();
         _targetCityOption.Clear();
         var playerFactionId = _context.TurnManager?.GetPlayerFactionId() ?? 0;
-        var isCovertDiscord = GetSelectedActionType() == CovertDiscordAction;
+        var isCovertAction = GetSelectedActionType() == CovertDiscordAction || GetSelectedActionType() == CovertCitySurrenderAction;
         foreach (var targetCity in world.Cities.Where(target => target.OwnerFactionId != city.OwnerFactionId &&
-            (!isCovertDiscord || world.CovertOfficerRecords.Any(agent =>
+            (!isCovertAction || world.CovertOfficerRecords.Any(agent =>
                 agent.SponsorFactionId == playerFactionId && CovertOfficerRules.IsValid(world, agent) &&
                 world.GetOfficer(agent.OfficerId)?.CityId == target.Id && target.OfficerIds.Contains(agent.OfficerId)))))
         {
@@ -371,14 +387,14 @@ internal sealed class SpyDialogController : FloatingOverlayController
         }
 
         var actionType = GetSelectedActionType();
-        var isCovertDiscord = actionType == CovertDiscordAction;
-        if (GetOverlayContentNode<Control>("OfficerListLabel") is { } officerLabel) officerLabel.Visible = !isCovertDiscord;
-        if (GetOverlayContentNode<Control>("OfficerSelectorRow") is { } officerRow) officerRow.Visible = !isCovertDiscord;
-        if (GetOverlayContentNode<Control>("FooterRow") is { } footer) footer.Visible = !isCovertDiscord;
-        SetLabelText("TargetOfficerRow/TargetOfficerLabel", localization.T(isCovertDiscord ? "ui.spy_covert_agent" : "ui.spy_target_officer"));
-        if (isCovertDiscord)
+        var isCovertAction = actionType == CovertDiscordAction || actionType == CovertCitySurrenderAction;
+        if (GetOverlayContentNode<Control>("OfficerListLabel") is { } officerLabel) officerLabel.Visible = !isCovertAction;
+        if (GetOverlayContentNode<Control>("OfficerSelectorRow") is { } officerRow) officerRow.Visible = !isCovertAction;
+        if (GetOverlayContentNode<Control>("FooterRow") is { } footer) footer.Visible = !isCovertAction;
+        SetLabelText("TargetOfficerRow/TargetOfficerLabel", localization.T(isCovertAction ? "ui.spy_covert_agent" : "ui.spy_target_officer"));
+        if (isCovertAction)
         {
-            _summaryLabel.Text = localization.T("ui.spy_covert_discord_help");
+            _summaryLabel.Text = localization.T(actionType == CovertDiscordAction ? "ui.spy_covert_discord_help" : "ui.covert_city_surrender_help");
             return;
         }
         if (_targetOfficerOption != null && _targetOfficerOption.Selected >= 0)
@@ -394,6 +410,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.SowDiscord => "command.spy.sow_discord",
             SpyActionType.RecruitCovertOfficer => "command.spy.recruit_covert",
             CovertDiscordAction => "ui.spy_covert_discord",
+            CovertCitySurrenderAction => "ui.spy_covert_city_surrender",
             _ => "command.spy.reconnaissance"
         });
 
@@ -420,7 +437,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         _covertModeButton.Visible = agent != null;
         UpdateCovertDiscordControls(agent);
         if (agent == null) return;
-        _covertModeButton.Disabled = agent.DiscordTargetOfficerId > 0;
+        _covertModeButton.Disabled = agent.DiscordTargetOfficerId > 0 || agent.CitySurrenderScheduledMonth > 0;
         _covertModeButton.Text = localization.T(agent.AwaitingDefection ? "ui.covert_mode_waiting" : "ui.covert_mode_intel");
         _covertModeButton.TooltipText = localization.T("ui.covert_mode_tooltip");
     }
@@ -430,8 +447,16 @@ internal sealed class SpyDialogController : FloatingOverlayController
         var world = _context.TurnManager?.World;
         var localization = _context.Localization;
         if (_covertDiscordRow == null || _covertDiscordTarget == null || _covertDiscordButton == null || world == null || localization == null) return;
-        _covertDiscordRow.Visible = agent != null;
+        _covertDiscordRow.Visible = agent != null && GetSelectedActionType() == CovertDiscordAction;
+        if (_covertCitySurrenderRow != null) _covertCitySurrenderRow.Visible = agent != null && GetSelectedActionType() == CovertCitySurrenderAction;
         if (agent == null) return;
+        SetLabelText("CovertCitySurrenderRow/CitySurrenderLabel", localization.T("ui.covert_city_surrender_label"));
+        if (_covertCitySurrenderButton != null)
+        {
+            _covertCitySurrenderButton.Text = localization.T(agent.CitySurrenderScheduledMonth > 0 ? "ui.covert_city_surrender_pending" : "ui.covert_city_surrender_action");
+            _covertCitySurrenderButton.Disabled = !CovertOfficerRules.CanScheduleCitySurrender(world, agent);
+            _covertCitySurrenderButton.TooltipText = localization.T("ui.covert_city_surrender_help");
+        }
         SetLabelText("CovertDiscordRow/DiscordLabel", localization.T("ui.covert_discord_target"));
         _covertDiscordButton.Text = localization.T(agent.DiscordTargetOfficerId > 0 ? "ui.covert_discord_pending" : "ui.covert_discord_action");
         var previous = _covertDiscordTarget.Selected >= 0 ? _covertDiscordTarget.GetItemMetadata(_covertDiscordTarget.Selected).AsInt32() : 0;
@@ -474,12 +499,28 @@ internal sealed class SpyDialogController : FloatingOverlayController
         RequestContentLayoutRefresh();
     }
 
+    private void OnCovertCitySurrenderPressed()
+    {
+        var world = _context.TurnManager?.World;
+        if (world == null) return;
+        var factionId = _context.TurnManager!.GetPlayerFactionId();
+        var agent = world.CovertOfficerRecords.FirstOrDefault(item => item.SponsorFactionId == factionId && item.OfficerId == GetSelectedTargetOfficerId());
+        if (agent == null || !CovertOfficerRules.ScheduleCitySurrender(world, agent))
+        {
+            UpdateCovertModeButton();
+            return;
+        }
+        _context.AddLog(_context.Localization?.T("ui.covert_city_surrender_scheduled") ?? "City surrender scheduled.", isPlayerRelated: true);
+        UpdateCovertModeButton();
+        RequestContentLayoutRefresh();
+    }
+
     private void ToggleCovertMode()
     {
         var world = _context.TurnManager?.World;
         if (world == null) return;
         var agent = world.CovertOfficerRecords.FirstOrDefault(item => item.SponsorFactionId == _context.TurnManager!.GetPlayerFactionId() && item.OfficerId == GetSelectedTargetOfficerId() && CovertOfficerRules.IsValid(world, item));
-        if (agent == null || agent.DiscordTargetOfficerId > 0) return;
+        if (agent == null || agent.DiscordTargetOfficerId > 0 || agent.CitySurrenderScheduledMonth > 0) return;
         agent.AwaitingDefection = !agent.AwaitingDefection;
         UpdateCovertModeButton();
         _context.AddLog(_context.Localization?.T(agent.AwaitingDefection ? "ui.covert_mode_waiting_log" : "ui.covert_mode_intel_log") ?? string.Empty, isPlayerRelated: true);
@@ -567,6 +608,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
 
         if (_covertDiscordTarget != null) _covertDiscordTarget.ItemSelected += _ => UpdateCovertDiscordButton();
         if (_covertDiscordButton != null) _covertDiscordButton.Pressed += OnCovertDiscordPressed;
+        if (_covertCitySurrenderButton != null) _covertCitySurrenderButton.Pressed += OnCovertCitySurrenderPressed;
         if (_selectOfficerButton != null)
         {
             _selectOfficerButton.Pressed += OnSelectOfficerPressed;
@@ -645,7 +687,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
                     continue;
                 }
 
-                if (GetSelectedActionType() == CovertDiscordAction && !world.CovertOfficerRecords.Any(agent => agent.SponsorFactionId == (_context.TurnManager?.GetPlayerFactionId() ?? 0) && agent.OfficerId == officer.Id && CovertOfficerRules.IsValid(world, agent)))
+                if ((GetSelectedActionType() == CovertDiscordAction || GetSelectedActionType() == CovertCitySurrenderAction) && !world.CovertOfficerRecords.Any(agent => agent.SponsorFactionId == (_context.TurnManager?.GetPlayerFactionId() ?? 0) && agent.OfficerId == officer.Id && CovertOfficerRules.IsValid(world, agent)))
                     continue;
 
                 if ((GetSelectedActionType() == SpyActionType.SowDiscord || GetSelectedActionType() == SpyActionType.RecruitCovertOfficer) &&
@@ -664,7 +706,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             }
         }
 
-        var isAssassination = GetSelectedActionType() == SpyActionType.Assassination || GetSelectedActionType() == SpyActionType.SowDiscord || GetSelectedActionType() == SpyActionType.RecruitCovertOfficer || GetSelectedActionType() == CovertDiscordAction;
+        var isAssassination = GetSelectedActionType() == SpyActionType.Assassination || GetSelectedActionType() == SpyActionType.SowDiscord || GetSelectedActionType() == SpyActionType.RecruitCovertOfficer || GetSelectedActionType() == CovertDiscordAction || GetSelectedActionType() == CovertCitySurrenderAction;
         _targetOfficerOption.Disabled = !isAssassination;
         if (isAssassination && preferredOfficerId > 0)
         {
@@ -700,7 +742,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         var candidateOfficerIds = _context.GetAvailableSpyOfficerIds();
         if (candidateOfficerIds.Count == 0)
         {
-            SetWarning(localization.T("ui.select_officer_warning"));
+            SetWarning(localization.T("ui.spy_no_available_officer"));
             return;
         }
 
@@ -826,6 +868,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
             SpyActionType.SowDiscord => "command.spy.sow_discord",
             SpyActionType.RecruitCovertOfficer => "command.spy.recruit_covert",
             CovertDiscordAction => "ui.spy_covert_discord",
+            CovertCitySurrenderAction => "ui.spy_covert_city_surrender",
             _ => "command.spy.reconnaissance"
         };
     }
@@ -924,7 +967,7 @@ internal sealed class SpyDialogController : FloatingOverlayController
         }
 
         var actionType = GetSelectedActionType();
-        if (actionType == CovertDiscordAction) return;
+        if (actionType == CovertDiscordAction || actionType == CovertCitySurrenderAction) return;
         var targetOfficerId = GetSelectedTargetOfficerId();
         if ((actionType == SpyActionType.Assassination || actionType == SpyActionType.SowDiscord || actionType == SpyActionType.RecruitCovertOfficer) && targetOfficerId <= 0)
         {

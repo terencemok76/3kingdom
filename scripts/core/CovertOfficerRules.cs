@@ -54,7 +54,7 @@ public static class CovertOfficerRules
 
     public static bool CanScheduleDiscord(WorldState world, WorldState.CovertOfficerData agent, int targetId)
     {
-        if (!IsValid(world, agent) || agent.MaintenanceUnpaid || agent.DiscordTargetOfficerId != 0 || targetId == agent.OfficerId) return false;
+        if (!IsValid(world, agent) || agent.MaintenanceUnpaid || agent.DiscordTargetOfficerId != 0 || agent.CitySurrenderScheduledMonth > 0 || targetId == agent.OfficerId) return false;
         var officer = world.GetOfficer(agent.OfficerId);
         var city = officer == null ? null : world.GetCity(officer.CityId);
         var target = world.GetOfficer(targetId);
@@ -72,6 +72,162 @@ public static class CovertOfficerRules
         agent.DiscordScheduledMonth = world.Year * 12 + world.Month;
         agent.AwaitingDefection = false;
         return true;
+    }
+
+    public static bool CanScheduleCitySurrender(WorldState world, WorldState.CovertOfficerData agent)
+    {
+        if (!IsValid(world, agent) || agent.MaintenanceUnpaid || agent.AwaitingDefection ||
+            agent.DiscordTargetOfficerId > 0 || agent.CitySurrenderScheduledMonth > 0)
+        {
+            return false;
+        }
+
+        var officer = world.GetOfficer(agent.OfficerId);
+        var city = officer == null ? null : world.GetCity(officer.CityId);
+        var original = world.GetFaction(agent.OriginalFactionId);
+        return officer != null && city != null && original != null &&
+               city.OwnerFactionId == agent.OriginalFactionId && city.OfficerIds.Contains(officer.Id) &&
+               original.RulerOfficerId != officer.Id &&
+               OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor) &&
+               !world.ActiveBattleCampaigns.Any(campaign => campaign.Stage != CampaignStage.Resolved && campaign.TargetCityId == city.Id);
+    }
+
+    public static bool ScheduleCitySurrender(WorldState world, WorldState.CovertOfficerData agent)
+    {
+        if (!CanScheduleCitySurrender(world, agent)) return false;
+        agent.CitySurrenderScheduledMonth = world.Year * 12 + world.Month;
+        agent.CitySurrenderCityId = world.GetOfficer(agent.OfficerId)!.CityId;
+        return true;
+    }
+
+    public static System.Collections.Generic.List<(int SponsorId, int OfficerId, int CityId, string Kind, System.Collections.Generic.List<int> JoinedOfficerIds)> ProcessCitySurrenders(WorldState world)
+    {
+        var results = new System.Collections.Generic.List<(int, int, int, string, System.Collections.Generic.List<int>)>();
+        foreach (var agent in world.CovertOfficerRecords
+                     .Where(item => item.CitySurrenderScheduledMonth > 0 && item.CitySurrenderScheduledMonth < world.Year * 12 + world.Month)
+                     .ToList())
+        {
+            if (!world.CovertOfficerRecords.Contains(agent)) continue;
+            agent.CitySurrenderScheduledMonth = 0;
+            var officer = world.GetOfficer(agent.OfficerId);
+            var cityId = agent.CitySurrenderCityId > 0 ? agent.CitySurrenderCityId : officer?.CityId ?? 0;
+            agent.CitySurrenderCityId = 0;
+            if (officer?.CityId != cityId || !CanScheduleCitySurrender(world, agent))
+            {
+                results.Add((agent.SponsorFactionId, agent.OfficerId, cityId, "cancelled", new()));
+                continue;
+            }
+
+            var city = world.GetCity(cityId)!;
+            var affinity = Math.Clamp(world.GetOfficerAffection(agent.SponsorFactionId, officer!.Id)?.Score ?? 0, 0, 100);
+            var chance = Math.Clamp(45 + (60 - officer.Loyalty) + affinity / 4 +
+                                    officer.Intelligence / 10 - city.Defense / 12, 10, 80);
+            var random = new Random(HashCode.Combine(world.RandomSeed, world.Year, world.Month, officer.Id, city.Id));
+            var forceSuccess = world.ForceNextCitySurrenderSuccessForDebug && world.GetFaction(agent.SponsorFactionId)?.IsPlayer == true;
+            if (!forceSuccess && random.Next(100) >= chance)
+            {
+                var exposed = random.Next(100) < 15;
+                if (exposed) world.CovertOfficerRecords.Remove(agent);
+                results.Add((agent.SponsorFactionId, officer.Id, city.Id, exposed ? "exposed" : "failed", new()));
+                continue;
+            }
+
+            var joinedOfficerIds = TransferCityToSponsor(world, agent, city, officer);
+            if (forceSuccess) world.ForceNextCitySurrenderSuccessForDebug = false;
+            results.Add((agent.SponsorFactionId, officer.Id, city.Id, "success", joinedOfficerIds));
+            world.CovertOfficerRecords.Remove(agent);
+        }
+        return results;
+    }
+
+    private static System.Collections.Generic.List<int> TransferCityToSponsor(WorldState world, WorldState.CovertOfficerData agent, CityData city, OfficerData governor)
+    {
+        var original = world.GetFaction(agent.OriginalFactionId)!;
+        var sponsor = world.GetFaction(agent.SponsorFactionId)!;
+        var joinedOfficerIds = new System.Collections.Generic.List<int>();
+        var refuge = world.Cities.Where(item => item.OwnerFactionId == original.Id && item.Id != city.Id)
+            .OrderBy(item => item.Id).FirstOrDefault();
+
+        foreach (var officerId in city.OfficerIds.Where(id => id != governor.Id).ToList())
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer != null && officer.CityId == city.Id && original.OfficerIds.Contains(officer.Id) &&
+                original.RulerOfficerId != officer.Id && officer.CaptiveFactionId <= 0 &&
+                (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
+                !BattleCampaignService.IsOfficerCommitted(world, officer.Id) &&
+                !OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id) &&
+                WillFollowGovernor(world, officer, governor, city.Id))
+            {
+                original.OfficerIds.Remove(officer.Id);
+                if (original.ChancellorOfficerId == officer.Id) original.ChancellorOfficerId = 0;
+                if (original.ChiefStrategistOfficerId == officer.Id) original.ChiefStrategistOfficerId = 0;
+                officer.Appointments.Clear();
+                officer.Belongs = sponsor.Id.ToString();
+                officer.Loyalty = 60;
+                if (!sponsor.OfficerIds.Contains(officer.Id)) sponsor.OfficerIds.Add(officer.Id);
+                world.InternalAffairsSchedules.RemoveAll(schedule => schedule.OfficerId == officer.Id);
+                world.CovertOfficerRecords.RemoveAll(record => record.OfficerId == officer.Id);
+                foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officer.Id)) item.OwnerFactionId = sponsor.Id;
+                joinedOfficerIds.Add(officer.Id);
+                continue;
+            }
+            city.OfficerIds.Remove(officerId);
+            if (officer == null) continue;
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Governor);
+            if (refuge != null)
+            {
+                refuge.OfficerIds.Add(officer.Id);
+                officer.CityId = refuge.Id;
+            }
+            else
+            {
+                officer.CityId = 0;
+                officer.FreeOfficerStayMonths = Math.Max(officer.FreeOfficerStayMonths, 2);
+                original.OfficerIds.Remove(officer.Id);
+                if (original.ChancellorOfficerId == officer.Id) original.ChancellorOfficerId = 0;
+                if (original.ChiefStrategistOfficerId == officer.Id) original.ChiefStrategistOfficerId = 0;
+                officer.Appointments.Clear();
+                officer.Belongs = "0";
+            }
+        }
+
+        world.InternalAffairsSchedules.RemoveAll(schedule => schedule.CityId == city.Id);
+        city.PrefectAuthorizationType = PrefectAuthorizationType.None;
+        city.PrefectPlanJobType = InternalAffairsJobType.Farm;
+        city.PrefectPlanConstructionProjectType = ConstructionProjectType.None;
+        city.PrefectPlanTotalMonths = 0;
+        city.PrefectPlanRemainingMonths = 0;
+        city.PrefectPlanInvestedGold = 0;
+        city.PrefectPlanIsPlayerDirected = false;
+        city.OwnerFactionId = sponsor.Id;
+        city.Loyalty = Math.Max(city.Loyalty, 55);
+
+        original.OfficerIds.Remove(governor.Id);
+        if (original.ChancellorOfficerId == governor.Id) original.ChancellorOfficerId = 0;
+        if (original.ChiefStrategistOfficerId == governor.Id) original.ChiefStrategistOfficerId = 0;
+        governor.Belongs = sponsor.Id.ToString();
+        governor.Loyalty = 60;
+        governor.CityId = city.Id;
+        if (!sponsor.OfficerIds.Contains(governor.Id)) sponsor.OfficerIds.Add(governor.Id);
+        foreach (var item in world.Items.Where(item => item.EquippedOfficerId == governor.Id)) item.OwnerFactionId = sponsor.Id;
+        return joinedOfficerIds;
+    }
+
+    private static bool WillFollowGovernor(WorldState world, OfficerData officer, OfficerData governor, int cityId)
+    {
+        if (officer.Loyalty <= 40) return true;
+        if (officer.Loyalty > 70) return false;
+
+        var chance = OfficerRelationshipRules.GetRelationshipType(officer, governor) switch
+        {
+            "family,blood" => 70,
+            "family,non-blood" => 50,
+            "family" => 40,
+            _ => 0
+        };
+        if (chance == 0) return false;
+        var random = new Random(HashCode.Combine(world.RandomSeed, world.Year, world.Month, cityId, governor.Id, officer.Id));
+        return random.Next(100) < chance;
     }
 
     public static System.Collections.Generic.List<(int SponsorId, int OfficerId, int TargetId, string Kind)> ProcessDiscord(WorldState world)

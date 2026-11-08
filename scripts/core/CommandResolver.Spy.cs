@@ -17,6 +17,11 @@ public partial class CommandResolver
 
     private CommandResult ScheduleSpy(WorldState world, CityData sourceCity, CommandRequest request)
     {
+        if (sourceCity.OwnerFactionId != request.ActorFactionId)
+        {
+            return LocalizedResult(false, "cmd.city_not_controlled");
+        }
+
         if (!request.TargetCityId.HasValue)
         {
             return LocalizedResult(false, "cmd.spy.target_required");

@@ -72,6 +72,7 @@ internal sealed class MainHudUiController
     {
         _cityInfoPanelController.RefreshSelectedCity();
         _strategicMapDialogController.RefreshSelectedCity();
+        _testToolsDialogController.RefreshSelectedCity();
     }
 
     public void RefreshMonth()

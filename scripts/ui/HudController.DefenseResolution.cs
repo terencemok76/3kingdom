@@ -447,6 +447,22 @@ public partial class HudController
             if (agent != null && target != null)
                 AddLog(_localization.Format("ui.covert_discord_" + action.Kind, _localization.GetOfficerName(agent), _localization.GetOfficerName(target)), isPlayerRelated: true);
         }
+        foreach (var action in _turnManager.ConsumeCovertCitySurrenderEvents())
+        {
+            if (action.SponsorId != playerFactionId) continue;
+            var officer = world.GetOfficer(action.OfficerId);
+            var city = world.GetCity(action.CityId);
+            var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unknown");
+            var cityName = city != null ? _localization.GetCityName(city) : _localization.T("ui.unknown");
+            var message = _localization.Format("ui.covert_city_surrender_" + action.Kind, officerName, cityName);
+            if (action.JoinedOfficerIds.Count > 0)
+            {
+                var names = string.Join("、", action.JoinedOfficerIds.Select(world.GetOfficer).Where(item => item != null).Select(item => _localization.GetOfficerName(item!)));
+                message += "\n\n" + _localization.Format("ui.covert_city_surrender_followers", names);
+            }
+            AddLog(message, isPlayerRelated: true);
+            QueueFactionOutcome(_localization.T("ui.covert_city_surrender_title_" + action.Kind), message, portraitOfficerId: action.OfficerId);
+        }
         world.IsBattleResolutionPhase = false;
         foreach (var escapeEvent in _turnManager.ConsumeOfficerEscapeEvents())
         {

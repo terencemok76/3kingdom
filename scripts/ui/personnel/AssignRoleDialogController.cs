@@ -23,6 +23,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
     protected override Vector2 MinimumOverlaySize => new(500.0f, 360.0f);
+    protected override bool AutoFitOverlayHeight => true;
 
     public AssignRoleDialogController(PersonnelUiContext context)
         : base(context, "res://scenes/ui/personnel/AssignRoleDialog.tscn")
@@ -59,6 +60,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
 
         SetOverlayTitleText(_context.Localization.T("command.personnel.assign_title"));
         SetLabelText("OfficerListLabel", _context.Localization.T("ui.assign_role_officer"));
+        SetLabelText("AppointmentExplanationLabel", _context.Localization.T("ui.appointment_explanation"));
         SetLabelText("CurrentAppointmentsLabel", _context.Localization.T("ui.appointed_titles"));
         SetLabelText("AssignRoleLabel", _context.Localization.T("ui.assign_appointment"));
         SetLabelText("RemoveRoleLabel", _context.Localization.T("ui.clear_appointment"));

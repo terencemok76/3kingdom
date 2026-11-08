@@ -120,8 +120,8 @@
                       "en":  "Rarity"
                   },
     "ui.role":  {
-                    "zhHant":  "官職",
-                    "en":  "Role"
+                    "zhHant":  "身分",
+                    "en":  "Identity"
                 },
     "ui.spy_rank":  {
                         "zhHant":  "間諜階",

@@ -13,7 +13,7 @@ public partial class HudController : CanvasLayer
 {
     private const double AiTurnDisplaySeconds = 0.35;
     private const string FactionOutcomeDialogScenePath = "res://scenes/ui/main/FactionOutcomeDialog.tscn";
-    private readonly Queue<(string Title, string Message, bool ReturnToMainMenu)> _factionOutcomeQueue = new();
+    private readonly Queue<(string Title, string Message, bool ReturnToMainMenu, int PortraitOfficerId)> _factionOutcomeQueue = new();
     private Control? _factionOutcomeDialog;
     private bool _factionOutcomeReturnsToMainMenu;
 
@@ -448,9 +448,9 @@ public partial class HudController : CanvasLayer
         }
     }
 
-    private void QueueFactionOutcome(string title, string message, bool returnToMainMenu = false)
+    private void QueueFactionOutcome(string title, string message, bool returnToMainMenu = false, int portraitOfficerId = 0)
     {
-        _factionOutcomeQueue.Enqueue((title, message, returnToMainMenu));
+        _factionOutcomeQueue.Enqueue((title, message, returnToMainMenu, portraitOfficerId));
         Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
     }
 
@@ -527,13 +527,41 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        // Handover results are queued during month advancement, before the
+        // monthly event presentations have been collected.
+        if (_factionOutcomeQueue.Peek().PortraitOfficerId > 0 &&
+            (_isEndTurnTransitionUiActive || _activeEventPresentation != null || _pendingEventPresentations.Count > 0))
+        {
+            return;
+        }
+
         var outcome = _factionOutcomeQueue.Dequeue();
         _factionOutcomeReturnsToMainMenu = outcome.ReturnToMainMenu;
         _factionOutcomeDialog = GD.Load<PackedScene>(FactionOutcomeDialogScenePath).Instantiate<Control>();
         var overlayRoot = GetNodeOrNull<Control>("Root") as Node ?? this;
         overlayRoot.AddChild(_factionOutcomeDialog);
         _factionOutcomeDialog.GetNode<Label>("Center/OutcomePanel/Root/Header/TitleLabel").Text = outcome.Title;
-        _factionOutcomeDialog.GetNode<Label>("Center/OutcomePanel/Root/Body/Content/MessageLabel").Text = outcome.Message;
+        var content = _factionOutcomeDialog.GetNode<VBoxContainer>("Center/OutcomePanel/Root/Body/Content");
+        var messageLabel = content.GetNode<Label>("MessageLabel");
+        messageLabel.Text = outcome.Message;
+        if (outcome.PortraitOfficerId > 0)
+        {
+            var row = new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+            row.AddThemeConstantOverride("separation", 18);
+            content.AddChild(row);
+            content.MoveChild(row, 0);
+            var frame = new PanelContainer { CustomMinimumSize = new Vector2(110, 140) };
+            row.AddChild(frame);
+            var portrait = new TextureRect { Texture = BuildOfficerPortraitTexture(outcome.PortraitOfficerId), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, CustomMinimumSize = new Vector2(110, 140) };
+            frame.AddChild(portrait);
+            if (portrait.Texture == null)
+            {
+                var officer = _turnManager?.World?.GetOfficer(outcome.PortraitOfficerId);
+                frame.AddChild(new Label { Text = officer != null ? _localization?.GetOfficerName(officer) ?? officer.Name : _localization?.T("ui.unknown") ?? "Unknown", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            }
+            messageLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            messageLabel.Reparent(row, false);
+        }
         var acknowledgeButton = _factionOutcomeDialog.GetNode<Button>("Center/OutcomePanel/Root/Body/Content/ButtonRow/AcknowledgeButton");
         acknowledgeButton.Text = _localization?.T("ui.acknowledge") ?? "Acknowledge";
         acknowledgeButton.Pressed += CloseFactionOutcome;
@@ -563,6 +591,7 @@ public partial class HudController : CanvasLayer
         }
 
         Callable.From(ShowNextFactionOutcomeIfPossible).CallDeferred();
+        Callable.From(TryShowQueuedMonthlyEconomyReport).CallDeferred();
     }
 
     private void SetGameplayButtonsEnabled(bool enabled)

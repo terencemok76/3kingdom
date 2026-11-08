@@ -83,10 +83,21 @@ internal sealed class SpyUiContext : IFloatingOverlayContext
             return new List<int>();
         }
 
+        var playerFactionId = TurnManager?.GetPlayerFactionId() ?? 0;
+        var playerFaction = world.GetFaction(playerFactionId);
+        if (playerFaction == null || city.OwnerFactionId != playerFactionId)
+        {
+            return new List<int>();
+        }
+
         return city.OfficerIds
             .Select(world.GetOfficer)
             .Where(officer =>
                 officer != null &&
+                officer.CityId == city.Id &&
+                officer.CaptiveFactionId <= 0 &&
+                playerFaction.OfficerIds.Contains(officer.Id) &&
+                (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
                 !OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id) &&
                 !(officer.LastAssignedYear == world.Year &&
                   officer.LastAssignedMonth == world.Month) &&

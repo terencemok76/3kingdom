@@ -219,6 +219,24 @@ layout_mode = 2
 focus_mode = 0
 text = "安排離間"
 
+[node name="CovertCitySurrenderRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="CitySurrenderLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/CovertCitySurrenderRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "太守獻城"
+vertical_alignment = 1
+
+[node name="CitySurrenderButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/CovertCitySurrenderRow"]
+layout_mode = 2
+focus_mode = 0
+size_flags_horizontal = 3
+text = "安排獻城"
+
 [node name="OfficerListLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 text = "Officer"

@@ -193,6 +193,15 @@ layout_mode = 2
 focus_mode = 0
 text = "保證下次勸降成功"
 
+[node name="CitySurrenderActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="ForceCitySurrenderButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/CitySurrenderActionRow"]
+layout_mode = 2
+focus_mode = 0
+text = "保證下次獻城成功"
+
 [node name="OwnershipActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 alignment = 1
@@ -233,3 +242,28 @@ size_flags_horizontal = 3
 layout_mode = 2
 focus_mode = 0
 text = "指定為內應"
+
+[node name="LoyaltyOfficerRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+
+[node name="OfficerOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LoyaltyOfficerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+clip_text = true
+fit_to_longest_item = false
+
+[node name="LoyaltyActionRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+alignment = 1
+
+[node name="LowButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LoyaltyActionRow"]
+layout_mode = 2
+text = "忠誠低 30"
+
+[node name="MiddleButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LoyaltyActionRow"]
+layout_mode = 2
+text = "忠誠中 60"
+
+[node name="HighButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/LoyaltyActionRow"]
+layout_mode = 2
+text = "忠誠高 90"

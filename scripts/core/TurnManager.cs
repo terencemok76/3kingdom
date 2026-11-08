@@ -89,10 +89,17 @@ public class TurnManager
     private readonly List<OfficerEscapeEvent> _latestOfficerEscapeEvents = new();
     private readonly List<(int SponsorId, int OfficerId, string Kind)> _covertMaintenanceEvents = new();
     private readonly List<(int SponsorId, int OfficerId, int TargetId, string Kind)> _covertDiscordEvents = new();
+    private readonly List<(int SponsorId, int OfficerId, int CityId, string Kind, List<int> JoinedOfficerIds)> _covertCitySurrenderEvents = new();
     public List<(int SponsorId, int OfficerId, int TargetId, string Kind)> ConsumeCovertDiscordEvents()
     {
         var result = _covertDiscordEvents.ToList();
         _covertDiscordEvents.Clear();
+        return result;
+    }
+    public List<(int SponsorId, int OfficerId, int CityId, string Kind, List<int> JoinedOfficerIds)> ConsumeCovertCitySurrenderEvents()
+    {
+        var result = _covertCitySurrenderEvents.ToList();
+        _covertCitySurrenderEvents.Clear();
         return result;
     }
     public List<(int SponsorId, int OfficerId, string Kind)> ConsumeCovertMaintenanceEvents()
@@ -375,10 +382,11 @@ public class TurnManager
 
         AdvanceDiplomacyRelations();
         AdvanceCityIntel();
-        World.CovertOfficerRecords.RemoveAll(agent => !CovertOfficerRules.IsValid(World, agent));
         _covertMaintenanceEvents.AddRange(CovertOfficerRules.ProcessMaintenance(World, World.Month == 1));
         var discordEvents = CovertOfficerRules.ProcessDiscord(World);
         _covertDiscordEvents.AddRange(discordEvents);
+        _covertCitySurrenderEvents.AddRange(CovertOfficerRules.ProcessCitySurrenders(World));
+        World.CovertOfficerRecords.RemoveAll(agent => !CovertOfficerRules.IsValid(World, agent));
         foreach (var agent in World.CovertOfficerRecords.Where(agent => !agent.AwaitingDefection && !agent.MaintenanceUnpaid && agent.DiscordTargetOfficerId == 0 && !discordEvents.Any(item => item.OfficerId == agent.OfficerId)))
         {
             var officer = World.GetOfficer(agent.OfficerId);

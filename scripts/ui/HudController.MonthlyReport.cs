@@ -144,7 +144,8 @@ public partial class HudController
 
     private void TryShowQueuedMonthlyEconomyReport()
     {
-        if (_pendingMonthlyEconomyReport == null || _activeEventPresentation != null || _pendingEventPresentations.Count > 0)
+        if (_pendingMonthlyEconomyReport == null || _activeEventPresentation != null || _pendingEventPresentations.Count > 0 ||
+            _factionOutcomeDialog != null || _factionOutcomeQueue.Any(outcome => outcome.PortraitOfficerId > 0))
         {
             return;
         }

@@ -1,6 +1,10 @@
 {
     "ui.appointed_titles": {
-        "zhHant": "兼任職位",
+        "zhHant": "任命職位",
         "en": "Appointments"
+    },
+    "ui.appointment_explanation": {
+        "zhHant": "任命職位由君主指派；武將身分不會因此改變。",
+        "en": "Appointments are assigned by the ruler and do not change an officer's identity."
     }
 }

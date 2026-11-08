@@ -16,11 +16,17 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private Button? _horsePastureButton;
     private Button? _caravanRoadBattleButton;
     private Button? _forceSurrenderButton;
+    private Button? _forceCitySurrenderButton;
     private Button? _cycleCityOwnerButton;
     private Button? _maxAffinityButton;
     private Button? _forceCovertButton;
     private Button? _assignCovertButton;
     private OptionButton? _covertOfficerOption;
+    private OptionButton? _loyaltyOfficerOption;
+    private Button? _loyaltyLowButton;
+    private Button? _loyaltyMiddleButton;
+    private Button? _loyaltyHighButton;
+    private int _loyaltyCityId;
     private bool _signalsConnected;
 
     protected override Vector2 MinimumOverlaySize => new(420.0f, 350.0f);
@@ -35,6 +41,11 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     public void Initialize() => InitializeOverlay();
 
     public void Hide() => HideOverlay();
+
+    public void RefreshSelectedCity()
+    {
+        if (IsOverlayVisible) RefreshLoyaltyOfficerOptions();
+    }
 
     public void Show()
     {
@@ -53,7 +64,9 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         SetOverlayTitleText(localization?.T("ui.test_tools") ?? "Test Tools");
         if (_summaryLabel != null)
         {
-            _summaryLabel.Text = _context.World?.ForceNextCovertRecruitmentForDebug == true
+            _summaryLabel.Text = _context.World?.ForceNextCitySurrenderSuccessForDebug == true
+                ? localization?.T("ui.test_city_surrender_armed") ?? "The next valid player governor handover will succeed."
+                : _context.World?.ForceNextCovertRecruitmentForDebug == true
                 ? localization?.T("ui.test_covert_armed") ?? "Armed: the next valid player covert recruitment succeeds without exposure."
                 : _context.World?.ForceNextSurrenderSuccessForDebug == true
                 ? localization?.T("ui.test_surrender_armed") ?? "Surrender test armed: the next safe player-led surrender proposal will succeed."
@@ -94,6 +107,8 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _forceSurrenderButton.Text = localization?.T("ui.test_force_surrender") ?? "Force Next Surrender";
         }
+        if (_forceCitySurrenderButton != null)
+            _forceCitySurrenderButton.Text = localization?.T("ui.test_force_city_surrender") ?? "Force Next City Handover";
         if (_cycleCityOwnerButton != null)
         {
             _cycleCityOwnerButton.Text = localization?.T("ui.test_cycle_city_owner") ?? "Switch City Faction";
@@ -104,7 +119,11 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
             _forceCovertButton.Text = localization?.T("ui.test_force_covert") ?? "Force Next Covert Recruitment";
         if (_assignCovertButton != null)
             _assignCovertButton.Text = localization?.T("ui.test_assign_covert") ?? "Assign Covert Agent";
+        if (_loyaltyLowButton != null) _loyaltyLowButton.Text = localization?.T("ui.test_loyalty_low") ?? "Low 30";
+        if (_loyaltyMiddleButton != null) _loyaltyMiddleButton.Text = localization?.T("ui.test_loyalty_middle") ?? "Medium 60";
+        if (_loyaltyHighButton != null) _loyaltyHighButton.Text = localization?.T("ui.test_loyalty_high") ?? "High 90";
         RefreshCovertOfficerOptions();
+        RefreshLoyaltyOfficerOptions();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -117,13 +136,18 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         _horsePastureButton = root.GetNodeOrNull<Button>("FacilityActionRow/HorsePastureButton");
         _caravanRoadBattleButton = root.GetNodeOrNull<Button>("CaravanActionRow/CaravanRoadBattleButton");
         _forceSurrenderButton = root.GetNodeOrNull<Button>("SurrenderActionRow/ForceSurrenderButton");
+        _forceCitySurrenderButton = root.GetNodeOrNull<Button>("CitySurrenderActionRow/ForceCitySurrenderButton");
         _cycleCityOwnerButton = root.GetNodeOrNull<Button>("OwnershipActionRow/CycleCityOwnerButton");
         _maxAffinityButton = root.GetNodeOrNull<Button>("AffinityActionRow/MaxAffinityButton");
         _forceCovertButton = root.GetNodeOrNull<Button>("CovertActionRow/ForceCovertButton");
         _covertOfficerOption = root.GetNodeOrNull<OptionButton>("AssignCovertRow/OfficerOption");
         _assignCovertButton = root.GetNodeOrNull<Button>("AssignCovertRow/AssignButton");
+        _loyaltyOfficerOption = root.GetNodeOrNull<OptionButton>("LoyaltyOfficerRow/OfficerOption");
+        _loyaltyLowButton = root.GetNodeOrNull<Button>("LoyaltyActionRow/LowButton");
+        _loyaltyMiddleButton = root.GetNodeOrNull<Button>("LoyaltyActionRow/MiddleButton");
+        _loyaltyHighButton = root.GetNodeOrNull<Button>("LoyaltyActionRow/HighButton");
 
-        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _forceSurrenderButton, _cycleCityOwnerButton, _maxAffinityButton, _forceCovertButton, _assignCovertButton }.Where(button => button != null))
+        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _forceSurrenderButton, _forceCitySurrenderButton, _cycleCityOwnerButton, _maxAffinityButton, _forceCovertButton, _assignCovertButton, _loyaltyLowButton, _loyaltyMiddleButton, _loyaltyHighButton }.Where(button => button != null))
         {
             if (_context.ViewButton == null)
             {
@@ -189,6 +213,7 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         {
             _forceSurrenderButton.Pressed += OnForceSurrenderPressed;
         }
+        if (_forceCitySurrenderButton != null) _forceCitySurrenderButton.Pressed += OnForceCitySurrenderPressed;
         if (_cycleCityOwnerButton != null)
         {
             _cycleCityOwnerButton.Pressed += OnCycleCityOwnerPressed;
@@ -196,6 +221,10 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         if (_maxAffinityButton != null) _maxAffinityButton.Pressed += OnMaxAffinityPressed;
         if (_forceCovertButton != null) _forceCovertButton.Pressed += OnForceCovertPressed;
         if (_assignCovertButton != null) _assignCovertButton.Pressed += OnAssignCovertPressed;
+        if (_loyaltyLowButton != null) _loyaltyLowButton.Pressed += () => SetTestOfficerLoyalty(30);
+        if (_loyaltyMiddleButton != null) _loyaltyMiddleButton.Pressed += () => SetTestOfficerLoyalty(60);
+        if (_loyaltyHighButton != null) _loyaltyHighButton.Pressed += () => SetTestOfficerLoyalty(90);
+        if (_loyaltyOfficerOption != null) _loyaltyOfficerOption.ItemSelected += _ => UpdateLoyaltyButtons();
         if (_covertOfficerOption != null) _covertOfficerOption.ItemSelected += _ => UpdateAssignCovertButton();
 
         _signalsConnected = true;
@@ -236,6 +265,15 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     {
         _context.ForceTestSurrender();
         RefreshText();
+    }
+
+    private void OnForceCitySurrenderPressed()
+    {
+        var world = _context.World;
+        if (world == null || _context.PlayerFactionId <= 0 || !_context.IsGodModeEnabled()) return;
+        world.ForceNextCitySurrenderSuccessForDebug = true;
+        RefreshText();
+        Callable.From(UpdateOverlayLayoutNow).CallDeferred();
     }
 
     private void OnCycleCityOwnerPressed()
@@ -286,6 +324,58 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
             }
         }
         UpdateAssignCovertButton();
+    }
+
+    private void RefreshLoyaltyOfficerOptions()
+    {
+        var world = _context.World;
+        var city = _context.SelectedCity;
+        var option = _loyaltyOfficerOption;
+        var localization = _context.Localization;
+        if (world == null || option == null) return;
+        var previousId = _loyaltyCityId == (city?.Id ?? 0) && option.Selected >= 0 ? option.GetItemMetadata(option.Selected).AsInt32() : 0;
+        _loyaltyCityId = city?.Id ?? 0;
+        option.Clear();
+        option.AddItem(city != null && localization != null
+            ? localization.Format("ui.test_loyalty_choose_city", localization.GetCityName(city))
+            : localization?.T("ui.test_loyalty_choose") ?? "Select officer in selected city");
+        option.SetItemMetadata(0, 0);
+        if (city != null)
+        {
+            foreach (var officer in city.OfficerIds.Distinct().Select(world.GetOfficer)
+                         .Where(officer => officer != null && officer.CityId == city.Id && officer.CaptiveFactionId <= 0 &&
+                                           (officer.DeathYear <= 0 || world.Year <= officer.DeathYear))
+                         .OrderBy(officer => officer!.Id))
+            {
+                option.AddItem($"{localization?.GetOfficerName(officer!) ?? officer!.Name} | {localization?.T("ui.loyalty") ?? "Loyalty"} {officer!.Loyalty}");
+                option.SetItemMetadata(option.ItemCount - 1, officer.Id);
+                if (officer.Id == previousId) option.Select(option.ItemCount - 1);
+            }
+        }
+        UpdateLoyaltyButtons();
+    }
+
+    private void UpdateLoyaltyButtons()
+    {
+        var disabled = _loyaltyOfficerOption == null || _loyaltyOfficerOption.Selected <= 0;
+        foreach (var button in new[] { _loyaltyLowButton, _loyaltyMiddleButton, _loyaltyHighButton })
+            if (button != null) button.Disabled = disabled;
+    }
+
+    private void SetTestOfficerLoyalty(int value)
+    {
+        var world = _context.World;
+        var city = _context.SelectedCity;
+        var option = _loyaltyOfficerOption;
+        if (world == null || city == null || option == null || option.Selected <= 0 || !_context.IsGodModeEnabled()) return;
+        var officer = world.GetOfficer(option.GetItemMetadata(option.Selected).AsInt32());
+        if (officer == null || officer.CityId != city.Id || !city.OfficerIds.Contains(officer.Id) || officer.CaptiveFactionId > 0) { RefreshLoyaltyOfficerOptions(); return; }
+        officer.Loyalty = value;
+        var localization = _context.Localization;
+        if (_summaryLabel != null) _summaryLabel.Text = localization?.Format("ui.test_loyalty_done", localization.GetOfficerName(officer), value) ?? $"{officer.Name}: loyalty {value}.";
+        RefreshLoyaltyOfficerOptions();
+        _context.UiEventHub.PublishOfficerStateChanged(officer.Id, city.Id, city.OwnerFactionId);
+        Callable.From(UpdateOverlayLayoutNow).CallDeferred();
     }
 
     private void UpdateAssignCovertButton()
