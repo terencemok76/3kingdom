@@ -1949,6 +1949,7 @@ public partial class BattleSceneController
     {
         var fireScores = GetAiFirePlans(sourceGrid, unit).Select(plan => plan.Score).ToList();
         fireScores.AddRange(GetAiExtinguishPlans(sourceGrid, unit).Select(plan => plan.Score));
+        fireScores.AddRange(GetAiConfusionPlans(sourceGrid, unit).Select(plan => plan.Score));
         if (unit.Energy < NormalAttackEnergyCost || !CanUseAttackCommand(unit))
         {
             return fireScores.Count == 0
@@ -2054,8 +2055,23 @@ public partial class BattleSceneController
                 continue;
             }
 
+            score = BattleAiScoring.GetExpectedStrategyScore(score, GetExtinguishFireSuccessChance(unit, targetGrid));
             score += GetOfficerTacticalIntelligence(unit.OfficerName) * 6;
             yield return new AiExtinguishPlan(targetGrid, score, protectedUnits, projectedDamage);
+        }
+    }
+
+    private IEnumerable<AiConfusionPlan> GetAiConfusionPlans(BattleGridKey sourceGrid, BattleOccupantInfo unit)
+    {
+        if (!CanUseMentalStrategy(unit)) yield break;
+        foreach (var targetGrid in CalculateMentalStrategyTargetGrids(sourceGrid, unit).Distinct())
+        {
+            if (targetGrid == sourceGrid) continue;
+            var target = GetMentalStrategyTarget(unit, targetGrid);
+            if (target == null || target.TroopCount <= 0 || !CanApplyMessStrategy(unit, target)) continue;
+            var chance = GetMessStrategySuccessChance(unit, target);
+            var value = BattleAiScoring.GetConfusionValue(target.TroopCount, IsGeneralCountedPiece(target.Category, target.OfficerName));
+            yield return new AiConfusionPlan(targetGrid, GetBattleOfficerId(target), BattleAiScoring.GetExpectedStrategyScore(value, chance), chance);
         }
     }
 
@@ -2269,6 +2285,12 @@ public partial class BattleSceneController
         var actions = new List<AiOffensiveAction>();
         foreach (var (sourceGrid, unit) in candidates)
         {
+            foreach (var confusionPlan in GetAiConfusionPlans(sourceGrid, unit))
+            {
+                actions.Add(new AiOffensiveAction(sourceGrid, unit, confusionPlan.TargetGrid, null, null, null, null,
+                    confusionPlan.Score, GetAiDecisionNoise(sourceGrid, confusionPlan.TargetGrid, participantCount: 1))
+                { ConfusionPlan = confusionPlan });
+            }
             foreach (var extinguishPlan in GetAiExtinguishPlans(sourceGrid, unit))
             {
                 actions.Add(new AiOffensiveAction(
@@ -2600,6 +2622,11 @@ public partial class BattleSceneController
             return TryExecuteAiExtinguishStrategy(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.ExtinguishPlan.Value, chosenAction.Noise);
         }
 
+        if (chosenAction.ConfusionPlan.HasValue)
+        {
+            return TryExecuteAiConfusionStrategy(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.ConfusionPlan.Value, chosenAction.Noise);
+        }
+
         if (chosenAction.FirePlan.HasValue)
         {
             return TryExecuteAiFireStrategy(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.FirePlan.Value, chosenAction.Noise);
@@ -2646,6 +2673,18 @@ public partial class BattleSceneController
         return chosenAction.UnionCandidate == null
             ? TryExecuteAiAttack(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.TargetGrid, chosenAction.Score, chosenAction.Noise)
             : TryExecuteAiUnionAttack(chosenAction.SourceGrid, chosenAction.Unit, chosenAction.UnionCandidate, chosenAction.Score, chosenAction.Noise);
+    }
+
+    private bool TryExecuteAiConfusionStrategy(BattleGridKey sourceGrid, BattleOccupantInfo unit, AiConfusionPlan plan, int noise)
+    {
+        var target = GetMentalStrategyTarget(unit, plan.TargetGrid);
+        if (target == null || target.TroopCount <= 0 || !CanApplyMessStrategy(unit, target) ||
+            GetBattleOfficerId(target) != plan.TargetOfficerId ||
+            !CalculateMentalStrategyTargetGrids(sourceGrid, unit).Contains(plan.TargetGrid)) return false;
+        FocusCameraOnBattleGrid(sourceGrid);
+        AppendBattleLog(unit, "AI", BattleFormat("log.ai.confusion", "Decision: confuse {0}; success {1:N0}%, score {2}, variance {3}.",
+            FormatLogUnit(target), plan.SuccessChance, plan.Score, noise));
+        return TryExecuteBattleActionIntent(new BattleActionIntent(BattleActionKind.MentalStrategy, sourceGrid, plan.TargetGrid), unit);
     }
 
     private bool TryExecuteAiExtinguishStrategy(BattleGridKey sourceGrid, BattleOccupantInfo unit, AiExtinguishPlan plan, int noise)
@@ -3544,10 +3583,11 @@ public partial class BattleSceneController
     {
         var intelligence = GetAiCommandIntelligence(action.SourceGrid, action.Unit);
         var combat = GetOfficerBattleAttribute(action.Unit.OfficerName);
-        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.BridgeRepairPlan.HasValue || action.GateRepairPlan.HasValue || action.FencePlan != null || action.SupplyPlan.HasValue || action.ExtinguishPlan.HasValue || action.FirePlan.HasValue || action.IsGuardAction;
+        var isTacticalObjective = action.OutpostObjective.HasValue || action.BridgePlan != null || action.BridgeRepairPlan.HasValue || action.GateRepairPlan.HasValue || action.FencePlan != null || action.SupplyPlan.HasValue || action.ExtinguishPlan.HasValue || action.ConfusionPlan.HasValue || action.FirePlan.HasValue || action.IsGuardAction;
         var isDirectAttack = action.UnionCandidate == null &&
                              !action.MoveAttackDestination.HasValue &&
                              !action.ExtinguishPlan.HasValue &&
+                             !action.ConfusionPlan.HasValue &&
                              !action.FirePlan.HasValue &&
                              !action.IsHideAction &&
                              !action.IsGuardAction &&

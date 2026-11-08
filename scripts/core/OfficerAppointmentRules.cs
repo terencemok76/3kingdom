@@ -15,10 +15,34 @@ public static class OfficerAppointmentRules
     public const string GrandGeneral = "GrandGeneral";
     public const string VanguardGeneral = "VanguardGeneral";
     public const string RearGeneral = "RearGeneral";
+    public static int GetStrategistQuota(WorldState world, FactionData faction)
+    {
+        var cityCount = world.Cities.Count(city => city.OwnerFactionId == faction.Id);
+        return Math.Min(6, 2 + cityCount / 3);
+    }
     public static readonly string[] MilitaryAppointments = { GrandGeneral, VanguardGeneral, RearGeneral };
 
     public static bool IsMilitaryAppointment(string appointment) => MilitaryAppointments.Any(item => item.Equals(appointment, StringComparison.OrdinalIgnoreCase));
     public static void ClearMilitaryAppointments(OfficerData officer) => officer.Appointments.RemoveAll(IsMilitaryAppointment);
+
+    public static int CountStrategists(WorldState world, FactionData faction) => faction.OfficerIds
+        .Distinct().Select(world.GetOfficer)
+        .Count(officer => officer != null && HasAppointment(officer, Strategist));
+
+    public static int GetStrategySuccessBonus(OfficerData? officer, FactionData? faction, bool chiefPresentOnSameSide = false)
+    {
+        if (officer == null || faction == null || !faction.OfficerIds.Contains(officer.Id)) return 0;
+        if (faction.ChiefStrategistOfficerId == officer.Id) return 8;
+        return Math.Max(HasAppointment(officer, Strategist) ? 5 : 0, chiefPresentOnSameSide ? 3 : 0);
+    }
+
+    public static bool IsChiefStrategistPresent(FactionData? faction, string teamName, IEnumerable<(int OfficerId, string TeamName, int TroopCount)> activeUnits)
+    {
+        return faction != null && faction.ChiefStrategistOfficerId > 0 &&
+            faction.OfficerIds.Contains(faction.ChiefStrategistOfficerId) &&
+            activeUnits.Any(unit => unit.OfficerId == faction.ChiefStrategistOfficerId && unit.TroopCount > 0 &&
+                string.Equals(unit.TeamName, teamName, StringComparison.Ordinal));
+    }
 
     public static void NormalizeOfficer(OfficerData officer)
     {

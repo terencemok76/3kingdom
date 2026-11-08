@@ -51,10 +51,32 @@ public partial class BattleSceneController
                         {
                             infoLines.Add(BattleFormat("ui.battle.menu_appointments", "Position: {0}", string.Join(" / ", names)));
                         }
+                        if (_selectedUnit.Category == CategoryUnit)
+                        {
+                            var attackBonus = MilitaryAppointmentCombatRules.GetAttackBonusPercent(officer);
+                            var damageReduction = MilitaryAppointmentCombatRules.GetDamageReductionPercent(officer);
+                            if (attackBonus > 0 && damageReduction > 0)
+                                infoLines.Add(BattleFormat("ui.battle.menu_general_attack_defense", "General: attack +{0}%, troop damage received -{1}%", attackBonus, damageReduction));
+                            else if (attackBonus > 0)
+                                infoLines.Add(BattleFormat("ui.battle.menu_general_attack", "General: attack +{0}%", attackBonus));
+                            else if (damageReduction > 0)
+                                infoLines.Add(BattleFormat("ui.battle.menu_general_defense", "General: troop damage received -{0}%", damageReduction));
+                        }
                     }
                     infoLines.Add(BattleFormat("ui.battle.menu_intelligence", "Intelligence: {0}", GetOfficerTacticalIntelligence(_selectedUnit.OfficerName)));
                     infoLines.Add(BattleFormat("ui.battle.menu_combat", "Combat: {0}", GetOfficerBattleAttribute(_selectedUnit.OfficerName)));
                     infoLines.Add(BattleFormat("ui.battle.menu_command_rating", "Command: {0} (damage {1:P0})", GetOfficerCommandRating(_selectedUnit), GetOfficerCommandMultiplier(_selectedUnit) - 1.0f));
+                    var strategyBonus = GetStrategistSuccessBonus(_selectedUnit);
+                    if (strategyBonus > 0)
+                    {
+                        var bonusKey = strategyBonus switch
+                        {
+                            8 => "ui.battle.menu_strategy_bonus_chief",
+                            5 => "ui.battle.menu_strategy_bonus_strategist",
+                            _ => "ui.battle.menu_strategy_bonus_support"
+                        };
+                        infoLines.Add(BattleFormat(bonusKey, "Strategy success: +{0}%", strategyBonus));
+                    }
                 }
 
                 infoLines.Add(BattleFormat("ui.battle.menu_type", "Type: {0}", FormatTroopType(_selectedUnit.TroopType)));

@@ -230,6 +230,9 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         }
 
         var displayName = GetRoleDisplayName(role);
+        if (role == OfficerAppointmentRules.Strategist && _context.TurnManager?.World is { } strategistWorld &&
+            strategistWorld.GetFaction(_context.TurnManager.GetPlayerFactionId()) is { } strategistFaction)
+            displayName += $" {OfficerAppointmentRules.CountStrategists(strategistWorld, strategistFaction)}/{OfficerAppointmentRules.GetStrategistQuota(strategistWorld, strategistFaction)}";
         if ((OfficerAppointmentRules.IsMilitaryAppointment(role) || role == OfficerAppointmentRules.ChiefStrategist) && _context.TurnManager?.World is { } world)
         {
             var faction = world.GetFaction(_context.TurnManager.GetPlayerFactionId());
@@ -582,6 +585,8 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             OfficerAppointmentRules.GrandGeneral => "ui.military_effect_grand_general",
             OfficerAppointmentRules.VanguardGeneral => "ui.military_effect_vanguard_general",
             OfficerAppointmentRules.RearGeneral => "ui.military_effect_rear_general",
+            OfficerAppointmentRules.Strategist => "ui.strategist_effect",
+            OfficerAppointmentRules.ChiefStrategist => "ui.chief_strategist_effect",
             _ => string.Empty
         };
         var removeRole = GetSelectedRoleName(_removeRoleOption, string.Empty);

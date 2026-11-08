@@ -320,6 +320,7 @@ public partial class BattleSceneController : Node2D
         public AiBridgeRepairPlan? BridgeRepairPlan { get; init; }
         public AiGateRepairPlan? GateRepairPlan { get; init; }
         public AiExtinguishPlan? ExtinguishPlan { get; init; }
+        public AiConfusionPlan? ConfusionPlan { get; init; }
         public AiFirePlan? FirePlan { get; init; }
         public bool IsHideAction { get; init; }
         public bool IsGuardAction { get; init; }
@@ -349,6 +350,7 @@ public partial class BattleSceneController : Node2D
         WeaponResupply
     }
     private readonly record struct AiExtinguishPlan(BattleGridKey TargetGrid, int Score, int ProtectedUnits, int ProjectedDamage);
+    private readonly record struct AiConfusionPlan(BattleGridKey TargetGrid, int TargetOfficerId, int Score, float SuccessChance);
     private readonly record struct AiFirePlan(BattleGridKey TargetGrid, int Score, int EnemyDamage, int FriendlyDamage, int EnemyTargets, int SpreadTargets);
     private sealed record AiBridgeEngineeringPlan(
         IReadOnlyList<Vector2I> Corridor,
@@ -3667,7 +3669,7 @@ public partial class BattleSceneController : Node2D
             _ => 0
         };
         var terrainBonus = _mapData?.GetCell(targetGrid.X, targetGrid.Y).Terrain == BattleTerrainType.Forest ? -8 : 0;
-        return Mathf.Clamp(25.0f + (GetOfficerTacticalIntelligence(officer.OfficerName) * 0.6f) + weatherBonus + terrainBonus, 35.0f, 90.0f);
+        return Mathf.Clamp(25.0f + (GetOfficerTacticalIntelligence(officer.OfficerName) * 0.6f) + weatherBonus + terrainBonus + GetStrategistSuccessBonus(officer), 35.0f, 90.0f);
     }
 
     private IEnumerable<BattleGridKey> CalculateMentalStrategyTargetGrids(BattleGridKey sourceGrid, BattleOccupantInfo actor)
@@ -3716,13 +3718,7 @@ public partial class BattleSceneController : Node2D
             return false;
         }
 
-        var target = GetOccupantsAtGrid(targetGrid.Grid)
-            .Where(entry => entry.Grid == targetGrid)
-            .Select(entry => entry.Occupant)
-            .FirstOrDefault(occupant =>
-                occupant.Marker != null &&
-                occupant.Category == CategoryUnit &&
-                !IsHiddenFromSide(occupant, _selectedUnit.TeamName));
+        var target = GetMentalStrategyTarget(_selectedUnit, targetGrid);
         if (target == null)
         {
             return false;
@@ -3755,6 +3751,17 @@ public partial class BattleSceneController : Node2D
         RefreshInfoPanel();
         RefreshHighlights();
         return true;
+    }
+
+    private BattleOccupantInfo? GetMentalStrategyTarget(BattleOccupantInfo actor, BattleGridKey targetGrid)
+    {
+        return GetOccupantsAtGrid(targetGrid.Grid)
+            .Where(entry => entry.Grid == targetGrid)
+            .Select(entry => entry.Occupant)
+            .FirstOrDefault(occupant =>
+                occupant.Marker != null &&
+                occupant.Category == CategoryUnit &&
+                !IsHiddenFromSide(occupant, actor.TeamName));
     }
 
     private bool TryApplyMessStrategy(BattleGridKey targetGrid, BattleOccupantInfo target, BattleOccupantInfo actor)
@@ -3857,7 +3864,20 @@ public partial class BattleSceneController : Node2D
         var officerDelta = GetOfficerBattleAttribute(actor.OfficerName) - GetOfficerBattleAttribute(target.OfficerName);
         var targetMorale = target.Morale ?? DefaultUnitMorale;
         var lowMoraleBonus = targetMorale <= MessMoraleThreshold ? 20 : 0;
-        return Mathf.Clamp(55.0f + (officerDelta * 0.5f) + ((50 - targetMorale) * 0.5f) + lowMoraleBonus, 25.0f, 90.0f);
+        return Mathf.Clamp(55.0f + (officerDelta * 0.5f) + ((50 - targetMorale) * 0.5f) + lowMoraleBonus + GetStrategistSuccessBonus(actor), 25.0f, 90.0f);
+    }
+
+    private int GetStrategistSuccessBonus(BattleOccupantInfo unit)
+    {
+        if (unit.Category != CategoryUnit || !IsGeneralCountedPiece(unit.Category, unit.OfficerName)) return 0;
+        var world = CampaignRuntimeContext.World;
+        var officer = world?.GetOfficer(GetBattleOfficerId(unit));
+        var faction = officer == null ? null : world?.Factions.FirstOrDefault(candidate => candidate.OfficerIds.Contains(officer.Id));
+        var chiefPresent = OfficerAppointmentRules.IsChiefStrategistPresent(faction, unit.TeamName,
+            GetAllBattlePieces()
+                .Where(entry => entry.Occupant.Category == CategoryUnit && IsGeneralCountedPiece(entry.Occupant.Category, entry.Occupant.OfficerName))
+                .Select(entry => (GetBattleOfficerId(entry.Occupant), entry.Occupant.TeamName, entry.Occupant.TroopCount)));
+        return OfficerAppointmentRules.GetStrategySuccessBonus(officer, faction, chiefPresent);
     }
 
     private double PlayStrategyActionEffects(

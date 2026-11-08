@@ -266,6 +266,8 @@ public class DefenseReinforcementRequestData
 public class CommandResult
 {
     public bool Success { get; set; }
+    // Transient visibility metadata; the defender can be notified when an operation is exposed.
+    public bool SpyExposed { get; set; }
     public string Message { get; set; } = string.Empty;
     public string MessageZhHant { get; set; } = string.Empty;
     public string MessageEn { get; set; } = string.Empty;

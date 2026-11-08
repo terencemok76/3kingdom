@@ -9,6 +9,16 @@ internal static class BattleAiScoring
 {
     internal const int DecisiveActionScore = 5000;
 
+    internal static int GetExpectedStrategyScore(int value, float successChance)
+    {
+        return (int)(System.Math.Max(0, value) * System.Math.Clamp(successChance, 0f, 100f) / 100f);
+    }
+
+    internal static int GetConfusionValue(int targetTroops, bool officerTarget)
+    {
+        return 300 + System.Math.Clamp(targetTroops, 0, 3000) / 3 + (officerTarget ? 200 : 0);
+    }
+
     internal readonly record struct FinalOffensiveActionInput(
         int BaseScore,
         int Intelligence,

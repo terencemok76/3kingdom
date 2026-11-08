@@ -708,6 +708,7 @@ public partial class CommandResolver
             OfficerAppointmentRules.RemoveAppointment(surrenderedOfficer, OfficerAppointmentRules.Lord);
             OfficerAppointmentRules.RemoveAppointment(surrenderedOfficer, OfficerAppointmentRules.Chancellor);
             OfficerAppointmentRules.RemoveAppointment(surrenderedOfficer, OfficerAppointmentRules.ChiefStrategist);
+            OfficerAppointmentRules.RemoveAppointment(surrenderedOfficer, OfficerAppointmentRules.Strategist);
             OfficerAppointmentRules.ClearMilitaryAppointments(surrenderedOfficer);
             surrenderedOfficer.Belongs = receivingFactionId.ToString();
             // Loyalty belongs to the ruler, not to the city or faction label.

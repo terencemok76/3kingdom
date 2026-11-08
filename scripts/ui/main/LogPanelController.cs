@@ -27,6 +27,7 @@ internal sealed class LogPanelController
     {
         public required string Message { get; init; }
         public required bool IsPlayerRelated { get; init; }
+        public bool IsGodModeOnly { get; init; }
         public required LogEntryType Type { get; init; }
     }
 
@@ -162,6 +163,7 @@ internal sealed class LogPanelController
         RefreshPanelTitle();
         UpdateFilterButtonText();
         UpdateFilterButtonVisualState();
+        UpdateCopyButtonText();
         RebuildLogView();
         ApplyLayout();
     }
@@ -174,7 +176,7 @@ internal sealed class LogPanelController
         }
     }
 
-    public void AddLog(string message, bool isPlayerRelated = false)
+    public void AddLog(string message, bool isPlayerRelated = false, bool godModeOnly = false)
     {
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -185,6 +187,7 @@ internal sealed class LogPanelController
         {
             Message = message,
             IsPlayerRelated = isPlayerRelated,
+            IsGodModeOnly = godModeOnly,
             Type = ClassifyLogEntry(message, isPlayerRelated)
         });
         UpdateCopyButtonText();
@@ -650,10 +653,12 @@ internal sealed class LogPanelController
 
     private IEnumerable<LogEntry> GetFilteredEntries()
     {
-        return _filterMode == LogFilterMode.SelfFaction
-            ? _entries.Where(entry => entry.IsPlayerRelated)
-            : _entries;
+        var godMode = _context.World?.ViewAllInformationEnabled == true;
+        return _entries.Where(entry => IsEntryVisible(entry.IsPlayerRelated, entry.IsGodModeOnly, godMode, _filterMode == LogFilterMode.SelfFaction));
     }
+
+    internal static bool IsEntryVisible(bool isPlayerRelated, bool godModeOnly, bool godMode, bool selfFactionFilter) =>
+        (!godModeOnly || godMode) && (!selfFactionFilter || isPlayerRelated);
 
     private static LogEntryType ClassifyLogEntry(string message, bool isPlayerRelated)
     {

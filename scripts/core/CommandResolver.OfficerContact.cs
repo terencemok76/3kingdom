@@ -78,6 +78,7 @@ public partial class CommandResolver
         var targetFactionId = world.GetCity(target.CityId)?.OwnerFactionId ?? 0;
         if (cost == OfficerGiftCost && !FreeOfficerMovement.IsFreeOfficer(world, target) && targetFactionId > 0 && _random.Next(100) < 10)
         {
+            result.SpyExposed = true;
             ApplySpyExposurePenalty(world, pending.ActorFactionId, envoy, targetFactionId, 6, 3);
             result.MessageZhHant += " " + (_localization?.TForLanguage(GameLanguage.TraditionalChinese, "cmd.spy.exposed_suffix") ?? string.Empty);
             result.MessageEn += " " + (_localization?.TForLanguage(GameLanguage.English, "cmd.spy.exposed_suffix") ?? string.Empty);

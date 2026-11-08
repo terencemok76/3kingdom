@@ -1,4 +1,15 @@
 {
+	"log.foreign_spy_detected": { "zhHant": "「{0}」偵獲來自「{1}」的間諜「{2}」。", "en": "An agent, {2}, from {1} was detected in {0}." },
+	"log.foreign_spy_damage": { "zhHant": "「{0}」遭到破壞：金 -{1}、糧 -{2}、防禦 -{3}。", "en": "Damage in {0}: gold -{1}, food -{2}, defense -{3}." },
+	"log.foreign_spy_unrest": { "zhHant": "「{0}」發生動亂：民心 -{1}。", "en": "Unrest in {0}: loyalty -{1}." },
+	"log.foreign_spy_loyalty": { "zhHant": "「{0}」的武將「{1}」忠誠下降 {2}。", "en": "In {0}, officer {1} lost {2} loyalty." },
+	"log.foreign_spy_death": { "zhHant": "「{0}」的武將「{1}」遇害。", "en": "Officer {1} was killed in {0}." },
+	"log.foreign_covert_detected": { "zhHant": "我方武將「{0}」的內應身分暴露，背後勢力為「{1}」。", "en": "Officer {0} was exposed as an agent of {1}." },
+	"log.foreign_city_handover": { "zhHant": "「{0}」的太守「{1}」獻城，「{0}」已歸屬「{2}」。", "en": "Governor {1} surrendered {0} to {2}." },
+	"ui.map_mission_spy": { "zhHant": "間諜", "en": "Spy" },
+	"ui.map_mission_diplomacy": { "zhHant": "外交", "en": "Diplomacy" },
+	"ui.map_mission_recruit": { "zhHant": "招募", "en": "Recruitment" },
+	"ui.map_mission_contact": { "zhHant": "接觸", "en": "Contact" },
 	"ui.assign_role_officer":  {
 								   "zhHant":  "指派武將",
 								   "en":  "Officer To Assign"

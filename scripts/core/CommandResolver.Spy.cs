@@ -146,6 +146,7 @@ public partial class CommandResolver
         if (success)
         {
             var result = ResolveSuccessfulSpyAction(world, pendingCommand.ActorFactionId, targetCity, officer, pendingCommand.SpyActionType, pendingCommand.TargetOfficerId);
+            result.SpyExposed = exposed;
             AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, result);
             if (exposed)
             {
@@ -182,6 +183,7 @@ public partial class CommandResolver
                     GetCityName(targetCity, GameLanguage.English)
                 });
             AddSpyActorPrefix(world, pendingCommand.ActorFactionId, officer, result);
+            result.SpyExposed = true;
             AppendCovertResponse(world, pendingCommand, result, accepted: false);
             return result;
         }

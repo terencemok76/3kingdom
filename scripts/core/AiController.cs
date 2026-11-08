@@ -42,6 +42,9 @@ public class AiController
     private const int AiRulerChangeMinimumCandidateLoyalty = 70;
     private const int AiRulerChangeMinimumScoreMargin = 30;
     private const int AiRulerChangeCooldownMonths = 6;
+    private const int AiHireBaseGold = 200;
+    private const int AiHireGoldReserve = 600;
+    private const int AiHireMaximumGift = 400;
 
     private CommandResolver? _commandResolver;
     private TurnManager? _turnManager;
@@ -51,6 +54,8 @@ public class AiController
     public int LastDiplomacyDecisionTargetFactionId { get; private set; } = -1;
     public string LastAttackDecisionDetail { get; private set; } = string.Empty;
     public int LastAttackDecisionTargetFactionId { get; private set; } = -1;
+    public CommandResult? LastPublicDecisionResult { get; private set; }
+    public CommandResult? LastSpyDecisionResult { get; private set; }
 
     public void Initialize(CommandResolver commandResolver, TurnManager turnManager, LocalizationService localization)
     {
@@ -153,6 +158,20 @@ public class AiController
                 .ThenByDescending(officer => officer!.Loyalty).ThenBy(officer => officer!.Id).FirstOrDefault();
             if (candidate != null) results.Add(_commandResolver.ExecuteAssignOfficerAppointment(factionId, candidate.CityId, candidate.Id, appointment));
         }
+        while (OfficerAppointmentRules.CountStrategists(world, faction) < OfficerAppointmentRules.GetStrategistQuota(world, faction))
+        {
+            var candidate = faction.OfficerIds.Select(world.GetOfficer)
+                .Where(officer => officer != null && officer.Id != faction.RulerOfficerId && officer.Id != faction.ChiefStrategistOfficerId &&
+                    officer.CityId > 0 && officer.CaptiveFactionId <= 0 && (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
+                    world.GetCity(officer.CityId)?.OwnerFactionId == factionId && !OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Strategist) &&
+                    !BattleCampaignService.IsOfficerCommitted(world, officer.Id) && !OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id))
+                .OrderByDescending(officer => officer!.Intelligence * 3 + officer.Combat + officer.Leadership)
+                .ThenByDescending(officer => officer!.Loyalty).ThenBy(officer => officer!.Id).FirstOrDefault();
+            if (candidate == null) break;
+            var result = _commandResolver.ExecuteAssignOfficerAppointment(factionId, candidate.CityId, candidate.Id, OfficerAppointmentRules.Strategist);
+            results.Add(result);
+            if (!result.Success) break;
+        }
         return results;
     }
 
@@ -247,6 +266,8 @@ public class AiController
         LastDiplomacyDecisionTargetFactionId = -1;
         LastAttackDecisionDetail = string.Empty;
         LastAttackDecisionTargetFactionId = -1;
+        LastPublicDecisionResult = null;
+        LastSpyDecisionResult = null;
 
         if (_commandResolver == null || _turnManager?.World == null)
         {
@@ -371,6 +392,9 @@ public class AiController
             diplomacyResult = TryIssueDiplomacyCommand(world, city, factionId, availableOfficerIds, defensiveOnly: true);
         }
 
+        var merchantResult = TryIssueMarketTrade(city, factionId);
+        var hireResult = TryIssueOfficerHire(world, city, factionId, availableOfficerIds);
+
         CommandResult? spyResult = null;
         if (militaryResult == null && !siegeEquipmentPlan.IsValid)
         {
@@ -383,7 +407,7 @@ public class AiController
         }
 
         var coreResults = new System.Collections.Generic.List<CommandResult>();
-        var merchantResult = TryIssueMarketTrade(city, factionId);
+        if (hireResult != null) coreResults.Add(hireResult);
         if (merchantResult != null)
         {
             coreResults.Add(merchantResult);
@@ -477,6 +501,11 @@ public class AiController
             }));
         }
 
+        LastSpyDecisionResult = spyResult;
+        var publicResults = coreResults.Where(result => !ReferenceEquals(result, spyResult)).ToList();
+        if (militaryResult != null) publicResults.Insert(0, militaryResult);
+        LastPublicDecisionResult = publicResults.Count > 0 ? CombineResults(publicResults) : null;
+
         if (militaryResult == null)
         {
             return CombineResults(coreResults);
@@ -532,6 +561,60 @@ public class AiController
             MessageZhHant = messagesZh.Count > 0 ? string.Join(" | ", messagesZh) : (_localization?.TForLanguage(GameLanguage.TraditionalChinese, "cmd.pass") ?? "Pass"),
             MessageEn = messagesEn.Count > 0 ? string.Join(" | ", messagesEn) : (_localization?.TForLanguage(GameLanguage.English, "cmd.pass") ?? "Pass")
         };
+    }
+
+    private CommandResult? TryIssueOfficerHire(WorldState world, CityData city, int factionId, List<int> availableOfficerIds)
+    {
+        var outgoingGold = world.PendingCommands.Where(command => command.Type == CommandType.Move && command.SourceCityId == city.Id && !command.IsTraveling)
+            .Sum(command => Math.Max(0, command.GoldToSend));
+        var availableGold = Math.Max(0, city.Gold - outgoingGold);
+        if (_commandResolver == null || availableOfficerIds.Count == 0 || availableGold < AiHireBaseGold + AiHireGoldReserve ||
+            world.PendingCommands.Any(command => command.Type == CommandType.HireOfficer && command.SourceCityId == city.Id))
+            return null;
+
+        var eligibleCities = city.ConnectedCityIds.Append(city.Id).ToHashSet();
+        var reservedTargets = world.PendingCommands.Where(command => command.Type == CommandType.HireOfficer && command.ActorFactionId == factionId)
+            .Select(command => command.TargetOfficerId).ToHashSet();
+        var maximumGift = Math.Min(AiHireMaximumGift, availableGold - AiHireBaseGold - AiHireGoldReserve);
+        var candidates = new List<(OfficerData Officer, bool IsFree, int Gift)>();
+        foreach (var officer in world.Officers)
+        {
+            if (!eligibleCities.Contains(officer.CityId) || reservedTargets.Contains(officer.Id) || officer.CaptiveFactionId > 0 ||
+                (officer.DeathYear > 0 && world.Year > officer.DeathYear) ||
+                (officer.BirthYear > 0 && world.Year - officer.BirthYear < 14) ||
+                world.Factions.Any(faction => faction.RulerOfficerId == officer.Id) ||
+                BattleCampaignService.IsOfficerCommitted(world, officer.Id) || OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id))
+                continue;
+
+            var targetCity = world.GetCity(officer.CityId);
+            if (targetCity == null || (targetCity.OwnerFactionId != factionId && !world.CanFactionViewCity(factionId, targetCity.Id))) continue;
+            var isFree = FreeOfficerMovement.IsVisibleFreeOfficer(world, officer);
+            int? observedLoyalty = null;
+            if (!isFree)
+            {
+                if (targetCity.OwnerFactionId <= 0 || targetCity.OwnerFactionId == factionId || !targetCity.OfficerIds.Contains(officer.Id) ||
+                    world.GetFaction(targetCity.OwnerFactionId)?.OfficerIds.Contains(officer.Id) != true) continue;
+                observedLoyalty = world.GetOfficerIntel(factionId, officer.Id)?.Loyalty;
+                if (!observedLoyalty.HasValue || observedLoyalty.Value > 70) continue;
+            }
+
+            var baseScore = CommandResolver.GetHireAcceptanceScore(world, city, officer, factionId, 0, 0, null, observedLoyalty);
+            var threshold = CommandResolver.GetHireAcceptanceThreshold(world, officer);
+            var goldPerPoint = isFree ? 50 : 40;
+            var requiredGift = Math.Max(0, threshold - baseScore) * goldPerPoint;
+            if (requiredGift <= maximumGift) candidates.Add((officer, isFree, requiredGift));
+        }
+
+        var chosen = candidates.OrderByDescending(candidate => candidate.IsFree)
+            .ThenByDescending(candidate => candidate.Officer.Leadership + candidate.Officer.Intelligence + candidate.Officer.Politics + candidate.Officer.Strength + candidate.Officer.Combat)
+            .ThenBy(candidate => candidate.Gift).ThenBy(candidate => candidate.Officer.Id).FirstOrDefault();
+        if (chosen.Officer == null) return null;
+        var currentlyAvailable = GetAvailableOfficerIds(world, city).Where(availableOfficerIds.Contains).ToList();
+        var envoyId = GetBestOfficerId(world, city, currentlyAvailable, officer => officer.Charm * 2 + officer.Intelligence + officer.DiplomacyRank * 20);
+        if (envoyId <= 0) return null;
+        var result = _commandResolver.ScheduleHireOfficer(factionId, city.Id, chosen.Officer.Id, envoyId, chosen.Gift);
+        if (result.Success) availableOfficerIds.Remove(envoyId);
+        return result;
     }
 
     private CommandResult? TryIssueFriendlyLogisticsMove(WorldState world, CityData sourceCity, int factionId)

@@ -7,11 +7,16 @@ public enum MapMovementIcon
 {
     Logistics,
     Attack,
-    Reinforcement
+    Reinforcement,
+    Spy,
+    Diplomacy,
+    RecruitOfficer,
+    ContactOfficer
 }
 
 public partial class MapMovementMarker : Node2D
 {
+    private static readonly Font? CaptionFont = GD.Load<FontFile>("res://assets/fonts/LXGWWenKaiTC-Regular.ttf");
     private Vector2[] _points = Array.Empty<Vector2>();
     private float[] _distances = Array.Empty<float>();
     private float _length;
@@ -19,11 +24,13 @@ public partial class MapMovementMarker : Node2D
     private float _duration;
     private Action? _completed;
     private MapMovementIcon _icon;
+    private string _caption = string.Empty;
 
-    public void Start(Vector2[] points, MapMovementIcon icon, float duration, Action completed)
+    public void Start(Vector2[] points, MapMovementIcon icon, float duration, Action completed, string caption = "")
     {
         _points = points;
         _icon = icon;
+        _caption = caption;
         _duration = Math.Max(0.1f, duration);
         _completed = completed;
         _distances = new float[points.Length];
@@ -58,10 +65,41 @@ public partial class MapMovementMarker : Node2D
         {
             MapMovementIcon.Attack => new Color("d95245"),
             MapMovementIcon.Reinforcement => new Color("63b6d8"),
+            MapMovementIcon.Spy => new Color("ac88d1"),
+            MapMovementIcon.Diplomacy => new Color("72b98a"),
+            MapMovementIcon.RecruitOfficer => new Color("db9f68"),
+            MapMovementIcon.ContactOfficer => new Color("db9f68"),
             _ => new Color("e0b95b")
         };
         DrawCircle(Vector2.Zero, 11.0f, new Color("211a12", 0.9f));
         DrawCircle(Vector2.Zero, 8.5f, color);
+        if (!string.IsNullOrWhiteSpace(_caption))
+        {
+            var font = CaptionFont ?? ThemeDB.FallbackFont;
+            const int fontSize = 15;
+            var width = font.GetStringSize(_caption, HorizontalAlignment.Left, -1, fontSize).X;
+            var origin = new Vector2(-width / 2, -17);
+            DrawStringOutline(font, origin, _caption, HorizontalAlignment.Left, -1, fontSize, 3, new Color("211a12"));
+            DrawString(font, origin, _caption, HorizontalAlignment.Left, -1, fontSize, new Color("fff4d7"));
+        }
+        if (_icon == MapMovementIcon.Spy)
+        {
+            DrawPolyline(new[] { new Vector2(-6, 0), new Vector2(0, -4), new Vector2(6, 0), new Vector2(0, 4), new Vector2(-6, 0) }, Colors.White, 1.5f);
+            DrawCircle(Vector2.Zero, 1.8f, Colors.White);
+            return;
+        }
+        if (_icon == MapMovementIcon.Diplomacy)
+        {
+            DrawRect(new Rect2(-5.5f, -4, 11, 8), Colors.White, false, 1.5f);
+            DrawPolyline(new[] { new Vector2(-5, -3), new Vector2(0, 1), new Vector2(5, -3) }, Colors.White, 1.5f);
+            return;
+        }
+        if (_icon is MapMovementIcon.RecruitOfficer or MapMovementIcon.ContactOfficer)
+        {
+            DrawCircle(new Vector2(0, -3), 2.5f, Colors.White);
+            DrawArc(new Vector2(0, 6), 5, Mathf.Pi, Mathf.Tau, 12, Colors.White, 1.5f);
+            return;
+        }
         if (_icon == MapMovementIcon.Logistics)
         {
             DrawRect(new Rect2(-5.5f, -2.5f, 11.0f, 6.0f), new Color("fff2bf"));

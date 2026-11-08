@@ -654,6 +654,7 @@ public partial class CommandResolver
         }
 
         OfficerAppointmentRules.ClearMilitaryAppointments(successor);
+        OfficerAppointmentRules.RemoveAppointment(successor, OfficerAppointmentRules.Strategist);
         AssignOfficerAppointment(successor, OfficerAppointmentRules.Lord);
         successor.Belongs = faction.Id.ToString();
         var successorNameZh = !string.IsNullOrWhiteSpace(successor.NameZhHant) ? successor.NameZhHant : successor.Name;
@@ -1890,7 +1891,7 @@ public partial class CommandResolver
         }
     }
 
-    internal static int GetHireAcceptanceScore(WorldState world, CityData city, OfficerData officer, int actorFactionId, int goldOffer, int foodOffer, ItemData? giftedItem)
+    internal static int GetHireAcceptanceScore(WorldState world, CityData city, OfficerData officer, int actorFactionId, int goldOffer, int foodOffer, ItemData? giftedItem, int? observedLoyalty = null)
     {
         var rulerCharm = GetRulerCharm(world, actorFactionId);
         var relationshipBonus = GetHireRelationshipBonus(world, officer, actorFactionId) + (world.GetOfficerAffection(actorFactionId, officer.Id)?.Score ?? 0) / 5;
@@ -1901,7 +1902,7 @@ public partial class CommandResolver
         }
 
         var employedOfferBonus = goldOffer / 40 + foodOffer / 200;
-        return rulerCharm + officer.Charm + employedOfferBonus + GetItemGiftAcceptanceBonus(giftedItem) + relationshipBonus - officer.Loyalty - officer.Ambition / 2;
+        return rulerCharm + officer.Charm + employedOfferBonus + GetItemGiftAcceptanceBonus(giftedItem) + relationshipBonus - (observedLoyalty ?? officer.Loyalty) - officer.Ambition / 2;
     }
 
     internal static int GetHireAcceptanceThreshold(WorldState world, OfficerData officer) =>

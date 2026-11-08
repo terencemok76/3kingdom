@@ -3,6 +3,23 @@
         "zhHant": "任命職位",
         "en": "Appointments"
     },
+    "ui.view_appointments": { "zhHant": "職位總覽", "en": "Appointments" },
+    "fmt.view_appointments_faction": { "zhHant": "職位總覽（{0}）", "en": "Appointments ({0})" },
+    "ui.appointment_category": { "zhHant": "類別", "en": "Category" },
+    "ui.appointment_category_central": { "zhHant": "中央", "en": "Central" },
+    "ui.appointment_category_military": { "zhHant": "軍事", "en": "Military" },
+    "ui.appointment_category_strategist": { "zhHant": "軍師", "en": "Strategy" },
+    "ui.appointment_category_local": { "zhHant": "地方", "en": "Local" },
+    "ui.appointment_quota": { "zhHant": "名額", "en": "Slots" },
+    "ui.appointment_effect": { "zhHant": "效果", "en": "Effect" },
+    "ui.appointment_over_quota": { "zhHant": "{0}/{1}（超額 {2}）", "en": "{0}/{1} (over by {2})" },
+    "ui.appointment_effect_chancellor": { "zhHant": "提供內政及勢力決策建言。", "en": "Provides civil administration and faction advice." },
+    "ui.appointment_effect_governor": { "zhHant": "負責城市月計畫；可依授權安排內政。", "en": "Handles the city monthly plan and authorized administration." },
+    "ui.appointment_summary_grand_general": { "zhHant": "對部隊傷害 +3%；受部隊傷害 -3%", "en": "Troop damage +3%; received -3%" },
+    "ui.appointment_summary_vanguard_general": { "zhHant": "對部隊傷害 +5%", "en": "Troop damage +5%" },
+    "ui.appointment_summary_rear_general": { "zhHant": "受部隊傷害 -5%", "en": "Troop damage received -5%" },
+    "ui.appointment_summary_strategist": { "zhHant": "混亂、滅火 +5 個百分點；上限 90%", "en": "Confusion and extinguish +5 points; cap 90%" },
+    "ui.appointment_summary_chief": { "zhHant": "混亂、滅火本人 +8、同場 +3 個百分點；不疊加", "en": "Confusion and extinguish: own +8, allies +3; no stacking" },
     "ui.appointment_explanation": {
         "zhHant": "任命職位由君主指派；武將身分不會因此改變。",
         "en": "Appointments are assigned by the ruler and do not change an officer's identity."
@@ -14,6 +31,8 @@
     "ui.military_effect_grand_general": { "zhHant": "所率部隊：攻擊傷害 +3%，受到的部隊傷害 -3%。", "en": "Own unit: damage dealt +3%; troop damage received -3%." },
     "ui.military_effect_vanguard_general": { "zhHant": "所率部隊：攻擊傷害 +5%。", "en": "Own unit: damage dealt +5%." },
     "ui.military_effect_rear_general": { "zhHant": "所率部隊：受到的部隊傷害 -5%。", "en": "Own unit: troop damage received -5%." },
+    "ui.strategist_effect": { "zhHant": "所率部隊：混亂及滅火成功率 +5 個百分點，上限 90%。", "en": "Own unit: confusion and extinguish success +5 percentage points, capped at 90%." },
+    "ui.chief_strategist_effect": { "zhHant": "本人部隊混亂及滅火成功率 +8；在場時其他同勢力武將部隊 +3 個百分點，與軍師加成取較高值，上限 90%。", "en": "Own unit: confusion and extinguish success +8 points. While present, other officers of the same faction gain +3; strategist bonuses do not stack. Cap: 90%." },
     "ui.appointment_replace_confirm": {
         "zhHant": "現任者：{0}；所選武將將解除的職位：{1}。再次按確認職位將解除相關舊職並任命。",
         "en": "Current holder: {0}; selected officer's post to remove: {1}. Press Assign again to confirm."

@@ -51,7 +51,7 @@ public partial class HudController
 
     private void ContinuePendingNonAttackResolution()
     {
-        if (!_isResolvingEndTurn || _turnManager?.World == null || _commandResolver == null)
+        if (!_isResolvingEndTurn || _turnManager?.World == null || _commandResolver == null || _localization == null)
         {
             return;
         }
@@ -73,12 +73,55 @@ public partial class HudController
                 return;
             }
 
+            // A successful hire moves the target before the result is logged.
+            // Capture relevance first so losing a player officer remains visible.
+            var isPlayerRelated = IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId);
+            var isForeignSecret = SpyLogVisibilityRules.IsForeignSecretAction(pendingCommand, playerFactionId);
+            var targetOfficerBefore = _turnManager.World.GetOfficer(pendingCommand.TargetOfficerId);
+            var targetCityBefore = _turnManager.World.GetCity(pendingCommand.TargetCityId > 0
+                ? pendingCommand.TargetCityId : targetOfficerBefore?.CityId ?? 0);
+            var targetsPlayer = isForeignSecret && targetCityBefore?.OwnerFactionId == playerFactionId;
+            var oldGold = targetCityBefore?.Gold ?? 0;
+            var oldFood = targetCityBefore?.Food ?? 0;
+            var oldDefense = targetCityBefore?.Defense ?? 0;
+            var oldCityLoyalty = targetCityBefore?.Loyalty ?? 0;
+            var oldOfficerLoyalty = targetOfficerBefore?.Loyalty ?? 0;
+            var oldOfficerIds = targetsPlayer && pendingCommand.SpyActionType == SpyActionType.Assassination
+                ? targetCityBefore!.OfficerIds.ToArray() : System.Array.Empty<int>();
             var result = _commandResolver.ResolvePendingCommand(pendingCommand);
             if (!(pendingCommand.Type == CommandType.Move && pendingCommand.IsTraveling))
             {
                 _turnManager.World.PendingCommands.Remove(pendingCommand);
             }
-            AddLog(GetLocalizedResultMessage(result), IsPlayerRelatedPendingCommand(pendingCommand, playerFactionId));
+            if (isForeignSecret)
+            {
+                AddLog(GetLocalizedResultMessage(result), isPlayerRelated, godModeOnly: true);
+                if (targetsPlayer && targetCityBefore != null)
+                {
+                    var cityName = _localization.GetCityName(targetCityBefore);
+                    var effectKey = SpyLogVisibilityRules.GetVisibleEffectKey(pendingCommand, result, true);
+                    if (effectKey == "log.foreign_spy_damage")
+                        AddLog(_localization.Format(effectKey, cityName, System.Math.Max(0, oldGold - targetCityBefore.Gold), System.Math.Max(0, oldFood - targetCityBefore.Food), System.Math.Max(0, oldDefense - targetCityBefore.Defense)), true);
+                    else if (effectKey == "log.foreign_spy_unrest")
+                        AddLog(_localization.Format(effectKey, cityName, System.Math.Max(0, oldCityLoyalty - targetCityBefore.Loyalty)), true);
+                    else if (effectKey == "log.foreign_spy_loyalty" && targetOfficerBefore != null)
+                        AddLog(_localization.Format(effectKey, cityName, _localization.GetOfficerName(targetOfficerBefore), System.Math.Max(0, oldOfficerLoyalty - targetOfficerBefore.Loyalty)), true);
+                    else if (effectKey == "log.foreign_spy_death")
+                    {
+                        var victim = oldOfficerIds.Where(id => !targetCityBefore.OfficerIds.Contains(id)).Select(_turnManager.World.GetOfficer)
+                            .FirstOrDefault(officer => officer != null && officer.CityId == 0 && officer.DeathYear == _turnManager.World.Year);
+                        AddLog(_localization.Format(effectKey, cityName, victim != null ? _localization.GetOfficerName(victim) : _localization.T("ui.unknown")), true);
+                    }
+                    if (result.SpyExposed)
+                    {
+                        var spy = _turnManager.World.GetOfficer(pendingCommand.OfficerIds.FirstOrDefault());
+                        AddLog(_localization.Format("log.foreign_spy_detected", cityName,
+                            _localization.GetFactionName(_turnManager.World, pendingCommand.ActorFactionId),
+                            spy != null ? _localization.GetOfficerName(spy) : _localization.T("ui.unknown")), true);
+                    }
+                }
+            }
+            else AddLog(GetLocalizedResultMessage(result), isPlayerRelated);
             if (result.ActiveBattleCampaignId > 0)
             {
                 _turnManager.World.IsBattleResolutionPhase = true;
@@ -431,25 +474,30 @@ public partial class HudController
         _militaryUiController?.ResetAttackDialogState();
 
         var playerFactionId = _turnManager.GetPlayerFactionId();
+        var cityOwnersBeforeMonth = world.Cities.ToDictionary(city => city.Id, city => city.OwnerFactionId);
         _turnManager.AdvanceMonth();
         foreach (var maintenance in _turnManager.ConsumeCovertMaintenanceEvents())
         {
-            if (maintenance.SponsorId != playerFactionId) continue;
             var officer = world.GetOfficer(maintenance.OfficerId);
             if (officer != null)
-                AddLog(_localization.Format("ui.covert_maintenance_" + maintenance.Kind, _localization.GetOfficerName(officer)), isPlayerRelated: true);
+                AddLog(_localization.Format("ui.covert_maintenance_" + maintenance.Kind, _localization.GetOfficerName(officer)),
+                    isPlayerRelated: maintenance.SponsorId == playerFactionId, godModeOnly: maintenance.SponsorId != playerFactionId);
         }
         foreach (var action in _turnManager.ConsumeCovertDiscordEvents())
         {
-            if (action.SponsorId != playerFactionId) continue;
             var agent = world.GetOfficer(action.OfficerId);
             var target = world.GetOfficer(action.TargetId);
             if (agent != null && target != null)
-                AddLog(_localization.Format("ui.covert_discord_" + action.Kind, _localization.GetOfficerName(agent), _localization.GetOfficerName(target)), isPlayerRelated: true);
+            {
+                var targetsPlayer = world.GetCity(target.CityId)?.OwnerFactionId == playerFactionId;
+                AddLog(_localization.Format("ui.covert_discord_" + action.Kind, _localization.GetOfficerName(agent), _localization.GetOfficerName(target)),
+                    isPlayerRelated: action.SponsorId == playerFactionId || targetsPlayer, godModeOnly: action.SponsorId != playerFactionId);
+                if (action.SponsorId != playerFactionId && action.Kind == "exposed" && targetsPlayer)
+                    AddLog(_localization.Format("log.foreign_covert_detected", _localization.GetOfficerName(agent), _localization.GetFactionName(world, action.SponsorId)), true);
+            }
         }
         foreach (var action in _turnManager.ConsumeCovertCitySurrenderEvents())
         {
-            if (action.SponsorId != playerFactionId) continue;
             var officer = world.GetOfficer(action.OfficerId);
             var city = world.GetCity(action.CityId);
             var officerName = officer != null ? _localization.GetOfficerName(officer) : _localization.T("ui.unknown");
@@ -460,8 +508,19 @@ public partial class HudController
                 var names = string.Join("、", action.JoinedOfficerIds.Select(world.GetOfficer).Where(item => item != null).Select(item => _localization.GetOfficerName(item!)));
                 message += "\n\n" + _localization.Format("ui.covert_city_surrender_followers", names);
             }
-            AddLog(message, isPlayerRelated: true);
-            QueueFactionOutcome(_localization.T("ui.covert_city_surrender_title_" + action.Kind), message, portraitOfficerId: action.OfficerId);
+            var wasPlayerCity = cityOwnersBeforeMonth.TryGetValue(action.CityId, out var originalOwner) && originalOwner == playerFactionId;
+            var logMessage = action.SponsorId == playerFactionId ? message :
+                _localization.FormatAiCityAction(_localization.GetFactionName(world, action.SponsorId), cityName, message);
+            AddLog(logMessage, isPlayerRelated: action.SponsorId == playerFactionId || wasPlayerCity, godModeOnly: action.SponsorId != playerFactionId);
+            if (action.SponsorId == playerFactionId)
+                QueueFactionOutcome(_localization.T("ui.covert_city_surrender_title_" + action.Kind), message, portraitOfficerId: action.OfficerId);
+            else if (wasPlayerCity)
+            {
+                if (action.Kind == "success")
+                    AddLog(_localization.Format("log.foreign_city_handover", cityName, officerName, _localization.GetFactionName(world, action.SponsorId)), true);
+                else if (action.Kind == "exposed")
+                    AddLog(_localization.Format("log.foreign_covert_detected", officerName, _localization.GetFactionName(world, action.SponsorId)), true);
+            }
         }
         world.IsBattleResolutionPhase = false;
         foreach (var escapeEvent in _turnManager.ConsumeOfficerEscapeEvents())
@@ -630,23 +689,34 @@ public partial class HudController
 
     private bool IsPlayerRelatedPendingCommand(PendingCommandData pendingCommand, int playerFactionId)
     {
-        if (_turnManager?.World == null || playerFactionId <= 0)
-        {
-            return false;
-        }
+        return _turnManager?.World is { } world && IsPlayerRelatedPendingCommandForWorld(world, pendingCommand, playerFactionId);
+    }
+
+    internal static bool IsPlayerRelatedPendingCommandForWorld(WorldState world, PendingCommandData pendingCommand, int playerFactionId)
+    {
+        if (playerFactionId <= 0) return false;
 
         if (pendingCommand.ActorFactionId == playerFactionId || pendingCommand.TargetFactionId == playerFactionId)
         {
             return true;
         }
 
-        var sourceCity = _turnManager.World.GetCity(pendingCommand.SourceCityId);
+        if (pendingCommand.Type is CommandType.HireOfficer or CommandType.ContactOfficer)
+        {
+            var targetOfficer = world.GetOfficer(pendingCommand.TargetOfficerId);
+            if (targetOfficer != null &&
+                (world.GetFaction(playerFactionId)?.OfficerIds.Contains(targetOfficer.Id) == true ||
+                 world.GetCity(targetOfficer.CityId)?.OwnerFactionId == playerFactionId))
+                return true;
+        }
+
+        var sourceCity = world.GetCity(pendingCommand.SourceCityId);
         if (sourceCity != null && sourceCity.OwnerFactionId == playerFactionId)
         {
             return true;
         }
 
-        var targetCity = _turnManager.World.GetCity(pendingCommand.TargetCityId);
+        var targetCity = world.GetCity(pendingCommand.TargetCityId);
         return targetCity != null && targetCity.OwnerFactionId == playerFactionId;
     }
 

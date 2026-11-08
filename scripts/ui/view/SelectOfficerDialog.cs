@@ -76,6 +76,7 @@ public sealed partial class SelectOfficerDialog : Control
         if (_dialogPanel != null)
         {
             StrategyPanelChrome.Apply(_dialogPanel);
+            _dialogPanel.Resized += OnDialogPanelResized;
         }
         if (_resizeHandle != null)
         {
@@ -212,6 +213,8 @@ public sealed partial class SelectOfficerDialog : Control
         Show();
         MoveToFront();
         CenterPanel(panelSize ?? new Vector2(620.0f, 320.0f));
+        var requestedSize = panelSize ?? new Vector2(620.0f, 320.0f);
+        Callable.From(() => { if (Visible) CenterPanel(requestedSize); }).CallDeferred();
     }
 
     public int GetSelectedOfficerId()
@@ -655,22 +658,18 @@ public sealed partial class SelectOfficerDialog : Control
         }
 
         var viewportSize = GetViewportRect().Size;
-        var panelSize = _dialogPanel.Size;
-        if (panelSize.X <= 0.0f || panelSize.Y <= 0.0f)
-        {
-            panelSize = _dialogPanel.CustomMinimumSize;
-        }
-        if (panelSize.X <= 0.0f || panelSize.Y <= 0.0f)
-        {
-            panelSize = fallbackSize;
-            _dialogPanel.CustomMinimumSize = fallbackSize;
-            _dialogPanel.Size = fallbackSize;
-        }
+        var panelSize = _dialogPanel.Size.Max(fallbackSize).Max(MinimumPanelSize).Max(_dialogPanel.GetCombinedMinimumSize());
+        _dialogPanel.Size = panelSize;
 
         _dialogPanel.Position = new Vector2(
             Mathf.Max(0.0f, (viewportSize.X - panelSize.X) * 0.5f),
             Mathf.Max(0.0f, (viewportSize.Y - panelSize.Y) * 0.5f));
         StrategyPanelChrome.Sync(_dialogPanel);
+    }
+
+    private void OnDialogPanelResized()
+    {
+        if (_dialogPanel != null) StrategyPanelChrome.Sync(_dialogPanel);
     }
 
     private void ApplyExistingButtonThemes()

@@ -204,6 +204,8 @@ public static class CovertOfficerRules
 
         original.OfficerIds.Remove(governor.Id);
         OfficerAppointmentRules.ClearMilitaryAppointments(governor);
+        OfficerAppointmentRules.RemoveAppointment(governor, OfficerAppointmentRules.Strategist);
+        OfficerAppointmentRules.RemoveAppointment(governor, OfficerAppointmentRules.ChiefStrategist);
         if (original.ChancellorOfficerId == governor.Id) original.ChancellorOfficerId = 0;
         if (original.ChiefStrategistOfficerId == governor.Id) original.ChiefStrategistOfficerId = 0;
         governor.Belongs = sponsor.Id.ToString();

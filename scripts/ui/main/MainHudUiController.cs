@@ -80,9 +80,9 @@ internal sealed class MainHudUiController
         _topBarController.RefreshMonth();
     }
 
-    public void AddLog(string message, bool isPlayerRelated = false)
+    public void AddLog(string message, bool isPlayerRelated = false, bool godModeOnly = false)
     {
-        _logPanelController.AddLog(message, isPlayerRelated);
+        _logPanelController.AddLog(message, isPlayerRelated, godModeOnly);
     }
 
     public void RefreshPanelTitles()

@@ -494,7 +494,7 @@ public partial class HudController : CanvasLayer
         _merchantUiController?.RefreshIfOpen();
     }
 
-    public void AddLog(string message, bool isPlayerRelated = false)
+    public void AddLog(string message, bool isPlayerRelated = false, bool godModeOnly = false)
     {
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -504,14 +504,14 @@ public partial class HudController : CanvasLayer
         var world = _turnManager?.World;
         if (world == null)
         {
-            _mainHudUiController?.AddLog(message, isPlayerRelated);
+            _mainHudUiController?.AddLog(message, isPlayerRelated, godModeOnly);
             return;
         }
 
         var datedMessage = _localization?.IsTraditionalChinese == false
             ? $"{world.Year}-{world.Month:00} | {message}"
             : $"{world.Year}年{world.Month}月｜{message}";
-        _mainHudUiController?.AddLog(datedMessage, isPlayerRelated);
+        _mainHudUiController?.AddLog(datedMessage, isPlayerRelated, godModeOnly);
     }
 
     private void OnLanguageButtonPressed()

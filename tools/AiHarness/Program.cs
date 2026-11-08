@@ -3,6 +3,8 @@ using System.Reflection;
 using ThreeKingdom.Battle;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
+using ThreeKingdom.Map;
+using ThreeKingdom.UI;
 
 namespace AiHarness;
 
@@ -13,6 +15,42 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--spy-log-privacy-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunSpyLogPrivacyTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--ai-officer-hire-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunAiOfficerHireTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--map-missions-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunMapMissionPresentationTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--appointment-overview-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunAppointmentOverviewTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--battle-ai-strategy-scoring-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunBattleAiStrategyScoringTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--strategist-appointments-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunStrategistAppointmentTest();
+            PrintSummary();
+            return;
+        }
         if (args.Contains("--military-combat-bonus-only", StringComparer.OrdinalIgnoreCase))
         {
             RunMilitaryCombatBonusTest();
@@ -3231,6 +3269,368 @@ internal static class Program
         Assert(result.Success, "Assign officer appointment resolves", $"success={result.Success}");
         Assert(OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor), "Assign officer appointment applies", string.Join(',', officer.Appointments));
         Assert(!blocked.Success, "Assign officer appointment blocks ruler", $"success={blocked.Success}");
+    }
+
+    private static void RunSpyLogPrivacyTest()
+    {
+        Assert(!LogPanelController.IsEntryVisible(true, true, false, false) &&
+               !LogPanelController.IsEntryVisible(true, true, false, true) &&
+               LogPanelController.IsEntryVisible(true, true, true, false) &&
+               LogPanelController.IsEntryVisible(true, true, true, true) &&
+               LogPanelController.IsEntryVisible(true, false, false, true),
+            "God-only logs obey both filters and mode toggles", "hidden in normal mode; visible in god mode");
+        var ownSpy = new PendingCommandData { Type = CommandType.Spy, ActorFactionId = 1, SpyActionType = SpyActionType.Reconnaissance };
+        var foreignSpy = new PendingCommandData { Type = CommandType.Spy, ActorFactionId = 2, SpyActionType = SpyActionType.Reconnaissance };
+        var foreignContact = new PendingCommandData { Type = CommandType.ContactOfficer, ActorFactionId = 2 };
+        Assert(!SpyLogVisibilityRules.IsForeignSecretAction(ownSpy, 1) &&
+               !SpyLogVisibilityRules.IsForeignSecretAction(new PendingCommandData { Type = CommandType.ContactOfficer, ActorFactionId = 1 }, 1) &&
+               SpyLogVisibilityRules.IsForeignSecretAction(foreignSpy, 1) &&
+               SpyLogVisibilityRules.IsForeignSecretAction(foreignContact, 1),
+            "Own spy stays visible and foreign espionage stays secret", "spy and covert contact");
+        var success = new CommandResult { Success = true };
+        Assert(SpyLogVisibilityRules.GetVisibleEffectKey(foreignSpy, success, true) == string.Empty &&
+               SpyLogVisibilityRules.GetVisibleEffectKey(new PendingCommandData { Type = CommandType.Spy, SpyActionType = SpyActionType.RecruitCovertOfficer }, success, true) == string.Empty &&
+               SpyLogVisibilityRules.GetVisibleEffectKey(new PendingCommandData { Type = CommandType.Spy, SpyActionType = SpyActionType.Sabotage }, success, true) == "log.foreign_spy_damage" &&
+               SpyLogVisibilityRules.GetVisibleEffectKey(new PendingCommandData { Type = CommandType.Spy, SpyActionType = SpyActionType.Sabotage }, new CommandResult { Success = false }, true) == string.Empty &&
+               SpyLogVisibilityRules.GetVisibleEffectKey(new PendingCommandData { Type = CommandType.Spy, SpyActionType = SpyActionType.Sabotage }, success, false) == string.Empty,
+            "Only observable successful damage is reported to the target", "recon and covert recruitment remain hidden");
+
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "AiScoutCity", 1, 500, 800, 2000, new[] { 101 }, new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "PlayerCity", 2, 1000, 1000, 1500, new[] { 201 }, new[] { 1 }));
+        world.Officers.Add(TestHelpers.Officer(101, "SpyOfficer", 1, intelligence: 92, charm: 82));
+        world.Officers.Add(TestHelpers.Officer(201, "PlayerRuler", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "Player", true, 201, new[] { 201 }));
+        var services = CreateServices(world);
+        var fullResult = services.Ai.RunSingleCityDecision(1, 1);
+        var secret = services.Ai.LastSpyDecisionResult;
+        var publicResult = services.Ai.LastPublicDecisionResult;
+        Assert(secret != null && world.PendingCommands.Any(command => command.Type == CommandType.Spy) &&
+               fullResult.MessageEn.Contains(secret.MessageEn, StringComparison.Ordinal) &&
+               (publicResult == null || !publicResult.MessageEn.Contains(secret.MessageEn, StringComparison.Ordinal)),
+            "AI city summary separates spy scheduling from public actions", "complete result preserved for god mode");
+        var mixedWorld = TestHelpers.World();
+        mixedWorld.Cities.Add(TestHelpers.City(1, "AiCity", 1, 1000, 2000, 2000, new[] { 101, 102 }, new[] { 2 }));
+        mixedWorld.Cities.Add(TestHelpers.City(2, "PlayerCity", 2, 1000, 1000, 1500, new[] { 201 }, new[] { 1 }));
+        mixedWorld.Officers.Add(TestHelpers.Officer(101, "Spy", 1, intelligence: 95, charm: 90));
+        mixedWorld.Officers.Add(TestHelpers.Officer(102, "Recruiter", 1, intelligence: 40, charm: 50));
+        mixedWorld.Officers.Add(TestHelpers.Officer(201, "Player", 2));
+        mixedWorld.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101, 102 }));
+        mixedWorld.Factions.Add(TestHelpers.Faction(2, "Player", true, 201, new[] { 201 }));
+        var mixedServices = CreateServices(mixedWorld);
+        mixedServices.Ai.RunSingleCityDecision(1, 1);
+        var mixedSecret = mixedServices.Ai.LastSpyDecisionResult;
+        var mixedPublic = mixedServices.Ai.LastPublicDecisionResult;
+        Assert(mixedSecret != null && mixedPublic != null && mixedWorld.PendingCommands.Any(command => command.Type == CommandType.Recruit) &&
+               !mixedPublic.MessageEn.Contains(mixedSecret.MessageEn, StringComparison.Ordinal),
+            "Public AI summary retains non-spy actions", "recruitment visible while spy is hidden");
+        var sawExposed = false;
+        var sawUnexposed = false;
+        var exposureMatchesMessage = true;
+        for (var seed = 1; seed <= 50 && (!sawExposed || !sawUnexposed); seed++)
+        {
+            var testWorld = CloneWorld(world);
+            testWorld.RandomSeed = seed;
+            var testServices = CreateServices(testWorld);
+            var spy = world.PendingCommands.First(command => command.Type == CommandType.Spy);
+            var spyResult = testServices.Resolver.ResolvePendingCommand(spy);
+            sawExposed |= spyResult.SpyExposed;
+            sawUnexposed |= !spyResult.SpyExposed;
+            exposureMatchesMessage &= spyResult.SpyExposed == spyResult.MessageEn.Contains("exposed", StringComparison.OrdinalIgnoreCase);
+        }
+        Assert(sawExposed && sawUnexposed && exposureMatchesMessage, "Spy resolution exposes structured detection status", "detected and undetected seeds");
+        var contactWorld = TestHelpers.World();
+        contactWorld.Cities.Add(TestHelpers.City(1, "AI", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        contactWorld.Cities.Add(TestHelpers.City(2, "Player", 2, 1000, 1000, 1000, new[] { 201, 202 }, Array.Empty<int>()));
+        contactWorld.Officers.Add(TestHelpers.Officer(101, "Envoy", 1));
+        contactWorld.Officers.Add(TestHelpers.Officer(201, "Ruler", 2));
+        contactWorld.Officers.Add(TestHelpers.Officer(202, "Target", 2));
+        contactWorld.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        contactWorld.Factions.Add(TestHelpers.Faction(2, "Player", true, 201, new[] { 201, 202 }));
+        var contact = new PendingCommandData { Type = CommandType.ContactOfficer, ActorFactionId = 1, SourceCityId = 1, TargetCityId = 2, TargetOfficerId = 202, GoldToSend = 150, OfficerIds = new List<int> { 101 } };
+        var contactExposed = false;
+        var contactHidden = false;
+        var contactMatches = true;
+        for (var seed = 1; seed <= 100 && (!contactExposed || !contactHidden); seed++)
+        {
+            var testWorld = CloneWorld(contactWorld);
+            testWorld.RandomSeed = seed;
+            var contactResult = CreateServices(testWorld).Resolver.ResolvePendingCommand(contact);
+            contactExposed |= contactResult.SpyExposed;
+            contactHidden |= !contactResult.SpyExposed;
+            contactMatches &= contactResult.SpyExposed == contactResult.MessageEn.Contains("exposed", StringComparison.OrdinalIgnoreCase);
+        }
+        Assert(contactExposed && contactHidden && contactMatches, "Covert contact exposes structured detection status", "detected and undetected seeds");
+    }
+
+    private static void RunAiOfficerHireTest()
+    {
+        var world = TestHelpers.World(year: 200, month: 2);
+        world.Cities.Add(TestHelpers.City(1, "AI City", 1, 1600, 5000, 3000, new[] { 101 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "AI Ruler", 1));
+        world.Officers.Add(TestHelpers.Officer(102, "Free", 1, charm: 75));
+        world.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        var services = CreateServices(world);
+        var result = services.Ai.RunSingleCityDecision(1, 1);
+        var hire = world.PendingCommands.FirstOrDefault(command => command.Type == CommandType.HireOfficer);
+        Assert(result.Success && hire?.ActorFactionId == 1 && hire.TargetOfficerId == 102 && hire.OfficerIds.SequenceEqual(new[] { 101 }) &&
+               world.GetOfficer(101)!.LastAssignedYear == world.Year && world.GetOfficer(101)!.LastAssignedMonth == world.Month,
+            "AI schedules local free officer hire with available envoy", hire == null ? "no hire order" : $"target={hire.TargetOfficerId}, envoy={hire.OfficerIds[0]}");
+        Assert(hire != null && MapCommandPresentationRules.GetFactionCommands(world, 1, 2).Contains(hire),
+            "AI hire enters map presentation queue", "AI recruitment visible");
+        var beforeGold = world.GetCity(1)!.Gold;
+        var resolved = services.Turn.ResolvePendingCommands(services.Resolver);
+        Assert(resolved.Any(item => item.Success) && world.GetFaction(1)!.OfficerIds.Contains(102) && world.GetCity(1)!.OfficerIds.Contains(102) &&
+               world.GetCity(1)!.Gold == beforeGold - 200 - (hire?.GoldToSend ?? 0),
+            "AI hire resolves using normal transfer and cost", $"gold={beforeGold}->{world.GetCity(1)!.Gold}");
+
+        var enemyWorld = TestHelpers.World(year: 200, month: 2);
+        enemyWorld.Cities.Add(TestHelpers.City(1, "AI City", 1, 1600, 5000, 3000, new[] { 101 }, new[] { 2 }));
+        enemyWorld.Cities.Add(TestHelpers.City(2, "Enemy City", 2, 1000, 5000, 3000, new[] { 201, 202 }, new[] { 1 }));
+        enemyWorld.Officers.Add(TestHelpers.Officer(101, "AI Ruler", 1));
+        enemyWorld.Officers.Add(TestHelpers.Officer(201, "Enemy Ruler", 2));
+        enemyWorld.Officers.Add(TestHelpers.Officer(202, "Enemy Officer", 2, charm: 75));
+        enemyWorld.GetOfficer(202)!.Loyalty = 95;
+        enemyWorld.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        enemyWorld.Factions.Add(TestHelpers.Faction(2, "Enemy", true, 201, new[] { 201, 202 }));
+        var enemyServices = CreateServices(enemyWorld);
+        var method = typeof(AiController).GetMethod("TryIssueOfficerHire", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        CommandResult? TryHire() => (CommandResult?)method.Invoke(enemyServices.Ai, new object[] { enemyWorld, enemyWorld.GetCity(1)!, 1, new List<int> { 101 } });
+        Assert(TryHire() == null, "AI does not hire foreign officer without city intelligence", "unseen city");
+        enemyWorld.CityIntelRecords.Add(new WorldState.CityIntelData { ViewerFactionId = 1, TargetCityId = 2, RemainingMonths = 3 });
+        Assert(TryHire() == null, "AI does not read unknown foreign loyalty", "no officer intelligence");
+        enemyWorld.OfficerIntelRecords.Add(new WorldState.OfficerIntelData { ViewerFactionId = 1, OfficerId = 202, CityId = 2, Loyalty = 40, Year = 199, Month = 1 });
+        var estimated = TryHire();
+        var enemyHire = enemyWorld.PendingCommands.FirstOrDefault(command => command.Type == CommandType.HireOfficer);
+        Assert(estimated?.Success == true && enemyHire?.TargetOfficerId == 202, "AI uses stored loyalty snapshot", "observed 40, actual 95");
+        Assert(enemyHire != null && HudController.IsPlayerRelatedPendingCommandForWorld(enemyWorld, enemyHire, 2),
+            "AI hire targeting player officer is player-related before resolution", "player log retains outcome");
+        var actual = enemyHire == null ? null : enemyServices.Resolver.ResolvePendingCommand(enemyHire);
+        Assert(actual?.Success == false && enemyWorld.GetFaction(2)!.OfficerIds.Contains(202),
+            "Outdated intelligence does not guarantee recruitment", "actual loyalty evaluated at resolution");
+
+        var poorWorld = TestHelpers.World(year: 200, month: 2);
+        poorWorld.Cities.Add(TestHelpers.City(1, "Poor AI", 1, 799, 5000, 3000, new[] { 101 }, Array.Empty<int>()));
+        poorWorld.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        poorWorld.Officers.Add(TestHelpers.Officer(102, "Free", 1));
+        poorWorld.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        var poorServices = CreateServices(poorWorld);
+        var lowFunds = (CommandResult?)method.Invoke(poorServices.Ai, new object[] { poorWorld, poorWorld.GetCity(1)!, 1, new List<int> { 101 } });
+        Assert(lowFunds == null && !poorWorld.PendingCommands.Any(command => command.Type == CommandType.HireOfficer), "AI preserves its hire treasury reserve", "799 gold");
+        poorWorld.GetCity(1)!.Gold = 1600;
+        poorWorld.PendingCommands.Add(new PendingCommandData { Type = CommandType.Move, ActorFactionId = 1, SourceCityId = 1, GoldToSend = 900 });
+        var reservedHire = (CommandResult?)method.Invoke(poorServices.Ai, new object[] { poorWorld, poorWorld.GetCity(1)!, 1, new List<int> { 101 } });
+        Assert(reservedHire == null, "AI accounts for gold scheduled for transport", "1600 minus 900 leaves insufficient reserve");
+
+        var noAttackWorld = TestHelpers.World(year: 200, month: 2);
+        noAttackWorld.Cities.Add(TestHelpers.City(1, "AI City", 1, 1600, 5000, 3000, new[] { 101 }, Array.Empty<int>()));
+        noAttackWorld.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        noAttackWorld.Officers.Add(TestHelpers.Officer(102, "Free", 1));
+        noAttackWorld.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        var noAttackServices = CreateServices(noAttackWorld);
+        noAttackServices.Ai.RunSingleCityDecision(1, 1);
+        noAttackServices.Turn.ResolvePendingCommandsExceptAttack(noAttackServices.Resolver);
+        Assert(noAttackWorld.GetFaction(1)!.OfficerIds.Contains(102), "Non-attack turn resolution completes AI hire", "free officer joins");
+
+        var reservedWorld = TestHelpers.World(year: 200, month: 2);
+        reservedWorld.Cities.Add(TestHelpers.City(1, "AI City", 1, 1600, 5000, 3000, new[] { 101 }, Array.Empty<int>()));
+        reservedWorld.Officers.Add(TestHelpers.Officer(101, "Ruler", 1));
+        reservedWorld.Officers.Add(TestHelpers.Officer(102, "Free", 1));
+        reservedWorld.Factions.Add(TestHelpers.Faction(1, "AI", false, 101, new[] { 101 }));
+        reservedWorld.PendingCommands.Add(new PendingCommandData { Type = CommandType.HireOfficer, ActorFactionId = 1, SourceCityId = 2, TargetOfficerId = 102 });
+        var reservedServices = CreateServices(reservedWorld);
+        var duplicate = (CommandResult?)method.Invoke(reservedServices.Ai, new object[] { reservedWorld, reservedWorld.GetCity(1)!, 1, new List<int> { 101 } });
+        Assert(duplicate == null && reservedWorld.PendingCommands.Count(command => command.Type == CommandType.HireOfficer) == 1,
+            "AI does not duplicate its pending target", "one order per target");
+        reservedWorld.PendingCommands.Clear();
+        var noEnvoy = (CommandResult?)method.Invoke(reservedServices.Ai, new object[] { reservedWorld, reservedWorld.GetCity(1)!, 1, new List<int>() });
+        Assert(noEnvoy == null && !reservedWorld.PendingCommands.Any(command => command.Type == CommandType.HireOfficer),
+            "AI cannot hire without an available envoy", "no order scheduled");
+        reservedWorld.GetOfficer(101)!.LastAssignedYear = reservedWorld.Year;
+        reservedWorld.GetOfficer(101)!.LastAssignedMonth = reservedWorld.Month;
+        reservedWorld.Officers.Add(TestHelpers.Officer(103, "Available", 1, charm: 30));
+        reservedWorld.GetCity(1)!.OfficerIds.Add(103);
+        reservedWorld.GetFaction(1)!.OfficerIds.Add(103);
+        var freshEnvoy = (CommandResult?)method.Invoke(reservedServices.Ai, new object[] { reservedWorld, reservedWorld.GetCity(1)!, 1, new List<int> { 101, 103 } });
+        Assert(freshEnvoy?.Success == true && reservedWorld.PendingCommands.Any(command => command.Type == CommandType.HireOfficer && command.OfficerIds.SequenceEqual(new[] { 103 })),
+            "AI rechecks envoy availability after other orders", "assigned officer skipped");
+    }
+
+    private static void RunMapMissionPresentationTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "Source", 1, 1000, 1000, 1000, new[] { 101 }, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "Target", 2, 1000, 1000, 1000, new[] { 201, 202 }, Array.Empty<int>()));
+        world.Officers.Add(TestHelpers.Officer(101, "Player", 1));
+        world.Officers.Add(TestHelpers.Officer(201, "Ruler", 2));
+        world.Officers.Add(TestHelpers.Officer(202, "Target", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101 }));
+        world.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201, 202 }));
+        var spy = new PendingCommandData { Type = CommandType.Spy, ActorFactionId = 1, SourceCityId = 1, TargetCityId = 2 };
+        var diplomacy = new PendingCommandData { Type = CommandType.Diplomacy, ActorFactionId = 1, SourceCityId = 1, TargetFactionId = 2 };
+        var hire = new PendingCommandData { Type = CommandType.HireOfficer, ActorFactionId = 1, SourceCityId = 1, TargetOfficerId = 202 };
+        var contact = new PendingCommandData { Type = CommandType.ContactOfficer, ActorFactionId = 2, SourceCityId = 2, TargetCityId = 1 };
+        var move = new PendingCommandData { Type = CommandType.Move, ActorFactionId = 1, SourceCityId = 1, TargetCityId = 2 };
+        var attack = new PendingCommandData { Type = CommandType.Attack, ActorFactionId = 2, SourceCityId = 2, TargetCityId = 1 };
+        world.PendingCommands.AddRange(new[] { spy, contact, diplomacy, move, hire, attack, new PendingCommandData { Type = CommandType.Search, ActorFactionId = 1 } });
+        Assert(MapCommandPresentationRules.GetFactionCommands(world, 1, 1).SequenceEqual(new[] { spy, diplomacy, move, hire }) &&
+               MapCommandPresentationRules.GetFactionCommands(world, 2, 1).SequenceEqual(new[] { contact, attack }),
+            "Map presentation preserves per-faction order for player and AI", "spy, diplomacy, hire, contact and military");
+        Assert(MapCommandPresentationRules.TryGetMission(world, spy, out var spyCity, out var spyIcon) && spyCity == 2 && spyIcon == MapMovementIcon.Spy &&
+               MapCommandPresentationRules.TryGetMission(world, diplomacy, out var diplomacyCity, out var diplomacyIcon) && diplomacyCity == 2 && diplomacyIcon == MapMovementIcon.Diplomacy,
+            "Spy and diplomacy resolve their correct destinations", "target city and ruler city");
+        Assert(MapCommandPresentationRules.TryGetMission(world, hire, out var hireCity, out var hireIcon) && hireCity == 2 && hireIcon == MapMovementIcon.RecruitOfficer &&
+               MapCommandPresentationRules.TryGetMission(world, contact, out var contactCity, out _) && contactCity == 1,
+            "Hire and officer contact resolve their target cities", "target officer and scheduled city");
+        world.GetOfficer(202)!.CityId = 1;
+        Assert(MapCommandPresentationRules.TryGetMission(world, hire, out hireCity, out _) && hireCity == 1,
+            "Same-city recruitment retains a valid mission", "local destination");
+        Assert(!MapCommandPresentationRules.TryGetMission(world, new PendingCommandData { Type = CommandType.Diplomacy, SourceCityId = 1, TargetFactionId = 999 }, out _, out _) &&
+               !MapCommandPresentationRules.TryGetMission(world, new PendingCommandData { Type = CommandType.HireOfficer, SourceCityId = 1, TargetOfficerId = 999 }, out _, out _),
+            "Missing mission destinations are skipped", "no invalid target");
+        world.GetOfficer(202)!.CityId = 2;
+        world.CovertOfficerRecords.Add(new WorldState.CovertOfficerData { SponsorFactionId = 1, OriginalFactionId = 2, OfficerId = 202, DiscordTargetOfficerId = 201, DiscordScheduledMonth = 1 });
+        var pendingCount = world.PendingCommands.Count;
+        var covertPresentation = MapCommandPresentationRules.GetFactionCommands(world, 1, 1).Last();
+        Assert(covertPresentation.Type == CommandType.Spy && covertPresentation.SourceCityId == 2 && covertPresentation.TargetCityId == 2 &&
+               world.PendingCommands.Count == pendingCount && !world.PendingCommands.Contains(covertPresentation),
+            "Covert operations animate locally without creating a pending order", "presentation only");
+        var enemySpy = new PendingCommandData { Type = CommandType.Spy, ActorFactionId = 2, SourceCityId = 2, TargetCityId = 1 };
+        world.PendingCommands.Add(enemySpy);
+        world.CovertOfficerRecords.Add(new WorldState.CovertOfficerData { SponsorFactionId = 2, OriginalFactionId = 1, OfficerId = 101, DiscordTargetOfficerId = 102, DiscordScheduledMonth = 1 });
+        Assert(!MapCommandPresentationRules.GetFactionCommands(world, 2, 1).Any(command => command.Type == CommandType.Spy) &&
+               MapCommandPresentationRules.GetFactionCommands(world, 2, 2).Any(command => command == enemySpy),
+            "Foreign spy and covert activity stay hidden from player", "viewer sees only own spy actions");
+    }
+
+    private static void RunAppointmentOverviewTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        var ids = new[] { 101, 102, 103, 104, 105 };
+        world.Cities.Add(TestHelpers.City(1, "Capital", 1, 1000, 1000, 1000, ids, Array.Empty<int>()));
+        world.Cities.Add(TestHelpers.City(2, "Empty", 1, 1000, 1000, 1000, Array.Empty<int>(), Array.Empty<int>()));
+        foreach (var id in ids) world.Officers.Add(TestHelpers.Officer(id, $"Officer{id}", 1));
+        var faction = TestHelpers.Faction(1, "Faction", true, 101, ids);
+        faction.ChancellorOfficerId = 102;
+        faction.ChiefStrategistOfficerId = 103;
+        world.Factions.Add(faction);
+        OfficerAppointmentRules.AddAppointment(world.GetOfficer(102)!, OfficerAppointmentRules.Governor);
+        OfficerAppointmentRules.AddAppointment(world.GetOfficer(104)!, OfficerAppointmentRules.GrandGeneral);
+        foreach (var id in new[] { 102, 104, 105 }) OfficerAppointmentRules.AddAppointment(world.GetOfficer(id)!, OfficerAppointmentRules.Strategist);
+        var rows = AppointmentOverviewRules.Build(world, faction);
+        Assert(rows.Any(row => row.Appointment == OfficerAppointmentRules.Chancellor && row.OfficerId == 102 && row.CityId == 1 && row.Used == 1 && row.Quota == 1) &&
+               rows.Any(row => row.Appointment == OfficerAppointmentRules.ChiefStrategist && row.OfficerId == 103),
+            "Overview reads faction-level appointment holders", "chancellor and chief");
+        Assert(rows.Any(row => row.Appointment == OfficerAppointmentRules.GrandGeneral && row.OfficerId == 104 && row.EffectKey == "ui.military_effect_grand_general") &&
+               rows.Any(row => row.Appointment == OfficerAppointmentRules.VanguardGeneral && row.OfficerId == 0 && row.Used == 0),
+            "Overview includes military effect and vacancy", "appointed and vacant");
+        Assert(rows.Count(row => row.Appointment == OfficerAppointmentRules.Strategist && row.Used == 3 && row.Quota == 2) == 3,
+            "Overview preserves all over-quota strategists", "3/2");
+        Assert(rows.Any(row => row.Appointment == OfficerAppointmentRules.Governor && row.CityId == 1 && row.OfficerId == 102) &&
+               rows.Any(row => row.Appointment == OfficerAppointmentRules.Governor && row.CityId == 2 && row.OfficerId == 0),
+            "Overview lists each city and vacant governor", "two cities");
+    }
+
+    private static void RunBattleAiStrategyScoringTest()
+    {
+        var type = typeof(BattleSceneController).Assembly.GetType("ThreeKingdom.Battle.BattleAiScoring")!;
+        int Expected(int value, float chance) => InvokePrivateStatic<int>(type, "GetExpectedStrategyScore", value, chance);
+        int ConfusionValue(int troops, bool officer) => InvokePrivateStatic<int>(type, "GetConfusionValue", troops, officer);
+        var targetValue = ConfusionValue(1200, true);
+        Assert(Expected(targetValue, 63f) > Expected(targetValue, 60f), "Chief support increases expected strategy value", "63% vs 60%");
+        Assert(Expected(targetValue, 0f) == 0 && Expected(targetValue, 120f) == targetValue,
+            "Strategy scoring respects probability bounds", "0%-100%");
+        Assert(ConfusionValue(1500, true) > ConfusionValue(1500, false) &&
+               ConfusionValue(1500, true) > ConfusionValue(500, true) &&
+               ConfusionValue(5000, true) == ConfusionValue(3000, true),
+            "Confusion values meaningful threats with bounded troop influence", "officer and troop strength");
+        Assert(Expected(3000, 73f) > Expected(3000, 70f), "Extinguishing score considers higher success", "73% vs 70%");
+    }
+
+    private static void RunStrategistAppointmentTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        var ids = new[] { 101, 102, 103, 104, 105 };
+        world.Cities.Add(TestHelpers.City(1, "City", 1, 1000, 1000, 1000, ids, Array.Empty<int>()));
+        foreach (var id in ids) world.Officers.Add(TestHelpers.Officer(id, $"Officer{id}", 1));
+        var faction = TestHelpers.Faction(1, "Faction", false, 101, ids);
+        world.Factions.Add(faction);
+        var services = CreateServices(world);
+        var resolver = services.Resolver;
+        Assert(resolver.ExecuteAssignOfficerAppointment(1, 1, 102, OfficerAppointmentRules.Strategist).Success &&
+               resolver.ExecuteAssignOfficerAppointment(1, 1, 103, OfficerAppointmentRules.Strategist).Success,
+            "Two strategists can be assigned", "2/2");
+        Assert(!resolver.ExecuteAssignOfficerAppointment(1, 1, 104, OfficerAppointmentRules.Strategist).Success &&
+               OfficerAppointmentRules.CountStrategists(world, faction) == 2, "Strategist quota enforced", "2/2");
+        Assert(OfficerAppointmentRules.GetStrategySuccessBonus(world.GetOfficer(102), faction) == 5, "Strategist success bonus", "+5 points");
+        Assert(resolver.ExecuteAssignFactionAdvisor(1, 1, 102, OfficerAppointmentRules.ChiefStrategist).Success &&
+               !OfficerAppointmentRules.HasAppointment(world.GetOfficer(102)!, OfficerAppointmentRules.Strategist) &&
+               OfficerAppointmentRules.GetStrategySuccessBonus(world.GetOfficer(102), faction) == 8,
+            "Chief replaces strategist and grants chief bonus", "+8 points");
+        var activeChief = new[] { (OfficerId: 102, TeamName: "A", TroopCount: 100) };
+        var present = OfficerAppointmentRules.IsChiefStrategistPresent(faction, "A", activeChief);
+        Assert(present && OfficerAppointmentRules.GetStrategySuccessBonus(world.GetOfficer(105), faction, present) == 3 &&
+               OfficerAppointmentRules.GetStrategySuccessBonus(world.GetOfficer(103), faction, present) == 5 &&
+               OfficerAppointmentRules.GetStrategySuccessBonus(world.GetOfficer(102), faction, present) == 8,
+            "Chief supports allies without stacking strategist bonus", "ordinary +3, strategist +5, chief +8");
+        Assert(!OfficerAppointmentRules.IsChiefStrategistPresent(faction, "A", Array.Empty<(int, string, int)>()) &&
+               !OfficerAppointmentRules.IsChiefStrategistPresent(faction, "A", new[] { (102, "A", 0) }) &&
+               !OfficerAppointmentRules.IsChiefStrategistPresent(faction, "A", new[] { (102, "B", 100) }) &&
+               OfficerAppointmentRules.GetStrategySuccessBonus(world.GetOfficer(105), faction) == 0,
+            "Absent, defeated or opposing chief gives no support", "absent, zero troops, opposing side");
+        var otherFaction = TestHelpers.Faction(2, "Other", false, 201, new[] { 201 });
+        Assert(!OfficerAppointmentRules.IsChiefStrategistPresent(otherFaction, "A", activeChief),
+            "Chief does not support a different faction", "same side is insufficient");
+        Assert(resolver.ExecuteAssignOfficerAppointment(1, 1, 104, OfficerAppointmentRules.Strategist).Success &&
+               !resolver.ExecuteAssignOfficerAppointment(1, 1, 102, OfficerAppointmentRules.Strategist).Success &&
+               faction.ChiefStrategistOfficerId == 102, "Full quota preserves chief on failed reassignment", "chief preserved");
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world));
+        Assert(copy != null && OfficerAppointmentRules.CountStrategists(copy, copy.GetFaction(1)!) == 2 &&
+               OfficerAppointmentRules.GetStrategySuccessBonus(copy.GetOfficer(102), copy.GetFaction(1)) == 8,
+            "Strategist appointments survive serialization", "round trip");
+        var old = System.Text.Json.JsonSerializer.Deserialize<OfficerData>("{\"Id\":9,\"Name\":\"Old\"}");
+        Assert(old != null && old.Appointments.Count == 0, "Legacy officer has no new appointment", "legacy JSON");
+        resolver.ExecuteClearOfficerAppointment(1, 1, 103, OfficerAppointmentRules.Strategist);
+        services.Ai.RunFactionAppointmentDecisions(1);
+        Assert(OfficerAppointmentRules.CountStrategists(world, faction) == 2 &&
+               !OfficerAppointmentRules.HasAppointment(world.GetOfficer(faction.ChiefStrategistOfficerId)!, OfficerAppointmentRules.Strategist),
+            "AI fills vacant strategist slot without duplicating chief", "2/2");
+        OfficerAppointmentRules.AddAppointment(world.GetOfficer(105)!, OfficerAppointmentRules.Strategist);
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        var legacyFaction = legacy.GetFaction(1)!;
+        Assert(OfficerAppointmentRules.CountStrategists(legacy, legacyFaction) == 3 &&
+               !CreateServices(legacy).Resolver.ExecuteAssignOfficerAppointment(1, 1, 102, OfficerAppointmentRules.Strategist).Success &&
+               OfficerAppointmentRules.CountStrategists(legacy, legacyFaction) == 3,
+            "Legacy over-quota posts are preserved and block new appointments", "3/2");
+
+        var scaled = TestHelpers.World(month: 2);
+        var scaledIds = new[] { 201, 202, 203, 204, 205, 206 };
+        scaled.Cities.Add(TestHelpers.City(1, "Capital", 2, 1000, 1000, 1000, scaledIds, Array.Empty<int>()));
+        foreach (var id in scaledIds) scaled.Officers.Add(TestHelpers.Officer(id, $"AI{id}", 1));
+        var scaledFaction = TestHelpers.Faction(2, "AI", false, 201, scaledIds);
+        scaled.Factions.Add(scaledFaction);
+        var expectedQuotas = new[] { 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6 };
+        var boundariesPass = true;
+        for (var cityCount = 1; cityCount <= expectedQuotas.Length; cityCount++)
+        {
+            if (cityCount > 1)
+                scaled.Cities.Add(TestHelpers.City(cityCount, $"City{cityCount}", 2, 1000, 1000, 1000, Array.Empty<int>(), Array.Empty<int>()));
+            boundariesPass &= OfficerAppointmentRules.GetStrategistQuota(scaled, scaledFaction) == expectedQuotas[cityCount - 1];
+        }
+        Assert(boundariesPass, "Strategist quota follows city count at all boundaries", "1-13 cities");
+        foreach (var city in scaled.Cities.Where(city => city.Id > 3)) city.OwnerFactionId = 0;
+        var scaledServices = CreateServices(scaled);
+        scaledServices.Ai.RunFactionAppointmentDecisions(2);
+        Assert(OfficerAppointmentRules.CountStrategists(scaled, scaledFaction) == 3, "AI fills scaled strategist quota", "3/3");
+        var beforeLoss = scaled.Officers.Where(officer => OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Strategist)).Select(officer => officer.Id).ToArray();
+        scaled.GetCity(3)!.OwnerFactionId = 0;
+        scaledServices.Ai.RunFactionAppointmentDecisions(2);
+        var afterLoss = scaled.Officers.Where(officer => OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Strategist)).Select(officer => officer.Id).ToArray();
+        var available = scaled.Officers.First(officer => officer.Id != scaledFaction.RulerOfficerId && !beforeLoss.Contains(officer.Id));
+        var blockedOverQuota = scaledServices.Resolver.ExecuteAssignOfficerAppointment(2, 1, available.Id, OfficerAppointmentRules.Strategist);
+        Assert(OfficerAppointmentRules.GetStrategistQuota(scaled, scaledFaction) == 2 && beforeLoss.SequenceEqual(afterLoss) && !blockedOverQuota.Success,
+            "City loss retains strategists and blocks extra appointments", "3/2");
     }
 
     private static void RunMilitaryAppointmentTest()

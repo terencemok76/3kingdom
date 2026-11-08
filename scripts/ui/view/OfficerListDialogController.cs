@@ -13,7 +13,9 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
     private Vector2? _userSize;
     private bool _resizing;
     private bool _showCovertOfficers;
+    private bool _showAppointments;
     private Button? _covertOfficersButton;
+    private Button? _appointmentsButton;
     private Vector2 _resizeStartMouse;
     private Vector2 _resizeStartSize;
 
@@ -38,6 +40,15 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
                 if (template.HasThemeColorOverride(color))
                     _covertOfficersButton.AddThemeColorOverride(color, template.GetThemeColor(color));
         }
+        if (_appointmentsButton != null && _context.ViewCityOfficersButton is { } appointmentTemplate)
+        {
+            foreach (var state in new[] { "normal", "hover", "pressed", "disabled", "focus" })
+                if (appointmentTemplate.HasThemeStyleboxOverride(state))
+                    _appointmentsButton.AddThemeStyleboxOverride(state, appointmentTemplate.GetThemeStylebox(state));
+            foreach (var color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_disabled_color" })
+                if (appointmentTemplate.HasThemeColorOverride(color))
+                    _appointmentsButton.AddThemeColorOverride(color, appointmentTemplate.GetThemeColor(color));
+        }
     }
 
     public void Hide()
@@ -55,6 +66,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
     {
         _context.RefreshDialogsText();
         RefreshChrome();
+        if (_showAppointments && IsOpen()) PopulateDialog();
     }
 
     public void ShowMainDialog()
@@ -65,6 +77,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _showCovertOfficers = false;
+        _showAppointments = false;
         _context.SetOfficerListModeToView();
         _context.ResetOfficerListDialogLayoutToSceneDefaults();
         _context.HideOfficerListAuxRow();
@@ -92,6 +105,14 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         var root = _context.PrepareOfficerListTableRoot();
         if (root == null)
         {
+            return;
+        }
+
+        if (_showAppointments && _context.IsOfficerListInViewMode())
+        {
+            PopulateAppointmentRows(root);
+            UpdateDialogTitle();
+            RequestDeferredTableVisualRefresh();
             return;
         }
 
@@ -215,6 +236,58 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
     }
 
+    private void PopulateAppointmentRows(TreeItem root)
+    {
+        var world = _context.World;
+        var table = _context.OfficerListTable;
+        var localization = _context.Localization;
+        var city = _context.SelectedCity;
+        if (world == null || table == null || localization == null || city == null || !_context.CanInspectSelectedFaction()) return;
+        var faction = world.GetFaction(city.OwnerFactionId);
+        if (faction == null) return;
+
+        table.Columns = 6;
+        var headers = new[] { "ui.appointment_category", "ui.assign_role_title", "ui.appointment_quota", "ui.holder", "ui.city", "ui.appointment_effect" };
+        var widths = new[] { 76, 100, 116, 104, 100, 420 };
+        for (var column = 0; column < headers.Length; column++)
+        {
+            table.SetColumnTitle(column, localization.T(headers[column]));
+            table.SetColumnCustomMinimumWidth(column, widths[column]);
+            table.SetColumnExpand(column, column == headers.Length - 1);
+            table.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
+        }
+
+        var rows = AppointmentOverviewRules.Build(world, faction);
+        for (var index = 0; index < rows.Count; index++)
+        {
+            var entry = rows[index];
+            var row = table.CreateItem(root);
+            var officer = world.GetOfficer(entry.OfficerId);
+            var location = world.GetCity(entry.CityId);
+            row.SetText(0, localization.T(entry.CategoryKey));
+            if (officer != null) row.SetMetadata(0, officer.Id);
+            row.SetText(1, localization.GetAppointmentName(entry.Appointment));
+            row.SetText(2, entry.Used > entry.Quota
+                ? localization.Format("ui.appointment_over_quota", entry.Used, entry.Quota, entry.Used - entry.Quota)
+                : $"{entry.Used}/{entry.Quota}");
+            row.SetText(3, officer != null ? localization.GetOfficerName(officer) : localization.T("ui.unassigned"));
+            row.SetText(4, location != null ? localization.GetCityName(location) : "-");
+            var effect = localization.T(entry.EffectKey);
+            var summaryKey = entry.Appointment switch
+            {
+                OfficerAppointmentRules.GrandGeneral => "ui.appointment_summary_grand_general",
+                OfficerAppointmentRules.VanguardGeneral => "ui.appointment_summary_vanguard_general",
+                OfficerAppointmentRules.RearGeneral => "ui.appointment_summary_rear_general",
+                OfficerAppointmentRules.Strategist => "ui.appointment_summary_strategist",
+                OfficerAppointmentRules.ChiefStrategist => "ui.appointment_summary_chief",
+                _ => entry.EffectKey
+            };
+            row.SetText(5, localization.T(summaryKey));
+            row.SetTooltipText(5, effect);
+            _context.ApplyOfficerListRowStriping(row, index, table.Columns);
+        }
+    }
+
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
         _context.OfficerListDialog = OverlayRoot;
@@ -230,6 +303,8 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         _context.ViewLogisticsButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewLogisticsButton");
         _covertOfficersButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewCovertOfficersButton");
         if (_covertOfficersButton != null) _covertOfficersButton.Pressed += OnViewCovertOfficersPressed;
+        _appointmentsButton = root.GetNodeOrNull<Button>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/ViewAppointmentsButton");
+        if (_appointmentsButton != null) _appointmentsButton.Pressed += OnViewAppointmentsPressed;
         _context.CityListFilterOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/CityListFilterOption");
         _context.OfficerSortOption = root.GetNodeOrNull<OptionButton>("OfficerListContentMargin/OfficerListContent/OfficerListToolbar/OfficerSortOption");
         _context.OfficerListTable = root.GetNodeOrNull<Tree>("OfficerListContentMargin/OfficerListContent/OfficerListTable");
@@ -335,6 +410,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _showCovertOfficers = false;
+        _showAppointments = false;
         if (_context.OfficerListAuxRow != null) _context.OfficerListAuxRow.Visible = false;
         _context.SetOfficerListContentToCityOfficers();
         RefreshChrome();
@@ -349,6 +425,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _showCovertOfficers = false;
+        _showAppointments = false;
         if (_context.OfficerListAuxRow != null) _context.OfficerListAuxRow.Visible = false;
         _context.SetOfficerListContentToFactionOfficers();
         RefreshChrome();
@@ -363,6 +440,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _showCovertOfficers = false;
+        _showAppointments = false;
         if (_context.OfficerListAuxRow != null) _context.OfficerListAuxRow.Visible = false;
         _context.SetOfficerListContentToFactionItems();
         RefreshChrome();
@@ -377,6 +455,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _showCovertOfficers = false;
+        _showAppointments = false;
         if (_context.OfficerListAuxRow != null) _context.OfficerListAuxRow.Visible = false;
         _context.SetOfficerListContentToDiplomacyRelations();
         RefreshChrome();
@@ -391,6 +470,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _showCovertOfficers = false;
+        _showAppointments = false;
         if (_context.OfficerListAuxRow != null) _context.OfficerListAuxRow.Visible = false;
         _context.SetOfficerListContentToCities();
         RefreshChrome();
@@ -405,6 +485,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         }
 
         _showCovertOfficers = false;
+        _showAppointments = false;
         if (_context.OfficerListAuxRow != null) _context.OfficerListAuxRow.Visible = false;
         _context.SetOfficerListContentToLogistics();
         RefreshChrome();
@@ -416,6 +497,18 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         if (!_context.IsOfficerListInViewMode()) return;
         _context.SetOfficerListContentToCityOfficers();
         _showCovertOfficers = true;
+        _showAppointments = false;
+        _context.HideOfficerListAuxRow();
+        RefreshChrome();
+        PopulateDialog();
+    }
+
+    private void OnViewAppointmentsPressed()
+    {
+        if (!_context.IsOfficerListInViewMode() || !_context.CanInspectSelectedFaction()) return;
+        _context.SetOfficerListContentToCityOfficers();
+        _showCovertOfficers = false;
+        _showAppointments = true;
         _context.HideOfficerListAuxRow();
         RefreshChrome();
         PopulateDialog();
@@ -482,7 +575,7 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
 
     private void OnOfficerListColumnTitleClicked(long column, long mouseButtonIndex)
     {
-        if (!_showCovertOfficers) _context.HandleOfficerListColumnTitleClicked(column, mouseButtonIndex);
+        if (!_showCovertOfficers && !_showAppointments) _context.HandleOfficerListColumnTitleClicked(column, mouseButtonIndex);
     }
     private void OnOfficerListConfirmPressed() => _context.HandleOfficerListConfirmPressed();
 
@@ -545,6 +638,11 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
             _covertOfficersButton.Text = localization.T("ui.view_covert_officers");
             _covertOfficersButton.Disabled = _showCovertOfficers;
         }
+        if (_appointmentsButton != null)
+        {
+            _appointmentsButton.Text = localization.T("ui.view_appointments");
+            _appointmentsButton.Disabled = _showAppointments;
+        }
         cityButton.Text = localization.T("ui.view_city_officers");
         factionButton.Text = localization.T("ui.view_faction_officers");
         itemButton.Text = localization.T("ui.view_faction_items");
@@ -584,10 +682,11 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
 
         var hasFaction = selectedCity.OwnerFactionId > 0 && world.GetFaction(selectedCity.OwnerFactionId) != null;
         var canInspectFaction = hasFaction && _context.CanInspectSelectedFaction();
+        if (_appointmentsButton != null) _appointmentsButton.Visible = canInspectFaction;
         factionButton.Visible = canInspectFaction;
         itemButton.Visible = canInspectFaction;
         diplomacyButton.Visible = canInspectFaction;
-        cityButton.Disabled = !_showCovertOfficers && _context.IsOfficerListShowingCityOfficers();
+        cityButton.Disabled = !_showCovertOfficers && !_showAppointments && _context.IsOfficerListShowingCityOfficers();
         factionButton.Disabled = !canInspectFaction || _context.IsOfficerListShowingFactionOfficers();
         itemButton.Disabled = !canInspectFaction || _context.IsOfficerListShowingItems();
         diplomacyButton.Disabled = !canInspectFaction || _context.IsOfficerListShowingDiplomacyRelations();
@@ -609,6 +708,15 @@ internal sealed class OfficerListDialogController : FloatingOverlayController
         if (_showCovertOfficers)
         {
             _context.SetOfficerListDialogTitle(localization.T("ui.view_covert_officers"));
+            return;
+        }
+
+        if (_showAppointments)
+        {
+            var factionName = _context.World != null && _context.SelectedCity != null
+                ? localization.GetFactionName(_context.World, _context.SelectedCity.OwnerFactionId)
+                : string.Empty;
+            _context.SetOfficerListDialogTitle(localization.Format("fmt.view_appointments_faction", factionName));
             return;
         }
 

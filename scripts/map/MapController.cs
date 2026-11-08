@@ -338,6 +338,14 @@ public partial class MapController : Node2D
 
     public void PlayPendingCommandAnimation(PendingCommandData command, Action completed)
     {
+        if (_world != null && command.Type is CommandType.Spy or CommandType.Diplomacy or CommandType.HireOfficer or CommandType.ContactOfficer)
+        {
+            if (MapCommandPresentationRules.TryGetMission(_world, command, out var destination, out var missionIcon))
+                PlayMovementAnimation(command.SourceCityId, destination, missionIcon, completed);
+            else
+                completed();
+            return;
+        }
         var currentCityId = command.RouteCityIds.Count > 2 && command.CurrentRouteIndex >= 0 && command.CurrentRouteIndex < command.RouteCityIds.Count
             ? command.RouteCityIds[command.CurrentRouteIndex]
             : command.SourceCityId;
@@ -367,7 +375,11 @@ public partial class MapController : Node2D
             completed();
             return;
         }
-        var points = RouteRenderer.GetRoutePoints(source.Id, target.Id, new Vector2(source.MapX, source.MapY), new Vector2(target.MapX, target.MapY));
+        var sourcePosition = new Vector2(source.MapX, source.MapY);
+        var isMission = icon is MapMovementIcon.Spy or MapMovementIcon.Diplomacy or MapMovementIcon.RecruitOfficer or MapMovementIcon.ContactOfficer;
+        var points = isMission && source.Id == target.Id
+            ? new[] { sourcePosition, sourcePosition + new Vector2(24, -18), sourcePosition + new Vector2(30, 8), sourcePosition }
+            : RouteRenderer.GetRoutePoints(source.Id, target.Id, sourcePosition, new Vector2(target.MapX, target.MapY));
         if (points.Length < 2)
         {
             completed();
@@ -375,9 +387,19 @@ public partial class MapController : Node2D
         }
         var marker = new MapMovementMarker();
         _movementLayer.AddChild(marker);
-        GameAudioController.Instance?.PlayGameplaySfx(
-            icon == MapMovementIcon.Logistics ? LogisticsMovementSfxPath : ArmyMovementSfxPath);
-        marker.Start(points, icon, GetPresentationDuration(Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f)), completed);
+        if (!isMission)
+            GameAudioController.Instance?.PlayGameplaySfx(icon == MapMovementIcon.Logistics ? LogisticsMovementSfxPath : ArmyMovementSfxPath);
+        var captionKey = icon switch
+        {
+            MapMovementIcon.Spy => "ui.map_mission_spy",
+            MapMovementIcon.Diplomacy => "ui.map_mission_diplomacy",
+            MapMovementIcon.RecruitOfficer => "ui.map_mission_recruit",
+            MapMovementIcon.ContactOfficer => "ui.map_mission_contact",
+            _ => string.Empty
+        };
+        var caption = string.IsNullOrEmpty(captionKey) ? string.Empty : _localization?.T(captionKey) ?? string.Empty;
+        var normalDuration = isMission ? 1.1f : Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f);
+        marker.Start(points, icon, GetPresentationDuration(normalDuration), completed, caption);
     }
 
     private void PlayTargetBattleAnimation(int targetCityId, Action completed)

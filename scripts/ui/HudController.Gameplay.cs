@@ -176,7 +176,7 @@ public partial class HudController : CanvasLayer
             {
                 AddLog(_localization.Format("fmt.ai_debug_evaluation_start", _localization.GetCityName(city), city.Troops, city.Gold, city.Food), isPlayerRelated: false);
             }
-            var result = _aiController.RunSingleCityDecision(factionId, cityId);
+            _ = _aiController.RunSingleCityDecision(factionId, cityId);
             var cityName = _localization.GetCityName(city);
             var factionName = _localization.GetFactionName(world, factionId);
             if (_aiDecisionDebugEnabled && !string.IsNullOrWhiteSpace(_aiController.LastAttackDecisionDetail))
@@ -187,10 +187,19 @@ public partial class HudController : CanvasLayer
             {
                 AddLog(_localization.Format("fmt.ai_debug_detail", _aiController.LastDecisionDebugDetail), _aiController.LastDiplomacyDecisionTargetFactionId == _turnManager.GetPlayerFactionId());
             }
-            AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(result)));
-            if (_aiDecisionDebugEnabled)
+            var publicResult = _aiController.LastPublicDecisionResult;
+            if (publicResult != null)
+                AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(publicResult)));
+            if (_aiController.LastSpyDecisionResult is { } secretResult)
             {
-                AddLog(_localization.Format(result.Success ? "fmt.ai_debug_final_success" : "fmt.ai_debug_final_failure", cityName, GetLocalizedResultMessage(result)), isPlayerRelated: false);
+                var secretCommand = world.PendingCommands.LastOrDefault(command => command.ActorFactionId == factionId && command.SourceCityId == cityId &&
+                    command.Type is CommandType.Spy or CommandType.ContactOfficer);
+                var isPlayerRelated = secretCommand != null && IsPlayerRelatedPendingCommand(secretCommand, _turnManager.GetPlayerFactionId());
+                AddLog(_localization.FormatAiCityAction(factionName, cityName, GetLocalizedResultMessage(secretResult)), isPlayerRelated, godModeOnly: true);
+            }
+            if (_aiDecisionDebugEnabled && publicResult != null)
+            {
+                AddLog(_localization.Format(publicResult.Success ? "fmt.ai_debug_final_success" : "fmt.ai_debug_final_failure", cityName, GetLocalizedResultMessage(publicResult)), isPlayerRelated: false);
             }
             CheckFactionEliminations();
         }
@@ -205,9 +214,7 @@ public partial class HudController : CanvasLayer
         _afterFactionMovementAnimations = continuation;
         if (_turnManager?.World != null)
         {
-            foreach (var command in _turnManager.World.PendingCommands.Where(command =>
-                         command.ActorFactionId == factionId &&
-                         command.Type is CommandType.Move or CommandType.Attack))
+            foreach (var command in MapCommandPresentationRules.GetFactionCommands(_turnManager.World, factionId, _turnManager.GetPlayerFactionId()))
             {
                 _pendingFactionMovementAnimations.Enqueue(command);
             }

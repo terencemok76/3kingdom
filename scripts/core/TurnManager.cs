@@ -154,6 +154,7 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Spy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
         ResolvePendingCommandsOfType(resolver, CommandType.ContactOfficer, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.HireOfficer, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
         World.PendingCommands.RemoveAll(command => !(command.Type == CommandType.Move && command.IsTraveling));
         return results;
@@ -176,6 +177,7 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.Spy, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Move, results);
         ResolvePendingCommandsOfType(resolver, CommandType.ContactOfficer, results);
+        ResolvePendingCommandsOfType(resolver, CommandType.HireOfficer, results);
         World.PendingCommands.RemoveAll(command =>
             command.Type != CommandType.Attack &&
             !(command.Type == CommandType.Move && command.IsTraveling));
@@ -1281,6 +1283,8 @@ public class TurnManager
         }
 
         OfficerAppointmentRules.ClearMilitaryAppointments(successor);
+        OfficerAppointmentRules.RemoveAppointment(successor, OfficerAppointmentRules.Strategist);
+        OfficerAppointmentRules.RemoveAppointment(successor, OfficerAppointmentRules.ChiefStrategist);
         OfficerAppointmentRules.AddAppointment(successor, OfficerAppointmentRules.Lord);
         successor.Belongs = faction.Id.ToString();
 
@@ -1347,6 +1351,8 @@ public class TurnManager
 
             OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
             OfficerAppointmentRules.ClearMilitaryAppointments(officer);
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Strategist);
+            OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.ChiefStrategist);
             if (officer.CityId > 0)
             {
                 officer.FreeOfficerStayMonths = Math.Max(officer.FreeOfficerStayMonths, 2);

@@ -191,6 +191,13 @@ public partial class CommandResolver
         if (appointment.Equals(OfficerAppointmentRules.Strategist, StringComparison.OrdinalIgnoreCase))
         {
             var faction = world.GetFaction(actorFactionId);
+            if (faction == null || !faction.OfficerIds.Contains(officer.Id) || officer.CaptiveFactionId > 0 ||
+                !IsOfficerAlive(world, officer) || BattleCampaignService.IsOfficerCommitted(world, officer.Id) ||
+                OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id))
+                return LocalizedResult(false, "cmd.assign_role.officer_required");
+            if (!OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Strategist) &&
+                OfficerAppointmentRules.CountStrategists(world, faction) >= OfficerAppointmentRules.GetStrategistQuota(world, faction))
+                return LocalizedResult(false, "cmd.assign_role.strategist_quota_full");
             if (faction?.ChiefStrategistOfficerId == officer.Id) faction.ChiefStrategistOfficerId = 0;
             ClearOfficerAppointment(officer, OfficerAppointmentRules.ChiefStrategist);
         }
@@ -471,6 +478,11 @@ public partial class CommandResolver
         {
             return LocalizedResult(false, "cmd.assign_advisor.invalid_position");
         }
+
+        if (position.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase) &&
+            (!faction.OfficerIds.Contains(officer.Id) || officer.CaptiveFactionId > 0 || !IsOfficerAlive(world, officer) ||
+             BattleCampaignService.IsOfficerCommitted(world, officer.Id) || OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id)))
+            return LocalizedResult(false, "cmd.assign_advisor.officer_required");
 
         if (position.Equals("Chancellor", StringComparison.OrdinalIgnoreCase))
         {
