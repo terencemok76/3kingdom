@@ -15,6 +15,12 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--map-mission-road-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunMapMissionRoadTest();
+            PrintSummary();
+            return;
+        }
         if (args.Contains("--spy-log-privacy-only", StringComparer.OrdinalIgnoreCase))
         {
             RunSpyLogPrivacyTest();
@@ -3455,6 +3461,25 @@ internal static class Program
         var freshEnvoy = (CommandResult?)method.Invoke(reservedServices.Ai, new object[] { reservedWorld, reservedWorld.GetCity(1)!, 1, new List<int> { 101, 103 } });
         Assert(freshEnvoy?.Success == true && reservedWorld.PendingCommands.Any(command => command.Type == CommandType.HireOfficer && command.OfficerIds.SequenceEqual(new[] { 103 })),
             "AI rechecks envoy availability after other orders", "assigned officer skipped");
+    }
+
+    private static void RunMapMissionRoadTest()
+    {
+        var world = TestHelpers.World();
+        world.Cities.Add(TestHelpers.City(1, "A", 1, 1000, 1000, 1000, Array.Empty<int>(), new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "B", 2, 1000, 1000, 1000, Array.Empty<int>(), new[] { 1, 3 }));
+        world.Cities.Add(TestHelpers.City(3, "C", 3, 1000, 1000, 1000, Array.Empty<int>(), new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(4, "D", 1, 1000, 1000, 1000, Array.Empty<int>(), Array.Empty<int>()));
+        Assert(MapRoadRouting.FindRoadRoute(world, 1, 3).SequenceEqual(new[] { 1, 2, 3 }) &&
+               MapRoadRouting.FindRoadRoute(world, 3, 1).SequenceEqual(new[] { 3, 2, 1 }),
+            "Mission uses rendered roads in both directions across factions", "1-2-3 and 3-2-1");
+        Assert(MapRoadRouting.FindRoadRoute(world, 1, 1).SequenceEqual(new[] { 1 }) &&
+               MapRoadRouting.FindRoadRoute(world, 1, 4).Count == 0 && MapRoadRouting.FindRoadRoute(world, 1, 999).Count == 0,
+            "Local, disconnected and missing destinations are distinct", "local and no road");
+        world.GetCity(2)!.ConnectedCityIds.Remove(3);
+        world.GetCity(3)!.ConnectedCityIds.Add(2);
+        Assert(MapRoadRouting.FindRoadRoute(world, 1, 3).Count == 0,
+            "Mission ignores a one-way edge that is not rendered", "no invisible shortcut");
     }
 
     private static void RunMapMissionPresentationTest()

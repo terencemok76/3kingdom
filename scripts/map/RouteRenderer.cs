@@ -53,8 +53,15 @@ public partial class RouteRenderer : Node2D
         QueueRedraw();
     }
 
-    public static Vector2[] GetRoutePoints(int fromCityId, int toCityId, Vector2 from, Vector2 to) =>
-        BuildRoutePoints(fromCityId, toCityId, from, to);
+    public static Vector2[] GetRoutePoints(int fromCityId, int toCityId, Vector2 from, Vector2 to)
+    {
+        // Roads are drawn in ascending city-ID order. Reuse that exact curve
+        // in reverse so special routes and asymmetric bends stay aligned.
+        if (fromCityId <= toCityId) return BuildRoutePoints(fromCityId, toCityId, from, to);
+        var points = BuildRoutePoints(toCityId, fromCityId, to, from);
+        Array.Reverse(points);
+        return points;
+    }
 
     public override void _Draw()
     {

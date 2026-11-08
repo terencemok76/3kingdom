@@ -377,9 +377,19 @@ public partial class MapController : Node2D
         }
         var sourcePosition = new Vector2(source.MapX, source.MapY);
         var isMission = icon is MapMovementIcon.Spy or MapMovementIcon.Diplomacy or MapMovementIcon.RecruitOfficer or MapMovementIcon.ContactOfficer;
-        var points = isMission && source.Id == target.Id
+        var missionRoute = isMission && source.Id != target.Id && _world != null
+            ? MapRoadRouting.FindRoadRoute(_world, source.Id, target.Id) : new System.Collections.Generic.List<int>();
+        var noRoad = isMission && source.Id != target.Id && missionRoute.Count < 2;
+        var points = isMission && (source.Id == target.Id || noRoad)
             ? new[] { sourcePosition, sourcePosition + new Vector2(24, -18), sourcePosition + new Vector2(30, 8), sourcePosition }
-            : RouteRenderer.GetRoutePoints(source.Id, target.Id, sourcePosition, new Vector2(target.MapX, target.MapY));
+            : isMission && _world != null
+                ? MapRoadRouting.BuildRoadPoints(_world, missionRoute)
+                : RouteRenderer.GetRoutePoints(source.Id, target.Id, sourcePosition, new Vector2(target.MapX, target.MapY));
+        if (isMission && points.Length < 2)
+        {
+            noRoad = true;
+            points = new[] { sourcePosition, sourcePosition + new Vector2(24, -18), sourcePosition + new Vector2(30, 8), sourcePosition };
+        }
         if (points.Length < 2)
         {
             completed();
@@ -398,7 +408,8 @@ public partial class MapController : Node2D
             _ => string.Empty
         };
         var caption = string.IsNullOrEmpty(captionKey) ? string.Empty : _localization?.T(captionKey) ?? string.Empty;
-        var normalDuration = isMission ? 1.1f : Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f);
+        if (noRoad && _localization != null) caption = _localization.Format("fmt.map_mission_no_road", caption);
+        var normalDuration = isMission ? Mathf.Clamp(0.8f + Mathf.Max(1, missionRoute.Count - 1) * 0.5f, 1.1f, 3.3f) : Mathf.Clamp(points.Length * 0.018f, 0.55f, 1.15f);
         marker.Start(points, icon, GetPresentationDuration(normalDuration), completed, caption);
     }
 

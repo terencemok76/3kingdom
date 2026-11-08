@@ -10,6 +10,7 @@
 	"ui.map_mission_diplomacy": { "zhHant": "外交", "en": "Diplomacy" },
 	"ui.map_mission_recruit": { "zhHant": "招募", "en": "Recruitment" },
 	"ui.map_mission_contact": { "zhHant": "接觸", "en": "Contact" },
+	"fmt.map_mission_no_road": { "zhHant": "{0}（無道路）", "en": "{0} (no road)" },
 	"ui.assign_role_officer":  {
 								   "zhHant":  "指派武將",
 								   "en":  "Officer To Assign"
