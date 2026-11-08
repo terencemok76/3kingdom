@@ -1762,6 +1762,7 @@ public static class BattleCampaignService
 
         var wasRuler = faction.RulerOfficerId == officer.Id;
         faction.OfficerIds.Remove(officer.Id);
+        OfficerAppointmentRules.ClearMilitaryAppointments(officer);
         OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
         if (!wasRuler)
         {
@@ -1828,6 +1829,7 @@ public static class BattleCampaignService
         faction.RulerOfficerId = successor.Id;
         faction.ChancellorOfficerId = faction.ChancellorOfficerId == successor.Id ? 0 : faction.ChancellorOfficerId;
         faction.ChiefStrategistOfficerId = faction.ChiefStrategistOfficerId == successor.Id ? 0 : faction.ChiefStrategistOfficerId;
+        OfficerAppointmentRules.ClearMilitaryAppointments(successor);
         OfficerAppointmentRules.AddAppointment(successor, OfficerAppointmentRules.Lord);
         successor.Belongs = faction.Id.ToString();
         faction.NameZhHant = string.IsNullOrWhiteSpace(successor.NameZhHant) ? faction.NameZhHant : successor.NameZhHant;

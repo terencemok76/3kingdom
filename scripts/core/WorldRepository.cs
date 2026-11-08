@@ -384,6 +384,9 @@ public class WorldRepository
         foreach (var faction in world.Factions)
         {
             faction.OfficerIds ??= new List<int>();
+            var chief = world.GetOfficer(faction.ChiefStrategistOfficerId);
+            if (chief != null && faction.OfficerIds.Contains(chief.Id))
+                OfficerAppointmentRules.RemoveAppointment(chief, OfficerAppointmentRules.Strategist);
         }
 
         EnsureFactionRulersAssigned(world);

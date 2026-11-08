@@ -653,6 +653,7 @@ public partial class CommandResolver
             ClearOfficerAppointment(successor, OfficerAppointmentRules.ChiefStrategist);
         }
 
+        OfficerAppointmentRules.ClearMilitaryAppointments(successor);
         AssignOfficerAppointment(successor, OfficerAppointmentRules.Lord);
         successor.Belongs = faction.Id.ToString();
         var successorNameZh = !string.IsNullOrWhiteSpace(successor.NameZhHant) ? successor.NameZhHant : successor.Name;
@@ -1107,6 +1108,9 @@ public partial class CommandResolver
             "strategist" => _localization.TForLanguage(language, "role.strategist"),
             "chancellor" => _localization.TForLanguage(language, "ui.chancellor"),
             "chiefstrategist" => _localization.TForLanguage(language, "ui.chief_strategist"),
+            "grandgeneral" => _localization.TForLanguage(language, "role.grand_general"),
+            "vanguardgeneral" => _localization.TForLanguage(language, "role.vanguard_general"),
+            "reargeneral" => _localization.TForLanguage(language, "role.rear_general"),
             _ => position
         };
     }

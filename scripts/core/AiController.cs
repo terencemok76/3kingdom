@@ -140,6 +140,19 @@ public class AiController
             results.Add(prefectResult);
         }
 
+        foreach (var appointment in OfficerAppointmentRules.MilitaryAppointments)
+        {
+            if (faction.OfficerIds.Select(world.GetOfficer).Any(officer => officer != null && OfficerAppointmentRules.HasAppointment(officer, appointment))) continue;
+            var candidate = faction.OfficerIds.Select(world.GetOfficer)
+                .Where(officer => officer != null && officer.Id != faction.RulerOfficerId && officer.CityId > 0 &&
+                    officer.CaptiveFactionId <= 0 && (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
+                    world.GetCity(officer.CityId)?.OwnerFactionId == factionId &&
+                    !officer.Appointments.Any(OfficerAppointmentRules.IsMilitaryAppointment) &&
+                    !BattleCampaignService.IsOfficerCommitted(world, officer.Id) && !OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id))
+                .OrderByDescending(officer => officer!.Leadership * 2 + officer.Strength + officer.Combat)
+                .ThenByDescending(officer => officer!.Loyalty).ThenBy(officer => officer!.Id).FirstOrDefault();
+            if (candidate != null) results.Add(_commandResolver.ExecuteAssignOfficerAppointment(factionId, candidate.CityId, candidate.Id, appointment));
+        }
         return results;
     }
 

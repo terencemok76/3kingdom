@@ -391,7 +391,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
 
         var candidateSet = candidateOfficerIds.ToHashSet();
         _officerList.Clear();
-        _context.ConfigureCompactOfficerTableColumns(_officerList, includeCheck: true);
+        _context.ConfigureCompactOfficerTableColumns(_officerList, includeCheck: true, includeAppointments: true);
         var tableRoot = _officerList.CreateItem();
         var rowIndex = 0;
         foreach (var officerId in city.OfficerIds)
@@ -408,7 +408,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
             }
 
             var row = _officerList.CreateItem(tableRoot);
-            _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true);
+            _context.PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: true, includeAppointments: true);
             if (_deployments.ContainsKey(officer.Id))
             {
                 row.SetMetadata(0, true);

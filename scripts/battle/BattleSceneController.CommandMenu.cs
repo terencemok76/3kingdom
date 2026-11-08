@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ThreeKingdom.Core;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 
@@ -30,6 +31,27 @@ public partial class BattleSceneController
                 if (IsGeneralCountedPiece(_selectedUnit.Category, _selectedUnit.OfficerName))
                 {
                     infoLines.Add(BattleFormat("ui.battle.menu_officer", "Officer: {0}", officerText));
+                    var world = CampaignRuntimeContext.World;
+                    var officer = world?.GetOfficer(GetBattleOfficerId(_selectedUnit));
+                    if (officer != null && world != null)
+                    {
+                        var appointments = officer.Appointments
+                            .Where(appointment => OfficerAppointmentRules.IsMilitaryAppointment(appointment) ||
+                                appointment.Equals(OfficerAppointmentRules.Strategist, StringComparison.OrdinalIgnoreCase) ||
+                                appointment.Equals(OfficerAppointmentRules.ChiefStrategist, StringComparison.OrdinalIgnoreCase))
+                            .ToList();
+                        var faction = world.Factions.FirstOrDefault(candidate => candidate.OfficerIds.Contains(officer.Id));
+                        if (faction?.ChiefStrategistOfficerId == officer.Id)
+                        {
+                            appointments.Add(OfficerAppointmentRules.ChiefStrategist);
+                        }
+
+                        var names = appointments.Distinct(StringComparer.OrdinalIgnoreCase).Select(_localization.GetAppointmentName).ToList();
+                        if (names.Count > 0)
+                        {
+                            infoLines.Add(BattleFormat("ui.battle.menu_appointments", "Position: {0}", string.Join(" / ", names)));
+                        }
+                    }
                     infoLines.Add(BattleFormat("ui.battle.menu_intelligence", "Intelligence: {0}", GetOfficerTacticalIntelligence(_selectedUnit.OfficerName)));
                     infoLines.Add(BattleFormat("ui.battle.menu_combat", "Combat: {0}", GetOfficerBattleAttribute(_selectedUnit.OfficerName)));
                     infoLines.Add(BattleFormat("ui.battle.menu_command_rating", "Command: {0} (damage {1:P0})", GetOfficerCommandRating(_selectedUnit), GetOfficerCommandMultiplier(_selectedUnit) - 1.0f));

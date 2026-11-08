@@ -1,4 +1,7 @@
 {
+    "role.grand_general": { "zhHant": "大將軍", "en": "General-in-Chief" },
+    "role.vanguard_general": { "zhHant": "前將軍", "en": "General of the Vanguard" },
+    "role.rear_general": { "zhHant": "後將軍", "en": "General of the Rear" },
     "role.common":  {
                         "zhHant":  "一般",
                         "en":  "Common"

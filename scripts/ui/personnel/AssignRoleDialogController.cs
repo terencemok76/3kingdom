@@ -22,6 +22,8 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
     private string _lastResultMessage = string.Empty;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
+    private bool _layoutRefreshPending;
+    private string _pendingMilitaryConfirmation = string.Empty;
     protected override Vector2 MinimumOverlaySize => new(500.0f, 360.0f);
     protected override bool AutoFitOverlayHeight => true;
 
@@ -46,6 +48,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         }
 
         _lastResultMessage = string.Empty;
+        _pendingMilitaryConfirmation = string.Empty;
         Populate();
         RefreshText();
         ShowOverlay();
@@ -87,6 +90,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
 
     protected override void OnOverlayContentReady(VBoxContainer root)
     {
+        root.MinimumSizeChanged += RequestContentLayoutRefresh;
         _selectedOfficerLabel = root.GetNodeOrNull<Label>("OfficerSelectorRow/SelectedOfficerLabel");
         _selectOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/SelectOfficerButton");
         _clearOfficerButton = root.GetNodeOrNull<Button>("OfficerSelectorRow/ClearOfficerButton");
@@ -126,7 +130,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             }
             if (_assignRoleOption != null)
             {
-                _assignRoleOption.ItemSelected += _ => UpdateSelectedOfficerSummary();
+                _assignRoleOption.ItemSelected += _ => { _pendingMilitaryConfirmation = string.Empty; UpdateSelectedOfficerSummary(); };
             }
             if (_removeRoleOption != null)
             {
@@ -143,6 +147,19 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
             _signalsConnected = true;
         }
+    }
+
+    private void RequestContentLayoutRefresh()
+    {
+        if (_layoutRefreshPending || !IsOverlayVisible) return;
+        _layoutRefreshPending = true;
+        Callable.From(RefreshContentLayout).CallDeferred();
+    }
+
+    private void RefreshContentLayout()
+    {
+        _layoutRefreshPending = false;
+        if (IsOverlayVisible) UpdateOverlayLayoutNow();
     }
 
     private void Populate()
@@ -212,7 +229,16 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             return;
         }
 
-        option.AddItem(GetRoleDisplayName(role));
+        var displayName = GetRoleDisplayName(role);
+        if ((OfficerAppointmentRules.IsMilitaryAppointment(role) || role == OfficerAppointmentRules.ChiefStrategist) && _context.TurnManager?.World is { } world)
+        {
+            var faction = world.GetFaction(_context.TurnManager.GetPlayerFactionId());
+            var holder = role == OfficerAppointmentRules.ChiefStrategist
+                ? world.GetOfficer(faction?.ChiefStrategistOfficerId ?? 0)
+                : faction?.OfficerIds.Select(world.GetOfficer).FirstOrDefault(candidate => candidate != null && OfficerAppointmentRules.HasAppointment(candidate, role));
+            displayName += holder != null ? $" 1/1 ({_context.Localization.GetOfficerName(holder)})" : " 0/1";
+        }
+        option.AddItem(displayName);
         option.SetItemMetadata(option.ItemCount - 1, role);
     }
 
@@ -262,6 +288,9 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             "removechancellor" => _context.Localization.T("role.remove_chancellor"),
             "chiefstrategist" => _context.Localization.T("ui.chief_strategist"),
             "removechiefstrategist" => _context.Localization.T("role.remove_chief_strategist"),
+            "grandgeneral" => _context.Localization.T("role.grand_general"),
+            "vanguardgeneral" => _context.Localization.T("role.vanguard_general"),
+            "reargeneral" => _context.Localization.T("role.rear_general"),
             _ => role
         };
     }
@@ -305,6 +334,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         OfficerAppointmentRules.Strategist => officer.Intelligence * 3 + officer.Politics + officer.Charm,
         OfficerAppointmentRules.Chancellor => officer.Politics * 3 + officer.Intelligence * 2 + officer.Charm,
         OfficerAppointmentRules.ChiefStrategist => officer.Intelligence * 3 + officer.Leadership + officer.Combat,
+        OfficerAppointmentRules.GrandGeneral or OfficerAppointmentRules.VanguardGeneral or OfficerAppointmentRules.RearGeneral => officer.Leadership * 2 + officer.Strength + officer.Combat,
         _ => officer.Politics + officer.Intelligence
     };
 
@@ -338,6 +368,32 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         var roleMetadata = _assignRoleOption?.GetItemMetadata(_assignRoleOption.Selected);
         var role = roleMetadata?.VariantType == Variant.Type.String ? roleMetadata.Value.AsString() : OfficerAppointmentRules.Governor;
         var officer = world.GetOfficer(_selectedOfficerId);
+        if (officer != null && (OfficerAppointmentRules.IsMilitaryAppointment(role) || role == OfficerAppointmentRules.ChiefStrategist || role == OfficerAppointmentRules.Strategist))
+        {
+            var faction = world.GetFaction(turnManager.GetPlayerFactionId());
+            var holder = role == OfficerAppointmentRules.ChiefStrategist
+                ? world.GetOfficer(faction?.ChiefStrategistOfficerId ?? 0)
+                : OfficerAppointmentRules.IsMilitaryAppointment(role)
+                    ? faction?.OfficerIds.Select(world.GetOfficer).FirstOrDefault(candidate => candidate != null && candidate.Id != officer.Id && OfficerAppointmentRules.HasAppointment(candidate, role))
+                    : null;
+            if (holder?.Id == officer.Id) holder = null;
+            var previous = role == OfficerAppointmentRules.ChiefStrategist
+                ? officer.Appointments.FirstOrDefault(item => item.Equals(OfficerAppointmentRules.Strategist, System.StringComparison.OrdinalIgnoreCase))
+                : role == OfficerAppointmentRules.Strategist
+                    ? (faction?.ChiefStrategistOfficerId == officer.Id ? OfficerAppointmentRules.ChiefStrategist : null)
+                    : officer.Appointments.FirstOrDefault(OfficerAppointmentRules.IsMilitaryAppointment);
+            var fingerprint = $"{officer.Id}:{role}:{holder?.Id ?? 0}:{previous}";
+            if ((holder != null || previous != null) && _pendingMilitaryConfirmation != fingerprint)
+            {
+                _pendingMilitaryConfirmation = fingerprint;
+                var holderName = holder != null ? _context.Localization?.GetOfficerName(holder) ?? holder.Name : _context.Localization?.T("ui.none") ?? "-";
+                var oldName = previous != null ? GetRoleDisplayName(previous) : _context.Localization?.T("ui.none") ?? "-";
+                _lastResultMessage = _context.Localization?.Format("ui.appointment_replace_confirm", holderName, oldName) ?? "Confirm replacement by pressing Assign again.";
+                UpdateSelectedOfficerSummary();
+                return;
+            }
+        }
+        _pendingMilitaryConfirmation = string.Empty;
         var sourceCityId = officer?.CityId ?? city.Id;
         var result = role switch
         {
@@ -429,6 +485,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             officerId =>
             {
                 _selectedOfficerId = officerId;
+                _pendingMilitaryConfirmation = string.Empty;
                 _lastResultMessage = string.Empty;
                 PopulateAssignRoleOptions();
                 PopulateRemoveRoleOptions();
@@ -472,6 +529,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
     private void OnClearOfficerPressed()
     {
         _selectedOfficerId = -1;
+        _pendingMilitaryConfirmation = string.Empty;
         _lastResultMessage = string.Empty;
         PopulateAssignRoleOptions();
         PopulateRemoveRoleOptions();
@@ -519,6 +577,13 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
         var chancellorName = chancellor != null ? _context.Localization.GetOfficerName(chancellor) : _context.Localization.T("ui.unassigned");
         var chiefStrategistName = chiefStrategist != null ? _context.Localization.GetOfficerName(chiefStrategist) : _context.Localization.T("ui.unassigned");
         var assignRole = GetSelectedRoleName(_assignRoleOption, OfficerAppointmentRules.Governor);
+        var effectKey = GetSelectedAppointmentKey() switch
+        {
+            OfficerAppointmentRules.GrandGeneral => "ui.military_effect_grand_general",
+            OfficerAppointmentRules.VanguardGeneral => "ui.military_effect_vanguard_general",
+            OfficerAppointmentRules.RearGeneral => "ui.military_effect_rear_general",
+            _ => string.Empty
+        };
         var removeRole = GetSelectedRoleName(_removeRoleOption, string.Empty);
         var pendingAssignText = officer == null
             ? _context.Localization.T("ui.none")
@@ -532,6 +597,7 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             $"{_context.Localization.T("ui.chief_strategist")}: {chiefStrategistName}\n" +
             $"{_context.Localization.T("ui.pending_assign_appointment")}: {pendingAssignText}\n" +
             $"{_context.Localization.T("ui.pending_clear_appointment")}: {pendingRemoveText}" +
+            (string.IsNullOrEmpty(effectKey) ? string.Empty : $"\n{_context.Localization.T(effectKey)}") +
             (string.IsNullOrWhiteSpace(_lastResultMessage) ? string.Empty : $"\n{_lastResultMessage}");
     }
 
@@ -609,7 +675,10 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
             OfficerAppointmentRules.Governor,
             OfficerAppointmentRules.Strategist,
             OfficerAppointmentRules.Chancellor,
-            OfficerAppointmentRules.ChiefStrategist
+            OfficerAppointmentRules.ChiefStrategist,
+            OfficerAppointmentRules.GrandGeneral,
+            OfficerAppointmentRules.VanguardGeneral,
+            OfficerAppointmentRules.RearGeneral
         };
 
         if (officer == null)
@@ -634,7 +703,8 @@ internal sealed class AssignRoleDialogController : FloatingOverlayController
                 appointment.Equals(OfficerAppointmentRules.Governor, System.StringComparison.OrdinalIgnoreCase) ||
                 appointment.Equals(OfficerAppointmentRules.Strategist, System.StringComparison.OrdinalIgnoreCase) ||
                 appointment.Equals(OfficerAppointmentRules.Chancellor, System.StringComparison.OrdinalIgnoreCase) ||
-                appointment.Equals(OfficerAppointmentRules.ChiefStrategist, System.StringComparison.OrdinalIgnoreCase))
+                appointment.Equals(OfficerAppointmentRules.ChiefStrategist, System.StringComparison.OrdinalIgnoreCase) ||
+                OfficerAppointmentRules.IsMilitaryAppointment(appointment))
             .Distinct()
             .ToList();
     }

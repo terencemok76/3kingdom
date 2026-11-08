@@ -1280,6 +1280,7 @@ public class TurnManager
             faction.ChiefStrategistOfficerId = 0;
         }
 
+        OfficerAppointmentRules.ClearMilitaryAppointments(successor);
         OfficerAppointmentRules.AddAppointment(successor, OfficerAppointmentRules.Lord);
         successor.Belongs = faction.Id.ToString();
 
@@ -1345,6 +1346,7 @@ public class TurnManager
             }
 
             OfficerAppointmentRules.RemoveAppointment(officer, OfficerAppointmentRules.Lord);
+            OfficerAppointmentRules.ClearMilitaryAppointments(officer);
             if (officer.CityId > 0)
             {
                 officer.FreeOfficerStayMonths = Math.Max(officer.FreeOfficerStayMonths, 2);

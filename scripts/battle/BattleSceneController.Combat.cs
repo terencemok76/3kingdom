@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ThreeKingdom.Core;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattlePresentationSettings;
 using static ThreeKingdom.Battle.BattleResourcePaths;
@@ -578,6 +579,7 @@ public partial class BattleSceneController
     {
         var damage = GetAttackDamage(attacker);
         damage = Mathf.Max(1, Mathf.RoundToInt(damage * GetOfficerCommandMultiplier(attacker) / GetOfficerCommandMultiplier(target)));
+        damage = ApplyMilitaryAppointmentDamage(damage, attacker, target);
         if (HasTroopTypeAdvantage(attacker, target))
         {
             return Mathf.Max(1, Mathf.RoundToInt(damage * TroopTypeAdvantageDamageMultiplier));
@@ -592,6 +594,7 @@ public partial class BattleSceneController
     {
         var damage = Mathf.Max(1, Mathf.RoundToInt(cavalry.TroopCount * CavalryChargeCasualtyRate));
         damage = Mathf.Max(1, Mathf.RoundToInt(damage * GetOfficerCommandMultiplier(cavalry) / GetOfficerCommandMultiplier(target)));
+        damage = ApplyMilitaryAppointmentDamage(damage, cavalry, target);
         if (HasTroopTypeAdvantage(target, cavalry))
         {
             damage = Mathf.Max(1, Mathf.RoundToInt(damage * TroopTypeDisadvantageDamageMultiplier));
@@ -628,6 +631,17 @@ public partial class BattleSceneController
     private static int GetBaseAttackDamage(BattleOccupantInfo attacker)
     {
         return BattleCombatResolver.GetBaseAttackDamage(attacker);
+    }
+
+    private int ApplyMilitaryAppointmentDamage(int damage, BattleOccupantInfo attacker, BattleOccupantInfo target)
+    {
+        if (attacker.Category != CategoryUnit || target.Category != CategoryUnit) return damage;
+        var world = CampaignRuntimeContext.World;
+        var attackOfficer = world?.GetOfficer(GetBattleOfficerId(attacker));
+        var targetOfficer = world?.GetOfficer(GetBattleOfficerId(target));
+        var attack = MilitaryAppointmentCombatRules.GetAttackBonusPercent(attackOfficer);
+        var reduction = MilitaryAppointmentCombatRules.GetDamageReductionPercent(targetOfficer);
+        return Mathf.Max(1, Mathf.RoundToInt(damage * (1.0f + attack / 100.0f) * (1.0f - reduction / 100.0f)));
     }
 
     private int GetStructureAttackDamage(BattleOccupantInfo attacker)

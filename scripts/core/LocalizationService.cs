@@ -568,6 +568,9 @@ public class LocalizationService
             "strategist" => "role.strategist",
             "chancellor" => "ui.chancellor",
             "chiefstrategist" => "ui.chief_strategist",
+            "grandgeneral" => "role.grand_general",
+            "vanguardgeneral" => "role.vanguard_general",
+            "reargeneral" => "role.rear_general",
             _ => string.Empty
         };
 

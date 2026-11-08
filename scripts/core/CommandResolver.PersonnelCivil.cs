@@ -175,6 +175,26 @@ public partial class CommandResolver
             return LocalizedResult(false, "cmd.assign_role.invalid_role");
         }
 
+        if (OfficerAppointmentRules.IsMilitaryAppointment(appointment))
+        {
+            var faction = world.GetFaction(actorFactionId);
+            if (faction == null || !faction.OfficerIds.Contains(officer.Id) || officer.CaptiveFactionId > 0 ||
+                !IsOfficerAlive(world, officer) || BattleCampaignService.IsOfficerCommitted(world, officer.Id) ||
+                OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id))
+                return LocalizedResult(false, "cmd.assign_role.officer_required");
+
+            foreach (var holder in faction.OfficerIds.Select(world.GetOfficer).Where(candidate => candidate != null && candidate.Id != officer.Id))
+                OfficerAppointmentRules.RemoveAppointment(holder!, appointment);
+            OfficerAppointmentRules.ClearMilitaryAppointments(officer);
+        }
+
+        if (appointment.Equals(OfficerAppointmentRules.Strategist, StringComparison.OrdinalIgnoreCase))
+        {
+            var faction = world.GetFaction(actorFactionId);
+            if (faction?.ChiefStrategistOfficerId == officer.Id) faction.ChiefStrategistOfficerId = 0;
+            ClearOfficerAppointment(officer, OfficerAppointmentRules.ChiefStrategist);
+        }
+
         if (appointment.Equals(OfficerAppointmentRules.Governor, StringComparison.OrdinalIgnoreCase))
         {
             foreach (var cityOfficerId in city.OfficerIds)
@@ -469,6 +489,7 @@ public partial class CommandResolver
             {
                 ClearOfficerAppointment(previousHolder, OfficerAppointmentRules.ChiefStrategist);
             }
+            ClearOfficerAppointment(officer, OfficerAppointmentRules.Strategist);
             faction.ChiefStrategistOfficerId = officer.Id;
             AssignOfficerAppointment(officer, OfficerAppointmentRules.ChiefStrategist);
         }

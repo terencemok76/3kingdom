@@ -12,6 +12,13 @@ public static class OfficerAppointmentRules
     public const string Strategist = "Strategist";
     public const string Chancellor = "Chancellor";
     public const string ChiefStrategist = "ChiefStrategist";
+    public const string GrandGeneral = "GrandGeneral";
+    public const string VanguardGeneral = "VanguardGeneral";
+    public const string RearGeneral = "RearGeneral";
+    public static readonly string[] MilitaryAppointments = { GrandGeneral, VanguardGeneral, RearGeneral };
+
+    public static bool IsMilitaryAppointment(string appointment) => MilitaryAppointments.Any(item => item.Equals(appointment, StringComparison.OrdinalIgnoreCase));
+    public static void ClearMilitaryAppointments(OfficerData officer) => officer.Appointments.RemoveAll(IsMilitaryAppointment);
 
     public static void NormalizeOfficer(OfficerData officer)
     {
@@ -68,7 +75,7 @@ public static class OfficerAppointmentRules
 
     public static bool IsValidOfficerAppointment(string appointment)
     {
-        return appointment.Equals(Strategist, StringComparison.OrdinalIgnoreCase) ||
+        return IsMilitaryAppointment(appointment) || appointment.Equals(Strategist, StringComparison.OrdinalIgnoreCase) ||
                appointment.Equals(Governor, StringComparison.OrdinalIgnoreCase);
     }
 }

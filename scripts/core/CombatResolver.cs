@@ -57,6 +57,11 @@ public class CombatResolver
             (1.0f + (defender.Defense / 250.0f) + GetDefenderTroopModifier(effectiveDefenseAllocation) + troopCounterDefenseModifier - siegePressure);
         defenseMultiplier = Math.Max(0.75f, defenseMultiplier);
 
+        var attackOfficeBonus = GetAverageMilitaryBonus(world, attacker, attackingOfficerIds, attackOfficerDeployments, true);
+        var defenseOfficeBonus = GetAverageMilitaryBonus(world, defender, defendingOfficerIds, defenderOfficerDeployments, false);
+        var counterOfficeBonus = GetAverageMilitaryBonus(world, defender, defendingOfficerIds, defenderOfficerDeployments, true);
+        var attackerProtection = GetAverageMilitaryBonus(world, attacker, attackingOfficerIds, attackOfficerDeployments, false);
+
         var remainingAttackers = clampedAttackTroops;
         var remainingDefenders = Math.Max(0, defender.Troops);
         for (var round = 0; round < AutomaticCombatRounds && remainingAttackers > 0 && remainingDefenders > 0; round++)
@@ -66,6 +71,8 @@ public class CombatResolver
             var powerRatio = effectiveAttack / Math.Max(1.0f, effectiveDefense);
             var defenderLoss = CalculateAutomaticLoss(remainingDefenders, powerRatio);
             var attackerLoss = CalculateAutomaticLoss(remainingAttackers, 1.0f / Math.Max(0.01f, powerRatio));
+            defenderLoss = Math.Clamp((int)Math.Round(defenderLoss * (1.0f + attackOfficeBonus) * (1.0f - defenseOfficeBonus)), 1, remainingDefenders);
+            attackerLoss = Math.Clamp((int)Math.Round(attackerLoss * (1.0f + counterOfficeBonus) * (1.0f - attackerProtection)), 1, remainingAttackers);
             remainingDefenders = Math.Max(0, remainingDefenders - defenderLoss);
             remainingAttackers = Math.Max(0, remainingAttackers - attackerLoss);
         }
@@ -240,6 +247,26 @@ public class CombatResolver
         }
 
         return count == 0 ? 50 : total / count;
+    }
+
+    private static float GetAverageMilitaryBonus(WorldState world, CityData city, List<int>? officerIds, List<AttackOfficerDeploymentData>? deployments, bool attacking)
+    {
+        // A deployment with zero troops does not lend its appointment to the army.
+        if (deployments != null && deployments.Count > 0)
+        {
+            var units = deployments.Where(item => item.TroopCount > 0 && item.TroopType != TroopType.Siege).ToList();
+            var total = units.Sum(item => (long)item.TroopCount);
+            if (total <= 0) return 0f;
+            return (float)(units.Sum(item => (double)item.TroopCount * (attacking
+                ? MilitaryAppointmentCombatRules.GetAttackBonusPercent(world.GetOfficer(item.OfficerId))
+                : MilitaryAppointmentCombatRules.GetDamageReductionPercent(world.GetOfficer(item.OfficerId)))) / total / 100.0);
+        }
+        var ids = officerIds != null && officerIds.Count > 0 ? officerIds : city.OfficerIds;
+        var officers = ids.Distinct().Select(world.GetOfficer).Where(officer => officer != null).ToList();
+        if (officers.Count == 0) return 0f;
+        return (float)officers.Average(officer => attacking
+            ? MilitaryAppointmentCombatRules.GetAttackBonusPercent(officer)
+            : MilitaryAppointmentCombatRules.GetDamageReductionPercent(officer)) / 100f;
     }
 
     private static float GetAttackDeploymentModifier(TroopAllocationData allocation)

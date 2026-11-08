@@ -79,7 +79,7 @@ public partial class HudController : CanvasLayer
         return result;
     }
 
-    private void ConfigureCompactOfficerTableColumns(Tree? tree, bool includeStatus = true, bool includeCity = false, bool includeLoyalty = true, bool includeStats = true, bool includeCheck = false)
+    private void ConfigureCompactOfficerTableColumns(Tree? tree, bool includeStatus = true, bool includeCity = false, bool includeLoyalty = true, bool includeStats = true, bool includeCheck = false, bool includeAppointments = false)
     {
         if (tree == null || _localization == null)
         {
@@ -88,7 +88,7 @@ public partial class HudController : CanvasLayer
 
         var column = 0;
         var totalColumns = (includeCheck ? 1 : 0) +
-                           2 +
+                           2 + (includeAppointments ? 1 : 0) +
                            ((includeStatus || includeCity) ? 1 : 0) +
                            (includeLoyalty ? 1 : 0) +
                            (includeStats ? 3 : 0);
@@ -109,6 +109,14 @@ public partial class HudController : CanvasLayer
         tree.SetColumnCustomMinimumWidth(column, 90);
         tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
         column += 1;
+
+        if (includeAppointments)
+        {
+            tree.SetColumnTitle(column, _localization.T("ui.appointed_titles"));
+            tree.SetColumnCustomMinimumWidth(column, 150);
+            tree.SetColumnTitleAlignment(column, HorizontalAlignment.Left);
+            column += 1;
+        }
 
         if (includeStatus)
         {
@@ -149,7 +157,7 @@ public partial class HudController : CanvasLayer
         }
     }
 
-    private void PopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeStatus = true, bool includeCity = false, bool includeLoyalty = true, bool includeStats = true, bool includeCheck = false)
+    private void PopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeStatus = true, bool includeCity = false, bool includeLoyalty = true, bool includeStats = true, bool includeCheck = false, bool includeAppointments = false)
     {
         if (_turnManager?.World == null || _localization == null)
         {
@@ -171,6 +179,14 @@ public partial class HudController : CanvasLayer
         column += 1;
         row.SetText(column, _localization.GetOfficerRole(officer));
         column += 1;
+
+        if (includeAppointments)
+        {
+            var appointments = BuildOfficerAppointmentsText(officer);
+            row.SetText(column, appointments);
+            row.SetTooltipText(column, appointments);
+            column += 1;
+        }
 
         if (includeStatus)
         {
@@ -200,7 +216,7 @@ public partial class HudController : CanvasLayer
         }
 
         var totalColumns = (includeCheck ? 1 : 0) +
-                           2 +
+                           2 + (includeAppointments ? 1 : 0) +
                            ((includeStatus || includeCity) ? 1 : 0) +
                            (includeLoyalty ? 1 : 0) +
                            (includeStats ? 3 : 0);

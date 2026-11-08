@@ -45,11 +45,11 @@ public partial class HudController
 
     internal string MilitaryGetCommandName(CommandType commandType) => GetCommandName(commandType);
     internal string MilitaryGetTroopTypeDisplayName(TroopType troopType) => GetTroopTypeDisplayName(troopType);
-    internal void MilitaryConfigureCompactOfficerTableColumns(Tree tree, bool includeCheck) =>
-        ConfigureCompactOfficerTableColumns(tree, includeCheck: includeCheck);
+    internal void MilitaryConfigureCompactOfficerTableColumns(Tree tree, bool includeCheck, bool includeAppointments = false) =>
+        ConfigureCompactOfficerTableColumns(tree, includeCheck: includeCheck, includeAppointments: includeAppointments);
 
-    internal void MilitaryPopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeCheck) =>
-        PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: includeCheck);
+    internal void MilitaryPopulateCompactOfficerTableRow(TreeItem row, OfficerData officer, int rowIndex, bool includeCheck, bool includeAppointments = false) =>
+        PopulateCompactOfficerTableRow(row, officer, rowIndex, includeCheck: includeCheck, includeAppointments: includeAppointments);
     internal List<int> MilitaryGetCheckedTreeMetadataIds(Tree? tree) => GetCheckedTreeMetadataIds(tree).ToList();
     internal CommandResult MilitaryExecuteMoveCommand(int targetCityId, TroopAllocationData troopAllocation, int gold, int food, int horses, int wood, int metal, int stone, SiegeEngineAllocationData siegeEngineAllocation, List<int> officerIds, List<int> captiveOfficerIds) =>
         ExecutePlayerCommand(CommandType.Move, targetCityId: targetCityId, troopsToSend: troopAllocation.Total, troopAllocation: troopAllocation, goldToSend: gold, foodToSend: food, horsesToSend: horses, woodToSend: wood, metalToSend: metal, stoneToSend: stone, siegeEngineAllocation: siegeEngineAllocation, officerIds: officerIds, captiveOfficerIds: captiveOfficerIds);

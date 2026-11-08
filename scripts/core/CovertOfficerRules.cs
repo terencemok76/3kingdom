@@ -203,6 +203,7 @@ public static class CovertOfficerRules
         city.Loyalty = Math.Max(city.Loyalty, 55);
 
         original.OfficerIds.Remove(governor.Id);
+        OfficerAppointmentRules.ClearMilitaryAppointments(governor);
         if (original.ChancellorOfficerId == governor.Id) original.ChancellorOfficerId = 0;
         if (original.ChiefStrategistOfficerId == governor.Id) original.ChiefStrategistOfficerId = 0;
         governor.Belongs = sponsor.Id.ToString();

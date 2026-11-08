@@ -13,6 +13,18 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--military-combat-bonus-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunMilitaryCombatBonusTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--military-appointments-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunMilitaryAppointmentTest();
+            PrintSummary();
+            return;
+        }
         if (args.Contains("--covert-officer-only", StringComparer.OrdinalIgnoreCase))
         {
             RunCovertOfficerRulesTest();
@@ -3219,6 +3231,78 @@ internal static class Program
         Assert(result.Success, "Assign officer appointment resolves", $"success={result.Success}");
         Assert(OfficerAppointmentRules.HasAppointment(officer, OfficerAppointmentRules.Governor), "Assign officer appointment applies", string.Join(',', officer.Appointments));
         Assert(!blocked.Success, "Assign officer appointment blocks ruler", $"success={blocked.Success}");
+    }
+
+    private static void RunMilitaryAppointmentTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        world.Cities.Add(TestHelpers.City(1, "City", 1, 1000, 1000, 1000, new[] { 101, 102, 103 }, Array.Empty<int>()));
+        foreach (var id in new[] { 101, 102, 103 }) world.Officers.Add(TestHelpers.Officer(id, $"Officer{id}", 1));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 101, new[] { 101, 102, 103 }));
+        var resolver = CreateServices(world).Resolver;
+        var first = world.GetOfficer(102)!;
+        var second = world.GetOfficer(103)!;
+        resolver.ExecuteAssignOfficerAppointment(1, 1, 102, OfficerAppointmentRules.Governor);
+        var assigned = resolver.ExecuteAssignOfficerAppointment(1, 1, 102, OfficerAppointmentRules.GrandGeneral);
+        var replaced = resolver.ExecuteAssignOfficerAppointment(1, 1, 103, OfficerAppointmentRules.GrandGeneral);
+        var changed = resolver.ExecuteAssignOfficerAppointment(1, 1, 103, OfficerAppointmentRules.RearGeneral);
+        Assert(assigned.Success && replaced.Success && changed.Success, "Military appointments resolve", "assign, replace, change");
+        Assert(!OfficerAppointmentRules.HasAppointment(first, OfficerAppointmentRules.GrandGeneral) && OfficerAppointmentRules.HasAppointment(first, OfficerAppointmentRules.Governor), "Replacement preserves nonmilitary posts", string.Join(',', first.Appointments));
+        Assert(!OfficerAppointmentRules.HasAppointment(second, OfficerAppointmentRules.GrandGeneral) && OfficerAppointmentRules.HasAppointment(second, OfficerAppointmentRules.RearGeneral), "One military post per officer", string.Join(',', second.Appointments));
+        resolver.ExecuteAssignOfficerAppointment(1, 1, 102, OfficerAppointmentRules.Strategist);
+        var promoted = resolver.ExecuteAssignFactionAdvisor(1, 1, 102, OfficerAppointmentRules.ChiefStrategist);
+        Assert(promoted.Success && !OfficerAppointmentRules.HasAppointment(first, OfficerAppointmentRules.Strategist) && world.GetFaction(1)!.ChiefStrategistOfficerId == 102, "Chief strategist replaces strategist on same officer", string.Join(',', first.Appointments));
+        var newChief = resolver.ExecuteAssignFactionAdvisor(1, 1, 103, OfficerAppointmentRules.ChiefStrategist);
+        Assert(newChief.Success && world.GetFaction(1)!.ChiefStrategistOfficerId == 103 && !OfficerAppointmentRules.HasAppointment(first, OfficerAppointmentRules.ChiefStrategist), "Chief strategist has one faction holder", string.Join(',', first.Appointments));
+        var demoted = resolver.ExecuteAssignOfficerAppointment(1, 1, 103, OfficerAppointmentRules.Strategist);
+        Assert(demoted.Success && world.GetFaction(1)!.ChiefStrategistOfficerId == 0 && !OfficerAppointmentRules.HasAppointment(second, OfficerAppointmentRules.ChiefStrategist), "Strategist clears same officer's chief post", string.Join(',', second.Appointments));
+        var copy = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world));
+        Assert(copy != null && OfficerAppointmentRules.HasAppointment(copy.GetOfficer(103)!, OfficerAppointmentRules.RearGeneral), "Military appointment survives serialization", "round trip");
+        var old = System.Text.Json.JsonSerializer.Deserialize<OfficerData>("{\"Id\":9,\"Name\":\"Old\"}");
+        Assert(old != null && old.Appointments.Count == 0, "Old officer data defaults to no appointments", "legacy JSON");
+        var aiWorld = TestHelpers.World(month: 2);
+        aiWorld.Cities.Add(TestHelpers.City(2, "AI City", 2, 1000, 1000, 1000, new[] { 201, 202, 203, 204 }, Array.Empty<int>()));
+        foreach (var id in new[] { 201, 202, 203, 204 }) aiWorld.Officers.Add(TestHelpers.Officer(id, $"AI{id}", 2));
+        aiWorld.Factions.Add(TestHelpers.Faction(2, "AI", false, 201, new[] { 201, 202, 203, 204 }));
+        var ai = CreateServices(aiWorld).Ai;
+        ai.RunFactionAppointmentDecisions(2);
+        var holders = OfficerAppointmentRules.MilitaryAppointments.Select(post => aiWorld.Officers.Single(officer => OfficerAppointmentRules.HasAppointment(officer, post)).Id).ToArray();
+        ai.RunFactionAppointmentDecisions(2);
+        var holdersAgain = OfficerAppointmentRules.MilitaryAppointments.Select(post => aiWorld.Officers.Single(officer => OfficerAppointmentRules.HasAppointment(officer, post)).Id).ToArray();
+        Assert(holders.Distinct().Count() == 3 && holders.SequenceEqual(holdersAgain), "AI fills each post once and keeps holders", string.Join(',', holdersAgain));
+    }
+
+    private static void RunMilitaryCombatBonusTest()
+    {
+        var world = TestHelpers.World(month: 2);
+        var attacker = TestHelpers.City(1, "Attacker", 1, 5000, 1000, 5000, new[] { 101, 102 }, Array.Empty<int>());
+        var defender = TestHelpers.City(2, "Defender", 2, 5000, 1000, 5000, new[] { 201 }, Array.Empty<int>());
+        world.Cities.AddRange(new[] { attacker, defender });
+        foreach (var id in new[] { 101, 102, 201 }) world.Officers.Add(TestHelpers.Officer(id, $"Officer{id}", id == 201 ? 2 : 1));
+        var first = world.GetOfficer(101)!;
+        var guard = world.GetOfficer(201)!;
+        var resolver = new CombatResolver();
+        var baseResult = resolver.Resolve(world, attacker, defender, 5000, new List<int> { 101 }, defendingOfficerIds: new List<int> { 201 });
+        OfficerAppointmentRules.AddAppointment(first, OfficerAppointmentRules.VanguardGeneral);
+        var attackResult = resolver.Resolve(world, attacker, defender, 5000, new List<int> { 101 }, defendingOfficerIds: new List<int> { 201 });
+        Assert(attackResult.DefenderLosses > baseResult.DefenderLosses, "Vanguard increases enemy troop casualties", $"{baseResult.DefenderLosses} -> {attackResult.DefenderLosses}");
+        OfficerAppointmentRules.AddAppointment(guard, OfficerAppointmentRules.RearGeneral);
+        var defended = resolver.Resolve(world, attacker, defender, 5000, new List<int> { 101 }, defendingOfficerIds: new List<int> { 201 });
+        Assert(defended.DefenderLosses < attackResult.DefenderLosses, "Rear general reduces incoming casualties", $"{attackResult.DefenderLosses} -> {defended.DefenderLosses}");
+        Assert(MilitaryAppointmentCombatRules.GetAttackBonusPercent(first) == 5 && MilitaryAppointmentCombatRules.GetDamageReductionPercent(guard) == 5, "Appointment bonuses bounded", "5 percent");
+        OfficerAppointmentRules.RemoveAppointment(first, OfficerAppointmentRules.VanguardGeneral);
+        OfficerAppointmentRules.AddAppointment(first, OfficerAppointmentRules.GrandGeneral);
+        Assert(MilitaryAppointmentCombatRules.GetAttackBonusPercent(first) == 3 && MilitaryAppointmentCombatRules.GetDamageReductionPercent(first) == 3, "Grand general grants both bonuses", "3 percent");
+        OfficerAppointmentRules.RemoveAppointment(guard, OfficerAppointmentRules.RearGeneral);
+        OfficerAppointmentRules.RemoveAppointment(first, OfficerAppointmentRules.GrandGeneral);
+        var noPost = resolver.Resolve(world, attacker, defender, 5000, new List<int> { 101 }, defendingOfficerIds: new List<int> { 201 });
+        Assert(noPost.AttackerLosses == baseResult.AttackerLosses && noPost.DefenderLosses == baseResult.DefenderLosses, "Removing appointments restores baseline", "baseline");
+        OfficerAppointmentRules.AddAppointment(first, OfficerAppointmentRules.VanguardGeneral);
+        var reserveOnly = new List<AttackOfficerDeploymentData> { new() { OfficerId = 101, TroopCount = 0 }, new() { OfficerId = 102, TroopCount = 5000 } };
+        var reserveResult = resolver.Resolve(world, attacker, defender, 5000, new List<int> { 101, 102 }, reserveOnly, defendingOfficerIds: new List<int> { 201 });
+        OfficerAppointmentRules.RemoveAppointment(first, OfficerAppointmentRules.VanguardGeneral);
+        var reserveBaseline = resolver.Resolve(world, attacker, defender, 5000, new List<int> { 101, 102 }, reserveOnly, defendingOfficerIds: new List<int> { 201 });
+        Assert(reserveResult.DefenderLosses == reserveBaseline.DefenderLosses && reserveResult.AttackerLosses == reserveBaseline.AttackerLosses, "Undeployed general does not grant combat bonus", "zero troops");
     }
 
     private static void RunAssignFactionAdvisorTest()
