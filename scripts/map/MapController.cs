@@ -362,7 +362,7 @@ public partial class MapController : Node2D
 
     private void PlayMovementAnimation(int sourceCityId, int targetCityId, MapMovementIcon icon, Action completed)
     {
-        if (PresentationSpeed == MapPresentationSpeed.Skip)
+        if (PresentationSpeed == MapPresentationSpeed.Skip || sourceCityId == targetCityId)
         {
             completed();
             return;
@@ -377,10 +377,10 @@ public partial class MapController : Node2D
         }
         var sourcePosition = new Vector2(source.MapX, source.MapY);
         var isMission = icon is MapMovementIcon.Spy or MapMovementIcon.Diplomacy or MapMovementIcon.RecruitOfficer or MapMovementIcon.ContactOfficer;
-        var missionRoute = isMission && source.Id != target.Id && _world != null
+        var missionRoute = isMission && _world != null
             ? MapRoadRouting.FindRoadRoute(_world, source.Id, target.Id) : new System.Collections.Generic.List<int>();
-        var noRoad = isMission && source.Id != target.Id && missionRoute.Count < 2;
-        var points = isMission && (source.Id == target.Id || noRoad)
+        var noRoad = isMission && missionRoute.Count < 2;
+        var points = isMission && noRoad
             ? new[] { sourcePosition, sourcePosition + new Vector2(24, -18), sourcePosition + new Vector2(30, 8), sourcePosition }
             : isMission && _world != null
                 ? MapRoadRouting.BuildRoadPoints(_world, missionRoute)
