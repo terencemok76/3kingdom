@@ -29,6 +29,200 @@ public partial class BattleSceneController
     private bool IsCampaignMonthLimitReached => _campaignMonthLimitReached && _activeCampaign != null;
     private bool IsStandaloneMonthLimitReached => _standaloneMonthLimitReached && _activeCampaign == null;
 
+    private const string CooperationObjectiveFree = "free";
+    private const string CooperationObjectiveHoldPosition = "hold-position";
+    private const string CooperationObjectiveSuggestRetreat = "suggest-retreat";
+    private const string CooperationObjectiveAttackPrefix = "attack:";
+    private const string CooperationObjectiveProtectPrefix = "protect:";
+
+    private bool CanIssueAllyCooperationOrder(BattleOccupantInfo occupant)
+    {
+        return _activeCampaign != null &&
+               !_isResolvingAlliedAiTurn &&
+               IsCurrentTurnPiece(occupant) &&
+               occupant.CampaignTeamId > 0 &&
+               occupant.ControllerType == CampaignControllerType.Ai;
+    }
+
+    private CampaignBattleTeamData? GetCampaignTeam(BattleOccupantInfo occupant)
+    {
+        return _activeCampaign?.Teams.FirstOrDefault(team => team.Id == occupant.CampaignTeamId);
+    }
+
+    private void ConfigureAllyCooperationObjectiveControl()
+    {
+        var actionButtons = GetNodeOrNull<VBoxContainer>("UiLayer/CommandMenu/MenuMargin/MenuButtons/CommandScroll/ActionButtons");
+        if (actionButtons == null)
+        {
+            return;
+        }
+
+        _allyCooperationObjectiveOption ??= new OptionButton
+        {
+            Name = "AllyCooperationObjectiveOption",
+            TooltipText = "Set an advisory objective for this allied AI team."
+        };
+        if (_allyCooperationObjectiveOption.GetParent() == null)
+        {
+            actionButtons.AddChild(_allyCooperationObjectiveOption);
+            _allyCooperationObjectiveOption.ItemSelected += OnAllyCooperationObjectiveSelected;
+        }
+
+        var canIssueOrder = _selectedUnit != null && CanIssueAllyCooperationOrder(_selectedUnit);
+        _allyCooperationObjectiveOption.Visible = canIssueOrder;
+        _allyCooperationObjectiveOption.Disabled = !canIssueOrder;
+        if (!canIssueOrder || _selectedUnit == null)
+        {
+            return;
+        }
+
+        var objective = GetCampaignTeam(_selectedUnit)?.CooperationObjective;
+        _allyCooperationObjectiveOption.Clear();
+        _allyCooperationObjectiveOption.AddItem("盟軍指令：自由作戰");
+        _allyCooperationObjectiveOption.AddItem("盟軍指令：保持陣地");
+        _allyCooperationObjectiveOption.AddItem("盟軍指令：建議撤退");
+        _allyCooperationObjectiveOption.AddItem("盟軍指令：攻擊指定區域…");
+        _allyCooperationObjectiveOption.AddItem("盟軍指令：保護指定隊伍…");
+        _allyCooperationObjectiveOption.Select(objective == CooperationObjectiveHoldPosition ? 1 :
+            objective == CooperationObjectiveSuggestRetreat ? 2 :
+            IsAttackCooperationObjective(objective, out _) ? 3 :
+            IsProtectCooperationObjective(objective, out _) ? 4 : 0);
+    }
+
+    private void OnAllyCooperationObjectiveSelected(long selectedIndex)
+    {
+        if (_selectedUnit == null || !CanIssueAllyCooperationOrder(_selectedUnit))
+        {
+            return;
+        }
+
+        var team = GetCampaignTeam(_selectedUnit);
+        if (team == null)
+        {
+            return;
+        }
+
+        team.CooperationObjective = selectedIndex switch
+        {
+            1 => CooperationObjectiveHoldPosition,
+            2 => CooperationObjectiveSuggestRetreat,
+            3 => string.Empty,
+            4 => string.Empty,
+            _ => CooperationObjectiveFree
+        };
+        if (selectedIndex == 3)
+        {
+            _commandMode = BattleCommandMode.AllyCooperationTargetSelect;
+            HideCommandMenu();
+            AppendBattleLog(_selectedUnit, "Cooperation", "Select a battlefield area for the allied attack objective.");
+            RefreshBattleLogPanel();
+            RefreshHighlights();
+            return;
+        }
+        if (selectedIndex == 4)
+        {
+            _commandMode = BattleCommandMode.AllyCooperationProtectSelect;
+            HideCommandMenu();
+            AppendBattleLog(_selectedUnit, "Cooperation", "Select a friendly player-controlled team for the allied protection objective.");
+            RefreshBattleLogPanel();
+            RefreshHighlights();
+            return;
+        }
+        AppendBattleLog(_selectedUnit, "Cooperation", $"Ally objective: {GetCooperationObjectiveDisplayName(team.CooperationObjective)}.");
+        RefreshBattleLogPanel();
+    }
+
+    private void SetSelectedAllyAttackObjective(BattleGridKey targetGrid)
+    {
+        if (_selectedUnit == null || !CanIssueAllyCooperationOrder(_selectedUnit))
+        {
+            CancelCommandAction(clearSelection: true);
+            return;
+        }
+
+        var team = GetCampaignTeam(_selectedUnit);
+        if (team == null)
+        {
+            CancelCommandAction(clearSelection: true);
+            return;
+        }
+
+        team.CooperationObjective = $"{CooperationObjectiveAttackPrefix}{targetGrid.X},{targetGrid.Y},{targetGrid.Level}";
+        AppendBattleLog(_selectedUnit, "Cooperation", $"Ally attack objective set at {targetGrid}.");
+        _commandMode = BattleCommandMode.None;
+        HideCommandMenu();
+        RefreshBattleLogPanel();
+    }
+
+    private static bool IsAttackCooperationObjective(string? objective, out BattleGridKey targetGrid)
+    {
+        targetGrid = default;
+        if (string.IsNullOrWhiteSpace(objective) || !objective.StartsWith(CooperationObjectiveAttackPrefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var parts = objective[CooperationObjectiveAttackPrefix.Length..].Split(',');
+        if (parts.Length != 3 || !int.TryParse(parts[0], out var x) || !int.TryParse(parts[1], out var y) || !int.TryParse(parts[2], out var level))
+        {
+            return false;
+        }
+
+        targetGrid = new BattleGridKey(x, y, level);
+        return true;
+    }
+
+    private void SetSelectedAllyProtectObjective(BattleGridKey targetGrid)
+    {
+        if (_selectedUnit == null || !CanIssueAllyCooperationOrder(_selectedUnit) ||
+            !_occupantsByGrid.TryGetValue(targetGrid, out var occupants))
+        {
+            CancelCommandAction(clearSelection: true);
+            return;
+        }
+
+        var protectedUnit = occupants.FirstOrDefault(occupant =>
+            IsBattlePiece(occupant) &&
+            occupant.TeamName == _selectedUnit.TeamName &&
+            occupant.ControllerType == CampaignControllerType.Player &&
+            occupant.CampaignTeamId > 0);
+        var team = GetCampaignTeam(_selectedUnit);
+        if (protectedUnit == null || team == null || protectedUnit.CampaignTeamId == team.Id)
+        {
+            AppendBattleLog(_selectedUnit, "Cooperation", "Protection objective requires another friendly player-controlled team.");
+            CancelCommandAction(clearSelection: true);
+            RefreshBattleLogPanel();
+            return;
+        }
+
+        team.CooperationObjective = $"{CooperationObjectiveProtectPrefix}{protectedUnit.CampaignTeamId}";
+        AppendBattleLog(_selectedUnit, "Cooperation", $"Ally protection objective set for {FormatLogUnit(protectedUnit)}.");
+        _commandMode = BattleCommandMode.None;
+        HideCommandMenu();
+        RefreshBattleLogPanel();
+    }
+
+    private static bool IsProtectCooperationObjective(string? objective, out int protectedTeamId)
+    {
+        protectedTeamId = 0;
+        return !string.IsNullOrWhiteSpace(objective) &&
+               objective.StartsWith(CooperationObjectiveProtectPrefix, StringComparison.Ordinal) &&
+               int.TryParse(objective[CooperationObjectiveProtectPrefix.Length..], out protectedTeamId) &&
+               protectedTeamId > 0;
+    }
+
+    private static string GetCooperationObjectiveDisplayName(string objective)
+    {
+        return objective switch
+        {
+            CooperationObjectiveHoldPosition => "hold position",
+            CooperationObjectiveSuggestRetreat => "suggest retreat",
+            var attackObjective when IsAttackCooperationObjective(attackObjective, out var targetGrid) => $"attack area {targetGrid}",
+            var protectObjective when IsProtectCooperationObjective(protectObjective, out var protectedTeamId) => $"protect team {protectedTeamId}",
+            _ => "free action"
+        };
+    }
+
     private void InitializeCampaignRuntime()
     {
         _activeCampaign = CampaignRuntimeContext.GetActiveCampaign();
@@ -1306,7 +1500,7 @@ public partial class BattleSceneController
 
     private void MarkCampaignRetreatBlockedForAi(BattleOccupantInfo unit)
     {
-        if (IsCurrentTurnAiControlled())
+        if (IsCurrentTurnManagedByAi())
         {
             MarkUnitActed(unit);
         }

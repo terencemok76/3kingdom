@@ -464,7 +464,9 @@ public static class BattleCampaignService
         int requestedTroops,
         int requestedGold,
         int requestedFood,
-        int requestedSourceCityId = 0)
+        int requestedSourceCityId = 0,
+        int promisedGold = 0,
+        int promisedFood = 0)
     {
         if (campaign.Invitations.Any(item =>
                 item.InvitedFactionId == invitedFactionId &&
@@ -487,6 +489,8 @@ public static class BattleCampaignService
             RequestedTroops = Math.Max(0, requestedTroops),
             RequestedGold = Math.Max(0, requestedGold),
             RequestedFood = Math.Max(0, requestedFood),
+            PromisedGold = Math.Max(0, promisedGold),
+            PromisedFood = Math.Max(0, promisedFood),
             ResponseBattleDays = 1
         };
         campaign.Invitations.Add(invitation);
@@ -669,7 +673,8 @@ public static class BattleCampaignService
 
                 var invitation = CreateInvitation(campaign, campaign.DefenderFactionId,
                     source.OwnerFactionId, CampaignBattleSide.Defender,
-                    BattleInvitationSupportType.Troops, request.EnvoyOfficerId, request.RequestedTroops, 0, 0, source.Id);
+                    BattleInvitationSupportType.Troops, request.EnvoyOfficerId, request.RequestedTroops, 0, 0, source.Id,
+                    request.PromisedGold, request.PromisedFood);
                 ResolveAiInvitation(world, campaign, invitation);
             }
             catch (ReinforcementDispatchException)
@@ -686,7 +691,15 @@ public static class BattleCampaignService
         campaign.TotalBattleDays++;
         foreach (var participant in campaign.Participants)
         {
-            participant.BattleDaysParticipated++;
+            var hasBattlefieldTeam = campaign.Teams.Any(team =>
+                team.FactionId == participant.FactionId &&
+                team.Side == participant.Side &&
+                team.ActiveTroops > 0 &&
+                team.Location is CampaignTeamLocation.Field or CampaignTeamLocation.InnerCity);
+            if (hasBattlefieldTeam)
+            {
+                participant.BattleDaysParticipated++;
+            }
         }
 
         foreach (var order in campaign.Reinforcements.Where(item => item.Status == ReinforcementStatus.Traveling))
@@ -712,6 +725,109 @@ public static class BattleCampaignService
         ActiveBattleCampaignData campaign,
         int maximumBattleDays = MaximumBattleDaysPerMonth) =>
         campaign.BattleDaysThisMonth >= Math.Max(1, maximumBattleDays);
+
+    private static List<WorldState.BattleParticipantContributionData> UpdateParticipantContributions(ActiveBattleCampaignData campaign)
+    {
+        var contributions = new List<WorldState.BattleParticipantContributionData>();
+        foreach (var participant in campaign.Participants)
+        {
+            var teams = campaign.Teams.Where(team =>
+                team.FactionId == participant.FactionId && team.Side == participant.Side).ToList();
+            var committed = teams.Sum(team => Math.Max(0, team.MaximumTroops));
+            var active = teams.Sum(team => Math.Max(0, team.ActiveTroops));
+            var wounded = teams.Sum(team => Math.Max(0, team.WoundedTroops));
+            var returned = teams.Sum(team => Math.Max(0, team.ReturnedTroops));
+            participant.TroopsCommitted = Math.Max(participant.TroopsCommitted, committed);
+            participant.TroopsLost = Math.Max(0, participant.TroopsCommitted - active - wounded - returned);
+            contributions.Add(new WorldState.BattleParticipantContributionData
+            {
+                FactionId = participant.FactionId,
+                Side = participant.Side,
+                TroopsCommitted = participant.TroopsCommitted,
+                TroopsLost = participant.TroopsLost,
+                GoldContribution = participant.GoldContribution,
+                FoodContribution = participant.FoodContribution,
+                TroopsReturned = returned,
+                ActiveTroops = active,
+                WoundedTroops = wounded,
+                BattleDaysParticipated = participant.BattleDaysParticipated
+            });
+        }
+
+        return contributions;
+    }
+
+    private static void ApplyAlliedCampaignSettlement(
+        WorldState world,
+        ActiveBattleCampaignData campaign,
+        WorldState.BattleReportData report,
+        CampaignBattleSide winner,
+        CityData payerCity)
+    {
+        foreach (var invitation in campaign.Invitations.Where(item => item.Status == BattleInvitationStatus.Accepted))
+        {
+            var contribution = report.ParticipantContributions.FirstOrDefault(item =>
+                item.FactionId == invitation.InvitedFactionId && item.Side == invitation.Side);
+            if (contribution == null)
+            {
+                continue;
+            }
+
+            var deployedTroops = contribution.TroopsCommitted > 0;
+            var suppliedResources = contribution.GoldContribution > 0 || contribution.FoodContribution > 0;
+            contribution.PromiseFulfilled = deployedTroops || suppliedResources;
+            contribution.ContributionScore = Math.Min(1000,
+                contribution.TroopsCommitted / 100 +
+                contribution.TroopsLost / 200 +
+                contribution.BattleDaysParticipated * 20 +
+                (contribution.GoldContribution + contribution.FoodContribution) / 100);
+
+            var relation = world.GetDiplomacyRelation(invitation.InviterFactionId, invitation.InvitedFactionId);
+            if (!contribution.PromiseFulfilled)
+            {
+                contribution.RelationDelta = -12;
+                contribution.TrustDelta = -18;
+            }
+            else
+            {
+                var allyWon = invitation.Side == winner;
+                contribution.RelationDelta = allyWon ? 8 : 3;
+                contribution.TrustDelta = allyWon ? 12 : 6;
+                if (allyWon)
+                {
+                    var rewardCity = world.Cities
+                        .Where(city => city.OwnerFactionId == invitation.InvitedFactionId)
+                        .OrderBy(city => city.Id)
+                        .FirstOrDefault();
+                    if (rewardCity == null)
+                    {
+                        continue;
+                    }
+
+                    var requestedGold = Math.Max(0, invitation.PromisedGold);
+                    var requestedFood = Math.Max(0, invitation.PromisedFood);
+                    var calculatedGold = Math.Clamp(contribution.ContributionScore * 2, 40, 300);
+                    var calculatedFood = Math.Clamp(contribution.ContributionScore * 4, 80, 600);
+                    contribution.RewardGold = Math.Min(Math.Max(requestedGold, calculatedGold), Math.Max(0, payerCity.Gold));
+                    contribution.RewardFood = Math.Min(Math.Max(requestedFood, calculatedFood), Math.Max(0, payerCity.Food));
+                    payerCity.Gold -= contribution.RewardGold;
+                    payerCity.Food -= contribution.RewardFood;
+                    rewardCity.Gold += contribution.RewardGold;
+                    rewardCity.Food += contribution.RewardFood;
+                }
+            }
+
+            if (relation == null)
+            {
+                continue;
+            }
+
+            relation.RelationScore = Math.Clamp(relation.RelationScore + contribution.RelationDelta, -100, 100);
+            DiplomacyScoreRules.AdjustTrust(relation, invitation.InviterFactionId, contribution.TrustDelta);
+            relation.LastUpdatedYear = campaign.CurrentYear;
+            relation.LastUpdatedMonth = campaign.CurrentMonth;
+        }
+    }
 
     public static void BeginNextCampaignMonth(ActiveBattleCampaignData campaign, int year, int month)
     {
@@ -792,6 +908,7 @@ public static class BattleCampaignService
             DefenderGoldGained = campaign.DefenderGoldGained,
             DefenderFoodGained = campaign.DefenderFoodGained
         };
+        report.ParticipantContributions = UpdateParticipantContributions(campaign);
 
         ReturnUndeployedReinforcements(world, campaign);
         var deferredRulerSuccessions = new Dictionary<int, int>();
@@ -848,6 +965,11 @@ public static class BattleCampaignService
             targetCity.Gold += campaign.DefenderGold;
             targetCity.Food += campaign.DefenderFood;
         }
+
+        var settlementPayerCity = winner == CampaignBattleSide.Attacker && attackerWonCity
+            ? targetCity
+            : winner == CampaignBattleSide.Attacker ? sourceCity : targetCity;
+        ApplyAlliedCampaignSettlement(world, campaign, report, winner, settlementPayerCity);
 
         campaign.Stage = CampaignStage.Resolved;
         campaign.IsAwaitingPlayerDecision = false;

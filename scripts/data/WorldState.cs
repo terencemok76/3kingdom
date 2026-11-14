@@ -100,8 +100,29 @@ public class WorldState
         // Non-None identifies a road-escort field battle so the report can
         // present transport/ambush semantics instead of siege terminology.
         public CaravanEscortOutcome CaravanEscortOutcome { get; set; }
+        public List<BattleParticipantContributionData> ParticipantContributions { get; set; } = new();
         public List<int> CapturedOfficerIds { get; set; } = new();
         public bool PlayerAcknowledged { get; set; }
+    }
+
+    public class BattleParticipantContributionData
+    {
+        public int FactionId { get; set; }
+        public CampaignBattleSide Side { get; set; }
+        public int TroopsCommitted { get; set; }
+        public int TroopsLost { get; set; }
+        public int GoldContribution { get; set; }
+        public int FoodContribution { get; set; }
+        public int TroopsReturned { get; set; }
+        public int ActiveTroops { get; set; }
+        public int WoundedTroops { get; set; }
+        public int BattleDaysParticipated { get; set; }
+        public int ContributionScore { get; set; }
+        public int RewardGold { get; set; }
+        public int RewardFood { get; set; }
+        public int RelationDelta { get; set; }
+        public int TrustDelta { get; set; }
+        public bool PromiseFulfilled { get; set; }
     }
 
     public string StoryId { get; set; } = string.Empty;

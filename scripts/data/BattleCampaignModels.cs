@@ -163,6 +163,10 @@ public class BattleInvitationData
     public int EnvoyOfficerId { get; set; }
     public int RequestedGold { get; set; }
     public int RequestedFood { get; set; }
+    // Optional compensation pledged by the inviting faction.  If omitted, the
+    // campaign settlement calculates a bounded contribution award instead.
+    public int PromisedGold { get; set; }
+    public int PromisedFood { get; set; }
     public int RequestedTroops { get; set; }
     public int ResponseBattleDays { get; set; } = 1;
     public string DecisionReason { get; set; } = string.Empty;

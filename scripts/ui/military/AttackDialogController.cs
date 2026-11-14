@@ -33,6 +33,10 @@ internal sealed class AttackDialogController : FloatingOverlayController
     private SpinBox? _defenseSupportTroops;
     private Button? _defenseSupportAddButton;
     private Label? _defenseSupportSummary;
+    private HBoxContainer? _defensePromiseRow;
+    private Label? _defensePromiseLabel;
+    private SpinBox? _defensePromiseGold;
+    private SpinBox? _defensePromiseFood;
     private HBoxContainer? _defenseMessengerRow;
     private Label? _defenseMessengerLabel;
     private OptionButton? _defenseMessengerOption;
@@ -285,6 +289,10 @@ internal sealed class AttackDialogController : FloatingOverlayController
         _defenseSupportTroops = root.GetNodeOrNull<SpinBox>("DefenseSupportRow/DefenseSupportTroops");
         _defenseSupportAddButton = root.GetNodeOrNull<Button>("DefenseSupportRow/DefenseSupportAddButton");
         _defenseSupportSummary = root.GetNodeOrNull<Label>("DefenseSupportSummary");
+        _defensePromiseRow = root.GetNodeOrNull<HBoxContainer>("DefensePromiseRow");
+        _defensePromiseLabel = root.GetNodeOrNull<Label>("DefensePromiseRow/DefensePromiseLabel");
+        _defensePromiseGold = root.GetNodeOrNull<SpinBox>("DefensePromiseRow/DefensePromiseGold");
+        _defensePromiseFood = root.GetNodeOrNull<SpinBox>("DefensePromiseRow/DefensePromiseFood");
         _defenseMessengerRow = root.GetNodeOrNull<HBoxContainer>("DefenseMessengerRow");
         _defenseMessengerLabel = root.GetNodeOrNull<Label>("DefenseMessengerRow/DefenseMessengerLabel");
         _defenseMessengerOption = root.GetNodeOrNull<OptionButton>("DefenseMessengerRow/DefenseMessengerOption");
@@ -1095,6 +1103,23 @@ internal sealed class AttackDialogController : FloatingOverlayController
         {
             _defenseSupportSource.Visible = !_editingDomesticReinforcement;
         }
+        var selectedSupportSource = GetSelectedDefenseSupportSourceCity();
+        var isAllyRequest = selectedSupportSource != null && selectedSupportSource.OwnerFactionId != defenderFactionId;
+        if (_defensePromiseRow != null)
+        {
+            _defensePromiseRow.Visible = !_editingDomesticReinforcement && isAllyRequest;
+        }
+        if (isAllyRequest)
+        {
+            if (_defensePromiseLabel != null)
+            {
+                _defensePromiseLabel.Text = _context.Localization?.T("ui.defense_reinforcement_promise") ?? "Promise";
+            }
+            var existingRequest = _pendingDefenseCommand.DefenseReinforcementRequests
+                .FirstOrDefault(item => item.SourceCityId == selectedSupportSource!.Id && item.IsAllianceRequest);
+            ConfigureDefensePromiseSpinBox(_defensePromiseGold, defendingCity.Gold, existingRequest?.PromisedGold ?? 0);
+            ConfigureDefensePromiseSpinBox(_defensePromiseFood, defendingCity.Food, existingRequest?.PromisedFood ?? 0);
+        }
         if (_defenseSupportAddButton != null)
         {
             UpdateDefenseSupportButtonLabel(defenderFactionId);
@@ -1107,7 +1132,7 @@ internal sealed class AttackDialogController : FloatingOverlayController
                 var city = world.GetCity(request.SourceCityId);
                 var name = city == null ? request.SourceCityId.ToString() : (_context.Localization?.GetCityName(city) ?? city.Name);
                 return request.IsAllianceRequest
-                    ? $"{name}: {_context.Localization?.T("ui.defense_reinforcement_ally") ?? "Ally request"} {request.RequestedTroops:N0}"
+                    ? $"{name}: {_context.Localization?.T("ui.defense_reinforcement_ally") ?? "Ally request"} {request.RequestedTroops:N0}｜{_context.Localization?.T("ui.defense_reinforcement_promise_short") ?? "Promise"} G {request.PromisedGold:N0} / F {request.PromisedFood:N0}"
                     : $"{name}: {_context.Localization?.T("ui.defense_reinforcement_domestic") ?? "Domestic reinforcement"} {request.Deployments.Sum(item => item.TroopCount):N0}";
             }));
         }
@@ -1248,7 +1273,9 @@ internal sealed class AttackDialogController : FloatingOverlayController
                 SourceCityId = source.Id,
                 IsAllianceRequest = true,
                 EnvoyOfficerId = _selectedDefenseEnvoyOfficerId,
-                RequestedTroops = _defenseSupportTroops == null ? 1000 : (int)_defenseSupportTroops.Value
+                RequestedTroops = _defenseSupportTroops == null ? 1000 : (int)_defenseSupportTroops.Value,
+                PromisedGold = _defensePromiseGold == null ? 0 : (int)_defensePromiseGold.Value,
+                PromisedFood = _defensePromiseFood == null ? 0 : (int)_defensePromiseFood.Value
             });
             RefreshDefenseSupportControls();
             return;
@@ -1304,6 +1331,19 @@ internal sealed class AttackDialogController : FloatingOverlayController
         }
         _pendingDefenseCommand.DefenseReinforcementRequests.RemoveAll(item => item.SourceCityId == request.SourceCityId);
         _pendingDefenseCommand.DefenseReinforcementRequests.Add(request);
+    }
+
+    private static void ConfigureDefensePromiseSpinBox(SpinBox? spinBox, int available, int value)
+    {
+        if (spinBox == null)
+        {
+            return;
+        }
+
+        spinBox.MinValue = 0;
+        spinBox.MaxValue = Math.Max(0, available);
+        spinBox.Step = 50;
+        spinBox.Value = Math.Clamp(value, 0, (int)spinBox.MaxValue);
     }
 
     private static AttackOfficerDeploymentData CloneDeployment(AttackOfficerDeploymentData deployment) => new()

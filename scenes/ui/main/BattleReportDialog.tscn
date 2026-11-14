@@ -121,7 +121,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="ReportPanel" type="PanelContainer" parent="Center" unique_id=1965491113]
-custom_minimum_size = Vector2(660, 610)
+custom_minimum_size = Vector2(660, 730)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_report_panel")
 
@@ -266,6 +266,13 @@ theme_override_font_sizes/font_size = 16
 text = "資源結算
 攻方：耗金 0、耗糧 0｜獲得金 0、糧 0
 守方：耗金 0、耗糧 0｜獲得金 0、糧 0"
+
+[node name="ParticipantSettlementLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.86, 0.78, 1)
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 2
+text = "盟軍貢獻與報酬\n無外國盟軍參戰"
 
 [node name="CapturedLabel" type="Label" parent="Center/ReportPanel/Root/Body/Content" unique_id=981227801]
 layout_mode = 2

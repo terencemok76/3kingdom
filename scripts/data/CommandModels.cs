@@ -260,6 +260,8 @@ public class DefenseReinforcementRequestData
     public bool IsAllianceRequest { get; set; }
     public int EnvoyOfficerId { get; set; }
     public int RequestedTroops { get; set; }
+    public int PromisedGold { get; set; }
+    public int PromisedFood { get; set; }
     public List<AttackOfficerDeploymentData> Deployments { get; set; } = new();
 }
 

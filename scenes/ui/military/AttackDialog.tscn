@@ -200,6 +200,28 @@ custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 text = "Add"
 
+[node name="DefensePromiseRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="DefensePromiseLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefensePromiseRow"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+text = "Promise"
+vertical_alignment = 1
+
+[node name="DefensePromiseGold" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefensePromiseRow"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+rounded = true
+
+[node name="DefensePromiseFood" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/DefensePromiseRow"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+rounded = true
+
 [node name="DefenseMessengerRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 visible = false
 layout_mode = 2

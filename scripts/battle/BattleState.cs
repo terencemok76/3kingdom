@@ -68,7 +68,9 @@ internal enum BattleCommandMode
     StrategySelect,
     DuelSelect,
     ChargeSelect,
-    HireOfficerSelect
+    HireOfficerSelect,
+    AllyCooperationTargetSelect,
+    AllyCooperationProtectSelect
 }
 
 internal enum BattleStrategyAction

@@ -15,6 +15,13 @@ internal static class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--save-load-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunSaveLoadRoundTripTest();
+            PrintSummary();
+            return;
+        }
+
         if (args.Contains("--map-mission-road-only", StringComparer.OrdinalIgnoreCase))
         {
             RunMapMissionRoadTest();
@@ -106,10 +113,15 @@ internal static class Program
         {
             RunBattleCampaignLifecycleTest();
             RunBattleCampaignReinforcementTest();
+            RunBattleCampaignBlockedEntranceQueueTest();
             RunDefenseReinforcementRequestTest();
             RunAlliedDefenseReinforcementRequestTest();
             RunAiCampaignReinforcementTest();
+            RunPlayerCampaignReinforcementCommandTest();
+            RunCampaignRetreatDestinationTest();
             RunBattleCampaignReorganizationTest();
+            RunBattleCampaignCityCaptureSettlementTest();
+            RunAlliedCampaignSettlementTest();
             RunDefenderPlanOverrideTest();
             PrintSummary();
             return;
@@ -190,6 +202,10 @@ internal static class Program
         RunAiKnownResourceAttackPriorityTest();
         RunAiSiegeEquipmentAttackTest();
         RunAiCampaignReinforcementTest();
+        RunPlayerCampaignReinforcementCommandTest();
+        RunCampaignRetreatDestinationTest();
+        RunBattleCampaignCityCaptureSettlementTest();
+        RunAlliedCampaignSettlementTest();
         RunAttackAutoBreakPactTest();
         RunDefensePromptEligibilityTest();
         RunDefenseDeploymentAffectsCombatOutcomeTest();
@@ -395,6 +411,30 @@ internal static class Program
             $"eta={order.RouteLinks * 2}, status={order.Status}");
     }
 
+    private static void RunBattleCampaignBlockedEntranceQueueTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        var nextId = campaign.Teams.Max(team => team.Id) + 1;
+        while (campaign.Teams.Count(team => team.Side == CampaignBattleSide.Attacker && team.Location == CampaignTeamLocation.Field) < BattleCampaignService.MaximumActivePiecesPerSide)
+        {
+            campaign.Teams.Add(new CampaignBattleTeamData
+            {
+                Id = nextId++, FactionId = 1, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Player,
+                TroopType = TroopType.Infantry, ActiveTroops = 100, MaximumTroops = 100, Location = CampaignTeamLocation.Field
+            });
+        }
+
+        var order = BattleCampaignService.DispatchReinforcement(world, campaign, 3, CampaignBattleSide.Attacker,
+            new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 } }, 0, 0);
+        for (var day = 0; day < order.RouteLinks * 2; day++) BattleCampaignService.AdvanceCompletedBattleDay(campaign);
+        var blocked = order.Status == ReinforcementStatus.Reserve && order.Teams.All(team => team.Location == CampaignTeamLocation.Reserve);
+        campaign.Teams.First(team => team.Side == CampaignBattleSide.Attacker && team.Location == CampaignTeamLocation.Field && team.Id != order.Teams[0].Id).Location = CampaignTeamLocation.Eliminated;
+        BattleCampaignService.PromoteReserves(campaign, CampaignBattleSide.Attacker);
+        var deployed = order.Status == ReinforcementStatus.Deployed && order.Teams.All(team => team.Location == CampaignTeamLocation.Field);
+        Assert(blocked && deployed, "Blocked reinforcement queue deploys after an active entrance slot opens", $"blocked={blocked}, deployed={deployed}, status={order.Status}");
+    }
+
     private static void RunDefenseReinforcementRequestTest()
     {
         var world = CreateBattleCampaignWorld();
@@ -452,7 +492,9 @@ internal static class Program
         {
             SourceCityId = allySource.Id,
             IsAllianceRequest = true,
-            RequestedTroops = 600
+            RequestedTroops = 600,
+            PromisedGold = 250,
+            PromisedFood = 500
         });
         var troopsBefore = allySource.Troops;
         var campaign = BattleCampaignService.CreateCampaign(world, attack, DefenderBattlePlan.CityDefense);
@@ -479,6 +521,7 @@ internal static class Program
         Assert(
             invitation?.Status == BattleInvitationStatus.Accepted &&
             invitation.RequestedSourceCityId == allySource.Id &&
+            invitation.PromisedGold == 250 && invitation.PromisedFood == 500 &&
             order?.Status == ReinforcementStatus.Traveling &&
             order.Side == CampaignBattleSide.Defender &&
             order.SourceCityId == allySource.Id &&
@@ -546,6 +589,77 @@ internal static class Program
             $"success={defenderResult.Success}, side={defenderOrder?.Side}, teams={defenderOrder?.Teams.Count ?? 0}, target={defenderOrder?.TargetCityId}, troops={defenderTroopsBefore}->{defenderSource.Troops}");
     }
 
+    private static void RunPlayerCampaignReinforcementCommandTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var source = world.GetCity(3)!;
+        source.InfantryTroops = 2500;
+        source.SpearmanTroops = 0;
+        source.CavalryTroops = 0;
+        source.ArcherTroops = 0;
+        source.CrossbowTroops = 0;
+        source.SiegeTroops = 0;
+        source.SyncLegacyTroops();
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.CityDefense);
+        var services = CreateServices(world);
+        var troopsBefore = source.Troops;
+        var goldBefore = source.Gold;
+        var foodBefore = source.Food;
+
+        var result = services.Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Attack,
+            ActorFactionId = 1,
+            SourceCityId = source.Id,
+            TargetCityId = campaign.TargetCityId,
+            GoldToSend = 120,
+            FoodToSend = 300,
+            OfficerIds = new List<int> { 102 },
+            AttackOfficerDeployments = new List<AttackOfficerDeploymentData>
+            {
+                new() { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 }
+            }
+        });
+        var order = campaign.Reinforcements.SingleOrDefault();
+
+        Assert(
+            result.Success &&
+            order?.Status == ReinforcementStatus.Traveling &&
+            order.Side == CampaignBattleSide.Attacker &&
+            order.SourceCityId == source.Id &&
+            order.TargetCityId == campaign.TargetCityId &&
+            order.RemainingBattleDays == order.RouteLinks * 2 &&
+            source.Troops == troopsBefore - 1000 &&
+            source.Gold == goldBefore - 120 && source.Food == foodBefore - 300 &&
+            BattleCampaignService.IsOfficerCommitted(world, 102),
+            "Player attack command dispatches a campaign reinforcement immediately",
+            $"success={result.Success}, eta={order?.RemainingBattleDays}/{order?.RouteLinks * 2}, " +
+            $"troops={troopsBefore}->{source.Troops}, gold={goldBefore}->{source.Gold}, food={foodBefore}->{source.Food}");
+    }
+
+    private static void RunCampaignRetreatDestinationTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var destination = world.GetCity(3)!;
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        var team = campaign.Teams.First(item => item.Side == CampaignBattleSide.Attacker && item.OfficerId == 101);
+        var troopsBefore = destination.Troops;
+        var destinations = BattleCampaignService.GetRetreatDestinations(world, campaign, team);
+        var returned = BattleCampaignService.TryRetreatTeamToCity(world, campaign, team, destination.Id);
+        var officer = world.GetOfficer(101)!;
+
+        Assert(
+            destinations.Any(city => city.Id == destination.Id) && returned &&
+            team.Location == CampaignTeamLocation.NeighborCity &&
+            team.RetreatDestinationCityId == destination.Id &&
+            team.ActiveTroops == 0 && team.WoundedTroops == 0 &&
+            destination.Troops == troopsBefore + team.ReturnedTroops &&
+            officer.CityId == destination.Id && destination.OfficerIds.Contains(officer.Id),
+            "Campaign team retreats to a selected friendly neighbor and returns its officer and troops",
+            $"listed={destinations.Any(city => city.Id == destination.Id)}, returned={returned}, city={officer.CityId}, " +
+            $"troops={troopsBefore}->{destination.Troops}, returnedTroops={team.ReturnedTroops}");
+    }
+
     private static void RunBattleCampaignReorganizationTest()
     {
         var world = CreateBattleCampaignWorld();
@@ -570,6 +684,106 @@ internal static class Program
         proposed[0].ActiveTroops++;
         var rejected = !BattleCampaignService.TryReorganizeFactionTeams(campaign, 1, proposed, out _);
         Assert(accepted && rejected, "Battle campaign reorganization preserves totals", $"accepted={accepted}, rejectedInvalid={rejected}");
+    }
+
+    private static void RunBattleCampaignCityCaptureSettlementTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var source = world.GetCity(1)!;
+        var target = world.GetCity(2)!;
+        var sourceGoldBefore = source.Gold;
+        var sourceFoodBefore = source.Food;
+        world.InternalAffairsSchedules.Add(new InternalAffairsScheduleData
+        {
+            CityId = target.Id,
+            OfficerId = 201,
+            JobType = InternalAffairsJobType.Defend,
+            RemainingMonths = 2,
+            State = InternalAffairsScheduleState.Active
+        });
+
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.CityDefense);
+        campaign.Stage = CampaignStage.CityBattle;
+        BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Attacker);
+
+        var report = world.BattleReports.SingleOrDefault();
+        var capturedIds = report?.CapturedOfficerIds ?? new List<int>();
+        var queuedCaptiveIds = world.PendingCapturedOfficerRecords
+            .Where(record => record.WinnerFactionId == 1 && record.WinnerCityId == target.Id)
+            .Select(record => record.OfficerId)
+            .ToHashSet();
+        var attackerReturned = target.Troops > 0 && target.OfficerIds.Contains(101);
+        // CreateCampaign moves the defender's city treasury into the campaign
+        // before the battle begins. A captured city must therefore receive the
+        // two campaign treasuries exactly once, rather than its old balance a
+        // second time.
+        var resourcesTransferred = target.Gold == campaign.AttackerGold + campaign.DefenderGold &&
+                                   target.Food == campaign.AttackerFood + campaign.DefenderFood &&
+                                   report?.AttackerGoldGained == campaign.DefenderGold &&
+                                   report?.AttackerFoodGained == campaign.DefenderFood;
+        var participantContributions = report?.ParticipantContributions ?? new List<WorldState.BattleParticipantContributionData>();
+        var contributionTotalsMatch = participantContributions.Count == campaign.Participants.Count &&
+                                      participantContributions.All(item => item.TroopsCommitted >= item.ActiveTroops + item.WoundedTroops + item.TroopsReturned + item.TroopsLost) &&
+                                      participantContributions.Any(item => item.FactionId == 1 && item.Side == CampaignBattleSide.Attacker) &&
+                                      participantContributions.Any(item => item.FactionId == 2 && item.Side == CampaignBattleSide.Defender);
+
+        Assert(
+            campaign.Stage == CampaignStage.Resolved &&
+            target.OwnerFactionId == 1 &&
+            !world.InternalAffairsSchedules.Any(schedule => schedule.CityId == target.Id) &&
+            capturedIds.OrderBy(id => id).SequenceEqual(new[] { 201, 202 }) &&
+            queuedCaptiveIds.SetEquals(capturedIds) &&
+            attackerReturned && resourcesTransferred && contributionTotalsMatch &&
+            source.Gold == sourceGoldBefore && source.Food == sourceFoodBefore,
+            "Battle campaign city capture settles map state, captives, resources, and report",
+            $"owner={target.OwnerFactionId}, schedules={world.InternalAffairsSchedules.Count}, captives={string.Join(',', capturedIds)}, " +
+            $"returned={attackerReturned}, resources={resourcesTransferred}, contributions={participantContributions.Count}, source={source.Gold}/{source.Food}");
+    }
+
+    private static void RunAlliedCampaignSettlementTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var allyCity = TestHelpers.City(4, "AllyReserve", 3, 1500, 4000, 4000, new[] { 301 }, new[] { 2 });
+        world.Cities.Add(allyCity);
+        world.Officers.Add(TestHelpers.Officer(301, "AllyOfficer", allyCity.Id, strength: 80, combat: 80));
+        world.Factions.Add(TestHelpers.Faction(3, "Ally", false, 301, new[] { 301 }));
+        var relation = new DiplomacyRelationData
+        {
+            FactionAId = 2,
+            FactionBId = 3,
+            Status = DiplomacyStatusType.Alliance,
+            RemainingMonths = 4,
+            RelationScore = 50
+        };
+        world.DiplomacyRelations.Add(relation);
+        var attack = CreateBattleCampaignAttack();
+        attack.DefenseReinforcementRequests.Add(new DefenseReinforcementRequestData
+        {
+            SourceCityId = allyCity.Id,
+            IsAllianceRequest = true,
+            RequestedTroops = 600
+        });
+        var campaign = BattleCampaignService.CreateCampaign(world, attack, DefenderBattlePlan.CityDefense);
+        BattleCampaignService.DispatchDefenseReinforcementRequests(world, campaign, attack);
+        var invitation = campaign.Invitations.Single();
+        var goldBefore = allyCity.Gold;
+        var foodBefore = allyCity.Food;
+        campaign.Participants.Single(item => item.FactionId == 3).BattleDaysParticipated = 2;
+        campaign.Stage = CampaignStage.CityBattle;
+        BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Defender);
+
+        var contribution = world.BattleReports.Single().ParticipantContributions.Single(item => item.FactionId == 3);
+        Assert(
+            invitation.Status == BattleInvitationStatus.Accepted &&
+            contribution.PromiseFulfilled && contribution.ContributionScore > 0 &&
+            contribution.RewardGold > 0 && contribution.RewardFood > 0 &&
+            allyCity.Gold == goldBefore + contribution.RewardGold &&
+            allyCity.Food == foodBefore + contribution.RewardFood &&
+            contribution.RelationDelta > 0 && contribution.TrustDelta > 0 &&
+            relation.RelationScore == 50 + contribution.RelationDelta &&
+            relation.TrustFromAToB == 50 + contribution.TrustDelta,
+            "Allied campaign settlement pays contribution reward and improves future trust",
+            $"reward={contribution.RewardGold}/{contribution.RewardFood}, relation={relation.RelationScore}, trust={relation.TrustFromAToB}, score={contribution.ContributionScore}");
     }
 
     private static void RunDefenderPlanOverrideTest()
@@ -2500,8 +2714,36 @@ internal static class Program
             FactionId = 1,
             CandidateOfficerIds = new List<int> { 102 }
         });
+        world.BattleReports.Add(new WorldState.BattleReportData
+        {
+            Id = 1,
+            AttackerFactionId = 1,
+            DefenderFactionId = 2,
+            ParticipantContributions = new List<WorldState.BattleParticipantContributionData>
+            {
+                new()
+                {
+                    FactionId = 2,
+                    Side = CampaignBattleSide.Defender,
+                    TroopsCommitted = 800,
+                    TroopsLost = 120,
+                    GoldContribution = 90,
+                    FoodContribution = 180,
+                    BattleDaysParticipated = 3,
+                    ContributionScore = 76,
+                    RewardGold = 152,
+                    RewardFood = 304,
+                    RelationDelta = 8,
+                    TrustDelta = 12,
+                    PromiseFulfilled = true
+                }
+            }
+        });
 
-        var repository = new WorldRepository();
+        // The harness deliberately has no Godot engine instance.  This test
+        // verifies persisted campaign state, while authored relationship data
+        // is covered by the live-game load path.
+        var repository = new WorldRepository(refreshOfficerReferenceDataOnLoad: false);
         var savePath = Path.Combine(Path.GetTempPath(), "3kingdom_save_load_test.json");
         var saved = repository.SaveGame(savePath, world, "Regression Save", 3);
         var loadedDocument = repository.LoadSaveDocument(savePath);
@@ -2510,6 +2752,7 @@ internal static class Program
         var loadedCity = loaded?.GetCity(1);
         var loadedPending = loaded?.PendingCommands.SingleOrDefault();
         var loadedRelation = loaded?.GetDiplomacyRelation(1, 2);
+        var loadedContribution = loaded?.BattleReports.SingleOrDefault()?.ParticipantContributions.SingleOrDefault();
         var ok = saved &&
                  loaded != null &&
                  loaded.Year == 207 &&
@@ -2537,11 +2780,18 @@ internal static class Program
                  loadedRelation != null &&
                  loadedRelation.Status == DiplomacyStatusType.Truce &&
                  loadedRelation.RemainingMonths == 4 &&
+                 loadedContribution != null &&
+                 loadedContribution.ContributionScore == 76 &&
+                 loadedContribution.RewardGold == 152 &&
+                 loadedContribution.RewardFood == 304 &&
+                 loadedContribution.RelationDelta == 8 &&
+                 loadedContribution.TrustDelta == 12 &&
+                 loadedContribution.PromiseFulfilled &&
                  loaded.InternalAffairsSchedules.Count == 1 &&
                  loaded.CityIntelRecords.Count == 1 &&
                  loaded.PendingSuccessionRecords.Count == 1;
 
-        Assert(ok, "Save/load round trip", loaded == null ? "loaded=null" : $"cityPop={loadedCity?.Population}, pending={(loadedPending != null ? 1 : 0)}");
+        Assert(ok, "Save/load round trip", loaded == null ? "loaded=null" : $"cityPop={loadedCity?.Population}, reward={loadedContribution?.RewardGold}/{loadedContribution?.RewardFood}");
     }
 
     private static void RunBattleSaveSlotSummaryTest()

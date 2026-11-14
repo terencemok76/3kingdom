@@ -177,7 +177,7 @@ public partial class BattleSceneController
         // non-terminal: keep the same team selected and restore its commands
         // after the animation, including when the marker itself is hidden by a
         // closed gate's foreground occlusion.
-        if (IsCurrentTurnAiControlled() ||
+        if (IsCurrentTurnManagedByAi() ||
             _selectedUnit?.Marker != movedOccupant.Marker ||
             _selectedUnitGrid != destinationGrid ||
             !IsCurrentTurnPiece(movedOccupant))
@@ -280,7 +280,7 @@ public partial class BattleSceneController
 
         _selectedUnit = selectedUnit;
         _selectedUnitGrid = selectedGridKey.Value;
-        if (IsCurrentTurnPiece(selectedUnit))
+        if (IsPlayerControllableCurrentTurnPiece(selectedUnit))
         {
             _commandMode = BattleCommandMode.AwaitingCommand;
         }

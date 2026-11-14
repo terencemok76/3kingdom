@@ -10,6 +10,68 @@ namespace ThreeKingdom.Battle;
 
 public partial class BattleSceneController
 {
+    private bool TryExecuteAiCooperationAttackObjective(BattleGridKey sourceGrid, BattleOccupantInfo unit, BattleGridKey targetGrid)
+    {
+        if (!IsWithinMap(targetGrid.Grid))
+        {
+            return false;
+        }
+
+        if (CalculateAttackableGrids(sourceGrid, unit).Contains(targetGrid) &&
+            TryGetAiOrdinaryAttackTarget(targetGrid, unit.TeamName, out _))
+        {
+            AppendBattleLog(unit, "Cooperation", $"Ally attacks the requested area at {targetGrid}.");
+            return TryExecuteAiAttack(sourceGrid, unit, targetGrid, 0, 0);
+        }
+
+        if (!TryGetAiPathEndpointToward(sourceGrid, unit, targetGrid, out var destination, out _, out _) || destination == sourceGrid)
+        {
+            return false;
+        }
+
+        AppendBattleLog(unit, "Cooperation", $"Ally advances toward the requested area at {targetGrid}.");
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
+            unit);
+    }
+
+    private bool TryExecuteAiCooperationProtectObjective(BattleGridKey sourceGrid, BattleOccupantInfo unit, int protectedTeamId)
+    {
+        var protectedEntry = GetAllBattlePieces().FirstOrDefault(entry =>
+            entry.Occupant.CampaignTeamId == protectedTeamId &&
+            entry.Occupant.TeamName == unit.TeamName);
+        if (protectedEntry.Occupant == null)
+        {
+            return false;
+        }
+
+        var distance = GetManhattanDistance(sourceGrid.Grid, protectedEntry.Grid.Grid);
+        if (distance <= 1)
+        {
+            if (CanUseGuard(unit))
+            {
+                AppendBattleLog(unit, "Cooperation", "Ally guards the requested friendly team.");
+                return TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Guard, sourceGrid, sourceGrid),
+                    unit);
+            }
+
+            MarkUnitActed(unit);
+            AppendBattleLog(unit, "Cooperation", "Ally holds beside the requested friendly team.");
+            return true;
+        }
+
+        if (!TryGetAiPathEndpointToward(sourceGrid, unit, protectedEntry.Grid, out var destination, out _, out _) || destination == sourceGrid)
+        {
+            return false;
+        }
+
+        AppendBattleLog(unit, "Cooperation", "Ally advances to protect the requested friendly team.");
+        return TryExecuteBattleActionIntent(
+            new BattleActionIntent(BattleActionKind.Move, sourceGrid, destination),
+            unit);
+    }
+
     private void ExecuteOneAiAction()
     {
         if (IsTurnBannerInputLocked())
@@ -17,7 +79,7 @@ public partial class BattleSceneController
             return;
         }
 
-        var candidates = GetActingBattlePieces()
+        var candidates = GetAiActingBattlePieces()
             .Where(entry => !HasUnitActed(entry.Occupant))
             .OrderBy(entry => entry.Occupant.TroopType)
             .ThenBy(entry => entry.Grid.Y)
@@ -26,6 +88,51 @@ public partial class BattleSceneController
         if (candidates.Count == 0)
         {
             return;
+        }
+
+        foreach (var candidate in candidates.Where(candidate => GetCampaignTeam(candidate.Occupant)?.CooperationObjective == CooperationObjectiveSuggestRetreat))
+        {
+            if (TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Retreat, candidate.Grid, candidate.Grid),
+                    candidate.Occupant))
+            {
+                AppendBattleLog(candidate.Occupant, "Cooperation", "Ally follows the retreat recommendation.");
+                return;
+            }
+        }
+
+        foreach (var candidate in candidates.Where(candidate => GetCampaignTeam(candidate.Occupant)?.CooperationObjective == CooperationObjectiveHoldPosition))
+        {
+            if (CanUseGuard(candidate.Occupant))
+            {
+                AppendBattleLog(candidate.Occupant, "Cooperation", "Ally holds the requested position.");
+                TryExecuteBattleActionIntent(
+                    new BattleActionIntent(BattleActionKind.Guard, candidate.Grid, candidate.Grid),
+                    candidate.Occupant);
+                return;
+            }
+
+            MarkUnitActed(candidate.Occupant);
+            AppendBattleLog(candidate.Occupant, "Cooperation", "Ally holds the requested position.");
+            return;
+        }
+
+        foreach (var candidate in candidates)
+        {
+            if (IsAttackCooperationObjective(GetCampaignTeam(candidate.Occupant)?.CooperationObjective, out var targetGrid) &&
+                TryExecuteAiCooperationAttackObjective(candidate.Grid, candidate.Occupant, targetGrid))
+            {
+                return;
+            }
+        }
+
+        foreach (var candidate in candidates)
+        {
+            if (IsProtectCooperationObjective(GetCampaignTeam(candidate.Occupant)?.CooperationObjective, out var protectedTeamId) &&
+                TryExecuteAiCooperationProtectObjective(candidate.Grid, candidate.Occupant, protectedTeamId))
+            {
+                return;
+            }
         }
 
         foreach (var candidate in candidates.Where(candidate => candidate.Occupant.TroopType == TroopLadder))

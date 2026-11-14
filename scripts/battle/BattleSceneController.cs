@@ -220,6 +220,11 @@ public partial class BattleSceneController : Node2D
     // This is intentionally separate from the visual blocker: AI actions and
     // signal callbacks must observe the same turn-opening gate as pointer input.
     private bool _isTurnBannerActionLocked;
+    // A player side can contain computer-controlled relief forces.  Keep this
+    // separate from the side-level AI flag so their turn can run after the
+    // player ends the turn without handing player units to the AI.
+    private bool _isResolvingAlliedAiTurn;
+    private OptionButton? _allyCooperationObjectiveOption;
     private int _officerSpeechSerial;
     private int _activeOfficerSpeechPriority;
     private readonly List<BattleOfficerSpeechEntry> _officerSpeechEntries = new();

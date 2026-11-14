@@ -37,6 +37,30 @@ public partial class BattleSceneController
             UpdateHoverGrid();
             _selectedGrid = _hoverGrid;
             _selectedGridKey = _hoverGridKey;
+            if (_commandMode == BattleCommandMode.AllyCooperationTargetSelect)
+            {
+                if (_selectedGridKey.HasValue)
+                    SetSelectedAllyAttackObjective(_selectedGridKey.Value);
+                else
+                    CancelCommandAction(clearSelection: true);
+
+                RefreshCoordinateLabel();
+                RefreshInfoPanel();
+                RefreshHighlights();
+                return;
+            }
+            if (_commandMode == BattleCommandMode.AllyCooperationProtectSelect)
+            {
+                if (_selectedGridKey.HasValue)
+                    SetSelectedAllyProtectObjective(_selectedGridKey.Value);
+                else
+                    CancelCommandAction(clearSelection: true);
+
+                RefreshCoordinateLabel();
+                RefreshInfoPanel();
+                RefreshHighlights();
+                return;
+            }
             if (_commandMode == BattleCommandMode.MoveSelect)
             {
                 if (!TryExecuteSelectedBattleAction(BattleActionKind.Move))
@@ -137,7 +161,8 @@ public partial class BattleSceneController
             }
 
             UpdateUnitSelection();
-            if (_selectedUnit != null)
+            if (_selectedUnit != null &&
+                (IsPlayerControllableCurrentTurnPiece(_selectedUnit) || CanIssueAllyCooperationOrder(_selectedUnit)))
             {
                 ShowCommandMenu(mouseButton.Position);
             }

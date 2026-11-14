@@ -386,6 +386,27 @@ public partial class HudController
                 report.DefenderFoodSpent,
                 report.DefenderGoldGained,
                 report.DefenderFoodGained);
+        var alliedSettlements = report.ParticipantContributions
+            .Where(item => item.FactionId != report.AttackerFactionId && item.FactionId != report.DefenderFactionId)
+            .Select(item => localization.Format(
+                "ui.campaign.battle_report_allied_settlement_line",
+                localization.GetFactionName(world, item.FactionId),
+                item.TroopsCommitted,
+                item.TroopsLost,
+                item.TroopsReturned,
+                item.BattleDaysParticipated,
+                item.RewardGold,
+                item.RewardFood,
+                item.RelationDelta,
+                item.TrustDelta,
+                localization.T(item.PromiseFulfilled
+                    ? "ui.campaign.battle_report_promise_fulfilled"
+                    : "ui.campaign.battle_report_promise_unfulfilled")))
+            .ToList();
+        _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ParticipantSettlementLabel").Text =
+            alliedSettlements.Count == 0
+                ? localization.T("ui.campaign.battle_report_allied_settlement_none")
+                : localization.T("ui.campaign.battle_report_allied_settlement_heading") + "\n" + string.Join("\n", alliedSettlements);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/CapturedLabel").Text = capturedLine;
 
         var acknowledgeButton = _battleReportDialog.GetNode<Button>("Center/ReportPanel/Root/Body/Content/ButtonRow/AcknowledgeButton");

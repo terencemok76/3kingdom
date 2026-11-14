@@ -229,6 +229,21 @@ public partial class BattleSceneController
         return GetAllBattlePieces().Where(entry => entry.Occupant.TeamName == GetCurrentTurnSideName());
     }
 
+    private IEnumerable<(BattleGridKey Grid, BattleOccupantInfo Occupant)> GetAiActingBattlePieces()
+    {
+        var actingPieces = GetActingBattlePieces();
+        return IsCurrentTurnAiControlled()
+            ? actingPieces
+            : actingPieces.Where(entry => entry.Occupant.ControllerType == CampaignControllerType.Ai);
+    }
+
+    private bool HasPendingAlliedAiActions()
+    {
+        return _activeCampaign != null &&
+               !IsCurrentTurnAiControlled() &&
+               GetAiActingBattlePieces().Any(entry => !HasUnitActed(entry.Occupant));
+    }
+
     private bool HaveAllActingBattlePiecesActed()
     {
         return GetActingBattlePieces().All(entry => HasUnitActed(entry.Occupant));
@@ -249,7 +264,7 @@ public partial class BattleSceneController
 
     private void MarkUnitActedForAiOnly(BattleOccupantInfo unit)
     {
-        if (IsDebugAiStepMode && IsCurrentTurnAiControlled())
+        if ((IsDebugAiStepMode && IsCurrentTurnAiControlled()) || _isResolvingAlliedAiTurn)
         {
             MarkUnitActed(unit);
         }
@@ -294,6 +309,26 @@ public partial class BattleSceneController
         return (_aiControlledSides & GetCurrentAiSideFlag()) != 0;
     }
 
+    private bool IsCurrentTurnManagedByAi()
+    {
+        return IsCurrentTurnAiControlled() || _isResolvingAlliedAiTurn;
+    }
+
+    private bool IsPlayerControllableCurrentTurnPiece(BattleOccupantInfo occupant)
+    {
+        if (_isResolvingAlliedAiTurn || !IsCurrentTurnPiece(occupant))
+        {
+            return false;
+        }
+
+        // ControllerType is meaningful only in campaign battles.  In a
+        // player-controlled campaign side, allied AI teams remain visible for
+        // inspection but never receive the player's command menu.
+        return _activeCampaign == null ||
+               IsCurrentTurnAiControlled() ||
+               occupant.ControllerType == CampaignControllerType.Player;
+    }
+
     private void FocusCameraOnBattleGrid(BattleGridKey grid)
     {
         if (_camera == null || _mapRoot == null)
@@ -326,7 +361,7 @@ public partial class BattleSceneController
 
     private void OnEndTurnButtonPressed()
     {
-        if (_isBattleFinished || IsTurnBannerInputLocked())
+        if (_isBattleFinished || IsTurnBannerInputLocked() || _isResolvingAlliedAiTurn)
         {
             return;
         }
@@ -335,6 +370,77 @@ public partial class BattleSceneController
         {
             AppendBattleLog(GetCurrentTurnSideName(), "Round", "Start Round before ending this field-battle test round.");
             RefreshBattleLogPanel();
+            return;
+        }
+
+        if (HasPendingAlliedAiActions())
+        {
+            ResolveAlliedAiTurnThenEndTurn();
+            return;
+        }
+
+        CompleteCurrentTurn();
+    }
+
+    private async void ResolveAlliedAiTurnThenEndTurn()
+    {
+        if (_isResolvingAlliedAiTurn || _isBattleFinished)
+        {
+            return;
+        }
+
+        _isResolvingAlliedAiTurn = true;
+        CancelCommandAction(clearSelection: true);
+        HideCommandMenu();
+        AppendBattleLog(GetCurrentTurnSideName(), "AI", "Allied AI is resolving its remaining battle teams.");
+        ConfigureHud();
+        RefreshBattleLogPanel();
+
+        while (!_isBattleFinished && HasPendingAlliedAiActions())
+        {
+            var actedCountBefore = _actedByMarkerThisRound.Count;
+            ExecuteOneAiAction();
+
+            // Most actions mark immediately; planned move-and-attack marks only
+            // after its movement callback.  Wait for that callback (or for a
+            // retreat to remove its unit) before asking the next ally to act.
+            for (var elapsed = 0.0; elapsed < 6.0 && !_isBattleFinished; elapsed += 0.1)
+            {
+                if (_actedByMarkerThisRound.Count > actedCountBefore || !HasPendingAlliedAiActions())
+                {
+                    break;
+                }
+
+                await ToSignal(GetTree().CreateTimer(0.1), SceneTreeTimer.SignalName.Timeout);
+            }
+
+            // Let the final movement/attack visual finish before the camera is
+            // moved to the next allied unit.
+            if (!_isBattleFinished)
+            {
+                await ToSignal(GetTree().CreateTimer(0.75), SceneTreeTimer.SignalName.Timeout);
+            }
+        }
+
+        if (!GodotObject.IsInstanceValid(this))
+        {
+            return;
+        }
+
+        _isResolvingAlliedAiTurn = false;
+        if (_isBattleFinished)
+        {
+            return;
+        }
+
+        AppendBattleLog(GetCurrentTurnSideName(), "AI", "Allied AI actions complete; ending this side's turn.");
+        CompleteCurrentTurn();
+    }
+
+    private void CompleteCurrentTurn()
+    {
+        if (_isBattleFinished || IsTurnBannerInputLocked())
+        {
             return;
         }
 
@@ -510,6 +616,8 @@ public partial class BattleSceneController
             BattleCommandMode.DuelSelect => BattleText("ui.battle.command_duel_select", "Select Duel Target"),
             BattleCommandMode.ChargeSelect => BattleText("ui.battle.command_charge_select", "Select Charge Target"),
             BattleCommandMode.HireOfficerSelect => BattleText("ui.battle.command_hire_officer_select", "Select Hire Target"),
+            BattleCommandMode.AllyCooperationTargetSelect => "選擇盟軍攻擊目標區域",
+            BattleCommandMode.AllyCooperationProtectSelect => "選擇盟軍保護的我方隊伍",
             BattleCommandMode.AwaitingCommand => BattleText("ui.battle.command_awaiting", "Awaiting Command"),
             _ => BattleText("ui.battle.none", "None")
         };

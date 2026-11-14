@@ -17,7 +17,8 @@ public partial class BattleSceneController
             return;
         }
 
-        var canCommandSelectedUnit = _selectedUnit != null && IsCurrentTurnPiece(_selectedUnit);
+        var canCommandSelectedUnit = _selectedUnit != null && IsPlayerControllableCurrentTurnPiece(_selectedUnit);
+        ConfigureAllyCooperationObjectiveControl();
 
         if (_unitMenuInfoLabel != null)
         {

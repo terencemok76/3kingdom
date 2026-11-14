@@ -198,7 +198,7 @@ public partial class BattleSceneController
         // reserved move+attack sequence which must remain eligible for its
         // follow-up attack callback.
         var markAiActed = intent.MarkActedAfterMove ||
-                          (IsCurrentTurnAiControlled() && intent.ReservedEnergy == 0);
+                          (IsCurrentTurnManagedByAi() && intent.ReservedEnergy == 0);
         return TryMoveSelectedUnit(markAiActed, onMoveAnimationComplete);
     }
 

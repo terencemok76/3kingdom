@@ -28,6 +28,17 @@ public class WorldRepository
         }
     };
 
+    // The live game reloads authored relationship data when opening a save so
+    // development-data edits apply to existing campaigns.  The logic harness
+    // runs as a plain .NET process, however, and must not call Godot's native
+    // FileAccess API without an initialized engine.
+    private readonly bool _refreshOfficerReferenceDataOnLoad;
+
+    public WorldRepository(bool refreshOfficerReferenceDataOnLoad = true)
+    {
+        _refreshOfficerReferenceDataOnLoad = refreshOfficerReferenceDataOnLoad;
+    }
+
     public WorldState? LoadScenario(string path)
     {
         if (!FileAccess.FileExists(path))
@@ -94,7 +105,10 @@ public class WorldRepository
         if (document?.World != null)
         {
             NormalizeLoadedWorld(document.World);
-            RefreshOfficerRelationshipData(document.World);
+            if (_refreshOfficerReferenceDataOnLoad)
+            {
+                RefreshOfficerRelationshipData(document.World);
+            }
             return document;
         }
 
@@ -352,6 +366,10 @@ public class WorldRepository
         world.PendingSuccessionRecords ??= new List<WorldState.PendingSuccessionData>();
         world.PendingCapturedOfficerRecords ??= new List<WorldState.PendingCapturedOfficerData>();
         world.BattleReports ??= new List<WorldState.BattleReportData>();
+        foreach (var report in world.BattleReports)
+        {
+            report.ParticipantContributions ??= new List<WorldState.BattleParticipantContributionData>();
+        }
         world.ActiveBattleCampaigns ??= new List<ActiveBattleCampaignData>();
 
         foreach (var campaign in world.ActiveBattleCampaigns)
