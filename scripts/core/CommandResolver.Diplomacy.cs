@@ -1,3 +1,5 @@
+using static ThreeKingdom.Core.CommandOfficerAssignmentRules;
+using static ThreeKingdom.Core.CommandDiplomacyRules;
 using System;
 using System.Linq;
 using ThreeKingdom.Data;

@@ -15,6 +15,34 @@ internal static partial class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--succession-refactor-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunSpyAssassinationPlayerSuccessionPendingTest();
+            RunAttackRulerDeathPlayerSuccessionPendingTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--internal-affairs-planning-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunInternalAffairsScheduleTest();
+            RunInternalAffairsOfficerLockTest();
+            RunAiCityPrefectAppointmentTest();
+            RunAiCityPrefectReservedFallbackTest();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--command-helper-rules-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunCommandHelperRulesTests();
+            PrintSummary();
+            return;
+        }
+        if (args.Contains("--deployment-draft-only", StringComparer.OrdinalIgnoreCase))
+        {
+            RunDeploymentDraftTests();
+            PrintSummary();
+            return;
+        }
         if (args.Contains("--save-load-only", StringComparer.OrdinalIgnoreCase))
         {
             RunSaveLoadRoundTripTest();
@@ -130,6 +158,9 @@ internal static partial class Program
 
         if (args.Contains("--battle-campaign-only", StringComparer.OrdinalIgnoreCase))
         {
+            RunCampaignDeploymentValidationTest();
+            RunCampaignRetreatReturnEdgesTest();
+            RunCampaignCaptiveSuccessionTest();
             RunBattleCampaignLifecycleTest();
             RunBattleCampaignReinforcementTest();
             RunBattleCampaignBlockedEntranceQueueTest();

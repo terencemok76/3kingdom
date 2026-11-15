@@ -10,6 +10,88 @@ namespace AiHarness;
 
 internal static partial class Program
 {
+    private static void RunCampaignCaptiveSuccessionTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        world.Cities.Add(TestHelpers.City(4, "DefenderReserve", 2, 100, 100, 500, new[] { 203 }, Array.Empty<int>()));
+        var heir = TestHelpers.Officer(203, "Heir", 4);
+        world.Officers.Add(heir);
+        var faction = world.GetFaction(2)!;
+        faction.OfficerIds.Add(203);
+        world.GetOfficer(201)!.RelationshipType[heir.Name] = "family,blood";
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.CityDefense);
+        BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Attacker);
+        var report = world.BattleReports.Single();
+        var prisoners = world.PendingCapturedOfficerRecords.Where(record => record.WinnerFactionId == 1).Select(record => record.OfficerId).ToList();
+        Assert(report.CapturedOfficerIds.OrderBy(id => id).SequenceEqual(new[] { 201, 202 }) &&
+               prisoners.OrderBy(id => id).SequenceEqual(new[] { 201, 202 }) &&
+               world.GetOfficer(201)!.CaptiveFactionId == 1 && world.GetOfficer(201)!.JailedCityId == 2,
+            "campaign settlement", "city roster and battle teams produce one captive record per officer");
+        Assert(faction.RulerOfficerId == 203 && heir.Appointments.Contains(OfficerAppointmentRules.Lord) &&
+               !faction.OfficerIds.Contains(201) && !faction.OfficerIds.Contains(202),
+            "campaign settlement", "ruler succession runs after captured candidates are removed");
+    }
+
+    private static void RunCampaignRetreatReturnEdgesTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        var defender = campaign.Teams.First(team => team.Side == CampaignBattleSide.Defender && team.Location == CampaignTeamLocation.Field);
+        var city = world.GetCity(campaign.TargetCityId)!;
+        var cityTroops = city.Troops;
+        var beforeActive = defender.ActiveTroops;
+        var fallback = BattleCampaignService.TryRetreatTeamToCity(world, campaign, defender, city.Id);
+        Assert(fallback && defender.Location == CampaignTeamLocation.InnerCity && defender.ActiveTroops == beforeActive && city.Troops == cityTroops,
+            "campaign retreat", "field defender falls back without returning troops prematurely");
+
+        var source = world.GetCity(1)!;
+        var ramBefore = source.RamCount;
+        var engineersBefore = source.EngineerTroops;
+        var equipment = new CampaignBattleTeamData { FactionId = source.OwnerFactionId, OriginCityId = source.Id, EquipmentType = BattleEquipmentType.Ram, ActiveTroops = 1 };
+        var returned = BattleCampaignService.TryReturnSupportTeamToOrigin(world, equipment);
+        Assert(returned && source.RamCount == ramBefore + 1 && source.EngineerTroops == engineersBefore + BattleSupportRules.RamEngineerRequirement && equipment.ActiveTroops == 0,
+            "campaign retreat", "surviving equipment and crew return to origin");
+        BattleCampaignService.TryReturnSupportTeamToOrigin(world, equipment);
+        Assert(source.RamCount == ramBefore + 1 && source.EngineerTroops == engineersBefore + BattleSupportRules.RamEngineerRequirement,
+            "campaign retreat", "returned equipment is not credited twice");
+        var invalid = new CampaignBattleTeamData { FactionId = source.OwnerFactionId, OriginCityId = 9999, ActiveTroops = 20 };
+        Assert(!BattleCampaignService.TryReturnSupportTeamToOrigin(world, invalid) && invalid.ActiveTroops == 20,
+            "campaign retreat", "missing origin leaves team unchanged");
+    }
+
+    private static void RunCampaignDeploymentValidationTest()
+    {
+        var city = new CityData { InfantryTroops = 100, SiegeTroops = 30, Gold = 50, Food = 50, OfficerIds = new() { 1 } };
+        var deployment = new AttackOfficerDeploymentData { OfficerId = 1, TroopType = TroopType.Infantry, TroopCount = 100 };
+        ReinforcementDispatchFailure? Check(IReadOnlyCollection<AttackOfficerDeploymentData> deployments, TroopAllocationData troops, int gold, int food)
+        {
+            try { CampaignDeploymentRules.ValidateCityCanSupply(city, deployments, troops, gold, food); return null; }
+            catch (ReinforcementDispatchException exception) { return exception.Failure; }
+        }
+        Assert(Check(new[] { deployment }, new TroopAllocationData { Infantry = 100 }, 50, 50) == null,
+            "campaign deployment validation", "exact available resources accepted");
+        Assert(Check(Array.Empty<AttackOfficerDeploymentData>(), new TroopAllocationData(), 0, 0) == ReinforcementDispatchFailure.InvalidDeployment,
+            "campaign deployment validation", "empty dispatch rejected");
+        Assert(Check(Array.Empty<AttackOfficerDeploymentData>(), new TroopAllocationData(), 1, 0) == null,
+            "campaign deployment validation", "supply-only dispatch accepted");
+        Assert(Check(new[] { deployment }, new TroopAllocationData { Infantry = 101 }, 0, 0) == ReinforcementDispatchFailure.InsufficientResources,
+            "campaign deployment validation", "excess troops rejected");
+        var siege = new AttackOfficerDeploymentData { OfficerId = 1, TroopType = TroopType.Siege, TroopCount = 20, SiegeEngineType = SiegeEngineType.Ram };
+        Assert(Check(new[] { siege }, new TroopAllocationData { Siege = 20 }, 0, 0) == ReinforcementDispatchFailure.InsufficientSiegeEngines,
+            "campaign deployment validation", "missing engine rejected");
+        var world = CreateBattleCampaignWorld();
+        var target = world.GetCity(2)!;
+        var beforeGold = target.Gold;
+        var beforeFood = target.Food;
+        var attack = CreateBattleCampaignAttack();
+        world.GetCity(attack.SourceCityId)!.ConnectedCityIds.Remove(attack.TargetCityId);
+        var rejected = false;
+        try { BattleCampaignService.CreateCampaign(world, attack, DefenderBattlePlan.CityDefense); }
+        catch (InvalidOperationException) { rejected = true; }
+        Assert(rejected && target.Gold == beforeGold && target.Food == beforeFood && world.ActiveBattleCampaigns.Count == 0,
+            "campaign creation", "invalid route leaves target and campaign list unchanged");
+    }
+
     private static void RunBattleCampaignLifecycleTest()
     {
         var world = CreateBattleCampaignWorld();
@@ -630,7 +712,9 @@ internal static partial class Program
         Assert(world.GetOfficer(101)!.DeathYear == world.Year, "Attack ruler death marks player ruler dead", $"deathYear={world.GetOfficer(101)!.DeathYear}");
         Assert(world.GetFaction(1)!.RulerOfficerId == 0, "Attack ruler death clears player ruler id", $"ruler={world.GetFaction(1)!.RulerOfficerId}");
         Assert(pendingSuccession != null, "Attack ruler death creates player succession prompt", $"pending={(pendingSuccession != null ? 1 : 0)}");
-        Assert(pendingSuccession != null && pendingSuccession.CandidateOfficerIds.SequenceEqual(new[] { 102, 103, 104 }), "Attack ruler death orders player succession candidates", pendingSuccession == null ? "pending=null" : $"candidates={string.Join(',', pendingSuccession.CandidateOfficerIds)}");
+        Assert(world.GetOfficer(102)!.CaptiveFactionId == 2 && world.GetOfficer(103)!.CaptiveFactionId == 2 &&
+               pendingSuccession != null && pendingSuccession.CandidateOfficerIds.SequenceEqual(new[] { 104 }),
+            "Attack ruler death excludes captured succession candidates", pendingSuccession == null ? "pending=null" : $"candidates={string.Join(',', pendingSuccession.CandidateOfficerIds)}");
         Assert(resolved.MessageEn.Contains("must choose a successor"), "Attack ruler death result mentions succession", resolved.MessageEn);
     }
 

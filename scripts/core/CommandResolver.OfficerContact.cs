@@ -1,4 +1,6 @@
+using static ThreeKingdom.Core.CommandOfficerAssignmentRules;
 using System;
+using static ThreeKingdom.Core.OfficerSuccessionAndPrefectRules;
 using System.Collections.Generic;
 using System.Linq;
 using ThreeKingdom.Data;

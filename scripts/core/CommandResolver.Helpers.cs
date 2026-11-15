@@ -1,3 +1,7 @@
+using static ThreeKingdom.Core.CommandOfficerAssignmentRules;
+using static ThreeKingdom.Core.InternalAffairsPlanningRules;
+using static ThreeKingdom.Core.OfficerSuccessionAndPrefectRules;
+using static ThreeKingdom.Core.OfficerItemRules;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -153,243 +157,6 @@ public partial class CommandResolver
         return Math.Min(requestedAmount, availableAmount);
     }
 
-    private static TroopAllocationData CreateTroopAllocationFromTotal(CityData city, int requestedTroops)
-    {
-        var allocation = new TroopAllocationData();
-        var remaining = GetTransferAmount(requestedTroops, city.Troops);
-        if (remaining <= 0)
-        {
-            return allocation;
-        }
-
-        foreach (var troopType in new[]
-                 {
-                     TroopType.Infantry,
-                     TroopType.Spearman,
-                     TroopType.Archer,
-                     TroopType.Cavalry,
-                     TroopType.Crossbow,
-                     TroopType.Siege
-                 })
-        {
-            if (remaining <= 0)
-            {
-                break;
-            }
-
-            var available = city.GetTroops(troopType);
-            if (available <= 0)
-            {
-                continue;
-            }
-
-            var toTake = Math.Min(available, remaining);
-            SetTroopAllocationValue(allocation, troopType, toTake);
-            remaining -= toTake;
-        }
-
-        return allocation;
-    }
-
-    private static TroopAllocationData ClampTroopAllocationToCity(CityData city, TroopAllocationData requested)
-    {
-        return new TroopAllocationData
-        {
-            Infantry = ClampRequestedTroopAmount(requested.Infantry, city.InfantryTroops),
-            Spearman = ClampRequestedTroopAmount(requested.Spearman, city.SpearmanTroops),
-            Cavalry = ClampRequestedTroopAmount(requested.Cavalry, city.CavalryTroops),
-            Archer = ClampRequestedTroopAmount(requested.Archer, city.ArcherTroops),
-            Crossbow = ClampRequestedTroopAmount(requested.Crossbow, city.CrossbowTroops),
-            Siege = ClampRequestedTroopAmount(requested.Siege, city.EngineerTroops)
-        };
-    }
-
-    private static int ClampRequestedTroopAmount(int requestedAmount, int availableAmount)
-    {
-        return System.Math.Clamp(requestedAmount, 0, System.Math.Max(0, availableAmount));
-    }
-
-    private static TroopAllocationData CreateTroopAllocationFromAttackDeployments(IEnumerable<AttackOfficerDeploymentData> deployments)
-    {
-        var allocation = new TroopAllocationData();
-        foreach (var deployment in deployments)
-        {
-            switch (deployment.TroopType)
-            {
-                case TroopType.Infantry:
-                    allocation.Infantry += deployment.TroopCount;
-                    break;
-                case TroopType.Spearman:
-                    allocation.Spearman += deployment.TroopCount;
-                    break;
-                case TroopType.Cavalry:
-                    allocation.Cavalry += deployment.TroopCount;
-                    break;
-                case TroopType.Archer:
-                    allocation.Archer += deployment.TroopCount;
-                    break;
-                case TroopType.Crossbow:
-                    allocation.Crossbow += deployment.TroopCount;
-                    break;
-                case TroopType.Siege:
-                    allocation.Siege += deployment.TroopCount;
-                    break;
-            }
-        }
-
-        return allocation;
-    }
-
-    private static SiegeEngineAllocationData CreateSiegeEngineAllocationFromAttackDeployments(IEnumerable<AttackOfficerDeploymentData> deployments)
-    {
-        var allocation = new SiegeEngineAllocationData();
-        foreach (var deployment in deployments)
-        {
-            if (deployment.TroopType != TroopType.Siege || deployment.TroopCount <= 0)
-            {
-                continue;
-            }
-
-            switch (deployment.SiegeEngineType)
-            {
-                case SiegeEngineType.Ram:
-                    allocation.Ram += 1;
-                    break;
-                case SiegeEngineType.Catapult:
-                    allocation.Catapult += 1;
-                    break;
-                case SiegeEngineType.Ladder:
-                    allocation.Ladder += 1;
-                    break;
-            }
-        }
-
-        return allocation;
-    }
-
-    private static void SetTroopAllocationValue(TroopAllocationData allocation, TroopType troopType, int value)
-    {
-        switch (troopType)
-        {
-            case TroopType.Infantry:
-                allocation.Infantry = value;
-                break;
-            case TroopType.Spearman:
-                allocation.Spearman = value;
-                break;
-            case TroopType.Cavalry:
-                allocation.Cavalry = value;
-                break;
-            case TroopType.Archer:
-                allocation.Archer = value;
-                break;
-            case TroopType.Crossbow:
-                allocation.Crossbow = value;
-                break;
-            case TroopType.Siege:
-                allocation.Siege = value;
-                break;
-        }
-    }
-
-    private static int GetTroopAllocationValue(TroopAllocationData allocation, TroopType troopType)
-    {
-        return troopType switch
-        {
-            TroopType.Infantry => allocation.Infantry,
-            TroopType.Spearman => allocation.Spearman,
-            TroopType.Cavalry => allocation.Cavalry,
-            TroopType.Archer => allocation.Archer,
-            TroopType.Crossbow => allocation.Crossbow,
-            TroopType.Siege => allocation.Siege,
-            _ => 0
-        };
-    }
-
-    private static TroopAllocationData ScaleTroopAllocationToTotal(TroopAllocationData source, int targetTotal)
-    {
-        var allocation = new TroopAllocationData();
-        var sourceTotal = source.Total;
-        if (sourceTotal <= 0 || targetTotal <= 0)
-        {
-            return allocation;
-        }
-
-        if (targetTotal >= sourceTotal)
-        {
-            allocation.Infantry = source.Infantry;
-            allocation.Spearman = source.Spearman;
-            allocation.Cavalry = source.Cavalry;
-            allocation.Archer = source.Archer;
-            allocation.Crossbow = source.Crossbow;
-            allocation.Siege = source.Siege;
-            return allocation;
-        }
-
-        var troopTypes = new[]
-        {
-            TroopType.Infantry,
-            TroopType.Spearman,
-            TroopType.Cavalry,
-            TroopType.Archer,
-            TroopType.Crossbow,
-            TroopType.Siege
-        };
-        var remainders = new List<(TroopType TroopType, double Fraction)>();
-        var allocated = 0;
-        foreach (var troopType in troopTypes)
-        {
-            var current = GetTroopAllocationValue(source, troopType);
-            if (current <= 0)
-            {
-                SetTroopAllocationValue(allocation, troopType, 0);
-                continue;
-            }
-
-            var scaled = current * targetTotal / (double)sourceTotal;
-            var whole = (int)Math.Floor(scaled);
-            SetTroopAllocationValue(allocation, troopType, whole);
-            allocated += whole;
-            remainders.Add((troopType, scaled - whole));
-        }
-
-        var remaining = targetTotal - allocated;
-        foreach (var (troopType, _) in remainders
-                     .OrderByDescending(item => item.Fraction)
-                     .ThenByDescending(item => GetTroopAllocationValue(source, item.TroopType)))
-        {
-            if (remaining <= 0)
-            {
-                break;
-            }
-
-            var current = GetTroopAllocationValue(allocation, troopType);
-            var sourceValue = GetTroopAllocationValue(source, troopType);
-            if (current >= sourceValue)
-            {
-                continue;
-            }
-
-            SetTroopAllocationValue(allocation, troopType, current + 1);
-            remaining -= 1;
-        }
-
-        return allocation;
-    }
-
-    private static TroopAllocationData CreateTroopAllocationFromCityProportion(CityData city, int targetTotal)
-    {
-        return ScaleTroopAllocationToTotal(new TroopAllocationData
-        {
-            Infantry = city.InfantryTroops,
-            Spearman = city.SpearmanTroops,
-            Cavalry = city.CavalryTroops,
-            Archer = city.ArcherTroops,
-            Crossbow = city.CrossbowTroops,
-            Siege = city.SiegeTroops
-        }, targetTotal);
-    }
-
     private static string GetTroopTypeLocaleKey(TroopType troopType)
     {
         return troopType switch
@@ -412,88 +179,6 @@ public partial class CommandResolver
     }
 
     private static bool CanRecruitTroopType(CityData city, TroopType troopType) => RecruitRules.CanRecruitTroopType(city, troopType);
-
-    private static List<int> GetMovableOfficerIds(CityData sourceCity, List<int> requestedOfficerIds)
-    {
-        var result = new List<int>();
-        foreach (var officerId in requestedOfficerIds)
-        {
-            if (!sourceCity.OfficerIds.Contains(officerId) || result.Contains(officerId))
-            {
-                continue;
-            }
-
-            result.Add(officerId);
-        }
-
-        return result;
-    }
-
-    private static bool AreOfficerIdsAvailableForPendingOrder(
-        WorldState world,
-        List<int> requestedOfficerIds)
-    {
-        if (requestedOfficerIds.Count == 0)
-        {
-            return true;
-        }
-
-        foreach (var officerId in requestedOfficerIds)
-        {
-            var officer = world.GetOfficer(officerId);
-            if (officer == null ||
-                IsOfficerAssignedThisMonth(world, officer) ||
-                BattleCampaignService.IsOfficerCommitted(world, officerId) ||
-                HasActiveInternalAffairsSchedule(world, officerId))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static OfficerData? GetSingleAvailableOfficer(WorldState world, CityData city, List<int> requestedOfficerIds)
-    {
-        if (requestedOfficerIds.Count != 1)
-        {
-            return null;
-        }
-
-        var officerId = requestedOfficerIds[0];
-        if (!city.OfficerIds.Contains(officerId))
-        {
-            return null;
-        }
-
-        var officer = world.GetOfficer(officerId);
-        if (officer == null ||
-            IsOfficerAssignedThisMonth(world, officer) ||
-            HasActiveInternalAffairsSchedule(world, officerId))
-        {
-            return null;
-        }
-
-        return officer;
-    }
-
-    private static bool IsOfficerAssignedThisMonth(WorldState world, OfficerData officer)
-    {
-        return OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id) ||
-               (officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month);
-    }
-
-    private static bool HasActiveInternalAffairsSchedule(WorldState world, int officerId)
-    {
-        return world.InternalAffairsSchedules.Any(schedule =>
-            schedule.State == InternalAffairsScheduleState.Active &&
-            schedule.OfficerId == officerId);
-    }
-
-    private static bool IsConstructionProjectJob(InternalAffairsJobType jobType)
-    {
-        return jobType is InternalAffairsJobType.Construction or InternalAffairsJobType.Manufacturing;
-    }
 
     private static bool HasActiveInternalAffairsJob(WorldState world, int cityId, InternalAffairsJobType jobType, ConstructionProjectType constructionProjectType = ConstructionProjectType.None)
     {
@@ -585,19 +270,7 @@ public partial class CommandResolver
         }
 
         var previousRuler = previousRulerOfficerId > 0 ? world.GetOfficer(previousRulerOfficerId) : null;
-        var candidateIds = faction.OfficerIds
-            .Select(world.GetOfficer)
-            .Where(officer => officer != null &&
-                              IsOfficerAlive(world, officer) &&
-                              officer.CaptiveFactionId <= 0 &&
-                              !BattleCampaignService.IsOfficerCommitted(world, officer.Id))
-            // Every eligible officer in the faction can inherit. Blood
-            // relatives of the former ruler take precedence over ability.
-            .OrderByDescending(officer => OfficerRelationshipRules.GetSuccessionRelationshipPriority(previousRuler, officer))
-            .ThenByDescending(officer => officer!.Leadership + officer.Intelligence + officer.Politics + officer.Charm)
-            .ThenByDescending(officer => officer!.Loyalty)
-            .Select(officer => officer!.Id)
-            .ToList();
+        var candidateIds = GetSuccessionCandidates(world, faction, previousRuler);
 
         if (candidateIds.Count == 0)
         {
@@ -874,16 +547,6 @@ public partial class CommandResolver
         world.PendingSuccessionRecords.RemoveAll(record => record.FactionId == factionId);
     }
 
-    private static bool IsOfficerAlive(WorldState world, OfficerData? officer)
-    {
-        if (officer == null)
-        {
-            return false;
-        }
-
-        return officer.DeathYear <= 0 || world.Year <= officer.DeathYear;
-    }
-
     private static void ClearFactionAdvisorPosts(WorldState world, int officerId)
     {
         var officer = world.GetOfficer(officerId);
@@ -975,39 +638,6 @@ public partial class CommandResolver
             City = city,
             NewPrefect = replacement
         };
-    }
-
-    private static bool IsEligibleAutoPrefectCandidate(WorldState world, CityData city, FactionData faction, OfficerData officer)
-    {
-        return officer.CityId == city.Id &&
-               city.OfficerIds.Contains(officer.Id) &&
-               faction.OfficerIds.Contains(officer.Id) &&
-               !IsFactionRuler(world, officer.Id) &&
-               IsOfficerAlive(world, officer);
-    }
-
-    private static OfficerData? GetBestAutoPrefectCandidate(WorldState world, CityData city, FactionData faction)
-    {
-        return city.OfficerIds
-            .Select(world.GetOfficer)
-            .Where(officer => officer != null && IsEligibleAutoPrefectCandidate(world, city, faction, officer))
-            .OrderByDescending(officer => ScoreAutoPrefectCandidate(officer!))
-            .ThenByDescending(officer => officer!.Loyalty)
-            .ThenBy(officer => officer!.Id)
-            .FirstOrDefault();
-    }
-
-    private static int ScoreAutoPrefectCandidate(OfficerData officer)
-    {
-        return officer.Politics * 3 +
-               officer.Intelligence * 2 +
-               officer.Charm +
-               officer.Leadership +
-               officer.FarmRank * 15 +
-               officer.CommercialRank * 15 +
-               officer.DefendRank * 10 +
-               officer.DisasterPreventionRank * 10 +
-               officer.ConstructionRank * 10;
     }
 
     private static void RemoveDuplicateCityGovernorAppointments(WorldState world, CityData city, int keeperOfficerId)
@@ -1132,63 +762,6 @@ public partial class CommandResolver
         };
     }
 
-    private static DiplomacyRelationData GetOrCreateDiplomacyRelation(WorldState world, int factionAId, int factionBId)
-    {
-        var low = Math.Min(factionAId, factionBId);
-        var high = Math.Max(factionAId, factionBId);
-        var existing = world.DiplomacyRelations.FirstOrDefault(relation =>
-            relation.FactionAId == low &&
-            relation.FactionBId == high);
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        var relation = new DiplomacyRelationData
-        {
-            FactionAId = low,
-            FactionBId = high
-        };
-        world.DiplomacyRelations.Add(relation);
-        return relation;
-    }
-
-    private static DiplomacyRelationData? FindDiplomacyRelation(WorldState world, int factionAId, int factionBId)
-    {
-        var low = Math.Min(factionAId, factionBId);
-        var high = Math.Max(factionAId, factionBId);
-        return world.DiplomacyRelations.FirstOrDefault(relation =>
-            relation.FactionAId == low &&
-            relation.FactionBId == high);
-    }
-
-    private static bool HasActiveDiplomacyBlock(WorldState world, int factionAId, int factionBId)
-    {
-        var relation = FindDiplomacyRelation(world, factionAId, factionBId);
-        return relation != null &&
-               relation.Status is DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance &&
-               relation.RemainingMonths > 0;
-    }
-
-    private static bool TryBreakDiplomacyBlockForAttack(WorldState world, int attackerFactionId, int defenderFactionId)
-    {
-        var relation = FindDiplomacyRelation(world, attackerFactionId, defenderFactionId);
-        if (relation == null ||
-            relation.Status is not (DiplomacyStatusType.Truce or DiplomacyStatusType.Alliance) ||
-            relation.RemainingMonths <= 0)
-        {
-            return false;
-        }
-
-        relation.Status = DiplomacyStatusType.Neutral;
-        relation.RemainingMonths = 0;
-        relation.RelationScore = Math.Clamp(relation.RelationScore - 18, -100, 100);
-        DiplomacyScoreRules.AdjustTrust(relation, defenderFactionId, -35);
-        relation.LastUpdatedYear = world.Year;
-        relation.LastUpdatedMonth = world.Month;
-        return true;
-    }
-
     private static bool IsValidOfficerAppointment(string role)
     {
         return OfficerAppointmentRules.IsValidOfficerAppointment(role);
@@ -1249,99 +822,6 @@ public partial class CommandResolver
         schedule.State = InternalAffairsScheduleState.Terminated;
     }
 
-    private static InternalAffairsJobType? ChooseAuthorizedPlanJob(WorldState world, CityData city, OfficerData? prefect = null)
-    {
-        var activeJobs = new HashSet<InternalAffairsJobType>(
-            world.InternalAffairsSchedules
-                .Where(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.CityId == city.Id)
-                .Select(schedule => schedule.JobType));
-        var activeConstructionProjects = new HashSet<ConstructionProjectType>(
-            world.InternalAffairsSchedules
-                .Where(schedule =>
-                    schedule.State == InternalAffairsScheduleState.Active &&
-                    schedule.CityId == city.Id &&
-                    IsConstructionProjectJob(schedule.JobType))
-                .Select(schedule => schedule.ConstructionProjectType));
-
-        var politics = prefect?.Politics ?? 50;
-        var intelligence = prefect?.Intelligence ?? 50;
-        var leadership = prefect?.Leadership ?? 50;
-        var ambition = prefect?.Ambition ?? 50;
-        var loyalty = prefect?.Loyalty ?? 50;
-        var balancedCivil = (politics + intelligence) / 2;
-        var defensiveBias = (leadership + intelligence + Math.Max(0, 100 - ambition / 2)) / 3;
-        var growthBias = (politics + Math.Max(0, ambition) + loyalty / 2) / 3;
-        var constructionBias = (leadership + politics + intelligence) / 3;
-
-        var candidates = new (InternalAffairsJobType JobType, int Score)[]
-        {
-            (
-                InternalAffairsJobType.Farm,
-                city.Farm - (balancedCivil / 6) - ((city.Population < 42000 ? 10 : 0)) - ((city.Food < 1800 ? 14 : 0))
-            ),
-            (
-                InternalAffairsJobType.Commercial,
-                city.Commercial - (growthBias / 6) - ((city.Gold < 700 ? 18 : 0))
-            ),
-            (
-                InternalAffairsJobType.Defend,
-                city.Defense - (defensiveBias / 6) - ((city.Defense < 55 ? 14 : 0)) - ((city.Troops < 1800 ? 6 : 0))
-            ),
-            (
-                InternalAffairsJobType.WaterControl,
-                city.DisasterPrevention - (intelligence / 6) - ((city.DisasterPrevention < 45 ? 12 : 0))
-            ),
-            (
-                InternalAffairsJobType.Construction,
-                ((city.Commercial + city.Defense) / 2) - (constructionBias / 7) - (GetMissingFacilityCount(city) > 0 ? 8 : 0)
-            )
-        };
-
-        var selectedJob = candidates
-            .Where(candidate => !activeJobs.Contains(candidate.JobType))
-            .OrderBy(candidate => candidate.Score)
-            .ThenBy(candidate => (int)candidate.JobType)
-            .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
-            .FirstOrDefault();
-
-        if (selectedJob == InternalAffairsJobType.Construction)
-        {
-            var projectType = AiConstructionRules.ChooseConstructionProjectType(world, city);
-            if (activeConstructionProjects.Contains(projectType))
-            {
-                return candidates
-                    .Where(candidate => candidate.JobType != InternalAffairsJobType.Construction && !activeJobs.Contains(candidate.JobType))
-                    .OrderBy(candidate => candidate.Score)
-                    .ThenBy(candidate => (int)candidate.JobType)
-                    .Select(candidate => (InternalAffairsJobType?)candidate.JobType)
-                    .FirstOrDefault();
-            }
-        }
-
-        return selectedJob;
-    }
-
-    private static int ChooseAuthorizedPlanDuration(CityData city, InternalAffairsJobType jobType, OfficerData? prefect = null)
-    {
-        var politics = prefect?.Politics ?? 50;
-        var intelligence = prefect?.Intelligence ?? 50;
-        var leadership = prefect?.Leadership ?? 50;
-        var ambition = prefect?.Ambition ?? 50;
-
-        return jobType switch
-        {
-            InternalAffairsJobType.Farm when city.Farm < 45 => 4,
-            InternalAffairsJobType.Commercial when city.Commercial < 45 => 4,
-            InternalAffairsJobType.Defend when city.Defense < 50 => 4,
-            InternalAffairsJobType.WaterControl when city.DisasterPrevention < 35 => 4,
-            InternalAffairsJobType.Construction when GetMissingFacilityCount(city) > 0 => 3,
-            InternalAffairsJobType.Defend when leadership >= 75 => 3,
-            InternalAffairsJobType.Commercial when politics >= 75 && ambition >= 60 => 3,
-            InternalAffairsJobType.Farm when intelligence >= 70 => 3,
-            _ => 2
-        };
-    }
-
     private InternalAffairsScheduleData CreateAuthorizedPlanSchedule(WorldState world, CityData city, int officerId)
     {
         var projectType = IsConstructionProjectJob(city.PrefectPlanJobType)
@@ -1383,27 +863,6 @@ public partial class CommandResolver
             .FirstOrDefault();
     }
 
-    private static int GetMissingFacilityCount(CityData city)
-    {
-        var count = 0;
-        if (city.BowWorkshopLevel <= 0)
-        {
-            count += 1;
-        }
-
-        if (city.SiegeWorkshopLevel <= 0)
-        {
-            count += 1;
-        }
-
-        if (city.HorsePastureLevel <= 0)
-        {
-            count += 1;
-        }
-
-        return count;
-    }
-
     private static ConstructionProjectType ResolveConstructionProjectType(WorldState world, CityData city, ConstructionProjectType requestedProjectType)
     {
         if (requestedProjectType != ConstructionProjectType.None)
@@ -1412,22 +871,6 @@ public partial class CommandResolver
         }
 
         return AiConstructionRules.ChooseConstructionProjectType(world, city);
-    }
-
-    private static int ScoreInternalAffairsOfficer(OfficerData officer, InternalAffairsJobType jobType)
-    {
-        return jobType switch
-        {
-            InternalAffairsJobType.Farm => officer.Politics * 3 + officer.Charm + officer.Intelligence + officer.FarmRank * 25,
-            InternalAffairsJobType.Commercial => officer.Politics * 3 + officer.Intelligence * 2 + officer.CommercialRank * 25,
-            InternalAffairsJobType.Defend => officer.Leadership * 2 + officer.Politics * 2 + officer.DefendRank * 25,
-            InternalAffairsJobType.WaterControl => officer.Intelligence * 2 + officer.Politics * 2 + officer.DisasterPreventionRank * 25,
-            InternalAffairsJobType.Construction => officer.Politics * 2 + officer.Leadership + officer.Intelligence + officer.ConstructionRank * 25,
-            InternalAffairsJobType.Manufacturing => officer.Politics * 2 + officer.Leadership + officer.Intelligence + officer.ConstructionRank * 25,
-            InternalAffairsJobType.Extraction => officer.Politics * 2 + officer.Intelligence + officer.ConstructionRank * 25,
-            InternalAffairsJobType.Survey => officer.Intelligence * 3 + officer.Politics * 2 + officer.ConstructionRank * 25,
-            _ => officer.Politics + officer.Intelligence + officer.Charm
-        };
     }
 
     private (int Farm, int Commercial, int Defense, int DisasterPrevention, int Loyalty, int ConstructionPoints, ConstructionRules.ConstructionProgressResult ConstructionResult, ResourceRules.ExtractionResult ResourceOutput, ResourceRules.SurveyResult SurveyOutput) ApplyInternalAffairsJob(
@@ -1497,42 +940,6 @@ public partial class CommandResolver
         OfficerProgressionRules.AwardInternalAffairsExperience(officer, jobType, 40);
         OfficerProgressionRules.AwardCivilExperience(officer, 12);
         return gains;
-    }
-
-    private static int GetInternalAffairsMonthlyGoldCost(InternalAffairsScheduleData schedule)
-    {
-        return GetInternalAffairsMonthlyGoldCost(schedule.InvestedGold, schedule.TotalMonths, schedule.RemainingMonths);
-    }
-
-    private static int GetInternalAffairsMonthlyGoldCost(int investedGold, int totalMonths, int remainingMonths)
-    {
-        if (investedGold <= 0 || totalMonths <= 0 || remainingMonths <= 0)
-        {
-            return 0;
-        }
-
-        return investedGold;
-    }
-
-    private static int GetMinimumInternalAffairsGold(int months)
-    {
-        return 1;
-    }
-
-    private static int GetRecommendedInternalAffairsGold(InternalAffairsJobType jobType, int months)
-    {
-        return jobType switch
-        {
-            InternalAffairsJobType.Farm => 60,
-            InternalAffairsJobType.Commercial => 70,
-            InternalAffairsJobType.Defend => 80,
-            InternalAffairsJobType.WaterControl => 70,
-            InternalAffairsJobType.Construction => 100,
-            InternalAffairsJobType.Manufacturing => 100,
-            InternalAffairsJobType.Extraction => 75,
-            InternalAffairsJobType.Survey => 120,
-            _ => 60
-        };
     }
 
     private string GetInternalAffairsJobName(InternalAffairsJobType jobType, GameLanguage language)
@@ -1620,27 +1027,6 @@ public partial class CommandResolver
         return $"{progressText} {_localization?.FormatForLanguage(language, "fmt.internal_affairs_materials_spent", progressResult.MaterialsSpent.Wood, progressResult.MaterialsSpent.Metal, progressResult.MaterialsSpent.Stone)}".Trim();
     }
 
-    private static void MarkOfficerAssigned(WorldState world, OfficerData officer, CommandType commandType)
-    {
-        officer.LastAssignedYear = world.Year;
-        officer.LastAssignedMonth = world.Month;
-        officer.LastAssignedCommand = commandType;
-    }
-
-    private static void MarkOfficersAssigned(WorldState world, List<int> officerIds, CommandType commandType)
-    {
-        foreach (var officerId in officerIds)
-        {
-            var officer = world.GetOfficer(officerId);
-            if (officer == null)
-            {
-                continue;
-            }
-
-            MarkOfficerAssigned(world, officer, commandType);
-        }
-    }
-
     private int TransferOfficers(
         WorldState world,
         CityData sourceCity,
@@ -1703,75 +1089,6 @@ public partial class CommandResolver
         }
 
         return ClampStat(baseValue + itemBonus + OfficerProgressionRules.GetStatBonus(officer, progressionStat));
-    }
-
-    private static IEnumerable<ItemData> GetEquippedItems(WorldState world, int officerId)
-    {
-        return world.Items.Where(item => item.EquippedOfficerId == officerId);
-    }
-
-    private static ItemData? GetEquippedItemInSlot(WorldState world, int officerId, ItemType itemType)
-    {
-        return world.Items.FirstOrDefault(item =>
-            item.EquippedOfficerId == officerId &&
-            AreItemsInSameSlot(item.ItemType, itemType));
-    }
-
-    private static bool AreItemsInSameSlot(ItemType a, ItemType b)
-    {
-        return GetItemSlotKey(a) == GetItemSlotKey(b);
-    }
-
-    private static string GetItemSlotKey(ItemType itemType)
-    {
-        return itemType switch
-        {
-            ItemType.Weapon => "weapon",
-            ItemType.Horse => "horse",
-            ItemType.Book => "special",
-            ItemType.Treasure => "special",
-            _ => "special"
-        };
-    }
-
-    private static bool IsItemOwnedByFactionInventory(ItemData item, int factionId)
-    {
-        return item.OwnerFactionId == factionId &&
-               item.EquippedOfficerId <= 0;
-    }
-
-    private static void MoveItemToFactionInventory(ItemData item, int factionId)
-    {
-        item.OwnerFactionId = factionId;
-        item.OwnerCityId = 0;
-        item.EquippedOfficerId = 0;
-    }
-
-    private static void EquipItemToOfficer(ItemData item, int factionId, int officerId)
-    {
-        item.OwnerFactionId = factionId;
-        item.OwnerCityId = 0;
-        item.EquippedOfficerId = officerId;
-    }
-
-    private static void AssignItemToOfficer(WorldState world, ItemData item, int factionId, int officerId)
-    {
-        var existingItem = GetEquippedItemInSlot(world, officerId, item.ItemType);
-        if (existingItem != null && existingItem.Id != item.Id)
-        {
-            MoveItemToFactionInventory(existingItem, factionId);
-        }
-
-        EquipItemToOfficer(item, factionId, officerId);
-    }
-
-    private static void TransferEquippedItemsToFaction(WorldState world, int officerId, int factionId)
-    {
-        foreach (var item in world.Items.Where(item => item.EquippedOfficerId == officerId))
-        {
-            item.OwnerFactionId = factionId;
-            item.OwnerCityId = 0;
-        }
     }
 
     private static void AwardBattleExperience(WorldState world, IEnumerable<int> officerIds, int amount)

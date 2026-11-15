@@ -47,6 +47,7 @@ If any test fails, the process exits with code `1`.
 The complete run includes the battle AI planner tests. Run an individual planner suite with
 `--battle-ai-supply-planner-only`, `--battle-ai-siege-planner-only`, or
 `--battle-ai-strategy-scoring-only` after `dotnet run --project tools\AiHarness\AiHarness.csproj --`.
+Deployment draft and equipment checks can be run with `--deployment-draft-only`.
 Engineering repair scoring is also covered by `--battle-ai-engineering-planner-only`.
 
 `Program.cs` contains the command-line entry point. Tests are grouped by subject in

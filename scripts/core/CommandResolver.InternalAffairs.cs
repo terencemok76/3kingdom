@@ -1,3 +1,5 @@
+using static ThreeKingdom.Core.CommandOfficerAssignmentRules;
+using static ThreeKingdom.Core.InternalAffairsPlanningRules;
 using System;
 using System.Collections.Generic;
 using System.Linq;

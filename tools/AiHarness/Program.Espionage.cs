@@ -444,7 +444,7 @@ internal static partial class Program
         Assert(resolveResult.Success, "Player succession resolves", $"success={resolveResult.Success}");
         Assert(world.GetFaction(2)!.RulerOfficerId == 202, "Player succession assigns selected ruler", $"ruler={world.GetFaction(2)!.RulerOfficerId}");
         Assert(OfficerAppointmentRules.HasAppointment(world.GetOfficer(202)!, OfficerAppointmentRules.Lord), "Player succession assigns ruler appointment", string.Join(',', world.GetOfficer(202)!.Appointments));
-        Assert(world.GetFaction(2)!.NameZhHant == "LordSuccessor軍", "Player succession updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
+        Assert(world.GetFaction(2)!.NameZhHant == "LordSuccessor", "Player succession updates faction name", $"name={world.GetFaction(2)!.NameZhHant}");
         Assert(world.GetPendingSuccession(2) == null, "Player succession clears pending record", $"pending={(world.GetPendingSuccession(2) != null ? 1 : 0)}");
     }
 
