@@ -970,6 +970,10 @@ public partial class BattleSceneController
             return false;
         }
 
+        // Allied infantry must create an entrance when the city is sealed;
+        // otherwise the generic enemy pursuit can lead them along the wall.
+        var alliedNeedsBreach = _isResolvingAlliedAiTurn && !HasBreachedCityGate();
+
         var breachActions = new List<(BattleGridKey Source, BattleOccupantInfo Unit, BattleGridKey Gate, int Damage, int Score)>();
         foreach (var attacker in candidates.Where(candidate => IsAttackerPiece(candidate.Occupant)))
         {
@@ -992,11 +996,15 @@ public partial class BattleSceneController
                 var turnsToBreach = Mathf.CeilToInt((float)gateHealth / damage);
                 var isRam = attacker.Occupant.TroopType == TroopRam;
                 var isFinishingTeamAttack = attacker.Occupant.Category == CategoryUnit && turnsToBreach <= 2;
+                var isAlliedBreachAttack = alliedNeedsBreach &&
+                    attacker.Occupant.Category == CategoryUnit &&
+                    IsOutsideCityWall(attacker.Grid.Grid);
                 var defenderRepair = GetAiDefenderGateRepairPotential(gateGrid);
-                // Do not spend an attack on a gate when the defender can restore
-                // all of this non-finishing damage before the next assault turn.
+                // Regular AI conserves attacks against fully repairable damage;
+                // allied units still try to open a sealed route for the assault.
                 var repairStalemate = turnsToBreach > 1 && defenderRepair >= damage;
-                if ((!isRam && !isFinishingTeamAttack) || repairStalemate)
+                if ((!isRam && !isFinishingTeamAttack && !isAlliedBreachAttack) ||
+                    (repairStalemate && !isAlliedBreachAttack))
                 {
                     continue;
                 }
@@ -1026,7 +1034,11 @@ public partial class BattleSceneController
         }
 
         var ramMoves = new List<(BattleGridKey Source, BattleOccupantInfo Ram, BattleGridKey Destination, BattleGridKey Gate, int PathEnergy, int PathSteps, int Score)>();
-        foreach (var ram in candidates.Where(candidate => IsAttackerPiece(candidate.Occupant) && candidate.Occupant.TroopType == TroopRam))
+        foreach (var ram in candidates.Where(candidate => IsAttackerPiece(candidate.Occupant) &&
+                     (candidate.Occupant.TroopType == TroopRam ||
+                      (alliedNeedsBreach && candidate.Occupant.Category == CategoryUnit &&
+                       IsOutsideCityWall(candidate.Grid.Grid) && CanUseAttackCommand(candidate.Occupant) &&
+                       GetStructureAttackDamage(candidate.Occupant) > 0))))
         {
             _selectedUnit = ram.Occupant;
             _selectedUnitGrid = ram.Grid;
@@ -1048,7 +1060,7 @@ public partial class BattleSceneController
                     var nearbyEnemyDefenders = GetAllBattlePieces().Count(entry =>
                         entry.Occupant.TeamName != ram.Occupant.TeamName &&
                         GetManhattanDistance(entry.Grid.Grid, gateGrid.Grid) <= 3);
-                    var score = nearbyFriendlySupport * 700 -
+                    var score = (ram.Occupant.TroopType == TroopRam ? 4000 : 0) + nearbyFriendlySupport * 700 -
                                 nearbyEnemyDefenders * (140 - commandIntelligence / 2) -
                                 pathEnergy * 300 -
                                 pathSteps * 40 -
@@ -1071,7 +1083,7 @@ public partial class BattleSceneController
         }
 
         FocusCameraOnBattleGrid(ramMove.Source);
-        AppendBattleLog(ramMove.Ram, "AI", BattleFormat("log.ai.breach_move_ram", "Siege breach: move ram {0} -> {1} toward gate {2}; A* energy {3}, steps {4}.", ramMove.Source, ramMove.Destination, ramMove.Gate, ramMove.PathEnergy, ramMove.PathSteps));
+        AppendBattleLog(ramMove.Ram, "AI", BattleFormat("log.ai.breach_move", "Siege breach: move {0} -> {1} toward gate {2}; A* energy {3}, steps {4}.", ramMove.Source, ramMove.Destination, ramMove.Gate, ramMove.PathEnergy, ramMove.PathSteps));
         return TryExecuteBattleActionIntent(
             new BattleActionIntent(BattleActionKind.Move, ramMove.Source, ramMove.Destination),
             ramMove.Ram);

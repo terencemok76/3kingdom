@@ -224,6 +224,8 @@ public partial class BattleSceneController : Node2D
     // separate from the side-level AI flag so their turn can run after the
     // player ends the turn without handing player units to the AI.
     private bool _isResolvingAlliedAiTurn;
+    private int _alliedAiMovementAnimations;
+    private ulong _alliedAiVisualUntilMsec;
     private OptionButton? _allyCooperationObjectiveOption;
     private int _officerSpeechSerial;
     private int _activeOfficerSpeechPriority;
@@ -952,7 +954,7 @@ public partial class BattleSceneController : Node2D
 
         if (_windowTitleLabel != null)
         {
-            _windowTitleLabel.Text = BattleText("ui.battle.window_title", "Unit Command");
+            RefreshUnitCommandTitle();
         }
 
         RefreshBattleOptionDialogText();
@@ -1385,7 +1387,7 @@ public partial class BattleSceneController : Node2D
         occupant.Marker.SetupHealthBar(occupant.HitPoints, occupant.MaxHitPoints);
     }
 
-    private static void UpdateMarkerStatusIndicator(BattleOccupantInfo occupant)
+    private void UpdateMarkerStatusIndicator(BattleOccupantInfo occupant)
     {
         if (occupant.Marker == null)
         {
@@ -1394,7 +1396,7 @@ public partial class BattleSceneController : Node2D
 
         if (IsMessed(occupant))
         {
-            occupant.Marker.SetupStatusIndicator("MESS", new Color(1.0f, 0.34f, 0.16f, 0.92f));
+            occupant.Marker.SetupStatusIndicator(BattleText("ui.battle.status_mess_badge", "MESS"), new Color(1.0f, 0.34f, 0.16f, 0.92f));
             return;
         }
 

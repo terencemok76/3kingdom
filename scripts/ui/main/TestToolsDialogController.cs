@@ -21,6 +21,8 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     private Button? _maxAffinityButton;
     private Button? _forceCovertButton;
     private Button? _assignCovertButton;
+    private OptionButton? _allianceFactionOption;
+    private Button? _allianceAssignButton;
     private OptionButton? _covertOfficerOption;
     private OptionButton? _loyaltyOfficerOption;
     private Button? _loyaltyLowButton;
@@ -119,11 +121,14 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
             _forceCovertButton.Text = localization?.T("ui.test_force_covert") ?? "Force Next Covert Recruitment";
         if (_assignCovertButton != null)
             _assignCovertButton.Text = localization?.T("ui.test_assign_covert") ?? "Assign Covert Agent";
+        if (_allianceAssignButton != null)
+            _allianceAssignButton.Text = localization?.T("ui.test_assign_alliance") ?? "Assign Ally";
         if (_loyaltyLowButton != null) _loyaltyLowButton.Text = localization?.T("ui.test_loyalty_low") ?? "Low 30";
         if (_loyaltyMiddleButton != null) _loyaltyMiddleButton.Text = localization?.T("ui.test_loyalty_middle") ?? "Medium 60";
         if (_loyaltyHighButton != null) _loyaltyHighButton.Text = localization?.T("ui.test_loyalty_high") ?? "High 90";
         RefreshCovertOfficerOptions();
         RefreshLoyaltyOfficerOptions();
+        RefreshAllianceOptions();
     }
 
     protected override void OnOverlayContentReady(VBoxContainer root)
@@ -142,12 +147,14 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         _forceCovertButton = root.GetNodeOrNull<Button>("CovertActionRow/ForceCovertButton");
         _covertOfficerOption = root.GetNodeOrNull<OptionButton>("AssignCovertRow/OfficerOption");
         _assignCovertButton = root.GetNodeOrNull<Button>("AssignCovertRow/AssignButton");
+        _allianceFactionOption = root.GetNodeOrNull<OptionButton>("AllianceRow/FactionOption");
+        _allianceAssignButton = root.GetNodeOrNull<Button>("AllianceRow/AssignButton");
         _loyaltyOfficerOption = root.GetNodeOrNull<OptionButton>("LoyaltyOfficerRow/OfficerOption");
         _loyaltyLowButton = root.GetNodeOrNull<Button>("LoyaltyActionRow/LowButton");
         _loyaltyMiddleButton = root.GetNodeOrNull<Button>("LoyaltyActionRow/MiddleButton");
         _loyaltyHighButton = root.GetNodeOrNull<Button>("LoyaltyActionRow/HighButton");
 
-        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _forceSurrenderButton, _forceCitySurrenderButton, _cycleCityOwnerButton, _maxAffinityButton, _forceCovertButton, _assignCovertButton, _loyaltyLowButton, _loyaltyMiddleButton, _loyaltyHighButton }.Where(button => button != null))
+        foreach (var button in new[] { _testCaptiveButton, _battleEquipmentButton, _engineerButton, _bowWorkshopButton, _horsePastureButton, _caravanRoadBattleButton, _forceSurrenderButton, _forceCitySurrenderButton, _cycleCityOwnerButton, _maxAffinityButton, _forceCovertButton, _assignCovertButton, _allianceAssignButton, _loyaltyLowButton, _loyaltyMiddleButton, _loyaltyHighButton }.Where(button => button != null))
         {
             if (_context.ViewButton == null)
             {
@@ -221,6 +228,7 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
         if (_maxAffinityButton != null) _maxAffinityButton.Pressed += OnMaxAffinityPressed;
         if (_forceCovertButton != null) _forceCovertButton.Pressed += OnForceCovertPressed;
         if (_assignCovertButton != null) _assignCovertButton.Pressed += OnAssignCovertPressed;
+        if (_allianceAssignButton != null) _allianceAssignButton.Pressed += OnAssignAlliancePressed;
         if (_loyaltyLowButton != null) _loyaltyLowButton.Pressed += () => SetTestOfficerLoyalty(30);
         if (_loyaltyMiddleButton != null) _loyaltyMiddleButton.Pressed += () => SetTestOfficerLoyalty(60);
         if (_loyaltyHighButton != null) _loyaltyHighButton.Pressed += () => SetTestOfficerLoyalty(90);
@@ -234,6 +242,49 @@ internal sealed class TestToolsDialogController : FloatingOverlayController
     {
         _context.OpenTestCapture();
         HideOverlay();
+    }
+
+    private void RefreshAllianceOptions()
+    {
+        var world = _context.World;
+        var option = _allianceFactionOption;
+        if (world == null || option == null) return;
+        var selected = option.Selected >= 0 ? option.GetItemMetadata(option.Selected).AsInt32() : 0;
+        option.Clear();
+        option.AddItem(_context.Localization?.T("ui.test_choose_alliance") ?? "Select faction");
+        option.SetItemMetadata(0, 0);
+        foreach (var faction in world.Factions.Where(f => f.Id != _context.PlayerFactionId && world.Cities.Any(c => c.OwnerFactionId == f.Id)).OrderBy(f => f.Id))
+        {
+            option.AddItem(_context.Localization?.GetFactionName(world, faction.Id) ?? faction.Id.ToString());
+            option.SetItemMetadata(option.ItemCount - 1, faction.Id);
+            if (faction.Id == selected) option.Select(option.ItemCount - 1);
+        }
+    }
+
+    private void OnAssignAlliancePressed()
+    {
+        var world = _context.World;
+        var option = _allianceFactionOption;
+        var player = _context.PlayerFactionId;
+        if (world == null || player <= 0 || option == null || option.Selected <= 0 || !_context.IsGodModeEnabled()) return;
+        var ally = option.GetItemMetadata(option.Selected).AsInt32();
+        if (ally <= 0 || ally == player || !world.Cities.Any(c => c.OwnerFactionId == ally)) return;
+        var relation = world.GetDiplomacyRelation(player, ally);
+        if (relation == null)
+        {
+            relation = new DiplomacyRelationData { FactionAId = System.Math.Min(player, ally), FactionBId = System.Math.Max(player, ally) };
+            world.DiplomacyRelations.Add(relation);
+        }
+        relation.Status = DiplomacyStatusType.Alliance;
+        relation.RemainingMonths = 12;
+        relation.RelationScore = 80;
+        relation.TrustFromAToB = 80;
+        relation.TrustFromBToA = 80;
+        relation.LastUpdatedYear = world.Year;
+        relation.LastUpdatedMonth = world.Month;
+        var message = _context.Localization?.Format("ui.test_assign_alliance_done", _context.Localization.GetFactionName(world, ally)) ?? "Alliance assigned.";
+        if (_summaryLabel != null) _summaryLabel.Text = message;
+        Callable.From(UpdateOverlayLayoutNow).CallDeferred();
     }
 
     private void OnBattleEquipmentPressed()

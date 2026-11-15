@@ -554,8 +554,8 @@ public partial class BattleSceneController
     {
         const int entranceDepth = 2;
         const int entranceWidth = 4;
-        var startX = side == CampaignBattleSide.Attacker ? 0 : BattleMapData.Width - entranceWidth;
-        var startY = side == CampaignBattleSide.Attacker ? 0 : BattleMapData.Height - entranceDepth;
+        var startX = (BattleMapData.Width - entranceWidth) / 2;
+        var startY = side == CampaignBattleSide.Attacker ? BattleMapData.Height - entranceDepth : 0;
         for (var y = startY; y < startY + entranceDepth; y += 1)
         {
             for (var x = startX; x < startX + entranceWidth; x += 1)
@@ -576,50 +576,12 @@ public partial class BattleSceneController
             }
         }
 
-        // The scene determines which edge cells are traversable.  After the preferred
-        // corner entrance, scan the same outer two-cell border so mountains, water, or
-        // authored obstacles never force a reinforcement beside the initial formation.
-        if (side == CampaignBattleSide.Attacker)
+        // Stay on this side's rear edge even when obstacles block the preferred
+        // entrance. Never scan the lateral edges into the opponent's rear.
+        var firstY = side == CampaignBattleSide.Attacker ? BattleMapData.Height - 2 : 0;
+        for (var y = firstY; y < firstY + 2; y += 1)
         {
             for (var x = 0; x < BattleMapData.Width; x += 1)
-            {
-                for (var y = 0; y < 2; y += 1)
-                {
-                    var grid = new Vector2I(x, y);
-                    if (yielded.Add(grid))
-                    {
-                        yield return grid;
-                    }
-                }
-            }
-            for (var y = 0; y < BattleMapData.Height; y += 1)
-            {
-                for (var x = 0; x < 2; x += 1)
-                {
-                    var grid = new Vector2I(x, y);
-                    if (yielded.Add(grid))
-                    {
-                        yield return grid;
-                    }
-                }
-            }
-            yield break;
-        }
-
-        for (var x = BattleMapData.Width - 1; x >= 0; x -= 1)
-        {
-            for (var y = BattleMapData.Height - 1; y >= BattleMapData.Height - 2; y -= 1)
-            {
-                var grid = new Vector2I(x, y);
-                if (yielded.Add(grid))
-                {
-                    yield return grid;
-                }
-            }
-        }
-        for (var y = BattleMapData.Height - 1; y >= 0; y -= 1)
-        {
-            for (var x = BattleMapData.Width - 1; x >= BattleMapData.Width - 2; x -= 1)
             {
                 var grid = new Vector2I(x, y);
                 if (yielded.Add(grid))
@@ -633,9 +595,8 @@ public partial class BattleSceneController
     private static bool IsFieldBattleReinforcementEdgeGrid(Vector2I grid, CampaignBattleSide side)
     {
         return side == CampaignBattleSide.Attacker
-            ? grid.X is >= 0 and < 2 || grid.Y is >= 0 and < 2
-            : grid.X is >= BattleMapData.Width - 2 and < BattleMapData.Width ||
-              grid.Y is >= BattleMapData.Height - 2 and < BattleMapData.Height;
+            ? grid.Y is >= BattleMapData.Height - 2 and < BattleMapData.Height
+            : grid.Y is >= 0 and < 2;
     }
 
     private IEnumerable<Vector2I> GetCampaignDeploymentZoneGrids(

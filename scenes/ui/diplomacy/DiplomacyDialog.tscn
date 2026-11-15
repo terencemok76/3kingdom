@@ -249,6 +249,44 @@ rounded = true
 layout_mode = 2
 autowrap_mode = 3
 
+[node name="CampaignInvite" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+text = "Invite allied reinforcements"
+
+[node name="Campaign" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+
+[node name="TroopsLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+text = "請求兵力"
+
+[node name="Inputs" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+
+[node name="Troops" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite/Inputs"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 100.0
+max_value = 10000.0
+step = 100.0
+value = 1000.0
+
+[node name="Gold" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite/Inputs"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 999999.0
+prefix = "Gold "
+
+[node name="Food" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite/Inputs"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 999999.0
+prefix = "Food "
+
 [node name="FooterSection" type="VBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
 layout_mode = 2
 size_flags_horizontal = 3

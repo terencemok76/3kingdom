@@ -154,8 +154,10 @@ public partial class BattleSceneController
             if (occupant.Marker != null)
             {
                 occupant.Marker.SetupNamePlate(FormatMarkerName(occupant.OfficerName, occupant.DisplayName, occupant.TroopType));
+                UpdateMarkerStatusIndicator(occupant);
             }
         }
+        RefreshOccludedUnitSilhouettes();
     }
 
     private void RefreshOfficerPortrait()
@@ -398,7 +400,7 @@ public partial class BattleSceneController
         {
             return BattleText("ui.battle.tile_info", "Tile Info") + "\n" +
                    BattleFormat("ui.battle.coordinate", "Coordinate: {0}", "-") + "\n" +
-                   BattleText("ui.battle.inspect_hint", "Click a tile to inspect terrain, structure, deployment zone, and units.");
+                   BattleText("ui.battle.inspect_hint", "Click a tile to inspect terrain, structure and deployment zone.");
         }
 
         var grid = _selectedGrid.Value;
@@ -467,76 +469,6 @@ public partial class BattleSceneController
         if (cell.Structure == BattleStructureType.Gate)
         {
             builder.AppendLine(BattleFormat("ui.battle.gate", "Gate: {0}", cell.IsGateOpen ? BattleText("ui.battle.open", "Open") : BattleText("ui.battle.closed", "Closed")));
-        }
-
-        builder.AppendLine(BattleText("ui.battle.occupants", "Occupants"));
-
-        var occupantsAtGrid = GetOccupantsAtSelectedGrid(grid)
-            .Where(entry => IsVisibleToCurrentTurnSide(entry.Occupant))
-            .ToList();
-        if (occupantsAtGrid.Count > 0)
-        {
-            foreach (var (gridKey, occupant) in occupantsAtGrid)
-            {
-                var hpText = occupant.Category == CategorySiegeEngine
-                    ? BattleFormat("ui.battle.inline_hp", " HP {0}/{1}", occupant.HitPoints, occupant.MaxHitPoints)
-                    : BattleFormat("ui.battle.inline_unit_stats", " Active {0:N0}/{1:N0} Wounded {2} Morale {3}", occupant.TroopCount, occupant.MaxHitPoints, FormatWoundedTroops(occupant), FormatMorale(occupant));
-                var ammoText = occupant.MaxWeaponAmmo.HasValue
-                    ? BattleFormat("ui.battle.inline_ammo", " Ammo {0}", FormatWeaponAmmo(occupant))
-                    : string.Empty;
-                var statusText = occupant.IsHidden || IsMessed(occupant)
-                    ? BattleFormat("ui.battle.inline_status", " Status {0}", FormatBattleStatus(occupant))
-                    : string.Empty;
-                builder.AppendLine($"- {FormatUnitCategory(occupant.Category)}: {occupant.DisplayName} [{occupant.ShortLabel}] L{gridKey.Level}{hpText}{ammoText}{statusText}");
-            }
-        }
-        else
-        {
-            builder.AppendLine($"- {BattleText("ui.battle.none", "None")}");
-        }
-
-        if (_selectedUnit != null && _selectedUnitGrid.HasValue)
-        {
-            builder.AppendLine(BattleText("ui.battle.selected_piece", "Selected Piece"));
-            builder.AppendLine($"- {_selectedUnit.DisplayName} [{_selectedUnit.ShortLabel}]");
-            builder.AppendLine(BattleFormat("ui.battle.list_category", "- Category: {0}", FormatUnitCategory(_selectedUnit.Category)));
-            builder.AppendLine(BattleFormat("ui.battle.list_grid", "- Grid: {0}", $"({_selectedUnitGrid.Value.X}, {_selectedUnitGrid.Value.Y}, L{_selectedUnitGrid.Value.Level})"));
-            builder.AppendLine(BattleFormat("ui.battle.list_status", "- Status: {0}", FormatBattleStatus(_selectedUnit)));
-            builder.AppendLine(BattleFormat("ui.battle.list_move_range", "- Move Range: {0}/{1}", _selectedUnit.RemainingMoveRange, GetTeamMoveRangeCap(_selectedUnit)));
-            builder.AppendLine(BattleFormat("ui.battle.list_energy", "- Energy: {0}/{1}", _selectedUnit.Energy, GetTeamEnergyCap(_selectedUnit.TeamName)));
-            if (_selectedUnit.MaxWeaponAmmo.HasValue)
-            {
-                builder.AppendLine(BattleFormat("ui.battle.list_weapon_ammo", "- Weapon Ammo: {0}", FormatWeaponAmmo(_selectedUnit)));
-            }
-
-            var effectiveAttackRange = GetEffectiveAttackRange(_selectedUnit, _selectedUnitGrid);
-            var attackRangeText = effectiveAttackRange == _selectedUnit.AttackRange
-                ? _selectedUnit.AttackRange.ToString()
-                : BattleFormat("ui.battle.effective_value", "{0} (effective {1})", _selectedUnit.AttackRange, effectiveAttackRange);
-            builder.AppendLine(BattleFormat("ui.battle.list_attack_range", "- Attack Range: {0}", attackRangeText));
-            if (_selectedUnit.Category == CategorySiegeEngine)
-            {
-                builder.AppendLine(BattleFormat("ui.battle.list_hp", "- HP: {0}/{1}", _selectedUnit.HitPoints, _selectedUnit.MaxHitPoints));
-            }
-            else
-            {
-                builder.AppendLine(BattleFormat("ui.battle.list_active_troops", "- Active Troops: {0:N0}/{1:N0}", _selectedUnit.TroopCount, _selectedUnit.MaxHitPoints));
-                builder.AppendLine(BattleFormat("ui.battle.list_wounded_troops", "- Wounded Troops: {0}", FormatWoundedTroops(_selectedUnit)));
-                builder.AppendLine(BattleFormat("ui.battle.list_morale", "- Morale: {0}", FormatMorale(_selectedUnit)));
-            }
-
-            builder.AppendLine(BattleFormat("ui.battle.list_reachable_tiles", "- Reachable Tiles: {0}", _movableGrids.Count));
-            builder.AppendLine(BattleFormat("ui.battle.list_attackable_tiles", "- Attackable Tiles: {0}", _attackableGrids.Count));
-            builder.AppendLine(BattleFormat("ui.battle.list_workable_tiles", "- Workable Tiles: {0}", _workableGrids.Count));
-            builder.AppendLine(BattleFormat("ui.battle.list_strategy_targets", "- Strategy Targets: {0}", _strategyTargetGrids.Count));
-            builder.AppendLine(BattleFormat("ui.battle.list_duel_targets", "- Duel Targets: {0}", _duelTargetGrids.Count));
-            builder.AppendLine(BattleFormat("ui.battle.list_strategy", "- Strategy: {0}", FormatStrategyAvailability(_selectedUnit)));
-            if (_selectedUnit.TroopType == TroopSupplyCart)
-            {
-                builder.AppendLine(BattleFormat("ui.battle.list_supply", "- Supply: {0}", HasSupplyTargets() ? BattleText("ui.battle.ready", "Ready") : BattleText("ui.battle.unavailable", "Unavailable")));
-            }
-            builder.AppendLine(BattleFormat("ui.battle.list_command_state", "- Command State: {0}", FormatCommandMode(_commandMode)));
-            builder.AppendLine(BattleFormat("ui.battle.list_current_turn", "- Current Turn: {0}", FormatTeamName(GetCurrentTurnSideName())));
         }
 
         return builder.ToString().TrimEnd();

@@ -215,6 +215,19 @@ text = "切換城市勢力"
 layout_mode = 2
 alignment = 1
 
+[node name="AllianceRow" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot"]
+layout_mode = 2
+
+[node name="FactionOption" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AllianceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+clip_text = true
+fit_to_longest_item = false
+
+[node name="AssignButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AllianceRow"]
+layout_mode = 2
+text = "指定盟國"
+
 [node name="MaxAffinityButton" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/AffinityActionRow"]
 layout_mode = 2
 focus_mode = 0

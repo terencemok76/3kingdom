@@ -71,6 +71,10 @@ public partial class BattleSceneController
             return;
         }
 
+        ApplyBattleOptionButtonStyle(saveButton);
+        ApplyBattleOptionButtonStyle(loadButton);
+        ApplyBattleOptionButtonStyle(closeButton);
+
         overlay.MouseFilter = Control.MouseFilterEnum.Ignore;
         centerContainer.MouseFilter = Control.MouseFilterEnum.Ignore;
         panel.MouseFilter = Control.MouseFilterEnum.Stop;

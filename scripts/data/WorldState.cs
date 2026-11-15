@@ -160,6 +160,7 @@ public class WorldState
     public List<PendingCapturedOfficerData> PendingCapturedOfficerRecords { get; set; } = new();
     public List<BattleReportData> BattleReports { get; set; } = new();
     public List<ActiveBattleCampaignData> ActiveBattleCampaigns { get; set; } = new();
+    public List<PrewarAllianceRequestData> PrewarAllianceRequests { get; set; } = new();
     public bool ViewAllInformationEnabled { get; set; }
 
     public CityData? GetCity(int cityId)

@@ -26,7 +26,8 @@ public enum DiplomacyActionType
     Gift,
     Demand,
     BreakPact,
-    Surrender
+    Surrender,
+    InviteJointAttack
 }
 
 public enum SpyActionType

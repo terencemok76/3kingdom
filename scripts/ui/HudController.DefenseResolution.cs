@@ -378,12 +378,15 @@ public partial class HudController
             LaunchCampaignBattle(campaignId);
             return;
         }
-        foreach (var invitation in campaign.Invitations.Where(item => item.Side == CampaignBattleSide.Defender))
+        foreach (var invitation in campaign.Invitations.Where(item => item.Side == CampaignBattleSide.Defender ||
+                     (item.Side == CampaignBattleSide.Attacker && item.InviterFactionId == _turnManager.GetPlayerFactionId())))
         {
             var factionName = _localization.GetFactionName(_turnManager.World, invitation.InvitedFactionId);
-            var message = invitation.Status == BattleInvitationStatus.Accepted
-                ? _localization.Format("log.alliance_reinforcement_accepted", factionName, invitation.RequestedTroops)
-                : _localization.Format("log.alliance_reinforcement_declined", factionName, invitation.DecisionReason);
+            var order = campaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId && item.Side == invitation.Side);
+            var source = order == null ? null : _turnManager.World.GetCity(order.SourceCityId);
+            var message = invitation.Status == BattleInvitationStatus.Accepted && order != null && order.Teams.Count > 0
+                ? _localization.Format("log.alliance_reinforcement_dispatched", factionName, source == null ? "?" : _localization.GetCityName(source), order.Teams.Sum(team => team.ActiveTroops), order.RemainingBattleDays)
+                : _localization.Format("log.alliance_reinforcement_unavailable", factionName);
             AddLog(message, isPlayerRelated: true);
             _allianceReinforcementResponseQueue.Enqueue(message);
         }

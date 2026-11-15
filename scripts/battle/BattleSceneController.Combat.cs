@@ -128,6 +128,12 @@ public partial class BattleSceneController
         }
 
         var effectDelaySeconds = attackAnimationDuration + Math.Max(hurtAnimationDuration, projectileDuration);
+        if (_isResolvingAlliedAiTurn)
+        {
+            var visualDuration = attackAnimationDuration + projectileDuration + hurtAnimationDuration;
+            _alliedAiVisualUntilMsec = Math.Max(_alliedAiVisualUntilMsec,
+                Time.GetTicksMsec() + (ulong)Math.Ceiling(visualDuration * 1000.0));
+        }
         AppendBattleLog(attackingUnit, "Attack", $"{FormatLogUnit(attackingUnit)} attacks {targetGrid}{FormatNormalAttackAmmoLog(attackingUnit, isWeakCloseAttack)}{FormatTroopTypeAdvantageLog(attackingUnit, target)}{FormatAmbushAttackLog(isHiddenAmbush)}");
         if (!isProjectileAttack)
         {

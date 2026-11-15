@@ -352,6 +352,47 @@ public static class BattleCampaignService
     public static int GetFriendlyRouteLinks(WorldState world, int sourceCityId, int targetCityId, int factionId) =>
         FindFriendlyRouteLinks(world, sourceCityId, targetCityId, factionId);
 
+    public static bool TryAcceptPrewarAlliance(WorldState world, PrewarAllianceRequestData request)
+    {
+        var target = world.GetCity(request.TargetCityId);
+        var relation = world.GetDiplomacyRelation(request.InviterFactionId, request.AllyFactionId);
+        if (target == null || target.OwnerFactionId <= 0 ||
+            target.OwnerFactionId == request.InviterFactionId || target.OwnerFactionId == request.AllyFactionId ||
+            relation is not { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 } ||
+            request.RequestedTroops <= 0 ||
+            world.PrewarAllianceRequests.Any(item => item.InviterFactionId == request.InviterFactionId && item.AllyFactionId == request.AllyFactionId && item.TargetCityId == request.TargetCityId)) return false;
+        var trust = DiplomacyScoreRules.GetTrustScore(relation, request.AllyFactionId, request.InviterFactionId);
+        var threat = DiplomacyScoreRules.CalculateThreatScore(world, request.AllyFactionId, request.InviterFactionId, relation);
+        var envoy = world.GetOfficer(request.EnvoyOfficerId);
+        var safeTroops = world.Cities.Where(c => c.OwnerFactionId == request.AllyFactionId).Select(c => Math.Max(0, c.Troops - MinimumCityGarrison)).DefaultIfEmpty(0).Max();
+        var score = relation.RelationScore + (trust - 50) / 2 + 35 + Math.Min(25, safeTroops / 400) +
+                    (envoy == null ? 0 : Math.Min(20, (envoy.Intelligence + envoy.Charm) / 10)) - threat / 5;
+        if (score < 45) return false;
+        request.TargetFactionId = target.OwnerFactionId;
+        world.PrewarAllianceRequests.Add(request);
+        return true;
+    }
+
+    public static void DispatchPrewarAllies(WorldState world, ActiveBattleCampaignData campaign)
+    {
+        var requests = world.PrewarAllianceRequests.Where(item => item.InviterFactionId == campaign.AttackerFactionId && item.TargetCityId == campaign.TargetCityId).ToList();
+        foreach (var request in requests)
+        {
+            world.PrewarAllianceRequests.Remove(request);
+            var relation = world.GetDiplomacyRelation(request.InviterFactionId, request.AllyFactionId);
+            var invitation = CreateInvitation(campaign, request.InviterFactionId, request.AllyFactionId,
+                CampaignBattleSide.Attacker, BattleInvitationSupportType.Troops, request.EnvoyOfficerId,
+                request.RequestedTroops, 0, 0, 0, request.PromisedGold, request.PromisedFood);
+            if (world.GetCity(request.TargetCityId)?.OwnerFactionId != request.TargetFactionId ||
+                relation is not { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 })
+            {
+                invitation.Status = BattleInvitationStatus.Declined;
+                invitation.DecisionReason = "Circumstances changed.";
+            }
+            else ResolveAiInvitation(world, campaign, invitation);
+        }
+    }
+
     public static ReinforcementOrderData DispatchReinforcement(
         WorldState world,
         ActiveBattleCampaignData campaign,
@@ -512,9 +553,11 @@ public static class BattleCampaignService
         var candidateCities = world.Cities
             .Where(city => city.OwnerFactionId == invitation.InvitedFactionId)
             .Where(city => invitation.RequestedSourceCityId <= 0 || city.Id == invitation.RequestedSourceCityId)
+            .Where(city => resourcesOnly || (city.Troops > MinimumCityGarrison && CreateAiAllianceReinforcementDeployments(world, city, invitation.RequestedTroops).Count > 0))
             .Select(city => (City: city, Links: FindFriendlyRouteLinks(world, city.Id, campaign.TargetCityId, invitation.InvitedFactionId)))
             .Where(item => item.Links > 0)
-            .OrderBy(item => item.Links)
+            .OrderBy(item => item.City.ConnectedCityIds.Count(id => world.GetCity(id) is { OwnerFactionId: > 0 } neighbor && neighbor.OwnerFactionId != invitation.InvitedFactionId && neighbor.OwnerFactionId != invitation.InviterFactionId))
+            .ThenBy(item => item.Links)
             .ThenByDescending(item => item.City.Troops)
             .ToList();
         var source = candidateCities.FirstOrDefault();

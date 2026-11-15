@@ -1243,6 +1243,7 @@ public partial class CommandResolver
                 ? pendingCommand.DefenderBattlePlan
                 : pendingCommand.DefenderBattlePlanOverride ?? BattleCampaignService.ChooseDefenderBattlePlan(world, targetCity, pendingCommand);
             var campaign = BattleCampaignService.CreateCampaign(world, pendingCommand, defenderPlan, jointAttacks);
+            BattleCampaignService.DispatchPrewarAllies(world, campaign);
             BattleCampaignService.DispatchDefenseReinforcementRequests(world, campaign, pendingCommand);
             foreach (var jointAttack in jointAttacks)
             {

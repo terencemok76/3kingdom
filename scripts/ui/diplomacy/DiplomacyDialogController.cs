@@ -22,6 +22,11 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
     private Label? _warningLabel;
     private Button? _advisorButton;
     private Button? _confirmButton;
+    private VBoxContainer? _campaignInvite;
+    private OptionButton? _inviteCampaign;
+    private SpinBox? _inviteTroops;
+    private SpinBox? _inviteGold;
+    private SpinBox? _inviteFood;
     private int _selectedOfficerId = -1;
     private bool _signalsConnected;
     private Vector2 _dialogSize = new(500.0f, 460.0f);
@@ -104,6 +109,11 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         _warningLabel = root.GetNodeOrNull<Label>("FooterSection/NoticeScrollContainer/NoticeContent/WarningLabel");
         _advisorButton = root.GetNodeOrNull<Button>("FooterSection/FooterRow/AdvisorButton");
         _confirmButton = root.GetNodeOrNull<Button>("FooterSection/FooterRow/ConfirmButton");
+        _campaignInvite = root.GetNodeOrNull<VBoxContainer>("MiddleSection/CampaignInvite");
+        _inviteCampaign = _campaignInvite?.GetNode<OptionButton>("Campaign");
+        _inviteTroops = _campaignInvite?.GetNode<SpinBox>("Inputs/Troops");
+        _inviteGold = _campaignInvite?.GetNode<SpinBox>("Inputs/Gold");
+        _inviteFood = _campaignInvite?.GetNode<SpinBox>("Inputs/Food");
         ApplyButtonThemes();
         if (!_signalsConnected)
         {
@@ -116,6 +126,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
             if (_selectOfficerButton != null) _selectOfficerButton.Pressed += OnSelectOfficerPressed;
             if (_advisorButton != null) _advisorButton.Pressed += OnAdvisorPressed;
             if (_confirmButton != null) _confirmButton.Pressed += OnConfirmPressed;
+            if (_inviteCampaign != null) _inviteCampaign.ItemSelected += _ => RefreshInviteSources();
             _signalsConnected = true;
         }
     }
@@ -138,6 +149,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         AddActionOption(DiplomacyActionType.Demand);
         AddActionOption(DiplomacyActionType.Surrender);
         AddActionOption(DiplomacyActionType.BreakPact);
+        AddActionOption(DiplomacyActionType.InviteJointAttack);
 
         _targetFactionOption.Clear();
         foreach (var faction in world.Factions.Where(faction =>
@@ -174,6 +186,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         UpdateSummary();
         UpdateConfirmButtonState();
         UpdateDialogSize();
+        RefreshCampaignInvitations();
     }
 
     private void SetLabelText(string nodeName, string text)
@@ -229,6 +242,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         AddActionOption(DiplomacyActionType.Demand);
         AddActionOption(DiplomacyActionType.Surrender);
         AddActionOption(DiplomacyActionType.BreakPact);
+        AddActionOption(DiplomacyActionType.InviteJointAttack);
         SelectActionOption(selectedActionType);
     }
 
@@ -347,6 +361,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
     private void OnActionChanged()
     {
         UpdateInputState();
+        RefreshCampaignInvitations();
         UpdateSummary();
         UpdateConfirmButtonState();
         UpdateDialogSize();
@@ -356,6 +371,81 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
     {
         UpdateRelationInfo();
         UpdateSummary();
+        RefreshCampaignInvitations();
+        UpdateConfirmButtonState();
+    }
+
+    private static int SelectedId(OptionButton? option) => option != null && option.Selected >= 0
+        ? option.GetItemMetadata(option.Selected).AsInt32() : 0;
+
+    private void RefreshCampaignInvitations()
+    {
+        var world = _context.TurnManager?.World;
+        var city = _context.SelectedCity;
+        var loc = _context.Localization;
+        if (world == null || city == null || loc == null || _campaignInvite == null || _inviteCampaign == null) return;
+        var allyId = GetSelectedTargetFactionId();
+        var relation = world.GetDiplomacyRelation(city.OwnerFactionId, allyId);
+        _campaignInvite.Visible = GetSelectedActionType() == DiplomacyActionType.InviteJointAttack;
+        _inviteCampaign.Clear();
+        foreach (var target in world.Cities.Where(c => c.OwnerFactionId > 0 && c.OwnerFactionId != city.OwnerFactionId && c.OwnerFactionId != allyId &&
+                     world.Cities.Any(own => own.OwnerFactionId == city.OwnerFactionId && own.ConnectedCityIds.Contains(c.Id))).OrderBy(c => c.Id))
+        {
+            _inviteCampaign.AddItem(loc.GetCityName(target));
+            _inviteCampaign.SetItemMetadata(_inviteCampaign.ItemCount - 1, target.Id);
+        }
+        _campaignInvite.GetNode<Label>("Title").Text = loc.T("ui.campaign.invite_heading");
+        _campaignInvite.GetNode<Label>("TroopsLabel").Text = loc.T("ui.campaign.invite_troops");
+        if (_inviteGold != null) _inviteGold.Prefix = loc.T("ui.campaign.invite_gold") + " ";
+        if (_inviteFood != null) _inviteFood.Prefix = loc.T("ui.campaign.invite_food") + " ";
+        if (_campaignInvite.Visible && relation is not { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 })
+            SetWarning(loc.T("ui.campaign.invite_alliance_required"));
+        else SetWarning(string.Empty);
+        RefreshInviteSources();
+    }
+
+    private void RefreshInviteSources()
+    {
+        UpdateConfirmButtonState();
+    }
+
+    private void SendCampaignInvitation()
+    {
+        var world = _context.TurnManager?.World;
+        var city = _context.SelectedCity;
+        var loc = _context.Localization;
+        if (world == null || city == null || loc == null) return;
+        var target = world.GetCity(SelectedId(_inviteCampaign));
+        var allyId = GetSelectedTargetFactionId();
+        var relation = world.GetDiplomacyRelation(city.OwnerFactionId, allyId);
+        if (target == null || relation is not { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 } ||
+            !DiplomacyUiHelpers.GetAvailableOfficerIds(_context.TurnManager, city).Contains(_selectedOfficerId))
+        {
+            SetWarning(loc.T("ui.campaign.invite_invalid"));
+            return;
+        }
+        try
+        {
+            var accepted = BattleCampaignService.TryAcceptPrewarAlliance(world, new PrewarAllianceRequestData
+            {
+                InviterFactionId = city.OwnerFactionId, AllyFactionId = allyId,
+                TargetCityId = target.Id, EnvoyOfficerId = _selectedOfficerId,
+                RequestedTroops = (int)(_inviteTroops?.Value ?? 1000),
+                PromisedGold = (int)(_inviteGold?.Value ?? 0), PromisedFood = (int)(_inviteFood?.Value ?? 0)
+            });
+            var message = loc.T(accepted ? "ui.campaign.invite_accepted" : "ui.campaign.invite_declined");
+            var faction = world.GetFaction(allyId);
+            var factionName = loc.GetFactionName(world, allyId);
+            var resultMessage = loc.Format("ui.campaign.invite_response_message", factionName, message);
+            _context.AddLog(resultMessage, true);
+            SetWarning(string.Empty);
+            HideOverlay();
+            _context.ShowInvitationResult(loc.T("ui.campaign.invite_response_title"), resultMessage, faction?.RulerOfficerId ?? 0);
+        }
+        catch (InvalidOperationException)
+        {
+            SetWarning(loc.T("ui.campaign.invite_invalid"));
+        }
     }
 
     private void OnResourceChanged()
@@ -372,6 +462,11 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         }
 
         var actionType = GetSelectedActionType();
+        if (actionType == DiplomacyActionType.InviteJointAttack)
+        {
+            _summaryLabel.Text = _context.Localization.T("ui.campaign.invite_summary");
+            return;
+        }
         var targetFactionId = GetSelectedTargetFactionId();
         var targetFaction = _context.TurnManager.World.GetFaction(targetFactionId);
         var targetFactionName = targetFaction != null ? _context.Localization.GetFactionName(_context.TurnManager.World, targetFaction.Id) : "-";
@@ -439,6 +534,13 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         var actionType = GetSelectedActionType();
         var hasOfficer = _selectedOfficerId > 0;
         var hasTarget = GetSelectedTargetFactionId() > 0;
+        if (actionType == DiplomacyActionType.InviteJointAttack)
+        {
+            var city = _context.SelectedCity;
+            var relation = city == null ? null : _context.TurnManager?.World?.GetDiplomacyRelation(city.OwnerFactionId, GetSelectedTargetFactionId());
+            _confirmButton.Disabled = !hasOfficer || relation is not { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 } || SelectedId(_inviteCampaign) <= 0;
+            return;
+        }
         var hasRequiredResource = actionType switch
         {
             DiplomacyActionType.Gift => (_goldSpinBox?.Value ?? 0) > 0 || (_foodSpinBox?.Value ?? 0) > 0 || (_horseSpinBox?.Value ?? 0) > 0,
@@ -469,6 +571,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
     {
         var desiredHeight = GetSelectedActionType() switch
         {
+            DiplomacyActionType.InviteJointAttack => 700,
             DiplomacyActionType.Gift or DiplomacyActionType.Demand => 520,
             DiplomacyActionType.BreakPact => 420,
             DiplomacyActionType.Surrender => 520,
@@ -514,6 +617,15 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         var role = world.GetFaction(city.OwnerFactionId)?.ChiefStrategistOfficerId == advisor?.Id
             ? localization.T("ui.chief_strategist") ?? "Chief Strategist"
             : localization.T("ui.local_place") ?? "Local";
+        if (GetSelectedActionType() == DiplomacyActionType.InviteJointAttack)
+        {
+            var relation = world.GetDiplomacyRelation(city.OwnerFactionId, targetFactionId);
+            var key = relation is { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 }
+                ? "ui.campaign.invite_advice"
+                : "ui.campaign.invite_advice_no_alliance";
+            _context.ShowAdvisorMessage(advisor, role, localization.T(key));
+            return;
+        }
         _context.ShowAdvisorMessage(advisor, role, BuildDiplomacyAdvice(world, city, targetFactionId, localization));
     }
 
@@ -619,6 +731,11 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
 
     private void OnConfirmPressed()
     {
+        if (GetSelectedActionType() == DiplomacyActionType.InviteJointAttack)
+        {
+            SendCampaignInvitation();
+            return;
+        }
         var city = _context.SelectedCity;
         var turnManager = _context.TurnManager;
         var commandResolver = _context.CommandResolver;

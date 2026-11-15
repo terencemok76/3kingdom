@@ -305,7 +305,7 @@ public partial class BattlePieceMarker : Node2D
 
         var font = ThemeDB.FallbackFont;
         const int fontSize = 10;
-        var textSize = font.GetStringSize(_statusIndicatorText);
+        var textSize = font.GetStringSize(_statusIndicatorText, HorizontalAlignment.Left, -1, fontSize);
         var badgeY = _usesSpriteVisual ? -_radius * 3.34f : -_radius * 2.58f;
         var badgeRect = new Rect2(
             new Vector2(-textSize.X * 0.5f - 5.0f, badgeY - 11.0f),

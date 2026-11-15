@@ -77,7 +77,7 @@ public partial class BattleScenarioDefinition : Resource
     public Dictionary<string, Vector2I> UnitSpawnGrids { get; set; } = new();
 
     // Optional scenario-authored side entrances for campaign reinforcements.  When empty,
-    // field battles use the standard NW (attacker) and SE (defender) two-row entrances.
+    // field battles use the attacker's southern and defender's northern rear edges.
     [Export]
     public Array<Vector2I> AttackerReinforcementEntranceGrids { get; set; } = new();
 

@@ -251,6 +251,16 @@ public partial class BattleSceneController
                 if (mouseButton.Pressed)
                 {
                     var mousePosition = mouseButton.GlobalPosition;
+                    var scrollbar = (_battleLogScroll as ScrollContainer)?.GetVScrollBar();
+                    if (!_isBattleLogMinimized && scrollbar?.IsVisibleInTree() == true &&
+                        scrollbar.GetGlobalRect().HasPoint(mousePosition))
+                    {
+                        BringFloatingPanelToFront(_battleLogPanel);
+                        _isDraggingBattleLog = false;
+                        _isResizingBattleLog = false;
+                        // Leave the press to the scrollbar's normal GUI handler.
+                        return;
+                    }
                     if (IsPointInBattleLogButtonArea(mousePosition))
                     {
                         return;

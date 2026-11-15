@@ -1007,8 +1007,24 @@ public partial class BattleSceneController
 
         var noticeSerial = ++_officerCaptureNoticeSerial;
         _officerCaptureNoticeLabel.Text = text;
+        _officerCaptureNotice.OffsetTop = -58;
+        _officerCaptureNotice.OffsetBottom = 58;
         _officerCaptureNotice.Visible = true;
         _officerCaptureNotice.MoveToFront();
+
+        // The label wraps after layout; resize the centered background to the
+        // actual line count so its margin and border enclose every line.
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (!GodotObject.IsInstanceValid(this) || noticeSerial != _officerCaptureNoticeSerial)
+        {
+            return;
+        }
+        var font = _officerCaptureNoticeLabel.GetThemeFont("font");
+        var fontSize = _officerCaptureNoticeLabel.GetThemeFontSize("font_size");
+        var lineHeight = font.GetHeight(fontSize) + _officerCaptureNoticeLabel.GetThemeConstant("line_spacing");
+        var noticeHeight = Math.Max(116.0f, _officerCaptureNoticeLabel.GetLineCount() * lineHeight + 44.0f);
+        _officerCaptureNotice.OffsetTop = -noticeHeight / 2.0f;
+        _officerCaptureNotice.OffsetBottom = noticeHeight / 2.0f;
 
         await ToSignal(GetTree().CreateTimer(3.0), SceneTreeTimer.SignalName.Timeout);
         if (GodotObject.IsInstanceValid(this) && noticeSerial == _officerCaptureNoticeSerial)

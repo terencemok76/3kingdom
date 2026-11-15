@@ -103,6 +103,8 @@ public partial class BattleSceneController
         _attackableGrids.Clear();
         HideCommandMenu();
         PlayBattleMovementSfx(movedOccupant, sourceGrid, movePath);
+        var trackAlliedMovement = _isResolvingAlliedAiTurn;
+        if (trackAlliedMovement) _alliedAiMovementAnimations++;
         ApplyMoveAnimation(
             movedOccupant,
             moveDirection,
@@ -112,13 +114,20 @@ public partial class BattleSceneController
             pathModulates,
             () =>
             {
-                RestoreMarkerAfterOccludedMovement(movedOccupant);
-                CaptureDefenseOutpost(destinationGrid, movedOccupant);
-                ApplyBattleFireEntryDamage(destinationGrid, movedOccupant);
-                RefreshOccludedUnitSilhouettes();
-                TryShowTerrainSpeech(movedOccupant, destinationGrid);
-                onMoveAnimationComplete?.Invoke();
-                RestorePlayerCommandMenuAfterMove(movedOccupant, destinationGrid);
+                try
+                {
+                    RestoreMarkerAfterOccludedMovement(movedOccupant);
+                    CaptureDefenseOutpost(destinationGrid, movedOccupant);
+                    ApplyBattleFireEntryDamage(destinationGrid, movedOccupant);
+                    RefreshOccludedUnitSilhouettes();
+                    TryShowTerrainSpeech(movedOccupant, destinationGrid);
+                    onMoveAnimationComplete?.Invoke();
+                    RestorePlayerCommandMenuAfterMove(movedOccupant, destinationGrid);
+                }
+                finally
+                {
+                    if (trackAlliedMovement) _alliedAiMovementAnimations--;
+                }
             });
         AppendBattleLog(movedOccupant, "Move", BattleFormat("log.move", "{0} {1} -> {2}", FormatLogUnit(movedOccupant), sourceGrid, destinationGrid));
         if (movingOccupant.IsHidden && !remainsHidden)

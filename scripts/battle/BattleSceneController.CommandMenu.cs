@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThreeKingdom.Core;
+using ThreeKingdom.Data;
 using static ThreeKingdom.Battle.BattleBalanceSettings;
 using static ThreeKingdom.Battle.BattleUnitTypes;
 
@@ -17,7 +18,18 @@ public partial class BattleSceneController
             return;
         }
 
-        var canCommandSelectedUnit = _selectedUnit != null && IsPlayerControllableCurrentTurnPiece(_selectedUnit);
+        var playerFactionId = CampaignRuntimeContext.World?.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? 0;
+        var isAiAlly = _activeCampaign != null && _selectedUnit != null &&
+                       playerFactionId > 0 && _selectedUnit.FactionId > 0 &&
+                       _selectedUnit.FactionId != playerFactionId &&
+                       _selectedUnit.ControllerType == CampaignControllerType.Ai &&
+                       _selectedUnit.TeamName == (playerFactionId == _activeCampaign.AttackerFactionId
+                           ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName);
+        var canCommandSelectedUnit = !isAiAlly && _selectedUnit != null && IsPlayerControllableCurrentTurnPiece(_selectedUnit);
+        if (_commandScroll != null) _commandScroll.Visible = !isAiAlly;
+        var actionsRule = _commandMenu.GetNodeOrNull<Control>("MenuMargin/MenuButtons/ActionsRule");
+        if (actionsRule != null) actionsRule.Visible = !isAiAlly;
+        RefreshUnitCommandTitle();
         ConfigureAllyCooperationObjectiveControl();
 
         if (_unitMenuInfoLabel != null)
@@ -80,9 +92,15 @@ public partial class BattleSceneController
                     }
                 }
 
+                _unitMenuInfoLabel.Text = infoLines.Count > 0
+                    ? string.Join("\n", infoLines)
+                    : BattleFormat("ui.battle.menu_type", "Type: {0}", FormatTroopType(_selectedUnit.TroopType));
+                infoLines.Clear();
                 infoLines.Add(BattleFormat("ui.battle.menu_type", "Type: {0}", FormatTroopType(_selectedUnit.TroopType)));
                 infoLines.Add(BattleFormat("ui.battle.menu_status", "Status: {0}", FormatBattleStatus(_selectedUnit)));
-                infoLines.Add(BattleFormat("ui.battle.menu_command", "Command: {0}", _selectedUnit.HasAttackedThisTurn
+                infoLines.Add(BattleFormat("ui.battle.menu_command", "Command: {0}", isAiAlly
+                    ? BattleText("ui.battle.command_ai_ally", "AI controlled")
+                    : _selectedUnit.HasAttackedThisTurn
                     ? BattleText("ui.battle.already_used_this_turn", "Already used this turn")
                     : canCommandSelectedUnit
                         ? BattleText("ui.battle.ready", "Ready")
@@ -94,7 +112,12 @@ public partial class BattleSceneController
                     infoLines.Add(BattleFormat("ui.battle.menu_morale", "Morale: {0}", FormatMorale(_selectedUnit)));
                 }
                 infoLines.Add(strengthText);
-                _unitMenuInfoLabel.Text = string.Join("\n", infoLines);
+                var attributes = _commandMenu.GetNodeOrNull<HBoxContainer>("MenuMargin/MenuButtons/AttributesRow");
+                if (attributes != null)
+                {
+                    attributes.GetNode<Label>("Left").Text = string.Join("\n", infoLines.Take(4));
+                    attributes.GetNode<Label>("Right").Text = string.Join("\n", infoLines.Skip(4));
+                }
             }
             else
             {
@@ -367,6 +390,29 @@ public partial class BattleSceneController
         _commandMenu.MoveToFront();
         _commandMenu.Visible = true;
         ResizeCommandMenuAfterLayout(desiredPosition);
+    }
+
+    private void RefreshUnitCommandTitle()
+    {
+        if (_windowTitleLabel == null) return;
+        var title = BattleText("ui.battle.window_title", "Unit Command");
+        if (_selectedUnit == null)
+        {
+            _windowTitleLabel.Text = title;
+            return;
+        }
+
+        var world = CampaignRuntimeContext.World;
+        var faction = _activeCampaign != null && _selectedUnit.FactionId > 0
+            ? world?.GetFaction(_selectedUnit.FactionId)
+            : null;
+        var ruler = faction == null ? null : world?.GetOfficer(faction.RulerOfficerId);
+        var rulerName = ruler != null ? _localization.GetOfficerName(ruler)
+            : faction != null && world != null ? _localization.GetFactionName(world, faction.Id)
+            : GetTeamHudRulerName(_selectedUnit.TeamName);
+        _windowTitleLabel.Text = string.IsNullOrWhiteSpace(rulerName)
+            ? title
+            : BattleFormat("ui.battle.window_title_ruler", "{0} Unit Command", rulerName);
     }
 
     private void UpdateCommandScrollLayout()

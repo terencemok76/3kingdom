@@ -20,6 +20,9 @@ public partial class HudController
 
     internal void DiplomacyAddLog(string message, bool isPlayerRelated = false) => AddLog(message, isPlayerRelated);
 
+    internal void DiplomacyShowInvitationResult(string title, string message, int portraitOfficerId) =>
+        QueueFactionOutcome(title, message, portraitOfficerId: portraitOfficerId);
+
     internal void DiplomacyShowAdvisorMessage(OfficerData? advisor, string speakerRole, string advice) =>
         _advisorUiController?.ShowContextualAdvice(advisor, speakerRole, advice);
 

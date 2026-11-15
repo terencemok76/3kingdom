@@ -161,8 +161,9 @@ public partial class BattleSceneController
             }
 
             UpdateUnitSelection();
-            if (_selectedUnit != null &&
-                (IsPlayerControllableCurrentTurnPiece(_selectedUnit) || CanIssueAllyCooperationOrder(_selectedUnit)))
+            // Visible opponents and already-acted units use the same information
+            // panel; ShowCommandMenu independently gates all actionable controls.
+            if (_selectedUnit != null)
             {
                 ShowCommandMenu(mouseButton.Position);
             }

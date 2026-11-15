@@ -586,6 +586,8 @@
 	"ui.defense_reinforcement_envoy_select": { "zhHant": "選擇使者", "en": "Select envoy" },
 	"ui.defense_reinforcement_envoy_required": { "zhHant": "向同盟請求援軍前，請先選擇未編入守軍的使者。", "en": "Select an envoy who is not assigned to the defenders before requesting allied aid." },
 	"ui.alliance_reinforcement_response_title": { "zhHant": "同盟援軍回覆", "en": "Alliance Reinforcement Response" },
+	"log.alliance_reinforcement_dispatched": { "zhHant": "{0} 已從「{1}」派出 {2:N0} 人，預計 {3} 個戰鬥日後抵達。", "en": "{0} dispatched {2:N0} troops from {1}; arrival in {3} battle days." },
+	"log.alliance_reinforcement_unavailable": { "zhHant": "{0} 因局勢變化未能派出援軍。", "en": "{0} could not dispatch reinforcements due to changed circumstances." },
 	"log.alliance_reinforcement_accepted": { "zhHant": "{0} 同意援軍請求：核准最多 {1:N0} 人，援軍已開始行軍。", "en": "{0} accepted the reinforcement request: up to {1:N0} troops have begun traveling." },
 	"log.alliance_reinforcement_declined": { "zhHant": "{0} 拒絕援軍請求：{1}", "en": "{0} declined the reinforcement request: {1}" },
 	"ui.defender_battle_plan": { "zhHant": "迎擊方式", "en": "Defense Plan" },

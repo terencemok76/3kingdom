@@ -116,6 +116,8 @@ public partial class BattleSceneController
 
     private void ShowBattleOptionDialog()
     {
+        var status = GetNodeOrNull<Label>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveSettingsStatus");
+        if (status != null) status.Visible = false;
         RefreshBattleOptionDialogText();
         if (_battleOptionOverlay != null)
         {
@@ -139,6 +141,7 @@ public partial class BattleSceneController
 
     private void OnBattleOptionLanguageButtonPressed()
     {
+        ClearBattleOptionSaveStatus();
         _localization.ToggleLanguage();
         ConfigureHud();
         RefreshMarkerNamePlates();
@@ -154,6 +157,7 @@ public partial class BattleSceneController
 
     private void OnBattleBgmToggleButtonPressed()
     {
+        ClearBattleOptionSaveStatus();
         _battleBgmEnabled = !_battleBgmEnabled;
         ApplyBattleAudioSettings();
         RefreshBattleOptionDialogText();
@@ -161,6 +165,7 @@ public partial class BattleSceneController
 
     private void OnBattleSfxToggleButtonPressed()
     {
+        ClearBattleOptionSaveStatus();
         _battleSfxEnabled = !_battleSfxEnabled;
         ApplyBattleAudioSettings();
         RefreshBattleOptionDialogText();
@@ -168,6 +173,7 @@ public partial class BattleSceneController
 
     private void OnBattleBgmVolumeChanged(double value)
     {
+        ClearBattleOptionSaveStatus();
         _battleBgmVolume = Mathf.Clamp((float)value / 100.0f, 0.0f, 1.0f);
         ApplyBattleAudioSettings();
         RefreshBattleOptionDialogText(updateSliderValues: false);
@@ -175,6 +181,7 @@ public partial class BattleSceneController
 
     private void OnBattleSfxVolumeChanged(double value)
     {
+        ClearBattleOptionSaveStatus();
         _battleSfxVolume = Mathf.Clamp((float)value / 100.0f, 0.0f, 1.0f);
         ApplyBattleAudioSettings();
         RefreshBattleOptionDialogText(updateSliderValues: false);
@@ -182,9 +189,36 @@ public partial class BattleSceneController
 
     private void OnBattleSaveSettingsButtonPressed()
     {
-        SaveBattleOptionSettings();
-        AppendBattleLog(GetCurrentTurnSideName(), "Option", BattleText("log.option_settings_saved", "Option settings saved."));
+        var status = GetNodeOrNull<Label>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveSettingsStatus");
+        try
+        {
+            SaveBattleOptionSettings();
+            var message = BattleText("log.option_settings_saved", "Option settings saved.");
+            AppendBattleLog(GetCurrentTurnSideName(), "Option", message);
+            if (status != null)
+            {
+                status.Text = message;
+                status.AddThemeColorOverride("font_color", new Color(0.84f, 0.92f, 0.68f));
+                status.Visible = true;
+            }
+        }
+        catch (Exception exception)
+        {
+            GD.PushWarning($"Battle option settings could not be saved: {exception.Message}");
+            if (status != null)
+            {
+                status.Text = BattleText("ui.battle.option_settings_save_failed", "Could not save option settings.");
+                status.AddThemeColorOverride("font_color", new Color(1.0f, 0.48f, 0.42f));
+                status.Visible = true;
+            }
+        }
         RefreshBattleOptionDialogText();
+    }
+
+    private void ClearBattleOptionSaveStatus()
+    {
+        var status = GetNodeOrNull<Label>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveSettingsStatus");
+        if (status != null) status.Visible = false;
     }
 
     private void RefreshBattleOptionDialogText(bool updateSliderValues = true)

@@ -2171,10 +2171,10 @@ autowrap_mode = 3
 [node name="CommandMenu" type="NinePatchRect" parent="UiLayer" unique_id=2044591462]
 visible = false
 z_index = 50
-custom_minimum_size = Vector2(280, 0)
+custom_minimum_size = Vector2(390, 0)
 offset_left = 20.0
 offset_top = 160.0
-offset_right = 300.0
+offset_right = 410.0
 offset_bottom = 160.0
 texture = ExtResource("29_battle_card_border")
 draw_center = false
@@ -2235,23 +2235,32 @@ theme_override_constants/separation = 8
 [node name="WindowTitleLabel" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1950406964]
 layout_mode = 2
 mouse_filter = 0
-theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(0.94, 0.82, 0.58, 1)
+theme_override_font_sizes/font_size = 19
 text = "Unit Command"
+
+[node name="HeaderRule" type="ColorRect" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.6, 0.45, 0.22, 0.8)
 
 [node name="OfficerInfoRow" type="HBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=934550618]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 14
 
 [node name="OfficerPortrait" type="TextureRect" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow" unique_id=474077523]
-custom_minimum_size = Vector2(78, 98)
+custom_minimum_size = Vector2(86, 108)
 layout_mode = 2
+size_flags_vertical = 0
 expand_mode = 1
 stretch_mode = 5
 
 [node name="UnitMenuInfoLabel" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/OfficerInfoRow" unique_id=1345767573]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/line_spacing = -4
+theme_override_colors/font_color = Color(0.93, 0.9, 0.82, 1)
+theme_override_constants/line_spacing = 1
 theme_override_font_sizes/font_size = 16
 text = "Team: -
 Officer: -
@@ -2260,6 +2269,38 @@ Morale: -
 Ammo: -
 Troops: -"
 autowrap_mode = 3
+
+[node name="AttributesRule" type="ColorRect" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.6, 0.45, 0.22, 0.8)
+
+[node name="AttributesRow" type="HBoxContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Left" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/AttributesRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.93, 0.9, 0.82, 1)
+theme_override_constants/line_spacing = 3
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+
+[node name="Right" type="Label" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons/AttributesRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.93, 0.9, 0.82, 1)
+theme_override_constants/line_spacing = 3
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+
+[node name="ActionsRule" type="ColorRect" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.6, 0.45, 0.22, 0.8)
 
 [node name="CommandScroll" type="ScrollContainer" parent="UiLayer/CommandMenu/MenuMargin/MenuButtons" unique_id=1813548555]
 layout_mode = 2
@@ -2531,6 +2572,13 @@ custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Save Settings"
+
+[node name="SaveSettingsStatus" type="Label" parent="UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.92, 0.68, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="BattleDebugOverlay" type="Control" parent="UiLayer" unique_id=907483716]
 visible = false

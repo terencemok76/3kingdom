@@ -71,6 +71,17 @@ public partial class BattleSceneController
                 if (mouseButton.Pressed && _tileInfoPanel.GetGlobalRect().HasPoint(mouseButton.GlobalPosition))
                 {
                     BringFloatingPanelToFront(_tileInfoPanel);
+                    // _Input runs before GUI dispatch. Leave the scrollbar's
+                    // press unhandled so Godot can drag its thumb normally.
+                    var scroll = _tileInfoPanel.GetNodeOrNull<ScrollContainer>("Margin/PanelContent/InfoScroll");
+                    var scrollbar = scroll?.GetVScrollBar();
+                    if (scrollbar?.IsVisibleInTree() == true && scrollbar.GetGlobalRect().HasPoint(mouseButton.GlobalPosition))
+                    {
+                        _isTileInfoPanelDragPending = false;
+                        _isDraggingTileInfoPanel = false;
+                        _isResizingTileInfoPanel = false;
+                        return;
+                    }
                     if (IsPointInTileInfoPanelResizeGrip(mouseButton.GlobalPosition))
                     {
                         _isResizingTileInfoPanel = true;

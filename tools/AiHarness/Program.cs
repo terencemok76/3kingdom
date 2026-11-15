@@ -114,8 +114,10 @@ internal static class Program
             RunBattleCampaignLifecycleTest();
             RunBattleCampaignReinforcementTest();
             RunBattleCampaignBlockedEntranceQueueTest();
+            RunFieldReinforcementEntranceSideTest();
             RunDefenseReinforcementRequestTest();
             RunAlliedDefenseReinforcementRequestTest();
+            RunPrewarAllianceRequestTest();
             RunAiCampaignReinforcementTest();
             RunPlayerCampaignReinforcementCommandTest();
             RunCampaignRetreatDestinationTest();
@@ -435,6 +437,16 @@ internal static class Program
         Assert(blocked && deployed, "Blocked reinforcement queue deploys after an active entrance slot opens", $"blocked={blocked}, deployed={deployed}, status={order.Status}");
     }
 
+    private static void RunFieldReinforcementEntranceSideTest()
+    {
+        var attacker = InvokePrivateStatic<IEnumerable<Godot.Vector2I>>(typeof(BattleSceneController), "GetFieldBattleReinforcementEdgeGrids", CampaignBattleSide.Attacker).ToList();
+        var defender = InvokePrivateStatic<IEnumerable<Godot.Vector2I>>(typeof(BattleSceneController), "GetFieldBattleReinforcementEdgeGrids", CampaignBattleSide.Defender).ToList();
+        Assert(attacker.Count > 0 && defender.Count > 0 &&
+               attacker.All(grid => grid.Y >= BattleMapData.Height - 2 && grid.Y < BattleMapData.Height) &&
+               defender.All(grid => grid.Y >= 0 && grid.Y < 2) && !attacker.Intersect(defender).Any(),
+            "Field reinforcements enter on their own rear edge", $"attacker={attacker.Count}, defender={defender.Count}");
+    }
+
     private static void RunDefenseReinforcementRequestTest()
     {
         var world = CreateBattleCampaignWorld();
@@ -532,6 +544,26 @@ internal static class Program
             declinedCampaign.Reinforcements.Count == 0,
             "Allied defense request honors its selected source and resolves accept or decline",
             $"accepted={invitation?.Status}, source={invitation?.RequestedSourceCityId}/{order?.SourceCityId}, status={order?.Status}, teams={order?.Teams.Count ?? 0}, troops={troopsBefore}->{allySource.Troops}, declined={declinedInvitation?.Status}, declinedOrders={declinedCampaign.Reinforcements.Count}");
+    }
+
+    private static void RunPrewarAllianceRequestTest()
+    {
+        var world = CreateBattleCampaignWorld();
+        var ally = TestHelpers.City(4, "Ally", 3, 1500, 4000, 4000, new[] { 301 }, new[] { 2 });
+        world.Cities.Add(ally);
+        world.Officers.Add(TestHelpers.Officer(301, "AllyOfficer", 4));
+        world.Factions.Add(TestHelpers.Faction(3, "Ally", false, 301, new[] { 301 }));
+        world.DiplomacyRelations.Add(new DiplomacyRelationData { FactionAId = 1, FactionBId = 3, Status = DiplomacyStatusType.Alliance, RemainingMonths = 12, RelationScore = 80 });
+        var request = new PrewarAllianceRequestData { InviterFactionId = 1, AllyFactionId = 3, TargetCityId = 2, EnvoyOfficerId = 102, RequestedTroops = 600, PromisedGold = 100 };
+        var accepted = BattleCampaignService.TryAcceptPrewarAlliance(world, request);
+        var duplicateRejected = !BattleCampaignService.TryAcceptPrewarAlliance(world, request);
+        var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        BattleCampaignService.DispatchPrewarAllies(world, campaign);
+        var order = campaign.Reinforcements.SingleOrDefault(item => item.FactionId == 3);
+        BattleCampaignService.DispatchPrewarAllies(world, campaign);
+        Assert(accepted && duplicateRejected && order != null && order.Side == CampaignBattleSide.Attacker && order.Status == ReinforcementStatus.Traveling &&
+               order.SourceCityId == 4 && order.Teams.Count > 0 && world.PrewarAllianceRequests.Count == 0 && campaign.Reinforcements.Count == 1 && campaign.Invitations.Single().PromisedGold == 100,
+            "Prewar ally accepts then dispatches once when the target is attacked", $"accepted={accepted}, duplicateRejected={duplicateRejected}, order={order?.Status}, teams={order?.Teams.Count}");
     }
 
     private static void RunAiCampaignReinforcementTest()

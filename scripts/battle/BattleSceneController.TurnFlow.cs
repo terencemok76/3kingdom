@@ -390,6 +390,8 @@ public partial class BattleSceneController
         }
 
         _isResolvingAlliedAiTurn = true;
+        _alliedAiMovementAnimations = 0;
+        _alliedAiVisualUntilMsec = 0;
         CancelCommandAction(clearSelection: true);
         HideCommandMenu();
         AppendBattleLog(GetCurrentTurnSideName(), "AI", "Allied AI is resolving its remaining battle teams.");
@@ -406,11 +408,18 @@ public partial class BattleSceneController
             // retreat to remove its unit) before asking the next ally to act.
             for (var elapsed = 0.0; elapsed < 6.0 && !_isBattleFinished; elapsed += 0.1)
             {
-                if (_actedByMarkerThisRound.Count > actedCountBefore || !HasPendingAlliedAiActions())
+                if ((_actedByMarkerThisRound.Count > actedCountBefore || !HasPendingAlliedAiActions()) &&
+                    _alliedAiMovementAnimations == 0 && Time.GetTicksMsec() >= _alliedAiVisualUntilMsec)
                 {
                     break;
                 }
 
+                await ToSignal(GetTree().CreateTimer(0.1), SceneTreeTimer.SignalName.Timeout);
+            }
+
+            while (!_isBattleFinished && GodotObject.IsInstanceValid(this) &&
+                   (_alliedAiMovementAnimations > 0 || Time.GetTicksMsec() < _alliedAiVisualUntilMsec))
+            {
                 await ToSignal(GetTree().CreateTimer(0.1), SceneTreeTimer.SignalName.Timeout);
             }
 

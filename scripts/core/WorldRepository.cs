@@ -371,6 +371,7 @@ public class WorldRepository
             report.ParticipantContributions ??= new List<WorldState.BattleParticipantContributionData>();
         }
         world.ActiveBattleCampaigns ??= new List<ActiveBattleCampaignData>();
+        world.PrewarAllianceRequests ??= new List<PrewarAllianceRequestData>();
 
         foreach (var campaign in world.ActiveBattleCampaigns)
         {

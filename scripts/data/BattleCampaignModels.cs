@@ -172,6 +172,19 @@ public class BattleInvitationData
     public string DecisionReason { get; set; } = string.Empty;
 }
 
+public class PrewarAllianceRequestData
+{
+    public int InviterFactionId { get; set; }
+    public int AllyFactionId { get; set; }
+    public int SourceCityId { get; set; }
+    public int TargetCityId { get; set; }
+    public int TargetFactionId { get; set; }
+    public int EnvoyOfficerId { get; set; }
+    public int RequestedTroops { get; set; }
+    public int PromisedGold { get; set; }
+    public int PromisedFood { get; set; }
+}
+
 public class ActiveBattleCampaignData
 {
     public int Id { get; set; }
