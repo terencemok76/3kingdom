@@ -15,7 +15,6 @@ namespace ThreeKingdom.Battle;
 
 public partial class BattleSceneController
 {
-    private const int CampaignSaveSlotCount = 10;
     private static readonly JsonSerializerOptions BattleSaveJsonOptions = new()
     {
         WriteIndented = true
@@ -154,14 +153,14 @@ public partial class BattleSceneController
         void RefreshSlotList()
         {
             slotList.Clear();
-            for (var slot = 1; slot <= CampaignSaveSlotCount; slot++)
+            for (var slot = 1; slot <= SaveSlotSettings.Count; slot++)
             {
                 var summary = repository.LoadSaveSlotSummary(BuildCampaignSaveSlotPath(slot), slot);
                 slotList.AddItem(BuildCampaignSaveSlotListText(summary));
                 slotList.SetItemMetadata(slotList.ItemCount - 1, slot);
             }
 
-            selectedSlot = Mathf.Clamp(selectedSlot, 1, CampaignSaveSlotCount);
+            selectedSlot = Mathf.Clamp(selectedSlot, 1, SaveSlotSettings.Count);
             slotList.Select(selectedSlot - 1);
             RefreshSelectedSlot();
         }
@@ -297,7 +296,7 @@ public partial class BattleSceneController
         GetTree().ChangeSceneToFile(ResolveCampaignSaveScenePath(targetCity, scenarioType));
     }
 
-    private static string BuildCampaignSaveSlotPath(int slot) => $"user://saves/slot{slot:00}.json";
+    private static string BuildCampaignSaveSlotPath(int slot) => SaveSlotSettings.GetPath(slot);
 
     private static string ResolveCampaignSaveScenePath(CityData city, BattleScenarioType scenarioType)
     {

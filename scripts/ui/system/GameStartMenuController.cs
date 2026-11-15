@@ -11,7 +11,6 @@ namespace ThreeKingdom.UI;
 
 public partial class GameStartMenuController : CanvasLayer
 {
-    private const int SaveSlotCount = 10;
     private static readonly (string SheetPath, string MappingPath)[] PortraitSources =
     {
         ("res://assets/portrait/team1.png", "res://data/person/person_image_1.json"),
@@ -990,7 +989,7 @@ public partial class GameStartMenuController : CanvasLayer
         _loadSlotList.Clear();
         _selectedLoadSlotIndex = 0;
 
-        for (var slotNumber = 1; slotNumber <= SaveSlotCount; slotNumber += 1)
+        for (var slotNumber = 1; slotNumber <= SaveSlotSettings.Count; slotNumber += 1)
         {
             var summary = _worldRepository.LoadSaveSlotSummary(BuildSaveSlotPath(slotNumber), slotNumber);
             _loadSlotList.AddItem(BuildSaveSlotListText(summary));
@@ -1361,7 +1360,7 @@ public partial class GameStartMenuController : CanvasLayer
 
     private string BuildSaveSlotPath(int slotNumber)
     {
-        return $"user://saves/slot{slotNumber:00}.json";
+        return SaveSlotSettings.GetPath(slotNumber);
     }
 
     private string BuildSaveSlotListText(SaveSlotSummary summary)

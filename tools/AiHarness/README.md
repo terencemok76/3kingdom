@@ -18,6 +18,7 @@ This tool is the project's logic-level regression test harness for current Phase
 - August annual food settlement
 - upkeep shortage handling
 - multi-month soak stability
+- battle AI supply, siege and strategy planning
 
 ## How to run
 
@@ -42,6 +43,14 @@ AI TEST SUMMARY: PASS=<n> FAIL=0
 ```
 
 If any test fails, the process exits with code `1`.
+
+The complete run includes the battle AI planner tests. Run an individual planner suite with
+`--battle-ai-supply-planner-only`, `--battle-ai-siege-planner-only`, or
+`--battle-ai-strategy-scoring-only` after `dotnet run --project tools\AiHarness\AiHarness.csproj --`.
+Engineering repair scoring is also covered by `--battle-ai-engineering-planner-only`.
+
+`Program.cs` contains the command-line entry point. Tests are grouped by subject in
+`Program.*.cs`; shared fixtures and assertions live in `Program.Support.cs` and `TestHelpers.cs`.
 
 ## Notes
 - This harness is for logic/regression coverage, not UI coverage.

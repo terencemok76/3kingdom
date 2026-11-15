@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace ThreeKingdom.Battle;
@@ -8,6 +9,34 @@ namespace ThreeKingdom.Battle;
 /// </summary>
 internal static class BattleAiPlanner
 {
+    internal static bool TryExecuteFirstAction(params Func<bool>[] stages)
+    {
+        foreach (var stage in stages)
+        {
+            if (stage())
+                return true;
+        }
+        return false;
+    }
+
+    // Equivalent scores retain the first candidate, matching stable LINQ ordering.
+    internal static int SelectOffensiveActionIndex(IReadOnlyList<(int Final, int Base, int Noise)> candidates)
+    {
+        var best = -1;
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            var candidate = candidates[i];
+            if (best < 0 || candidate.Final + candidate.Noise > candidates[best].Final + candidates[best].Noise ||
+                (candidate.Final + candidate.Noise == candidates[best].Final + candidates[best].Noise &&
+                 (candidate.Final > candidates[best].Final ||
+                  (candidate.Final == candidates[best].Final &&
+                   (candidate.Base > candidates[best].Base ||
+                    (candidate.Base == candidates[best].Base && candidate.Noise > candidates[best].Noise))))))
+                best = i;
+        }
+        return best;
+    }
+
     internal readonly record struct SafetyMoveCandidate<TGrid>(
         TGrid Destination,
         int Threat,

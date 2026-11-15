@@ -1,5 +1,11 @@
 namespace ThreeKingdom.Data;
 
+public static class SaveSlotSettings
+{
+    public const int Count = 20;
+    public static string GetPath(int slotIndex) => $"user://saves/slot{slotIndex:00}.json";
+}
+
 public class SaveGameData
 {
     public int SlotIndex { get; set; }

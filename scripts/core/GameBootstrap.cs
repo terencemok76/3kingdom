@@ -179,6 +179,6 @@ public partial class GameBootstrap : Node
 
     private static string BuildSaveSlotPath(int slotNumber)
     {
-        return $"user://saves/slot{slotNumber:00}.json";
+        return SaveSlotSettings.GetPath(slotNumber);
     }
 }

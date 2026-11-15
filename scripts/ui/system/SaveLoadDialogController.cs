@@ -1,11 +1,10 @@
 using Godot;
+using ThreeKingdom.Data;
 
 namespace ThreeKingdom.UI;
 
 internal sealed class SaveLoadDialogController : FloatingOverlayController
 {
-    private const int SaveSlotCount = 10;
-
     private readonly SystemUiContext _context;
     private readonly SaveLoadConfirmDialogController _confirmDialogController;
     private ItemList? _slotList;
@@ -198,7 +197,7 @@ internal sealed class SaveLoadDialogController : FloatingOverlayController
 
         var previousIndex = _selectedSlotIndex;
         _slotList.Clear();
-        for (var slotNumber = 1; slotNumber <= SaveSlotCount; slotNumber += 1)
+        for (var slotNumber = 1; slotNumber <= SaveSlotSettings.Count; slotNumber += 1)
         {
             var summary = _context.WorldRepository.LoadSaveSlotSummary(_context.BuildSaveSlotPath(slotNumber), slotNumber);
             var itemIndex = _slotList.ItemCount;

@@ -295,6 +295,106 @@ public partial class BattleSceneController
         return $"{Mathf.RoundToInt(Mathf.Clamp(volume, 0.0f, 1.0f) * 100.0f)}%";
     }
 
+    private void ApplyBattleOptionDialogStyle()
+    {
+        var debugPanel = GetNodeOrNull<PanelContainer>("UiLayer/BattleDebugOverlay/Center/Panel");
+        if (debugPanel != null)
+        {
+            debugPanel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = new Color(0.05f, 0.05f, 0.06f, 0.88f),
+                BorderColor = new Color(0.58f, 0.48f, 0.28f, 1.0f),
+                BorderWidthLeft = 2,
+                BorderWidthTop = 2,
+                BorderWidthRight = 2,
+                BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8,
+                CornerRadiusTopRight = 8,
+                CornerRadiusBottomLeft = 8,
+                CornerRadiusBottomRight = 8,
+                ShadowColor = new Color(0.0f, 0.0f, 0.0f, 0.34f),
+                ShadowSize = 8
+            });
+        }
 
+        foreach (var label in new[]
+        {
+            _battleOptionTitleLabel,
+            _battleDebugTitleLabel,
+            _battleBgmVolumeValueLabel,
+            _battleSfxVolumeValueLabel
+        })
+        {
+            label?.AddThemeColorOverride("font_color", new Color(0.92f, 0.86f, 0.72f, 1.0f));
+        }
 
+        foreach (var button in new[]
+        {
+            _battleOptionCloseButton,
+            _battleDebugCloseButton,
+            _enableAiButton,
+            _disableAiButton,
+            _startRoundButton,
+            _nextAiButton,
+            _attackerOneDayFoodButton,
+            _defenderOneDayFoodButton,
+            _monthlyBattleLimitOneDayButton,
+            _battleOptionSaveLoadButton,
+            _battleOptionLanguageButton,
+            _battleOptionDebugButton,
+            _battleBgmToggleButton,
+            _battleSfxToggleButton,
+            _battleSaveSettingsButton
+        })
+        {
+            ApplyBattleOptionButtonStyle(button);
+        }
+
+        ApplyBattleOptionSliderStyle(_battleBgmVolumeSlider);
+        ApplyBattleOptionSliderStyle(_battleSfxVolumeSlider);
+    }
+
+    private static void ApplyBattleOptionButtonStyle(Button? button)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        var normalStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.76f, 0.68f, 0.48f, 1.0f),
+            BorderColor = new Color(0.42f, 0.33f, 0.18f, 1.0f),
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 5,
+            CornerRadiusTopRight = 5,
+            CornerRadiusBottomLeft = 5,
+            CornerRadiusBottomRight = 5
+        };
+        var hoverStyle = (StyleBoxFlat)normalStyle.Duplicate();
+        hoverStyle.BgColor = new Color(0.86f, 0.76f, 0.54f, 1.0f);
+        var pressedStyle = (StyleBoxFlat)normalStyle.Duplicate();
+        pressedStyle.BgColor = new Color(0.58f, 0.49f, 0.32f, 1.0f);
+
+        button.AddThemeStyleboxOverride("normal", normalStyle);
+        button.AddThemeStyleboxOverride("hover", hoverStyle);
+        button.AddThemeStyleboxOverride("pressed", pressedStyle);
+        button.AddThemeStyleboxOverride("disabled", pressedStyle);
+        button.AddThemeColorOverride("font_color", new Color(0.12f, 0.09f, 0.05f, 1.0f));
+        button.AddThemeColorOverride("font_hover_color", new Color(0.10f, 0.07f, 0.04f, 1.0f));
+        button.AddThemeColorOverride("font_pressed_color", new Color(0.08f, 0.06f, 0.03f, 1.0f));
+    }
+
+    private static void ApplyBattleOptionSliderStyle(HSlider? slider)
+    {
+        if (slider == null)
+        {
+            return;
+        }
+
+        slider.AddThemeColorOverride("font_color", new Color(0.92f, 0.86f, 0.72f, 1.0f));
+    }
 }

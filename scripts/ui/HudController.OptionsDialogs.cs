@@ -109,7 +109,7 @@ public partial class HudController
 
     private string BuildSaveSlotPath(int slotNumber)
     {
-        return $"user://saves/slot{slotNumber:00}.json";
+        return SaveSlotSettings.GetPath(slotNumber);
     }
 
     private string BuildSaveSlotListText(SaveSlotSummary summary)
