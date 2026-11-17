@@ -10,6 +10,268 @@ namespace AiHarness;
 
 internal static partial class Program
 {
+    private static void RunAlliedReorganizationTest()
+    {
+        var campaign = new ActiveBattleCampaignData { Stage = CampaignStage.FieldBattle, AttackerFactionId = 1, DefenderFactionId = 2 };
+        var large = new CampaignBattleTeamData { Id = 1, FactionId = 3, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Ai, OfficerId = 301, OriginCityId = 3, ActiveTroops = 70, WoundedTroops = 5, MaximumTroops = 100, Morale = 90 };
+        var small = new CampaignBattleTeamData { Id = 1, FactionId = 3, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Ai, OfficerId = 302, OriginCityId = 4, ReinforcementOrderId = 9, ActiveTroops = 20, WoundedTroops = 5, MaximumTroops = 100, Morale = 40, Location = CampaignTeamLocation.Reserve };
+        var enemy = new CampaignBattleTeamData { Id = 2, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Ai, OfficerId = 201, ActiveTroops = 10, MaximumTroops = 100 };
+        var player = new CampaignBattleTeamData { Id = 3, FactionId = 1, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Player, OfficerId = 101, ActiveTroops = 10, MaximumTroops = 100 };
+        var order = new ReinforcementOrderData { Id = 9, Side = CampaignBattleSide.Attacker, FactionId = 3, Status = ReinforcementStatus.Reserve, Gold = 20, Food = 30, Teams = new() { small } };
+        campaign.Teams.AddRange(new[] { large, enemy, player });
+        campaign.Reinforcements.Add(order);
+        CampaignReorganizationRules.ReorganizeAllies(campaign, 1, CampaignBattleSide.Attacker);
+        Assert(large.ActiveTroops == 90 && large.WoundedTroops == 5 && small.ActiveTroops == 0 && small.WoundedTroops == 5 &&
+               large.TroopOrigins.Single(item => item.CityId == 4).ActiveTroops == 20 && order.Status == ReinforcementStatus.Reserve && campaign.AttackerGold == 0 &&
+               enemy.ActiveTroops == 10 && player.ActiveTroops == 10,
+            "allied reorganization", "same-faction active troops consolidate; wounded, enemy and pending supply remain");
+        CampaignReorganizationRules.ReorganizeAllies(campaign, 1, CampaignBattleSide.Attacker);
+        Assert(large.ActiveTroops == 90 && small.ActiveTroops == 0 && campaign.Teams.Count == 3,
+            "allied reorganization", "repeating does not create troops or teams");
+
+        var defenderLarge = new CampaignBattleTeamData { Id = 4, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Ai, OfficerId = 202, OriginCityId = 5, ActiveTroops = 50, MaximumTroops = 100, Location = CampaignTeamLocation.InnerCity };
+        enemy.Location = CampaignTeamLocation.InnerCity;
+        campaign.Teams.Add(defenderLarge);
+        CampaignReorganizationRules.ReorganizeAiTeams(campaign, 1);
+        Assert(defenderLarge.ActiveTroops == 60 && enemy.ActiveTroops == 0 && enemy.Location == CampaignTeamLocation.Reserve &&
+               player.ActiveTroops == 10 && large.ActiveTroops == 90,
+            "ai reorganization", "both sides consolidate separately while player troops remain untouched");
+    }
+    private static void RunArrivedReserveReorganizationTest()
+    {
+        var campaign = new ActiveBattleCampaignData { Stage = CampaignStage.FieldBattle, AttackerGold = 10, AttackerFood = 20 };
+        var field = new CampaignBattleTeamData { Id = 1, FactionId = 1, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Player, OfficerId = 101, OriginCityId = 1, ActiveTroops = 50, MaximumTroops = 100 };
+        var reserve = new CampaignBattleTeamData { Id = 1, FactionId = 1, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Player, OfficerId = 102, OriginCityId = 2, ReinforcementOrderId = 10, ActiveTroops = 40, WoundedTroops = 10, MaximumTroops = 100, Location = CampaignTeamLocation.Reserve };
+        var traveling = new CampaignBattleTeamData { Id = 1, FactionId = 1, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Player, OfficerId = 103, OriginCityId = 3, ReinforcementOrderId = 11, ActiveTroops = 30, MaximumTroops = 100, Location = CampaignTeamLocation.Traveling };
+        var arrivedOrder = new ReinforcementOrderData { Id = 10, Side = CampaignBattleSide.Attacker, FactionId = 1, SourceCityId = 2, Status = ReinforcementStatus.Reserve, Gold = 7, Food = 9, Teams = new() { reserve } };
+        var travelingOrder = new ReinforcementOrderData { Id = 11, Side = CampaignBattleSide.Attacker, FactionId = 1, Status = ReinforcementStatus.Traveling, Teams = new() { traveling } };
+        campaign.Teams.Add(field); campaign.Reinforcements.AddRange(new[] { arrivedOrder, travelingOrder });
+        var eligible = CampaignReorganizationRules.GetEligibleTeams(campaign, 1);
+        Assert(eligible.Count == 2 && eligible.Contains(field) && eligible.Contains(reserve) && !eligible.Contains(traveling),
+            "arrived reserve reorganization", "includes arrived reserve despite duplicate ids; excludes traveling");
+        Assert(CampaignReorganizationRules.TryTransfer(campaign, 1, reserve, field, 15, 5, out _) && field.ActiveTroops == 65 && field.WoundedTroops == 5 && reserve.ActiveTroops == 25 && reserve.WoundedTroops == 5 &&
+               arrivedOrder.Status == ReinforcementStatus.Reserve && campaign.AttackerGold == 10 && campaign.AttackerFood == 20 && campaign.Teams.Count == 1,
+            "arrived reserve reorganization", "transfer changes existing teams without deploying or crediting supply");
+        Assert(!CampaignReorganizationRules.TryTransfer(campaign, 1, traveling, field, 1, 0, out _),
+            "arrived reserve reorganization", "traveling team cannot transfer");
+        var withdrawal = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(campaign))!;
+        withdrawal.SourceCityId = 1; withdrawal.TargetCityId = 3; withdrawal.AttackerFactionId = 1; withdrawal.DefenderFactionId = 2;
+        withdrawal.Participants.Add(new BattleParticipantData { FactionId = 1, Side = CampaignBattleSide.Attacker, TroopsCommitted = 200 });
+        var withdrawalWorld = new WorldState();
+        var firstCity = new CityData { Id = 1, OwnerFactionId = 1 };
+        var reserveCity = new CityData { Id = 2, OwnerFactionId = 1 };
+        withdrawalWorld.Cities.AddRange(new[] { firstCity, reserveCity, new CityData { Id = 3, OwnerFactionId = 2 } });
+        // This test concerns the arrived order; keep the unrelated traveling order out of settlement.
+        withdrawal.Reinforcements.RemoveAll(order => order.Id == 11);
+        BattleCampaignService.CompleteCampaign(withdrawalWorld, withdrawal, CampaignBattleSide.Defender);
+        Assert(firstCity.InfantryTroops == 50 && reserveCity.InfantryTroops == 50 && reserveCity.Gold == 7 && reserveCity.Food == 9 &&
+               withdrawal.Reinforcements.Single().Status == ReinforcementStatus.Returned,
+            "arrived reserve reorganization", $"withdrawal city1={firstCity.InfantryTroops}, city2={reserveCity.InfantryTroops}, gold={reserveCity.Gold}, food={reserveCity.Food}, status={withdrawal.Reinforcements.Single().Status}");
+        var report = withdrawalWorld.BattleReports.Single();
+        var contribution = report.ParticipantContributions.Single();
+        Assert(report.AttackerCommittedTroops == 200 && report.AttackerActiveTroops == 65 && report.AttackerWoundedTroops == 5 &&
+               report.AttackerReturnedTroops == 30 && report.AttackerLostTroops == 100 && contribution.TroopsCommitted == 200 &&
+               contribution.TroopsReturned == 30 && contribution.TroopsLost == 100,
+            "arrived reserve reorganization", "report counts undeployed survivors as returned without false losses");
+        BattleCampaignService.PromoteReserves(campaign, CampaignBattleSide.Attacker);
+        Assert(arrivedOrder.Status == ReinforcementStatus.Deployed && campaign.Teams.Contains(reserve) && campaign.AttackerGold == 17 && campaign.AttackerFood == 29,
+            "arrived reserve reorganization", "normal promotion deploys and credits supply once");
+        var loaded = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(campaign))!;
+        var loadedOrder = loaded.Reinforcements.Single(item => item.Id == 10);
+        var loadedTeam = loaded.Teams.Single(item => item.ReinforcementOrderId == 10);
+        loadedTeam.Location = CampaignTeamLocation.Reserve;
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(loaded);
+        BattleCampaignService.PromoteReserves(loaded, CampaignBattleSide.Attacker);
+        Assert(ReferenceEquals(loadedOrder.Teams[0], loadedTeam) && loadedTeam.Location == CampaignTeamLocation.Field && loaded.Teams.Count == 2 && loaded.AttackerGold == 17 && loaded.AttackerFood == 29,
+            "arrived reserve reorganization", "loaded deployed team reconnects without duplicate team or supply");
+
+        var supplyCampaign = new ActiveBattleCampaignData { Stage = CampaignStage.FieldBattle, SourceCityId = 1, TargetCityId = 3, AttackerFactionId = 1, DefenderFactionId = 2, AttackerGold = 5, AttackerFood = 6 };
+        var supplyTeam = new CampaignBattleTeamData { Id = 1, FactionId = 1, Side = CampaignBattleSide.Attacker, OfficerId = 105, ActiveTroops = 10, MaximumTroops = 10, ReinforcementOrderId = 15, OriginCityId = 2, Location = CampaignTeamLocation.Reserve };
+        var supplyOrder = new ReinforcementOrderData { Id = 15, FactionId = 1, Side = CampaignBattleSide.Attacker, SourceCityId = 2, Status = ReinforcementStatus.Reserve, Gold = 7, Food = 9, Teams = new() { supplyTeam } };
+        supplyCampaign.Reinforcements.Add(supplyOrder);
+        BattleCampaignService.PromoteReserves(supplyCampaign, CampaignBattleSide.Attacker);
+        BattleCampaignService.MarkCampaignTeamSpawnBlocked(supplyCampaign, supplyTeam);
+        Assert(supplyOrder.SuppliesDelivered == false && supplyCampaign.AttackerGold == 5 && supplyCampaign.AttackerFood == 6 && supplyCampaign.AttackerGoldInvested == 0 && supplyCampaign.AttackerFoodInvested == 0,
+            "reinforcement supplies", "first blocked placement rolls back pending delivery and investment");
+        BattleCampaignService.PromoteReserves(supplyCampaign, CampaignBattleSide.Attacker);
+        BattleCampaignService.CompleteReinforcementPlacement(supplyCampaign);
+        supplyCampaign.AttackerGold = 1; supplyCampaign.AttackerFood = 2;
+        var savedSupply = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(supplyCampaign))!;
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(savedSupply);
+        var savedOrder = savedSupply.Reinforcements.Single();
+        var savedTeam = savedSupply.Teams.Single();
+        BattleCampaignService.MarkCampaignTeamSpawnBlocked(savedSupply, savedTeam);
+        BattleCampaignService.PromoteReserves(savedSupply, CampaignBattleSide.Attacker);
+        Assert(savedOrder.SuppliesDelivered == true && savedSupply.AttackerGold == 1 && savedSupply.AttackerFood == 2 && savedSupply.AttackerGoldInvested == 7 && savedSupply.AttackerFoodInvested == 9,
+            "reinforcement supplies", "previously delivered and spent supplies do not reappear after loading and redeployment");
+        BattleCampaignService.MarkCampaignTeamSpawnBlocked(savedSupply, savedTeam);
+        var supplyWorld = new WorldState();
+        supplyWorld.Cities.AddRange(new[] { new CityData { Id = 1, OwnerFactionId = 1 }, new CityData { Id = 2, OwnerFactionId = 1 }, new CityData { Id = 3, OwnerFactionId = 2 } });
+        BattleCampaignService.CompleteCampaign(supplyWorld, savedSupply, CampaignBattleSide.Defender);
+        Assert(supplyWorld.GetCity(2)!.Gold == 0 && supplyWorld.GetCity(2)!.Food == 0 && supplyWorld.GetCity(1)!.Gold == 1 && supplyWorld.GetCity(1)!.Food == 2,
+            "reinforcement supplies", "settlement does not return supplies already delivered");
+
+        var waiting = new ActiveBattleCampaignData { Stage = CampaignStage.FieldBattle, AttackerFood = 1 };
+        var waitingTeam = new CampaignBattleTeamData { Id = 1, FactionId = 1, Side = CampaignBattleSide.Attacker, ControllerType = CampaignControllerType.Player, OfficerId = 104, OriginCityId = 2, ReinforcementOrderId = 12, ActiveTroops = 0, WoundedTroops = 10, MaximumTroops = 20, Location = CampaignTeamLocation.Reserve };
+        var waitingOrder = new ReinforcementOrderData { Id = 12, Side = CampaignBattleSide.Attacker, FactionId = 1, Status = ReinforcementStatus.Reserve, Gold = 7, Food = 9, Teams = new() { waitingTeam } };
+        waiting.Reinforcements.Add(waitingOrder);
+        BattleCampaignService.PromoteReserves(waiting, CampaignBattleSide.Attacker);
+        Assert(waitingOrder.Status == ReinforcementStatus.Reserve && waiting.AttackerGold == 0 && waiting.AttackerFood == 1 && waiting.Teams.Count == 0,
+            "arrived reserve reorganization", "zero active reserve keeps order and supply pending");
+        BattleCampaignService.BeginNextCampaignMonth(waiting, 200, 2);
+        Assert(waitingTeam.ActiveTroops == 10 && waitingTeam.WoundedTroops == 0 && waiting.AttackerFood == 0 && waitingOrder.Status == ReinforcementStatus.Reserve && waiting.Teams.Count == 0,
+            "arrived reserve reorganization", "undeployed reserve recovers with side food without premature deployment");
+    }
+    private static void RunPlayerReorganizationTransferTest()
+    {
+        var fallbackWorld = new WorldState();
+        var fallbackCity = new CityData { Id = 2, OwnerFactionId = 2 };
+        fallbackWorld.Cities.AddRange(new[] { new CityData { Id = 1, OwnerFactionId = 1 }, fallbackCity });
+        var fallenBack = new CampaignBattleTeamData { Id = 51, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Player,
+            OfficerId = 51, ActiveTroops = 60, WoundedTroops = 20, MaximumTroops = 100, Location = CampaignTeamLocation.InnerCity, RetreatDestinationCityId = 2 };
+        var fallbackCampaign = new ActiveBattleCampaignData { SourceCityId = 1, TargetCityId = 2, AttackerFactionId = 1, DefenderFactionId = 2,
+            Stage = CampaignStage.FieldBattle, AttackerWonFieldBattle = true, Teams = new() { fallenBack } };
+        Assert(CampaignReorganizationRules.GetEligibleTeams(fallbackCampaign, 2).Contains(fallenBack), "player reorganization", "defender who fell back inside remains eligible");
+        BattleCampaignService.ApplyPostFieldDecision(fallbackCampaign, PostFieldBattleDecision.ImmediateAssault);
+        Assert(fallenBack.Location == CampaignTeamLocation.Field && fallenBack.RetreatDestinationCityId == 0,
+            "player reorganization", "fall-back marker cleared on entering siege");
+        BattleCampaignService.CompleteCampaign(fallbackWorld, fallbackCampaign, CampaignBattleSide.Defender);
+        Assert(fallbackCity.InfantryTroops == 80 && fallenBack.ReturnedTroops == 80,
+            "player reorganization", "inner-city fallback force returned once after siege");
+        var reserveFallback = new CampaignBattleTeamData { Id = 52, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Player,
+            OfficerId = 52, ActiveTroops = 20, MaximumTroops = 20, ReorganizationCapacity = 100, Location = CampaignTeamLocation.InnerCity, RetreatDestinationCityId = 2 };
+        var reserveReceiver = new CampaignBattleTeamData { Id = 53, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Player,
+            OfficerId = 53, ActiveTroops = 20, MaximumTroops = 20, ReorganizationCapacity = 100, Location = CampaignTeamLocation.InnerCity };
+        var reserveFallbackCampaign = new ActiveBattleCampaignData { TargetCityId = 2, Teams = new() { reserveFallback, reserveReceiver } };
+        Assert(CampaignReorganizationRules.TryTransfer(reserveFallbackCampaign, 2, reserveFallback, reserveReceiver, 20, 0, out _) &&
+               reserveFallback.Location == CampaignTeamLocation.Reserve && reserveFallback.RetreatDestinationCityId == 0 &&
+               CampaignReorganizationRules.GetEligibleTeams(reserveFallbackCampaign, 2).Contains(reserveFallback),
+            "player reorganization", "emptied fallback reserve can be refilled");
+        var capacityOfficer = new OfficerData { Id = 91, Leadership = 80 };
+        Assert(CampaignReorganizationRules.GetOfficerCapacity(capacityOfficer) == 4200, "reorganization capacity", "leadership base");
+        OfficerAppointmentRules.AddAppointment(capacityOfficer, OfficerAppointmentRules.VanguardGeneral);
+        Assert(CampaignReorganizationRules.GetOfficerCapacity(capacityOfficer) == 4700, "reorganization capacity", "vanguard duty bonus");
+        OfficerAppointmentRules.AddAppointment(capacityOfficer, OfficerAppointmentRules.GrandGeneral);
+        Assert(CampaignReorganizationRules.GetOfficerCapacity(capacityOfficer) == 5700, "reorganization capacity", "highest military duty bonus does not stack");
+        var capacityWorld = new WorldState(); capacityWorld.Officers.Add(capacityOfficer);
+        var capacityCampaign = new ActiveBattleCampaignData();
+        var oldTeam = new CampaignBattleTeamData { Id = 91, OfficerId = 91, FactionId = 1, ControllerType = CampaignControllerType.Player, ActiveTroops = 6000, MaximumTroops = 6000 };
+        var receiving = new CampaignBattleTeamData { Id = 92, OfficerId = 92, FactionId = 1, ControllerType = CampaignControllerType.Player, ActiveTroops = 500, MaximumTroops = 500, ReorganizationCapacity = 3000 };
+        capacityCampaign.Teams.AddRange(new[] { oldTeam, receiving });
+        CampaignReorganizationRules.InitializeCapacities(capacityWorld, capacityCampaign);
+        Assert(oldTeam.ReorganizationCapacity == 5700 && oldTeam.ActiveTroops == 6000 && !CampaignReorganizationRules.TryTransfer(capacityCampaign, 1, receiving, oldTeam, 1, 0, out _),
+            "reorganization capacity", "legacy over-cap team preserved but cannot receive");
+        Assert(CampaignReorganizationRules.TryTransfer(capacityCampaign, 1, oldTeam, receiving, 400, 0, out _) && oldTeam.MaximumTroops + receiving.MaximumTroops == 6500,
+            "reorganization capacity", "transfer preserves committed troop totals for reports");
+        var recoveryCampaign = new ActiveBattleCampaignData { Stage = CampaignStage.SiegePreparation, AttackerFood = 10, DefenderFood = 10 };
+        var cityDefender = new CampaignBattleTeamData { Id = 21, Side = CampaignBattleSide.Defender, Location = CampaignTeamLocation.InnerCity, ActiveTroops = 50, WoundedTroops = 40, MaximumTroops = 100 };
+        var outsideDefender = new CampaignBattleTeamData { Id = 22, Side = CampaignBattleSide.Defender, Location = CampaignTeamLocation.Field, ActiveTroops = 50, WoundedTroops = 40, MaximumTroops = 100 };
+        var campAttacker = new CampaignBattleTeamData { Id = 23, Side = CampaignBattleSide.Attacker, Location = CampaignTeamLocation.Field, ActiveTroops = 50, WoundedTroops = 40, MaximumTroops = 100 };
+        var reserveDefender = new CampaignBattleTeamData { Id = 24, Side = CampaignBattleSide.Defender, Location = CampaignTeamLocation.Reserve, ActiveTroops = 50, WoundedTroops = 40, MaximumTroops = 100 };
+        var reserveAttacker = new CampaignBattleTeamData { Id = 25, Side = CampaignBattleSide.Attacker, Location = CampaignTeamLocation.Reserve, ActiveTroops = 50, WoundedTroops = 40, MaximumTroops = 100 };
+        recoveryCampaign.Teams.AddRange(new[] { cityDefender, outsideDefender, campAttacker, reserveDefender, reserveAttacker });
+        BattleCampaignService.BeginNextCampaignMonth(recoveryCampaign, 200, 2);
+        Assert(cityDefender.WoundedTroops == 0 && cityDefender.ActiveTroops == 90 && outsideDefender.WoundedTroops == 20 &&
+               campAttacker.WoundedTroops == 20 && reserveDefender.WoundedTroops == 0 && reserveAttacker.WoundedTroops == 0 && recoveryCampaign.DefenderFood == 5 && recoveryCampaign.AttackerFood == 7,
+            "player reorganization", "field recovers half, both reserves and defender inner city recover fully");
+        var fieldCampaign = new ActiveBattleCampaignData { Stage = CampaignStage.FieldBattle, AttackerFood = 1, DefenderFood = 10 };
+        var fieldDefender = new CampaignBattleTeamData { Side = CampaignBattleSide.Defender, Location = CampaignTeamLocation.Field, ActiveTroops = 95, WoundedTroops = 40, MaximumTroops = 100 };
+        var fieldAttacker = new CampaignBattleTeamData { Side = CampaignBattleSide.Attacker, Location = CampaignTeamLocation.Field, ActiveTroops = 0, WoundedTroops = 100, MaximumTroops = 100 };
+        fieldCampaign.Teams.AddRange(new[] { fieldDefender, fieldAttacker });
+        BattleCampaignService.BeginNextCampaignMonth(fieldCampaign, 200, 2);
+        Assert(fieldDefender.ActiveTroops == 100 && fieldDefender.WoundedTroops == 35 && fieldCampaign.DefenderFood == 9 &&
+               fieldAttacker.ActiveTroops == 20 && fieldAttacker.WoundedTroops == 80 && fieldCampaign.AttackerFood == 0,
+            "player reorganization", "field recovery respects capacity, food and separate pools");
+        var reserveCampaign = new ActiveBattleCampaignData { Stage = CampaignStage.FieldBattle, AttackerFood = 2, DefenderFood = 1 };
+        var attackReserve = new CampaignBattleTeamData { Side = CampaignBattleSide.Attacker, Location = CampaignTeamLocation.Reserve, ActiveTroops = 0, WoundedTroops = 40, MaximumTroops = 40 };
+        var defenseReserve = new CampaignBattleTeamData { Side = CampaignBattleSide.Defender, Location = CampaignTeamLocation.Reserve, ActiveTroops = 0, WoundedTroops = 40, MaximumTroops = 40 };
+        reserveCampaign.Teams.AddRange(new[] { attackReserve, defenseReserve });
+        BattleCampaignService.BeginNextCampaignMonth(reserveCampaign, 200, 2);
+        Assert(attackReserve.ActiveTroops == 40 && attackReserve.WoundedTroops == 0 && reserveCampaign.AttackerFood == 0 &&
+               defenseReserve.ActiveTroops == 20 && defenseReserve.WoundedTroops == 20 && reserveCampaign.DefenderFood == 0,
+            "player reorganization", "field-month reserves recover fully within each side's food limit");
+        var campaign = new ActiveBattleCampaignData();
+        var a = new CampaignBattleTeamData { Id = 1, FactionId = 1, ControllerType = CampaignControllerType.Player, OfficerId = 11, OriginCityId = 2, TroopType = TroopType.Infantry, ActiveTroops = 80, WoundedTroops = 20, MaximumTroops = 100, Morale = 40, MessTurns = 2, Energy = 3, WeaponAmmo = 4, MaxWeaponAmmo = 10 };
+        var b = new CampaignBattleTeamData { Id = 2, FactionId = 1, ControllerType = CampaignControllerType.Player, OfficerId = 12, OriginCityId = 2, TroopType = TroopType.Infantry, ActiveTroops = 20, WoundedTroops = 0, MaximumTroops = 100, Morale = 100, MessTurns = 0, Energy = 8, WeaponAmmo = 9, MaxWeaponAmmo = 10 };
+        campaign.Teams.AddRange(new[] { a, b });
+        Assert(CampaignReorganizationRules.TryTransfer(campaign, 1, 1, 2, 20, 10, out _) && a.ActiveTroops == 60 && a.WoundedTroops == 10 && b.ActiveTroops == 40 && b.WoundedTroops == 10 && b.Morale == 64,
+            "player reorganization", "active and wounded conserved; morale weighted");
+        Assert(b.MessTurns == 0 && b.Energy == null && b.WeaponAmmo == null && b.MaxWeaponAmmo == null && a.MessTurns == 0 && a.Energy == null && a.WeaponAmmo == null && b.WoundedOriginCityId == 2,
+            "player reorganization", "both teams reset combat status to deployment defaults");
+        var restored = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(campaign));
+        var restoredTeam = restored!.Teams.Single(team => team.Id == 2);
+        Assert(restoredTeam.MessTurns == 0 && restoredTeam.Energy == null && restoredTeam.WeaponAmmo == null && restoredTeam.MaxWeaponAmmo == null && restoredTeam.WoundedOriginCityId == 2,
+            "player reorganization", "default status and wounded origin survive serialization");
+        var before = b.ActiveTroops;
+        Assert(!CampaignReorganizationRules.TryTransfer(campaign, 1, 1, 2, 60, 0, out _) && b.ActiveTroops == before,
+            "player reorganization", "capacity exceeded without mutation");
+        b.TroopType = TroopType.Archer;
+        Assert(!CampaignReorganizationRules.TryTransfer(campaign, 1, 1, 2, 1, 0, out _) && a.ActiveTroops == 60,
+            "player reorganization", "different troop types rejected");
+        b.TroopType = TroopType.Infantry;
+        Assert(!CampaignReorganizationRules.TryTransfer(campaign, 1, 1, 2, -1, 1, out _) && a.WoundedTroops == 10,
+            "player reorganization", "negative transfer rejected");
+        b.FactionId = 2;
+        Assert(!CampaignReorganizationRules.TryTransfer(campaign, 1, 1, 2, 1, 0, out _), "player reorganization", "foreign teams excluded");
+        b.FactionId = 1;
+        b.ActiveTroops = 0; b.WoundedTroops = 0;
+        Assert(CampaignReorganizationRules.TryTransfer(campaign, 1, 1, 2, 60, 10, out _) && a.Location == CampaignTeamLocation.Reserve,
+            "player reorganization", "empty source moves to reserve");
+
+        var mixedCampaign = new ActiveBattleCampaignData();
+        var first = new CampaignBattleTeamData { Id = 41, FactionId = 1, ControllerType = CampaignControllerType.Player, OfficerId = 41, OriginCityId = 1, ActiveTroops = 60, WoundedTroops = 20, MaximumTroops = 100 };
+        var second = new CampaignBattleTeamData { Id = 42, FactionId = 1, ControllerType = CampaignControllerType.Player, OfficerId = 42, OriginCityId = 2, ReinforcementOrderId = 5, ActiveTroops = 20, WoundedTroops = 10, MaximumTroops = 100 };
+        mixedCampaign.Teams.AddRange(new[] { first, second });
+        var mixed = CampaignReorganizationRules.TryTransfer(mixedCampaign, 1, 41, 42, 20, 10, out _);
+        Assert(mixed && second.ActiveTroops == 40 && second.WoundedTroops == 20 && second.TroopOrigins.Single(x => x.CityId == 1).ActiveTroops == 20 &&
+               second.TroopOrigins.Single(x => x.CityId == 1).WoundedTroops == 10 && second.TroopOrigins.Single(x => x.CityId == 2).WoundedTroops == 10,
+            "player reorganization", "cross-origin transfer retains active and wounded origins");
+        CampaignTroopOriginRules.ApplyCounts(second, 30, 25);
+        Assert(second.TroopOrigins.Sum(x => x.ActiveTroops) == 30 && second.TroopOrigins.Sum(x => x.WoundedTroops) == 25 &&
+               second.TroopOrigins.Single(x => x.CityId == 1).WoundedTroops == 15,
+            "player reorganization", "mixed-origin casualties and wounds remain conserved");
+        CampaignTroopOriginRules.ApplyCounts(second, 35, 20);
+        var mixedRestored = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(mixedCampaign))!;
+        Assert(mixedRestored.Teams.Single(x => x.Id == 42).TroopOrigins.Sum(x => x.ActiveTroops) == 35 &&
+               mixedRestored.Teams.Single(x => x.Id == 42).TroopOrigins.Sum(x => x.WoundedTroops) == 20,
+            "player reorganization", "mixed-origin recovery and save round trip preserve totals");
+        var returnWorld = new WorldState();
+        var origin1 = new CityData { Id = 1, OwnerFactionId = 1 };
+        var origin2 = new CityData { Id = 2, OwnerFactionId = 1 };
+        returnWorld.Cities.AddRange(new[] { origin1, origin2 });
+        var returnTeam = mixedRestored.Teams.Single(x => x.Id == 42);
+        var origin1Count = returnTeam.TroopOrigins.Single(x => x.CityId == 1);
+        var origin2Count = returnTeam.TroopOrigins.Single(x => x.CityId == 2);
+        CampaignRetreatService.ReturnMixedTeamToOrigins(returnWorld, origin2, returnTeam, origin2);
+        Assert(origin1.InfantryTroops == origin1Count.ActiveTroops + origin1Count.WoundedTroops &&
+               origin2.InfantryTroops == origin2Count.ActiveTroops + origin2Count.WoundedTroops && returnTeam.ReturnedTroops == 55,
+            "player reorganization", "automatic mixed-origin return credits each friendly city once");
+        var settlementWorld = new WorldState();
+        var cityOne = new CityData { Id = 1, OwnerFactionId = 1 };
+        var cityTwo = new CityData { Id = 2, OwnerFactionId = 1 };
+        settlementWorld.Cities.AddRange(new[] { cityOne, cityTwo, new CityData { Id = 3, OwnerFactionId = 2 } });
+        var withdrawal = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(mixedCampaign))!;
+        withdrawal.SourceCityId = 1; withdrawal.TargetCityId = 3; withdrawal.AttackerFactionId = 1; withdrawal.DefenderFactionId = 2;
+        withdrawal.Stage = CampaignStage.FieldBattle;
+        var expectedOne = withdrawal.Teams.SelectMany(x => x.TroopOrigins).Where(x => x.CityId == 1).Sum(x => x.ActiveTroops + x.WoundedTroops);
+        var expectedTwo = withdrawal.Teams.SelectMany(x => x.TroopOrigins).Where(x => x.CityId == 2).Sum(x => x.ActiveTroops + x.WoundedTroops);
+        BattleCampaignService.CompleteCampaign(settlementWorld, withdrawal, CampaignBattleSide.Defender);
+        Assert(cityOne.InfantryTroops == expectedOne && cityTwo.InfantryTroops == expectedTwo && withdrawal.Stage == CampaignStage.Resolved,
+            "player reorganization", "campaign withdrawal returns transferred and remaining troops by origin");
+
+        var deployCampaign = new ActiveBattleCampaignData { Stage = CampaignStage.CityBattle };
+        var emptyReserve = new CampaignBattleTeamData { Id = 1, Side = CampaignBattleSide.Attacker, Location = CampaignTeamLocation.Reserve, OfficerId = 1, ActiveTroops = 0 };
+        var readyReserve = new CampaignBattleTeamData { Id = 2, Side = CampaignBattleSide.Attacker, Location = CampaignTeamLocation.Reserve, OfficerId = 2, ActiveTroops = 40 };
+        var returnedReinforcement = new CampaignBattleTeamData { Id = 3, Side = CampaignBattleSide.Defender, Location = CampaignTeamLocation.Reserve, OfficerId = 3, ActiveTroops = 30, ReinforcementOrderId = 7 };
+        var reinforcement = new ReinforcementOrderData { Id = 7, Side = CampaignBattleSide.Defender, Status = ReinforcementStatus.Deployed, Teams = new() { returnedReinforcement } };
+        deployCampaign.Teams.AddRange(new[] { emptyReserve, readyReserve, returnedReinforcement });
+        deployCampaign.Reinforcements.Add(reinforcement);
+        BattleCampaignService.PromoteReserves(deployCampaign, CampaignBattleSide.Attacker);
+        BattleCampaignService.PromoteReserves(deployCampaign, CampaignBattleSide.Defender);
+        Assert(emptyReserve.Location == CampaignTeamLocation.Reserve && readyReserve.Location == CampaignTeamLocation.Field &&
+               returnedReinforcement.Location == CampaignTeamLocation.Field && deployCampaign.Teams.Count == 3 && reinforcement.Status == ReinforcementStatus.Deployed,
+            "player reorganization", "empty reserve waits and refilled deployed reinforcement returns without duplication");
+    }
     private static void RunCampaignCaptiveSuccessionTest()
     {
         var world = CreateBattleCampaignWorld();

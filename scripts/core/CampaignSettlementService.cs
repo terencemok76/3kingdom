@@ -9,17 +9,28 @@ namespace ThreeKingdom.Core;
 
 internal static class CampaignSettlementService
 {
-    private static List<WorldState.BattleParticipantContributionData> UpdateParticipantContributions(ActiveBattleCampaignData campaign)
+    // Orders not yet deployed remain outside campaign.Teams, but their troops
+    // were dispatched and are returned when the campaign ends.
+    private static List<CampaignBattleTeamData> GetUndeployedReportTeams(ActiveBattleCampaignData campaign) =>
+        campaign.Reinforcements
+            .Where(order => order.Status is ReinforcementStatus.Traveling or ReinforcementStatus.Arrived or ReinforcementStatus.Reserve)
+            .SelectMany(order => order.Teams)
+            .Where(team => !campaign.Teams.Contains(team))
+            .Distinct().ToList();
+
+    private static List<WorldState.BattleParticipantContributionData> UpdateParticipantContributions(ActiveBattleCampaignData campaign, List<CampaignBattleTeamData> undeployedTeams)
     {
         var contributions = new List<WorldState.BattleParticipantContributionData>();
         foreach (var participant in campaign.Participants)
         {
             var teams = campaign.Teams.Where(team =>
                 team.FactionId == participant.FactionId && team.Side == participant.Side).ToList();
-            var committed = teams.Sum(team => Math.Max(0, team.MaximumTroops));
+            var pending = undeployedTeams.Where(team => team.FactionId == participant.FactionId && team.Side == participant.Side).ToList();
+            var committed = teams.Concat(pending).Sum(team => Math.Max(0, team.MaximumTroops));
             var active = teams.Sum(team => Math.Max(0, team.ActiveTroops));
             var wounded = teams.Sum(team => Math.Max(0, team.WoundedTroops));
-            var returned = teams.Sum(team => Math.Max(0, team.ReturnedTroops));
+            var returned = teams.Sum(team => Math.Max(0, team.ReturnedTroops)) +
+                pending.Sum(team => Math.Max(0, team.ActiveTroops) + Math.Max(0, team.WoundedTroops));
             participant.TroopsCommitted = Math.Max(participant.TroopsCommitted, committed);
             participant.TroopsLost = Math.Max(0, participant.TroopsCommitted - active - wounded - returned);
             contributions.Add(new WorldState.BattleParticipantContributionData
@@ -115,6 +126,7 @@ internal static class CampaignSettlementService
 
     internal static void CompleteCampaign(WorldState world, ActiveBattleCampaignData campaign, CampaignBattleSide winner)
     {
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(campaign);
         var sourceCity = world.GetCity(campaign.SourceCityId);
         var targetCity = world.GetCity(campaign.TargetCityId);
         if (sourceCity == null || targetCity == null)
@@ -132,14 +144,17 @@ internal static class CampaignSettlementService
         var capturedOfficerIds = new HashSet<int>();
         var attackerTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).ToList();
         var defenderTeams = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender).ToList();
-        var attackerCommittedTroops = attackerTeams.Sum(team => Math.Max(0, team.MaximumTroops));
+        var undeployedTeams = GetUndeployedReportTeams(campaign);
+        var attackerPending = undeployedTeams.Where(team => team.Side == CampaignBattleSide.Attacker).ToList();
+        var defenderPending = undeployedTeams.Where(team => team.Side == CampaignBattleSide.Defender).ToList();
+        var attackerCommittedTroops = attackerTeams.Concat(attackerPending).Sum(team => Math.Max(0, team.MaximumTroops));
         var attackerActiveTroops = attackerTeams.Sum(team => Math.Max(0, team.ActiveTroops));
         var attackerWoundedTroops = attackerTeams.Sum(team => Math.Max(0, team.WoundedTroops));
-        var attackerReturnedTroops = attackerTeams.Sum(team => Math.Max(0, team.ReturnedTroops));
-        var defenderCommittedTroops = defenderTeams.Sum(team => Math.Max(0, team.MaximumTroops));
+        var attackerReturnedTroops = attackerTeams.Sum(team => Math.Max(0, team.ReturnedTroops)) + attackerPending.Sum(team => Math.Max(0, team.ActiveTroops) + Math.Max(0, team.WoundedTroops));
+        var defenderCommittedTroops = defenderTeams.Concat(defenderPending).Sum(team => Math.Max(0, team.MaximumTroops));
         var defenderActiveTroops = defenderTeams.Sum(team => Math.Max(0, team.ActiveTroops));
         var defenderWoundedTroops = defenderTeams.Sum(team => Math.Max(0, team.WoundedTroops));
-        var defenderReturnedTroops = defenderTeams.Sum(team => Math.Max(0, team.ReturnedTroops));
+        var defenderReturnedTroops = defenderTeams.Sum(team => Math.Max(0, team.ReturnedTroops)) + defenderPending.Sum(team => Math.Max(0, team.ActiveTroops) + Math.Max(0, team.WoundedTroops));
         var attackerWonCity = winner == CampaignBattleSide.Attacker && campaign.Stage == CampaignStage.CityBattle;
         var report = new WorldState.BattleReportData
         {
@@ -172,7 +187,7 @@ internal static class CampaignSettlementService
             DefenderGoldGained = campaign.DefenderGoldGained,
             DefenderFoodGained = campaign.DefenderFoodGained
         };
-        report.ParticipantContributions = UpdateParticipantContributions(campaign);
+        report.ParticipantContributions = UpdateParticipantContributions(campaign, undeployedTeams);
 
         ReturnUndeployedReinforcements(world, campaign);
         var deferredRulerSuccessions = new Dictionary<int, int>();
@@ -214,7 +229,11 @@ internal static class CampaignSettlementService
             var officerDestination = team.OfficerReturnCityId > 0
                 ? world.GetCity(team.OfficerReturnCityId) ?? destination
                 : destination;
-            ReturnTeamToCity(world, destination, team, officerDestination);
+            if (!attackerWonCity && team.Side == CampaignBattleSide.Attacker && team.EquipmentType == BattleEquipmentType.None &&
+                team.SiegeEngineType == SiegeEngineType.None && team.TroopOrigins != null && team.TroopOrigins.Count > 0)
+                ReturnMixedTeamToOrigins(world, destination, team, officerDestination);
+            else
+                ReturnTeamToCity(world, destination, team, officerDestination);
         }
 
         if (attackerWonCity)
@@ -290,8 +309,7 @@ internal static class CampaignSettlementService
                      team.RetreatDestinationCityId <= 0))
         {
             ReturnTeamToCity(world, returnCity, team, returnCity);
-            team.ActiveTroops = 0;
-            team.WoundedTroops = 0;
+            CampaignTroopOriginRules.ApplyCounts(team, 0, 0);
             team.Location = CampaignTeamLocation.NeighborCity;
             team.RetreatDestinationCityId = returnCity.Id;
         }
@@ -388,11 +406,17 @@ internal static class CampaignSettlementService
 
             foreach (var team in order.Teams.Where(team => !campaign.Teams.Contains(team)))
             {
-                ReturnTeamToCity(world, sourceCity, team);
+                if (team.EquipmentType == BattleEquipmentType.None && team.SiegeEngineType == SiegeEngineType.None && team.TroopOrigins != null && team.TroopOrigins.Count > 0)
+                    ReturnMixedTeamToOrigins(world, sourceCity, team, sourceCity);
+                else
+                    ReturnTeamToCity(world, sourceCity, team);
             }
 
-            sourceCity.Gold += order.Gold;
-            sourceCity.Food += order.Food;
+            if (order.SuppliesDelivered != true)
+            {
+                sourceCity.Gold += order.Gold;
+                sourceCity.Food += order.Food;
+            }
             order.Status = ReinforcementStatus.Returned;
         }
     }

@@ -218,15 +218,34 @@ internal static partial class Program
         var paidEvents = CovertOfficerRules.ProcessMaintenance(world, false);
         Assert(!recruited.MaintenanceUnpaid && treasury.Gold == 0 && paidEvents.Any(item => item.Kind == "recovered"), "Covert maintenance recovery charges treasury once", "paid");
         var campaign = new ActiveBattleCampaignData { AttackerFactionId = 1, DefenderFactionId = 2, SourceCityId = 1, TargetCityId = 2, TotalBattleDays = 1, Stage = CampaignStage.FieldBattle };
-        var team = new CampaignBattleTeamData { Id = 1, OfficerId = 202, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Ai, ActiveTroops = 101, MaximumTroops = 101, OriginCityId = 2, Location = CampaignTeamLocation.Field };
+        world.Cities.Add(TestHelpers.City(3, "Other origin", 2, 0, 0, 0, Array.Empty<int>(), Array.Empty<int>()));
+        var team = new CampaignBattleTeamData { Id = 1, OfficerId = 202, FactionId = 2, Side = CampaignBattleSide.Defender, ControllerType = CampaignControllerType.Ai, ActiveTroops = 101, WoundedTroops = 20, MaximumTroops = 121, OriginCityId = 2, ReinforcementOrderId = 5, Location = CampaignTeamLocation.Field,
+            TroopOrigins = new() { new CampaignTroopOriginData { CityId = 2, ActiveTroops = 31 }, new CampaignTroopOriginData { CityId = 3, ActiveTroops = 70, WoundedTroops = 20 } } };
         campaign.Teams.Add(team);
+        var pendingTeam = new CampaignBattleTeamData { Id = 2, OfficerId = 204, FactionId = 2, Side = CampaignBattleSide.Defender, ActiveTroops = 10, MaximumTroops = 10, OriginCityId = 2, ReinforcementOrderId = 5, Location = CampaignTeamLocation.Reserve };
+        var order = new ReinforcementOrderData { Id = 5, FactionId = 2, Side = CampaignBattleSide.Defender, SourceCityId = 2, Status = ReinforcementStatus.Reserve, Teams = new() { team, pendingTeam } };
+        campaign.Reinforcements.Add(order);
         recruited.MaintenanceUnpaid = true;
         Assert(!CovertOfficerRules.TryDefect(world, campaign, team), "Unpaid agent cannot defect", "suspended");
         recruited.MaintenanceUnpaid = false;
         var originBefore = world.GetCity(2)!.Troops;
         Assert(CovertOfficerRules.TryDefect(world, campaign, team), "Covert officer defects in battle", "defender to attacker");
-        Assert(team.Side == CampaignBattleSide.Attacker && team.ControllerType == CampaignControllerType.Player && team.ActiveTroops == 60 && world.GetCity(2)!.Troops == originBefore + 41, "Defection transfers control and returns remainder", $"active={team.ActiveTroops}");
+        Assert(team.Side == CampaignBattleSide.Attacker && team.ControllerType == CampaignControllerType.Player && team.ActiveTroops == 60 && world.GetCity(2)!.Troops == originBefore + 31 && world.GetCity(3)!.Troops == 30 &&
+               team.TroopOrigins.Single().CityId == 3 && team.TroopOrigins.Single().ActiveTroops == 60 && campaign.Teams.Single(item => item.RetreatDestinationCityId == 2).ReturnedTroops == 61,
+            "Defection preserves mixed origins and returns wounded", $"active={team.ActiveTroops}");
         Assert(world.GetFaction(1)!.OfficerIds.Contains(202) && !world.GetFaction(2)!.OfficerIds.Contains(202) && world.CovertOfficerRecords.Count == 0, "Defection transfers strategic officer ownership", "faction roster");
+        Assert(order.Teams.Count == 1 && ReferenceEquals(order.Teams[0], pendingTeam), "Defection leaves only other teams in old reinforcement order", "mixed order");
+        var legacyCampaign = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(campaign))!;
+        legacyCampaign.Reinforcements.Single().Teams.Add(System.Text.Json.JsonSerializer.Deserialize<CampaignBattleTeamData>(System.Text.Json.JsonSerializer.Serialize(team))!);
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(legacyCampaign);
+        Assert(legacyCampaign.Reinforcements.Single().Teams.Count == 1 && legacyCampaign.Reinforcements.Single().Teams[0].OfficerId == 204,
+            "Old saves remove duplicate defector from reinforcement order", "only pending team remains");
+        var legacyWorld = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        var sponsorBefore = legacyWorld.GetCity(1)!.Troops;
+        var originalBefore = legacyWorld.GetCity(2)!.Troops;
+        BattleCampaignService.CompleteCampaign(legacyWorld, legacyCampaign, CampaignBattleSide.Attacker);
+        Assert(legacyWorld.GetCity(1)!.Troops == sponsorBefore + 60 && legacyWorld.GetCity(2)!.Troops == originalBefore + 10,
+            "Loaded defector and pending reinforcements settle exactly once", "60 join sponsor; 10 return to original side");
         Assert(!CovertOfficerRules.TryDefect(world, campaign, team), "Defection cannot execute twice", "consumed agent");
         world.Officers.Add(TestHelpers.Officer(203, "PlayerAgent", 1));
         world.GetFaction(1)!.OfficerIds.Add(203);

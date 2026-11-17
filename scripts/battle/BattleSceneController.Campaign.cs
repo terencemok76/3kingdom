@@ -453,7 +453,7 @@ public partial class BattleSceneController
                     .FirstOrDefault();
                 if (!spawn.Found)
                 {
-                    KeepBlockedReinforcementInReserve(team);
+                    KeepBlockedCampaignTeamInReserve(team);
                     continue;
                 }
 
@@ -461,6 +461,8 @@ public partial class BattleSceneController
                 occupied.Add(spawn.Grid);
             }
         }
+        BattleCampaignService.CompleteReinforcementPlacement(_activeCampaign);
+        SyncCampaignResourcesToHud();
     }
 
     private bool IsCampaignTeamDeployable(CampaignBattleTeamData team)
@@ -734,34 +736,17 @@ public partial class BattleSceneController
                !occupied.Contains(grid);
     }
 
-    private void KeepBlockedReinforcementInReserve(CampaignBattleTeamData team)
+    private void KeepBlockedCampaignTeamInReserve(CampaignBattleTeamData team)
     {
-        if (_activeCampaign == null || team.ReinforcementOrderId <= 0)
+        if (_activeCampaign == null)
         {
             return;
         }
-
+        BattleCampaignService.MarkCampaignTeamSpawnBlocked(_activeCampaign, team);
         var order = _activeCampaign.Reinforcements.FirstOrDefault(item => item.Id == team.ReinforcementOrderId);
         if (order == null)
         {
             return;
-        }
-
-        var resourcesWereAvailable = order.Status == ReinforcementStatus.Deployed;
-        team.Location = CampaignTeamLocation.Reserve;
-        order.Status = ReinforcementStatus.Reserve;
-        if (resourcesWereAvailable)
-        {
-            if (team.Side == CampaignBattleSide.Attacker)
-            {
-                _activeCampaign.AttackerGold = Math.Max(0, _activeCampaign.AttackerGold - order.Gold);
-                _activeCampaign.AttackerFood = Math.Max(0, _activeCampaign.AttackerFood - order.Food);
-            }
-            else
-            {
-                _activeCampaign.DefenderGold = Math.Max(0, _activeCampaign.DefenderGold - order.Gold);
-                _activeCampaign.DefenderFood = Math.Max(0, _activeCampaign.DefenderFood - order.Food);
-            }
         }
 
         AppendBattleLog(
@@ -816,7 +801,11 @@ public partial class BattleSceneController
             HitPoints = category == CategoryUnit ? team.ActiveTroops : occupant.HitPoints,
             MaxHitPoints = category == CategoryUnit ? Math.Max(team.MaximumTroops, team.ActiveTroops + team.WoundedTroops) : occupant.MaxHitPoints,
             WoundedTroops = category == CategoryUnit ? team.WoundedTroops : 0,
-            Morale = category == CategoryUnit ? team.Morale : occupant.Morale
+            Morale = category == CategoryUnit ? team.Morale : occupant.Morale,
+            MessTurns = team.MessTurns ?? occupant.MessTurns,
+            Energy = team.Energy ?? occupant.Energy,
+            WeaponAmmo = team.WeaponAmmo ?? occupant.WeaponAmmo,
+            MaxWeaponAmmo = team.MaxWeaponAmmo ?? occupant.MaxWeaponAmmo
         };
         ReplaceOccupantAtGrid(gridKey, occupant, updated);
         UpdateMarkerStrengthBar(updated);
@@ -1150,18 +1139,21 @@ public partial class BattleSceneController
         {
             if (!occupants.TryGetValue(team.Id, out var occupant))
             {
-                team.ActiveTroops = 0;
+                CampaignTroopOriginRules.ApplyCounts(team, 0, team.WoundedTroops);
                 team.Location = CampaignTeamLocation.Eliminated;
                 continue;
             }
 
             if (occupant.Category == CategoryUnit)
             {
-                team.ActiveTroops = Math.Max(0, occupant.TroopCount);
-                team.WoundedTroops = Math.Max(0, occupant.WoundedTroops);
+                CampaignTroopOriginRules.ApplyCounts(team, occupant.TroopCount, occupant.WoundedTroops);
                 team.MaximumTroops = Math.Max(team.MaximumTroops, team.ActiveTroops + team.WoundedTroops);
                 team.Morale = occupant.Morale ?? team.Morale;
             }
+            team.MessTurns = occupant.MessTurns;
+            team.Energy = occupant.Energy;
+            team.WeaponAmmo = occupant.WeaponAmmo;
+            team.MaxWeaponAmmo = occupant.MaxWeaponAmmo;
         }
 
         _activeCampaign.AttackerGold = _teamAGold;
@@ -1277,6 +1269,9 @@ public partial class BattleSceneController
             Text = BattleText("ui.battle.campaign_field_victory", "Field victory: choose the next operation"),
             HorizontalAlignment = HorizontalAlignment.Center
         });
+        var reorganize = new Button { Text = BattleText("ui.battle.reorganize", "Reorganize troops"), CustomMinimumSize = new Vector2(390, 48) };
+        reorganize.Pressed += ShowCampaignReorganization;
+        _campaignDecisionPanel.AddChild(reorganize);
         AddCampaignDecisionButton(BattleText("ui.battle.campaign_assault_now", "Assault now"), PostFieldBattleDecision.ImmediateAssault);
         AddCampaignDecisionButton(BattleText("ui.battle.campaign_prepare_next_month", "Prepare next month"), PostFieldBattleDecision.PrepareNextMonthSiege);
         AddCampaignDecisionButton(BattleText("ui.battle.campaign_withdraw", "Withdraw"), PostFieldBattleDecision.Withdraw);
@@ -1296,6 +1291,15 @@ public partial class BattleSceneController
             return;
         }
 
+        if (decision is PostFieldBattleDecision.ImmediateAssault or PostFieldBattleDecision.PrepareNextMonthSiege)
+        {
+            var playerFaction = CampaignRuntimeContext.World.Factions.FirstOrDefault(faction => faction.IsPlayer);
+            if (playerFaction != null && (playerFaction.Id == _activeCampaign.AttackerFactionId || playerFaction.Id == _activeCampaign.DefenderFactionId))
+            {
+                CampaignReorganizationRules.InitializeCapacities(CampaignRuntimeContext.World, _activeCampaign);
+                CampaignReorganizationRules.ReorganizeAiTeams(_activeCampaign, playerFaction.Id);
+            }
+        }
         BattleCampaignService.ApplyPostFieldDecision(_activeCampaign, decision);
         if (decision == PostFieldBattleDecision.ImmediateAssault)
         {
@@ -1328,8 +1332,7 @@ public partial class BattleSceneController
             return;
         }
 
-        team.ActiveTroops = Math.Max(0, unit.TroopCount);
-        team.WoundedTroops = Math.Max(0, unit.WoundedTroops);
+        CampaignTroopOriginRules.ApplyCounts(team, unit.TroopCount, unit.WoundedTroops);
         team.Location = team.Side == CampaignBattleSide.Defender && _activeCampaign.Stage == CampaignStage.FieldBattle
             ? CampaignTeamLocation.InnerCity
             : CampaignTeamLocation.NeighborCity;
@@ -1352,8 +1355,7 @@ public partial class BattleSceneController
 
         // Battle damage is held on the live occupant until the campaign snapshot
         // sync.  Copy it before a retreat writes the team back to a city.
-        team.ActiveTroops = Math.Max(0, unit.TroopCount);
-        team.WoundedTroops = Math.Max(0, unit.WoundedTroops);
+        CampaignTroopOriginRules.ApplyCounts(team, unit.TroopCount, unit.WoundedTroops);
 
         if (IsCaravanEscortArrivalExit(unit, grid))
         {
@@ -1626,8 +1628,7 @@ public partial class BattleSceneController
             return;
         }
 
-        team.ActiveTroops = 0;
-        team.WoundedTroops = Math.Max(team.WoundedTroops, unit.WoundedTroops);
+        CampaignTroopOriginRules.ApplyCounts(team, 0, Math.Max(team.WoundedTroops, unit.WoundedTroops));
         team.Location = CampaignTeamLocation.Eliminated;
     }
 

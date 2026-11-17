@@ -505,14 +505,15 @@ public static class BattleCampaignService
 
     public static void BeginNextCampaignMonth(ActiveBattleCampaignData campaign, int year, int month)
     {
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(campaign);
         campaign.CurrentYear = year;
         campaign.CurrentMonth = month;
         campaign.BattleDaysThisMonth = 0;
         var defenderFood = campaign.DefenderFood;
-        RecoverWounded(campaign, CampaignBattleSide.Defender, DefenderCityWoundedRecoveryPercent, ref defenderFood);
+        RecoverWounded(campaign, CampaignBattleSide.Defender, ref defenderFood);
         campaign.DefenderFood = defenderFood;
         var attackerFood = campaign.AttackerFood;
-        RecoverWounded(campaign, CampaignBattleSide.Attacker, AttackerCampWoundedRecoveryPercent, ref attackerFood);
+        RecoverWounded(campaign, CampaignBattleSide.Attacker, ref attackerFood);
         campaign.AttackerFood = attackerFood;
         if (campaign.Stage == CampaignStage.SiegePreparation)
         {
@@ -597,10 +598,13 @@ public static class BattleCampaignService
 
     public static void PromoteReserves(ActiveBattleCampaignData campaign, CampaignBattleSide side)
     {
-        var activeCount = campaign.Teams.Count(team => team.Side == side && IsActiveBattleLocation(campaign, team));
-        var activeSiegeCount = campaign.Teams.Count(team => team.Side == side && IsActiveBattleLocation(campaign, team) && team.TroopType == TroopType.Siege);
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(campaign);
+        var activeCount = campaign.Teams.Count(team => team.Side == side && team.ActiveTroops > 0 && IsActiveBattleLocation(campaign, team));
+        var activeSiegeCount = campaign.Teams.Count(team => team.Side == side && team.ActiveTroops > 0 && IsActiveBattleLocation(campaign, team) && team.TroopType == TroopType.Siege);
         foreach (var team in campaign.Teams
-                     .Where(team => team.Side == side && team.Location == CampaignTeamLocation.Reserve && team.ReinforcementOrderId == 0)
+                     .Where(team => team.Side == side && team.Location == CampaignTeamLocation.Reserve && team.ActiveTroops > 0 &&
+                         (team.ReinforcementOrderId == 0 || campaign.Reinforcements.Any(order =>
+                             order.Id == team.ReinforcementOrderId && order.Status == ReinforcementStatus.Deployed)))
                      .OrderBy(team => team.Id))
         {
             if (campaign.Stage == CampaignStage.FieldBattle && team.SiegeEngineType is SiegeEngineType.Ram or SiegeEngineType.Ladder)
@@ -616,7 +620,7 @@ public static class BattleCampaignService
                 continue;
             }
 
-            team.Location = campaign.Stage == CampaignStage.CityBattle && side == CampaignBattleSide.Defender
+            team.Location = campaign.Stage == CampaignStage.CityBattle && side == CampaignBattleSide.Defender && team.ReinforcementOrderId == 0
                 ? CampaignTeamLocation.InnerCity
                 : CampaignTeamLocation.Field;
             activeCount++;
@@ -632,7 +636,8 @@ public static class BattleCampaignService
                      .ThenBy(item => item.DispatchMonth)
                      .ThenBy(item => item.Id))
         {
-            foreach (var team in order.Teams.Where(team => team.Location == CampaignTeamLocation.Reserve))
+            order.SuppliesDelivered ??= order.Status == ReinforcementStatus.Deployed;
+            foreach (var team in order.Teams.Where(team => team.Location == CampaignTeamLocation.Reserve && team.ActiveTroops > 0))
             {
                 if (campaign.Stage == CampaignStage.FieldBattle && team.SiegeEngineType is SiegeEngineType.Ram or SiegeEngineType.Ladder)
                 {
@@ -654,8 +659,11 @@ public static class BattleCampaignService
                 // A reinforcement is an external force even during a city battle.
                 // Only the city's original defenders may begin inside the walls.
                 team.Location = CampaignTeamLocation.Field;
-                team.Id = campaign.Teams.Count == 0 ? 1 : campaign.Teams.Max(item => item.Id) + 1;
-                campaign.Teams.Add(team);
+                if (!campaign.Teams.Contains(team))
+                {
+                    team.Id = campaign.Teams.Count == 0 ? 1 : campaign.Teams.Max(item => item.Id) + 1;
+                    campaign.Teams.Add(team);
+                }
                 activeCount++;
                 if (team.TroopType == TroopType.Siege)
                 {
@@ -666,7 +674,7 @@ public static class BattleCampaignService
             order.Status = order.Teams.All(team => team.Location != CampaignTeamLocation.Reserve)
                 ? ReinforcementStatus.Deployed
                 : ReinforcementStatus.Reserve;
-            if (order.Status == ReinforcementStatus.Deployed)
+            if (order.Status == ReinforcementStatus.Deployed && order.SuppliesDelivered != true)
             {
                 if (side == CampaignBattleSide.Attacker)
                 {
@@ -682,27 +690,67 @@ public static class BattleCampaignService
                     campaign.DefenderGoldInvested += order.Gold;
                     campaign.DefenderFoodInvested += order.Food;
                 }
+                order.SuppliesDelivered = true;
+                order.SuppliesPendingPlacement = true;
             }
         }
+    }
+
+    public static void MarkCampaignTeamSpawnBlocked(ActiveBattleCampaignData campaign, CampaignBattleTeamData team)
+    {
+        team.Location = CampaignTeamLocation.Reserve;
+        var order = campaign.Reinforcements.FirstOrDefault(item => item.Id == team.ReinforcementOrderId && team.ReinforcementOrderId > 0);
+        if (order == null) return;
+        order.SuppliesDelivered ??= order.Status == ReinforcementStatus.Deployed;
+        // A newly credited order is rolled back before battle resumes. Previously
+        // delivered supplies may already have been spent and must never be revoked.
+        if (order.SuppliesPendingPlacement && order.SuppliesDelivered == true)
+        {
+            if (order.Side == CampaignBattleSide.Attacker && campaign.AttackerGold >= order.Gold && campaign.AttackerFood >= order.Food)
+            {
+                campaign.AttackerGold -= order.Gold; campaign.AttackerFood -= order.Food;
+                campaign.AttackerGoldInvested -= order.Gold; campaign.AttackerFoodInvested -= order.Food;
+                order.SuppliesDelivered = false;
+            }
+            else if (order.Side == CampaignBattleSide.Defender && campaign.DefenderGold >= order.Gold && campaign.DefenderFood >= order.Food)
+            {
+                campaign.DefenderGold -= order.Gold; campaign.DefenderFood -= order.Food;
+                campaign.DefenderGoldInvested -= order.Gold; campaign.DefenderFoodInvested -= order.Food;
+                order.SuppliesDelivered = false;
+            }
+        }
+        order.SuppliesPendingPlacement = false;
+        order.Status = ReinforcementStatus.Reserve;
+    }
+
+    public static void CompleteReinforcementPlacement(ActiveBattleCampaignData campaign)
+    {
+        foreach (var order in campaign.Reinforcements.Where(order => order.Status == ReinforcementStatus.Deployed))
+            order.SuppliesPendingPlacement = false;
     }
 
     private static void RecoverWounded(
         ActiveBattleCampaignData campaign,
         CampaignBattleSide side,
-        int recoveryPercent,
         ref int food)
     {
-        foreach (var team in campaign.Teams.Where(team =>
+        var arrivedReserves = campaign.Reinforcements
+            .Where(order => order.Status is ReinforcementStatus.Arrived or ReinforcementStatus.Reserve)
+            .SelectMany(order => order.Teams).Where(team => team.Location == CampaignTeamLocation.Reserve);
+        foreach (var team in campaign.Teams.Concat(arrivedReserves).Distinct().Where(team =>
                      team.Side == side &&
                      team.WoundedTroops > 0 &&
                      team.Location is CampaignTeamLocation.Field or CampaignTeamLocation.InnerCity or CampaignTeamLocation.Reserve))
         {
+            var recoveryPercent = team.Location == CampaignTeamLocation.Reserve ||
+                                  (side == CampaignBattleSide.Defender && team.Location == CampaignTeamLocation.InnerCity)
+                ? DefenderCityWoundedRecoveryPercent
+                : AttackerCampWoundedRecoveryPercent;
             var capacity = Math.Max(0, team.MaximumTroops - team.ActiveTroops);
             var recoverable = Math.Min(capacity, team.WoundedTroops * recoveryPercent / 100);
             var foodLimitedRecovery = Math.Min(recoverable, Math.Max(0, food) * 20);
             var foodCost = (foodLimitedRecovery + 19) / 20;
-            team.ActiveTroops += foodLimitedRecovery;
-            team.WoundedTroops -= foodLimitedRecovery;
+            CampaignTroopOriginRules.ApplyCounts(team, team.ActiveTroops + foodLimitedRecovery, team.WoundedTroops - foodLimitedRecovery);
             food = Math.Max(0, food - foodCost);
         }
     }
@@ -713,12 +761,17 @@ public static class BattleCampaignService
                      team.Side == CampaignBattleSide.Defender && team.Location == CampaignTeamLocation.InnerCity))
         {
             team.Location = CampaignTeamLocation.Field;
+            // Falling back into the defended city is not a strategic return.
+            // Clear its temporary marker when the same team enters the siege.
+            if (team.RetreatDestinationCityId == campaign.TargetCityId)
+                team.RetreatDestinationCityId = 0;
         }
     }
 
     private static void ReleaseCityBattleSiegeEquipment(ActiveBattleCampaignData campaign)
     {
         PromoteReserves(campaign, CampaignBattleSide.Attacker);
+        PromoteReserves(campaign, CampaignBattleSide.Defender);
     }
 
     private static void UpsertParticipant(
@@ -836,8 +889,15 @@ public static class BattleCampaignService
         SiegeEngineType = team.SiegeEngineType,
         ActiveTroops = team.ActiveTroops,
         WoundedTroops = team.WoundedTroops,
+        WoundedOriginCityId = team.WoundedOriginCityId,
+        TroopOrigins = team.TroopOrigins.Select(item => new CampaignTroopOriginData { CityId = item.CityId, ActiveTroops = item.ActiveTroops, WoundedTroops = item.WoundedTroops }).ToList(),
         MaximumTroops = team.MaximumTroops,
+        ReorganizationCapacity = team.ReorganizationCapacity,
         Morale = team.Morale,
+        MessTurns = team.MessTurns,
+        Energy = team.Energy,
+        WeaponAmmo = team.WeaponAmmo,
+        MaxWeaponAmmo = team.MaxWeaponAmmo,
         ReinforcementOrderId = team.ReinforcementOrderId,
         OriginCityId = team.OriginCityId,
         OfficerReturnCityId = team.OfficerReturnCityId,

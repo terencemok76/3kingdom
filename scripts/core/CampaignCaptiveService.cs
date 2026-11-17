@@ -70,8 +70,7 @@ internal static class CampaignCaptiveService
             officer.CaptiveFactionId = winnerFactionId;
             officer.JailedCityId = jailCityId;
             officer.FreeOfficerStayMonths = 0;
-            team.ActiveTroops = 0;
-            team.WoundedTroops = 0;
+            CampaignTroopOriginRules.ApplyCounts(team, 0, 0);
             team.Location = CampaignTeamLocation.Captured;
             capturedOfficerIds.Add(officer.Id);
         }

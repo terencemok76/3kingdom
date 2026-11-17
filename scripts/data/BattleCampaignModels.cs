@@ -100,11 +100,21 @@ public class CampaignBattleTeamData
     public SiegeEngineType SiegeEngineType { get; set; } = SiegeEngineType.None;
     public int ActiveTroops { get; set; }
     public int WoundedTroops { get; set; }
+    // A zero value denotes a legacy save; OriginCityId remains the fallback.
+    public int WoundedOriginCityId { get; set; }
+    public List<CampaignTroopOriginData> TroopOrigins { get; set; } = new();
     public int MaximumTroops { get; set; }
+    // Zero in older saves until the officer's reorganization capacity is initialized.
+    public int ReorganizationCapacity { get; set; }
     // Survivors already returned to a strategic city remain attributable to
     // this battle when its final report is assembled.
     public int ReturnedTroops { get; set; }
     public int Morale { get; set; } = 100;
+    // Null means a campaign created before these fields existed or a team that has not fought yet.
+    public int? MessTurns { get; set; }
+    public int? Energy { get; set; }
+    public int? WeaponAmmo { get; set; }
+    public int? MaxWeaponAmmo { get; set; }
     public int ReinforcementOrderId { get; set; }
     // Each team may originate from a different city when it is a reinforcement.
     // This is used when an unattended support piece leaves through a retreat exit.
@@ -116,6 +126,13 @@ public class CampaignBattleTeamData
     public int RetreatDestinationCityId { get; set; }
     public CampaignTeamLocation Location { get; set; } = CampaignTeamLocation.Field;
     public string CooperationObjective { get; set; } = string.Empty;
+}
+
+public class CampaignTroopOriginData
+{
+    public int CityId { get; set; }
+    public int ActiveTroops { get; set; }
+    public int WoundedTroops { get; set; }
 }
 
 public class BattleParticipantData
@@ -147,6 +164,9 @@ public class ReinforcementOrderData
     public int Food { get; set; }
     public CampaignSupplyOwnership SupplyOwnership { get; set; } = CampaignSupplyOwnership.MainFaction;
     public ReinforcementStatus Status { get; set; } = ReinforcementStatus.Traveling;
+    // Null is a legacy save: a deployed order had already delivered supplies.
+    public bool? SuppliesDelivered { get; set; }
+    public bool SuppliesPendingPlacement { get; set; }
     public List<CampaignBattleTeamData> Teams { get; set; } = new();
 }
 

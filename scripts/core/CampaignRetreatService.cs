@@ -117,8 +117,7 @@ internal static class CampaignRetreatService
             ? world.GetCity(team.OriginCityId) ?? destination
             : destination;
         ReturnTeamToCity(world, troopDestination, team, destination);
-        team.ActiveTroops = 0;
-        team.WoundedTroops = 0;
+        CampaignTroopOriginRules.ApplyCounts(team, 0, 0);
         team.Location = CampaignTeamLocation.NeighborCity;
         team.RetreatDestinationCityId = destination.Id;
         return true;
@@ -141,8 +140,7 @@ internal static class CampaignRetreatService
         }
 
         ReturnTeamToCity(world, destination, team, destination);
-        team.ActiveTroops = 0;
-        team.WoundedTroops = 0;
+        CampaignTroopOriginRules.ApplyCounts(team, 0, 0);
         team.Location = CampaignTeamLocation.NeighborCity;
         team.RetreatDestinationCityId = destination.Id;
         return true;
@@ -165,8 +163,7 @@ internal static class CampaignRetreatService
         }
 
         ReturnTeamToCity(world, source, team, source);
-        team.ActiveTroops = 0;
-        team.WoundedTroops = 0;
+        CampaignTroopOriginRules.ApplyCounts(team, 0, 0);
         team.Location = CampaignTeamLocation.NeighborCity;
         team.RetreatDestinationCityId = source.Id;
         return true;
@@ -183,8 +180,7 @@ internal static class CampaignRetreatService
         }
 
         ReturnTeamToCity(world, destination, team);
-        team.ActiveTroops = 0;
-        team.WoundedTroops = 0;
+        CampaignTroopOriginRules.ApplyCounts(team, 0, 0);
         team.Location = CampaignTeamLocation.NeighborCity;
         team.RetreatDestinationCityId = destination.Id;
         return true;
@@ -233,6 +229,28 @@ internal static class CampaignRetreatService
                 officer.CityId = officerDestination.Id;
             }
         }
+    }
+
+    // Automatic campaign withdrawal returns mixed-origin troops to their own
+    // friendly origin when possible. Explicit player retreat still uses the
+    // selected destination for the whole team.
+    internal static void ReturnMixedTeamToOrigins(WorldState world, CityData fallback, CampaignBattleTeamData team, CityData officerDestination)
+    {
+        CampaignTroopOriginRules.EnsureInitialized(team);
+        var total = 0;
+        foreach (var origin in team.TroopOrigins)
+        {
+            var city = world.GetCity(origin.CityId);
+            if (city == null || city.OwnerFactionId != team.FactionId) city = fallback;
+            var troops = Math.Max(0, origin.ActiveTroops) + Math.Max(0, origin.WoundedTroops);
+            city.AddTroops(team.TroopType, troops);
+            total += troops;
+        }
+        team.ReturnedTroops += total;
+        if (team.OfficerId <= 0) return;
+        RemoveOfficerFromAllCities(world, team.OfficerId);
+        if (!officerDestination.OfficerIds.Contains(team.OfficerId)) officerDestination.OfficerIds.Add(team.OfficerId);
+        if (world.GetOfficer(team.OfficerId) is { } officer) officer.CityId = officerDestination.Id;
     }
 
     private static void AddBattleEquipment(CityData city, BattleEquipmentType equipmentType)

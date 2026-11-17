@@ -287,10 +287,23 @@ public static class CovertOfficerRules
         var officer = world.GetOfficer(team.OfficerId);
         if (origin == null || sponsorCity == null || sponsor == null || original == null || officer == null) return false;
 
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(campaign);
+        var originalOrder = campaign.Reinforcements.FirstOrDefault(order => order.Id == team.ReinforcementOrderId);
+        originalOrder?.Teams.Remove(team);
         var (joining, withdrawing) = SplitTroops(team.ActiveTroops);
         var returned = withdrawing + Math.Max(0, team.WoundedTroops);
-        origin.AddTroops(team.TroopType, returned);
         var previousMaximum = Math.Max(team.MaximumTroops, team.ActiveTroops + team.WoundedTroops);
+        CampaignTroopOriginRules.EnsureInitialized(team);
+        var before = team.TroopOrigins.GroupBy(item => item.CityId)
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.ActiveTroops + item.WoundedTroops));
+        CampaignTroopOriginRules.ApplyCounts(team, joining, 0);
+        foreach (var entry in before)
+        {
+            var remaining = team.TroopOrigins.Where(item => item.CityId == entry.Key).Sum(item => item.ActiveTroops + item.WoundedTroops);
+            var returnCity = world.GetCity(entry.Key);
+            if (returnCity == null || returnCity.OwnerFactionId != agent.OriginalFactionId) returnCity = origin;
+            returnCity.AddTroops(team.TroopType, entry.Value - remaining);
+        }
         campaign.Teams.Add(new CampaignBattleTeamData
         {
             Id = campaign.Teams.Count == 0 ? 1 : campaign.Teams.Max(item => item.Id) + 1,
@@ -312,8 +325,6 @@ public static class CovertOfficerRules
         team.Side = newSide;
         team.FactionId = sponsor.Id;
         team.ControllerType = sponsor.IsPlayer ? CampaignControllerType.Player : CampaignControllerType.Ai;
-        team.ActiveTroops = joining;
-        team.WoundedTroops = 0;
         team.MaximumTroops = joining;
         team.ReturnedTroops = 0;
         team.OriginCityId = sponsorCity.Id;
