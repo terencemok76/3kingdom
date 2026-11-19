@@ -20,12 +20,14 @@ internal static partial class Program
         world.DiplomacyRelations.Add(new DiplomacyRelationData { FactionAId = 1, FactionBId = 3, Status = DiplomacyStatusType.Alliance, RemainingMonths = 12, RelationScore = 80 });
         var request = new PrewarAllianceRequestData { InviterFactionId = 1, AllyFactionId = 3, TargetCityId = 2, EnvoyOfficerId = 102, RequestedTroops = 600, PromisedGold = 100 };
         var accepted = BattleCampaignService.TryAcceptPrewarAlliance(world, request);
+        var envoyLocked = BattleCampaignService.IsOfficerCommitted(world, request.EnvoyOfficerId);
         var duplicateRejected = !BattleCampaignService.TryAcceptPrewarAlliance(world, request);
         var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
         BattleCampaignService.DispatchPrewarAllies(world, campaign);
+        ResolveScheduledAiReplies(world, campaign);
         var order = campaign.Reinforcements.SingleOrDefault(item => item.FactionId == 3);
         BattleCampaignService.DispatchPrewarAllies(world, campaign);
-        Assert(accepted && duplicateRejected && order != null && order.Side == CampaignBattleSide.Attacker && order.Status == ReinforcementStatus.Traveling &&
+        Assert(accepted && envoyLocked && duplicateRejected && order != null && order.Side == CampaignBattleSide.Attacker && order.Status == ReinforcementStatus.Traveling &&
                order.SourceCityId == 4 && order.Teams.Count > 0 && world.PrewarAllianceRequests.Count == 0 && campaign.Reinforcements.Count == 1 && campaign.Invitations.Single().PromisedGold == 100,
             "Prewar ally accepts then dispatches once when the target is attacked", $"accepted={accepted}, duplicateRejected={duplicateRejected}, order={order?.Status}, teams={order?.Teams.Count}");
     }

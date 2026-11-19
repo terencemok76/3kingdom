@@ -29,7 +29,11 @@ internal sealed partial class AttackDialogController : FloatingOverlayController
     private Label? _defenseSupportLabel;
     private OptionButton? _defenseSupportSource;
     private SpinBox? _defenseSupportTroops;
+    private HBoxContainer? _defenseRequestResources;
+    private SpinBox? _defenseRequestGold;
+    private SpinBox? _defenseRequestFood;
     private Button? _defenseSupportAddButton;
+    private Button? _defenseSupportRemoveButton;
     private Label? _defenseSupportSummary;
     private HBoxContainer? _defensePromiseRow;
     private Label? _defensePromiseLabel;
@@ -38,6 +42,7 @@ internal sealed partial class AttackDialogController : FloatingOverlayController
     private HBoxContainer? _defenseMessengerRow;
     private Label? _defenseMessengerLabel;
     private OptionButton? _defenseMessengerOption;
+    private Label? _defenseResponseEstimate;
     private SpinBox? _goldSpinBox;
     private SpinBox? _foodSpinBox;
     private Tree? _officerList;
@@ -116,8 +121,8 @@ internal sealed partial class AttackDialogController : FloatingOverlayController
         SetLabelText("DeploymentListLabel", isDefenseMode
             ? (_context.Localization.T("ui.defense_deployments") ?? "Defense Deployments")
             : _context.Localization.T("ui.attack_deployments"));
-        SetFieldRowVisible("GoldRow", !isDefenseMode);
-        SetFieldRowVisible("FoodRow", !isDefenseMode);
+        SetFieldRowVisible("GoldRow", !isDefenseMode || _editingDomesticReinforcement);
+        SetFieldRowVisible("FoodRow", !isDefenseMode || _editingDomesticReinforcement);
         if (_attackAdviceButton != null)
         {
             _attackAdviceButton.Visible = !isDefenseMode && !isReinforcement;
@@ -126,6 +131,12 @@ internal sealed partial class AttackDialogController : FloatingOverlayController
         if (_defenseSupportRow != null)
         {
             _defenseSupportRow.Visible = isDefenseMode;
+        }
+        if (!isDefenseMode)
+        {
+            if (_defenseRequestResources != null) _defenseRequestResources.Visible = false;
+            if (_defensePromiseRow != null) _defensePromiseRow.Visible = false;
+            if (_defenseResponseEstimate != null) _defenseResponseEstimate.Visible = false;
         }
         if (_defenseMessengerRow != null)
         {
@@ -283,7 +294,11 @@ internal sealed partial class AttackDialogController : FloatingOverlayController
         _defenseSupportLabel = root.GetNodeOrNull<Label>("DefenseSupportRow/DefenseSupportLabel");
         _defenseSupportSource = root.GetNodeOrNull<OptionButton>("DefenseSupportRow/DefenseSupportSource");
         _defenseSupportTroops = root.GetNodeOrNull<SpinBox>("DefenseSupportRow/DefenseSupportTroops");
+        _defenseRequestResources = root.GetNodeOrNull<HBoxContainer>("DefenseRequestResources");
+        _defenseRequestGold = root.GetNodeOrNull<SpinBox>("DefenseRequestResources/Gold");
+        _defenseRequestFood = root.GetNodeOrNull<SpinBox>("DefenseRequestResources/Food");
         _defenseSupportAddButton = root.GetNodeOrNull<Button>("DefenseSupportRow/DefenseSupportAddButton");
+        _defenseSupportRemoveButton = root.GetNodeOrNull<Button>("DefenseSupportRow/DefenseSupportRemoveButton");
         _defenseSupportSummary = root.GetNodeOrNull<Label>("DefenseSupportSummary");
         _defensePromiseRow = root.GetNodeOrNull<HBoxContainer>("DefensePromiseRow");
         _defensePromiseLabel = root.GetNodeOrNull<Label>("DefensePromiseRow/DefensePromiseLabel");
@@ -292,6 +307,7 @@ internal sealed partial class AttackDialogController : FloatingOverlayController
         _defenseMessengerRow = root.GetNodeOrNull<HBoxContainer>("DefenseMessengerRow");
         _defenseMessengerLabel = root.GetNodeOrNull<Label>("DefenseMessengerRow/DefenseMessengerLabel");
         _defenseMessengerOption = root.GetNodeOrNull<OptionButton>("DefenseMessengerRow/DefenseMessengerOption");
+        _defenseResponseEstimate = root.GetNodeOrNull<Label>("DefenseResponseEstimate");
         _goldSpinBox = root.GetNodeOrNull<SpinBox>("GoldRow/GoldSpinBox");
         _foodSpinBox = root.GetNodeOrNull<SpinBox>("FoodRow/FoodSpinBox");
         _officerList = root.GetNodeOrNull<Tree>("OfficerTable");
@@ -347,6 +363,11 @@ internal sealed partial class AttackDialogController : FloatingOverlayController
         {
             _context.ApplyCommandButtonTheme(_defenseSupportAddButton);
             _defenseSupportAddButton.Pressed += OnDefenseSupportAddPressed;
+        }
+        if (_defenseSupportRemoveButton != null)
+        {
+            _context.ApplyCommandButtonTheme(_defenseSupportRemoveButton);
+            _defenseSupportRemoveButton.Pressed += OnDefenseSupportRemovePressed;
         }
         if (_defenseMessengerOption != null)
         {

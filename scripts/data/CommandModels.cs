@@ -247,6 +247,7 @@ public class PendingCommandData
     // Chosen while the player configures a defense.  These are dispatched only
     // after the campaign exists, so their ETA starts on battle day one.
     public List<DefenseReinforcementRequestData> DefenseReinforcementRequests { get; set; } = new();
+    public PlayerCampaignSupportRequestData? PlayerSupportRequest { get; set; }
     public DefenderBattlePlan DefenderBattlePlan { get; set; } = DefenderBattlePlan.CityDefense;
     public DefenderBattlePlan? DefenderBattlePlanOverride { get; set; }
     public int TargetFactionId { get; set; }
@@ -255,12 +256,31 @@ public class PendingCommandData
     public List<int> CaptiveOfficerIds { get; set; } = new();
 }
 
+public class PlayerCampaignSupportRequestData
+{
+    public CampaignBattleSide Side { get; set; }
+    public int InviterFactionId { get; set; }
+    public int EnvoyOfficerId { get; set; }
+    public int RequestedTroops { get; set; }
+    public int RequestedGold { get; set; }
+    public int RequestedFood { get; set; }
+    public BattleInvitationStatus Status { get; set; } = BattleInvitationStatus.Pending;
+    public int SourceCityId { get; set; }
+    public int OfficerId { get; set; }
+    public TroopType TroopType { get; set; } = TroopType.Infantry;
+    public int Troops { get; set; }
+    public int Gold { get; set; }
+    public int Food { get; set; }
+}
+
 public class DefenseReinforcementRequestData
 {
     public int SourceCityId { get; set; }
     public bool IsAllianceRequest { get; set; }
     public int EnvoyOfficerId { get; set; }
     public int RequestedTroops { get; set; }
+    public int RequestedGold { get; set; }
+    public int RequestedFood { get; set; }
     public int PromisedGold { get; set; }
     public int PromisedFood { get; set; }
     public List<AttackOfficerDeploymentData> Deployments { get; set; } = new();

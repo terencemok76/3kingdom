@@ -89,12 +89,18 @@ internal static class BattleCampaignCreationService
                 attackingSourceCity.Id));
         }
 
+        // Envoys assigned to pre-battle support requests cannot simultaneously
+        // be assigned to either the field force or the automatic city garrison.
+        var envoyIds = attack.DefenseReinforcementRequests
+            .Where(request => request.IsAllianceRequest && request.EnvoyOfficerId > 0)
+            .Select(request => request.EnvoyOfficerId).ToHashSet();
         var defenderDeployments = attack.DefenderOfficerDeployments.Count > 0
-            ? CloneDeployments(attack.DefenderOfficerDeployments)
+            ? CloneDeployments(attack.DefenderOfficerDeployments.Where(deployment => !envoyIds.Contains(deployment.OfficerId)))
             : CreateDefaultDefenderDeployments(
                 targetCity,
                 defenderPlan == DefenderBattlePlan.FieldIntercept ? 70 : 100,
-                defenderPlan == DefenderBattlePlan.FieldIntercept);
+                defenderPlan == DefenderBattlePlan.FieldIntercept,
+                envoyIds);
         var defenderAllocation = BuildTroopAllocation(defenderDeployments);
         defenderAllocation.Siege += Math.Max(0, attack.DefenderBattleSupport?.TotalEngineerCount ?? 0);
         targetCity.RemoveTroopAllocation(defenderAllocation);
@@ -130,6 +136,7 @@ internal static class BattleCampaignCreationService
         if (defenderPlan == DefenderBattlePlan.FieldIntercept)
         {
             var usedOfficerIds = defenderDeployments.Select(item => item.OfficerId).ToHashSet();
+            usedOfficerIds.UnionWith(envoyIds);
             var cityDefenseDeployments = CreateDefaultDefenderDeployments(targetCity, 100, false, usedOfficerIds);
             var cityDefenseAllocation = BuildTroopAllocation(cityDefenseDeployments);
             targetCity.RemoveTroopAllocation(cityDefenseAllocation);

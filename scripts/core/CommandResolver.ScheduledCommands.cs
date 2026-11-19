@@ -1239,8 +1239,11 @@ public partial class CommandResolver
             ? CreateTroopAllocationFromAttackDeployments(pendingCommand.DefenderOfficerDeployments)
             : null;
         var playerFactionId = _turnManager?.GetPlayerFactionId() ?? -1;
+        var playerSupport = pendingCommand.PlayerSupportRequest;
+        var playerSupportAccepted = playerSupport is { Status: BattleInvitationStatus.Accepted } &&
+            AiPlayerCampaignSupportRules.ValidateResponse(world, pendingCommand, playerSupport);
         if (world.InteractiveBattlesEnabled &&
-            (sourceCity.OwnerFactionId == playerFactionId || defendingFactionId == playerFactionId))
+            (sourceCity.OwnerFactionId == playerFactionId || defendingFactionId == playerFactionId || playerSupportAccepted))
         {
             var jointAttacks = GetPendingJointAttacks(world, pendingCommand);
             var defenderPlan = defendingFactionId == playerFactionId
@@ -1249,6 +1252,22 @@ public partial class CommandResolver
             var campaign = BattleCampaignService.CreateCampaign(world, pendingCommand, defenderPlan, jointAttacks);
             BattleCampaignService.DispatchPrewarAllies(world, campaign);
             BattleCampaignService.DispatchDefenseReinforcementRequests(world, campaign, pendingCommand);
+            if (playerSupportAccepted && playerSupport != null)
+            {
+                var deployments = playerSupport.Troops > 0
+                    ? new List<AttackOfficerDeploymentData> { new() { OfficerId = playerSupport.OfficerId, TroopType = playerSupport.TroopType, TroopCount = playerSupport.Troops } }
+                    : new List<AttackOfficerDeploymentData>();
+                var invitation = BattleCampaignService.CreateInvitation(campaign, playerSupport.InviterFactionId, playerFactionId, playerSupport.Side,
+                    BattleCampaignService.GetRequestedSupportType(playerSupport.RequestedTroops, playerSupport.RequestedGold, playerSupport.RequestedFood),
+                    playerSupport.EnvoyOfficerId, playerSupport.RequestedTroops, playerSupport.RequestedGold, playerSupport.RequestedFood, playerSupport.SourceCityId);
+                BattleCampaignService.DispatchReinforcement(world, campaign, playerSupport.SourceCityId, playerSupport.Side, deployments,
+                    playerSupport.Gold, playerSupport.Food, playerSupport.Troops > 0 ? CampaignSupplyOwnership.Expedition : CampaignSupplyOwnership.Gift);
+                invitation.Status = BattleInvitationStatus.Accepted;
+                invitation.DecisionReason = "Player accepted support request.";
+                campaign.IsPlayerInvolved = true;
+            }
+            AiCampaignSupportPlanner.TryRequestSupport(world, campaign, CampaignBattleSide.Attacker);
+            AiCampaignSupportPlanner.TryRequestSupport(world, campaign, CampaignBattleSide.Defender);
             foreach (var jointAttack in jointAttacks)
             {
                 world.PendingCommands.Remove(jointAttack);

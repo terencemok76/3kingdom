@@ -72,6 +72,7 @@ public static class BattleCampaignService
     public static ActiveBattleCampaignData CreateCaravanEscortCampaign(WorldState world, CityData sourceCity, CityData targetCity, TroopAllocationData escort, IReadOnlyCollection<int> officerIds, int gold, int food, int horses, int wood, int metal, int stone, SiegeEngineAllocationData equipment) =>
         BattleCampaignCreationService.CreateCaravanEscortCampaign(world, sourceCity, targetCity, escort, officerIds, gold, food, horses, wood, metal, stone, equipment);
     public static bool IsOfficerCommitted(WorldState world, int officerId) =>
+        world.PrewarAllianceRequests.Any(request => request.EnvoyOfficerId == officerId) ||
         world.ActiveBattleCampaigns.Any(campaign =>
             campaign.Stage != CampaignStage.Resolved &&
             (campaign.Teams.Any(team => team.OfficerId == officerId &&
@@ -80,7 +81,7 @@ public static class BattleCampaignService
                  (order.Status is ReinforcementStatus.Traveling or ReinforcementStatus.Arrived or ReinforcementStatus.Reserve or ReinforcementStatus.Deployed) &&
                  order.Teams.Any(team => team.OfficerId == officerId)) ||
              campaign.Invitations.Any(invitation =>
-                 invitation.Status is BattleInvitationStatus.Pending or BattleInvitationStatus.Accepted &&
+                 invitation.Status == BattleInvitationStatus.Pending &&
                  invitation.EnvoyOfficerId == officerId)));
 
     public static int GetFriendlyRouteLinks(WorldState world, int sourceCityId, int targetCityId, int factionId) =>
@@ -93,12 +94,15 @@ public static class BattleCampaignService
         if (target == null || target.OwnerFactionId <= 0 ||
             target.OwnerFactionId == request.InviterFactionId || target.OwnerFactionId == request.AllyFactionId ||
             relation is not { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 } ||
-            request.RequestedTroops <= 0 ||
+            (request.RequestedTroops <= 0 && request.RequestedGold <= 0 && request.RequestedFood <= 0) ||
+            (request.SourceCityId > 0 && (world.GetCity(request.SourceCityId)?.OwnerFactionId != request.AllyFactionId ||
+                FindFriendlyRouteLinks(world, request.SourceCityId, request.TargetCityId, request.AllyFactionId) <= 0)) ||
             world.PrewarAllianceRequests.Any(item => item.InviterFactionId == request.InviterFactionId && item.AllyFactionId == request.AllyFactionId && item.TargetCityId == request.TargetCityId)) return false;
         var trust = DiplomacyScoreRules.GetTrustScore(relation, request.AllyFactionId, request.InviterFactionId);
         var threat = DiplomacyScoreRules.CalculateThreatScore(world, request.AllyFactionId, request.InviterFactionId, relation);
         var envoy = world.GetOfficer(request.EnvoyOfficerId);
-        var safeTroops = world.Cities.Where(c => c.OwnerFactionId == request.AllyFactionId).Select(c => Math.Max(0, c.Troops - MinimumCityGarrison)).DefaultIfEmpty(0).Max();
+        var safeTroops = world.Cities.Where(c => c.OwnerFactionId == request.AllyFactionId && (request.SourceCityId <= 0 || c.Id == request.SourceCityId))
+            .Select(c => Math.Max(0, c.Troops - MinimumCityGarrison)).DefaultIfEmpty(0).Max();
         var score = relation.RelationScore + (trust - 50) / 2 + 35 + Math.Min(25, safeTroops / 400) +
                     (envoy == null ? 0 : Math.Min(20, (envoy.Intelligence + envoy.Charm) / 10)) - threat / 5;
         if (score < 45) return false;
@@ -115,15 +119,110 @@ public static class BattleCampaignService
             world.PrewarAllianceRequests.Remove(request);
             var relation = world.GetDiplomacyRelation(request.InviterFactionId, request.AllyFactionId);
             var invitation = CreateInvitation(campaign, request.InviterFactionId, request.AllyFactionId,
-                CampaignBattleSide.Attacker, BattleInvitationSupportType.Troops, request.EnvoyOfficerId,
-                request.RequestedTroops, 0, 0, 0, request.PromisedGold, request.PromisedFood);
+                CampaignBattleSide.Attacker, GetRequestedSupportType(request.RequestedTroops, request.RequestedGold, request.RequestedFood), request.EnvoyOfficerId,
+                request.RequestedTroops, request.RequestedGold, request.RequestedFood, request.SourceCityId, request.PromisedGold, request.PromisedFood);
             if (world.GetCity(request.TargetCityId)?.OwnerFactionId != request.TargetFactionId ||
                 relation is not { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 })
             {
                 invitation.Status = BattleInvitationStatus.Declined;
                 invitation.DecisionReason = "Circumstances changed.";
             }
-            else ResolveAiInvitation(world, campaign, invitation);
+            else ScheduleInvitationResponse(world, campaign, invitation);
+        }
+    }
+
+    public static BattleInvitationSupportType GetRequestedSupportType(int troops, int gold, int food) =>
+        troops <= 0 ? BattleInvitationSupportType.Resources :
+        gold > 0 || food > 0 ? BattleInvitationSupportType.FullSupport : BattleInvitationSupportType.Troops;
+
+    public static void ScheduleInvitationResponse(WorldState world, ActiveBattleCampaignData campaign, BattleInvitationData invitation)
+    {
+        if (invitation.Status != BattleInvitationStatus.Pending) return;
+        invitation.ResponseBattleDays = GetInvitationResponseDays(world, campaign.TargetCityId, invitation.InvitedFactionId,
+            invitation.RequestedSourceCityId, invitation.EnvoyOfficerId);
+        invitation.DecisionReason = "Awaiting envoy response.";
+    }
+
+    public static int GetInvitationResponseDays(WorldState world, int targetCityId, int invitedFactionId, int sourceCityId, int envoyOfficerId)
+    {
+        var envoy = world.GetOfficer(envoyOfficerId);
+        var skill = Math.Clamp((envoy?.Intelligence ?? 50) + (envoy?.Charm ?? 50), 0, 200);
+        var baseDays = skill >= 160 ? 1 : skill >= 100 ? 2 : 3;
+        var links = sourceCityId > 0
+            ? FindFriendlyRouteLinks(world, sourceCityId, targetCityId, invitedFactionId)
+            : 1;
+        return baseDays + Math.Clamp(links - 1, 0, 2);
+    }
+
+    public static void AdvanceInvitationResponses(WorldState world, ActiveBattleCampaignData campaign, int elapsedDays = 1)
+    {
+        if (campaign.Stage == CampaignStage.Resolved || elapsedDays <= 0) return;
+        foreach (var invitation in campaign.Invitations.Where(item => item.Status == BattleInvitationStatus.Pending).ToList())
+        {
+            var remainingBefore = invitation.ResponseBattleDays;
+            invitation.ResponseBattleDays = Math.Max(0, invitation.ResponseBattleDays - elapsedDays);
+            if (invitation.ResponseBattleDays == 0 && world.GetFaction(invitation.InvitedFactionId)?.IsPlayer != true)
+            {
+                var previousCount = campaign.Reinforcements.Count;
+                if (ResolveAiInvitation(world, campaign, invitation) && elapsedDays > remainingBefore)
+                {
+                    // A siege preparation interval can contain travel after the
+                    // reply; only newly dispatched orders receive those days.
+                    foreach (var order in campaign.Reinforcements.Skip(previousCount))
+                    {
+                        order.RemainingBattleDays = Math.Max(0, order.RemainingBattleDays - (elapsedDays - remainingBefore));
+                        if (order.RemainingBattleDays != 0) continue;
+                        order.Status = ReinforcementStatus.Arrived;
+                        foreach (var team in order.Teams) team.Location = CampaignTeamLocation.Reserve;
+                    }
+                }
+                if (invitation.Status == BattleInvitationStatus.Declined)
+                    ReturnDeclinedEnvoy(world, campaign, invitation);
+            }
+        }
+        FillReturningEnvoys(campaign);
+    }
+
+    public static void ReturnDeclinedEnvoy(WorldState world, ActiveBattleCampaignData campaign, BattleInvitationData invitation)
+    {
+        var officer = world.GetOfficer(invitation.EnvoyOfficerId);
+        var faction = world.GetFaction(invitation.InviterFactionId);
+        if (campaign.Stage == CampaignStage.Resolved || invitation.Status != BattleInvitationStatus.Declined ||
+            officer == null || faction == null || !faction.OfficerIds.Contains(officer.Id) || officer.CaptiveFactionId > 0 ||
+            (officer.DeathYear > 0 && world.Year > officer.DeathYear) ||
+            campaign.Teams.Concat(campaign.Reinforcements.SelectMany(order => order.Teams)).Any(team => team.OfficerId == officer.Id)) return;
+
+        campaign.Teams.Add(new CampaignBattleTeamData
+        {
+            Id = campaign.Teams.Count == 0 ? 1 : campaign.Teams.Max(team => team.Id) + 1,
+            FactionId = faction.Id, Side = invitation.Side,
+            ControllerType = faction.IsPlayer ? CampaignControllerType.Player : CampaignControllerType.Ai,
+            OfficerId = officer.Id, OriginCityId = officer.CityId,
+            ReorganizationCapacity = CampaignReorganizationRules.GetOfficerCapacity(officer),
+            Location = CampaignTeamLocation.Reserve, AwaitingEnvoyReserveTroops = true
+        });
+        FillReturningEnvoys(campaign);
+    }
+
+    private static void FillReturningEnvoys(ActiveBattleCampaignData campaign)
+    {
+        foreach (var envoy in campaign.Teams.Where(team => team.AwaitingEnvoyReserveTroops && team.Location == CampaignTeamLocation.Reserve).ToList())
+        {
+            if (envoy.ActiveTroops > 0) { envoy.AwaitingEnvoyReserveTroops = false; continue; }
+            var donors = CampaignReorganizationRules.GetEligibleTeams(campaign, envoy.FactionId, envoy.ControllerType)
+                .Where(team => team != envoy && team.Side == envoy.Side && team.Location == CampaignTeamLocation.Reserve && team.ActiveTroops > 0)
+                .OrderByDescending(team => team.ActiveTroops).ThenBy(team => team.Id).ToList();
+            if (donors.Count == 0) continue;
+            envoy.TroopType = donors[0].TroopType;
+            var remaining = Math.Min(1000, CampaignReorganizationRules.GetCapacity(envoy));
+            foreach (var donor in donors.Where(team => team.TroopType == envoy.TroopType))
+            {
+                var amount = Math.Min(remaining, Math.Min(donor.ActiveTroops, donor.MaximumTroops));
+                if (amount > 0 && CampaignReorganizationRules.TryTransfer(campaign, envoy.FactionId, donor, envoy, amount, 0, envoy.ControllerType, out _))
+                    remaining -= amount;
+                if (remaining <= 0) break;
+            }
+            if (envoy.ActiveTroops > 0) envoy.AwaitingEnvoyReserveTroops = false;
         }
     }
 
@@ -274,6 +373,16 @@ public static class BattleCampaignService
 
     public static bool ResolveAiInvitation(WorldState world, ActiveBattleCampaignData campaign, BattleInvitationData invitation)
     {
+        if (campaign.Stage == CampaignStage.Resolved || invitation.Status != BattleInvitationStatus.Pending ||
+            world.GetFaction(invitation.InvitedFactionId)?.IsPlayer == true) return false;
+        if (invitation.EnvoyOfficerId > 0 && (world.GetOfficer(invitation.EnvoyOfficerId) is not { } messenger ||
+            messenger.CaptiveFactionId > 0 || (messenger.DeathYear > 0 && world.Year > messenger.DeathYear) ||
+            world.GetFaction(invitation.InviterFactionId)?.OfficerIds.Contains(invitation.EnvoyOfficerId) != true))
+        {
+            invitation.Status = BattleInvitationStatus.Declined;
+            invitation.DecisionReason = "Envoy is no longer available.";
+            return false;
+        }
         var relation = world.GetDiplomacyRelation(invitation.InviterFactionId, invitation.InvitedFactionId);
         var isAlliance = relation is { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 };
         var resourcesOnly = invitation.SupportType == BattleInvitationSupportType.Resources;
@@ -372,7 +481,10 @@ public static class BattleCampaignService
         var teamLimit = requestedTroops <= 400 ? 1 : requestedTroops <= 1000 ? 2 : 3;
         var selectedOfficers = sourceCity.OfficerIds
             .Select(world.GetOfficer)
-            .Where(officer => officer != null)
+            .Where(officer => officer != null && !IsOfficerCommitted(world, officer.Id) &&
+                !OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id) &&
+                !(officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month) &&
+                !world.InternalAffairsSchedules.Any(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.OfficerId == officer.Id))
             .Cast<OfficerData>()
             .OrderByDescending(officer => officer.Leadership + officer.Combat)
             .ThenByDescending(officer => officer.Intelligence)
@@ -397,7 +509,8 @@ public static class BattleCampaignService
             Id = order.Teams.Count + 1,
             FactionId = sourceCity.OwnerFactionId,
             Side = invitation.Side,
-            ControllerType = CampaignControllerType.Player,
+            ControllerType = world.Factions.Any(faction => faction.IsPlayer && faction.OfficerIds.Contains(invitation.EnvoyOfficerId))
+                ? CampaignControllerType.Player : CampaignControllerType.Ai,
             OfficerId = invitation.EnvoyOfficerId,
             TroopType = TroopType.Infantry,
             ActiveTroops = troopCount,
@@ -439,20 +552,21 @@ public static class BattleCampaignService
                 if (!request.IsAllianceRequest && source.OwnerFactionId == campaign.DefenderFactionId)
                 {
                     DispatchReinforcement(world, campaign, source.Id, CampaignBattleSide.Defender,
-                        request.Deployments, 0, 0);
+                        request.Deployments, request.RequestedGold, request.RequestedFood);
                     continue;
                 }
 
-                if (!request.IsAllianceRequest || source.OwnerFactionId == campaign.DefenderFactionId)
+                if (!request.IsAllianceRequest || source.OwnerFactionId == campaign.DefenderFactionId || source.OwnerFactionId == campaign.AttackerFactionId ||
+                    (request.RequestedTroops <= 0 && request.RequestedGold <= 0 && request.RequestedFood <= 0))
                 {
                     continue;
                 }
 
                 var invitation = CreateInvitation(campaign, campaign.DefenderFactionId,
                     source.OwnerFactionId, CampaignBattleSide.Defender,
-                    BattleInvitationSupportType.Troops, request.EnvoyOfficerId, request.RequestedTroops, 0, 0, source.Id,
+                    GetRequestedSupportType(request.RequestedTroops, request.RequestedGold, request.RequestedFood), request.EnvoyOfficerId, request.RequestedTroops, request.RequestedGold, request.RequestedFood, source.Id,
                     request.PromisedGold, request.PromisedFood);
-                ResolveAiInvitation(world, campaign, invitation);
+                ScheduleInvitationResponse(world, campaign, invitation);
             }
             catch (ReinforcementDispatchException)
             {
@@ -462,7 +576,7 @@ public static class BattleCampaignService
         }
     }
 
-    public static void AdvanceCompletedBattleDay(ActiveBattleCampaignData campaign)
+    public static void AdvanceCompletedBattleDay(ActiveBattleCampaignData campaign, WorldState? world = null)
     {
         campaign.BattleDaysThisMonth++;
         campaign.TotalBattleDays++;
@@ -493,6 +607,10 @@ public static class BattleCampaignService
                 team.Location = CampaignTeamLocation.Reserve;
             }
         }
+
+        // Resolve after advancing existing orders: newly dispatched support starts
+        // its travel clock on the following battle day.
+        if (world != null) AdvanceInvitationResponses(world, campaign);
 
         PromoteReserves(campaign, CampaignBattleSide.Attacker);
         PromoteReserves(campaign, CampaignBattleSide.Defender);
@@ -893,6 +1011,7 @@ public static class BattleCampaignService
         TroopOrigins = team.TroopOrigins.Select(item => new CampaignTroopOriginData { CityId = item.CityId, ActiveTroops = item.ActiveTroops, WoundedTroops = item.WoundedTroops }).ToList(),
         MaximumTroops = team.MaximumTroops,
         ReorganizationCapacity = team.ReorganizationCapacity,
+        AwaitingEnvoyReserveTroops = team.AwaitingEnvoyReserveTroops,
         Morale = team.Morale,
         MessTurns = team.MessTurns,
         Energy = team.Energy,

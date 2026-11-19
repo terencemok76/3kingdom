@@ -44,12 +44,30 @@ public static class CampaignReorganizationRules
                 if (existing != null) order.Teams[index] = existing;
             }
         }
+
+        // Campaigns saved before OriginCityId existed still need an origin
+        // before a cross-city transfer creates their first troop ledger.
+        foreach (var team in campaign.Teams)
+        {
+            var order = campaign.Reinforcements.FirstOrDefault(item => team.ReinforcementOrderId > 0 && item.Id == team.ReinforcementOrderId);
+            InitializeLegacyOrigin(campaign, team, order);
+        }
+        foreach (var order in campaign.Reinforcements)
+            foreach (var team in order.Teams)
+                InitializeLegacyOrigin(campaign, team, order);
+    }
+
+    private static void InitializeLegacyOrigin(ActiveBattleCampaignData campaign, CampaignBattleTeamData team, ReinforcementOrderData? order)
+    {
+        if (team.OriginCityId > 0) return;
+        team.OriginCityId = order?.SourceCityId > 0 ? order.SourceCityId :
+            team.Side == CampaignBattleSide.Attacker ? campaign.SourceCityId : campaign.TargetCityId;
     }
 
     public static List<CampaignBattleTeamData> GetEligibleTeams(ActiveBattleCampaignData campaign, int factionId) =>
         GetEligibleTeams(campaign, factionId, CampaignControllerType.Player);
 
-    private static List<CampaignBattleTeamData> GetEligibleTeams(ActiveBattleCampaignData campaign, int factionId, CampaignControllerType controller)
+    internal static List<CampaignBattleTeamData> GetEligibleTeams(ActiveBattleCampaignData campaign, int factionId, CampaignControllerType controller)
     {
         SynchronizeReinforcementTeamReferences(campaign);
         var teams = campaign.Teams.Where(team => IsEligible(team, factionId, controller)).ToList();
@@ -79,7 +97,7 @@ public static class CampaignReorganizationRules
     public static bool TryTransfer(ActiveBattleCampaignData campaign, int factionId, CampaignBattleTeamData? source, CampaignBattleTeamData? target, int active, int wounded, out string error)
         => TryTransfer(campaign, factionId, source, target, active, wounded, CampaignControllerType.Player, out error);
 
-    private static bool TryTransfer(ActiveBattleCampaignData campaign, int factionId, CampaignBattleTeamData? source, CampaignBattleTeamData? target, int active, int wounded, CampaignControllerType controller, out string error)
+    internal static bool TryTransfer(ActiveBattleCampaignData campaign, int factionId, CampaignBattleTeamData? source, CampaignBattleTeamData? target, int active, int wounded, CampaignControllerType controller, out string error)
     {
         error = string.Empty;
         var eligible = GetEligibleTeams(campaign, factionId, controller);

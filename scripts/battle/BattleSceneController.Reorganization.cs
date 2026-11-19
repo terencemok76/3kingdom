@@ -55,17 +55,23 @@ public partial class BattleSceneController
         void RefreshOrigins()
         {
             if (from.Selected < 0 || to.Selected < 0) { origins.Text = string.Empty; return; }
-            string Describe(CampaignBattleTeamData team)
+            string Describe(System.Collections.Generic.IEnumerable<CampaignTroopOriginData> items)
             {
-                CampaignTroopOriginRules.EnsureInitialized(team);
-                return string.Join("; ", team.TroopOrigins.OrderBy(item => item.CityId).Select(item =>
+                return string.Join("; ", items.OrderBy(item => item.CityId).Select(item =>
                 {
                     var city = world.GetCity(item.CityId);
                     var name = city == null ? item.CityId.ToString() : _localization.GetCityName(city);
                     return $"{name}: {BattleText("ui.battle.reorganize_active", "Active")} {item.ActiveTroops}, {BattleText("ui.battle.reorganize_wounded", "Wounded")} {item.WoundedTroops}";
                 }));
             }
-            origins.Text = $"{BattleText("ui.battle.reorganize_from", "From team")}: {Describe(teams[from.Selected])}\n{BattleText("ui.battle.reorganize_to", "To team")}: {Describe(teams[to.Selected])}";
+            var source = teams[from.Selected];
+            var target = teams[to.Selected];
+            CampaignTroopOriginRules.EnsureInitialized(source);
+            CampaignTroopOriginRules.EnsureInitialized(target);
+            var preview = CampaignTroopOriginRules.PreviewTransfer(source, (int)active.Value, (int)wounded.Value);
+            origins.Text = $"{BattleText("ui.battle.reorganize_from", "From team")}: {Describe(source.TroopOrigins)}\n{BattleText("ui.battle.reorganize_to", "To team")}: {Describe(target.TroopOrigins)}";
+            if (preview.Count > 0)
+                origins.Text += $"\n{BattleText("ui.battle.reorganize_preview", "Transfer origins")}: {Describe(preview)}";
         }
         var updatingLimits = false;
         void RefreshLimits(bool reset)
@@ -88,10 +94,10 @@ public partial class BattleSceneController
             }
             updatingLimits = false;
         }
-        from.ItemSelected += _ => { RefreshOrigins(); RefreshLimits(true); status.Text = string.Empty; };
-        to.ItemSelected += _ => { RefreshOrigins(); RefreshLimits(true); status.Text = string.Empty; };
-        active.ValueChanged += _ => RefreshLimits(false);
-        wounded.ValueChanged += _ => RefreshLimits(false);
+        from.ItemSelected += _ => { RefreshLimits(true); RefreshOrigins(); status.Text = string.Empty; };
+        to.ItemSelected += _ => { RefreshLimits(true); RefreshOrigins(); status.Text = string.Empty; };
+        active.ValueChanged += _ => { RefreshLimits(false); RefreshOrigins(); };
+        wounded.ValueChanged += _ => { RefreshLimits(false); RefreshOrigins(); };
         void RefreshOptions(int sourceIndex, int targetIndex)
         {
             from.Clear(); to.Clear();
@@ -102,14 +108,22 @@ public partial class BattleSceneController
                 var waiting = !_activeCampaign.Teams.Contains(team)
                     ? $" | {BattleText("ui.battle.reorganize_waiting", "Arrived · awaiting deployment")} #{team.ReinforcementOrderId}"
                     : $" | #{team.Id}";
-                var label = $"{name}  |  {team.TroopType}  |  {BattleText("ui.battle.reorganize_active", "Active")} {team.ActiveTroops}  {BattleText("ui.battle.reorganize_wounded", "Wounded")} {team.WoundedTroops}  / {CampaignReorganizationRules.GetCapacity(team)}{waiting}";
+                var location = team.Location switch
+                {
+                    CampaignTeamLocation.Field => BattleText("ui.battle.reorganize_field", "Field"),
+                    CampaignTeamLocation.InnerCity => BattleText("ui.battle.reorganize_inner_city", "Inside city"),
+                    CampaignTeamLocation.Reserve => BattleText("ui.battle.reorganize_reserve", "Reserve"),
+                    _ => string.Empty
+                };
+                var troopType = FormatTroopType(GetCampaignBattleProfile(team).TroopType);
+                var label = $"{name}  |  {troopType}  |  {location}  |  {BattleText("ui.battle.reorganize_active", "Active")} {team.ActiveTroops}  {BattleText("ui.battle.reorganize_wounded", "Wounded")} {team.WoundedTroops}  / {CampaignReorganizationRules.GetCapacity(team)}{waiting}";
                 // Unpromoted orders may reuse team IDs; selection is by list index.
                 from.AddItem(label); to.AddItem(label);
             }
             if (teams.Count > 0) { from.Select(Math.Clamp(sourceIndex, 0, teams.Count - 1)); to.Select(Math.Clamp(targetIndex, 0, teams.Count - 1)); }
             else status.Text = BattleText("ui.battle.reorganize_empty", "No eligible player teams are available.");
-            RefreshOrigins();
             RefreshLimits(true);
+            RefreshOrigins();
         }
         RefreshOptions(0, teams.Count > 1 ? 1 : 0);
         var buttons = new HBoxContainer();
@@ -117,14 +131,17 @@ public partial class BattleSceneController
         transfer.Pressed += () =>
         {
             if (_activeCampaign == null || from.Selected < 0 || to.Selected < 0) return;
-            if (!CampaignReorganizationRules.TryTransfer(_activeCampaign, factionId, teams[from.Selected], teams[to.Selected], (int)active.Value, (int)wounded.Value, out _))
+            var activeCount = (int)active.Value;
+            var woundedCount = (int)wounded.Value;
+            if (!CampaignReorganizationRules.TryTransfer(_activeCampaign, factionId, teams[from.Selected], teams[to.Selected], activeCount, woundedCount, out _))
             {
                 status.Text = BattleText("ui.battle.reorganize_invalid", "Transfer failed: check team compatibility, amounts and capacity.");
                 return;
             }
             var sourceIndex = from.Selected; var targetIndex = to.Selected;
             RefreshOptions(sourceIndex, targetIndex);
-            active.Value = 0; wounded.Value = 0; status.Text = string.Empty;
+            active.Value = 0; wounded.Value = 0;
+            status.Text = BattleFormat("ui.battle.reorganize_success", "Transferred: {0:N0} active, {1:N0} wounded.", activeCount, woundedCount);
         };
         var done = new Button { Text = BattleText("ui.battle.reorganize_done", "Done"), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         done.Pressed += () => { _reorganizationLayer?.QueueFree(); _reorganizationLayer = null; if (_campaignDecisionPanel != null) _campaignDecisionPanel.Visible = true; };

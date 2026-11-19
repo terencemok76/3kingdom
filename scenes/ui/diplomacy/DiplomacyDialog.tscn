@@ -260,6 +260,20 @@ text = "Invite allied reinforcements"
 [node name="Campaign" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
 layout_mode = 2
 
+[node name="SourceLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+
+[node name="Source" type="OptionButton" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+
+[node name="Existing" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="CancelRequest" type="Button" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+text = "Cancel request"
+
 [node name="TroopsLabel" type="Label" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
 layout_mode = 2
 text = "請求兵力"
@@ -270,10 +284,25 @@ layout_mode = 2
 [node name="Troops" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite/Inputs"]
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 100.0
+min_value = 0.0
 max_value = 10000.0
 step = 100.0
 value = 1000.0
+
+[node name="RequestedResources" type="HBoxContainer" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite"]
+layout_mode = 2
+
+[node name="Gold" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite/RequestedResources"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 999999.0
+rounded = true
+
+[node name="Food" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite/RequestedResources"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 999999.0
+rounded = true
 
 [node name="Gold" type="SpinBox" parent="CenterContainer/AdvisorDialogPanel/AdvisorDialogRoot/MiddleSection/CampaignInvite/Inputs"]
 layout_mode = 2

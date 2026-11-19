@@ -43,7 +43,8 @@ public partial class HudController
         var playerFactionId = _turnManager.GetPlayerFactionId();
         return _turnManager.World.ActiveBattleCampaigns.Find(campaign =>
             campaign.Stage != CampaignStage.Resolved &&
-            (campaign.AttackerFactionId == playerFactionId || campaign.DefenderFactionId == playerFactionId));
+            (campaign.AttackerFactionId == playerFactionId || campaign.DefenderFactionId == playerFactionId ||
+             campaign.IsPlayerInvolved && campaign.Invitations.Any(invitation => invitation.InvitedFactionId == playerFactionId && invitation.Status == BattleInvitationStatus.Accepted)));
     }
 
     private void OnContinueCampaignPressed()
@@ -89,6 +90,8 @@ public partial class HudController
         {
             return;
         }
+
+        if (TryShowPendingAiCampaignSupport(() => LaunchCampaignBattle(campaignId))) return;
 
         var campaign = _turnManager.World.ActiveBattleCampaigns.Find(item => item.Id == campaignId);
         var targetCity = campaign == null ? null : _turnManager.World.GetCity(campaign.TargetCityId);

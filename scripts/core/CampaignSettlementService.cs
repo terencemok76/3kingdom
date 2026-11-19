@@ -127,6 +127,12 @@ internal static class CampaignSettlementService
     internal static void CompleteCampaign(WorldState world, ActiveBattleCampaignData campaign, CampaignBattleSide winner)
     {
         CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(campaign);
+        foreach (var invitation in campaign.Invitations.Where(item => item.Status == BattleInvitationStatus.Pending))
+        {
+            invitation.Status = BattleInvitationStatus.Cancelled;
+            invitation.DecisionReason = "Campaign ended before a response.";
+        }
+        campaign.IsAwaitingPlayerSupportResponse = false;
         var sourceCity = world.GetCity(campaign.SourceCityId);
         var targetCity = world.GetCity(campaign.TargetCityId);
         if (sourceCity == null || targetCity == null)
@@ -134,6 +140,13 @@ internal static class CampaignSettlementService
             campaign.Stage = CampaignStage.Resolved;
             return;
         }
+
+        // Falling back inside the defended city is only a tactical movement.
+        // If the campaign ends before the siege, these teams still need their
+        // normal settlement; NeighborCity teams were already returned.
+        foreach (var team in campaign.Teams.Where(team => team.Side == CampaignBattleSide.Defender &&
+                     team.Location == CampaignTeamLocation.InnerCity && team.RetreatDestinationCityId == targetCity.Id))
+            team.RetreatDestinationCityId = 0;
 
         var winnerFactionId = winner == CampaignBattleSide.Attacker
             ? campaign.AttackerFactionId

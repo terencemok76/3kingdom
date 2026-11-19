@@ -158,6 +158,12 @@ internal static partial class Program
 
         if (args.Contains("--battle-campaign-only", StringComparer.OrdinalIgnoreCase))
         {
+            RunEnvoyExcludedFromDeploymentTest();
+            RunEnvoyResponseTimingTest();
+            RunAiPlayerSupportRequestTest();
+            RunAiCampaignSupportRequestTest();
+            RunCustomCampaignSupportTest();
+            RunAiPostFieldDecisionTest();
             RunAlliedReorganizationTest();
             RunArrivedReserveReorganizationTest();
             RunPlayerReorganizationTransferTest();

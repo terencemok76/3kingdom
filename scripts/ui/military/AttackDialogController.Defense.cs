@@ -26,28 +26,30 @@ internal sealed partial class AttackDialogController
         }
         if (_defenseSupportSource != null && !_editingDomesticReinforcement)
         {
+            var selectedId = GetSelectedDefenseSupportSourceCity()?.Id ?? 0;
             _defenseSupportSource.Clear();
-            foreach (var city in defendingCity.ConnectedCityIds
-                         .Select(world.GetCity)
-                         .Where(city => city != null && city.OwnerFactionId > 0)
-                         .Cast<CityData>()
-                         .Where(city => city.OwnerFactionId == defenderFactionId || IsActiveAlly(defenderFactionId, city.OwnerFactionId))
+            foreach (var city in world.Cities
+                         .Where(city => city.Id != defendingCity.Id && city.OwnerFactionId > 0 &&
+                             city.OwnerFactionId != _pendingDefenseCommand.ActorFactionId &&
+                             (city.OwnerFactionId != defenderFactionId || defendingCity.ConnectedCityIds.Contains(city.Id)) &&
+                             BattleCampaignService.GetFriendlyRouteLinks(world, city.Id, defendingCity.Id, city.OwnerFactionId) > 0)
                          .OrderBy(city => city.OwnerFactionId == defenderFactionId ? 0 : 1)
                          .ThenBy(city => city.Id))
             {
                 var cityName = _context.Localization?.GetCityName(city) ?? city.Name;
                 var factionName = _context.Localization?.GetFactionName(world, city.OwnerFactionId) ?? city.OwnerFactionId.ToString();
-                _defenseSupportSource.AddItem($"{cityName} ({factionName})");
+                var days = BattleCampaignService.GetFriendlyRouteLinks(world, city.Id, defendingCity.Id, city.OwnerFactionId) * 2;
+                _defenseSupportSource.AddItem($"{cityName} ({factionName}) · {days} {(_context.Localization?.T("ui.campaign.invite_eta_days") ?? "days")}");
                 _defenseSupportSource.SetItemMetadata(_defenseSupportSource.ItemCount - 1, city.Id);
+                if (city.Id == selectedId) _defenseSupportSource.Select(_defenseSupportSource.ItemCount - 1);
             }
         }
         if (_defenseSupportTroops != null)
         {
             _defenseSupportTroops.Visible = !_editingDomesticReinforcement;
-            _defenseSupportTroops.MinValue = 100;
+            _defenseSupportTroops.MinValue = 0;
             _defenseSupportTroops.MaxValue = 10000;
             _defenseSupportTroops.Step = 100;
-            _defenseSupportTroops.Value = Math.Max(100, _defenseSupportTroops.Value);
         }
         if (_defenseSupportSource != null)
         {
@@ -55,6 +57,13 @@ internal sealed partial class AttackDialogController
         }
         var selectedSupportSource = GetSelectedDefenseSupportSourceCity();
         var isAllyRequest = selectedSupportSource != null && selectedSupportSource.OwnerFactionId != defenderFactionId;
+        if (_defenseRequestResources != null)
+        {
+            _defenseRequestResources.Visible = !_editingDomesticReinforcement && isAllyRequest;
+            _defenseRequestResources.GetNode<Label>("Label").Text = _context.Localization?.T("ui.defense_reinforcement_request_resources") ?? "Request";
+            if (_defenseRequestGold != null) _defenseRequestGold.Prefix = (_context.Localization?.T("ui.campaign.invite_requested_gold") ?? "Gold") + " ";
+            if (_defenseRequestFood != null) _defenseRequestFood.Prefix = (_context.Localization?.T("ui.campaign.invite_requested_food") ?? "Food") + " ";
+        }
         if (_defensePromiseRow != null)
         {
             _defensePromiseRow.Visible = !_editingDomesticReinforcement && isAllyRequest;
@@ -74,6 +83,12 @@ internal sealed partial class AttackDialogController
         {
             UpdateDefenseSupportButtonLabel(defenderFactionId);
         }
+        if (_defenseSupportRemoveButton != null)
+        {
+            _defenseSupportRemoveButton.Text = _context.Localization?.T("ui.defense_reinforcement_remove") ?? "Remove";
+            _defenseSupportRemoveButton.Visible = !_editingDomesticReinforcement && selectedSupportSource != null &&
+                _pendingDefenseCommand.DefenseReinforcementRequests.Any(item => item.SourceCityId == selectedSupportSource.Id);
+        }
         if (_defenseSupportSummary != null)
         {
             _defenseSupportSummary.Visible = _pendingDefenseCommand.DefenseReinforcementRequests.Count > 0;
@@ -82,8 +97,8 @@ internal sealed partial class AttackDialogController
                 var city = world.GetCity(request.SourceCityId);
                 var name = city == null ? request.SourceCityId.ToString() : (_context.Localization?.GetCityName(city) ?? city.Name);
                 return request.IsAllianceRequest
-                    ? $"{name}: {_context.Localization?.T("ui.defense_reinforcement_ally") ?? "Ally request"} {request.RequestedTroops:N0}｜{_context.Localization?.T("ui.defense_reinforcement_promise_short") ?? "Promise"} G {request.PromisedGold:N0} / F {request.PromisedFood:N0}"
-                    : $"{name}: {_context.Localization?.T("ui.defense_reinforcement_domestic") ?? "Domestic reinforcement"} {request.Deployments.Sum(item => item.TroopCount):N0}";
+                    ? $"{name}: {_context.Localization?.T("ui.defense_reinforcement_foreign") ?? "Foreign support"} {request.RequestedTroops:N0}｜G {request.RequestedGold:N0} / F {request.RequestedFood:N0}｜{_context.Localization?.T("ui.defense_reinforcement_promise_short") ?? "Promise"} G {request.PromisedGold:N0} / F {request.PromisedFood:N0}"
+                    : $"{name}: {_context.Localization?.T("ui.defense_reinforcement_domestic") ?? "Domestic reinforcement"} {request.Deployments.Sum(item => item.TroopCount):N0}｜G {request.RequestedGold:N0} / F {request.RequestedFood:N0}";
             }));
         }
     }
@@ -126,6 +141,7 @@ internal sealed partial class AttackDialogController
         var sourceCity = GetSelectedDefenseSupportSourceCity();
         var requiresEnvoy = defendingCity != null && sourceCity != null && sourceCity.OwnerFactionId != defendingCity.OwnerFactionId;
         _defenseMessengerRow.Visible = requiresEnvoy && !_editingDomesticReinforcement;
+        if (_defenseResponseEstimate != null) _defenseResponseEstimate.Visible = requiresEnvoy && !_editingDomesticReinforcement && _selectedDefenseEnvoyOfficerId > 0;
         if (!requiresEnvoy || defendingCity == null)
         {
             return;
@@ -133,12 +149,15 @@ internal sealed partial class AttackDialogController
 
         _defenseMessengerLabel.Text = _context.Localization?.T("ui.defense_reinforcement_envoy") ?? "Envoy";
         var selectedDefenderIds = _context.GetCheckedTreeMetadataIds(_officerList).ToHashSet();
+        var usedEnvoys = _pendingDefenseCommand.DefenseReinforcementRequests
+            .Where(request => request.SourceCityId != sourceCity?.Id && request.EnvoyOfficerId > 0)
+            .Select(request => request.EnvoyOfficerId).ToHashSet();
         _defenseMessengerOption.Clear();
         _defenseMessengerOption.AddItem(_context.Localization?.T("ui.defense_reinforcement_envoy_select") ?? "Select envoy");
         _defenseMessengerOption.SetItemMetadata(0, 0);
         var selectedIndex = 0;
         foreach (var officer in defendingCity.OfficerIds
-                     .Where(id => !selectedDefenderIds.Contains(id) && !BattleCampaignService.IsOfficerCommitted(world, id))
+                     .Where(id => !selectedDefenderIds.Contains(id) && !usedEnvoys.Contains(id) && !BattleCampaignService.IsOfficerCommitted(world, id))
                      .Select(world.GetOfficer)
                      .Where(officer => officer != null)
                      .Cast<OfficerData>()
@@ -152,6 +171,21 @@ internal sealed partial class AttackDialogController
             }
         }
         _defenseMessengerOption.Select(selectedIndex);
+        RefreshDefenseResponseEstimate();
+    }
+
+    private void RefreshDefenseResponseEstimate()
+    {
+        if (_defenseResponseEstimate == null || _context.TurnManager?.World is not { } world ||
+            _pendingDefenseCommand == null || GetSelectedDefenseSupportSourceCity() is not { } source || _selectedDefenseEnvoyOfficerId <= 0)
+        {
+            if (_defenseResponseEstimate != null) _defenseResponseEstimate.Visible = false;
+            return;
+        }
+        _defenseResponseEstimate.Visible = !_editingDomesticReinforcement;
+        var days = BattleCampaignService.GetInvitationResponseDays(world, _pendingDefenseCommand.TargetCityId, source.OwnerFactionId, source.Id, _selectedDefenseEnvoyOfficerId);
+        var travel = BattleCampaignService.GetFriendlyRouteLinks(world, source.Id, _pendingDefenseCommand.TargetCityId, source.OwnerFactionId) * 2;
+        _defenseResponseEstimate.Text = _context.Localization?.Format("ui.defense_reinforcement_timing", days, travel) ?? $"Reply: {days} battle days; travel: {travel} days.";
     }
 
     private CityData? GetSelectedDefenseSupportSourceCity()
@@ -175,6 +209,7 @@ internal sealed partial class AttackDialogController
         }
         var metadata = _defenseMessengerOption.GetItemMetadata((int)index);
         _selectedDefenseEnvoyOfficerId = metadata.VariantType == Variant.Type.Int ? metadata.AsInt32() : 0;
+        RefreshDefenseResponseEstimate();
         RefreshOfficerTableText();
         RefreshDeploymentEditor();
     }
@@ -182,6 +217,7 @@ internal sealed partial class AttackDialogController
     private void OnDefenseSupportSourceSelected()
     {
         _selectedDefenseEnvoyOfficerId = 0;
+        RefreshDefenseSupportControls();
         var defenderFactionId = _context.TurnManager?.World?.GetCity(_pendingDefenseCommand?.TargetCityId ?? 0)?.OwnerFactionId ?? -1;
         UpdateDefenseSupportButtonLabel(defenderFactionId);
         RefreshDefenseMessengerOptions();
@@ -218,12 +254,25 @@ internal sealed partial class AttackDialogController
                 SetWarning(_context.Localization?.T("ui.defense_reinforcement_envoy_required") ?? "Select an envoy for this allied request.");
                 return;
             }
+            var requestedTroops = _defenseSupportTroops == null ? 1000 : (int)_defenseSupportTroops.Value;
+            var requestedGold = _defenseRequestGold == null ? 0 : (int)_defenseRequestGold.Value;
+            var requestedFood = _defenseRequestFood == null ? 0 : (int)_defenseRequestFood.Value;
+            if (requestedTroops <= 0 && requestedGold <= 0 && requestedFood <= 0)
+            {
+                SetWarning(_context.Localization?.T("ui.campaign.invite_support_required") ?? "Enter the requested troops or resources.");
+                return;
+            }
+            if (requestedTroops > 0 && !IsActiveAlly(_dialogContextCity.OwnerFactionId, source.OwnerFactionId))
+            {
+                SetWarning(_context.Localization?.T("ui.campaign.invite_alliance_required") ?? "Troop support requires an alliance.");
+                return;
+            }
             UpsertDefenseReinforcement(new DefenseReinforcementRequestData
             {
                 SourceCityId = source.Id,
                 IsAllianceRequest = true,
                 EnvoyOfficerId = _selectedDefenseEnvoyOfficerId,
-                RequestedTroops = _defenseSupportTroops == null ? 1000 : (int)_defenseSupportTroops.Value,
+                RequestedTroops = requestedTroops, RequestedGold = requestedGold, RequestedFood = requestedFood,
                 PromisedGold = _defensePromiseGold == null ? 0 : (int)_defensePromiseGold.Value,
                 PromisedFood = _defensePromiseFood == null ? 0 : (int)_defensePromiseFood.Value
             });
@@ -235,6 +284,8 @@ internal sealed partial class AttackDialogController
         _dialogContextCity = source;
         _editingDomesticReinforcement = true;
         _domesticReinforcementSourceCityId = source.Id;
+        ConfigureSpinBox(_goldSpinBox, source.Gold, 0);
+        ConfigureSpinBox(_foodSpinBox, source.Food, 0);
         PopulateOfficerList(source, source.OfficerIds.ToList());
         RefreshText();
         RefreshDeploymentEditor();
@@ -245,6 +296,7 @@ internal sealed partial class AttackDialogController
         UpsertDefenseReinforcement(new DefenseReinforcementRequestData
         {
             SourceCityId = _domesticReinforcementSourceCityId > 0 ? _domesticReinforcementSourceCityId : GetDialogCityContext()?.Id ?? 0,
+            RequestedGold = (int)(_goldSpinBox?.Value ?? 0), RequestedFood = (int)(_foodSpinBox?.Value ?? 0),
             Deployments = deployments.Select(DeploymentDraft.CloneDeployment).ToList()
         });
         _draft.RestoreDefenders();
@@ -257,6 +309,18 @@ internal sealed partial class AttackDialogController
             PopulateOfficerList(_dialogContextCity, _dialogContextCity.OfficerIds.ToList());
         }
         RefreshText();
+        RefreshDeploymentEditor();
+    }
+
+    private void OnDefenseSupportRemovePressed()
+    {
+        var source = GetSelectedDefenseSupportSourceCity();
+        if (_pendingDefenseCommand == null || source == null) return;
+        _pendingDefenseCommand.DefenseReinforcementRequests.RemoveAll(item => item.SourceCityId == source.Id);
+        _selectedDefenseEnvoyOfficerId = 0;
+        RefreshDefenseSupportControls();
+        RefreshDefenseMessengerOptions();
+        RefreshOfficerTableText();
         RefreshDeploymentEditor();
     }
 

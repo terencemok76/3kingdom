@@ -373,6 +373,14 @@ public partial class BattleSceneController
         ResetCampaignTeamDailyUpkeep(_state.TeamA);
         ResetCampaignTeamDailyUpkeep(_state.TeamB);
         ApplyCampaignMonthRecoveryToBattleUnits();
+        // Restore the previous month's positions first, then try the normal
+        // entry rules for reserve teams whose wounded have recovered.
+        if (GetNodeOrNull<Node2D>("MapRoot/UnitLayer") is { } unitLayer)
+        {
+            BattleCampaignService.PromoteReserves(_activeCampaign, CampaignBattleSide.Attacker);
+            BattleCampaignService.PromoteReserves(_activeCampaign, CampaignBattleSide.Defender);
+            DeployCampaignTeams(unitLayer);
+        }
         RestoreTeamUnitEnergy(BattleTeamIdentity.AttackerName);
         RestoreTeamUnitEnergy(BattleTeamIdentity.DefenderName);
         RecalculateBattleHudTotals();
@@ -871,7 +879,7 @@ public partial class BattleSceneController
             }));
     }
 
-    private void AnnounceCampaignReinforcementArrivals(ISet<int> arrivingOrderIds)
+    private void AnnounceCampaignReinforcementArrivals(ISet<int> arrivingOrderIds, ISet<int> deliveredSupplyOrderIds)
     {
         if (_activeCampaign == null || arrivingOrderIds.Count == 0)
         {
@@ -893,21 +901,21 @@ public partial class BattleSceneController
         // reports its own prior value, addition, and resulting value rather than
         // subtracting only one order from the already-final total.
         var attackerGold = _teamAGold - arrivals
-            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Attacker)
+            .Where(order => deliveredSupplyOrderIds.Contains(order.Id) && order.Side == CampaignBattleSide.Attacker)
             .Sum(order => order.Gold);
         var attackerFood = _teamAFood - arrivals
-            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Attacker)
+            .Where(order => deliveredSupplyOrderIds.Contains(order.Id) && order.Side == CampaignBattleSide.Attacker)
             .Sum(order => order.Food);
         var defenderGold = _teamBGold - arrivals
-            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Defender)
+            .Where(order => deliveredSupplyOrderIds.Contains(order.Id) && order.Side == CampaignBattleSide.Defender)
             .Sum(order => order.Gold);
         var defenderFood = _teamBFood - arrivals
-            .Where(order => order.Status == ReinforcementStatus.Deployed && order.Side == CampaignBattleSide.Defender)
+            .Where(order => deliveredSupplyOrderIds.Contains(order.Id) && order.Side == CampaignBattleSide.Defender)
             .Sum(order => order.Food);
 
         var deferredMoralePopups = new List<(BattleGridKey Grid, int MoraleDelta)>();
         var deployedReinforcementOrderIds = arrivals
-            .Where(order => order.Status == ReinforcementStatus.Deployed)
+            .Where(order => deliveredSupplyOrderIds.Contains(order.Id))
             .Select(order => order.Id)
             .ToHashSet();
         var deployedReinforcementTeamIds = _activeCampaign.Teams
@@ -932,9 +940,9 @@ public partial class BattleSceneController
                     "Reinforcements arrived: {0}; teams: {1}; gold {2:N0}, food {3:N0}.",
                     sideName,
                     teams,
-                    order.Gold,
-                    order.Food));
-            if (order.Status == ReinforcementStatus.Deployed)
+                    deliveredSupplyOrderIds.Contains(order.Id) ? order.Gold : 0,
+                    deliveredSupplyOrderIds.Contains(order.Id) ? order.Food : 0));
+            if (deliveredSupplyOrderIds.Contains(order.Id))
             {
                 var previousGold = order.Side == CampaignBattleSide.Attacker ? attackerGold : defenderGold;
                 var previousFood = order.Side == CampaignBattleSide.Attacker ? attackerFood : defenderFood;
@@ -958,26 +966,29 @@ public partial class BattleSceneController
                     defenderGold = finalGold;
                     defenderFood = finalFood;
                 }
-                ApplyTeamMoraleBonus(
-                    order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
-                    ReinforcementArrivalFriendlyMoraleBonus,
-                    BattleText("log.campaign.reinforcement_morale_friendly", "reinforcements arrived"),
-                    deferredPopups: deferredMoralePopups);
-                ApplyTeamMoralePenalty(
-                    order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.DefenderName : BattleTeamIdentity.AttackerName,
-                    ReinforcementArrivalOpponentMoralePenalty,
-                    BattleText("log.campaign.reinforcement_morale_opponent", "enemy reinforcements arrived"),
-                    deferredPopups: deferredMoralePopups);
+                if (order.Teams.Any(team => team.ActiveTroops > 0 && team.Location == CampaignTeamLocation.Field))
+                {
+                    ApplyTeamMoraleBonus(
+                        order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.AttackerName : BattleTeamIdentity.DefenderName,
+                        ReinforcementArrivalFriendlyMoraleBonus,
+                        BattleText("log.campaign.reinforcement_morale_friendly", "reinforcements arrived"),
+                        deferredPopups: deferredMoralePopups);
+                    ApplyTeamMoralePenalty(
+                        order.Side == CampaignBattleSide.Attacker ? BattleTeamIdentity.DefenderName : BattleTeamIdentity.AttackerName,
+                        ReinforcementArrivalOpponentMoralePenalty,
+                        BattleText("log.campaign.reinforcement_morale_opponent", "enemy reinforcements arrived"),
+                        deferredPopups: deferredMoralePopups);
+                }
             }
         }
 
         ShowCampaignReinforcementArrivalNotice(
-            FormatCampaignReinforcementArrivalNotice(arrivals),
+            FormatCampaignReinforcementArrivalNotice(arrivals, deliveredSupplyOrderIds),
             deferredMoralePopups,
             arrivingOfficerSpeakers);
     }
 
-    private string FormatCampaignReinforcementArrivalNotice(IReadOnlyCollection<ReinforcementOrderData> arrivals)
+    private string FormatCampaignReinforcementArrivalNotice(IReadOnlyCollection<ReinforcementOrderData> arrivals, ISet<int> deliveredSupplyOrderIds)
     {
         var lines = arrivals
             .GroupBy(order => new { order.Side, order.FactionId })
@@ -1001,6 +1012,13 @@ public partial class BattleSceneController
                             FormatTroopType(GetCampaignBattleProfile(team).TroopType),
                             team.ActiveTroops);
                     }));
+                var gold = group.Where(order => deliveredSupplyOrderIds.Contains(order.Id)).Sum(order => order.Gold);
+                var food = group.Where(order => deliveredSupplyOrderIds.Contains(order.Id)).Sum(order => order.Food);
+                if (gold > 0 || food > 0)
+                {
+                    var supplies = BattleFormat("ui.battle.reinforcement_arrival_supplies", "Gold {0:N0}, food {1:N0}", gold, food);
+                    teams = string.IsNullOrEmpty(teams) ? supplies : $"{teams} · {supplies}";
+                }
                 return BattleFormat(
                     "ui.battle.reinforcement_arrival_group",
                     "{0}: {1}",
@@ -1022,23 +1040,39 @@ public partial class BattleSceneController
         }
 
         SyncCampaignFromBattle();
-        var arrivingOrderIds = _activeCampaign.Reinforcements
-            .Where(order => order.Status == ReinforcementStatus.Reserve ||
-                            (order.Status == ReinforcementStatus.Traveling && order.RemainingBattleDays <= 1))
-            .Select(order => order.Id)
-            .ToHashSet();
-        BattleCampaignService.AdvanceCompletedBattleDay(_activeCampaign);
+        var previousOrders = _activeCampaign.Reinforcements.ToDictionary(order => order.Id, order =>
+            (order.Status, SuppliesDelivered: order.SuppliesDelivered ?? order.Status == ReinforcementStatus.Deployed));
+        var previousInvitations = _activeCampaign.Invitations.ToDictionary(item => item.Id, item => item.Status);
+        BattleCampaignService.AdvanceCompletedBattleDay(_activeCampaign, CampaignRuntimeContext.World);
+        AnnounceCampaignInvitationResponses(previousInvitations);
         ApplyCovertOfficerDefections();
         SyncCampaignResourcesToHud();
         if (GetNodeOrNull<Node2D>("MapRoot/UnitLayer") is { } unitLayer)
         {
             DeployCampaignTeams(unitLayer);
         }
-        AnnounceCampaignReinforcementArrivals(arrivingOrderIds);
+        var arrivingOrderIds = _activeCampaign.Reinforcements.Where(order => previousOrders.TryGetValue(order.Id, out var previous) &&
+                ((previous.Status == ReinforcementStatus.Traveling && order.Status is ReinforcementStatus.Reserve or ReinforcementStatus.Deployed) ||
+                 (previous.Status == ReinforcementStatus.Reserve && order.Status == ReinforcementStatus.Deployed)))
+            .Select(order => order.Id).ToHashSet();
+        var deliveredSupplyOrderIds = _activeCampaign.Reinforcements.Where(order => arrivingOrderIds.Contains(order.Id) &&
+                order.Status == ReinforcementStatus.Deployed && order.SuppliesDelivered == true &&
+                previousOrders.TryGetValue(order.Id, out var previous) && !previous.SuppliesDelivered)
+            .Select(order => order.Id).ToHashSet();
+        AnnounceCampaignReinforcementArrivals(arrivingOrderIds, deliveredSupplyOrderIds);
         RecalculateBattleHudTotals();
         ConfigureHud();
         RefreshBattleResultState();
         if (_isBattleFinished) return;
+        var playerFactionId = CampaignRuntimeContext.World?.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? 0;
+        if (playerFactionId > 0 && !BattleCampaignService.HasReachedMonthlyBattleLimit(_activeCampaign, GetMonthlyBattleDayLimit()) &&
+            _activeCampaign.Invitations.Any(item => item.InvitedFactionId == playerFactionId && item.Status == BattleInvitationStatus.Pending && item.ResponseBattleDays <= 0))
+        {
+            _activeCampaign.BattleSnapshotJson = CreateCampaignBattleSnapshot();
+            _activeCampaign.IsAwaitingPlayerSupportResponse = true;
+            QueueCampaignReturnToGameplay();
+            return;
+        }
         // A caravan ambush is resolved in one uninterrupted encounter: it has
         // no monthly pause and therefore cannot open reinforcement windows.
         if (_activeCampaign.IsCaravanEscortBattle ||
@@ -1064,6 +1098,33 @@ public partial class BattleSceneController
                 "log.campaign.month_limit_reached",
                 "Monthly battle limit reached: battle suspended after {0} days.",
                 GetMonthlyBattleDayLimit()));
+    }
+
+    private void AnnounceCampaignInvitationResponses(IReadOnlyDictionary<int, BattleInvitationStatus> previous)
+    {
+        if (_activeCampaign == null || CampaignRuntimeContext.World is not { } world) return;
+        var playerId = world.Factions.FirstOrDefault(faction => faction.IsPlayer)?.Id ?? 0;
+        foreach (var invitation in _activeCampaign.Invitations.Where(item => item.InviterFactionId == playerId &&
+                     previous.TryGetValue(item.Id, out var status) && status == BattleInvitationStatus.Pending &&
+                     item.Status is BattleInvitationStatus.Accepted or BattleInvitationStatus.Declined))
+        {
+            var name = _localization.GetFactionName(world, invitation.InvitedFactionId);
+            var order = _activeCampaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId &&
+                item.Side == invitation.Side && (invitation.RequestedSourceCityId <= 0 || item.SourceCityId == invitation.RequestedSourceCityId));
+            var message = invitation.Status == BattleInvitationStatus.Accepted && order != null
+                ? BattleFormat("log.campaign.envoy_accepted", "{0} accepted: troops {1:N0}, gold {2:N0}, food {3:N0}; arrival in {4} days.", name,
+                    order.Teams.Sum(team => team.ActiveTroops), order.Gold, order.Food, order.RemainingBattleDays)
+                : BattleFormat("log.campaign.envoy_declined", "{0} declined the support request.", name);
+            var returnedEnvoy = invitation.Status == BattleInvitationStatus.Declined
+                ? _activeCampaign.Teams.FirstOrDefault(team => team.OfficerId == invitation.EnvoyOfficerId && team.FactionId == playerId)
+                : null;
+            if (returnedEnvoy != null)
+                message += " " + (returnedEnvoy.ActiveTroops > 0
+                    ? BattleFormat("log.campaign.envoy_returned_troops", "The envoy returned with {0:N0} reserve troops.", returnedEnvoy.ActiveTroops)
+                    : BattleFormat("log.campaign.envoy_returned_waiting", "The envoy returned and is waiting for reserve troops."));
+            AppendBattleLog("Battle", "Diplomacy", message);
+            ShowBattleEventNotice(message);
+        }
     }
 
     private void ApplyCovertOfficerDefections()
@@ -1130,6 +1191,8 @@ public partial class BattleSceneController
         {
             return;
         }
+
+        CampaignReorganizationRules.SynchronizeReinforcementTeamReferences(_activeCampaign);
 
         var occupants = _occupantsByGrid.Values.SelectMany(items => items)
             .Where(item => item.CampaignTeamId > 0)
@@ -1230,6 +1293,8 @@ public partial class BattleSceneController
             _activeCampaign.BattleSnapshotJson = string.Empty;
             if (BattleCampaignService.HasEffectiveInnerCityDefender(_activeCampaign))
             {
+                if (CampaignRuntimeContext.World.GetFaction(_activeCampaign.AttackerFactionId)?.IsPlayer != true)
+                    _activeCampaign.PostFieldDecision = CampaignPostFieldDecisionRules.ChooseAiDecision(CampaignRuntimeContext.World, _activeCampaign, GetMonthlyBattleDayLimit());
                 _activeCampaign.IsAwaitingPlayerDecision = true;
                 ShowPostFieldBattleDecision();
                 return true;
@@ -1248,6 +1313,8 @@ public partial class BattleSceneController
 
     private void ShowPostFieldBattleDecision()
     {
+        var campaign = _activeCampaign;
+        if (campaign == null) return;
         if (_campaignDecisionPanel != null)
         {
             _campaignDecisionPanel.Visible = true;
@@ -1264,22 +1331,43 @@ public partial class BattleSceneController
         canvas.AddChild(panel);
         _campaignDecisionPanel = new VBoxContainer();
         panel.AddChild(_campaignDecisionPanel);
+        var playerControlsAttacker = CampaignRuntimeContext.World?.GetFaction(campaign.AttackerFactionId)?.IsPlayer == true;
+        var title = playerControlsAttacker
+            ? BattleText("ui.battle.campaign_field_victory", "Field victory: choose the next operation")
+            : campaign.PostFieldDecision switch
+            {
+                PostFieldBattleDecision.ImmediateAssault => BattleText("ui.battle.ai_assault_now", "The attacker will assault now."),
+                PostFieldBattleDecision.PrepareNextMonthSiege => BattleText("ui.battle.ai_prepare_siege", "The attacker will prepare for next month."),
+                _ => BattleText("ui.battle.ai_withdraw", "The attacker will withdraw.")
+            };
         _campaignDecisionPanel.AddChild(new Label
         {
-            Text = BattleText("ui.battle.campaign_field_victory", "Field victory: choose the next operation"),
+            Text = title,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center
         });
-        var reorganize = new Button { Text = BattleText("ui.battle.reorganize", "Reorganize troops"), CustomMinimumSize = new Vector2(390, 48) };
-        reorganize.Pressed += ShowCampaignReorganization;
-        _campaignDecisionPanel.AddChild(reorganize);
-        AddCampaignDecisionButton(BattleText("ui.battle.campaign_assault_now", "Assault now"), PostFieldBattleDecision.ImmediateAssault);
-        AddCampaignDecisionButton(BattleText("ui.battle.campaign_prepare_next_month", "Prepare next month"), PostFieldBattleDecision.PrepareNextMonthSiege);
-        AddCampaignDecisionButton(BattleText("ui.battle.campaign_withdraw", "Withdraw"), PostFieldBattleDecision.Withdraw);
+        if (playerControlsAttacker || campaign.PostFieldDecision != PostFieldBattleDecision.Withdraw)
+        {
+            var reorganize = new Button { Text = BattleText("ui.battle.reorganize", "Reorganize troops"), CustomMinimumSize = new Vector2(390, 48) };
+            reorganize.Pressed += ShowCampaignReorganization;
+            _campaignDecisionPanel.AddChild(reorganize);
+        }
+        if (playerControlsAttacker)
+        {
+            if (BattleCampaignService.HasReachedMonthlyBattleLimit(campaign, GetMonthlyBattleDayLimit()))
+                _campaignDecisionPanel.AddChild(new Label { Text = BattleText("ui.battle.campaign_month_assault_unavailable", "Monthly battle limit reached; assault starts next month."), AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            AddCampaignDecisionButton(BattleText("ui.battle.campaign_assault_now", "Assault now"), PostFieldBattleDecision.ImmediateAssault,
+                BattleCampaignService.HasReachedMonthlyBattleLimit(campaign, GetMonthlyBattleDayLimit()));
+            AddCampaignDecisionButton(BattleText("ui.battle.campaign_prepare_next_month", "Prepare next month"), PostFieldBattleDecision.PrepareNextMonthSiege);
+            AddCampaignDecisionButton(BattleText("ui.battle.campaign_withdraw", "Withdraw"), PostFieldBattleDecision.Withdraw);
+        }
+        else
+            AddCampaignDecisionButton(BattleText("ui.battle.ai_decision_continue", "Continue"), campaign.PostFieldDecision);
     }
 
-    private void AddCampaignDecisionButton(string text, PostFieldBattleDecision decision)
+    private void AddCampaignDecisionButton(string text, PostFieldBattleDecision decision, bool disabled = false)
     {
-        var button = new Button { Text = text, CustomMinimumSize = new Vector2(390, 48) };
+        var button = new Button { Text = text, CustomMinimumSize = new Vector2(390, 48), Disabled = disabled };
         button.Pressed += () => OnPostFieldBattleDecision(decision);
         _campaignDecisionPanel?.AddChild(button);
     }
@@ -1294,7 +1382,7 @@ public partial class BattleSceneController
         if (decision is PostFieldBattleDecision.ImmediateAssault or PostFieldBattleDecision.PrepareNextMonthSiege)
         {
             var playerFaction = CampaignRuntimeContext.World.Factions.FirstOrDefault(faction => faction.IsPlayer);
-            if (playerFaction != null && (playerFaction.Id == _activeCampaign.AttackerFactionId || playerFaction.Id == _activeCampaign.DefenderFactionId))
+            if (playerFaction != null)
             {
                 CampaignReorganizationRules.InitializeCapacities(CampaignRuntimeContext.World, _activeCampaign);
                 CampaignReorganizationRules.ReorganizeAiTeams(_activeCampaign, playerFaction.Id);

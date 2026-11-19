@@ -53,6 +53,8 @@ internal static class CampaignCaptiveService
         foreach (var team in campaign.Teams.Where(team =>
                      team.Side != winner &&
                      team.OfficerId > 0 &&
+                     !(campaign.PostFieldDecision == PostFieldBattleDecision.Withdraw && team.Side == CampaignBattleSide.Attacker &&
+                       team.Location is not (CampaignTeamLocation.Eliminated or CampaignTeamLocation.Captured)) &&
                      team.Location is not (CampaignTeamLocation.NeighborCity or CampaignTeamLocation.Captured)))
         {
             var officer = world.GetOfficer(team.OfficerId);

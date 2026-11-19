@@ -113,6 +113,8 @@ public partial class HudController : CanvasLayer
             return;
         }
 
+        if (TryShowPendingAiCampaignSupport(OnEndTurnPressed)) return;
+
         var world = _turnManager.World;
         BeginEndTurnTransitionUi();
         AddLog(_localization.T("log.player_end_turn"), isPlayerRelated: true);
@@ -296,6 +298,7 @@ public partial class HudController : CanvasLayer
         _mainHudUiController?.SetLogTemporarilyHidden(false);
         _mainHudUiController?.SetTopBarTurnState(_turnManager?.GetPlayerFactionId() ?? -1, isAiTurn: false, buttonsEnabled: true);
         UpdateGameplayButtonStates();
+        Callable.From(ShowPendingAiCampaignSupportAfterTurn).CallDeferred();
     }
 
     private void AutoSelectPlayerCityForNewRound()

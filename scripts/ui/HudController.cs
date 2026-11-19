@@ -472,6 +472,7 @@ public partial class HudController : CanvasLayer
         ResetAliveFactionSnapshot();
         RefreshAllText();
         ConfigureCampaignUi();
+        Callable.From(ResumeCampaignSupportResponseIfNeeded).CallDeferred();
         Callable.From(ResumeAttackResolutionAfterCampaignIfNeeded).CallDeferred();
         Callable.From(ShowPendingBattleReportIfNeeded).CallDeferred();
         // Covers a return path with no report (for example an old save that no

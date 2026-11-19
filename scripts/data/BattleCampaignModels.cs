@@ -106,6 +106,7 @@ public class CampaignBattleTeamData
     public int MaximumTroops { get; set; }
     // Zero in older saves until the officer's reorganization capacity is initialized.
     public int ReorganizationCapacity { get; set; }
+    public bool AwaitingEnvoyReserveTroops { get; set; }
     // Survivors already returned to a strategic city remain attributable to
     // this battle when its final report is assembled.
     public int ReturnedTroops { get; set; }
@@ -189,6 +190,8 @@ public class BattleInvitationData
     public int PromisedFood { get; set; }
     public int RequestedTroops { get; set; }
     public int ResponseBattleDays { get; set; } = 1;
+    public int RequestYear { get; set; }
+    public int RequestMonth { get; set; }
     public string DecisionReason { get; set; } = string.Empty;
 }
 
@@ -201,6 +204,8 @@ public class PrewarAllianceRequestData
     public int TargetFactionId { get; set; }
     public int EnvoyOfficerId { get; set; }
     public int RequestedTroops { get; set; }
+    public int RequestedGold { get; set; }
+    public int RequestedFood { get; set; }
     public int PromisedGold { get; set; }
     public int PromisedFood { get; set; }
 }
@@ -224,6 +229,7 @@ public class ActiveBattleCampaignData
     public PostFieldBattleDecision PostFieldDecision { get; set; }
     public bool IsPlayerInvolved { get; set; }
     public bool IsAwaitingPlayerDecision { get; set; }
+    public bool IsAwaitingPlayerSupportResponse { get; set; }
     public bool AttackerWonFieldBattle { get; set; }
     public int AttackerGold { get; set; }
     public int AttackerFood { get; set; }

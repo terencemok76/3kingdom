@@ -370,6 +370,9 @@ public class TurnManager
             return;
         }
 
+        foreach (var campaign in World.ActiveBattleCampaigns.Where(campaign => campaign.Stage == CampaignStage.SiegePreparation))
+            BattleCampaignService.AdvanceInvitationResponses(World, campaign, BattleCampaignService.MaximumBattleDaysPerMonth);
+
         World.Month += 1;
         if (World.Month > 12)
         {
@@ -380,6 +383,8 @@ public class TurnManager
         foreach (var campaign in World.ActiveBattleCampaigns.Where(campaign => campaign.Stage != CampaignStage.Resolved))
         {
             BattleCampaignService.BeginNextCampaignMonth(campaign, World.Year, World.Month);
+            AiCampaignSupportPlanner.TryRequestSupport(World, campaign, CampaignBattleSide.Attacker);
+            AiCampaignSupportPlanner.TryRequestSupport(World, campaign, CampaignBattleSide.Defender);
         }
 
         AdvanceDiplomacyRelations();

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using ThreeKingdom.Data;
 
@@ -27,19 +28,38 @@ public static class CampaignTroopOriginRules
         return origin;
     }
 
-    public static void Transfer(CampaignBattleTeamData source, CampaignBattleTeamData target, int active, int wounded)
+    private static List<(CampaignTroopOriginData Origin, int Active, int Wounded)> AllocateTransfer(CampaignBattleTeamData source, int active, int wounded)
     {
         EnsureInitialized(source);
-        EnsureInitialized(target);
+        var allocation = new List<(CampaignTroopOriginData, int, int)>();
+        active = Math.Max(0, active);
+        wounded = Math.Max(0, wounded);
         foreach (var item in source.TroopOrigins.OrderBy(item => item.CityId).ToList())
         {
             var a = Math.Min(active, item.ActiveTroops);
             var w = Math.Min(wounded, item.WoundedTroops);
             if (a == 0 && w == 0) continue;
+            allocation.Add((item, a, w));
+            active -= a; wounded -= w;
+        }
+        return allocation;
+    }
+
+    public static List<CampaignTroopOriginData> PreviewTransfer(CampaignBattleTeamData source, int active, int wounded) =>
+        AllocateTransfer(source, active, wounded).Select(item => new CampaignTroopOriginData
+        {
+            CityId = item.Origin.CityId, ActiveTroops = item.Active, WoundedTroops = item.Wounded
+        }).ToList();
+
+    public static void Transfer(CampaignBattleTeamData source, CampaignBattleTeamData target, int active, int wounded)
+    {
+        var allocation = AllocateTransfer(source, active, wounded);
+        EnsureInitialized(target);
+        foreach (var (item, a, w) in allocation)
+        {
             var destination = Get(target, item.CityId);
             item.ActiveTroops -= a; item.WoundedTroops -= w;
             destination.ActiveTroops += a; destination.WoundedTroops += w;
-            active -= a; wounded -= w;
         }
         source.TroopOrigins.RemoveAll(item => item.ActiveTroops == 0 && item.WoundedTroops == 0);
         UpdateLegacyOrigin(source); UpdateLegacyOrigin(target);

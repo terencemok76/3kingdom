@@ -322,6 +322,13 @@ public partial class HudController
                 return;
             }
 
+            pendingCommand.PlayerSupportRequest ??= AiPlayerCampaignSupportRules.CreatePrebattleRequest(world, pendingCommand);
+            if (pendingCommand.PlayerSupportRequest is { Status: BattleInvitationStatus.Pending } supportRequest)
+            {
+                ShowAiPlayerSupportRequest(pendingCommand, supportRequest);
+                return;
+            }
+
             // Keep the pending command at the front of the queue while the
             // player chooses defenders.  Confirm Defense resumes this method;
             // only then is the same configured attack removed and resolved.
@@ -378,14 +385,16 @@ public partial class HudController
             LaunchCampaignBattle(campaignId);
             return;
         }
-        foreach (var invitation in campaign.Invitations.Where(item => item.Side == CampaignBattleSide.Defender ||
-                     (item.Side == CampaignBattleSide.Attacker && item.InviterFactionId == _turnManager.GetPlayerFactionId())))
+        foreach (var invitation in campaign.Invitations.Where(item => item.InviterFactionId == _turnManager.GetPlayerFactionId()))
         {
             var factionName = _localization.GetFactionName(_turnManager.World, invitation.InvitedFactionId);
-            var order = campaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId && item.Side == invitation.Side);
+            var order = campaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId && item.Side == invitation.Side &&
+                (invitation.RequestedSourceCityId <= 0 || item.SourceCityId == invitation.RequestedSourceCityId));
             var source = order == null ? null : _turnManager.World.GetCity(order.SourceCityId);
-            var message = invitation.Status == BattleInvitationStatus.Accepted && order != null && order.Teams.Count > 0
-                ? _localization.Format("log.alliance_reinforcement_dispatched", factionName, source == null ? "?" : _localization.GetCityName(source), order.Teams.Sum(team => team.ActiveTroops), order.RemainingBattleDays)
+            var message = invitation.Status == BattleInvitationStatus.Pending
+                ? _localization.Format("log.alliance_response_pending", factionName, invitation.ResponseBattleDays)
+                : invitation.Status == BattleInvitationStatus.Accepted && order != null
+                ? _localization.Format("log.alliance_support_dispatched", factionName, source == null ? "?" : _localization.GetCityName(source), order.Teams.Sum(team => team.ActiveTroops), order.Gold, order.Food, order.RemainingBattleDays)
                 : _localization.Format("log.alliance_reinforcement_unavailable", factionName);
             AddLog(message, isPlayerRelated: true);
             _allianceReinforcementResponseQueue.Enqueue(message);
@@ -478,7 +487,20 @@ public partial class HudController
 
         var playerFactionId = _turnManager.GetPlayerFactionId();
         var cityOwnersBeforeMonth = world.Cities.ToDictionary(city => city.Id, city => city.OwnerFactionId);
+        var awaitingReplies = world.ActiveBattleCampaigns.SelectMany(campaign => campaign.Invitations
+            .Where(invitation => invitation.InviterFactionId == playerFactionId && invitation.Status == BattleInvitationStatus.Pending)
+            .Select(invitation => (Campaign: campaign, Invitation: invitation))).ToList();
         _turnManager.AdvanceMonth();
+        foreach (var (campaign, invitation) in awaitingReplies.Where(item => item.Invitation.Status is BattleInvitationStatus.Accepted or BattleInvitationStatus.Declined))
+        {
+            var name = _localization.GetFactionName(world, invitation.InvitedFactionId);
+            var order = campaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId && item.Side == invitation.Side &&
+                (invitation.RequestedSourceCityId <= 0 || item.SourceCityId == invitation.RequestedSourceCityId));
+            var message = invitation.Status == BattleInvitationStatus.Accepted && order != null
+                ? _localization.Format("log.campaign.envoy_accepted", name, order.Teams.Sum(team => team.ActiveTroops), order.Gold, order.Food, order.RemainingBattleDays)
+                : _localization.Format("log.campaign.envoy_declined", name);
+            AddLog(message, isPlayerRelated: true);
+        }
         foreach (var maintenance in _turnManager.ConsumeCovertMaintenanceEvents())
         {
             var officer = world.GetOfficer(maintenance.OfficerId);
