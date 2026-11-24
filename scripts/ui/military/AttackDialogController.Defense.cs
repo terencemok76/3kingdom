@@ -270,6 +270,7 @@ internal sealed partial class AttackDialogController
             UpsertDefenseReinforcement(new DefenseReinforcementRequestData
             {
                 SourceCityId = source.Id,
+                RequestedFactionId = source.OwnerFactionId,
                 IsAllianceRequest = true,
                 EnvoyOfficerId = _selectedDefenseEnvoyOfficerId,
                 RequestedTroops = requestedTroops, RequestedGold = requestedGold, RequestedFood = requestedFood,

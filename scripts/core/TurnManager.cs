@@ -156,7 +156,8 @@ public class TurnManager
         ResolvePendingCommandsOfType(resolver, CommandType.ContactOfficer, results);
         ResolvePendingCommandsOfType(resolver, CommandType.HireOfficer, results);
         ResolvePendingCommandsOfType(resolver, CommandType.Attack, results);
-        World.PendingCommands.RemoveAll(command => !(command.Type == CommandType.Move && command.IsTraveling));
+        World.PendingCommands.RemoveAll(command => !(command.Type == CommandType.Move && command.IsTraveling) &&
+            !(command.IsAwaitingPrebattleSupport && command.PlayerSupportRequest?.Status == BattleInvitationStatus.Pending));
         return results;
     }
 
@@ -380,6 +381,8 @@ public class TurnManager
             World.Year += 1;
         }
 
+        BattleCampaignService.ExpirePrewarAlliances(World);
+
         foreach (var campaign in World.ActiveBattleCampaigns.Where(campaign => campaign.Stage != CampaignStage.Resolved))
         {
             BattleCampaignService.BeginNextCampaignMonth(campaign, World.Year, World.Month);
@@ -388,6 +391,7 @@ public class TurnManager
         }
 
         AdvanceDiplomacyRelations();
+        BattleCampaignService.ResolvePendingPrewarAlliances(World);
         AdvanceCityIntel();
         _covertMaintenanceEvents.AddRange(CovertOfficerRules.ProcessMaintenance(World, World.Month == 1));
         var discordEvents = CovertOfficerRules.ProcessDiscord(World);
@@ -592,12 +596,15 @@ public class TurnManager
             return;
         }
 
-        foreach (var pendingCommand in World.PendingCommands)
+        foreach (var pendingCommand in World.PendingCommands.ToList())
         {
             if (pendingCommand.Type != commandType)
             {
                 continue;
             }
+
+            if (pendingCommand.IsAwaitingPrebattleSupport && pendingCommand.PlayerSupportRequest?.Status == BattleInvitationStatus.Pending)
+                continue;
 
             results.Add(resolver.ResolvePendingCommand(pendingCommand));
         }
@@ -1206,6 +1213,8 @@ public class TurnManager
         }
 
         world.InternalAffairsSchedules.RemoveAll(schedule => schedule.OfficerId == officer.Id);
+        foreach (var attack in world.PendingCommands.Where(command => command.IsAwaitingPrebattleSupport && command.OfficerIds.Contains(officer.Id)).ToList())
+            AiPlayerCampaignSupportRules.CancelDeferredAttack(world, attack);
         world.PendingCommands.RemoveAll(command => command.OfficerIds.Contains(officer.Id));
 
         officer.CityId = 0;

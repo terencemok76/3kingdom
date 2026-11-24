@@ -151,6 +151,12 @@ public static class CovertOfficerRules
         foreach (var officerId in city.OfficerIds.Where(id => id != governor.Id).ToList())
         {
             var officer = world.GetOfficer(officerId);
+            if (officer != null && BattleCampaignService.IsOfficerWithActiveCampaign(world, officer.Id))
+            {
+                city.OfficerIds.Remove(officerId);
+                officer.CityId = 0;
+                continue;
+            }
             if (officer != null && officer.CityId == city.Id && original.OfficerIds.Contains(officer.Id) &&
                 original.RulerOfficerId != officer.Id && officer.CaptiveFactionId <= 0 &&
                 (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&

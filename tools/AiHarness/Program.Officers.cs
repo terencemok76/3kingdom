@@ -632,6 +632,46 @@ internal static partial class Program
         Assert(city.OfficerIds.Contains(150) == faction.OfficerIds.Contains(150), "Civil investigation keeps city/faction officer state consistent", $"cityHas={city.OfficerIds.Contains(150)}, factionHas={faction.OfficerIds.Contains(150)}");
     }
 
+    private static void RunPlayerRulerExileTest()
+    {
+        var world = TestHelpers.World(year: 200, month: 2);
+        world.Cities.Add(TestHelpers.City(1, "Occupied", 2, 1000, 1000, 1000, Array.Empty<int>(), new[] { 2 }));
+        world.Cities.Add(TestHelpers.City(2, "Neighbor", 2, 1000, 1000, 1000, new[] { 201 }, new[] { 1, 3 }));
+        world.Cities.Add(TestHelpers.City(3, "Unowned", 0, 1000, 1000, 1000, Array.Empty<int>(), new[] { 2 }));
+        var ruler = TestHelpers.Officer(101, "Exiled ruler", 1);
+        ruler.DisplacedRulerFactionId = 1;
+        world.Officers.Add(ruler);
+        world.Officers.Add(TestHelpers.Officer(201, "Enemy", 2));
+        world.Factions.Add(TestHelpers.Faction(1, "Player", true, 0, Array.Empty<int>()));
+        world.Factions.Add(TestHelpers.Faction(2, "Enemy", false, 201, new[] { 201 }));
+        FreeOfficerMovement.Advance(world);
+        var protectedExile = FreeOfficerMovement.GetPlayerExiledRuler(world)?.Id == 101 && ruler.CityId == 1 && !FreeOfficerMovement.IsVisibleFreeOfficer(world, ruler);
+        var cannotSkip = !FreeOfficerMovement.TryMovePlayerExiledRuler(world, 3);
+        var moved = FreeOfficerMovement.TryMovePlayerExiledRuler(world, 2);
+        var onlyOnce = !FreeOfficerMovement.TryMovePlayerExiledRuler(world, 3);
+        var saved = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+        var savedRuler = saved.GetOfficer(101)!;
+        var savedExile = FreeOfficerMovement.GetPlayerExiledRuler(saved)?.Id == 101 && !FreeOfficerMovement.TryMovePlayerExiledRuler(saved, 3);
+        saved.Month++;
+        var arrived = FreeOfficerMovement.TryMovePlayerExiledRuler(saved, 3);
+        FreeOfficerMovement.Advance(saved);
+        FreeOfficerMovement.InitializeLocations(saved);
+        var waitsForPlayer = saved.GetCity(3)!.OwnerFactionId == 0 && FreeOfficerMovement.GetPlayerExiledRuler(saved)?.Id == 101;
+        var wrongCityRejected = !FreeOfficerMovement.TryClaimPlayerExiledCity(saved, 1);
+        saved.ActiveBattleCampaigns.Add(new ActiveBattleCampaignData { SourceCityId = 3, Stage = CampaignStage.FieldBattle });
+        var contestedRejected = !FreeOfficerMovement.TryClaimPlayerExiledCity(saved, 3);
+        saved.ActiveBattleCampaigns.Clear();
+        var restored = FreeOfficerMovement.TryClaimPlayerExiledCity(saved, 3);
+        var duplicateRejected = !FreeOfficerMovement.TryClaimPlayerExiledCity(saved, 3);
+        var faction = saved.GetFaction(1)!;
+        Assert(protectedExile && cannotSkip && moved && onlyOnce && savedExile && arrived && waitsForPlayer && wrongCityRejected && contestedRejected && restored && duplicateRejected && saved.GetCity(3)!.OwnerFactionId == 1 &&
+               saved.GetCity(3)!.OfficerIds.Contains(101) && faction.RulerOfficerId == 101 && faction.OfficerIds.Contains(101) &&
+               savedRuler.DisplacedRulerFactionId == 0 && OfficerAppointmentRules.HasAppointment(savedRuler, OfficerAppointmentRules.Lord),
+            "player ruler exile", $"protected={protectedExile}, route={cannotSkip}, moved={moved}, once={onlyOnce}, saved={savedExile}, arrived={arrived}, waits={waitsForPlayer}, wrong={wrongCityRejected}, contested={contestedRejected}, restored={restored}, duplicate={duplicateRejected}");
+        ruler.CaptiveFactionId = 2;
+        Assert(FreeOfficerMovement.GetPlayerExiledRuler(world) == null, "player ruler exile captivity", "a captive ruler cannot use the free exile movement flow");
+    }
+
     private static void RunFreeOfficerMovementTest()
     {
         var world = TestHelpers.World(year: 200, month: 1);

@@ -297,6 +297,8 @@ public class AiController
             .Select(target => target.Id);
         foreach (var targetId in enemyTargetIds)
         {
+            if (world.PendingCommands.Any(command => command.Type == CommandType.Attack && command.SourceCityId == city.Id && command.IsAwaitingPrebattleSupport))
+                break;
             if (militaryResult != null)
             {
                 break;

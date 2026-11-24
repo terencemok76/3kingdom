@@ -19,17 +19,78 @@ internal static partial class Program
         world.Factions.Add(TestHelpers.Faction(3, "Ally", false, 301, new[] { 301 }));
         world.DiplomacyRelations.Add(new DiplomacyRelationData { FactionAId = 1, FactionBId = 3, Status = DiplomacyStatusType.Alliance, RemainingMonths = 12, RelationScore = 80 });
         var request = new PrewarAllianceRequestData { InviterFactionId = 1, AllyFactionId = 3, TargetCityId = 2, EnvoyOfficerId = 102, RequestedTroops = 600, PromisedGold = 100 };
-        var accepted = BattleCampaignService.TryAcceptPrewarAlliance(world, request);
+        var accepted = BattleCampaignService.TrySchedulePrewarAlliance(world, request);
+        var pendingBeforeBattle = request.IsPending && request.AcceptedMonth == 0;
         var envoyLocked = BattleCampaignService.IsOfficerCommitted(world, request.EnvoyOfficerId);
-        var duplicateRejected = !BattleCampaignService.TryAcceptPrewarAlliance(world, request);
+        var sourceGold = world.GetCity(3)!.Gold;
+        var competingCommand = CreateServices(world).Resolver.Execute(new CommandRequest
+        {
+            Type = CommandType.Develop, ActorFactionId = 1, SourceCityId = 3, OfficerIds = new List<int> { 102 }
+        });
+        Assert(!competingCommand.Success && world.GetCity(3)!.Gold == sourceGold &&
+               !world.PendingCommands.Any(item => item.Type == CommandType.Develop && item.OfficerIds.Contains(102)),
+            "prewar envoy command lock", "a waiting envoy cannot be assigned to development or spend city resources");
+        var duplicateRejected = !BattleCampaignService.TrySchedulePrewarAlliance(world, request);
+        world.Cities.Add(TestHelpers.City(6, "Other target", 2, 500, 500, 1000, Array.Empty<int>(), new[] { 4 }));
+        ally.ConnectedCityIds.Add(6);
+        var secondRequest = new PrewarAllianceRequestData { InviterFactionId = 1, AllyFactionId = 3, TargetCityId = 6, SourceCityId = 4, EnvoyOfficerId = 102, RequestedTroops = 100 };
+        var busyEnvoyRejected = !BattleCampaignService.TrySchedulePrewarAlliance(world, secondRequest);
+        secondRequest.EnvoyOfficerId = 301;
+        var foreignEnvoyRejected = !BattleCampaignService.TrySchedulePrewarAlliance(world, secondRequest);
+        Assert(busyEnvoyRejected && foreignEnvoyRejected && world.PrewarAllianceRequests.Count == 1,
+            "prewar envoy availability", "a committed or foreign officer cannot be reused for another agreement");
         var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
         BattleCampaignService.DispatchPrewarAllies(world, campaign);
-        ResolveScheduledAiReplies(world, campaign);
-        var order = campaign.Reinforcements.SingleOrDefault(item => item.FactionId == 3);
+        var earlyBattlePending = campaign.Invitations.Count == 0 && campaign.Reinforcements.Count == 0 && request.IsPending && world.PrewarAllianceRequests.Contains(request);
+        CreateServices(world).Turn.AdvanceMonth();
+        var replyNextMonth = !request.IsPending && request.AcceptedMonth == world.Month;
         BattleCampaignService.DispatchPrewarAllies(world, campaign);
-        Assert(accepted && envoyLocked && duplicateRejected && order != null && order.Side == CampaignBattleSide.Attacker && order.Status == ReinforcementStatus.Traveling &&
-               order.SourceCityId == 4 && order.Teams.Count > 0 && world.PrewarAllianceRequests.Count == 0 && campaign.Reinforcements.Count == 1 && campaign.Invitations.Single().PromisedGold == 100,
-            "Prewar ally accepts then dispatches once when the target is attacked", $"accepted={accepted}, duplicateRejected={duplicateRejected}, order={order?.Status}, teams={order?.Teams.Count}");
+        var notAppliedToExistingBattle = campaign.Invitations.Count == 0 && campaign.Reinforcements.Count == 0 && world.PrewarAllianceRequests.Contains(request);
+        campaign.Stage = CampaignStage.Resolved;
+        var laterCampaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        BattleCampaignService.DispatchPrewarAllies(world, laterCampaign);
+        ResolveScheduledAiReplies(world, laterCampaign);
+        var order = laterCampaign.Reinforcements.SingleOrDefault(item => item.FactionId == 3);
+        BattleCampaignService.DispatchPrewarAllies(world, laterCampaign);
+        Assert(accepted && pendingBeforeBattle && earlyBattlePending && replyNextMonth && notAppliedToExistingBattle && envoyLocked && duplicateRejected &&
+               order != null && order.Side == CampaignBattleSide.Attacker && order.Status == ReinforcementStatus.Traveling &&
+               order.SourceCityId == 4 && order.Teams.Count > 0 && world.PrewarAllianceRequests.Count == 0 && laterCampaign.Reinforcements.Count == 1 && laterCampaign.Invitations.Single().PromisedGold == 100,
+            "prewar reply and battle timing", $"pending={earlyBattlePending}, reply={replyNextMonth}, oldBattleExcluded={notAppliedToExistingBattle}, laterOrder={order?.Status}");
+
+        var expiryWorld = CreateBattleCampaignWorld();
+        expiryWorld.Year = 200; expiryWorld.Month = 10;
+        expiryWorld.Cities.Add(TestHelpers.City(4, "Ally", 3, 1500, 4000, 4000, new[] { 301 }, new[] { 2 }));
+        expiryWorld.Officers.Add(TestHelpers.Officer(301, "AllyOfficer", 4));
+        expiryWorld.Factions.Add(TestHelpers.Faction(3, "Ally", false, 301, new[] { 301 }));
+        expiryWorld.DiplomacyRelations.Add(new DiplomacyRelationData { FactionAId = 1, FactionBId = 3, Status = DiplomacyStatusType.Alliance, RemainingMonths = 12, RelationScore = 80 });
+        var expiring = new PrewarAllianceRequestData { InviterFactionId = 1, AllyFactionId = 3, TargetCityId = 2, EnvoyOfficerId = 102, RequestedTroops = 600 };
+        var expiryAccepted = BattleCampaignService.TrySchedulePrewarAlliance(expiryWorld, expiring);
+        expiring = System.Text.Json.JsonSerializer.Deserialize<PrewarAllianceRequestData>(System.Text.Json.JsonSerializer.Serialize(expiring))!;
+        expiryWorld.PrewarAllianceRequests[0] = expiring;
+        var expiryTurn = CreateServices(expiryWorld).Turn;
+        var initiallyPending = expiring.IsPending && BattleCampaignService.IsOfficerCommitted(expiryWorld, 102);
+        expiryTurn.AdvanceMonth();
+        var acceptedNextMonth = !expiring.IsPending && expiring.AcceptedYear == 200 && expiring.AcceptedMonth == 11;
+        for (var i = 0; i < 5; i++) expiryTurn.AdvanceMonth();
+        var beforeExpiry = expiryWorld.PrewarAllianceRequests.Contains(expiring) &&
+            BattleCampaignService.GetPrewarAllianceMonthsRemaining(expiryWorld, expiring) == 1 && BattleCampaignService.IsOfficerCommitted(expiryWorld, 102);
+        expiryTurn.AdvanceMonth();
+        Assert(expiryAccepted && initiallyPending && acceptedNextMonth && beforeExpiry && expiryWorld.Year == 201 && expiryWorld.Month == 5 &&
+               !expiryWorld.PrewarAllianceRequests.Contains(expiring) && !BattleCampaignService.IsOfficerCommitted(expiryWorld, 102),
+            "prewar alliance expiry", "agreement expires after six months across years and releases envoy after save round trip");
+
+        var declinedWorld = CreateBattleCampaignWorld();
+        declinedWorld.Cities.Add(TestHelpers.City(4, "Ally", 3, 1500, 4000, 4000, new[] { 301 }, new[] { 2 }));
+        declinedWorld.Officers.Add(TestHelpers.Officer(301, "AllyOfficer", 4));
+        declinedWorld.Factions.Add(TestHelpers.Faction(3, "Ally", false, 301, new[] { 301 }));
+        var revoked = new DiplomacyRelationData { FactionAId = 1, FactionBId = 3, Status = DiplomacyStatusType.Alliance, RemainingMonths = 12, RelationScore = 80 };
+        declinedWorld.DiplomacyRelations.Add(revoked);
+        var declinedRequest = new PrewarAllianceRequestData { InviterFactionId = 1, AllyFactionId = 3, TargetCityId = 2, SourceCityId = 4, EnvoyOfficerId = 102, RequestedTroops = 600 };
+        var submitted = BattleCampaignService.TrySchedulePrewarAlliance(declinedWorld, declinedRequest);
+        revoked.RemainingMonths = 1;
+        CreateServices(declinedWorld).Turn.AdvanceMonth();
+        Assert(submitted && !declinedWorld.PrewarAllianceRequests.Contains(declinedRequest) && !BattleCampaignService.IsOfficerCommitted(declinedWorld, 102),
+            "prewar delayed reply", "an alliance expiring at the next month declines the request and releases the envoy");
     }
 
     private static void RunDefenderPlanOverrideTest()

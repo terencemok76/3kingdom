@@ -297,7 +297,7 @@ public partial class HudController : CanvasLayer
         _mainHudUiController?.SetCityInfoTemporarilyHidden(false);
         _mainHudUiController?.SetLogTemporarilyHidden(false);
         _mainHudUiController?.SetTopBarTurnState(_turnManager?.GetPlayerFactionId() ?? -1, isAiTurn: false, buttonsEnabled: true);
-        UpdateGameplayButtonStates();
+        RefreshSelectedCity();
         Callable.From(ShowPendingAiCampaignSupportAfterTurn).CallDeferred();
     }
 
@@ -353,6 +353,7 @@ public partial class HudController : CanvasLayer
 
         if (playerCityCount == 0)
         {
+            if (FreeOfficerMovement.GetPlayerExiledRuler(world) != null || BattleCampaignService.HasFactionRulerInActiveCampaign(world, playerFactionId)) return;
             _gameEnded = true;
             AddLog(_localization?.T("log.defeat_all_cities") ?? "Defeat: You have lost all cities.", isPlayerRelated: true);
             SetGameplayButtonsEnabled(false);
@@ -434,6 +435,16 @@ public partial class HudController : CanvasLayer
 
             var factionName = _localization.GetFactionName(world, factionId);
             var faction = world.GetFaction(factionId);
+            if (faction?.IsPlayer == true && BattleCampaignService.HasFactionRulerInActiveCampaign(world, factionId))
+            {
+                QueueFactionOutcome(_localization.T("ui.exile.title"), _localization.T("ui.exile.ruler_fighting"));
+                continue;
+            }
+            if (faction?.IsPlayer == true && FreeOfficerMovement.GetPlayerExiledRuler(world) is { } exiled)
+            {
+                QueueFactionOutcome(_localization.T("ui.exile.title"), _localization.Format("ui.exile.lost_cities", _localization.GetOfficerName(exiled)));
+                continue;
+            }
             if (faction?.SurrenderedToFactionId > 0)
             {
                 var receivingFactionName = _localization.GetFactionName(world, faction.SurrenderedToFactionId);

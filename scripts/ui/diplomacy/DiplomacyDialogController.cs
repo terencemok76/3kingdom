@@ -412,7 +412,10 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         {
             _inviteExisting.Visible = request != null;
             if (request != null && loc != null)
-                _inviteExisting.Text = loc.Format("ui.campaign.invite_existing", request.RequestedTroops, request.RequestedGold, request.RequestedFood);
+                _inviteExisting.Text = request.IsPending
+                    ? loc.Format("ui.campaign.invite_existing_pending", request.RequestedTroops, request.RequestedGold, request.RequestedFood)
+                    : loc.Format("ui.campaign.invite_existing", request.RequestedTroops, request.RequestedGold, request.RequestedFood,
+                        BattleCampaignService.GetPrewarAllianceMonthsRemaining(_context.TurnManager!.World!, request));
         }
         if (_inviteCancel != null)
         {
@@ -505,7 +508,7 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
         }
         try
         {
-            var accepted = BattleCampaignService.TryAcceptPrewarAlliance(world, new PrewarAllianceRequestData
+            var scheduled = BattleCampaignService.TrySchedulePrewarAlliance(world, new PrewarAllianceRequestData
             {
                 InviterFactionId = city.OwnerFactionId, AllyFactionId = allyId,
                 TargetCityId = target.Id, SourceCityId = SelectedId(_inviteSource), EnvoyOfficerId = _selectedOfficerId,
@@ -513,14 +516,19 @@ internal sealed class DiplomacyDialogController : FloatingOverlayController
                 RequestedGold = (int)(_inviteRequestedGold?.Value ?? 0), RequestedFood = (int)(_inviteRequestedFood?.Value ?? 0),
                 PromisedGold = (int)(_inviteGold?.Value ?? 0), PromisedFood = (int)(_inviteFood?.Value ?? 0)
             });
-            var message = loc.T(accepted ? "ui.campaign.invite_accepted" : "ui.campaign.invite_declined");
+            if (!scheduled)
+            {
+                SetWarning(loc.T("ui.campaign.invite_invalid"));
+                return;
+            }
+            var message = loc.T("ui.campaign.invite_pending");
             var faction = world.GetFaction(allyId);
             var factionName = loc.GetFactionName(world, allyId);
             var resultMessage = loc.Format("ui.campaign.invite_response_message", factionName, message);
             _context.AddLog(resultMessage, true);
             SetWarning(string.Empty);
             HideOverlay();
-            _context.ShowInvitationResult(loc.T("ui.campaign.invite_response_title"), resultMessage, faction?.RulerOfficerId ?? 0);
+            _context.ShowInvitationResult(loc.T("ui.campaign.invite_pending_title"), resultMessage, faction?.RulerOfficerId ?? 0);
         }
         catch (InvalidOperationException)
         {

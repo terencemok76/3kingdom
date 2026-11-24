@@ -110,6 +110,8 @@ public class CampaignBattleTeamData
     // Survivors already returned to a strategic city remain attributable to
     // this battle when its final report is assembled.
     public int ReturnedTroops { get; set; }
+    public int DisbandedTroops { get; set; }
+    public bool HasEnteredBattle { get; set; }
     public int Morale { get; set; } = 100;
     // Null means a campaign created before these fields existed or a team that has not fought yet.
     public int? MessTurns { get; set; }
@@ -147,6 +149,7 @@ public class BattleParticipantData
     public int TroopsCommitted { get; set; }
     public int TroopsLost { get; set; }
     public int BattleDaysParticipated { get; set; }
+    public bool ForeignHostilityApplied { get; set; }
 }
 
 public class ReinforcementOrderData
@@ -155,6 +158,8 @@ public class ReinforcementOrderData
     public int CampaignId { get; set; }
     public int FactionId { get; set; }
     public CampaignBattleSide Side { get; set; }
+    // Zero denotes an order that was not created by an invitation.
+    public int InvitationId { get; set; }
     public int SourceCityId { get; set; }
     public int TargetCityId { get; set; }
     public int DispatchYear { get; set; }
@@ -197,6 +202,9 @@ public class BattleInvitationData
 
 public class PrewarAllianceRequestData
 {
+    public bool IsPending { get; set; }
+    public int AcceptedYear { get; set; }
+    public int AcceptedMonth { get; set; }
     public int InviterFactionId { get; set; }
     public int AllyFactionId { get; set; }
     public int SourceCityId { get; set; }
@@ -225,6 +233,7 @@ public class ActiveBattleCampaignData
     public int BattleDaysThisMonth { get; set; }
     public int TotalBattleDays { get; set; }
     public CampaignStage Stage { get; set; } = CampaignStage.FieldBattle;
+    public bool SettlementCompleted { get; set; }
     public DefenderBattlePlan DefenderPlan { get; set; } = DefenderBattlePlan.CityDefense;
     public PostFieldBattleDecision PostFieldDecision { get; set; }
     public bool IsPlayerInvolved { get; set; }

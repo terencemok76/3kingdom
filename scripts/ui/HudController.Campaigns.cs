@@ -353,6 +353,8 @@ public partial class HudController
                 report.AttackerWoundedTroops,
                 report.AttackerReturnedTroops,
                 report.AttackerActiveTroops);
+        if (report.AttackerDisbandedTroops > 0)
+            _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/AttackerPanel/Margin/Content/ForceLabel").Text += "\n" + localization.Format("ui.campaign.battle_report_disbanded", report.AttackerDisbandedTroops);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/SideLabel").Text =
             isCaravanEscortReport
                 ? localization.Format("ui.battle.caravan_report_transport_side", defenderRulerName)
@@ -376,6 +378,8 @@ public partial class HudController
                     report.DefenderWoundedTroops,
                     report.DefenderReturnedTroops,
                     report.DefenderActiveTroops);
+        if (report.DefenderDisbandedTroops > 0)
+            _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ForceRow/DefenderPanel/Margin/Content/ForceLabel").Text += "\n" + localization.Format("ui.campaign.battle_report_disbanded", report.DefenderDisbandedTroops);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ResourceLabel").Text =
             localization.Format(
                 isCaravanEscortReport
@@ -402,9 +406,12 @@ public partial class HudController
                 item.RewardFood,
                 item.RelationDelta,
                 item.TrustDelta,
-                localization.T(item.PromiseFulfilled
+                localization.T(item.SupportArrived == false
+                    ? "ui.campaign.battle_report_support_not_arrived"
+                    : item.PromiseFulfilled
                     ? "ui.campaign.battle_report_promise_fulfilled"
-                    : "ui.campaign.battle_report_promise_unfulfilled")))
+                    : "ui.campaign.battle_report_promise_unfulfilled")) +
+                (item.TroopsDisbanded > 0 ? "｜" + localization.Format("ui.campaign.battle_report_disbanded", item.TroopsDisbanded) : ""))
             .ToList();
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/ParticipantSettlementLabel").Text =
             alliedSettlements.Count == 0

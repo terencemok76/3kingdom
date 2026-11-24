@@ -158,10 +158,12 @@ internal static partial class Program
 
         if (args.Contains("--battle-campaign-only", StringComparer.OrdinalIgnoreCase))
         {
+            RunPlayerRulerExileTest();
             RunEnvoyExcludedFromDeploymentTest();
             RunEnvoyResponseTimingTest();
             RunAiPlayerSupportRequestTest();
             RunAiCampaignSupportRequestTest();
+            RunReinforcementBlockedRouteTest();
             RunCustomCampaignSupportTest();
             RunAiPostFieldDecisionTest();
             RunAlliedReorganizationTest();
@@ -175,7 +177,17 @@ internal static partial class Program
             RunBattleCampaignBlockedEntranceQueueTest();
             RunFieldReinforcementEntranceSideTest();
             RunDefenseReinforcementRequestTest();
+            RunChangedDefenseSupportSourceTest();
             RunAlliedDefenseReinforcementRequestTest();
+            RunAiLimitedSupplyFallbackTest();
+            RunAiAidCitySafetyTest();
+            RunAiAidOfficerSelectionTest();
+            RunAiInvitationOpponentThreatTest();
+            RunAiPromisedRewardDecisionTest();
+            RunAiAidDistanceDecisionTest();
+            RunAiAidLeadershipRiskTest();
+            RunOpposingSupportExclusionTest();
+            RunForeignAidDiplomacyTest();
             RunPrewarAllianceRequestTest();
             RunAiCampaignReinforcementTest();
             RunPlayerCampaignReinforcementCommandTest();

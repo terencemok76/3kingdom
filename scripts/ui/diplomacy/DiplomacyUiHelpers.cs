@@ -60,6 +60,10 @@ internal static class DiplomacyUiHelpers
             .Where(officer =>
                 officer != null &&
                 officer.Id != turnManager.World.GetFaction(selectedCity.OwnerFactionId)?.RulerOfficerId &&
+                officer.CaptiveFactionId <= 0 && (officer.DeathYear <= 0 || turnManager.World.Year <= officer.DeathYear) &&
+                !BattleCampaignService.IsOfficerCommitted(turnManager.World, officer.Id) &&
+                !OfficerAvailabilityRules.IsTravelingWithLogistics(turnManager.World, officer.Id) &&
+                !turnManager.World.InternalAffairsSchedules.Any(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.OfficerId == officer.Id) &&
                 !(officer.LastAssignedYear == turnManager.World.Year &&
                   officer.LastAssignedMonth == turnManager.World.Month))
             .Select(officer => officer!.Id)

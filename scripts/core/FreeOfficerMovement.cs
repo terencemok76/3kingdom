@@ -72,6 +72,7 @@ public static class FreeOfficerMovement
         var random = CreateRandom(world, world.Year * 100 + world.Month);
         foreach (var officer in world.Officers)
         {
+            if (officer.DisplacedRulerFactionId > 0 && GetPlayerExiledRuler(world)?.Id == officer.Id) continue;
             if (IsEmployed(world, officer) || !IsOldEnough(world, officer))
             {
                 continue;
@@ -132,7 +133,44 @@ public static class FreeOfficerMovement
         }
     }
 
-    private static bool TryRestoreDisplacedRulerFaction(WorldState world, OfficerData officer)
+    public static OfficerData? GetPlayerExiledRuler(WorldState world)
+    {
+        var player = world.Factions.FirstOrDefault(faction => faction.IsPlayer);
+        if (player == null || world.Cities.Any(city => city.OwnerFactionId == player.Id)) return null;
+        return world.Officers.FirstOrDefault(officer => officer.DisplacedRulerFactionId == player.Id &&
+            officer.CaptiveFactionId <= 0 && officer.CityId > 0 && world.GetCity(officer.CityId) != null && IsFreeOfficer(world, officer));
+    }
+
+    public static bool TryMovePlayerExiledRuler(WorldState world, int cityId)
+    {
+        var officer = GetPlayerExiledRuler(world);
+        var origin = officer == null ? null : world.GetCity(officer.CityId);
+        var destination = world.GetCity(cityId);
+        if (officer == null || origin == null || destination == null || !origin.ConnectedCityIds.Contains(cityId) ||
+            officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month) return false;
+        officer.CityId = destination.Id;
+        officer.LastAssignedYear = world.Year;
+        officer.LastAssignedMonth = world.Month;
+        officer.LastAssignedCommand = CommandType.Move;
+        return true;
+    }
+
+    public static bool CanClaimPlayerExiledCity(WorldState world, int cityId)
+    {
+        var officer = GetPlayerExiledRuler(world);
+        var city = world.GetCity(cityId);
+        return officer != null && city?.OwnerFactionId == 0 && officer.CityId == cityId &&
+            !world.ActiveBattleCampaigns.Any(campaign => campaign.Stage != CampaignStage.Resolved &&
+                (campaign.SourceCityId == cityId || campaign.TargetCityId == cityId));
+    }
+
+    public static bool TryClaimPlayerExiledCity(WorldState world, int cityId)
+    {
+        if (!CanClaimPlayerExiledCity(world, cityId)) return false;
+        return TryRestoreDisplacedRulerFaction(world, GetPlayerExiledRuler(world)!, allowPlayer: true);
+    }
+
+    private static bool TryRestoreDisplacedRulerFaction(WorldState world, OfficerData officer, bool allowPlayer = false)
     {
         if (officer.DisplacedRulerFactionId <= 0 || officer.CaptiveFactionId > 0)
         {
@@ -141,7 +179,7 @@ public static class FreeOfficerMovement
 
         var faction = world.GetFaction(officer.DisplacedRulerFactionId);
         var city = officer.CityId > 0 ? world.GetCity(officer.CityId) : null;
-        if (faction == null || city == null ||
+        if (faction == null || faction.IsPlayer && !allowPlayer || city == null ||
             world.Cities.Any(item => item.OwnerFactionId == faction.Id) ||
             city.OwnerFactionId != 0)
         {
@@ -151,12 +189,14 @@ public static class FreeOfficerMovement
         city.OwnerFactionId = faction.Id;
         city.Loyalty = Math.Max(city.Loyalty, 50);
         faction.RulerOfficerId = officer.Id;
+        if (!city.OfficerIds.Contains(officer.Id)) city.OfficerIds.Add(officer.Id);
         if (!faction.OfficerIds.Contains(officer.Id))
         {
             faction.OfficerIds.Add(officer.Id);
         }
 
         officer.Belongs = faction.Id.ToString();
+        OfficerAppointmentRules.AddAppointment(officer, OfficerAppointmentRules.Lord);
         officer.DisplacedRulerFactionId = 0;
         officer.FreeOfficerStayMonths = 0;
         return true;
@@ -169,7 +209,8 @@ public static class FreeOfficerMovement
 
     public static bool IsVisibleFreeOfficer(WorldState world, OfficerData officer)
     {
-        return IsFreeOfficer(world, officer) && officer.CityId > 0 && world.GetCity(officer.CityId) != null;
+        return IsFreeOfficer(world, officer) && (officer.DisplacedRulerFactionId <= 0 || GetPlayerExiledRuler(world)?.Id != officer.Id) &&
+            officer.CityId > 0 && world.GetCity(officer.CityId) != null;
     }
 
     public static bool IsHiddenFreeOfficer(WorldState world, OfficerData officer)

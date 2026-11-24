@@ -1148,9 +1148,11 @@ public partial class CommandResolver
 
     private static List<PendingCommandData> GetPendingJointAttacks(WorldState world, PendingCommandData primaryAttack)
     {
+        if (primaryAttack.IsAwaitingPrebattleSupport) return new List<PendingCommandData>();
         return world.PendingCommands
             .Where(order =>
                 order != primaryAttack &&
+                !order.IsAwaitingPrebattleSupport &&
                 order.Type == CommandType.Attack &&
                 order.ActorFactionId == primaryAttack.ActorFactionId &&
                 order.TargetCityId == primaryAttack.TargetCityId &&
@@ -1260,8 +1262,9 @@ public partial class CommandResolver
                 var invitation = BattleCampaignService.CreateInvitation(campaign, playerSupport.InviterFactionId, playerFactionId, playerSupport.Side,
                     BattleCampaignService.GetRequestedSupportType(playerSupport.RequestedTroops, playerSupport.RequestedGold, playerSupport.RequestedFood),
                     playerSupport.EnvoyOfficerId, playerSupport.RequestedTroops, playerSupport.RequestedGold, playerSupport.RequestedFood, playerSupport.SourceCityId);
-                BattleCampaignService.DispatchReinforcement(world, campaign, playerSupport.SourceCityId, playerSupport.Side, deployments,
+                var supportOrder = BattleCampaignService.DispatchReinforcement(world, campaign, playerSupport.SourceCityId, playerSupport.Side, deployments,
                     playerSupport.Gold, playerSupport.Food, playerSupport.Troops > 0 ? CampaignSupplyOwnership.Expedition : CampaignSupplyOwnership.Gift);
+                supportOrder.InvitationId = invitation.Id;
                 invitation.Status = BattleInvitationStatus.Accepted;
                 invitation.DecisionReason = "Player accepted support request.";
                 campaign.IsPlayerInvolved = true;

@@ -85,6 +85,10 @@ internal sealed class MainHudUiContext : IFloatingOverlayContext
     public void OpenCivil() => _owner.MainHudOpenCivil();
     public void OpenAttack() => _owner.MainHudOpenAttack();
     public void OpenView() => _owner.MainHudOpenView();
+    public bool CanClaimExiledCity => _owner.MainHudCanClaimExiledCity;
+    public void ClaimExiledCity() => _owner.MainHudClaimExiledCity();
+    public bool CanMoveExiledRuler => _owner.MainHudCanMoveExiledRuler;
+    public void MoveExiledRuler() => _owner.MainHudMoveExiledRuler();
     public void OpenStrategicMap() => _owner.MainHudOpenStrategicMap();
     public bool SelectCityById(int cityId) => _owner.MainHudSelectCityById(cityId);
     public void ShowStrategicMapSelection(StrategicMapSelectionRequest request) =>

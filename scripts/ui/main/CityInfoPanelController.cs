@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
@@ -74,6 +75,9 @@ internal sealed class CityInfoPanelController
     private bool _domesticTabConnected;
     private CityInfoDataTab _selectedDataTab = CityInfoDataTab.Overview;
     private bool _mainCityButtonConnected;
+    private Button? _claimCityButton;
+    private Button? _exileMoveButton;
+    private readonly Dictionary<Button, bool> _exileButtonVisibility = new();
 
     public CityInfoPanelController(MainHudUiContext context)
     {
@@ -83,6 +87,17 @@ internal sealed class CityInfoPanelController
     public void Initialize()
     {
         ConnectButtons();
+        if (_context.ViewButton?.GetParent() is Container commandButtons)
+        {
+            _exileMoveButton = new Button { Visible = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            commandButtons.AddChild(_exileMoveButton);
+            _context.ApplyCommandButtonTheme(_exileMoveButton);
+            _exileMoveButton.Pressed += _context.MoveExiledRuler;
+            _claimCityButton = new Button { Visible = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            commandButtons.AddChild(_claimCityButton);
+            _context.ApplyCommandButtonTheme(_claimCityButton);
+            _claimCityButton.Pressed += _context.ClaimExiledCity;
+        }
         if (_context.ReturnMainCityButton is { } button && !_mainCityButtonConnected)
         {
             button.Pressed += OnReturnMainCityPressed;
@@ -93,6 +108,18 @@ internal sealed class CityInfoPanelController
     public void Shutdown()
     {
         DisconnectButtons();
+        if (_exileMoveButton != null)
+        {
+            _exileMoveButton.Pressed -= _context.MoveExiledRuler;
+            _exileMoveButton.QueueFree();
+            _exileMoveButton = null;
+        }
+        if (_claimCityButton != null)
+        {
+            _claimCityButton.Pressed -= _context.ClaimExiledCity;
+            _claimCityButton.QueueFree();
+            _claimCityButton = null;
+        }
         if (_context.ReturnMainCityButton is { } button && _mainCityButtonConnected)
         {
             button.Pressed -= OnReturnMainCityPressed;
@@ -238,6 +265,7 @@ internal sealed class CityInfoPanelController
         }
 
         var selectedCity = _context.SelectedCity;
+        UpdateExileCommands(world, selectedCity);
         if (selectedCity == null)
         {
             if (_context.CityNameLabel != null)
@@ -275,6 +303,32 @@ internal sealed class CityInfoPanelController
 
         _context.UpdateGameplayButtonStates();
         _context.RequestFloatingPanelLayoutRefresh();
+    }
+
+    private void UpdateExileCommands(WorldState world, CityData? selectedCity)
+    {
+        var exile = FreeOfficerMovement.GetPlayerExiledRuler(world);
+        var buttons = new[] { _context.DevelopButton, _context.RecruitButton, _context.SearchButton, _context.MerchantButton,
+            _context.DiplomacyButton, _context.SpyButton, _context.PersonnelButton, _context.AdvisorButton, _context.CivilButton, _context.TestCaptureButton };
+        foreach (var button in buttons.Where(item => item != null).Cast<Button>())
+        {
+            if (exile != null)
+            {
+                if (!_exileButtonVisibility.ContainsKey(button)) _exileButtonVisibility.Add(button, button.Visible);
+                button.Visible = false;
+            }
+            else if (_exileButtonVisibility.Remove(button, out var visible)) button.Visible = visible;
+        }
+        if (_exileMoveButton != null)
+        {
+            _exileMoveButton.Text = _context.Localization?.T("ui.move") ?? "Move";
+            _exileMoveButton.Visible = exile != null && selectedCity?.Id == exile.CityId;
+            _exileMoveButton.Disabled = !_context.CanMoveExiledRuler;
+        }
+        if (_claimCityButton == null) return;
+        _claimCityButton.Text = _context.Localization?.T("ui.exile.claim") ?? "Occupy";
+        _claimCityButton.Visible = exile != null && selectedCity?.Id == exile.CityId && selectedCity.OwnerFactionId == 0;
+        _claimCityButton.Disabled = !_context.CanClaimExiledCity;
     }
 
     // Consumers use this for mouse-offset calculations, so expose the actual

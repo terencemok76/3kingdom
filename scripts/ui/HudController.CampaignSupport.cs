@@ -38,6 +38,18 @@ public partial class HudController
                 target == null ? "?" : localization.GetCityName(target), request.RequestedTroops, request.RequestedGold, request.RequestedFood),
             AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(600, 0)
         });
+        var opponentId = request.Side == CampaignBattleSide.Defender ? attack.ActorFactionId : target?.OwnerFactionId ?? 0;
+        if (request.RequestedTroops > 0 && opponentId > 0)
+        {
+            var relation = world.GetDiplomacyRelation(playerId, opponentId);
+            var hasPact = relation is { RemainingMonths: > 0, Status: DiplomacyStatusType.Alliance or DiplomacyStatusType.Truce };
+            box.AddChild(new Label
+            {
+                Text = localization.Format(hasPact ? "ui.ai_support.troops_pact_warning" : "ui.ai_support.troops_hostility_warning",
+                    localization.GetFactionName(world, opponentId)),
+                AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(600, 0)
+            });
+        }
         var source = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         var officer = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         var troopType = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -87,6 +99,8 @@ public partial class HudController
             var city = world.GetCity(Selected(source));
             if (city != null)
                 foreach (var item in city.OfficerIds.Select(world.GetOfficer).Where(item => item != null &&
+                             item.CityId == city.Id && world.GetFaction(playerId)?.OfficerIds.Contains(item.Id) == true &&
+                             item.CaptiveFactionId <= 0 && (item.DeathYear <= 0 || world.Year <= item.DeathYear) &&
                              !BattleCampaignService.IsOfficerCommitted(world, item.Id) && !OfficerAvailabilityRules.IsTravelingWithLogistics(world, item.Id) &&
                              !(item.LastAssignedYear == world.Year && item.LastAssignedMonth == world.Month) &&
                              !world.InternalAffairsSchedules.Any(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.OfficerId == item.Id)).OrderBy(item => item!.Id))
@@ -131,6 +145,10 @@ public partial class HudController
     {
         if (_turnManager?.World is not { } world || _localization == null) return false;
         var playerId = _turnManager.GetPlayerFactionId();
+        foreach (var active in world.ActiveBattleCampaigns.Where(item => item.Stage != CampaignStage.Resolved))
+            foreach (var pending in active.Invitations.Where(item => item.InvitedFactionId == playerId &&
+                item.Status == BattleInvitationStatus.Pending && item.ResponseBattleDays <= 0).ToList())
+                BattleCampaignService.DeclineUnavailableInvitationEnvoy(world, active, pending);
         var entry = world.ActiveBattleCampaigns.Where(campaign => campaign.Stage != CampaignStage.Resolved)
             .SelectMany(campaign => campaign.Invitations.Where(invitation => invitation.InvitedFactionId == playerId &&
                 invitation.Status == BattleInvitationStatus.Pending && invitation.ResponseBattleDays <= 0).Select(invitation => (Campaign: campaign, Invitation: invitation)))
@@ -138,7 +156,7 @@ public partial class HudController
         if (entry.Campaign == null || entry.Invitation == null) return false;
         var campaign = entry.Campaign;
         var invitation = entry.Invitation;
-        var attack = new PendingCommandData { TargetCityId = campaign.TargetCityId };
+        var attack = new PendingCommandData { TargetCityId = campaign.TargetCityId, ActorFactionId = campaign.AttackerFactionId };
         var request = new PlayerCampaignSupportRequestData { Side = invitation.Side, InviterFactionId = invitation.InviterFactionId,
             EnvoyOfficerId = invitation.EnvoyOfficerId, RequestedTroops = invitation.RequestedTroops,
             RequestedGold = invitation.RequestedGold, RequestedFood = invitation.RequestedFood };

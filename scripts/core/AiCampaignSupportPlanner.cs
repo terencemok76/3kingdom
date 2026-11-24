@@ -33,6 +33,7 @@ public static class AiCampaignSupportPlanner
 
         var envoy = world.Cities.Where(city => city.OwnerFactionId == factionId).SelectMany(city => city.OfficerIds)
             .Distinct().Select(world.GetOfficer).Where(officer => officer != null &&
+                officer.CaptiveFactionId <= 0 && (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
                 !BattleCampaignService.IsOfficerCommitted(world, officer.Id) &&
                 !OfficerAvailabilityRules.IsTravelingWithLogistics(world, officer.Id) &&
                 !(officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month) &&
@@ -42,6 +43,10 @@ public static class AiCampaignSupportPlanner
 
         var candidate = world.Cities.Where(city => city.OwnerFactionId > 0 && city.OwnerFactionId != factionId && city.OwnerFactionId != enemyId &&
                 world.GetFaction(city.OwnerFactionId) != null &&
+                !world.ActiveBattleCampaigns.Any(other => other.Id != campaign.Id && other.Stage != CampaignStage.Resolved &&
+                    (other.SourceCityId == city.Id || other.TargetCityId == city.Id)) &&
+                !campaign.Reinforcements.Any(order => order.SourceCityId == city.Id && order.DispatchYear == world.Year &&
+                    order.DispatchMonth == world.Month && order.Status != ReinforcementStatus.Cancelled) &&
                 !campaign.Teams.Any(team => team.FactionId == city.OwnerFactionId &&
                     team.Location is not (CampaignTeamLocation.Eliminated or CampaignTeamLocation.Captured or CampaignTeamLocation.NeighborCity)) &&
                 !campaign.Reinforcements.Any(order => order.FactionId == city.OwnerFactionId &&
@@ -49,26 +54,33 @@ public static class AiCampaignSupportPlanner
                 !campaign.Invitations.Any(item => item.InvitedFactionId == city.OwnerFactionId &&
                     item.Status is BattleInvitationStatus.Pending or BattleInvitationStatus.Accepted))
             .Select(city => new { City = city, Relation = world.GetDiplomacyRelation(factionId, city.OwnerFactionId),
+                IsPlayer = world.GetFaction(city.OwnerFactionId)!.IsPlayer,
                 Links = BattleCampaignService.GetFriendlyRouteLinks(world, city.Id, campaign.TargetCityId, city.OwnerFactionId) })
-            .Where(item => item.Links > 0)
-            .Select(item => new { item.City, item.Relation, item.Links,
+            .Where(item => item.Links > 0 && (item.Relation is { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 } ||
+                (item.Relation?.RelationScore ?? 0) >= 45))
+            .Select(item => new { item.City, item.Relation, item.Links, item.IsPlayer,
                 CanSendTroops = item.Relation is { Status: DiplomacyStatusType.Alliance, RemainingMonths: > 0 } &&
-                    item.City.Troops > BattleCampaignService.MinimumCityGarrison &&
+                    item.City.Troops > (item.IsPlayer ? BattleCampaignService.MinimumCityGarrison : BattleCampaignService.GetAiAidGarrison(world, item.City)) &&
+                    (item.IsPlayer || BattleCampaignService.GetAiAidFoodSurplus(item.City) > 0 &&
+                        !CommandDiplomacyRules.HasActiveDiplomacyBlock(world, item.City.OwnerFactionId, enemyId)) &&
                     item.City.OfficerIds.Any(id => world.GetOfficer(id) is { } officer &&
+                        officer.CityId == item.City.Id && world.GetFaction(item.City.OwnerFactionId)!.OfficerIds.Contains(id) &&
+                        officer.CaptiveFactionId <= 0 && (officer.DeathYear <= 0 || world.Year <= officer.DeathYear) &&
                         !BattleCampaignService.IsOfficerCommitted(world, id) &&
                         !OfficerAvailabilityRules.IsTravelingWithLogistics(world, id) &&
                         !(officer.LastAssignedYear == world.Year && officer.LastAssignedMonth == world.Month) &&
                         !world.InternalAffairsSchedules.Any(schedule => schedule.State == InternalAffairsScheduleState.Active && schedule.OfficerId == id)) })
             .Where(item => (troopNeed > 0 && item.CanSendTroops) ||
-                           (foodNeed > 0 && item.City.Food >= 3) || (goldNeed > 0 && item.City.Gold >= 3))
+                           (foodNeed > 0 && (item.IsPlayer ? item.City.Food > 0 : BattleCampaignService.GetAiAidFoodSurplus(item.City) > 0)) ||
+                           (goldNeed > 0 && item.City.Gold >= (item.IsPlayer ? 1 : 3)))
             .OrderByDescending(item => troopNeed > 0 && item.CanSendTroops)
             .ThenByDescending(item => item.Relation?.RelationScore ?? 0)
             .ThenBy(item => item.Links).ThenBy(item => item.City.Id).FirstOrDefault();
         if (candidate == null) return null;
 
         var troops = candidate.CanSendTroops ? troopNeed : 0;
-        var requestedFood = candidate.City.Food >= 3 ? foodNeed : 0;
-        var requestedGold = candidate.City.Gold >= 3 ? goldNeed : 0;
+        var requestedFood = (candidate.IsPlayer ? candidate.City.Food > 0 : BattleCampaignService.GetAiAidFoodSurplus(candidate.City) > 0) ? foodNeed : 0;
+        var requestedGold = candidate.City.Gold >= (candidate.IsPlayer ? 1 : 3) ? goldNeed : 0;
         if (troops == 0 && requestedFood == 0 && requestedGold == 0) return null;
         var invitation = BattleCampaignService.CreateInvitation(campaign, factionId, candidate.City.OwnerFactionId, side,
             BattleCampaignService.GetRequestedSupportType(troops, requestedGold, requestedFood), envoy.Id,

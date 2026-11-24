@@ -86,6 +86,11 @@ public partial class CommandResolver
         }
 
         var world = _turnManager.World;
+        if (pendingCommand.IsAwaitingPrebattleSupport && !AiPlayerCampaignSupportRules.IsDeferredAttackValid(world, pendingCommand))
+        {
+            AiPlayerCampaignSupportRules.CancelDeferredAttack(world, pendingCommand);
+            return LocalizedResult(false, "cmd.attack.deferred_cancelled");
+        }
         var sourceCity = world.GetCity(pendingCommand.SourceCityId);
         if (sourceCity == null)
         {

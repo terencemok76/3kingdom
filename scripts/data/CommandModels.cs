@@ -248,6 +248,10 @@ public class PendingCommandData
     // after the campaign exists, so their ETA starts on battle day one.
     public List<DefenseReinforcementRequestData> DefenseReinforcementRequests { get; set; } = new();
     public PlayerCampaignSupportRequestData? PlayerSupportRequest { get; set; }
+    public bool IsAwaitingPrebattleSupport { get; set; }
+    public int PrebattleSupportRequestedYear { get; set; }
+    public int PrebattleSupportRequestedMonth { get; set; }
+    public int PrebattleSupportTargetFactionId { get; set; }
     public DefenderBattlePlan DefenderBattlePlan { get; set; } = DefenderBattlePlan.CityDefense;
     public DefenderBattlePlan? DefenderBattlePlanOverride { get; set; }
     public int TargetFactionId { get; set; }
@@ -276,6 +280,7 @@ public class PlayerCampaignSupportRequestData
 public class DefenseReinforcementRequestData
 {
     public int SourceCityId { get; set; }
+    public int RequestedFactionId { get; set; }
     public bool IsAllianceRequest { get; set; }
     public int EnvoyOfficerId { get; set; }
     public int RequestedTroops { get; set; }

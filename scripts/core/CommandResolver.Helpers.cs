@@ -236,6 +236,8 @@ public partial class CommandResolver
         }
 
         world.InternalAffairsSchedules.RemoveAll(schedule => schedule.OfficerId == officer.Id);
+        foreach (var attack in world.PendingCommands.Where(command => command.IsAwaitingPrebattleSupport && command.OfficerIds.Contains(officer.Id)).ToList())
+            AiPlayerCampaignSupportRules.CancelDeferredAttack(world, attack);
         world.PendingCommands.RemoveAll(command => command.OfficerIds.Contains(officer.Id));
 
         officer.CityId = 0;

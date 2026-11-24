@@ -305,6 +305,29 @@ public partial class HudController
                 continue;
             }
 
+            if (pendingCommand.IsAwaitingPrebattleSupport && !AiPlayerCampaignSupportRules.IsDeferredAttackValid(world, pendingCommand))
+            {
+                _pendingAttackResolutionQueue.RemoveAt(0);
+                var cancelled = _commandResolver.ResolvePendingCommand(pendingCommand);
+                AddLog(GetLocalizedResultMessage(cancelled), true);
+                continue;
+            }
+
+            if (!pendingCommand.IsAwaitingPrebattleSupport && AiPlayerCampaignSupportRules.TryDeferAttackForPlayerSupport(world, pendingCommand))
+            {
+                _pendingAttackResolutionQueue.RemoveAt(0);
+                AddLog(_localization!.Format("ui.battle.ai_support_wait", _localization.GetFactionName(world, pendingCommand.ActorFactionId)), true);
+                continue;
+            }
+            if (pendingCommand.IsAwaitingPrebattleSupport && !AiPlayerCampaignSupportRules.IsDeferredResponseReady(world, pendingCommand))
+            {
+                _pendingAttackResolutionQueue.RemoveAt(0);
+                continue;
+            }
+            if (pendingCommand.IsAwaitingPrebattleSupport && pendingCommand.PlayerSupportRequest is { Status: BattleInvitationStatus.Pending } deferredRequest &&
+                !AiPlayerCampaignSupportRules.IsDeferredEnvoyAvailable(world, pendingCommand))
+                deferredRequest.Status = BattleInvitationStatus.Declined;
+
             var sourceCity = world.GetCity(pendingCommand.SourceCityId);
             var targetCity = world.GetCity(pendingCommand.TargetCityId);
             if (sourceCity == null || targetCity == null)
@@ -322,7 +345,7 @@ public partial class HudController
                 return;
             }
 
-            pendingCommand.PlayerSupportRequest ??= AiPlayerCampaignSupportRules.CreatePrebattleRequest(world, pendingCommand);
+            pendingCommand.PlayerSupportRequest ??= AiPlayerCampaignSupportRules.CreatePrebattleRequest(world, pendingCommand, CampaignBattleSide.Defender);
             if (pendingCommand.PlayerSupportRequest is { Status: BattleInvitationStatus.Pending } supportRequest)
             {
                 ShowAiPlayerSupportRequest(pendingCommand, supportRequest);
@@ -388,8 +411,7 @@ public partial class HudController
         foreach (var invitation in campaign.Invitations.Where(item => item.InviterFactionId == _turnManager.GetPlayerFactionId()))
         {
             var factionName = _localization.GetFactionName(_turnManager.World, invitation.InvitedFactionId);
-            var order = campaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId && item.Side == invitation.Side &&
-                (invitation.RequestedSourceCityId <= 0 || item.SourceCityId == invitation.RequestedSourceCityId));
+            var order = BattleCampaignService.GetInvitationReinforcement(campaign, invitation);
             var source = order == null ? null : _turnManager.World.GetCity(order.SourceCityId);
             var message = invitation.Status == BattleInvitationStatus.Pending
                 ? _localization.Format("log.alliance_response_pending", factionName, invitation.ResponseBattleDays)
@@ -472,7 +494,8 @@ public partial class HudController
         }
 
         var world = _turnManager.World;
-        _turnManager.RemovePendingCommandsOfType(CommandType.Attack);
+        world.PendingCommands.RemoveAll(command => command.Type == CommandType.Attack &&
+            !(command.IsAwaitingPrebattleSupport && command.PlayerSupportRequest?.Status == BattleInvitationStatus.Pending));
         _isResolvingEndTurn = false;
         _pendingNonAttackResolutionQueue.Clear();
         if (_diplomacyUiController != null)
@@ -490,12 +513,19 @@ public partial class HudController
         var awaitingReplies = world.ActiveBattleCampaigns.SelectMany(campaign => campaign.Invitations
             .Where(invitation => invitation.InviterFactionId == playerFactionId && invitation.Status == BattleInvitationStatus.Pending)
             .Select(invitation => (Campaign: campaign, Invitation: invitation))).ToList();
+        var pendingPrewarReplies = world.PrewarAllianceRequests.Where(item => item.IsPending && item.InviterFactionId == playerFactionId).ToList();
         _turnManager.AdvanceMonth();
+        foreach (var request in pendingPrewarReplies)
+        {
+            var name = _localization.GetFactionName(world, request.AllyFactionId);
+            var result = world.PrewarAllianceRequests.Contains(request) && !request.IsPending
+                ? "ui.campaign.invite_accepted" : "ui.campaign.invite_declined";
+            AddLog(_localization.Format("ui.campaign.invite_response_message", name, _localization.T(result)), isPlayerRelated: true);
+        }
         foreach (var (campaign, invitation) in awaitingReplies.Where(item => item.Invitation.Status is BattleInvitationStatus.Accepted or BattleInvitationStatus.Declined))
         {
             var name = _localization.GetFactionName(world, invitation.InvitedFactionId);
-            var order = campaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId && item.Side == invitation.Side &&
-                (invitation.RequestedSourceCityId <= 0 || item.SourceCityId == invitation.RequestedSourceCityId));
+            var order = BattleCampaignService.GetInvitationReinforcement(campaign, invitation);
             var message = invitation.Status == BattleInvitationStatus.Accepted && order != null
                 ? _localization.Format("log.campaign.envoy_accepted", name, order.Teams.Sum(team => team.ActiveTroops), order.Gold, order.Food, order.RemainingBattleDays)
                 : _localization.Format("log.campaign.envoy_declined", name);

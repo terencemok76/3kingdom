@@ -79,6 +79,7 @@ public class WorldState
         public int AttackerCommittedTroops { get; set; }
         public int AttackerLostTroops { get; set; }
         public int AttackerReturnedTroops { get; set; }
+        public int AttackerDisbandedTroops { get; set; }
         public int AttackerActiveTroops { get; set; }
         public int AttackerWoundedTroops { get; set; }
         public int AttackerGoldSpent { get; set; }
@@ -88,6 +89,7 @@ public class WorldState
         public int DefenderCommittedTroops { get; set; }
         public int DefenderLostTroops { get; set; }
         public int DefenderReturnedTroops { get; set; }
+        public int DefenderDisbandedTroops { get; set; }
         // Only used by road-escort reports.  Source-city withdrawals remain in
         // DefenderReturnedTroops, while this value records destination arrivals.
         public int CaravanArrivedTroops { get; set; }
@@ -114,6 +116,7 @@ public class WorldState
         public int GoldContribution { get; set; }
         public int FoodContribution { get; set; }
         public int TroopsReturned { get; set; }
+        public int TroopsDisbanded { get; set; }
         public int ActiveTroops { get; set; }
         public int WoundedTroops { get; set; }
         public int BattleDaysParticipated { get; set; }
@@ -123,6 +126,8 @@ public class WorldState
         public int RelationDelta { get; set; }
         public int TrustDelta { get; set; }
         public bool PromiseFulfilled { get; set; }
+        // Null preserves the presentation of reports written before this field existed.
+        public bool? SupportArrived { get; set; }
     }
 
     public string StoryId { get; set; } = string.Empty;

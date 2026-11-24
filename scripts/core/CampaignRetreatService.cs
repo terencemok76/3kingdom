@@ -113,10 +113,25 @@ internal static class CampaignRetreatService
             return true;
         }
 
-        var troopDestination = IsAlliedEnvoyLoanTeam(team)
-            ? world.GetCity(team.OriginCityId) ?? destination
-            : destination;
-        ReturnTeamToCity(world, troopDestination, team, destination);
+        var troopDestination = destination;
+        if (IsAlliedEnvoyLoanTeam(team))
+        {
+            var origin = world.GetCity(team.OriginCityId);
+            troopDestination = origin?.OwnerFactionId == team.FactionId ? origin : world.Cities
+                .Where(city => city.OwnerFactionId == team.FactionId).OrderBy(city => city.Id).FirstOrDefault();
+        }
+        if (troopDestination != null)
+            ReturnTeamToCity(world, troopDestination, team, destination);
+        else
+        {
+            team.DisbandedTroops += Math.Max(0, team.ActiveTroops) + Math.Max(0, team.WoundedTroops);
+            if (team.OfficerId > 0 && world.GetOfficer(team.OfficerId) is { } officer)
+            {
+                RemoveOfficerFromAllCities(world, officer.Id);
+                if (!destination.OfficerIds.Contains(officer.Id)) destination.OfficerIds.Add(officer.Id);
+                officer.CityId = destination.Id;
+            }
+        }
         CampaignTroopOriginRules.ApplyCounts(team, 0, 0);
         team.Location = CampaignTeamLocation.NeighborCity;
         team.RetreatDestinationCityId = destination.Id;
@@ -234,14 +249,14 @@ internal static class CampaignRetreatService
     // Automatic campaign withdrawal returns mixed-origin troops to their own
     // friendly origin when possible. Explicit player retreat still uses the
     // selected destination for the whole team.
-    internal static void ReturnMixedTeamToOrigins(WorldState world, CityData fallback, CampaignBattleTeamData team, CityData officerDestination)
+    internal static void ReturnMixedTeamToOrigins(WorldState world, CityData fallback, CampaignBattleTeamData team, CityData officerDestination, int excludedCityId = 0)
     {
         CampaignTroopOriginRules.EnsureInitialized(team);
         var total = 0;
         foreach (var origin in team.TroopOrigins)
         {
             var city = world.GetCity(origin.CityId);
-            if (city == null || city.OwnerFactionId != team.FactionId) city = fallback;
+            if (city == null || city.OwnerFactionId != team.FactionId || city.Id == excludedCityId) city = fallback;
             var troops = Math.Max(0, origin.ActiveTroops) + Math.Max(0, origin.WoundedTroops);
             city.AddTroops(team.TroopType, troops);
             total += troops;
@@ -297,12 +312,17 @@ internal static class CampaignRetreatService
         var reinforcement = campaign.Reinforcements.FirstOrDefault(order => order.Id == team.ReinforcementOrderId);
         if (reinforcement != null && reinforcement.FactionId != campaign.AttackerFactionId && reinforcement.FactionId != campaign.DefenderFactionId)
         {
-            return world.GetCity(reinforcement.SourceCityId);
+            var source = world.GetCity(reinforcement.SourceCityId);
+            return source?.OwnerFactionId == team.FactionId ? source : world.Cities
+                .Where(city => city.OwnerFactionId == team.FactionId).OrderBy(city => city.Id).FirstOrDefault();
         }
 
         if (team.Side == CampaignBattleSide.Attacker)
         {
-            return attackerWonCity ? world.GetCity(campaign.TargetCityId) : world.GetCity(campaign.SourceCityId);
+            if (attackerWonCity) return world.GetCity(campaign.TargetCityId);
+            var source = world.GetCity(campaign.SourceCityId);
+            return source?.OwnerFactionId == team.FactionId ? source : world.Cities
+                .Where(city => city.OwnerFactionId == team.FactionId).OrderBy(city => city.Id).FirstOrDefault();
         }
 
         return winner == CampaignBattleSide.Defender || !attackerWonCity

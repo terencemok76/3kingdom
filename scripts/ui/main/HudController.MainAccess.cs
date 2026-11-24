@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 using ThreeKingdom.Core;
 using ThreeKingdom.Data;
@@ -77,6 +78,30 @@ public partial class HudController
     internal void MainHudOpenCivil() => OnCivilPressed();
     internal void MainHudOpenAttack() => OnAttackPressed();
     internal void MainHudOpenView() => OnViewPressed();
+    internal bool MainHudCanClaimExiledCity => !_gameEnded && !_isEndTurnTransitionUiActive &&
+        _turnManager?.World is { IsBattleResolutionPhase: false } world && _selectedCity != null &&
+        FreeOfficerMovement.CanClaimPlayerExiledCity(world, _selectedCity.Id);
+    internal bool MainHudCanMoveExiledRuler => !_gameEnded && !_isEndTurnTransitionUiActive &&
+        _turnManager?.World is { IsBattleResolutionPhase: false } world && _selectedCity != null &&
+        FreeOfficerMovement.GetPlayerExiledRuler(world) is { } ruler && ruler.CityId == _selectedCity.Id &&
+        !(ruler.LastAssignedYear == world.Year && ruler.LastAssignedMonth == world.Month) &&
+        _selectedCity.ConnectedCityIds.Any(cityId => world.GetCity(cityId) != null);
+    internal void MainHudMoveExiledRuler()
+    {
+        if (MainHudCanMoveExiledRuler && _turnManager?.World is { } world) TryShowExiledRulerMovement(world);
+    }
+    internal void MainHudClaimExiledCity()
+    {
+        if (!MainHudCanClaimExiledCity || _turnManager?.World is not { } world || _selectedCity == null || _localization == null) return;
+        var ruler = FreeOfficerMovement.GetPlayerExiledRuler(world);
+        var city = _selectedCity;
+        if (ruler == null || !FreeOfficerMovement.TryClaimPlayerExiledCity(world, city.Id)) return;
+        AddLog(_localization.Format("ui.exile.restored", _localization.GetOfficerName(ruler), _localization.GetCityName(city)), true);
+        _mapController?.RefreshVisuals();
+        RefreshSelectedCity();
+        UpdateGameplayButtonStates();
+        EvaluateWinLose();
+    }
     internal void MainHudOpenStrategicMap() => OnStrategicMapPressed();
     internal void MainHudApplyCommandButtonTheme(Button button)
     {

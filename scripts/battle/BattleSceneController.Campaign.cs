@@ -451,11 +451,16 @@ public partial class BattleSceneController
             var teams = _activeCampaign.Teams
                 .Where(team => team.Side == side && team.ActiveTroops > 0 && IsCampaignTeamDeployable(team))
                 .Where(team => !_occupantsByGrid.Values.SelectMany(items => items).Any(occupant => occupant.CampaignTeamId == team.Id))
-                .Take(Math.Max(0, BattleCampaignService.MaximumActivePiecesPerSide - alreadyDeployed))
                 .ToList();
+            var availableSlots = Math.Max(0, BattleCampaignService.MaximumActivePiecesPerSide - alreadyDeployed);
             var occupied = _occupantsByGrid.Select(entry => entry.Key.Grid).ToHashSet();
             foreach (var team in teams)
             {
+                if (availableSlots <= 0)
+                {
+                    KeepBlockedCampaignTeamInReserve(team);
+                    continue;
+                }
                 var spawn = GetCampaignSpawnGrids(team, occupied)
                     .Select(grid => (Found: true, Grid: grid))
                     .FirstOrDefault();
@@ -466,7 +471,9 @@ public partial class BattleSceneController
                 }
 
                 CreateCampaignMarker(unitLayer, spawn.Grid, team);
+                BattleCampaignService.MarkReinforcementTeamPlaced(_activeCampaign, team);
                 occupied.Add(spawn.Grid);
+                availableSlots--;
             }
         }
         BattleCampaignService.CompleteReinforcementPlacement(_activeCampaign);
@@ -1109,13 +1116,14 @@ public partial class BattleSceneController
                      item.Status is BattleInvitationStatus.Accepted or BattleInvitationStatus.Declined))
         {
             var name = _localization.GetFactionName(world, invitation.InvitedFactionId);
-            var order = _activeCampaign.Reinforcements.LastOrDefault(item => item.FactionId == invitation.InvitedFactionId &&
-                item.Side == invitation.Side && (invitation.RequestedSourceCityId <= 0 || item.SourceCityId == invitation.RequestedSourceCityId));
+            var order = BattleCampaignService.GetInvitationReinforcement(_activeCampaign, invitation);
             var message = invitation.Status == BattleInvitationStatus.Accepted && order != null
                 ? BattleFormat("log.campaign.envoy_accepted", "{0} accepted: troops {1:N0}, gold {2:N0}, food {3:N0}; arrival in {4} days.", name,
                     order.Teams.Sum(team => team.ActiveTroops), order.Gold, order.Food, order.RemainingBattleDays)
                 : BattleFormat("log.campaign.envoy_declined", "{0} declined the support request.", name);
-            var returnedEnvoy = invitation.Status == BattleInvitationStatus.Declined
+            var returnedEnvoy = invitation.Status == BattleInvitationStatus.Declined ||
+                                (invitation.Status == BattleInvitationStatus.Accepted && order != null &&
+                                 !order.Teams.Any(team => team.OfficerId == invitation.EnvoyOfficerId))
                 ? _activeCampaign.Teams.FirstOrDefault(team => team.OfficerId == invitation.EnvoyOfficerId && team.FactionId == playerId)
                 : null;
             if (returnedEnvoy != null)
@@ -1513,6 +1521,8 @@ public partial class BattleSceneController
         if (BattleCampaignService.TryRetreatTeamToCity(CampaignRuntimeContext.World, _activeCampaign, team, destination.Id))
         {
             AppendBattleLog(unit, "Retreat", $"{FormatLogUnit(unit)} retreats to {destination.NameZhHant}.");
+            if (team.DisbandedTroops > 0)
+                AppendBattleLog(unit, "Retreat", $"{BattleText("ui.battle.loan_troops_disband", "Borrowed troops disband")}: {team.DisbandedTroops}");
             CompleteSelectedRetreat(unit, grid, campaignReturnHandled: true);
         }
 
@@ -1658,6 +1668,9 @@ public partial class BattleSceneController
                 ? "ui.battle.retreat_destination_prompt_defender"
                 : "ui.battle.retreat_destination_prompt",
             "Fall back into the defended city, or choose an adjacent friendly or neutral city.");
+        if (team.CooperationObjective == "allied-envoy-loan" && CampaignRuntimeContext.World != null &&
+            !CampaignRuntimeContext.World.Cities.Any(city => city.OwnerFactionId == team.FactionId))
+            promptLabel.Text += "\n" + BattleText("ui.battle.loan_troops_disband", "Borrowed troops disband") + "（" + BattleText("ui.battle.retreat", "Retreat") + "）";
         noDestinationLabel.Visible = destinations.Count == 0;
         noDestinationLabel.Text = BattleText("ui.battle.retreat_no_destination", "No city is available for this retreat.");
         cancelButton.Text = BattleText("ui.battle.retreat_cancel", "Cancel");
@@ -1695,6 +1708,8 @@ public partial class BattleSceneController
                     BattleCampaignService.TryRetreatTeamToCity(CampaignRuntimeContext.World, _activeCampaign, team, destination.Id))
                 {
                     AppendBattleLog(unit, "Retreat", $"{FormatLogUnit(unit)} retreats to {destination.NameZhHant}.");
+                    if (team.DisbandedTroops > 0)
+                        AppendBattleLog(unit, "Retreat", $"{BattleText("ui.battle.loan_troops_disband", "Borrowed troops disband")}: {team.DisbandedTroops}");
                     Close();
                     CompleteSelectedRetreat(unit, grid, campaignReturnHandled: true);
                 }
