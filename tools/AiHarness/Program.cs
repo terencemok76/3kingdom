@@ -174,6 +174,8 @@ internal static partial class Program
             RunCampaignCaptiveSuccessionTest();
             RunBattleCampaignLifecycleTest();
             RunBattleCampaignReinforcementTest();
+            RunCampaignReturnAuditTest();
+            RunCampaignEquipmentReportTest();
             RunBattleCampaignBlockedEntranceQueueTest();
             RunFieldReinforcementEntranceSideTest();
             RunDefenseReinforcementRequestTest();

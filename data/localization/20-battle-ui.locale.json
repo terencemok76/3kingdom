@@ -1,4 +1,7 @@
 {
+	"ui.campaign.battle_report_incomplete": { "zhHant": "戰役中止：城市資料缺失", "en": "Campaign halted: city data missing" },
+	"ui.campaign.battle_report_winner_unavailable": { "zhHant": "勝負：未判定", "en": "Result: undetermined" },
+	"ui.campaign.battle_report_settlement_unavailable": { "zhHant": "戰役中止，未結算報酬", "en": "Campaign halted; rewards not settled" },
 	"ui.exile.title": { "zhHant": "君主流亡", "en": "Ruler in exile" },
 	"ui.exile.ruler_fighting": { "zhHant": "所有城市已失守，君主仍在戰役中。待戰役結束後，再決定勢力的命運。", "en": "All cities are lost, but the ruler is still on campaign. The faction's fate will be decided after the campaign." },
 	"ui.exile.lost_cities": { "zhHant": "失去所有城市，{0}流亡在外。可在所在城市的資訊面板按「移動」，每月前往一座相鄰城市；抵達無主城市後按「佔領」復國。", "en": "All cities are lost. {0} is in exile. Use Move in the current city's information panel to travel once per month, then Occupy an unowned city to restore the faction." },

@@ -177,6 +177,59 @@ internal static partial class Program
         savedRequest.SourceCityId = 4; savedRequest.Food = 10; savedRequest.Status = BattleInvitationStatus.Accepted;
         var acceptedResult = CreateServices(savedWorld).Resolver.ResolvePendingCommand(savedAttack);
         var accepted = acceptedResult.ActiveBattleCampaignId > 0 && savedWorld.ActiveBattleCampaigns.Single().Reinforcements.Any(order => order.FactionId == 3 && order.Food == 10);
+        var lostSourceWorld = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(deferredWorld))!;
+        var lostSourceAttack = lostSourceWorld.PendingCommands.Single(item => item.IsAwaitingPrebattleSupport);
+        var lostSource = lostSourceWorld.GetCity(1)!;
+        lostSource.OwnerFactionId = 2;
+        var refuge = lostSourceWorld.GetCity(3)!;
+        var envoyId = lostSourceAttack.PlayerSupportRequest!.EnvoyOfficerId;
+        refuge.OfficerIds.Remove(envoyId); lostSource.OfficerIds.Add(envoyId); lostSourceWorld.GetOfficer(envoyId)!.CityId = lostSource.Id;
+        AiPlayerCampaignSupportRules.CancelDeferredAttack(lostSourceWorld, lostSourceAttack);
+        var returnedTroops = refuge.Troops;
+        AiPlayerCampaignSupportRules.CancelDeferredAttack(lostSourceWorld, lostSourceAttack);
+        Assert(returnedTroops == 4500 && refuge.Troops == returnedTroops && refuge.Gold == 1250 &&
+               refuge.OfficerIds.Contains(101) && refuge.OfficerIds.Contains(envoyId) &&
+               lostSourceWorld.GetOfficer(101)!.CityId == refuge.Id && lostSourceWorld.GetOfficer(envoyId)!.CityId == refuge.Id &&
+               !lostSource.OfficerIds.Contains(101) && !lostSource.OfficerIds.Contains(envoyId),
+            "AI deferred attack lost source", "reserved troops and eligible officers return to a friendly fallback once");
+        var capturedWorld = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(deferredWorld))!;
+        var capturedAttack = capturedWorld.PendingCommands.Single(item => item.IsAwaitingPrebattleSupport);
+        capturedWorld.GetCity(1)!.OwnerFactionId = 2;
+        capturedWorld.GetOfficer(101)!.CaptiveFactionId = 2;
+        AiPlayerCampaignSupportRules.CancelDeferredAttack(capturedWorld, capturedAttack);
+        Assert(capturedWorld.GetOfficer(101)!.CaptiveFactionId == 2 && capturedWorld.GetOfficer(101)!.CityId == 1 &&
+               !capturedWorld.GetCity(3)!.OfficerIds.Contains(101),
+            "AI deferred attack lost source", "captured officers are not moved to the fallback city");
+        var noHomeWorld = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(deferredWorld))!;
+        var noHomeAttack = noHomeWorld.PendingCommands.Single(item => item.IsAwaitingPrebattleSupport);
+        noHomeWorld.GetFaction(1)!.IsPlayer = true; noHomeWorld.GetFaction(3)!.IsPlayer = false;
+        noHomeWorld.GetCity(1)!.OwnerFactionId = 2; noHomeWorld.GetCity(3)!.OwnerFactionId = 2;
+        var hostileTroops = noHomeWorld.GetCity(1)!.Troops; var hostileGold = noHomeWorld.GetCity(1)!.Gold;
+        var noHomeEnvoy = noHomeWorld.GetOfficer(noHomeAttack.PlayerSupportRequest!.EnvoyOfficerId)!;
+        noHomeWorld.GetOfficer(101)!.Belongs = "1"; noHomeEnvoy.Belongs = "1";
+        AiPlayerCampaignSupportRules.CancelDeferredAttack(noHomeWorld, noHomeAttack);
+        var noHomeRuler = noHomeWorld.GetOfficer(101)!;
+        var savedNoHome = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(noHomeWorld))!;
+        AiPlayerCampaignSupportRules.CancelDeferredAttack(noHomeWorld, noHomeAttack);
+        Assert(noHomeRuler.DisplacedRulerFactionId == 1 && noHomeWorld.GetFaction(1)!.RulerOfficerId == 0 &&
+               !noHomeWorld.GetFaction(1)!.OfficerIds.Contains(101) && !noHomeWorld.GetFaction(1)!.OfficerIds.Contains(noHomeEnvoy.Id) &&
+               noHomeEnvoy.CityId == 3 && noHomeRuler.Belongs == "0" && noHomeEnvoy.Belongs == "0" &&
+               FreeOfficerMovement.GetPlayerExiledRuler(noHomeWorld)?.Id == 101 &&
+               FreeOfficerMovement.GetPlayerExiledRuler(savedNoHome)?.Id == 101 &&
+               noHomeWorld.GetCity(1)!.Troops == hostileTroops && noHomeWorld.GetCity(1)!.Gold == hostileGold &&
+               !noHomeWorld.PendingCommands.Contains(noHomeAttack),
+            "AI deferred attack no home", "troops disband, officers become free and the player ruler remains in exile across save and repeat cancellation");
+        savedNoHome.GetCity(1)!.OwnerFactionId = 0;
+        Assert(FreeOfficerMovement.TryClaimPlayerExiledCity(savedNoHome, 1) && savedNoHome.GetOfficer(101)!.Belongs == "1" &&
+               savedNoHome.GetFaction(1)!.RulerOfficerId == 101 && savedNoHome.GetOfficer(101)!.DisplacedRulerFactionId == 0,
+            "AI deferred attack no home", "restoring an exiled player faction restores the ruler's affiliation");
+        var captiveNoHome = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(deferredWorld))!;
+        var captiveNoHomeAttack = captiveNoHome.PendingCommands.Single(item => item.IsAwaitingPrebattleSupport);
+        captiveNoHome.GetCity(1)!.OwnerFactionId = 2; captiveNoHome.GetCity(3)!.OwnerFactionId = 2;
+        captiveNoHome.GetOfficer(101)!.CaptiveFactionId = 2;
+        AiPlayerCampaignSupportRules.CancelDeferredAttack(captiveNoHome, captiveNoHomeAttack);
+        Assert(captiveNoHome.GetOfficer(101)!.CaptiveFactionId == 2 && captiveNoHome.GetFaction(1)!.RulerOfficerId == 101,
+            "AI deferred attack no home", "a captured ruler is not released by cancellation");
         AiPlayerCampaignSupportRules.CancelDeferredAttack(deferredWorld, deferredAttack);
         var returned = deferredSource.Troops == initialTroops && deferredSource.Gold == initialGold && !BattleCampaignService.IsOfficerCommitted(deferredWorld, 101);
         Assert(issued.Success && waiting && preserved && savedWaiting && ready && returned && invalidReturned && accepted,
@@ -241,6 +294,31 @@ internal static partial class Program
                playerCity.Troops == beforeTroops - 300 && playerCity.Gold == beforeGold - 50 && playerCity.Food == beforeFood - 50,
             "AI player support", "accepted request starts campaign and reserves only selected support");
 
+        var alliedReports = new List<WorldState.BattleReportData>();
+        foreach (var winner in new[] { CampaignBattleSide.Attacker, CampaignBattleSide.Defender })
+        {
+            var reportWorld = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+            BattleCampaignService.CompleteCampaign(reportWorld, reportWorld.ActiveBattleCampaigns.Single(), winner);
+            var report = reportWorld.BattleReports.Single();
+            Assert(BattleReportPlayerRules.IsPlayerInvolved(report, 3) &&
+                   BattleReportPlayerRules.DidPlayerWin(report, 3) == (winner == CampaignBattleSide.Defender) &&
+                   !BattleReportPlayerRules.IsPlayerInvolved(report, 999),
+                "allied player battle report", $"defender ally receives report and correct outcome when {winner} wins");
+            report.IncompleteSettlement = true;
+            Assert(BattleReportPlayerRules.DidPlayerWin(report, 3) == null,
+                "allied player battle report", "incomplete settlement has no player outcome");
+            alliedReports.Add(report);
+        }
+        var unrelatedReport = new WorldState.BattleReportData { AttackerFactionId = 7, DefenderFactionId = 8 };
+        var pendingReports = new[] { unrelatedReport, alliedReports[0], alliedReports[1] };
+        var firstReport = BattleReportPlayerRules.GetNextPending(pendingReports, 3);
+        if (firstReport != null) firstReport.PlayerAcknowledged = true;
+        var secondReport = BattleReportPlayerRules.GetNextPending(pendingReports, 3);
+        if (secondReport != null) secondReport.PlayerAcknowledged = true;
+        Assert(firstReport == alliedReports[0] && secondReport == alliedReports[1] &&
+               BattleReportPlayerRules.GetNextPending(pendingReports, 3) == null && !unrelatedReport.PlayerAcknowledged,
+            "allied player battle report queue", "unread relevant reports are acknowledged once in order, skipping unrelated reports");
+
         var (declineWorld, declineAttack) = Setup();
         var declineRequest = AiPlayerCampaignSupportRules.CreatePrebattleRequest(declineWorld, declineAttack)!;
         var declineCity = declineWorld.GetCity(4)!;
@@ -261,6 +339,10 @@ internal static partial class Program
         Assert(resourceResult.ActiveBattleCampaignId > 0 && resourceCampaign?.IsPlayerInvolved == true &&
                resourceCampaign.Reinforcements.Single(item => item.FactionId == 3).Teams.Count == 0 && resourceWorld.GetCity(4)!.Food == resourceBefore - 50,
             "AI player support", "resource-only acceptance starts a campaign without creating a troop team");
+        BattleCampaignService.CompleteCampaign(resourceWorld, resourceCampaign!, CampaignBattleSide.Defender);
+        Assert(BattleReportPlayerRules.IsPlayerInvolved(resourceWorld.BattleReports.Single(), 3) &&
+               BattleReportPlayerRules.DidPlayerWin(resourceWorld.BattleReports.Single(), 3) == true,
+            "allied player battle report", "resource-only supporter receives the allied outcome");
 
         var (attackerWorld, attackerAttack) = Setup();
         attackerWorld.GetDiplomacyRelation(2, 3)!.FactionAId = 1;
@@ -269,6 +351,21 @@ internal static partial class Program
         var attackerOffer = AiPlayerCampaignSupportRules.CreatePrebattleRequest(attackerWorld, attackerAttack);
         Assert(attackerOffer is { Side: CampaignBattleSide.Attacker, InviterFactionId: 1, RequestedTroops: > 0 },
             "AI player support", "AI attacker can request support from the player before combat");
+        if (attackerOffer != null)
+        {
+            attackerOffer.SourceCityId = 4; attackerOffer.OfficerId = 301; attackerOffer.TroopType = TroopType.Infantry;
+            attackerOffer.Troops = 300; attackerOffer.Status = BattleInvitationStatus.Accepted;
+            attackerAttack.PlayerSupportRequest = attackerOffer;
+            var attackerResult = CreateServices(attackerWorld).Resolver.ResolvePendingCommand(attackerAttack);
+            if (attackerResult.ActiveBattleCampaignId > 0)
+            {
+                BattleCampaignService.CompleteCampaign(attackerWorld, attackerWorld.ActiveBattleCampaigns.Single(), CampaignBattleSide.Attacker);
+                var report = attackerWorld.BattleReports.Single();
+                Assert(BattleReportPlayerRules.IsPlayerInvolved(report, 3) && BattleReportPlayerRules.DidPlayerWin(report, 3) == true,
+                    "allied player battle report", "attacker ally receives the winning outcome");
+            }
+            else Assert(false, "allied player battle report", "accepted attacker support starts a campaign");
+        }
     }
 
     private static void RunAiCampaignSupportRequestTest()
@@ -310,6 +407,25 @@ internal static partial class Program
         Assert(pendingPlayer?.InvitedFactionId == 3 && pendingPlayer.Status == BattleInvitationStatus.Pending && playerCampaign.Reinforcements.Count == 0 &&
                playerSource.Gold == playerGold && playerSource.Food == playerFood && playerSource.Troops == playerTroops,
             "AI support request", "ongoing campaign leaves player invitation pending without spending resources");
+        var queueWorld = new WorldState();
+        var otherCampaign = new ActiveBattleCampaignData { Id = 10 };
+        var resumedCampaign = new ActiveBattleCampaignData { Id = 11 };
+        var otherRequest = new BattleInvitationData { InvitedFactionId = 3, Status = BattleInvitationStatus.Pending, ResponseBattleDays = 0 };
+        var resumedFirst = new BattleInvitationData { InvitedFactionId = 3, Status = BattleInvitationStatus.Pending, ResponseBattleDays = 0 };
+        var resumedSecond = new BattleInvitationData { InvitedFactionId = 3, Status = BattleInvitationStatus.Pending, ResponseBattleDays = 0 };
+        otherCampaign.Invitations.Add(otherRequest);
+        resumedCampaign.Invitations.Add(resumedFirst); resumedCampaign.Invitations.Add(resumedSecond);
+        queueWorld.ActiveBattleCampaigns.Add(otherCampaign); queueWorld.ActiveBattleCampaigns.Add(resumedCampaign);
+        var selectedFirst = AiPlayerCampaignSupportRules.FindPendingCampaignRequest(queueWorld, 3, 11);
+        resumedFirst.Status = BattleInvitationStatus.Declined;
+        var selectedSecond = AiPlayerCampaignSupportRules.FindPendingCampaignRequest(queueWorld, 3, 11);
+        resumedSecond.Status = BattleInvitationStatus.Accepted;
+        var finished = AiPlayerCampaignSupportRules.FindPendingCampaignRequest(queueWorld, 3, 11);
+        var remaining = AiPlayerCampaignSupportRules.FindPendingCampaignRequest(queueWorld, 3);
+        Assert(selectedFirst.Campaign == resumedCampaign && selectedFirst.Invitation == resumedFirst &&
+               selectedSecond.Invitation == resumedSecond && finished.Invitation == null && remaining.Invitation == otherRequest &&
+               otherRequest.Status == BattleInvitationStatus.Pending,
+            "campaign support response queue", "resume handles every due request for its own campaign and leaves other campaigns pending");
         var restoredPlayerCampaign = System.Text.Json.JsonSerializer.Deserialize<ActiveBattleCampaignData>(System.Text.Json.JsonSerializer.Serialize(playerCampaign))!;
         Assert(restoredPlayerCampaign.Invitations.Single().Status == BattleInvitationStatus.Pending && restoredPlayerCampaign.Reinforcements.Count == 0,
             "AI support request", "ongoing player invitation remains pending after serialization");
@@ -1058,6 +1174,229 @@ internal static partial class Program
             $"eta={order.RouteLinks * 2}, status={order.Status}");
     }
 
+    private static void RunCampaignReturnAuditTest()
+    {
+        var contributionWorld = CreateBattleCampaignWorld();
+        contributionWorld.Cities.Add(TestHelpers.City(4, "Supply A", 3, 1500, 4000, 4000, Array.Empty<int>(), new[] { 2 }));
+        contributionWorld.Cities.Add(TestHelpers.City(5, "Supply B", 3, 1500, 4000, 4000, Array.Empty<int>(), new[] { 2 }));
+        contributionWorld.Factions.Add(TestHelpers.Faction(3, "Ally", false, 0, Array.Empty<int>()));
+        var contributionCampaign = BattleCampaignService.CreateCampaign(contributionWorld, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        BattleCampaignService.DispatchReinforcement(contributionWorld, contributionCampaign, 4, CampaignBattleSide.Defender,
+            Array.Empty<AttackOfficerDeploymentData>(), 100, 200, CampaignSupplyOwnership.Gift);
+        var pendingOnlyWorld = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(contributionWorld))!;
+        BattleCampaignService.CompleteCampaign(pendingOnlyWorld, pendingOnlyWorld.ActiveBattleCampaigns.Single(), CampaignBattleSide.Defender);
+        var pendingOnlyContribution = pendingOnlyWorld.BattleReports.Single().ParticipantContributions.Single(item => item.FactionId == 3);
+        Assert(pendingOnlyContribution.GoldContribution == 0 && pendingOnlyContribution.FoodContribution == 0 && pendingOnlyContribution.SupportArrived == false,
+            "undelivered contribution report", "supplies returned in transit are not reported as delivered contributions");
+        BattleCampaignService.AdvanceCompletedBattleDay(contributionCampaign, contributionWorld);
+        BattleCampaignService.AdvanceCompletedBattleDay(contributionCampaign, contributionWorld);
+        var sourceB = contributionWorld.GetCity(5)!;
+        var sourceBGold = sourceB.Gold; var sourceBFood = sourceB.Food;
+        BattleCampaignService.DispatchReinforcement(contributionWorld, contributionCampaign, 5, CampaignBattleSide.Defender,
+            Array.Empty<AttackOfficerDeploymentData>(), 300, 400, CampaignSupplyOwnership.Gift);
+        BattleCampaignService.CompleteCampaign(contributionWorld, contributionCampaign, CampaignBattleSide.Defender);
+        var deliveredContribution = contributionWorld.BattleReports.Single().ParticipantContributions.Single(item => item.FactionId == 3);
+        Assert(deliveredContribution.GoldContribution == 100 && deliveredContribution.FoodContribution == 200 &&
+               deliveredContribution.ContributionScore == 3 && deliveredContribution.SupportArrived == true &&
+               sourceB.Gold == sourceBGold && sourceB.Food == sourceBFood,
+            "mixed contribution report", $"gold={deliveredContribution.GoldContribution}/100, food={deliveredContribution.FoodContribution}/200, score={deliveredContribution.ContributionScore}/3");
+        foreach (var phase in new[] { ReinforcementStatus.Traveling, ReinforcementStatus.Arrived, ReinforcementStatus.Reserve })
+        {
+            var world = CreateBattleCampaignWorld();
+            var source = world.GetCity(3)!;
+            var beforeTroops = source.Troops; var beforeGold = source.Gold; var beforeFood = source.Food;
+            var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+            var initialContribution = campaign.Participants.Single(item => item.FactionId == 1 && item.IsMainFaction);
+            var initialGoldContribution = initialContribution.GoldContribution; var initialFoodContribution = initialContribution.FoodContribution;
+            var order = BattleCampaignService.DispatchReinforcement(world, campaign, 3, CampaignBattleSide.Attacker,
+                new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 } }, 100, 200);
+            order.Status = phase;
+            if (phase != ReinforcementStatus.Traveling) order.Teams[0].Location = CampaignTeamLocation.Reserve;
+            CampaignTroopOriginRules.ApplyCounts(order.Teams[0], 900, 100);
+            var saved = System.Text.Json.JsonSerializer.Deserialize<WorldState>(System.Text.Json.JsonSerializer.Serialize(world))!;
+            var savedCampaign = saved.ActiveBattleCampaigns.Single();
+            var savedSource = saved.GetCity(3)!;
+            BattleCampaignService.CompleteCampaign(saved, savedCampaign, CampaignBattleSide.Defender);
+            BattleCampaignService.CompleteCampaign(saved, savedCampaign, CampaignBattleSide.Defender);
+            var mainContribution = saved.BattleReports.Single().ParticipantContributions.Single(item => item.FactionId == 1 && item.Side == CampaignBattleSide.Attacker);
+            Assert(savedSource.Troops == beforeTroops && savedSource.Gold == beforeGold && savedSource.Food == beforeFood &&
+                   savedSource.OfficerIds.Contains(102) && savedCampaign.Reinforcements.Single().Status == ReinforcementStatus.Returned &&
+                   saved.BattleReports.Count == 1 && mainContribution.GoldContribution == initialGoldContribution && mainContribution.FoodContribution == initialFoodContribution,
+                "reinforcement return phase", $"phase={phase}, troops={savedSource.Troops}/{beforeTroops}, gold={savedSource.Gold}/{beforeGold}, food={savedSource.Food}/{beforeFood}");
+        }
+
+        foreach (var missingCityId in new[] { 1, 2 })
+        {
+            var world = CreateBattleCampaignWorld();
+            var source = world.GetCity(3)!;
+            var beforeTroops = source.Troops; var beforeGold = source.Gold; var beforeFood = source.Food;
+            var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+            var order = BattleCampaignService.DispatchReinforcement(world, campaign, 3, CampaignBattleSide.Attacker,
+                new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 } }, 100, 200);
+            var mainArmy = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).Sum(team => team.ActiveTroops + team.WoundedTroops);
+            campaign.AttackerGoldGained = 17; campaign.DefenderFoodGained = 29;
+            var campaignGold = campaign.AttackerGold; var campaignFood = campaign.AttackerFood;
+            world.Cities.Remove(world.GetCity(missingCityId)!);
+            BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Defender);
+            var report = world.BattleReports.Single();
+            var savedReport = System.Text.Json.JsonSerializer.Deserialize<WorldState.BattleReportData>(System.Text.Json.JsonSerializer.Serialize(report))!;
+            var expectedTroops = beforeTroops + (missingCityId == 1 ? mainArmy : 0);
+            var expectedGold = beforeGold + (missingCityId == 1 ? campaignGold : 0);
+            var expectedFood = beforeFood + (missingCityId == 1 ? campaignFood : 0);
+            BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Defender);
+            Assert(source.Troops == expectedTroops && source.Gold == expectedGold && source.Food == expectedFood &&
+                   source.OfficerIds.Contains(102) && order.Status == ReinforcementStatus.Returned && campaign.SettlementCompleted &&
+                   report.IncompleteSettlement && savedReport.IncompleteSettlement && report.WinnerFactionId == 0 && report.AttackerReturnedTroops == mainArmy + 1000 &&
+                   report.AttackerActiveTroops == 0 && report.AttackerGoldGained == 17 && report.DefenderFoodGained == 29 && report.CapturedOfficerIds.Count == 0 && world.BattleReports.Count == 1 &&
+                   (missingCityId == 1 || report.DefenderDisbandedTroops > 0),
+                "reinforcement missing battle city", $"missing={missingCityId}, troops={source.Troops}/{expectedTroops}, gold={source.Gold}/{expectedGold}, returned={report.AttackerReturnedTroops}/{mainArmy + 1000}, incomplete={report.IncompleteSettlement}");
+        }
+
+        var noCitiesWorld = CreateBattleCampaignWorld();
+        var noCitiesCampaign = BattleCampaignService.CreateCampaign(noCitiesWorld, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        var noCitiesOrder = BattleCampaignService.DispatchReinforcement(noCitiesWorld, noCitiesCampaign, 3, CampaignBattleSide.Attacker,
+            new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 } }, 100, 200);
+        var noCitiesSurvivors = noCitiesCampaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker).Sum(team => team.ActiveTroops + team.WoundedTroops) + 1000;
+        noCitiesWorld.Cities.Clear();
+        BattleCampaignService.CompleteCampaign(noCitiesWorld, noCitiesCampaign, CampaignBattleSide.Defender);
+        var noCitiesReport = noCitiesWorld.BattleReports.Single();
+        Assert(noCitiesReport.IncompleteSettlement && noCitiesReport.AttackerDisbandedTroops == noCitiesSurvivors &&
+               noCitiesReport.AttackerReturnedTroops == 0 && noCitiesReport.AttackerActiveTroops == 0 &&
+               noCitiesOrder.Status == ReinforcementStatus.Cancelled && noCitiesWorld.GetOfficer(102)!.CityId == 0,
+            "missing battle cities without refuge", $"disbanded={noCitiesReport.AttackerDisbandedTroops}/{noCitiesSurvivors}, returned={noCitiesReport.AttackerReturnedTroops}, status={noCitiesOrder.Status}");
+
+        var equipmentWorld = CreateBattleCampaignWorld();
+        var equipmentAttack = CreateBattleCampaignAttack();
+        equipmentAttack.BattleSupport = new BattleSupportDeploymentData { SupplyCart = true };
+        var equipmentCampaign = BattleCampaignService.CreateCampaign(equipmentWorld, equipmentAttack, DefenderBattlePlan.FieldIntercept);
+        var equipmentRefuge = equipmentWorld.GetCity(3)!;
+        var engineersBefore = equipmentRefuge.EngineerTroops; var cartsBefore = equipmentRefuge.SupplyCartCount;
+        var normalPersonnel = equipmentCampaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker && team.EquipmentType == BattleEquipmentType.None).Sum(team => team.MaximumTroops);
+        var siegePersonnel = equipmentCampaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker && team.TroopType == TroopType.Siege).Sum(team => team.ActiveTroops);
+        equipmentWorld.Cities.Remove(equipmentWorld.GetCity(1)!);
+        BattleCampaignService.CompleteCampaign(equipmentWorld, equipmentCampaign, CampaignBattleSide.Defender);
+        var equipmentReport = equipmentWorld.BattleReports.Single();
+        var equipmentContribution = equipmentReport.ParticipantContributions.Single(item => item.FactionId == 1 && item.Side == CampaignBattleSide.Attacker);
+        var expectedPersonnel = normalPersonnel + BattleSupportRules.SupplyCartEngineerRequirement;
+        Assert(equipmentRefuge.EngineerTroops == engineersBefore + siegePersonnel + BattleSupportRules.SupplyCartEngineerRequirement &&
+               equipmentRefuge.SupplyCartCount == cartsBefore + 1 && equipmentReport.AttackerCommittedTroops == expectedPersonnel &&
+               equipmentReport.AttackerReturnedTroops == expectedPersonnel && equipmentReport.AttackerLostTroops == 0 &&
+               equipmentContribution.TroopsCommitted == expectedPersonnel && equipmentContribution.TroopsReturned == expectedPersonnel,
+            "missing battle city equipment recovery", $"engineers={equipmentRefuge.EngineerTroops - engineersBefore}, committed={equipmentReport.AttackerCommittedTroops}/{expectedPersonnel}, returned={equipmentReport.AttackerReturnedTroops}");
+
+        foreach (var condition in new[] { "captured", "dead", "captured_mixed", "dead_mixed" })
+        {
+            var world = CreateBattleCampaignWorld();
+            var source = world.GetCity(3)!;
+            var beforeTroops = source.Troops;
+            var campaign = BattleCampaignService.CreateCampaign(world, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+            var order = BattleCampaignService.DispatchReinforcement(world, campaign, 3, CampaignBattleSide.Attacker,
+                new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 } }, 0, 0);
+            if (condition.EndsWith("_mixed")) CampaignTroopOriginRules.EnsureInitialized(order.Teams[0]);
+            var officer = world.GetOfficer(102)!;
+            source.OfficerIds.Remove(102); world.GetFaction(1)!.OfficerIds.Remove(102); officer.CityId = 0;
+            if (condition.StartsWith("captured")) { officer.CaptiveFactionId = 2; officer.JailedCityId = 2; }
+            else officer.DeathYear = world.Year;
+            BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Defender);
+            Assert(source.Troops == beforeTroops && !source.OfficerIds.Contains(102) && officer.CityId == 0 &&
+                   (!condition.StartsWith("captured") || officer.CaptiveFactionId == 2 && officer.JailedCityId == 2) && order.Status == ReinforcementStatus.Returned,
+                "reinforcement unavailable officer", $"condition={condition}, troops={source.Troops}/{beforeTroops}, city={officer.CityId}, captive={officer.CaptiveFactionId}");
+        }
+
+        var supplyWorld = CreateBattleCampaignWorld();
+        var supplySource = supplyWorld.GetCity(3)!;
+        var supplyGold = supplySource.Gold; var supplyFood = supplySource.Food;
+        var supplyCampaign = BattleCampaignService.CreateCampaign(supplyWorld, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        var supplyOrder = BattleCampaignService.DispatchReinforcement(supplyWorld, supplyCampaign, 3, CampaignBattleSide.Attacker,
+            Array.Empty<AttackOfficerDeploymentData>(), 100, 200);
+        BattleCampaignService.CompleteCampaign(supplyWorld, supplyCampaign, CampaignBattleSide.Defender);
+        Assert(supplyOrder.Teams.Count == 0 && supplyOrder.Status == ReinforcementStatus.Returned &&
+               supplySource.Gold == supplyGold && supplySource.Food == supplyFood,
+            "reinforcement supply-only return", "undelivered supplies return once without requiring a troop team");
+
+        var mixedWorld = CreateBattleCampaignWorld();
+        var mixedOrigin = TestHelpers.City(4, "Second origin", 1, 1000, 1000, 2000, Array.Empty<int>(), Array.Empty<int>());
+        mixedWorld.Cities.Add(mixedOrigin);
+        var mixedSource = mixedWorld.GetCity(3)!;
+        var mixedFallback = mixedWorld.GetCity(1)!;
+        var originTroops = mixedOrigin.Troops; var fallbackTroops = mixedFallback.Troops;
+        var mixedCampaign = BattleCampaignService.CreateCampaign(mixedWorld, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+        var mixedOrder = BattleCampaignService.DispatchReinforcement(mixedWorld, mixedCampaign, 3, CampaignBattleSide.Attacker,
+            new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Infantry, TroopCount = 1000 } }, 0, 0);
+        mixedSource.AddTroops(TroopType.Infantry, 400);
+        mixedOrigin.RemoveTroops(TroopType.Infantry, 400);
+        mixedOrder.Teams[0].TroopOrigins = new List<CampaignTroopOriginData>
+        {
+            new() { CityId = 3, ActiveTroops = 600 }, new() { CityId = 4, ActiveTroops = 400 }
+        };
+        mixedSource.OwnerFactionId = 2;
+        var capturedSourceTroops = mixedSource.Troops;
+        BattleCampaignService.CompleteCampaign(mixedWorld, mixedCampaign, CampaignBattleSide.Defender);
+        Assert(mixedOrder.Status == ReinforcementStatus.Returned && mixedSource.Troops == capturedSourceTroops &&
+               mixedOrigin.Troops == originTroops && mixedFallback.Troops == fallbackTroops + 600 && mixedFallback.OfficerIds.Contains(102),
+            "reinforcement mixed origin return", $"captured={mixedSource.Troops}/{capturedSourceTroops}, friendly={mixedOrigin.Troops}/{originTroops}, fallback={mixedFallback.Troops}/{fallbackTroops + 600}");
+
+        foreach (var equipment in new[] { SiegeEngineType.Ram, SiegeEngineType.Ladder, SiegeEngineType.Catapult })
+        {
+            var siegeWorld = CreateBattleCampaignWorld();
+            var siegeSource = siegeWorld.GetCity(3)!;
+            siegeSource.SiegeTroops = 600; siegeSource.AddSiegeEngine(equipment, 1); siegeSource.SyncLegacyTroops();
+            var siegeBefore = siegeSource.SiegeTroops; var engineBefore = siegeSource.GetSiegeEngineCount(equipment);
+            var siegeCampaign = BattleCampaignService.CreateCampaign(siegeWorld, CreateBattleCampaignAttack(), DefenderBattlePlan.FieldIntercept);
+            var siegeOrder = BattleCampaignService.DispatchReinforcement(siegeWorld, siegeCampaign, 3, CampaignBattleSide.Attacker,
+                new[] { new AttackOfficerDeploymentData { OfficerId = 102, TroopType = TroopType.Siege, TroopCount = 200, SiegeEngineType = equipment } }, 0, 0);
+            BattleCampaignService.CompleteCampaign(siegeWorld, siegeCampaign, CampaignBattleSide.Defender);
+            Assert(siegeSource.SiegeTroops == siegeBefore && siegeSource.GetSiegeEngineCount(equipment) == engineBefore && siegeOrder.Status == ReinforcementStatus.Returned,
+                "reinforcement siege return", $"type={equipment}, troops={siegeSource.SiegeTroops}/{siegeBefore}, engine={siegeSource.GetSiegeEngineCount(equipment)}/{engineBefore}");
+            var destroyed = new CampaignBattleTeamData { TroopType = TroopType.Siege, SiegeEngineType = equipment };
+            CampaignRetreatService.ReturnTeamToCity(siegeWorld, siegeSource, destroyed);
+            Assert(siegeSource.GetSiegeEngineCount(equipment) == engineBefore, "destroyed siege return", $"type={equipment}: destroyed equipment is not recreated");
+        }
+    }
+
+    private static void RunCampaignEquipmentReportTest()
+    {
+        (WorldState World, ActiveBattleCampaignData Campaign, CampaignBattleTeamData Cart, CampaignBattleTeamData Ram) Setup()
+        {
+            var world = CreateBattleCampaignWorld();
+            var attack = CreateBattleCampaignAttack();
+            attack.BattleSupport = new BattleSupportDeploymentData { SupplyCart = true, Ram = true };
+            var campaign = BattleCampaignService.CreateCampaign(world, attack, DefenderBattlePlan.FieldIntercept);
+            return (world, campaign, campaign.Teams.Single(team => team.EquipmentType == BattleEquipmentType.SupplyCart),
+                campaign.Teams.Single(team => team.EquipmentType == BattleEquipmentType.Ram));
+        }
+        var (world, campaign, cart, ram) = Setup();
+        var ordinary = campaign.Teams.Where(team => team.Side == CampaignBattleSide.Attacker && team.EquipmentType == BattleEquipmentType.None).Sum(team => team.MaximumTroops);
+        cart.ActiveTroops = 0; cart.Location = CampaignTeamLocation.Eliminated;
+        BattleCampaignService.CompleteCampaign(world, campaign, CampaignBattleSide.Attacker);
+        var report = world.BattleReports.Single();
+        var contribution = report.ParticipantContributions.Single(item => item.FactionId == 1 && item.Side == CampaignBattleSide.Attacker);
+        var committed = ordinary + BattleSupportRules.SupplyCartEngineerRequirement + BattleSupportRules.RamEngineerRequirement;
+        var active = ordinary + BattleSupportRules.RamEngineerRequirement;
+        Assert(report.AttackerCommittedTroops == committed && report.AttackerActiveTroops == active &&
+               report.AttackerLostTroops == BattleSupportRules.SupplyCartEngineerRequirement &&
+               contribution.TroopsCommitted == committed && contribution.ActiveTroops == active && contribution.TroopsLost == BattleSupportRules.SupplyCartEngineerRequirement,
+            "campaign equipment crew report", $"committed={report.AttackerCommittedTroops}/{committed}, active={report.AttackerActiveTroops}/{active}, lost={report.AttackerLostTroops}");
+
+        var (returnWorld, returnCampaign, returningCart, _) = Setup();
+        var returned = BattleCampaignService.TryReturnSupportTeamToOrigin(returnWorld, returningCart);
+        BattleCampaignService.CompleteCampaign(returnWorld, returnCampaign, CampaignBattleSide.Attacker);
+        var returnReport = returnWorld.BattleReports.Single();
+        Assert(returned && returnReport.AttackerReturnedTroops == BattleSupportRules.SupplyCartEngineerRequirement && returnReport.AttackerLostTroops == 0 &&
+               returnReport.AttackerCommittedTroops == returnReport.AttackerActiveTroops + returnReport.AttackerReturnedTroops,
+            "campaign returned equipment crew", "a returned cart's engineers are reported as returned without exceeding committed personnel");
+
+        var (disbandWorld, disbandCampaign, _, _) = Setup();
+        disbandWorld.GetCity(1)!.OwnerFactionId = 2;
+        disbandWorld.GetCity(3)!.OwnerFactionId = 2;
+        disbandCampaign.AttackerWonFieldBattle = true;
+        BattleCampaignService.ApplyPostFieldDecision(disbandCampaign, PostFieldBattleDecision.Withdraw);
+        BattleCampaignService.CompleteCampaign(disbandWorld, disbandCampaign, CampaignBattleSide.Defender);
+        var disbandReport = disbandWorld.BattleReports.Single();
+        Assert(disbandReport.AttackerDisbandedTroops == committed && disbandReport.AttackerActiveTroops == 0 && disbandReport.AttackerLostTroops == 0,
+            "campaign disbanded equipment crew", $"disbanded={disbandReport.AttackerDisbandedTroops}/{committed}, lost={disbandReport.AttackerLostTroops}");
+    }
+
     private static void RunBattleCampaignBlockedEntranceQueueTest()
     {
         var world = CreateBattleCampaignWorld();
@@ -1798,11 +2137,12 @@ internal static partial class Program
         noCityWorld.GetCity(4)!.OwnerFactionId = 2;
         var disbandedTroops = noCityOrder.Teams.Sum(team => team.ActiveTroops + team.WoundedTroops);
         var disbandedOfficerIds = noCityOrder.Teams.Where(team => team.OfficerId > 0).Select(team => team.OfficerId).ToArray();
+        foreach (var id in disbandedOfficerIds) noCityWorld.GetOfficer(id)!.Belongs = "3";
         BattleCampaignService.CompleteCampaign(noCityWorld, noCityCampaign, CampaignBattleSide.Defender);
         var noCityReport = noCityWorld.BattleReports.Single();
         var noCityContribution = noCityReport.ParticipantContributions.Single(item => item.FactionId == 3);
         Assert(noCityOrder.Status == ReinforcementStatus.Cancelled && disbandedOfficerIds.Length > 0 &&
-               disbandedOfficerIds.All(id => FreeOfficerMovement.IsFreeOfficer(noCityWorld, noCityWorld.GetOfficer(id)!)) &&
+               disbandedOfficerIds.All(id => FreeOfficerMovement.IsFreeOfficer(noCityWorld, noCityWorld.GetOfficer(id)!) && noCityWorld.GetOfficer(id)!.Belongs == "0") &&
                noCityOrder.Teams.All(team => team.ActiveTroops == 0 && team.WoundedTroops == 0) &&
                noCityReport.DefenderDisbandedTroops == disbandedTroops && noCityContribution.TroopsDisbanded == disbandedTroops &&
                noCityContribution.TroopsReturned == 0 && noCityContribution.TroopsLost == 0,

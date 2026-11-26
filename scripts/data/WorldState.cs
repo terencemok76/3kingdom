@@ -75,6 +75,7 @@ public class WorldState
         public int AttackerRulerOfficerId { get; set; }
         public int DefenderFactionId { get; set; }
         public int WinnerFactionId { get; set; }
+        public bool IncompleteSettlement { get; set; }
         public CampaignStage Stage { get; set; }
         public int AttackerCommittedTroops { get; set; }
         public int AttackerLostTroops { get; set; }

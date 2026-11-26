@@ -141,18 +141,16 @@ public partial class HudController
         buttons.AddChild(accept); buttons.AddChild(reject); box.AddChild(buttons);
     }
 
-    private bool TryShowPendingAiCampaignSupport(Action onResolved)
+    private bool TryShowPendingAiCampaignSupport(Action onResolved, int campaignId = 0)
     {
         if (_turnManager?.World is not { } world || _localization == null) return false;
         var playerId = _turnManager.GetPlayerFactionId();
-        foreach (var active in world.ActiveBattleCampaigns.Where(item => item.Stage != CampaignStage.Resolved))
+        foreach (var active in world.ActiveBattleCampaigns.Where(item => item.Stage != CampaignStage.Resolved &&
+                     (campaignId <= 0 || item.Id == campaignId)))
             foreach (var pending in active.Invitations.Where(item => item.InvitedFactionId == playerId &&
                 item.Status == BattleInvitationStatus.Pending && item.ResponseBattleDays <= 0).ToList())
                 BattleCampaignService.DeclineUnavailableInvitationEnvoy(world, active, pending);
-        var entry = world.ActiveBattleCampaigns.Where(campaign => campaign.Stage != CampaignStage.Resolved)
-            .SelectMany(campaign => campaign.Invitations.Where(invitation => invitation.InvitedFactionId == playerId &&
-                invitation.Status == BattleInvitationStatus.Pending && invitation.ResponseBattleDays <= 0).Select(invitation => (Campaign: campaign, Invitation: invitation)))
-            .FirstOrDefault();
+        var entry = AiPlayerCampaignSupportRules.FindPendingCampaignRequest(world, playerId, campaignId);
         if (entry.Campaign == null || entry.Invitation == null) return false;
         var campaign = entry.Campaign;
         var invitation = entry.Invitation;
@@ -187,9 +185,10 @@ public partial class HudController
         if (campaign == null) return;
         void Resume()
         {
+            if (TryShowPendingAiCampaignSupport(Resume, campaign.Id)) return;
             campaign.IsAwaitingPlayerSupportResponse = false;
             LaunchCampaignBattle(campaign.Id);
         }
-        if (!TryShowPendingAiCampaignSupport(Resume)) Resume();
+        Resume();
     }
 }

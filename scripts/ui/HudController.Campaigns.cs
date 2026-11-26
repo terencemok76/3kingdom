@@ -271,9 +271,7 @@ public partial class HudController
         {
             AddAiCapturedOfficerDispositionLog(dispositionResult);
         }
-        var report = world.BattleReports.LastOrDefault(item =>
-            !item.PlayerAcknowledged &&
-            (item.AttackerFactionId == playerFactionId || item.DefenderFactionId == playerFactionId));
+        var report = BattleReportPlayerRules.GetNextPending(world.BattleReports, playerFactionId);
         if (report == null)
         {
             DismissCampaignReturnLoadingOverlay();
@@ -316,9 +314,11 @@ public partial class HudController
             localization.Format("ui.campaign.battle_report_route", sourceName, targetName);
         var playerWon = isCaravanEscortReport
             ? report.CaravanEscortOutcome != CaravanEscortOutcome.Plundered
-            : report.WinnerFactionId == playerFactionId;
+            : BattleReportPlayerRules.DidPlayerWin(report, playerFactionId) == true;
         var outcomeLabel = _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/OutcomeLabel");
-        outcomeLabel.Text = isCaravanEscortReport
+        outcomeLabel.Text = report.IncompleteSettlement
+            ? localization.T("ui.campaign.battle_report_incomplete")
+            : isCaravanEscortReport
             ? report.CaravanEscortOutcome switch
             {
                 CaravanEscortOutcome.Delivered => localization.T("ui.battle.caravan_report_delivered"),
@@ -328,12 +328,12 @@ public partial class HudController
             : localization.T(playerWon
                 ? "ui.campaign.battle_report_victory"
                 : "ui.campaign.battle_report_defeat");
-        outcomeLabel.AddThemeColorOverride("font_color", playerWon
+        outcomeLabel.AddThemeColorOverride("font_color", report.IncompleteSettlement || playerWon
             ? new Color(0.94f, 0.84f, 0.62f, 1.0f)
             : new Color(0.9f, 0.38f, 0.34f, 1.0f));
-        GameAudioController.Instance?.PlayBattleOutcomeBgm(playerWon);
+        if (!report.IncompleteSettlement) GameAudioController.Instance?.PlayBattleOutcomeBgm(playerWon);
         _battleReportDialog.GetNode<Label>("Center/ReportPanel/Root/Body/Content/WinnerLabel").Text =
-            localization.Format("ui.campaign.battle_report_winner", winnerName);
+            report.IncompleteSettlement ? localization.T("ui.campaign.battle_report_winner_unavailable") : localization.Format("ui.campaign.battle_report_winner", winnerName);
         var attackerRulerName = isCaravanEscortReport
             ? localization.T("ui.battle.caravan_report_ambush_side")
             : localization.GetFactionName(world, report.AttackerFactionId);
@@ -406,7 +406,9 @@ public partial class HudController
                 item.RewardFood,
                 item.RelationDelta,
                 item.TrustDelta,
-                localization.T(item.SupportArrived == false
+                localization.T(report.IncompleteSettlement
+                    ? "ui.campaign.battle_report_settlement_unavailable"
+                    : item.SupportArrived == false
                     ? "ui.campaign.battle_report_support_not_arrived"
                     : item.PromiseFulfilled
                     ? "ui.campaign.battle_report_promise_fulfilled"
@@ -460,6 +462,12 @@ public partial class HudController
             report.TargetCityId,
             report.Year,
             report.Month);
+        var world = _turnManager?.World;
+        if (world != null && BattleReportPlayerRules.GetNextPending(world.BattleReports, _turnManager!.GetPlayerFactionId()) != null)
+        {
+            ShowPendingBattleReportIfNeeded();
+            return;
+        }
         ShowNextFactionOutcomeIfPossible();
         if (_personnelUiController?.HasPendingPlayerSuccession() == true)
         {

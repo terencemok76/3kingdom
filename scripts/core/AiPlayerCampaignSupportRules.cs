@@ -6,6 +6,20 @@ namespace ThreeKingdom.Core;
 
 public static class AiPlayerCampaignSupportRules
 {
+    public static (ActiveBattleCampaignData? Campaign, BattleInvitationData? Invitation) FindPendingCampaignRequest(
+        WorldState world, int playerFactionId, int campaignId = 0)
+    {
+        if (playerFactionId <= 0) return (null, null);
+        foreach (var campaign in world.ActiveBattleCampaigns.Where(item => item.Stage != CampaignStage.Resolved &&
+                     (campaignId <= 0 || item.Id == campaignId)))
+        {
+            var invitation = campaign.Invitations.FirstOrDefault(item => item.InvitedFactionId == playerFactionId &&
+                item.Status == BattleInvitationStatus.Pending && item.ResponseBattleDays <= 0);
+            if (invitation != null) return (campaign, invitation);
+        }
+        return (null, null);
+    }
+
     public static bool RespondToCampaignRequest(WorldState world, ActiveBattleCampaignData campaign, BattleInvitationData invitation,
         PlayerCampaignSupportRequestData response, bool accept)
     {
@@ -86,6 +100,23 @@ public static class AiPlayerCampaignSupportRules
         var city = world.GetCity(attack.SourceCityId);
         if (city?.OwnerFactionId != attack.ActorFactionId)
             city = world.Cities.Where(item => item.OwnerFactionId == attack.ActorFactionId).OrderBy(item => item.Id).FirstOrDefault();
+        var faction = world.GetFaction(attack.ActorFactionId);
+        foreach (var officerId in attack.OfficerIds.Concat(new[] { attack.PlayerSupportRequest?.EnvoyOfficerId ?? 0 }).Distinct())
+        {
+            var officer = world.GetOfficer(officerId);
+            if (officer == null || officer.CaptiveFactionId > 0 ||
+                officer.DeathYear > 0 && officer.DeathYear < world.Year || faction?.OfficerIds.Contains(officerId) != true)
+                continue;
+            if (city == null)
+            {
+                CampaignRetreatService.ReleaseOfficerToFreeStatus(world, faction, officer, officer.CityId > 0 ? officer.CityId : attack.SourceCityId);
+                continue;
+            }
+            if (officer.CityId != attack.SourceCityId || officer.CityId == city.Id) continue;
+            CampaignRetreatService.RemoveOfficerFromAllCities(world, officerId);
+            city.OfficerIds.Add(officerId);
+            officer.CityId = city.Id;
+        }
         if (city == null) return;
         city.AddTroopAllocation(attack.TroopAllocation);
         city.AddSiegeEngineAllocation(attack.SiegeEngineAllocation);

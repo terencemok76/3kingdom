@@ -116,6 +116,7 @@ public partial class BattleSceneController
 
     private void ShowBattleOptionDialog()
     {
+        HideCommandMenu();
         var status = GetNodeOrNull<Label>("UiLayer/BattleOptionOverlay/Center/Panel/Margin/OptionRoot/SaveSettingsStatus");
         if (status != null) status.Visible = false;
         RefreshBattleOptionDialogText();

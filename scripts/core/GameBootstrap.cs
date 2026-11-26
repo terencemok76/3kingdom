@@ -70,7 +70,7 @@ public partial class GameBootstrap : Node
         startMenuController.BattleRequested += OnBattleRequested;
         if (CampaignRuntimeContext.TryConsumeReturningWorld(out var returningWorld))
         {
-            EnterGameplay(returningWorld);
+            EnterGameplay(returningWorld, resumeSavedBattle: false);
             return;
         }
 
@@ -126,7 +126,7 @@ public partial class GameBootstrap : Node
         GetTree().ChangeSceneToFile(scenePath);
     }
 
-    private void EnterGameplay(WorldState world)
+    private void EnterGameplay(WorldState world, bool resumeSavedBattle = true)
     {
         var mapController = GetNodeOrNull<MapController>("MapScene");
         var hudController = GetNodeOrNull<HudController>("HUD");
@@ -154,7 +154,7 @@ public partial class GameBootstrap : Node
         hudController.ApplyLoadedWorld(world);
         startMenuController.HideMenu();
         _audioController?.PlayGameplayBgm();
-        if (hudController.TryResumeSavedCampaignBattle())
+        if (resumeSavedBattle && hudController.TryResumeSavedCampaignBattle())
         {
             return;
         }

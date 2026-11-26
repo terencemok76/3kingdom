@@ -222,15 +222,17 @@ internal static class CampaignRetreatService
         }
         else
         {
-            destination.AddTroops(team.TroopType, returnedTroops);
+            // Siege teams reserve the city's engineer pool, so their surviving
+            // operators must return to that same pool.
+            destination.AddTroops(team.TroopType == TroopType.Siege ? TroopType.Engineer : team.TroopType, returnedTroops);
             team.ReturnedTroops += returnedTroops;
         }
-        if (team.TroopType == TroopType.Siege && team.SiegeEngineType != SiegeEngineType.None)
+        if (returnedTroops > 0 && team.TroopType == TroopType.Siege && team.SiegeEngineType != SiegeEngineType.None)
         {
             destination.AddSiegeEngine(team.SiegeEngineType, 1);
         }
 
-        if (team.OfficerId > 0)
+        if (CanReturnOfficer(world, team.OfficerId))
         {
             officerDestination ??= destination;
             RemoveOfficerFromAllCities(world, team.OfficerId);
@@ -262,10 +264,20 @@ internal static class CampaignRetreatService
             total += troops;
         }
         team.ReturnedTroops += total;
-        if (team.OfficerId <= 0) return;
+        if (!CanReturnOfficer(world, team.OfficerId)) return;
         RemoveOfficerFromAllCities(world, team.OfficerId);
         if (!officerDestination.OfficerIds.Contains(team.OfficerId)) officerDestination.OfficerIds.Add(team.OfficerId);
         if (world.GetOfficer(team.OfficerId) is { } officer) officer.CityId = officerDestination.Id;
+    }
+
+    private static bool CanReturnOfficer(WorldState world, int officerId)
+    {
+        var officer = officerId > 0 ? world.GetOfficer(officerId) : null;
+        if (officer == null || officer.CaptiveFactionId > 0 || officer.DeathYear > 0 && officer.DeathYear < world.Year) return false;
+        // Natural deaths remove faction membership and location immediately,
+        // even though DeathYear is also used as an inclusive historical year.
+        return officer.DeathYear <= 0 || officer.DeathYear != world.Year || officer.CityId > 0 ||
+            world.Factions.Any(faction => faction.OfficerIds.Contains(officerId) || faction.RulerOfficerId == officerId);
     }
 
     private static void AddBattleEquipment(CityData city, BattleEquipmentType equipmentType)
@@ -336,6 +348,25 @@ internal static class CampaignRetreatService
         {
             city.OfficerIds.Remove(officerId);
         }
+    }
+
+    internal static void ReleaseOfficerToFreeStatus(WorldState world, FactionData owner, OfficerData officer, int preferredCityId)
+    {
+        RemoveOfficerFromAllCities(world, officer.Id);
+        owner.OfficerIds.Remove(officer.Id);
+        if (owner.ChancellorOfficerId == officer.Id) owner.ChancellorOfficerId = 0;
+        if (owner.ChiefStrategistOfficerId == officer.Id) owner.ChiefStrategistOfficerId = 0;
+        if (owner.RulerOfficerId == officer.Id)
+        {
+            owner.RulerOfficerId = 0;
+            officer.DisplacedRulerFactionId = owner.Id;
+        }
+        officer.Belongs = "0";
+        officer.Appointments.Clear();
+        officer.CityId = (world.GetCity(preferredCityId) ?? world.Cities.OrderBy(city => city.Id).FirstOrDefault())?.Id ?? 0;
+        officer.CaptiveFactionId = 0;
+        officer.JailedCityId = 0;
+        officer.FreeOfficerStayMonths = 2;
     }
 
 }
