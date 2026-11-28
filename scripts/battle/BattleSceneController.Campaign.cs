@@ -1301,6 +1301,10 @@ public partial class BattleSceneController
             _activeCampaign.BattleSnapshotJson = string.Empty;
             if (BattleCampaignService.HasEffectiveInnerCityDefender(_activeCampaign))
             {
+                // The field encounter consumes its current battle day.  The
+                // next stage begins at the following dawn, including normal
+                // reinforcement and invitation progress for the elapsed day.
+                BattleCampaignService.AdvanceCompletedBattleDay(_activeCampaign, CampaignRuntimeContext.World);
                 if (CampaignRuntimeContext.World.GetFaction(_activeCampaign.AttackerFactionId)?.IsPlayer != true)
                     _activeCampaign.PostFieldDecision = CampaignPostFieldDecisionRules.ChooseAiDecision(CampaignRuntimeContext.World, _activeCampaign, GetMonthlyBattleDayLimit());
                 _activeCampaign.IsAwaitingPlayerDecision = true;
@@ -1331,13 +1335,31 @@ public partial class BattleSceneController
 
         var canvas = new CanvasLayer { Layer = 200 };
         AddChild(canvas);
+        var shade = new ColorRect
+        {
+            Color = new Color(0.02f, 0.025f, 0.04f, 0.78f),
+            MouseFilter = Control.MouseFilterEnum.Stop
+        };
+        shade.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        canvas.AddChild(shade);
+        var center = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        center.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        canvas.AddChild(center);
         var panel = new PanelContainer
         {
-            Position = new Vector2(420, 210),
-            CustomMinimumSize = new Vector2(430, 250)
+            CustomMinimumSize = new Vector2(480, 0)
         };
-        canvas.AddChild(panel);
+        panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.055f, 0.06f, 0.09f, 0.99f),
+            BorderColor = new Color(0.68f, 0.51f, 0.22f),
+            BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
+            CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6,
+            ContentMarginLeft = 20, ContentMarginTop = 20, ContentMarginRight = 20, ContentMarginBottom = 20
+        });
+        center.AddChild(panel);
         _campaignDecisionPanel = new VBoxContainer();
+        _campaignDecisionPanel.AddThemeConstantOverride("separation", 10);
         panel.AddChild(_campaignDecisionPanel);
         var playerControlsAttacker = CampaignRuntimeContext.World?.GetFaction(campaign.AttackerFactionId)?.IsPlayer == true;
         var title = playerControlsAttacker
@@ -1348,15 +1370,19 @@ public partial class BattleSceneController
                 PostFieldBattleDecision.PrepareNextMonthSiege => BattleText("ui.battle.ai_prepare_siege", "The attacker will prepare for next month."),
                 _ => BattleText("ui.battle.ai_withdraw", "The attacker will withdraw.")
             };
-        _campaignDecisionPanel.AddChild(new Label
+        var titleLabel = new Label
         {
             Text = title,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center
-        });
+        };
+        titleLabel.AddThemeFontSizeOverride("font_size", 22);
+        titleLabel.AddThemeColorOverride("font_color", new Color(0.94f, 0.86f, 0.68f));
+        _campaignDecisionPanel.AddChild(titleLabel);
         if (playerControlsAttacker || campaign.PostFieldDecision != PostFieldBattleDecision.Withdraw)
         {
             var reorganize = new Button { Text = BattleText("ui.battle.reorganize", "Reorganize troops"), CustomMinimumSize = new Vector2(390, 48) };
+            ApplyBattleOptionButtonStyle(reorganize);
             reorganize.Pressed += ShowCampaignReorganization;
             _campaignDecisionPanel.AddChild(reorganize);
         }
@@ -1376,6 +1402,7 @@ public partial class BattleSceneController
     private void AddCampaignDecisionButton(string text, PostFieldBattleDecision decision, bool disabled = false)
     {
         var button = new Button { Text = text, CustomMinimumSize = new Vector2(390, 48), Disabled = disabled };
+        ApplyBattleOptionButtonStyle(button);
         button.Pressed += () => OnPostFieldBattleDecision(decision);
         _campaignDecisionPanel?.AddChild(button);
     }
